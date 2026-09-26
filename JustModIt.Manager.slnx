@@ -12,6 +12,7 @@
     <Project Path="src/MenadzerSpolszczen/MenadzerSpolszczen.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/JustModIt.Manager.Core.Tests/JustModIt.Manager.Core.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.Host.Tests/JustModIt.Manager.Host.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.Localization.Tests/JustModIt.Manager.Localization.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.Protocol.Tests/JustModIt.Manager.Protocol.Tests.csproj" />
