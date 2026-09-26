@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JustModIt.Manager.Protocol\JustModIt.Manager.Protocol.csproj" />
+  </ItemGroup>
+</Project>
