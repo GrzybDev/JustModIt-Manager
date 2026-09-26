@@ -1,0 +1,32 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+releases/
+TestResults/
+*.binlog
+
+# IDE / OS
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+.DS_Store
+Thumbs.db
+
+# Local secrets
+.env
+.env.*
+*.pfx
+
+# Claude Code local state
+.claude/worktrees/
+.claude/settings.local.json
+
+# Native build output
+native/build/
+native/bin/
