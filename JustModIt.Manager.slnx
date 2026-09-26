@@ -11,5 +11,7 @@
     <Project Path="src/JustModIt.Manager.Ui/JustModIt.Manager.Ui.csproj" />
     <Project Path="src/MenadzerSpolszczen/MenadzerSpolszczen.csproj" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/JustModIt.Manager.Host.Tests/JustModIt.Manager.Host.Tests.csproj" />
+  </Folder>
 </Solution>

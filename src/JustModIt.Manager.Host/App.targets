@@ -13,4 +13,6 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>embedded</DebugType>
   </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)ProductConfiguration.targets" />
 </Project>

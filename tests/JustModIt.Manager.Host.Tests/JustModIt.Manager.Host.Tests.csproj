@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- An invented app's Product.props, so the tests read the ProductConfiguration its build generates. -->
+  <PropertyGroup>
+    <Product>Example "App"; 100%</Product>
+    <ManagerAppId>ExampleApp</ManagerAppId>
+    <ManagerVendorId>ExampleVendor</ManagerVendorId>
+    <ManagerAppSlug>example-app</ManagerAppSlug>
+    <ManagerPackageExtension>.examplemod</ManagerPackageExtension>
+    <ManagerCreatorProjectExtension>.exampleproj</ManagerCreatorProjectExtension>
+    <ManagerApiUrl>https://api.example.com/</ManagerApiUrl>
+  </PropertyGroup>
+
+  <Import Project="..\..\src\JustModIt.Manager.Host\ProductConfiguration.targets" />
+</Project>

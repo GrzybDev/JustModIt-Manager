@@ -25,6 +25,7 @@
     <Copyright>Copyright © 2026 Marek Grzyb</Copyright>
     <Version Condition="'$(Version)' == ''">0.1.0</Version>
   </PropertyGroup>
+
   <!-- Generating the documentation file makes the compiler check every documentation comment. Which members need one
        is left to the comment convention, so a missing one is not reported, and the files never ship. -->
   <PropertyGroup Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)src'))">
@@ -34,4 +35,13 @@
     <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
   </PropertyGroup>
 
+  <!-- Build settings of every app, overridden per build with -p:Name=value. Each app compiles them into its
+       ProductConfiguration together with its Product.props. -->
+  <PropertyGroup>
+    <ManagerApiKey Condition="'$(ManagerApiKey)' == ''"></ManagerApiKey>
+    <ManagerUpdatePrereleases Condition="'$(ManagerUpdatePrereleases)' == ''">true</ManagerUpdatePrereleases>
+    <!-- A development build uses its own data folder, mutexes and pipe, so it never touches an installed copy. -->
+    <ManagerDevelopmentBuild Condition="'$(ManagerDevelopmentBuild)' == '' and '$(Configuration)' == 'Release'">false</ManagerDevelopmentBuild>
+    <ManagerDevelopmentBuild Condition="'$(ManagerDevelopmentBuild)' == ''">true</ManagerDevelopmentBuild>
+  </PropertyGroup>
 </Project>
