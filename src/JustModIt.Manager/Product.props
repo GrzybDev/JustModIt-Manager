@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <Product>JustModIt Manager</Product>
+    <Company>JustModIt</Company>
+    <ManagerAppId>JustModItManager</ManagerAppId>
+    <ManagerVendorId>JustModIt</ManagerVendorId>
+    <ManagerAppSlug>justmodit-manager</ManagerAppSlug>
+    <ManagerPackageExtension>.modit</ManagerPackageExtension>
+    <ManagerCreatorProjectExtension>.moditproj</ManagerCreatorProjectExtension>
+    <!-- The only public JustModIt site so far. -->
+    <ManagerApiUrl>https://api.bazaspolszczen.pl/</ManagerApiUrl>
+    <ManagerSiteUrl>https://bazaspolszczen.pl/</ManagerSiteUrl>
+    <ManagerUpdateUrl>https://github.com/GrzybDev/JustModIt-Manager</ManagerUpdateUrl>
+    <ManagerLanguage>en</ManagerLanguage>
+    <ManagerTargetLanguage></ManagerTargetLanguage>
+    <ManagerAccentColor>#3B82F6</ManagerAccentColor>
+  </PropertyGroup>
+</Project>

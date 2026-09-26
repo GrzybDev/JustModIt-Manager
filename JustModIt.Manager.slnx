@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JustModIt.Manager/JustModIt.Manager.csproj" />
+    <Project Path="src/JustModIt.Manager.Agent/JustModIt.Manager.Agent.csproj" />
+    <Project Path="src/JustModIt.Manager.Core/JustModIt.Manager.Core.csproj" />
+    <Project Path="src/JustModIt.Manager.Creator/JustModIt.Manager.Creator.csproj" />
+    <Project Path="src/JustModIt.Manager.Host/JustModIt.Manager.Host.csproj" />
+    <Project Path="src/JustModIt.Manager.Localization/JustModIt.Manager.Localization.csproj" />
+    <Project Path="src/JustModIt.Manager.Platform.Windows/JustModIt.Manager.Platform.Windows.csproj" />
+    <Project Path="src/JustModIt.Manager.Protocol/JustModIt.Manager.Protocol.csproj" />
+    <Project Path="src/JustModIt.Manager.Ui/JustModIt.Manager.Ui.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+</Solution>

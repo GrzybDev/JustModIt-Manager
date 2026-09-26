@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MessageFormat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="JustModIt.Manager.Localization.Tests" />
+  </ItemGroup>
+</Project>
