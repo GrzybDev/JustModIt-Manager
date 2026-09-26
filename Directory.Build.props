@@ -1,0 +1,37 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(GITHUB_ACTIONS)' == 'true'">true</RestoreLockedMode>
+    <!-- Lock files must describe the runtime graph that publishing restores, or locked restores fail in CI. -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+    <NeutralLanguage>en</NeutralLanguage>
+    <!-- Each app embeds the texts of its one language, so satellite assemblies from packages are left out. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Copyright>Copyright © 2026 Marek Grzyb</Copyright>
+    <Version Condition="'$(Version)' == ''">0.1.0</Version>
+  </PropertyGroup>
+  <!-- Generating the documentation file makes the compiler check every documentation comment. Which members need one
+       is left to the comment convention, so a missing one is not reported, and the files never ship. -->
+  <PropertyGroup Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)src'))">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+  </PropertyGroup>
+
+</Project>
