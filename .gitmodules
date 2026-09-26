@@ -1,0 +1,6 @@
+[submodule "native/xdelta"]
+	path = native/xdelta
+	url = https://github.com/jmacd/xdelta.git
+[submodule "native/xz"]
+	path = native/xz
+	url = https://github.com/tukaani-project/xz.git
