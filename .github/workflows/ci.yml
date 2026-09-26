@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+  AVALONIA_TELEMETRY_OPTOUT: '1'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build native shim
+        shell: pwsh
+        run: ./native/build.ps1 -Rid win-x64
+
+      - name: Build
+        run: dotnet build JustModIt.Manager.slnx -c Release
+
+      - name: Test
+        run: dotnet test --solution JustModIt.Manager.slnx -c Release --no-build
+
+      # NativeAOT and trimming warnings only surface at publish time, and they are errors here. Every app is published,
+      # so a shared change cannot break one that nobody was looking at.
+      - name: Publish NativeAOT
+        shell: pwsh
+        run: |
+          foreach ($app in (Get-ChildItem src/*/Product.props).Directory) {
+            dotnet publish $app.FullName -c Release -r win-x64 -o "publish/$($app.Name)"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
