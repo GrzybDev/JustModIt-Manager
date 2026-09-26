@@ -13,5 +13,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/JustModIt.Manager.Host.Tests/JustModIt.Manager.Host.Tests.csproj" />
+    <Project Path="tests/JustModIt.Manager.Localization.Tests/JustModIt.Manager.Localization.Tests.csproj" />
   </Folder>
 </Solution>

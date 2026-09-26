@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Built like an app in Polish as spoken in Poland, with an override of its own, so the tests read texts merged the
+       way an app's are, including the fallback from a regional language to the translation of its language. -->
+  <PropertyGroup>
+    <ManagerLanguage>pl-PL</ManagerLanguage>
+  </PropertyGroup>
+
+  <Import Project="..\..\src\JustModIt.Manager.Localization\Texts.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JustModIt.Manager.Localization\JustModIt.Manager.Localization.csproj" />
+  </ItemGroup>
+</Project>

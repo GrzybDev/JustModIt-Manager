@@ -1,0 +1,89 @@
+<Project>
+  <!-- An app's texts in its language (ManagerLanguage, English when empty): the English base, the platform's translation
+       into that language and the app's own Resources\Strings.<language>.resx, merged into the one resource set that
+       TextCatalog.Load reads, so the app needs no satellite assemblies. -->
+  <PropertyGroup>
+    <_ManagerTextsLanguage>$(ManagerLanguage)</_ManagerTextsLanguage>
+    <_ManagerTextsLanguage Condition="'$(_ManagerTextsLanguage)' == ''">en</_ManagerTextsLanguage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="Resources\Strings.*.resx" />
+    <None Include="Resources\Strings.*.resx" />
+  </ItemGroup>
+
+  <UsingTask TaskName="MergeTexts" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Language ParameterType="System.String" Required="true" />
+      <PlatformDirectory ParameterType="System.String" Required="true" />
+      <AppDirectory ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Xml" />
+      <Using Namespace="System.Xml.Linq" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        // A regional language such as pt-BR also takes the texts of its language, as .NET's resource fallback would.
+        var subtags = Language.Split('-');
+        var languages = Enumerable.Range(1, subtags.Length).Select(count => string.Join("-", subtags.Take(count))).ToList();
+        var translations = new[] { PlatformDirectory, AppDirectory }
+            .SelectMany(directory => languages.Select(language => Path.Combine(directory, "Strings." + language + ".resx")))
+            .Where(File.Exists)
+            .ToList();
+        if (translations.Count == 0 && !string.Equals(subtags[0], "en", StringComparison.OrdinalIgnoreCase))
+        {
+            Log.LogError("ManagerLanguage '{0}' has no texts: add Strings.{1}.resx to the platform's or the app's Resources.",
+                Language, languages[0]);
+            return false;
+        }
+
+        var baseDocument = XDocument.Load(Path.Combine(PlatformDirectory, "Strings.resx"));
+        var texts = baseDocument.Root.Elements("data").ToDictionary(data => (string)data.Attribute("name"));
+        foreach (var translation in translations)
+        {
+            foreach (var data in XDocument.Load(translation, LoadOptions.SetLineInfo).Root.Elements("data"))
+            {
+                var name = (string)data.Attribute("name");
+                if (texts.ContainsKey(name))
+                {
+                    texts[name] = data;
+                }
+                else
+                {
+                    Log.LogError(null, null, null, translation, ((IXmlLineInfo)data).LineNumber, 0, 0, 0,
+                        "'{0}' is not a text of the English base; texts are only translated or overridden, never added.", name);
+                }
+            }
+        }
+
+        var merged = new XDocument(new XElement("root",
+            baseDocument.Root.Elements("resheader"),
+            baseDocument.Root.Elements("data").Select(data => texts[(string)data.Attribute("name")])));
+        var content = merged.ToString();
+        if (!Log.HasLoggedErrors && (!File.Exists(Output) || File.ReadAllText(Output) != content))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Output));
+            File.WriteAllText(Output, content);
+        }
+]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="MergeTexts" BeforeTargets="AssignTargetPaths">
+    <PropertyGroup>
+      <_ManagerTextsFile>$(IntermediateOutputPath)Texts.resx</_ManagerTextsFile>
+    </PropertyGroup>
+
+    <MergeTexts Language="$(_ManagerTextsLanguage)" PlatformDirectory="$(MSBuildThisFileDirectory)Resources"
+                AppDirectory="$(MSBuildProjectDirectory)\Resources" Output="$(_ManagerTextsFile)" />
+
+    <ItemGroup>
+      <EmbeddedResource Include="$(_ManagerTextsFile)" LogicalName="JustModIt.Manager.Texts.resources" WithCulture="false" />
+      <FileWrites Include="$(_ManagerTextsFile)" />
+    </ItemGroup>
+  </Target>
+</Project>
