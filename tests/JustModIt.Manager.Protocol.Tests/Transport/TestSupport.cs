@@ -129,4 +129,12 @@ internal static class ChannelExtensions
     public static async Task<T> NextAsync<T>(this Channel<T> channel) =>
         await channel.Reader.ReadAsync(TestContext.Current.CancellationToken).AsTask()
             .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+    public static async Task ExpectAsync<T>(this Channel<T> channel, params T[] expected)
+    {
+        foreach (var item in expected)
+        {
+            (await channel.NextAsync()).Should().Be(item);
+        }
+    }
 }
