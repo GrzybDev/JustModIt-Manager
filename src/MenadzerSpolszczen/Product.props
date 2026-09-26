@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <Product>Menadżer Spolszczeń</Product>
+    <Company>GrzybDev</Company>
+    <ManagerAppId>MenadzerSpolszczen</ManagerAppId>
+    <ManagerVendorId>BazaSpolszczen</ManagerVendorId>
+    <ManagerAppSlug>menadzer-spolszczen</ManagerAppSlug>
+    <ManagerPackageExtension>.plmod</ManagerPackageExtension>
+    <ManagerCreatorProjectExtension>.plproj</ManagerCreatorProjectExtension>
+    <ManagerApiUrl>https://api.bazaspolszczen.pl/</ManagerApiUrl>
+    <ManagerSiteUrl>https://bazaspolszczen.pl/</ManagerSiteUrl>
+    <ManagerUpdateUrl>https://github.com/GrzybDev/MenadzerSpolszczen</ManagerUpdateUrl>
+    <ManagerLanguage>pl</ManagerLanguage>
+    <ManagerTargetLanguage>pl</ManagerTargetLanguage>
+    <ManagerAccentColor>#D4213D</ManagerAccentColor>
+  </PropertyGroup>
+</Project>

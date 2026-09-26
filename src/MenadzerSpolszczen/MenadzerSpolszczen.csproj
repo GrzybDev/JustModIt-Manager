@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="Product.props" />
+  <Import Project="..\JustModIt.Manager.Host\App.targets" />
+
+  <PropertyGroup>
+    <RootNamespace>MenadzerSpolszczen</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JustModIt.Manager.Host\JustModIt.Manager.Host.csproj" />
+  </ItemGroup>
+</Project>

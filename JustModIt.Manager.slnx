@@ -9,6 +9,7 @@
     <Project Path="src/JustModIt.Manager.Platform.Windows/JustModIt.Manager.Platform.Windows.csproj" />
     <Project Path="src/JustModIt.Manager.Protocol/JustModIt.Manager.Protocol.csproj" />
     <Project Path="src/JustModIt.Manager.Ui/JustModIt.Manager.Ui.csproj" />
+    <Project Path="src/MenadzerSpolszczen/MenadzerSpolszczen.csproj" />
   </Folder>
   <Folder Name="/tests/" />
 </Solution>
