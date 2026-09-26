@@ -1,4 +1,6 @@
 using System.Resources;
+using System.Text;
+using Jeffijoe.MessageFormat.Parsing;
 using JustModIt.Manager.Localization.Tests.TestSupport;
 
 namespace JustModIt.Manager.Localization.Tests;
@@ -71,6 +73,18 @@ public sealed class StringsTests
     public void Every_text_of_every_language_has_text()
     {
         AllTexts().Should().NotBeEmpty().And.AllSatisfy(text => text.Value.Should().NotBeNullOrWhiteSpace(text.Name));
+    }
+
+    [Fact]
+    public void Every_text_of_every_language_is_a_well_formed_message()
+    {
+        var parser = new PatternParser();
+
+        AllTexts().Should().AllSatisfy(text =>
+        {
+            var parse = () => parser.Parse(new StringBuilder(text.Value));
+            parse.Should().NotThrow($"{text.Name} is formatted as an ICU message");
+        });
     }
 
     private static IEnumerable<(string Name, string Value)> AllTexts() =>

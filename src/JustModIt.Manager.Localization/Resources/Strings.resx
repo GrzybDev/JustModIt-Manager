@@ -15,4 +15,8 @@
   <data name="GameCount" xml:space="preserve">
     <value>{count, plural, one {# game} other {# games}}</value>
   </data>
+  <data name="MinimumGroupingDigits" xml:space="preserve">
+    <value>1</value>
+    <comment>Not a message: the language's CLDR minimumGroupingDigits. 1 groups digits from four on (1,234), 2 from five.</comment>
+  </data>
 </root>

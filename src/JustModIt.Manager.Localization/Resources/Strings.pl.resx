@@ -15,4 +15,7 @@
   <data name="GameCount" xml:space="preserve">
     <value>{count, plural, one {# gra} few {# gry} many {# gier} other {# gry}}</value>
   </data>
+  <data name="MinimumGroupingDigits" xml:space="preserve">
+    <value>2</value>
+  </data>
 </root>
