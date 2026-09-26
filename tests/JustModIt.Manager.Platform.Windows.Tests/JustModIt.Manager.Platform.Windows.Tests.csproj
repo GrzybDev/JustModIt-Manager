@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JustModIt.Manager.Platform.Windows\JustModIt.Manager.Platform.Windows.csproj" />
+  </ItemGroup>
+</Project>
