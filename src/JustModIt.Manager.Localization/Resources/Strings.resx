@@ -19,4 +19,57 @@
     <value>1</value>
     <comment>Not a message: the language's CLDR minimumGroupingDigits. 1 groups digits from four on (1,234), 2 from five.</comment>
   </data>
+  <data name="SizeBytes" xml:space="preserve">
+    <value>{size}&#160;B</value>
+  </data>
+  <data name="SizeKilobytes" xml:space="preserve">
+    <value>{size}&#160;KB</value>
+  </data>
+  <data name="SizeMegabytes" xml:space="preserve">
+    <value>{size}&#160;MB</value>
+  </data>
+  <data name="SizeGigabytes" xml:space="preserve">
+    <value>{size}&#160;GB</value>
+  </data>
+  <data name="SizeTerabytes" xml:space="preserve">
+    <value>{size}&#160;TB</value>
+  </data>
+  <data name="Percent" xml:space="preserve">
+    <value>{percent}%</value>
+  </data>
+  <data name="DatePattern" xml:space="preserve">
+    <value>d MMM yyyy</value>
+    <comment>.NET custom date format, not a message.</comment>
+  </data>
+  <data name="TimePattern" xml:space="preserve">
+    <value>HH:mm</value>
+    <comment>.NET custom time format, not a message.</comment>
+  </data>
+  <data name="DateAndTime" xml:space="preserve">
+    <value>{date}, {time}</value>
+  </data>
+  <data name="TimeJustNow" xml:space="preserve">
+    <value>just now</value>
+  </data>
+  <data name="TimeMinutesAgo" xml:space="preserve">
+    <value>{minutes}&#160;min ago</value>
+  </data>
+  <data name="TimeToday" xml:space="preserve">
+    <value>today at {time}</value>
+  </data>
+  <data name="TimeYesterday" xml:space="preserve">
+    <value>yesterday at {time}</value>
+  </data>
+  <data name="DurationSeconds" xml:space="preserve">
+    <value>{seconds}&#160;s</value>
+  </data>
+  <data name="DurationMinutes" xml:space="preserve">
+    <value>{minutes}&#160;min{seconds, plural, =0 {} other { #&#160;s}}</value>
+  </data>
+  <data name="DurationHours" xml:space="preserve">
+    <value>{hours}&#160;h{minutes, plural, =0 {} other { #&#160;min}}</value>
+  </data>
+  <data name="TimeRemaining" xml:space="preserve">
+    <value>about {duration} left</value>
+  </data>
 </root>

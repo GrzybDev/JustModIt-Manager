@@ -18,4 +18,55 @@
   <data name="MinimumGroupingDigits" xml:space="preserve">
     <value>2</value>
   </data>
+  <data name="SizeBytes" xml:space="preserve">
+    <value>{size}&#160;B</value>
+  </data>
+  <data name="SizeKilobytes" xml:space="preserve">
+    <value>{size}&#160;KB</value>
+  </data>
+  <data name="SizeMegabytes" xml:space="preserve">
+    <value>{size}&#160;MB</value>
+  </data>
+  <data name="SizeGigabytes" xml:space="preserve">
+    <value>{size}&#160;GB</value>
+  </data>
+  <data name="SizeTerabytes" xml:space="preserve">
+    <value>{size}&#160;TB</value>
+  </data>
+  <data name="Percent" xml:space="preserve">
+    <value>{percent}%</value>
+  </data>
+  <data name="DatePattern" xml:space="preserve">
+    <value>d.MM.yyyy</value>
+  </data>
+  <data name="TimePattern" xml:space="preserve">
+    <value>HH:mm</value>
+  </data>
+  <data name="DateAndTime" xml:space="preserve">
+    <value>{date}, {time}</value>
+  </data>
+  <data name="TimeJustNow" xml:space="preserve">
+    <value>przed chwilą</value>
+  </data>
+  <data name="TimeMinutesAgo" xml:space="preserve">
+    <value>{minutes}&#160;min temu</value>
+  </data>
+  <data name="TimeToday" xml:space="preserve">
+    <value>dziś o {time}</value>
+  </data>
+  <data name="TimeYesterday" xml:space="preserve">
+    <value>wczoraj o {time}</value>
+  </data>
+  <data name="DurationSeconds" xml:space="preserve">
+    <value>{seconds}&#160;s</value>
+  </data>
+  <data name="DurationMinutes" xml:space="preserve">
+    <value>{minutes}&#160;min{seconds, plural, =0 {} other { #&#160;s}}</value>
+  </data>
+  <data name="DurationHours" xml:space="preserve">
+    <value>{hours}&#160;godz.{minutes, plural, =0 {} other { #&#160;min}}</value>
+  </data>
+  <data name="TimeRemaining" xml:space="preserve">
+    <value>zostało ok. {duration}</value>
+  </data>
 </root>
