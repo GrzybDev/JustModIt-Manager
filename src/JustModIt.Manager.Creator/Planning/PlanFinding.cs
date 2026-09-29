@@ -34,7 +34,7 @@ public enum FindingKind
 
     /// <summary>
     /// A game file is renamed although the author neither removed it nor puts a file in its place, so the game may miss
-    /// it. Needs an acknowledgement.
+    /// it; needs an acknowledgement.
     /// </summary>
     RenamedFileNotReplaced,
 
@@ -49,6 +49,39 @@ public enum FindingKind
 
     /// <summary>A manifest package needs a version.</summary>
     MissingVersion,
+
+    /// <summary>The package touches a library of a store or of its copy protection.</summary>
+    StoreLibrary,
+
+    /// <summary>The package carries a file of a crack or a store emulator.</summary>
+    CircumventionFile,
+
+    /// <summary>The package carries a copy of a game file; <see cref="PlanFinding.RelatedPath"/> names it.</summary>
+    CopyOfGameFile,
+
+    /// <summary>The package carries a whole game executable, which may only change through a patch.</summary>
+    WholeGameExecutable,
+
+    /// <summary>The package carries a whole file in place of a game file. Needs an acknowledgement.</summary>
+    WholeGameFile,
+
+    /// <summary>
+    /// Like <see cref="WholeGameFile"/>, for a game archive or a large file, which carries a large share of the game's
+    /// assets. Needs an acknowledgement.
+    /// </summary>
+    WholeGameArchive,
+
+    /// <summary>
+    /// A patch is almost as large as its file, so it carries most of the file, e.g. of an encrypted or recompressed
+    /// archive. Only a build finds it; needs an acknowledgement.
+    /// </summary>
+    LargePatch,
+
+    /// <summary>
+    /// The package carries a third-party tool, e.g. a mod loader. Needs the tool's licence and the address of its source
+    /// code (<see cref="ThirdPartyNotice"/>).
+    /// </summary>
+    ThirdPartyTool,
 }
 
 public enum FindingSeverity
@@ -63,11 +96,18 @@ public enum FindingSeverity
 public sealed record PlanFinding(FindingKind Kind, string? Path = null)
 {
     public FindingSeverity Severity => Kind is FindingKind.RenameOverwritesFile or FindingKind.RenamedFileNotReplaced
+        or FindingKind.WholeGameFile or FindingKind.WholeGameArchive or FindingKind.LargePatch or FindingKind.ThirdPartyTool
         ? FindingSeverity.Warning
         : FindingSeverity.Error;
 
     /// <summary>A second path the finding is about, e.g. the game file a rename takes.</summary>
     public string? RelatedPath { get; init; }
+
+    /// <summary>The size of the file the finding is about, e.g. of a whole game file or of a patch.</summary>
+    public long? Size { get; init; }
+
+    /// <summary>The third-party tool (<see cref="Rules.ThirdPartyTool.Id"/>).</summary>
+    public string? ToolId { get; init; }
 
     /// <summary>The operation of the plan it is about.</summary>
     public int? OperationIndex { get; init; }

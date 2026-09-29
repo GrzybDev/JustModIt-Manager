@@ -1,6 +1,7 @@
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator.Comparison;
+using JustModIt.Manager.Creator.Rules;
 
 namespace JustModIt.Manager.Creator.Planning;
 
@@ -45,26 +46,32 @@ public static class CreatorPlanner
             findings.AddRange(RenamesNotReplaced(comparison, resolved));
         }
 
+        findings.AddRange(HostingRules.Check(comparison, resolved, options.Rules));
         var format = PackageFormatDecision.For(resolved);
         findings.AddRange(PackageChecks(resolved, format, project.Metadata, options));
-        var acknowledged = project.Acknowledged.ToHashSet(StringComparer.Ordinal);
         var plan = new PackagePlan
         {
             GameDirectory = comparison.GameDirectory,
             AuthorDirectory = comparison.AuthorDirectory,
             Operations = [.. resolved],
             Format = format,
-            Findings =
-            [
-                .. findings.Select(finding => finding.AcknowledgementKey is { } key
-                    ? finding with { IsAcknowledged = acknowledged.Contains(key) }
-                    : finding),
-            ],
+            Findings = [.. findings.Select(finding => Acknowledge(finding, project))],
             Metadata = project.Metadata,
             Acknowledged = project.Acknowledged,
         };
         return new CreatorReview([.. entries], plan);
     }
+
+    // A third-party tool is acknowledged by its licence and source, never by a plain acknowledgement.
+    private static PlanFinding Acknowledge(PlanFinding finding, CreatorProject project) => finding switch
+    {
+        { AcknowledgementKey: null } => finding,
+        { Kind: FindingKind.ThirdPartyTool } => finding with
+        {
+            IsAcknowledged = project.ThirdParty.Any(notice => notice.ToolId == finding.ToolId && notice.IsComplete),
+        },
+        _ => finding with { IsAcknowledged = project.Acknowledged.Contains(finding.AcknowledgementKey) },
+    };
 
     // The author's extra steps run first, then renames and deletions, then the files in path order, so a game file can
     // be renamed away and replaced, as a proxy library needs.

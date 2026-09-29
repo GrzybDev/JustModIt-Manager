@@ -1,0 +1,71 @@
+{
+  "storeLibraries": [
+    "steam_api*.dll",
+    "libsteam_api.so",
+    "libsteam_api.dylib",
+    "steamclient*.dll",
+    "steamclient*.so",
+    "EOSSDK*.dll",
+    "libEOSSDK*",
+    "Galaxy.dll",
+    "Galaxy64.dll",
+    "GalaxyPeer*.dll",
+    "GalaxyCSharpGlue.dll",
+    "libGalaxy*",
+    "uplay_r*_loader*.dll",
+    "upc_r*_loader*.dll"
+  ],
+  "circumventionFiles": [
+    "steam_emu.ini",
+    "cream_api.ini",
+    "SmartSteamEmu*",
+    "ColdClientLoader*",
+    "*.cdx",
+    "CODEX*.ini",
+    "ALI213*",
+    "OnlineFix*",
+    "3dmgame*",
+    "rld.ini",
+    "RUNE.ini"
+  ],
+  "circumventionFolders": [
+    "steam_settings",
+    "SmartSteamEmu"
+  ],
+  "archiveExtensions": [
+    ".arc", ".assets", ".ba2", ".big", ".bin", ".bsa", ".bundle", ".cpk", ".dat", ".forge", ".gpk", ".npk", ".pak",
+    ".pck", ".pkg", ".resources", ".rpa", ".rpf", ".sb", ".toc", ".ucas", ".utoc", ".vpk", ".wad", ".xp3"
+  ],
+  "largeFileBytes": 16777216,
+  "largePatchRatio": 0.5,
+  "largePatchMinimumBytes": 1048576,
+  "thirdPartyTools": [
+    {
+      "id": "bepinex",
+      "name": "BepInEx",
+      "folders": [ "BepInEx" ],
+      "files": [ "doorstop_config.ini", ".doorstop_version", "winhttp.dll" ]
+    },
+    {
+      "id": "melonloader",
+      "name": "MelonLoader",
+      "folders": [ "MelonLoader" ],
+      "files": []
+    },
+    {
+      "id": "ue4ss",
+      "name": "UE4SS",
+      "folders": [ "ue4ss" ],
+      "files": [ "UE4SS.dll", "UE4SS-settings.ini", "dwmapi.dll" ]
+    },
+    {
+      "id": "asi-loader",
+      "name": "Ultimate ASI Loader",
+      "folders": [],
+      "files": [
+        "*.asi", "dinput8.dll", "dsound.dll", "winmm.dll", "version.dll", "d3d8.dll", "d3d9.dll", "d3d10.dll", "d3d11.dll",
+        "d3d12.dll", "dxgi.dll", "xinput1_3.dll", "xinput1_4.dll", "xinput9_1_0.dll", "wininet.dll", "msacm32.dll"
+      ]
+    }
+  ]
+}

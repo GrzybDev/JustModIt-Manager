@@ -16,6 +16,9 @@ internal static class AcknowledgementKeys
     private static string IdOf(FindingKind kind) => kind switch
     {
         FindingKind.RenamedFileNotReplaced => "renamed-file",
+        FindingKind.WholeGameFile or FindingKind.WholeGameArchive => "whole-game-file",
+        FindingKind.LargePatch => "large-patch",
+        FindingKind.ThirdPartyTool => "third-party",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "The finding needs no acknowledgement."),
     };
 }

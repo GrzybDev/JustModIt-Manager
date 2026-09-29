@@ -47,14 +47,14 @@ public sealed class AdvancedPlanTests : IDisposable
     }
 
     [Fact]
-    public async Task Writes_a_deleted_path_again()
+    public async Task Writes_a_deleted_path_again_in_place_of_the_game_file()
     {
         var plan = await PlanAsync(
             new DeleteFileStep("bin/engine.dll"),
             new CopyFileStep("readme.txt", "bin/engine.dll"));
 
-        plan.Findings.Should().BeEmpty();
         plan.Operations[1].Replaces!.Path.Should().Be("bin/engine.dll");
+        plan.Findings.Should().ContainSingle().Which.Kind.Should().Be(FindingKind.WholeGameFile);
     }
 
     [Theory]

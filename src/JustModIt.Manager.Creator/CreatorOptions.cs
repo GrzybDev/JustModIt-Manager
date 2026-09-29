@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Creator.Rules;
 
 namespace JustModIt.Manager.Creator;
 
@@ -10,6 +11,8 @@ public sealed record CreatorOptions
 
     /// <summary>What the app accepts when it installs a package; a package past them could never be installed.</summary>
     public PackageLimits Limits { get; init; } = PackageLimits.Default;
+
+    public HostingRuleSet Rules { get; init; } = HostingRuleSet.Default;
 
     public static CreatorOptions For(AppIdentity identity)
     {

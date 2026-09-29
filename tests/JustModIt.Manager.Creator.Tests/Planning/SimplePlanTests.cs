@@ -179,20 +179,20 @@ public sealed class SimplePlanTests : IDisposable
     [Fact]
     public async Task Runs_the_authors_extra_steps_first()
     {
-        _workspace.Game("bin/version.dll", Workspace.Bytes(4096, 1));
+        _workspace.Game("bin/engine.dll", Workspace.Bytes(4096, 1));
         _workspace.Game("data/strings.bin", "strings");
-        _workspace.Author("bin/version.dll", Workspace.Bytes(3000, 2));
+        _workspace.Author("bin/engine.dll", Workspace.Bytes(3000, 2));
         _workspace.Author("data/strings.bin", "customized");
         var project = Project
-            .WithExtraStep(new RenameFileStep("bin/version.dll", "bin/version_original.dll"))
+            .WithExtraStep(new RenameFileStep("bin/engine.dll", "bin/engine_original.dll"))
             .WithExtraStep(new DeleteFileStep("data/strings.bin"));
 
         var review = await ReviewAsync(project);
 
         review.Plan.Operations.Select(operation => (operation.Kind, operation.Path, operation.StepIndex)).Should().Equal(
-            (OperationKind.Rename, "bin/version_original.dll", 0),
+            (OperationKind.Rename, "bin/engine_original.dll", 0),
             (OperationKind.Delete, "data/strings.bin", 1),
-            (OperationKind.Copy, "bin/version.dll", null),
+            (OperationKind.Copy, "bin/engine.dll", null),
             (OperationKind.Patch, "data/strings.bin", null));
         review.Plan.Operations[2].Reason.Should().Be(OperationReason.OriginalRenamedAway);
         review.Plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
