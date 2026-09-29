@@ -30,6 +30,11 @@ internal static partial class SteamLog
     [LoggerMessage(Level = LogLevel.Warning, Message = "Cannot list a Steam library, treating it as offline: {Error}")]
     public static partial void LibraryUnreadable(this ILogger logger, string error);
 
+    /// <summary>Logs a folder that did not answer in time.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A Steam folder did not answer in time, treating it as offline")]
+    public static partial void FolderNotAnswering(this ILogger logger);
+
     /// <summary>Logs an app whose manifest was left out.</summary>
     /// <param name="logger">The logger to write to.</param>
     /// <param name="appId">The Steam app id.</param>

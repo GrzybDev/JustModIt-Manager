@@ -110,6 +110,29 @@ public sealed class LiveLibraryTests
     }
 
     [Fact]
+    public async Task Reading_each_real_library_within_the_time_limit_finds_what_an_unlimited_scan_finds()
+    {
+        var environment = LibraryEnvironment.ForCurrentUser();
+        ILibraryProvider[] providers =
+        [
+            new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<SteamLibraryProvider>.Instance),
+            GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<GogLibraryProvider>.Instance),
+        ];
+        var limited = LibraryScanContext.Empty with { Access = new LibraryAccess(TimeProvider.System) };
+
+        foreach (var provider in providers)
+        {
+            var unlimited = await provider.ScanAsync(LibraryScanContext.Empty, Token);
+            var scan = await provider.ScanAsync(limited, Token);
+
+            scan.IsComplete.Should().Be(unlimited.IsComplete);
+            scan.Libraries.Should().Equal(unlimited.Libraries);
+            scan.Games.Select(game => (game.Key, game.InstallDirectory)).Should().Equal(unlimited.Games.Select(game => (game.Key, game.InstallDirectory)));
+            scan.UnansweredGames.Should().BeEmpty();
+        }
+    }
+
+    [Fact]
     public async Task The_real_gog_library_scans_to_sane_results()
     {
         var provider = GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, LibraryEnvironment.ForCurrentUser(),

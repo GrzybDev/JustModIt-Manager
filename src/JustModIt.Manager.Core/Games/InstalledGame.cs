@@ -42,6 +42,10 @@ public sealed record InstalledGame
 
     public bool IsReady => State == GameInstallState.Installed && !IsStale;
 
+    /// <summary>This game as it is kept while its library is offline, such as on an unplugged drive.</summary>
+    public InstalledGame AsOffline() =>
+        this with { State = GameInstallState.Offline, Reason = GameStateReason.LibraryOffline, IsStale = false };
+
     /// <summary>Whether <see cref="Languages"/> names <paramref name="language"/> (<c>pl</c>) in any region.</summary>
     /// <param name="language">An ISO 639-1 code without a region.</param>
     public bool HasLanguage(string language)

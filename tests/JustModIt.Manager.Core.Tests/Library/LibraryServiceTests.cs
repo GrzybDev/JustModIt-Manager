@@ -6,6 +6,7 @@ using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.Tests.Library.Steam;
 using JustModIt.Manager.Core.Tests.Library.Watching;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -205,7 +206,10 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         _steam.Finds(Game("1001"));
         await StartAsync();
 
-        _steam.Result = _steam.Result with { Games = [], Libraries = [SteamLibrary with { State = LibraryState.Offline }] };
+        // A drive being unplugged is often caught half-read first.
+        _steam.Result = _steam.Result with { Games = [], Libraries = [SteamLibrary with { State = LibraryState.Unreadable }], IsComplete = false };
+        await Service.CheckNowAsync(Token);
+        _steam.Result = _steam.Result with { Libraries = [SteamLibrary with { State = LibraryState.Offline }], IsComplete = true };
         await Service.CheckNowAsync(Token);
         var offline = Service.Snapshot.Find(Key("1001"));
         await Service.CheckNowAsync(Token);
@@ -215,6 +219,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
 
         offline!.State.Should().Be(GameInstallState.Offline);
         offline.Reason.Should().Be(GameStateReason.LibraryOffline);
+        offline.IsStale.Should().BeFalse();
         stillOffline.Should().Be(offline);
         Service.Snapshot.Find(Key("1001"))!.IsReady.Should().BeTrue();
         Service.Snapshot.ConfirmsGone(Key("1001")).Should().BeFalse();
@@ -444,6 +449,106 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_library_that_does_not_answer_stays_offline_while_the_other_libraries_and_stores_go_on()
+    {
+        var steam = new SteamTree();
+        var slow = steam.AddLibrary(@"D:\Slow");
+        steam.AddApp(1001, "Slow Quest", library: slow);
+        steam.AddApp(1002, "Root Quest");
+        using var files = new HangingFileSystem(steam.Files);
+        _gog.Finds(Game("2001", store: StoreId.Gog));
+        await StartWithSteamAsync(steam, files);
+        files.Hang(slow);
+
+        await CheckRunningOutOfTimeAsync(files);
+        await Service.CheckNowAsync(Token);
+
+        var snapshot = Service.Snapshot;
+        snapshot.Find(Key("1001")).Should().Match<InstalledGame>(game =>
+            game.State == GameInstallState.Offline && game.Reason == GameStateReason.LibraryOffline && game.Name == "Slow Quest");
+        snapshot.Find(Key("1002"))!.IsReady.Should().BeTrue();
+        snapshot.Find(Key("2001", StoreId.Gog))!.IsReady.Should().BeTrue();
+        snapshot.ConfirmsGone(Key("1003")).Should().BeFalse();
+        files.HungCalls.Should().Be(1, "a drive whose read still hangs is not read again");
+    }
+
+    [Fact]
+    public async Task A_library_that_answers_late_is_read_again()
+    {
+        var steam = new SteamTree();
+        var slow = steam.AddLibrary(@"D:\Slow");
+        steam.AddApp(1001, "Slow Quest", library: slow);
+        using var files = new HangingFileSystem(steam.Files);
+        await StartWithSteamAsync(steam, files);
+        files.Hang(slow);
+        await CheckRunningOutOfTimeAsync(files);
+
+        await _time.WakeAsync(() => files.Answer(slow), "the late answer asks for another read");
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+
+        await Eventually.HoldsAsync(() => Service.Snapshot.Find(Key("1001"))!.IsReady, "the library is read again");
+    }
+
+    [Fact]
+    public async Task A_watch_that_hangs_while_starting_does_not_hold_up_the_loop()
+    {
+        _steam.Result = _steam.Result with { Watch = new WatchPlan([SteamFolder], []) };
+        _watcher.Hang(SteamFolder);
+        await CreateAsync();
+        _run = Service.RunAsync(_stop.Token);
+
+        await Eventually.HoldsAsync(() => _watcher.Blocked == 1, "starting the watch hangs");
+        _published.Should().ContainSingle("what the scan found does not wait for the watches");
+        await Eventually.SettleAsync();
+        await _time.WakeAsync(() => _time.Advance(LibraryAccess.TimeLimit), "the first scan is done without the watch");
+        _published.Should().ContainSingle();
+        _watcher.Active.Should().BeEmpty();
+
+        await _time.WakeAsync(_watcher.Answer, "the watch that started late asks for another read");
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+
+        _watcher.Active.Should().Equal(SteamFolder);
+        (_steam.Scans, _gog.Scans).Should().Be((2, 1));
+    }
+
+    [Fact]
+    public async Task A_rewatch_that_hangs_does_not_hold_up_the_full_scan_and_reads_every_store_again_once_done()
+    {
+        await StartWatchedAsync();
+        _watcher.Hang(SteamFolder);
+        await _time.WakeAsync(() => _watcher.Report(WatchSignal.Lost, SteamFolder), "the loss is noticed");
+
+        _time.Advance(LibraryService.Debounce);
+        await Eventually.HoldsAsync(() => _watcher.Blocked == 1, "restarting the watch hangs");
+        await Eventually.SettleAsync();
+        await _time.WakeAsync(() => _time.Advance(LibraryAccess.TimeLimit), "the full scan is done without the watch");
+        (_steam.Scans, _gog.Scans).Should().Be((3, 3));
+
+        await _time.WakeAsync(_watcher.Answer, "the rewatch that ended late asks for another read");
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+
+        (_steam.Scans, _gog.Scans).Should().Be((4, 4));
+        _watcher.Active.Should().BeEquivalentTo(new object[] { SteamFolder, GogFolder });
+    }
+
+    [Theory]
+    [InlineData("2001")]
+    [InlineData("2002")]
+    public async Task A_game_whose_folder_does_not_answer_keeps_its_last_data_as_offline(string recordedId)
+    {
+        var game = Game("2001", store: StoreId.Gog) with { BuildId = "42" };
+        _gog.Finds(game);
+        await StartAsync();
+
+        // A record may name a pack whose folder holds the game under another id.
+        _gog.Result = _gog.Result with { Games = [], UnansweredGames = [new UnansweredGame(Key(recordedId, StoreId.Gog), game.InstallDirectory)] };
+        await Service.CheckNowAsync(Token);
+
+        Service.Snapshot.Find(game.Key).Should().Be(game with { State = GameInstallState.Offline, Reason = GameStateReason.LibraryOffline });
+        (await Service.ProbeAsync(game.Key, Token)).CanWrite.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task The_report_counts_games_per_store_and_library()
     {
         var offline = new LibraryLocation(@"E:\Unplugged", "steam-library", @"E:\Unplugged", LibraryState.Offline);
@@ -516,6 +621,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         }
 
         _service?.Dispose();
+        _watcher.Dispose();
         if (_settings is not null)
         {
             await _settings.DisposeAsync();
@@ -538,19 +644,36 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     private static ValueDictionary<GameKey, InstalledGame> Games(params InstalledGame[] games) =>
         new(games.ToDictionary(game => game.Key).ToImmutableDictionary());
 
-    private async Task CreateAsync()
+    private async Task CreateAsync(ILibraryProvider? steam = null)
     {
         _settings = await SettingsService.LoadAsync(new InMemoryDocumentStore<AppSettings>(), new FakeTimeProvider(),
             NullLogger<SettingsService>.Instance, Token);
-        _service = new LibraryService([_steam, _gog], _settings, _running, _files, _watcher, _watcher, _events, _snapshots, _time,
+        _service = new LibraryService([steam ?? _steam, _gog], _settings, _running, _files, _watcher, _watcher, _events, _snapshots, _time,
             NullLogger<LibraryService>.Instance);
         _service.Changed += (_, changed) => _published.Enqueue(changed.Snapshot);
     }
 
-    private async Task StartAsync()
+    private async Task StartAsync(ILibraryProvider? steam = null)
     {
-        await CreateAsync();
+        await CreateAsync(steam);
         await _time.WakeAsync(() => _run = Service.RunAsync(_stop.Token), "the first scan is done");
+    }
+
+    // Starts with a real Steam store, after the second scan that its new watches cause.
+    private async Task StartWithSteamAsync(SteamTree steam, HangingFileSystem files)
+    {
+        await StartAsync(steam.CreateProvider(files: files));
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+    }
+
+    // Checks now while a drive does not answer, and waits until the loop sleeps again.
+    private async Task CheckRunningOutOfTimeAsync(HangingFileSystem files)
+    {
+        var timers = _time.TimersCreated;
+        var checking = Service.CheckNowAsync(Token);
+        await files.RunOutOfTimeAsync(_time);
+        await checking;
+        await Eventually.HoldsAsync(() => _time.TimersCreated > timers, "the loop sleeps after the check");
     }
 
     // Starts with a folder watched per store, after the second scan that new watches cause.

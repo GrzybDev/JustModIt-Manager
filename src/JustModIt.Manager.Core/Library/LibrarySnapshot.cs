@@ -7,7 +7,7 @@ namespace JustModIt.Manager.Core.Library;
 /// <param name="Store">The store.</param>
 /// <param name="IsPresent">The store's client, its data or a folder the player added for it exists.</param>
 /// <param name="ScanFailed">The last scan failed as a whole; the store's games are the ones found before, marked stale.</param>
-/// <param name="IsComplete">False when the store's list of libraries could not be read.</param>
+/// <param name="IsComplete">False when the store's list of libraries could not be read, or a library on it did not answer.</param>
 /// <param name="Libraries">Its libraries, including ones kept from earlier scans while they could not be read.</param>
 public sealed record StoreStatus(StoreId Store, bool IsPresent, bool ScanFailed, bool IsComplete, ValueList<LibraryLocation> Libraries)
 {

@@ -7,10 +7,6 @@ namespace JustModIt.Manager.Core.Library.Watching;
 /// Owns every system watcher of every store and keeps them in line with the stores' latest watch plans, so a library
 /// added, removed or moved to another drive is followed after the scan that found it.
 /// </summary>
-/// <remarks>
-/// Watchers are created and disposed outside the lock: creating one on a slow network drive may take a while, and
-/// disposing one never waits for a report in progress.
-/// </remarks>
 public sealed partial class WatchCoordinator : IDisposable
 {
     private readonly IFolderWatcher _folders;
@@ -20,6 +16,7 @@ public sealed partial class WatchCoordinator : IDisposable
     private readonly Lock _gate = new();
     private readonly Dictionary<StoreId, WatchPlan> _plans = [];
     private readonly Dictionary<(StoreId Store, object Target), IDisposable> _active = [];
+    private readonly HashSet<(StoreId Store, object Target)> _starting = [];
     private bool _disposed;
 
     /// <summary>Creates a coordinator that watches nothing until a plan is applied.</summary>
@@ -57,8 +54,6 @@ public sealed partial class WatchCoordinator : IDisposable
     public bool Apply(StoreId store, WatchPlan plan)
     {
         ArgumentNullException.ThrowIfNull(plan);
-        List<object> added;
-        List<IDisposable> removed;
         lock (_gate)
         {
             if (_disposed)
@@ -67,43 +62,15 @@ public sealed partial class WatchCoordinator : IDisposable
             }
 
             _plans[store] = plan;
-            var targets = Targets(plan).ToHashSet();
-            removed = [.. _active.Where(entry => entry.Key.Store == store && !targets.Contains(entry.Key.Target)).Select(entry => entry.Value)];
-            foreach (var key in _active.Keys.Where(key => key.Store == store && !targets.Contains(key.Target)).ToList())
-            {
-                _active.Remove(key);
-            }
-
-            added = [.. targets.Where(target => !_active.ContainsKey((store, target)))];
         }
 
-        Dispose(removed);
-        var started = Start(store, added);
-        lock (_gate)
-        {
-            if (!_disposed && _plans.GetValueOrDefault(store) == plan)
-            {
-                foreach (var (target, watch) in started)
-                {
-                    if (!_active.TryAdd((store, target), watch))
-                    {
-                        watch.Dispose();
-                    }
-                }
-
-                return started.Count > 0;
-            }
-        }
-
-        // Disposed, or a newer plan replaced this one meanwhile.
-        Dispose(started.Select(entry => entry.Watch));
-        return false;
+        return Follow(store);
     }
 
     /// <summary>Recreates every watch after one lost changes, starting the new watches before the old ones stop.</summary>
     public void Rewatch()
     {
-        List<(StoreId Store, WatchPlan Plan)> plans;
+        List<StoreId> stores;
         List<IDisposable> old;
         lock (_gate)
         {
@@ -112,14 +79,14 @@ public sealed partial class WatchCoordinator : IDisposable
                 return;
             }
 
-            plans = [.. _plans.Select(entry => (entry.Key, entry.Value))];
+            stores = [.. _plans.Keys];
             old = [.. _active.Values];
             _active.Clear();
         }
 
-        foreach (var (store, plan) in plans)
+        foreach (var store in stores)
         {
-            Apply(store, plan);
+            Follow(store);
         }
 
         Dispose(old);
@@ -136,6 +103,57 @@ public sealed partial class WatchCoordinator : IDisposable
         }
 
         Dispose(active);
+    }
+
+    // Always the store's latest plan: one applied while a slow drive held up a rewatch must not be undone by it.
+    private bool Follow(StoreId store)
+    {
+        List<object> added;
+        List<IDisposable> removed;
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                return false;
+            }
+
+            var targets = Targets(_plans[store]).ToHashSet();
+            removed = [.. _active.Where(entry => entry.Key.Store == store && !targets.Contains(entry.Key.Target)).Select(entry => entry.Value)];
+            foreach (var key in _active.Keys.Where(key => key.Store == store && !targets.Contains(key.Target)).ToList())
+            {
+                _active.Remove(key);
+            }
+
+            // A watch still starting on a slow drive is not started a second time meanwhile.
+            added = [.. targets.Where(target => !_active.ContainsKey((store, target)) && _starting.Add((store, target)))];
+        }
+
+        // Outside the lock: creating a watcher on a drive that stopped answering may take until the system gives up.
+        Dispose(removed);
+        var started = Start(store, added);
+        var kept = false;
+        var unwanted = new List<IDisposable>();
+        lock (_gate)
+        {
+            _starting.ExceptWith(added.Select(target => (store, target)));
+
+            // A newer plan may have been applied meanwhile; only what it names is kept.
+            HashSet<object> wanted = _disposed ? [] : [.. Targets(_plans[store])];
+            foreach (var (target, watch) in started)
+            {
+                if (wanted.Contains(target) && _active.TryAdd((store, target), watch))
+                {
+                    kept = true;
+                }
+                else
+                {
+                    unwanted.Add(watch);
+                }
+            }
+        }
+
+        Dispose(unwanted);
+        return kept;
     }
 
     private IEnumerable<object> Targets(WatchPlan plan) =>

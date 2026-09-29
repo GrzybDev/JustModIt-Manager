@@ -53,53 +53,41 @@ public sealed partial class GogLibraryProvider : ILibraryProvider
     public async Task<StoreScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var libraries = new List<LibraryLocation>();
-        var records = new List<GogInstallRecord>();
-        var watch = WatchPlan.Empty;
-        var complete = true;
-        foreach (var source in _sources)
-        {
-            try
-            {
-                var scan = await source.ScanAsync(context, cancellationToken).ConfigureAwait(false);
-                libraries.AddRange(scan.Libraries);
-                records.AddRange(scan.Records);
-                watch = watch.Merge(scan.Watch);
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                // Paths hide in the messages, so only the type is logged.
-                LogSourceFailed(source.GetType().Name, exception.GetType().Name);
-                complete = false;
-            }
-        }
-
-        var findings = new List<Finding>();
-        foreach (var record in records)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            findings.AddRange(await EvaluateAsync(record, cancellationToken).ConfigureAwait(false));
-        }
+        var sources = await Task.WhenAll(_sources.Select(source => ScanSourceAsync(source, context, cancellationToken))).ConfigureAwait(false);
+        List<GogInstallRecord> records = [.. sources.SelectMany(source => source?.Records ?? [])];
+        var evaluations = await Task.WhenAll(records.Select(record => EvaluateAsync(record, context.Access, cancellationToken)))
+            .ConfigureAwait(false);
+        List<Finding> findings = [.. evaluations.SelectMany(found => found ?? [])];
+        List<GogInstallRecord> unanswered = [.. records.Where((_, index) => evaluations[index] is null)];
 
         var dlcIds = findings.Where(finding => finding.IsDlc).Select(finding => finding.GameId).ToHashSet(StringComparer.Ordinal);
-        List<InstalledGame> games =
+        List<Finding> installs =
         [
             .. findings
                 .Where(finding => !finding.IsDlc && !dlcIds.Contains(finding.GameId))
                 .GroupBy(finding => finding.GameId, StringComparer.Ordinal)
                 .Select(PickInstall),
         ];
-        var gameFolders = games
-            .Where(game => _fileSystem.DirectoryExists(game.InstallDirectory))
-            .Select(game => new WatchedFolder(game.InstallDirectory, GameFolderEntries));
+
+        // Counted as unreadable records, so this scan cannot confirm that a game on a drive that did not answer is gone.
+        var unansweredPerLibrary = unanswered.CountBy(record => record.LibraryId).ToDictionary(StringComparer.Ordinal);
+        List<LibraryLocation> libraries =
+        [
+            .. sources.SelectMany(source => source?.Libraries ?? []).DistinctBy(library => library.Id)
+                .Select(library => unansweredPerLibrary.TryGetValue(library.Id, out var count)
+                    ? library with { UnreadableEntries = library.UnreadableEntries + count }
+                    : library),
+        ];
         return new StoreScan
         {
             Store = Store,
             IsPresent = libraries.Count > 0,
-            Libraries = [.. libraries.DistinctBy(library => library.Id)],
-            Games = [.. games],
-            IsComplete = complete,
-            Watch = watch.Merge(new WatchPlan([.. gameFolders], [])),
+            Libraries = [.. libraries],
+            Games = [.. installs.Select(finding => finding.Game!)],
+            UnansweredGames = [.. unanswered.Select(record => new UnansweredGame(new GameKey(Store, record.GameId), record.InstallPath)).Distinct()],
+            IsComplete = sources.All(source => source is not null),
+            Watch = sources.OfType<GogSourceScan>().Aggregate(WatchPlan.Empty, (watch, source) => watch.Merge(source.Watch))
+                .Merge(new WatchPlan([.. installs.Select(finding => finding.Watch).OfType<WatchedFolder>()], [])),
         };
     }
 
@@ -128,7 +116,22 @@ public sealed partial class GogLibraryProvider : ILibraryProvider
         return LibraryFolderEvidence.None;
     }
 
-    private async Task<IReadOnlyList<Finding>> EvaluateAsync(GogInstallRecord record, CancellationToken cancellationToken)
+    private async Task<GogSourceScan?> ScanSourceAsync(IGogInstallSource source, LibraryScanContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await source.ScanAsync(context, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // Paths hide in the messages, so only the type is logged.
+            LogSourceFailed(source.GetType().Name, exception.GetType().Name);
+            return null;
+        }
+    }
+
+    /// <returns>Null when the folder the record names did not answer in time.</returns>
+    private async Task<IReadOnlyList<Finding>?> EvaluateAsync(GogInstallRecord record, LibraryAccess access, CancellationToken cancellationToken)
     {
         if (record.IsDlc)
         {
@@ -144,27 +147,37 @@ public sealed partial class GogLibraryProvider : ILibraryProvider
 
         try
         {
-            var directory = _fileSystem.GetCanonicalPath(record.InstallPath);
-            var infos = await _infos.ReadAsync(directory, cancellationToken).ConfigureAwait(false);
-            if (infos.Find(record.GameId) is { IsDlc: true })
-            {
-                return [Finding.Dlc(record.GameId)];
-            }
-
-            // DLC installers record their base game's folder and not all of them set dependsOn; a pack or edition id
-            // does the same. Either way the folder's own base game is what is installed there.
-            if (infos.Base is { } folderGame && folderGame.GameId != record.GameId)
-            {
-                return [Finding.Dlc(record.GameId), Describe(record with { GameId = folderGame.GameId, BuildId = null, Name = null }, directory, folderGame)];
-            }
-
-            return [Describe(record, directory, infos.Base)];
+            return await access.ReadAsync(record.InstallPath, token => EvaluateFolderAsync(record, token), cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            LogFolderNotAnswering(record.GameId);
+            return null;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
         {
             LogRecordFailed(record.GameId, exception.GetType().Name);
             return [];
         }
+    }
+
+    private async Task<IReadOnlyList<Finding>> EvaluateFolderAsync(GogInstallRecord record, CancellationToken cancellationToken)
+    {
+        var directory = _fileSystem.GetCanonicalPath(record.InstallPath);
+        var infos = await _infos.ReadAsync(directory, cancellationToken).ConfigureAwait(false);
+        if (infos.Find(record.GameId) is { IsDlc: true })
+        {
+            return [Finding.Dlc(record.GameId)];
+        }
+
+        // DLC installers record their base game's folder and not all of them set dependsOn; a pack or edition id
+        // does the same. Either way the folder's own base game is what is installed there.
+        if (infos.Base is { } folderGame && folderGame.GameId != record.GameId)
+        {
+            return [Finding.Dlc(record.GameId), Describe(record with { GameId = folderGame.GameId, BuildId = null, Name = null }, directory, folderGame)];
+        }
+
+        return [Describe(record, directory, infos.Base)];
     }
 
     private Finding Describe(GogInstallRecord record, string directory, GogGameInfo? info)
@@ -191,18 +204,18 @@ public sealed partial class GogLibraryProvider : ILibraryProvider
             Platform = record.Platform,
             Languages = [.. languages],
         };
-        return new Finding(record.GameId, IsDlc: false, game, state);
+        var watch = _fileSystem.DirectoryExists(directory) ? new WatchedFolder(directory, GameFolderEntries) : null;
+        return new Finding(record.GameId, IsDlc: false, game, state, watch);
     }
 
-    private static InstalledGame PickInstall(IEnumerable<Finding> findings) =>
+    private static Finding PickInstall(IEnumerable<Finding> findings) =>
         findings
             // Records of one folder differ only in the build they expect, and one without a build (an uninstall entry)
             // cannot vouch that no update is running, so the most cautious of them counts.
             .GroupBy(finding => finding.Game!.InstallDirectory, PathComparison.Comparer)
             .Select(folder => folder.MaxBy(finding => finding.State.Rank)!)
             // A stale record pointing at another folder must not hide a working install listed by another source.
-            .MinBy(finding => finding.State.Rank)!
-            .Game!;
+            .MinBy(finding => finding.State.Rank)!;
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Skipped GOG install source {Source}: {Error}")]
     private partial void LogSourceFailed(string source, string error);
@@ -210,7 +223,15 @@ public sealed partial class GogLibraryProvider : ILibraryProvider
     [LoggerMessage(Level = LogLevel.Warning, Message = "Skipped GOG game {GameId}: {Error}")]
     private partial void LogRecordFailed(string gameId, string error);
 
-    private sealed record Finding(string GameId, bool IsDlc, InstalledGame? Game, GogState State)
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The folder of GOG game {GameId} did not answer in time, treating it as offline")]
+    private partial void LogFolderNotAnswering(string gameId);
+
+    /// <param name="GameId">The GOG product id that the record names.</param>
+    /// <param name="IsDlc">Whether the product is DLC, which is never a game.</param>
+    /// <param name="Game">The game as the record describes it; null for DLC.</param>
+    /// <param name="State">The install's state; the most cautious record of a folder wins.</param>
+    /// <param name="Watch">The game's folder, while it exists.</param>
+    private sealed record Finding(string GameId, bool IsDlc, InstalledGame? Game, GogState State, WatchedFolder? Watch = null)
     {
         public static Finding Dlc(string gameId) => new(gameId, IsDlc: true, null, default);
     }

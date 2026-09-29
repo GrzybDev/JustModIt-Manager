@@ -29,6 +29,9 @@ public sealed record GogSourceScan(ValueList<LibraryLocation> Libraries, IReadOn
 /// <summary>A launcher or installer that records GOG installs. Another one (such as Minigalaxy) is one more source.</summary>
 public interface IGogInstallSource
 {
-    /// <summary>Reads the records. A source that exists but cannot be read reports its library as unreadable.</summary>
+    /// <summary>
+    /// Reads the records through <see cref="LibraryScanContext.Access"/>. A source that exists but cannot be read reports
+    /// its library as unreadable.
+    /// </summary>
     Task<GogSourceScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken);
 }

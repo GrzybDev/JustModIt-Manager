@@ -3,6 +3,8 @@ using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.Tests.TestSupport;
+using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Core.Tests.Library.Steam;
 
@@ -388,6 +390,62 @@ public sealed class SteamLibraryProviderTests
     }
 
     [Fact]
+    public async Task A_library_whose_drive_does_not_answer_is_offline_while_the_others_are_read()
+    {
+        var slow = _steam.AddLibrary(@"D:\Slow");
+        var other = _steam.AddLibrary(@"E:\Other");
+        _steam.AddApp(1001, "Example Quest", library: slow);
+        _steam.AddApp(1002, "Other Quest", library: other);
+        using var files = new HangingFileSystem(_steam.Files);
+        files.Hang(slow);
+
+        var scan = await ScanRunningOutOfTimeAsync(files);
+
+        scan.Libraries.Select(location => (location.Id, location.State)).Should().Equal(
+            (@"c:\steam", LibraryState.Online),
+            (@"D:\Slow", LibraryState.Offline),
+            (@"E:\Other", LibraryState.Online));
+        scan.Games.Select(game => game.Key.StoreGameId).Should().Equal("1002");
+        scan.IsComplete.Should().BeFalse("a listed path that did not answer may stand for a library known under another one");
+        scan.Watch.Folders.Should().NotContain(folder => PathComparison.IsWithin(slow, folder.Directory));
+    }
+
+    [Fact]
+    public async Task A_root_whose_drive_does_not_answer_leaves_steam_present_and_the_scan_incomplete()
+    {
+        _steam.Files.AddDirectory(@"E:\Games\steamapps");
+        _steam.AddApp(1001, "Example Quest", library: @"E:\Games");
+        using var files = new HangingFileSystem(_steam.Files);
+        files.Hang(_steam.Root);
+
+        var scan = await ScanRunningOutOfTimeAsync(files, @"E:\Games");
+
+        scan.IsPresent.Should().BeTrue();
+        scan.IsComplete.Should().BeFalse();
+        scan.Libraries.Select(location => location.Id).Should().Equal(@"E:\Games");
+        scan.Games.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task A_probe_of_a_game_whose_drive_does_not_answer_is_offline()
+    {
+        var library = _steam.AddLibrary(@"D:\Slow");
+        _steam.AddApp(1001, "Example Quest", library: library);
+        var known = (await _steam.ScanAsync()).Games.Single();
+        using var files = new HangingFileSystem(_steam.Files);
+        files.Hang(library);
+        var time = new FakeTimeProvider();
+
+        var probing = _steam.CreateProvider(files: files).ProbeAsync(known, LibraryScanContext.Empty with { Access = new LibraryAccess(time) }, Token);
+        await files.RunOutOfTimeAsync(time);
+        var probed = await probing;
+
+        probed!.State.Should().Be(GameInstallState.Offline);
+        probed.Reason.Should().Be(GameStateReason.LibraryOffline);
+        probed.LibraryId.Should().Be(known.LibraryId);
+    }
+
+    [Fact]
     public async Task A_probe_reads_the_game_again()
     {
         _steam.AddApp(1001, "Example Quest");
@@ -463,5 +521,14 @@ public sealed class SteamLibraryProviderTests
         (await provider.InspectFolderAsync(@"D:\Empty", Token)).Should().Be(LibraryFolderEvidence.None);
         (await provider.InspectFolderAsync(@"D:\Copied\Game", Token))
             .Should().Be(LibraryFolderEvidence.Rejected(LibraryFolderRejection.GameOutsideLibrary));
+    }
+
+    private async Task<StoreScan> ScanRunningOutOfTimeAsync(HangingFileSystem files, params string[] manualFolders)
+    {
+        var time = new FakeTimeProvider();
+        var scanning = _steam.CreateProvider(files: files)
+            .ScanAsync(new LibraryScanContext([.. manualFolders]) { Access = new LibraryAccess(time) }, Token);
+        await files.RunOutOfTimeAsync(time);
+        return await scanning;
     }
 }

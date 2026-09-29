@@ -33,7 +33,13 @@ public sealed class HeroicGogSource(IFileSystem fileSystem, string storeDirector
         };
     }
 
-    public async Task<GogSourceScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
+    public Task<GogSourceScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return context.Access.ReadAsync(InstalledFile, ReadInstalledAsync, cancellationToken);
+    }
+
+    private async Task<GogSourceScan> ReadInstalledAsync(CancellationToken cancellationToken)
     {
         // Heroic may be installed, or signed in to GOG, only later; each scan watches one folder closer to the file.
         var watch = new WatchPlan(WatchedFolder.Toward(fileSystem, InstalledFile) is { } toward ? [toward] : [], []);

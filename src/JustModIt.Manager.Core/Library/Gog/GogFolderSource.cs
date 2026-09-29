@@ -1,5 +1,5 @@
 using System.Security;
-using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library.Gog;
@@ -20,32 +20,10 @@ public sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platform
     public async Task<GogSourceScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var libraries = new List<LibraryLocation>();
-        var records = new List<GogInstallRecord>();
-        var folders = new List<WatchedFolder>();
-        foreach (var folder in context.ManualFolders.Select(fileSystem.GetCanonicalPath).Distinct(IO.PathComparison.Comparer))
-        {
-            if (!fileSystem.DirectoryExists(folder))
-            {
-                var isOffline = Path.GetPathRoot(folder) is not { Length: > 0 } root || !fileSystem.DirectoryExists(root);
-                libraries.Add(new LibraryLocation(folder, LibrarySource, folder, isOffline ? LibraryState.Offline : LibraryState.Online, IsManual: true));
-                if (WatchedFolder.Toward(fileSystem, folder) is { } toward)
-                {
-                    folders.Add(toward);
-                }
-
-                continue;
-            }
-
-            libraries.Add(new LibraryLocation(folder, LibrarySource, folder, LibraryState.Online, IsManual: true));
-            folders.Add(new WatchedFolder(folder, []));
-            await foreach (var (gameId, gameFolder) in FindGamesAsync(folder, cancellationToken).ConfigureAwait(false))
-            {
-                records.Add(new GogInstallRecord(gameId, gameFolder, folder) { Platform = platform.AsOperatingSystem() });
-            }
-        }
-
-        return new GogSourceScan([.. libraries], records, new WatchPlan([.. folders], []));
+        var folders = await Task.WhenAll(context.ManualFolders.Distinct(PathComparison.Comparer)
+            .Select(folder => ReadFolderAsync(folder, context.Access, cancellationToken))).ConfigureAwait(false);
+        return new GogSourceScan([.. folders.Select(folder => folder.Library)], [.. folders.SelectMany(folder => folder.Records)],
+            new WatchPlan([.. folders.Select(folder => folder.Watch).OfType<WatchedFolder>()], []));
     }
 
     /// <summary>Finds the game in the folder itself or, failing that, the games in its direct subfolders.</summary>
@@ -69,6 +47,41 @@ public sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platform
         }
     }
 
+    private async Task<FolderRead> ReadFolderAsync(string folder, LibraryAccess access, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await access.ReadAsync(folder, token => ReadFolderAsync(folder, token), cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            // Folders the player added are stored canonical, so the library keeps its identity without its drive.
+            var path = PathComparison.Normalize(folder);
+            return new FolderRead(new LibraryLocation(path, LibrarySource, path, LibraryState.Offline, IsManual: true), [], Watch: null);
+        }
+    }
+
+    private async Task<FolderRead> ReadFolderAsync(string folder, CancellationToken cancellationToken)
+    {
+        var canonical = fileSystem.GetCanonicalPath(folder);
+        if (!fileSystem.DirectoryExists(canonical))
+        {
+            var isOffline = Path.GetPathRoot(canonical) is not { Length: > 0 } root || !fileSystem.DirectoryExists(root);
+            return new FolderRead(
+                new LibraryLocation(canonical, LibrarySource, canonical, isOffline ? LibraryState.Offline : LibraryState.Online, IsManual: true),
+                [], WatchedFolder.Toward(fileSystem, canonical));
+        }
+
+        var records = new List<GogInstallRecord>();
+        await foreach (var (gameId, gameFolder) in FindGamesAsync(canonical, cancellationToken).ConfigureAwait(false))
+        {
+            records.Add(new GogInstallRecord(gameId, gameFolder, canonical) { Platform = platform.AsOperatingSystem() });
+        }
+
+        return new FolderRead(new LibraryLocation(canonical, LibrarySource, canonical, LibraryState.Online, IsManual: true), records,
+            new WatchedFolder(canonical, []));
+    }
+
     private List<string> ListSubfolders(string folder)
     {
         try
@@ -82,4 +95,9 @@ public sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platform
             return [];
         }
     }
+
+    /// <param name="Library">The folder as a library.</param>
+    /// <param name="Records">The records of the games in it.</param>
+    /// <param name="Watch">What shows the folder's games changing, or the folder coming back.</param>
+    private sealed record FolderRead(LibraryLocation Library, IReadOnlyList<GogInstallRecord> Records, WatchedFolder? Watch);
 }

@@ -14,7 +14,8 @@ namespace JustModIt.Manager.Core.Library;
 /// The background loop that keeps the library up to date: it rescans a store once its watched records stop changing,
 /// every store after a lost watch, a resume from sleep or a new volume, and every store on a long timer as a safety net.
 /// There is no other polling. What a scan could not read keeps its last good data, marked offline or stale, so a hiccup
-/// never looks like an uninstall.
+/// never looks like an uninstall. Each store reads its libraries through a <see cref="LibraryAccess"/> of its own, so a
+/// drive that does not answer holds up only its libraries, and nothing that may hang runs on the loop itself.
 /// </summary>
 public sealed partial class LibraryService : ILibraryService, IDisposable
 {
@@ -27,10 +28,9 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
     /// <summary>The safety net for changes no watcher reported, e.g. on a network drive.</summary>
     public static readonly TimeSpan RescanInterval = TimeSpan.FromHours(6);
 
-    /// <summary>How long a folder the player picked may take to answer, e.g. on a disconnected network drive.</summary>
-    public static readonly TimeSpan FolderCheckTimeout = TimeSpan.FromSeconds(10);
-
     private readonly IReadOnlyList<ILibraryProvider> _providers;
+    private readonly Dictionary<StoreId, LibraryAccess> _access;
+    private readonly LibraryAccess _folderChecks;
     private readonly ISettingsService _settings;
     private readonly IRunningGameDetector _runningGames;
     private readonly IFileSystem _fileSystem;
@@ -83,6 +83,10 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         _time = time;
         _logger = logger;
         _watches = new WatchCoordinator(folderWatcher, registryWatcher, OnWatchSignal, logger);
+        // One access per store, so a drive that does not answer holds up only that store's reads of it.
+        _access = _providers.Select(provider => provider.Store).Distinct()
+            .ToDictionary(store => store, store => new LibraryAccess(time, () => MarkChanged(store)));
+        _folderChecks = new LibraryAccess(time);
     }
 
     public event EventHandler<LibraryChangedEventArgs>? Changed;
@@ -204,8 +208,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         (StoreId Store, LibraryFolderEvidence Evidence)? found;
         try
         {
-            found = await Task.Run(() => InspectAsync(path, cancellationToken), cancellationToken)
-                .WaitAsync(FolderCheckTimeout, _time, cancellationToken).ConfigureAwait(false);
+            found = await _folderChecks.ReadAsync(path, token => InspectAsync(path, token), cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is TimeoutException or IOException or UnauthorizedAccessException or ArgumentException)
         {
@@ -248,8 +251,11 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
 
     private static TaskCompletionSource NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private static LibraryScanContext ContextFor(AppSettings settings, StoreId store) =>
-        new([.. settings.LibraryFolders.Where(folder => folder.Store == store).Select(folder => folder.Path)]);
+    private LibraryScanContext ContextFor(AppSettings settings, StoreId store) =>
+        new([.. settings.LibraryFolders.Where(folder => folder.Store == store).Select(folder => folder.Path)])
+        {
+            Access = _access.GetValueOrDefault(store, LibraryAccess.Unlimited),
+        };
 
     private async Task LoadSavedSnapshotAsync(CancellationToken cancellationToken)
     {
@@ -314,7 +320,14 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         {
             if (work.Rewatch)
             {
-                _watches.Rewatch();
+                // The full scan below does not wait for watches that start late, so what changed meanwhile went unseen.
+                await WatchAsync(_watches.Rewatch, cancellationToken, onLate: () =>
+                {
+                    foreach (var provider in _providers)
+                    {
+                        MarkChanged(provider.Store);
+                    }
+                }).ConfigureAwait(false);
             }
 
             if (work.FullScan)
@@ -382,19 +395,19 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
             ScannedAt = now,
         };
 
-        foreach (var (store, scan) in scans)
-        {
-            // A change made before a new watch started went unseen, so the store is read once more.
-            if (scan is not null && _watches.Apply(store, scan.Watch))
-            {
-                MarkChanged(store);
-            }
-        }
-
         if (Publish(previous, snapshot))
         {
             await SaveAsync(snapshot, cancellationToken).ConfigureAwait(false);
         }
+
+        await Task.WhenAll(scans.Where(pair => pair.Value is not null).Select(pair => WatchAsync(() =>
+        {
+            // A change made before a new watch started went unseen, so the store is read once more.
+            if (_watches.Apply(pair.Key, pair.Value!.Watch))
+            {
+                MarkChanged(pair.Key);
+            }
+        }, cancellationToken))).ConfigureAwait(false);
     }
 
     private async Task<(StoreId Store, StoreScan? Scan)> ScanStoreAsync(ILibraryProvider provider, LibraryScanContext context,
@@ -402,8 +415,8 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
     {
         try
         {
-            // Providers read many small files and registry keys synchronously; running them side by side keeps one slow
-            // or sleeping drive from holding up the other stores.
+            // Providers read the registry and many small files synchronously, so each runs off the loop, side by side with
+            // the other stores.
             return (provider.Store, await Task.Run(() => provider.ScanAsync(context, cancellationToken), cancellationToken).ConfigureAwait(false));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -440,7 +453,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         {
             foreach (var game in library.State switch
             {
-                LibraryState.Offline => Of(library.Id).Select(game => game with { State = GameInstallState.Offline, Reason = GameStateReason.LibraryOffline }),
+                LibraryState.Offline => Of(library.Id).Select(game => game.AsOffline()),
                 LibraryState.Unreadable => Of(library.Id).Select(game => game with { IsStale = true }),
                 _ => [],
             })
@@ -469,6 +482,11 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
                 var activity = unreadable.StoreActivityAt ?? now;
                 Keep(last with { IsStale = true, StoreActivityAt = last.StoreActivityAt > activity ? last.StoreActivityAt : activity });
             }
+        }
+
+        foreach (var last in previousGames.Where(game => scan.UnansweredGames.Any(unanswered => unanswered.Matches(game))))
+        {
+            Keep(last.AsOffline());
         }
 
         return (new StoreStatus(scan.Store, scan.IsPresent, ScanFailed: false, scan.IsComplete, [.. libraries]), games);
@@ -526,6 +544,33 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             LogSnapshotNotSaved(exception.GetType().Name);
+        }
+    }
+
+    // Watching opens the folders, which may hang on a drive that stopped answering since the scan read it.
+    private async Task WatchAsync(Action watch, CancellationToken cancellationToken, Action? onLate = null)
+    {
+        var watching = Task.Run(watch, CancellationToken.None);
+        try
+        {
+            await watching.WaitAsync(LibraryAccess.TimeLimit, _time, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException) when (!watching.IsCompleted)
+        {
+            LogWatchingSlow();
+            if (onLate is not null)
+            {
+                _ = watching.ContinueWith(_ => onLate(), CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion,
+                    TaskScheduler.Default);
+            }
+        }
+        finally
+        {
+            if (!watching.IsCompleted)
+            {
+                _ = watching.ContinueWith(failed => LogCheckFailed(failed.Exception!), CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+            }
         }
     }
 
@@ -684,6 +729,9 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "A library check failed")]
     private partial void LogCheckFailed(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Watching the libraries takes long; the check goes on without waiting")]
+    private partial void LogWatchingSlow();
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The library snapshot could not be saved: {Error}")]
     private partial void LogSnapshotNotSaved(string error);

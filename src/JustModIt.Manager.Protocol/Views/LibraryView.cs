@@ -54,7 +54,7 @@ public sealed record StoreView(string Store)
 
     public bool ScanFailed { get; init; }
 
-    /// <summary>False when the store's list of libraries could not be read.</summary>
+    /// <summary>False when the store's list of libraries could not be read, or a library on it did not answer.</summary>
     public bool IsComplete { get; init; }
 
     public int LibraryCount { get; init; }

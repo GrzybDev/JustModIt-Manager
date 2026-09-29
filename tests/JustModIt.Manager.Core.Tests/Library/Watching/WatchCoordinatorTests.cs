@@ -2,6 +2,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Core.Tests.Library.Watching;
@@ -10,6 +11,7 @@ public sealed class WatchCoordinatorTests : IDisposable
 {
     private static readonly WatchedFolder Library = new(@"D:\Library\steamapps", ["appmanifest_*.acf"]);
     private static readonly WatchedFolder Other = new(@"E:\Other\steamapps", ["appmanifest_*.acf"]);
+    private static readonly WatchedFolder Third = new(@"F:\Third", []);
     private static readonly WatchedRegistryKey Key = new(RegistryHive.CurrentUser, RegistryView.Default, @"Software\Example", true);
 
     private readonly FakeWatcher _watcher = new();
@@ -69,6 +71,52 @@ public sealed class WatchCoordinatorTests : IDisposable
     }
 
     [Fact]
+    public async Task A_watch_that_hangs_while_starting_is_started_once_and_kept_when_it_answers()
+    {
+        _watcher.Hang(Library);
+        var applying = Task.Run(() => _coordinator.Apply(StoreId.Steam, new WatchPlan([Library], [])), TestContext.Current.CancellationToken);
+        await Eventually.HoldsAsync(() => _watcher.Blocked == 1, "starting the watch hangs");
+
+        _coordinator.Apply(StoreId.Steam, new WatchPlan([Library, Other], [])).Should().BeTrue();
+        _watcher.Answer();
+
+        (await applying).Should().BeTrue();
+        _watcher.Started.Should().Be(2);
+        _watcher.Active.Should().BeEquivalentTo(new object[] { Library, Other });
+    }
+
+    [Fact]
+    public async Task A_watch_that_answers_after_a_newer_plan_dropped_it_is_stopped()
+    {
+        _watcher.Hang(Library);
+        var applying = Task.Run(() => _coordinator.Apply(StoreId.Steam, new WatchPlan([Library], [])), TestContext.Current.CancellationToken);
+        await Eventually.HoldsAsync(() => _watcher.Blocked == 1, "starting the watch hangs");
+
+        _coordinator.Apply(StoreId.Steam, new WatchPlan([Other], []));
+        _watcher.Answer();
+
+        (await applying).Should().BeFalse();
+        _watcher.Active.Should().Equal(Other);
+        _coordinator.ActiveCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task A_rewatch_held_up_by_a_slow_drive_keeps_a_plan_applied_meanwhile()
+    {
+        _coordinator.Apply(StoreId.Steam, new WatchPlan([Library], []));
+        _coordinator.Apply(StoreId.Gog, new WatchPlan([Other], []));
+        _watcher.Hang(Library);
+        var rewatching = Task.Run(_coordinator.Rewatch, TestContext.Current.CancellationToken);
+        await Eventually.HoldsAsync(() => _watcher.Blocked == 1, "restarting the watch hangs");
+
+        _coordinator.Apply(StoreId.Gog, new WatchPlan([Third], [])).Should().BeTrue();
+        _watcher.Answer();
+        await rewatching;
+
+        _watcher.Active.Should().BeEquivalentTo(new object[] { Library, Third });
+    }
+
+    [Fact]
     public void Registry_keys_are_skipped_without_a_registry_watcher()
     {
         using var coordinator = new WatchCoordinator(_watcher, registryKeys: null, (_, _) => { }, NullLogger.Instance);
@@ -101,5 +149,9 @@ public sealed class WatchCoordinatorTests : IDisposable
         _watcher.Active.Should().BeEmpty();
     }
 
-    public void Dispose() => _coordinator.Dispose();
+    public void Dispose()
+    {
+        _watcher.Dispose();
+        _coordinator.Dispose();
+    }
 }

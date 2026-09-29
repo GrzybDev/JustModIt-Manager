@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Security;
 using System.Text.RegularExpressions;
-using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
@@ -59,23 +58,39 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
     public async Task<StoreScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var roots = _roots.Locate();
-        var (libraries, listsComplete) = await LocateLibrariesAsync(roots, context.ManualFolders, cancellationToken).ConfigureAwait(false);
-        var scan = await ScanLibrariesAsync(libraries, cancellationToken).ConfigureAwait(false);
+        var access = context.Access;
+        var candidates = await Task.WhenAll(_roots.Candidates().Select(candidate => FindRootAsync(candidate, access, cancellationToken)))
+            .ConfigureAwait(false);
+        List<RootCandidate> roots =
+            [.. candidates.Where(candidate => candidate.Root is not null).DistinctBy(candidate => candidate.Root, PathComparison.Comparer)];
+        var (libraries, listsComplete) = await LocateLibrariesAsync([.. roots.Select(root => root.Root!)], context.ManualFolders, access,
+            cancellationToken).ConfigureAwait(false);
+        var reads = await Task.WhenAll(libraries.Select(library => ReadLibraryAsync(library, access, cancellationToken))).ConfigureAwait(false);
+        var scan = Combine(reads);
         _logger.ScanCompleted(scan.Games.Count, libraries.Count, scan.Libraries.Count(library => library.State != LibraryState.Online));
+
+        // The current client keeps a second copy of its library list in config. Without any root, the places Steam may be
+        // installed to are watched, so an install made while the app runs is found.
+        var rootWatches = roots.Count > 0 ? roots.Select(root => root.ListWatch) : candidates.Select(candidate => candidate.Watch);
         return scan with
         {
-            IsPresent = roots.Count > 0 || libraries.Any(library => library.IsManual),
-            IsComplete = listsComplete,
-            Watch = PlanWatches(roots, libraries),
+            // A candidate that did not answer may well be where Steam is installed.
+            IsPresent = roots.Count > 0 || candidates.Any(candidate => !candidate.IsAnswered) || libraries.Any(library => library.IsManual),
+
+            // A library that did not answer is known only by the path it is listed under, which may not be the one an
+            // earlier scan reported it as.
+            IsComplete = listsComplete && candidates.All(candidate => candidate.IsAnswered) && reads.All(read => read.IsAnswered),
+            Watch = PlanWatches(reads, rootWatches.OfType<WatchedFolder>()),
         };
     }
 
     public async Task<InstalledGame?> ProbeAsync(InstalledGame game, LibraryScanContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(game);
-        var library = DescribeLibrary(game.LibraryId, isMounted: null, isManual: false);
-        var probed = (await ScanLibrariesAsync([library], cancellationToken).ConfigureAwait(false)).Describe(game);
+        ArgumentNullException.ThrowIfNull(context);
+        var library = await DescribeAsync(new LibraryCandidate(game.LibraryId, IsMounted: null, IsManual: false), context.Access,
+            cancellationToken).ConfigureAwait(false);
+        var probed = Combine([await ReadLibraryAsync(library, context.Access, cancellationToken).ConfigureAwait(false)]).Describe(game);
 
         // Steam may have moved the game to another library since the last scan.
         return probed ?? (await ScanAsync(context, cancellationToken).ConfigureAwait(false)).Describe(game);
@@ -100,11 +115,37 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
         return Task.FromResult(isSteamGame ? LibraryFolderEvidence.Rejected(LibraryFolderRejection.GameOutsideLibrary) : LibraryFolderEvidence.None);
     }
 
-    private async Task<(IReadOnlyList<SteamLibrary> Libraries, bool IsComplete)> LocateLibrariesAsync(IReadOnlyList<string> roots,
-        IReadOnlyList<string> manualFolders, CancellationToken cancellationToken)
+    private async Task<T> ReadAsync<T>(LibraryAccess access, string path, Func<CancellationToken, Task<T>> read, Func<T> unanswered,
+        CancellationToken cancellationToken)
     {
-        var libraries = new List<SteamLibrary>();
-        var seen = new HashSet<string>(PathComparison.Comparer);
+        try
+        {
+            return await access.ReadAsync(path, read, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            _logger.FolderNotAnswering();
+            return unanswered();
+        }
+    }
+
+    private Task<RootCandidate> FindRootAsync(string candidate, LibraryAccess access, CancellationToken cancellationToken) =>
+        ReadAsync(access, candidate, _ =>
+            {
+                var root = _roots.Probe(candidate);
+                return Task.FromResult(new RootCandidate(root, IsAnswered: true,
+                    WatchedFolder.Toward(_fileSystem, Path.Join(candidate, SteamPaths.SteamApps)),
+                    root is null ? null : WatchedFolder.Toward(_fileSystem, Path.Join(root, SteamPaths.Config, SteamPaths.LibraryFoldersFile))));
+            },
+            () => new RootCandidate(Root: null, IsAnswered: false, Watch: null, ListWatch: null), cancellationToken);
+
+    private async Task<(IReadOnlyList<SteamLibrary> Libraries, bool IsComplete)> LocateLibrariesAsync(IReadOnlyList<string> roots,
+        IReadOnlyList<string> manualFolders, LibraryAccess access, CancellationToken cancellationToken)
+    {
+        var lists = await Task.WhenAll(roots.Concat(manualFolders)
+            .Select(listOwner => ReadLibraryListsAsync(listOwner, access, cancellationToken))).ConfigureAwait(false);
+
+        var candidates = new List<LibraryCandidate>();
         void Add(string path, bool? isMounted, bool isManual)
         {
             if (!Path.IsPathFullyQualified(path) || path.Contains('\0', StringComparison.Ordinal))
@@ -113,11 +154,7 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
                 return;
             }
 
-            var library = DescribeLibrary(path, isMounted, isManual);
-            if (seen.Add(library.Path))
-            {
-                libraries.Add(library);
-            }
+            candidates.Add(new LibraryCandidate(path, isMounted, isManual));
         }
 
         // Roots come first and are always online: another root's stale list may call them unmounted.
@@ -131,27 +168,36 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
             Add(folder, isMounted: null, isManual: true);
         }
 
-        var complete = true;
-        foreach (var listOwner in roots.Concat(manualFolders))
+        foreach (var folder in lists.SelectMany(list => list.Folders))
         {
-            var (folders, readable) = await ReadLibraryListsAsync(listOwner, cancellationToken).ConfigureAwait(false);
-            complete &= readable;
-            foreach (var folder in folders)
-            {
-                Add(folder.Path, folder.IsMounted, isManual: false);
-            }
+            Add(folder.Path, folder.IsMounted, isManual: false);
         }
 
-        return (libraries, complete);
+        var libraries = await Task.WhenAll(candidates
+                .DistinctBy(candidate => PathComparison.Normalize(candidate.Path), PathComparison.Comparer)
+                .Select(candidate => DescribeAsync(candidate, access, cancellationToken)))
+            .ConfigureAwait(false);
+        return ([.. libraries.DistinctBy(library => library.Path, PathComparison.Comparer)], lists.All(list => list.IsReadable));
     }
 
-    private SteamLibrary DescribeLibrary(string path, bool? isMounted, bool isManual)
-    {
-        var canonical = _fileSystem.GetCanonicalPath(path);
-        var steamApps = SteamPaths.FindSteamApps(_fileSystem, canonical);
-        return new SteamLibrary(canonical, steamApps ?? Path.Join(canonical, SteamPaths.SteamApps),
-            isMounted != false && steamApps is not null, isManual);
-    }
+    private Task<SteamLibrary> DescribeAsync(LibraryCandidate candidate, LibraryAccess access, CancellationToken cancellationToken) =>
+        ReadAsync(access, candidate.Path, _ =>
+            {
+                var canonical = _fileSystem.GetCanonicalPath(candidate.Path);
+                var steamApps = SteamPaths.FindSteamApps(_fileSystem, canonical);
+                return Task.FromResult(new SteamLibrary(canonical, steamApps ?? Path.Join(canonical, SteamPaths.SteamApps),
+                    candidate.IsMounted != false && steamApps is not null, candidate.IsManual));
+            },
+            () =>
+            {
+                var path = PathComparison.Normalize(candidate.Path);
+                return new SteamLibrary(path, Path.Join(path, SteamPaths.SteamApps), IsOnline: false, candidate.IsManual) { IsAnswered = false };
+            },
+            cancellationToken);
+
+    private Task<(List<SteamLibraryFolder> Folders, bool IsReadable)> ReadLibraryListsAsync(string listOwner, LibraryAccess access,
+        CancellationToken cancellationToken) =>
+        ReadAsync(access, listOwner, token => ReadLibraryListsAsync(listOwner, token), () => ([], false), cancellationToken);
 
     // IsReadable: at least one copy of each existing list could be read.
     private async Task<(List<SteamLibraryFolder> Folders, bool IsReadable)> ReadLibraryListsAsync(string root,
@@ -185,32 +231,24 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
         return (folders, existing == 0 || parsed > 0);
     }
 
-    private async Task<StoreScan> ScanLibrariesAsync(IReadOnlyList<SteamLibrary> libraries, CancellationToken cancellationToken)
-    {
-        var locations = new List<LibraryLocation>();
-        var installations = new List<SteamInstallation>();
-        var unreadable = new List<UnreadableGame>();
-        foreach (var library in libraries)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var scan = library.IsOnline ? await ScanLibraryAsync(library, cancellationToken).ConfigureAwait(false) : null;
-            locations.Add(new LibraryLocation(library.Path, LibrarySource, library.Path,
-                scan is null ? LibraryState.Offline : LibraryState.Online, library.IsManual, scan?.Unreadable.Count ?? 0));
-            if (scan is not null)
-            {
-                installations.AddRange(scan.Installations);
-                unreadable.AddRange(scan.Unreadable);
-            }
-        }
+    private Task<LibraryRead> ReadLibraryAsync(SteamLibrary library, LibraryAccess access, CancellationToken cancellationToken) =>
+        library.IsAnswered
+            ? ReadAsync(access, library.Path, async token => new LibraryRead(library,
+                    library.IsOnline ? await ScanLibraryAsync(library, token).ConfigureAwait(false) : null, PlanWatches(library)),
+                () => LibraryRead.Unanswered(library), cancellationToken)
+            : Task.FromResult(LibraryRead.Unanswered(library));
 
-        return new StoreScan
-        {
-            Store = Store,
-            Libraries = new ValueList<LibraryLocation>([.. locations]),
-            Games = new ValueList<InstalledGame>([.. OnePerInstallDirectory(installations)]),
-            UnreadableGames = new ValueList<UnreadableGame>([.. unreadable]),
-        };
-    }
+    private StoreScan Combine(IReadOnlyList<LibraryRead> reads) => new()
+    {
+        Store = Store,
+        Libraries =
+        [
+            .. reads.Select(read => new LibraryLocation(read.Library.Path, LibrarySource, read.Library.Path,
+                read.Scan is null ? LibraryState.Offline : LibraryState.Online, read.Library.IsManual, read.Scan?.Unreadable.Count ?? 0)),
+        ],
+        Games = [.. OnePerInstallDirectory(reads.SelectMany(read => read.Scan?.Installations ?? []))],
+        UnreadableGames = [.. reads.SelectMany(read => read.Scan?.Unreadable ?? [])],
+    };
 
     // Null when the library cannot be listed, which is treated as offline.
     private async Task<LibraryScan?> ScanLibraryAsync(SteamLibrary library, CancellationToken cancellationToken)
@@ -332,37 +370,22 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
                 $@"{SteamRootLocator.SteamKey}\Apps\{appId.ToString(CultureInfo.InvariantCulture)}")
             ?.GetValue("Updating")?.AsNumber() is > 0;
 
-    private WatchPlan PlanWatches(IReadOnlyList<string> roots, IReadOnlyList<SteamLibrary> libraries)
+    private List<WatchedFolder> PlanWatches(SteamLibrary library)
     {
-        var folders = new List<WatchedFolder>();
-        foreach (var library in libraries)
+        if (!library.IsOnline)
         {
-            if (!library.IsOnline)
-            {
-                // A drive plugged back in, or a folder restored, shows up here.
-                if (WatchedFolder.Toward(_fileSystem, library.SteamAppsDirectory) is { } toward)
-                {
-                    folders.Add(toward);
-                }
-
-                continue;
-            }
-
-            folders.Add(new WatchedFolder(library.SteamAppsDirectory, SteamAppsEntries));
-            var downloading = Path.Join(library.SteamAppsDirectory, SteamPaths.Downloading);
-            if (_fileSystem.DirectoryExists(downloading))
-            {
-                folders.Add(new WatchedFolder(downloading, []));
-            }
+            // A drive plugged back in, or a folder restored, shows up here.
+            return WatchedFolder.Toward(_fileSystem, library.SteamAppsDirectory) is { } toward ? [toward] : [];
         }
 
-        // The current client keeps a second copy of its library list in config. Without any root, the places Steam may
-        // be installed to are watched, so an install made while the app runs is found.
-        var rootFiles = roots.Count > 0
-            ? roots.Select(root => Path.Join(root, SteamPaths.Config, SteamPaths.LibraryFoldersFile))
-            : _roots.Candidates().Select(candidate => Path.Join(candidate, SteamPaths.SteamApps));
-        folders.AddRange(rootFiles.Select(file => WatchedFolder.Toward(_fileSystem, file)).OfType<WatchedFolder>());
+        var downloading = Path.Join(library.SteamAppsDirectory, SteamPaths.Downloading);
+        return _fileSystem.DirectoryExists(downloading)
+            ? [new WatchedFolder(library.SteamAppsDirectory, SteamAppsEntries), new WatchedFolder(downloading, [])]
+            : [new WatchedFolder(library.SteamAppsDirectory, SteamAppsEntries)];
+    }
 
+    private WatchPlan PlanWatches(IEnumerable<LibraryRead> reads, IEnumerable<WatchedFolder> rootWatches)
+    {
         List<WatchedRegistryKey> keys = _environment.Platform == AppPlatform.Windows
             ?
             [
@@ -371,7 +394,7 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
                 new(RegistryHive.CurrentUser, RegistryView.Default, $@"{SteamRootLocator.SteamKey}\Apps", IncludeSubkeys: true),
             ]
             : [];
-        return new WatchPlan(new ValueList<WatchedFolder>([.. folders.Distinct()]), new ValueList<WatchedRegistryKey>([.. keys]));
+        return new WatchPlan([.. reads.SelectMany(read => read.Watch).Concat(rootWatches).Distinct()], [.. keys]);
     }
 
     private bool HasManifest(string steamApps)
@@ -424,7 +447,31 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
     [GeneratedRegex("^appmanifest_([0-9]{1,10})\\.acf$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex ManifestFileName();
 
-    private sealed record SteamLibrary(string Path, string SteamAppsDirectory, bool IsOnline, bool IsManual);
+    /// <summary>A place Steam may be installed to.</summary>
+    /// <param name="Root">The canonical root at the candidate, when it holds a <c>steamapps</c> folder.</param>
+    /// <param name="IsAnswered">False when the candidate's drive did not answer in time.</param>
+    /// <param name="Watch">The way toward the candidate's <c>steamapps</c>, watched while Steam is nowhere to be found.</param>
+    /// <param name="ListWatch">The way toward the root's second copy of its library list.</param>
+    private sealed record RootCandidate(string? Root, bool IsAnswered, WatchedFolder? Watch, WatchedFolder? ListWatch);
+
+    private sealed record LibraryCandidate(string Path, bool? IsMounted, bool IsManual);
+
+    private sealed record SteamLibrary(string Path, string SteamAppsDirectory, bool IsOnline, bool IsManual)
+    {
+        /// <summary>False when its drive did not answer in time, so its path is the one listed rather than the canonical one.</summary>
+        public bool IsAnswered { get; init; } = true;
+    }
+
+    /// <summary>A library as a scan read it.</summary>
+    /// <param name="Library">The library read.</param>
+    /// <param name="Scan">Null when the library is offline, could not be listed or did not answer.</param>
+    /// <param name="Watch">What to watch for changes to the library's records, or for the library coming back.</param>
+    private sealed record LibraryRead(SteamLibrary Library, LibraryScan? Scan, IReadOnlyList<WatchedFolder> Watch)
+    {
+        public bool IsAnswered { get; init; } = true;
+
+        public static LibraryRead Unanswered(SteamLibrary library) => new(library, Scan: null, Watch: []) { IsAnswered = false };
+    }
 
     private sealed record SteamInstallation(InstalledGame Game, SteamAppManifest Manifest);
 

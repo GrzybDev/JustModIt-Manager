@@ -45,8 +45,9 @@ internal sealed class SteamTree
 
     public InMemoryRegistry Registry { get; } = new();
 
-    public SteamLibraryProvider CreateProvider(LibraryEnvironment? environment = null) =>
-        new(Files, Registry, environment ?? Windows, NullLogger<SteamLibraryProvider>.Instance);
+    /// <param name="files">What the provider reads through, such as a file system wrapped around <see cref="Files"/>.</param>
+    public SteamLibraryProvider CreateProvider(LibraryEnvironment? environment = null, IFileSystem? files = null) =>
+        new(files ?? Files, Registry, environment ?? Windows, NullLogger<SteamLibraryProvider>.Instance);
 
     public Task<StoreScan> ScanAsync(params string[] manualFolders) =>
         CreateProvider().ScanAsync(new LibraryScanContext([.. manualFolders]), TestContext.Current.CancellationToken);

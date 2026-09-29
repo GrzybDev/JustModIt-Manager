@@ -1,11 +1,10 @@
-using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library.Steam;
 
 /// <summary>
-/// Finds every Steam installation. Linux can have several at once (native, Flatpak, Snap), and its conventional paths
-/// are mostly symbolic links to one another, so candidates are deduplicated by canonical path.
+/// Finds every Steam installation, telling roots apart by their canonical path, since Linux can have several at once
+/// (native, Flatpak, Snap) and its conventional paths are mostly symbolic links to one another.
 /// </summary>
 /// <param name="fileSystem">Reads the candidate folders.</param>
 /// <param name="registry">Tells where Steam is installed, on Windows.</param>
@@ -17,24 +16,17 @@ internal sealed class SteamRootLocator(IFileSystem fileSystem, IRegistry registr
     private const string MachineSteamKey = @"SOFTWARE\Valve\Steam";
     private const string FlatpakAppId = "com.valvesoftware.Steam";
 
-    /// <summary>Canonical roots that hold a <c>steamapps</c> folder, in order of preference.</summary>
-    public IReadOnlyList<string> Locate()
+    /// <summary>
+    /// Gives the canonical root at <paramref name="candidate"/> when it holds a <c>steamapps</c> folder; null otherwise.
+    /// </summary>
+    /// <param name="candidate">A place Steam may be installed.</param>
+    public string? Probe(string candidate)
     {
-        var roots = new List<string>();
-        var seen = new HashSet<string>(PathComparison.Comparer);
-        foreach (var candidate in Candidates())
-        {
-            var root = fileSystem.GetCanonicalPath(candidate);
-            if (SteamPaths.FindSteamApps(fileSystem, root) is not null && seen.Add(root))
-            {
-                roots.Add(root);
-            }
-        }
-
-        return roots;
+        var root = fileSystem.GetCanonicalPath(candidate);
+        return SteamPaths.FindSteamApps(fileSystem, root) is null ? null : root;
     }
 
-    /// <summary>Where Steam may be installed, whether it is or not.</summary>
+    /// <summary>Where Steam may be installed, whether it is or not, in order of preference.</summary>
     public IEnumerable<string> Candidates() =>
         RawCandidates().Where(candidate => Path.IsPathFullyQualified(candidate) && !candidate.Contains('\0', StringComparison.Ordinal));
 

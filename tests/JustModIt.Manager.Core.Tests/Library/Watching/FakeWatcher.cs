@@ -4,15 +4,21 @@ using JustModIt.Manager.Core.Library.Watching;
 namespace JustModIt.Manager.Core.Tests.Library.Watching;
 
 /// <summary>Records what is watched and lets a test report changes, like the system watchers do.</summary>
-internal sealed class FakeWatcher : IFolderWatcher, IRegistryWatcher
+internal sealed class FakeWatcher : IFolderWatcher, IRegistryWatcher, IDisposable
 {
     private readonly Lock _gate = new();
     private readonly List<ActiveWatch> _active = [];
+    private readonly ManualResetEventSlim _answered = new(initialState: true);
+    private object? _hanging;
+    private int _blocked;
 
     public int Started { get; private set; }
 
     /// <summary>Targets that fail to start, as a folder on some network drives does.</summary>
     public HashSet<object> Failing { get; } = [];
+
+    /// <summary>How many watches are blocked while they start.</summary>
+    public int Blocked => Volatile.Read(ref _blocked);
 
     public IReadOnlyList<object> Active
     {
@@ -24,6 +30,22 @@ internal sealed class FakeWatcher : IFolderWatcher, IRegistryWatcher
             }
         }
     }
+
+    /// <summary>Makes starting to watch <paramref name="target"/> block, as on a drive that stopped answering, until <see cref="Answer"/>.</summary>
+    /// <param name="target">The watched folder or registry key.</param>
+    public void Hang(object target)
+    {
+        _answered.Reset();
+        Volatile.Write(ref _hanging, target);
+    }
+
+    public void Answer()
+    {
+        Volatile.Write(ref _hanging, null);
+        _answered.Set();
+    }
+
+    public void Dispose() => Answer();
 
     public IDisposable Watch(WatchedFolder folder, Action<WatchSignal> onSignal) => Start(folder, onSignal);
 
@@ -51,6 +73,13 @@ internal sealed class FakeWatcher : IFolderWatcher, IRegistryWatcher
         if (Failing.Contains(target))
         {
             throw new IOException("The folder cannot be watched.");
+        }
+
+        if (target.Equals(Volatile.Read(ref _hanging)))
+        {
+            Interlocked.Increment(ref _blocked);
+            _answered.Wait(TimeSpan.FromMinutes(1));
+            Interlocked.Decrement(ref _blocked);
         }
 
         var watch = new ActiveWatch(this, target, onSignal);

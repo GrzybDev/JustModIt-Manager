@@ -31,10 +31,11 @@ public sealed record DetectionReport(ValueList<StoreDetection> Stores, DateTimeO
     }
 }
 
+/// <summary>What detection found for one store.</summary>
 /// <param name="Store">The store.</param>
 /// <param name="IsFound">The store's client, its data or a folder the player added for it exists.</param>
 /// <param name="ScanFailed">The store could not be scanned at all.</param>
-/// <param name="IsComplete">False when the store's list of libraries could not be read.</param>
+/// <param name="IsComplete">False when the store's list of libraries could not be read, or a library on it did not answer.</param>
 /// <param name="Libraries">Its libraries, each with the games found in it.</param>
 /// <param name="GameCount">The games found in all its libraries.</param>
 public sealed record StoreDetection(

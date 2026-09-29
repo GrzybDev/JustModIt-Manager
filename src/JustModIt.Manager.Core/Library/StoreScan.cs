@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Library;
 
@@ -20,7 +21,13 @@ public sealed record StoreScan
     public ValueList<UnreadableGame> UnreadableGames { get; init; }
 
     /// <summary>
-    /// False when the store's list of libraries could not be read, so a library missing from this scan may still exist.
+    /// Games whose own folder is on a drive that did not answer in time; each keeps what an earlier scan found, as offline.
+    /// </summary>
+    public ValueList<UnansweredGame> UnansweredGames { get; init; }
+
+    /// <summary>
+    /// False when the store's list of libraries could not be read, or a library on it did not answer, so a library missing
+    /// from this scan may still exist.
     /// </summary>
     public bool IsComplete { get; init; } = true;
 
@@ -40,6 +47,11 @@ public sealed record StoreScan
             return found;
         }
 
+        if (UnansweredGames.Any(unanswered => unanswered.Matches(known)))
+        {
+            return known.AsOffline();
+        }
+
         var library = Libraries.FirstOrDefault(library => library.Id == known.LibraryId);
         if (UnreadableGames.Any(game => game.Key == known.Key)
             || library?.State == LibraryState.Unreadable
@@ -48,9 +60,7 @@ public sealed record StoreScan
             return known with { State = GameInstallState.Unknown, Reason = GameStateReason.UnreadableStoreData, IsStale = false };
         }
 
-        return library?.State == LibraryState.Offline
-            ? known with { State = GameInstallState.Offline, Reason = GameStateReason.LibraryOffline, IsStale = false }
-            : null;
+        return library?.State == LibraryState.Offline ? known.AsOffline() : null;
     }
 }
 
@@ -59,3 +69,20 @@ public sealed record StoreScan
 /// <param name="LibraryId">The <see cref="LibraryLocation.Id"/> of the library holding the record.</param>
 /// <param name="StoreActivityAt">When the store last wrote the unreadable record; null when it vanished meanwhile.</param>
 public sealed record UnreadableGame(GameKey Key, string LibraryId, DateTimeOffset? StoreActivityAt);
+
+/// <summary>A game whose own folder is on a drive that did not answer in time.</summary>
+/// <param name="Key">The game the store's record is for.</param>
+/// <param name="Folder">The folder the store's record names for the game.</param>
+public sealed record UnansweredGame(GameKey Key, string Folder)
+{
+    /// <summary>
+    /// Tells whether an earlier scan found <paramref name="game"/> here, by key or by folder, since the record may name a
+    /// pack or a DLC and the game found in its folder then has another key.
+    /// </summary>
+    /// <param name="game">A game an earlier scan found.</param>
+    public bool Matches(InstalledGame game)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        return game.Key == Key || (game.Key.Store == Key.Store && PathComparison.AreSame(game.InstallDirectory, Folder));
+    }
+}

@@ -5,6 +5,7 @@ using JustModIt.Manager.Core.Library.Gog;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Core.Tests.Library.Gog;
 
@@ -214,6 +215,77 @@ public sealed class GogLibraryProviderTests
     }
 
     [Fact]
+    public async Task Games_whose_drive_does_not_answer_are_reported_while_the_others_are_read()
+    {
+        _files.AddInfo(Folder, "1207658924", "Example");
+        AddRecord("1207658924", Folder);
+        _files.AddInfo(@"Q:\Slow\Game", "1001", "Slow Game");
+        AddRecord("1001", @"Q:\Slow\Game");
+        _files.AddInfo(@"Q:\Other", "1002", "Other Game");
+        AddRecord("1002", @"Q:\Other");
+        using var files = new HangingFileSystem(_files);
+        files.Hang(@"Q:\");
+
+        var scan = await ScanRunningOutOfTimeAsync(files, LibraryScanContext.Empty);
+
+        scan.Games.Select(game => game.Key).Should().Equal(Example);
+        scan.UnansweredGames.Should().BeEquivalentTo([
+            new UnansweredGame(new GameKey(StoreId.Gog, "1001"), @"Q:\Slow\Game"),
+            new UnansweredGame(new GameKey(StoreId.Gog, "1002"), @"Q:\Other"),
+        ]);
+        files.HungCalls.Should().Be(1, "a drive that does not answer holds one thread");
+        scan.Libraries.Single().UnreadableEntries.Should().Be(2, "a game on a drive that did not answer is not gone");
+        scan.IsComplete.Should().BeTrue();
+        scan.Watch.Folders.Should().Equal(new WatchedFolder(Folder, ["goggame-*.info", ".gogdl-resume", ".gogdl-download-cache"]));
+    }
+
+    [Fact]
+    public async Task A_folder_the_player_added_that_does_not_answer_is_offline()
+    {
+        _files.AddInfo(@"E:\Offline Installs\Example", "1207658924", "Example");
+        _files.AddInfo(@"Q:\Slow\Another", "1001", "Another");
+        using var files = new HangingFileSystem(_files);
+        files.Hang(@"Q:\Slow");
+
+        var scan = await ScanRunningOutOfTimeAsync(files, Manual(@"E:\Offline Installs", @"Q:\Slow"));
+
+        scan.Libraries.Select(library => (library.Id, library.State, library.IsManual)).Should().Equal(
+            (@"E:\Offline Installs", LibraryState.Online, true),
+            (@"Q:\Slow", LibraryState.Offline, true));
+        scan.Games.Select(game => game.Key).Should().Equal(Example);
+    }
+
+    [Fact]
+    public async Task A_launcher_list_that_does_not_answer_leaves_the_scan_incomplete()
+    {
+        _files.AddInfo(Folder, "1207658924", "Example");
+        AddRecord("1207658924", Folder);
+        using var files = new HangingFileSystem(_files);
+        files.Hang(@"R:\Roaming");
+
+        var scan = await ScanRunningOutOfTimeAsync(files, LibraryScanContext.Empty, new HeroicGogSource(files, @"R:\Roaming\heroic\gog_store"));
+
+        scan.IsComplete.Should().BeFalse();
+        scan.Games.Select(game => game.Key).Should().Equal(Example);
+    }
+
+    [Fact]
+    public async Task A_probe_of_a_game_whose_folder_does_not_answer_is_offline()
+    {
+        _files.AddInfo(Folder, "1207658924", "Example");
+        AddRecord("1207658924", Folder);
+        var known = (await Scan()).Games.Single();
+        using var files = new HangingFileSystem(_files);
+        files.Hang(Folder);
+        var time = new FakeTimeProvider();
+
+        var probing = CreateProvider(files).ProbeAsync(known, LibraryScanContext.Empty with { Access = new LibraryAccess(time) }, Token);
+        await files.RunOutOfTimeAsync(time);
+
+        (await probing).Should().Be(known with { State = GameInstallState.Offline, Reason = GameStateReason.LibraryOffline });
+    }
+
+    [Fact]
     public async Task A_probe_reads_the_records_again()
     {
         _files.AddInfo(Folder, "1207658924", "Example", buildId: "900");
@@ -246,10 +318,21 @@ public sealed class GogLibraryProviderTests
 
     private static LibraryScanContext Manual(params string[] folders) => new(new ValueList<string>([.. folders]));
 
-    private GogLibraryProvider CreateProvider(params IGogInstallSource[] extra) =>
-        new(_files, [new GogRegistrySource(_registry), .. extra], AppPlatform.Windows, NullLogger<GogLibraryProvider>.Instance);
+    private GogLibraryProvider CreateProvider(params IGogInstallSource[] extra) => CreateProvider(_files, extra);
+
+    private GogLibraryProvider CreateProvider(IFileSystem files, params IGogInstallSource[] extra) =>
+        new(files, [new GogRegistrySource(_registry), .. extra], AppPlatform.Windows, NullLogger<GogLibraryProvider>.Instance);
 
     private Task<StoreScan> Scan() => CreateProvider().ScanAsync(LibraryScanContext.Empty, Token);
+
+    private async Task<StoreScan> ScanRunningOutOfTimeAsync(HangingFileSystem files, LibraryScanContext context,
+        params IGogInstallSource[] extra)
+    {
+        var time = new FakeTimeProvider();
+        var scanning = CreateProvider(files, extra).ScanAsync(context with { Access = new LibraryAccess(time) }, Token);
+        await files.RunOutOfTimeAsync(time);
+        return await scanning;
+    }
 
     private void AddRecord(string id, string path, string? name = null, string? buildId = null, string? language = null,
         string? dependsOn = null, RegistryView view = RegistryView.Registry32)

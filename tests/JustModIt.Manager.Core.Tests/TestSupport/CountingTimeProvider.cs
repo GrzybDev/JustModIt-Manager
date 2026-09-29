@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Library;
 using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Core.Tests.TestSupport;
@@ -23,7 +24,12 @@ internal sealed class CountingTimeProvider : FakeTimeProvider
 
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {
-        Interlocked.Increment(ref _timers);
+        // A time limit on a drive that may not answer does not mean the loop sleeps.
+        if (dueTime != LibraryAccess.TimeLimit)
+        {
+            Interlocked.Increment(ref _timers);
+        }
+
         return base.CreateTimer(callback, state, dueTime, period);
     }
 
