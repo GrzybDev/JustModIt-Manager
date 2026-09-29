@@ -185,7 +185,7 @@ public sealed record ProjectPage
     public ProjectLocator Locator => new(Game.Slug, Team.Slug, Uuid);
 
     [JsonIgnore]
-    public Release? PublicRelease => Releases.FirstOrDefault(release => release.IsPublic);
+    public Release? PublicRelease => Releases.FirstOrDefault(release => release is { IsPublic: true, IsHidden: false });
 }
 
 public sealed record UserSummary

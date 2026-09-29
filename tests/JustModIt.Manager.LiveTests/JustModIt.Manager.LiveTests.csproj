@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Built as an app: its Product.props gives the tests the real site's settings, so no address lives in test code. -->
+  <Import Project="..\..\src\MenadzerSpolszczen\Product.props" />
+  <Import Project="..\..\src\JustModIt.Manager.Host\ProductConfiguration.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JustModIt.Manager.Core\JustModIt.Manager.Core.csproj" />
+  </ItemGroup>
+</Project>

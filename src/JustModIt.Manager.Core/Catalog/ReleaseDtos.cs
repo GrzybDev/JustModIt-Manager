@@ -30,6 +30,9 @@ public sealed record Release
 
     public bool IsPublic { get; init; }
 
+    /// <summary>Hidden by staff, so offered to nobody; <see cref="IsPublic"/> keeps its value for when it is restored.</summary>
+    public bool IsHidden { get; init; }
+
     public DateTimeOffset? FirstPublishedAt { get; init; }
 
     /// <summary>Includes files whose upload has not finished; see <see cref="ReleaseFile.IsReady"/>.</summary>
