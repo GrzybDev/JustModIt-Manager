@@ -157,6 +157,9 @@ public static class AgentServices
         services.AddSingleton(UpdateSchedule.Default);
         services.AddSingleton<UpdateService>();
         services.AddSingleton<IAgentService>(provider => provider.GetRequiredService<UpdateService>());
+        services.AddSingleton<IManagedHeap>(ManagedHeap.Instance);
+        services.AddSingleton(MemoryTrimSchedule.Default);
+        services.AddSingleton<IAgentService, MemoryTrimmer>();
         services.AddSingleton<AgentRuntime>();
     }
 

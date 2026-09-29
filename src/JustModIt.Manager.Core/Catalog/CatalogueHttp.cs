@@ -7,6 +7,9 @@ namespace JustModIt.Manager.Core.Catalog;
 /// <summary>The HTTP clients that talk to the site: one for its API, one for the storage that serves release files.</summary>
 public static class CatalogueHttp
 {
+    /// <summary>The site is read in bursts hours apart, so an idle connection is not kept with its socket and TLS state.</summary>
+    public static readonly TimeSpan IdleConnectionTimeout = TimeSpan.FromSeconds(15);
+
     private static readonly HttpRequestOptionsKey<bool> CountedKey = new("JustModIt.Manager.Counted");
 
     private static readonly SearchValues<char> TokenCharacters =
@@ -61,6 +64,7 @@ public static class CatalogueHttp
         UseCookies = false,
         AutomaticDecompression = decompression,
         PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+        PooledConnectionIdleTimeout = IdleConnectionTimeout,
         ConnectTimeout = TimeSpan.FromSeconds(30),
     };
 
