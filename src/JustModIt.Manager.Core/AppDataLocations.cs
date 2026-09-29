@@ -50,7 +50,7 @@ public sealed class AppDataLocations
     public static AppDataLocations ForCurrentUser(AppIdentity identity)
     {
         ArgumentNullException.ThrowIfNull(identity);
-        return Resolve(CurrentPlatform(), Environment.GetEnvironmentVariable,
+        return Resolve(AppPlatforms.Current, Environment.GetEnvironmentVariable,
             folder => Environment.GetFolderPath(folder, Environment.SpecialFolderOption.DoNotVerify), identity.VendorId,
             identity.InstanceName);
     }
@@ -99,11 +99,6 @@ public sealed class AppDataLocations
         }
     }
 
-    private static AppPlatform CurrentPlatform() =>
-        OperatingSystem.IsWindows() ? AppPlatform.Windows
-        : OperatingSystem.IsMacOS() ? AppPlatform.MacOS
-        : AppPlatform.Linux;
-
     private static string Home(Func<string, string?> environment, Func<Environment.SpecialFolder, string> folders) =>
         Base(environment("HOME") is { Length: > 0 } home ? home : folders(Environment.SpecialFolder.UserProfile));
 
@@ -118,11 +113,4 @@ public sealed class AppDataLocations
             ? path
             : throw new ArgumentException("An app data location must be a fully qualified path.", nameof(path));
     }
-}
-
-internal enum AppPlatform
-{
-    Windows,
-    Linux,
-    MacOS,
 }
