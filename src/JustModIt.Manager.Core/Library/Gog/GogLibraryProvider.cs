@@ -39,12 +39,14 @@ public sealed partial class GogLibraryProvider : ILibraryProvider
 
     public StoreId Store => StoreId.Gog;
 
-    /// <summary>The sources of this machine: the registry on Windows.</summary>
+    /// <summary>The sources of this machine: the registry on Windows, then every Heroic installation.</summary>
     public static GogLibraryProvider Create(IFileSystem fileSystem, IRegistry registry, LibraryEnvironment environment,
         ILogger<GogLibraryProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(environment);
         List<IGogInstallSource> sources = environment.Platform == AppPlatform.Windows ? [new GogRegistrySource(registry)] : [];
+        sources.AddRange(HeroicGogSource.StoreDirectories(environment)
+            .Select(directory => new HeroicGogSource(fileSystem, directory)));
         return new GogLibraryProvider(fileSystem, sources, environment.Platform, logger);
     }
 
