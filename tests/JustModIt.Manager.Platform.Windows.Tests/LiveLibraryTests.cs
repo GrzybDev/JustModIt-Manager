@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Gog;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Platform;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -48,5 +49,26 @@ public sealed class LiveLibraryTests
         }
 
         (await provider.InspectFolderAsync(owned[0].InstallDirectory, Token)).Folder.Should().Be(owned[0].LibraryId);
+    }
+
+    [Fact]
+    public async Task The_real_gog_library_scans_to_sane_results()
+    {
+        var provider = GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, LibraryEnvironment.ForCurrentUser(),
+            NullLogger<GogLibraryProvider>.Instance);
+
+        var scan = await provider.ScanAsync(LibraryScanContext.Empty, Token);
+
+        Assert.SkipUnless(scan.IsPresent, "GOG is not installed on this machine.");
+        scan.IsComplete.Should().BeTrue();
+        scan.Games.Select(game => game.Key).Should().OnlyHaveUniqueItems();
+        scan.Games.Should().OnlyContain(game => scan.Libraries.Any(library => library.Id == game.LibraryId)
+            && game.Key.StoreGameId.All(char.IsAsciiDigit) && !string.IsNullOrWhiteSpace(game.Name));
+        foreach (var game in scan.Games.Where(game => game.IsReady && game.Reason == GameStateReason.None))
+        {
+            Directory.Exists(game.InstallDirectory).Should().BeTrue();
+            (await provider.InspectFolderAsync(game.InstallDirectory, Token)).IsAccepted.Should().BeTrue();
+            (await provider.ProbeAsync(game, LibraryScanContext.Empty, Token))!.State.Should().Be(GameInstallState.Installed);
+        }
     }
 }
