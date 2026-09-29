@@ -5,5 +5,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\JustModIt.Manager.Core\JustModIt.Manager.Core.csproj" />
+    <ProjectReference Include="..\..\src\JustModIt.Manager.Creator\JustModIt.Manager.Creator.csproj" />
+    <ProjectReference Include="..\..\src\JustModIt.Manager.Platform.Windows\JustModIt.Manager.Platform.Windows.csproj" />
   </ItemGroup>
 </Project>

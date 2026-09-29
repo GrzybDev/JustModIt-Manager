@@ -133,6 +133,18 @@
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )"
         }
       },
+      "justmodit.manager.creator": {
+        "type": "Project",
+        "dependencies": {
+          "JustModIt.Manager.Core": "[0.1.0, )"
+        }
+      },
+      "justmodit.manager.platform.windows": {
+        "type": "Project",
+        "dependencies": {
+          "JustModIt.Manager.Core": "[0.1.0, )"
+        }
+      },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "CentralTransitive",
         "requested": "[10.0.12, )",
