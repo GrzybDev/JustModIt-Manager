@@ -43,5 +43,7 @@
     <!-- A development build uses its own data folder, mutexes and pipe, so it never touches an installed copy. -->
     <ManagerDevelopmentBuild Condition="'$(ManagerDevelopmentBuild)' == '' and '$(Configuration)' == 'Release'">false</ManagerDevelopmentBuild>
     <ManagerDevelopmentBuild Condition="'$(ManagerDevelopmentBuild)' == ''">true</ManagerDevelopmentBuild>
+    <!-- Autostart and the link scheme are registered by installed copies; a developer testing links turns this on. -->
+    <ManagerDevelopmentShellIntegration Condition="'$(ManagerDevelopmentShellIntegration)' == ''">false</ManagerDevelopmentShellIntegration>
   </PropertyGroup>
 </Project>

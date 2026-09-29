@@ -1,0 +1,49 @@
+using JustModIt.Manager.Core;
+
+namespace JustModIt.Manager.Host;
+
+/// <summary>An app's identity and site settings, as its build configured them; the app's ProductConfiguration.Settings.</summary>
+public sealed record ProductSettings
+{
+    public required string ProductName { get; init; }
+
+    public required string AppId { get; init; }
+
+    public required string VendorId { get; init; }
+
+    public required string AppSlug { get; init; }
+
+    /// <summary>The extension, with its dot, of the app's manifest packages.</summary>
+    public required string PackageExtension { get; init; }
+
+    /// <summary>The extension, with its dot, of the package creator's project files.</summary>
+    public required string CreatorProjectExtension { get; init; }
+
+    public required string ApiUrl { get; init; }
+
+    public string SiteUrl { get; init; } = "";
+
+    /// <summary>Empty uses the API anonymously.</summary>
+    public string ApiKey { get; init; } = "";
+
+    /// <summary>Empty turns self-update off.</summary>
+    public string UpdateUrl { get; init; } = "";
+
+    /// <summary>Empty follows the channel the installed build came from.</summary>
+    public string UpdateChannel { get; init; } = "";
+
+    public bool UpdatePrereleases { get; init; }
+
+    public string Language { get; init; } = "";
+
+    public string TargetLanguage { get; init; } = "";
+
+    public string AccentColor { get; init; } = "";
+
+    public bool IsDevelopmentBuild { get; init; }
+
+    /// <summary>A development build registers autostart and the link scheme, which otherwise only an installed copy does.</summary>
+    public bool DevelopmentShellIntegration { get; init; }
+
+    public AppIdentity Identity => new(AppId, VendorId, AppSlug, IsDevelopmentBuild);
+}

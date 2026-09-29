@@ -8,7 +8,13 @@
     <ManagerPackageExtension>.examplemod</ManagerPackageExtension>
     <ManagerCreatorProjectExtension>.exampleproj</ManagerCreatorProjectExtension>
     <ManagerApiUrl>https://api.example.com/</ManagerApiUrl>
+    <ManagerTargetLanguage>de</ManagerTargetLanguage>
+    <ManagerAppProject>true</ManagerAppProject>
   </PropertyGroup>
 
   <Import Project="..\..\src\JustModIt.Manager.Host\ProductConfiguration.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JustModIt.Manager.Host\JustModIt.Manager.Host.csproj" />
+  </ItemGroup>
 </Project>

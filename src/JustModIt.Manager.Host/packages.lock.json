@@ -231,6 +231,7 @@
           "JustModIt.Manager.Localization": "[0.1.0, )",
           "JustModIt.Manager.Protocol": "[0.1.0, )",
           "Markdig": "[1.4.0, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
           "Serilog": "[4.4.0, )",
           "Serilog.Sinks.Async": "[2.1.0, )",
           "Serilog.Sinks.File": "[7.0.0, )"

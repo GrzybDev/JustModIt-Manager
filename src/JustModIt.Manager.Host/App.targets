@@ -7,6 +7,7 @@
     <ApplicationIcon>Branding\app.ico</ApplicationIcon>
     <IsAotCompatible>true</IsAotCompatible>
     <PublishAot>true</PublishAot>
+    <ManagerAppProject>true</ManagerAppProject>
   </PropertyGroup>
 
   <!-- SelfContained is left to publish time: a self-contained exe cannot be referenced by a test project (NETSDK1151). -->
