@@ -89,13 +89,11 @@ public sealed class InstallTests : IAsyncDisposable
         result.Record.Backup.Should().Be(new BackupFolder(location,
             Path.Join(PackagePath.ToFullPath(root, folder), result.Record.Id.ToString("N"))));
         File.ReadAllText(Path.Join(result.Record.Backup.Directory, "0")).Should().Be("Read me");
+        (File.GetAttributes(_harness.HiddenDirectory) & FileAttributes.Hidden).Should().Be(FileAttributes.Hidden);
         if (location != BackupLocation.GameFolder)
         {
-            Directory.Exists(_harness.HiddenDirectory).Should().BeFalse("staging files are removed once the install commits");
-        }
-        else
-        {
-            (File.GetAttributes(_harness.HiddenDirectory) & FileAttributes.Hidden).Should().Be(FileAttributes.Hidden);
+            Directory.EnumerateFileSystemEntries(_harness.HiddenDirectory).Select(Path.GetFileName).Should().Equal(
+                [AppFolders.OwnerFileName], "staging files are removed once the install commits, while the owner file stays");
         }
     }
 

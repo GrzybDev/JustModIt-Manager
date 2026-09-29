@@ -41,6 +41,12 @@ public enum JobFailureReason
     /// <summary>Another project's install owns files this one would change.</summary>
     ConflictingInstall,
 
+    /// <summary>
+    /// Another app, or another build of this one, manages the game's files (<see cref="JobFailure.OtherApp"/>, whose folder
+    /// is <see cref="JobFailure.Location"/>); once it has uninstalled, the game is free.
+    /// </summary>
+    ManagedByOtherApp,
+
     /// <summary>An interrupted operation on this game could not be finished or undone yet.</summary>
     RecoveryPending,
 
@@ -104,6 +110,11 @@ public sealed record JobFailure(JobFailureReason Reason)
 
     public long? AvailableBytes { get; init; }
 
-    /// <summary>A full path: the folder whose volume lacks space, or the backup folder that is not there.</summary>
+    /// <summary>
+    /// A full path: the folder whose volume lacks space, the backup folder that is not there, or another app's folder.
+    /// </summary>
     public string? Location { get; init; }
+
+    /// <summary>The app that manages the game's files, as it names itself in its folder.</summary>
+    public string? OtherApp { get; init; }
 }

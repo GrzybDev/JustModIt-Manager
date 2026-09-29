@@ -263,7 +263,7 @@ public sealed class PackageBuilderTests : IDisposable
     }
 
     [Fact]
-    public async Task Refuses_a_game_that_holds_an_install_or_is_not_ready()
+    public async Task Refuses_a_game_that_holds_an_install_another_app_manages_or_is_not_ready()
     {
         _workspace.Author("data.txt", "text");
         var plan = await PlanAsync(new CreatorProject());
@@ -290,6 +290,11 @@ public sealed class PackageBuilderTests : IDisposable
             .Which.Reason.Should().Be(CreatorBlockReason.GameHasInstall);
         (await updating.Should().ThrowAsync<PackageBuildException>()).Which.Failure.Should().Be(BuildFailure.GameNotReady);
         (await other.Should().ThrowAsync<PackageBuildException>()).Which.Failure.Should().Be(BuildFailure.OtherGame);
+        _workspace.MarkGameFolder(".other-app", "OtherApp");
+        var managed = () => builder.BuildAsync(plan.Confirm(), new BuildRequest { OutputPath = output, Game = Game(plan) },
+            progress: null, TestContext.Current.CancellationToken);
+        (await managed.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle()
+            .Which.Reason.Should().Be(CreatorBlockReason.GameManagedByOtherApp);
         File.Exists(output).Should().BeFalse();
     }
 
@@ -334,12 +339,15 @@ public sealed class PackageBuilderTests : IDisposable
     }
 
     [Fact]
-    public void Names_the_hidden_folder_after_the_app()
+    public void Names_the_hidden_folder_and_the_owner_after_the_app()
     {
         var options = CreatorOptions.For(new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: false),
             Workspace.Generator, ".examplemod", ".exampleproj");
+        var development = CreatorOptions.For(new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: true),
+            Workspace.Generator, ".examplemod", ".exampleproj");
 
-        options.HiddenFolderName.Should().Be(".example-app");
+        (options.HiddenFolderName, options.InstanceName).Should().Be((".example-app", "ExampleApp"));
+        (development.HiddenFolderName, development.InstanceName).Should().Be((".example-app-dev", "ExampleApp.Dev"));
         options.Rules.Should().BeSameAs(HostingRuleSet.Default);
     }
 

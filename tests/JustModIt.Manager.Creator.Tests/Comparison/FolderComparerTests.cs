@@ -281,6 +281,40 @@ public sealed class FolderComparerTests : IDisposable
     }
 
     [Fact]
+    public async Task Refuses_a_game_another_app_manages()
+    {
+        _workspace.Author("data.txt", "text");
+        _workspace.MarkGameFolder(".other-app", "OtherApp");
+
+        var compare = () => _workspace.CompareAsync();
+
+        var block = (await compare.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle().Subject;
+        block.Reason.Should().Be(CreatorBlockReason.GameManagedByOtherApp);
+        block.App.Should().Be("OtherApp");
+        Path.GetFileName(block.Path).Should().Be(".other-app");
+    }
+
+    [Fact]
+    public async Task A_development_build_refuses_a_game_the_installed_copy_manages_and_the_other_way_round()
+    {
+        _workspace.Author("data.txt", "text");
+        var development = Workspace.Options with { HiddenFolderName = ".example-app-dev", InstanceName = "ExampleApp.Dev" };
+        _workspace.MarkGameFolder(Workspace.HiddenFolderName, Workspace.InstanceName);
+
+        var fromDevelopment = () => _workspace.CompareAsync(options: development);
+        (await fromDevelopment.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle()
+            .Which.App.Should().Be(Workspace.InstanceName);
+        (await _workspace.CompareAsync()).Game.FileCount.Should().Be(0, "the app's own folder holds no game files");
+
+        Directory.Delete(_workspace.GamePath(Workspace.HiddenFolderName), recursive: true);
+        _workspace.MarkGameFolder(".example-app-dev", "ExampleApp.Dev");
+
+        var fromInstalled = () => _workspace.CompareAsync();
+        (await fromInstalled.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle()
+            .Which.App.Should().Be("ExampleApp.Dev");
+    }
+
+    [Fact]
     public async Task Reports_progress_up_to_every_byte_hashed()
     {
         var content = Workspace.Bytes(4096, 1);

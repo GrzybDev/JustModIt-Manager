@@ -206,6 +206,25 @@ public sealed class JobRunnerTests
     }
 
     [Fact]
+    public async Task A_game_another_app_manages_fails_before_anything_is_downloaded()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        jobs.Engine.OtherApps = [new GameManagedByOtherAppIssue("OtherApp", @"D:\Games\Example\.other-app")];
+
+        var install = await jobs.RunAsync(JobsHarness.Install());
+        var update = await jobs.RunAsync(new UpdateJobRequest(jobs.Installed()));
+
+        install.Failure.Should().BeEquivalentTo(new JobFailure(JobFailureReason.ManagedByOtherApp)
+        {
+            OtherApp = "OtherApp",
+            Location = @"D:\Games\Example\.other-app",
+        });
+        update.Failure!.Reason.Should().Be(JobFailureReason.ManagedByOtherApp);
+        jobs.Downloader.Downloads.Should().BeEmpty();
+        jobs.Engine.Calls.Should().Equal("recover");
+    }
+
+    [Fact]
     public async Task A_pending_store_update_fails_as_not_ready_before_anything_is_downloaded()
     {
         await using var jobs = await JobsHarness.CreateAsync();

@@ -79,6 +79,8 @@ public sealed record JobFailureView(JobFailureReason Reason)
 
     public string? Location { get; init; }
 
+    public string? OtherApp { get; init; }
+
     /// <summary>Maps the failure a job ended with.</summary>
     /// <param name="failure">The failure with its details.</param>
     public static JobFailureView From(JobFailure failure)
@@ -95,6 +97,7 @@ public sealed record JobFailureView(JobFailureReason Reason)
             RequiredBytes = failure.RequiredBytes,
             AvailableBytes = failure.AvailableBytes,
             Location = failure.Location,
+            OtherApp = failure.OtherApp,
         };
     }
 }

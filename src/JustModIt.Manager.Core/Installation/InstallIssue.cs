@@ -46,7 +46,18 @@ public sealed record UnreadableInstallIssue(Guid RecordId) : InstallIssue;
 /// <param name="RecordId">The record id of the install that owns it.</param>
 public sealed record FileOwnedByOtherInstallIssue(string Path, Guid RecordId) : InstallIssue;
 
-/// <summary>The path is invalid, a link would take it out of the game folder, or it names the app's own folder.</summary>
+/// <summary>
+/// Another app or build has installs or an unfinished operation on the game, a game around it or one inside it that the
+/// package reaches, which only that app can undo, so this one keeps out until the other has uninstalled.
+/// </summary>
+/// <param name="App">The other app, as its owner file names it.</param>
+/// <param name="Directory">Its folder, a full path.</param>
+public sealed record GameManagedByOtherAppIssue(string App, string Directory) : InstallIssue;
+
+/// <summary>
+/// The path is invalid, a link would take it out of the game folder, or it leads into an app's folder or would make a
+/// folder look like one.
+/// </summary>
 /// <param name="Path">The path as the package names it.</param>
 public sealed record UnsafePathIssue(string Path) : InstallIssue;
 

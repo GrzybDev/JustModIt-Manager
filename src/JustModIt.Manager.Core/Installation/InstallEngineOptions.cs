@@ -4,8 +4,8 @@ namespace JustModIt.Manager.Core.Installation;
 public sealed record InstallEngineOptions
 {
     /// <summary>
-    /// Names the app's folder inside a backup folder the player picked; a development build's differs from an installed
-    /// copy's.
+    /// This copy of the app, as its owner file in games and its folder inside a backup folder the player picked name it; a
+    /// development build's differs from an installed copy's.
     /// </summary>
     public required string InstanceName { get; init; }
 

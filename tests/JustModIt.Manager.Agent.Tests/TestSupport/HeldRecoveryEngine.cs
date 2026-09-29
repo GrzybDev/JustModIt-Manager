@@ -33,6 +33,9 @@ internal sealed class HeldRecoveryEngine : IInstallEngine
         CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<LeftoverBackup>>([]);
 
+    public Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
     public Task<PreflightReport> CheckInstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => throw new NotSupportedException();
 

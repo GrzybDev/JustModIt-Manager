@@ -8,7 +8,7 @@ public enum FindingKind
     InvalidPath,
     PathEscapesFolder,
 
-    /// <summary>The path names the app's own folder in the game.</summary>
+    /// <summary>The path names the app's own folder in the game, or would pass a hidden folder off as an app's.</summary>
     ReservedPath,
 
     /// <summary>The package writes the path twice, so the first write would be lost.</summary>

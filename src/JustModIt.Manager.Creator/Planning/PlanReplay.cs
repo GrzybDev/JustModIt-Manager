@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator.Comparison;
 
@@ -228,7 +229,9 @@ internal sealed class PlanReplay
                 return false;
         }
 
-        if (PackagePath.FirstSegment(path).Equals(_game.HiddenFolderName, StringComparison.OrdinalIgnoreCase))
+        // The installer refuses both, so a package holding either could not be installed anywhere.
+        if (PackagePath.FirstSegment(path).Equals(_game.HiddenFolderName, StringComparison.OrdinalIgnoreCase)
+            || AppFolders.WouldMark(path))
         {
             Add(FindingKind.ReservedPath, operation, path);
             return false;

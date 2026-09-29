@@ -11,6 +11,7 @@ namespace JustModIt.Manager.Core.Installation;
 internal sealed class GameFolder
 {
     private readonly Dictionary<string, string?> _directories = new(PackagePath.Comparer);
+    private readonly Dictionary<string, bool> _appFolders = new(PathComparison.Comparer);
 
     private GameFolder(string root, string hiddenFolderName)
     {
@@ -39,8 +40,8 @@ internal sealed class GameFolder
     }
 
     /// <returns>
-    /// The canonical full path, or null when the path is invalid, names the app's own folder, or a link would take it
-    /// out of the game folder.
+    /// The canonical full path, or null when the path is invalid, leads into the app's own folder or any folder an app
+    /// marked as its own, would pass a folder off as an app's, or a link would take it out of the game folder.
     /// </returns>
     public string? TryResolve(string relativePath)
     {
@@ -52,7 +53,9 @@ internal sealed class GameFolder
 
         var separator = relativePath.LastIndexOf(PackagePath.Separator);
         var directory = separator < 0 ? Root : ResolveDirectory(relativePath[..separator]);
-        return directory is null ? null : ResolveSegment(directory, relativePath[(separator + 1)..], isLast: true);
+        var resolved = directory is null ? null : ResolveSegment(directory, relativePath[(separator + 1)..], isLast: true);
+        // Judged by the resolved path, since a link or a short name spells the folders above differently.
+        return resolved is null || AppFolders.WouldMark(RelativePathOf(resolved)) ? null : resolved;
     }
 
     /// <summary>The game-relative package path of a full path in the game folder.</summary>
@@ -120,5 +123,26 @@ internal sealed class GameFolder
     }
 
     private bool IsInside(string path) =>
-        PathComparison.IsWithin(Root, path) && !PathComparison.AreSame(Root, path) && !PathComparison.IsWithin(HiddenDirectory, path);
+        PathComparison.IsWithin(Root, path) && !PathComparison.AreSame(Root, path) && !PathComparison.IsWithin(HiddenDirectory, path)
+        && !IsInAppFolder(path);
+
+    private bool IsInAppFolder(string path)
+    {
+        for (var directory = path; directory is not null && !PathComparison.AreSame(directory, Root);
+             directory = Path.GetDirectoryName(directory))
+        {
+            if (!_appFolders.TryGetValue(directory, out var isAppFolder))
+            {
+                isAppFolder = AppFolders.OwnerOf(PhysicalFileSystem.Instance, directory) is not null;
+                _appFolders[directory] = isAppFolder;
+            }
+
+            if (isAppFolder)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

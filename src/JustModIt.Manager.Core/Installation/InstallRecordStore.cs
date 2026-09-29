@@ -93,6 +93,58 @@ internal sealed class InstallRecordStore(string installsDirectory, TimeProvider 
         }
     }
 
+    /// <summary>
+    /// Whether an install other than <paramref name="except"/>, or an unfinished operation, is on this very game folder,
+    /// counting one that cannot be read, since it may be; one on a game inside it or around it has a folder of its own.
+    /// </summary>
+    /// <param name="gameDirectory">The game's folder.</param>
+    /// <param name="except">The install or operation that does not count.</param>
+    /// <param name="cancellationToken">Stops the reads.</param>
+    public async Task<bool> HasOtherOnAsync(string gameDirectory, Guid except, CancellationToken cancellationToken)
+    {
+        foreach (var folder in Folders().Where(folder => folder.Id != except))
+        {
+            if (IsPendingOn(folder, gameDirectory, PathComparison.AreSame))
+            {
+                return true;
+            }
+
+            if (folder.HasRecord && await LoadAsync(folder, cancellationToken).ConfigureAwait(false) is var load
+                && (load.IsUnreadable || (load.Record is { } record && PathComparison.AreSame(record.InstallDirectory, gameDirectory))))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether an interrupted operation on the game folder, or on a game inside it or around it, waits for recovery,
+    /// counting a journal that cannot be read at all, since it may be about this game.
+    /// </summary>
+    /// <param name="folder">The folder of the install or operation.</param>
+    /// <param name="gameDirectory">The game's folder.</param>
+    public static bool IsPendingOn(InstallFolder folder, string gameDirectory) =>
+        IsPendingOn(folder, gameDirectory, PathComparison.Overlaps);
+
+    private static bool IsPendingOn(InstallFolder folder, string gameDirectory, Func<string, string, bool> matches)
+    {
+        try
+        {
+            return folder.HasJournal && TransactionJournal.ReadHeader(folder.JournalFile) is { } header
+                && matches(header.GameDirectory, gameDirectory);
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return false;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            return true;
+        }
+    }
+
     /// <summary>Reads the files an install touched.</summary>
     /// <param name="folder">The install's folder.</param>
     /// <param name="cancellationToken">Stops the read.</param>

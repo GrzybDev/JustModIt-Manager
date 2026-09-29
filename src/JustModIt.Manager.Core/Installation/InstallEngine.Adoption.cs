@@ -57,8 +57,10 @@ public sealed partial class InstallEngine
         }
 
         var adopted = record with { InstallDirectory = target.Root, GameVolume = _volumes.GetVolumeId(target.Root), Backup = backup };
+        await _ownership.ClaimAsync(target.Root, cancellationToken).ConfigureAwait(false);
         _hook.Before(ChangeKind.Record);
         await _store.SaveRecordAsync(adopted, cancellationToken).ConfigureAwait(false);
+        await LeaveAsync(record.InstallDirectory, recordId).ConfigureAwait(false);
         _logger.Adopted(recordId);
         return adopted;
     }

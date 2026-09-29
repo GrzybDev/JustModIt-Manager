@@ -30,6 +30,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     private readonly TimeProvider _time;
     private readonly ILogger _logger;
     private readonly InstallRecordStore _store;
+    private readonly GameFolderOwnership _ownership;
     private readonly ChangeHook _hook;
     private readonly Channel<Func<Task>> _queue = Channel.CreateUnbounded<Func<Task>>(new UnboundedChannelOptions
     {
@@ -60,13 +61,21 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         _time = time;
         _logger = logger;
         _store = new InstallRecordStore(options.InstallsDirectory, time);
+        _ownership = new GameFolderOwnership(_store, options);
         _hook = new ChangeHook(options.BeforeChange);
         _worker = Task.Run(ProcessAsync);
     }
 
     public Task<IReadOnlyList<RecoveredOperation>> RecoverAsync(CancellationToken cancellationToken) =>
-        EnqueueAsync(() => new InstallRecovery(_store, _options, _volumes, _hook, _logger).RunAsync(cancellationToken),
+        EnqueueAsync(() => new InstallRecovery(_store, _options, _ownership, _volumes, _hook, _logger).RunAsync(cancellationToken),
             cancellationToken);
+
+    public Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(gameDirectory);
+        // Only reads, so it need not wait for the operations queued before it, such as a long install of another game.
+        return Task.Run(() => _ownership.OtherApps(PathCanonicalizer.Canonicalize(gameDirectory)), cancellationToken);
+    }
 
     public Task<PreflightReport> CheckInstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
@@ -148,6 +157,10 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         InstallRecord record;
         try
         {
+            await _ownership.ClaimAsync(game.Root, cancellationToken).ConfigureAwait(false);
+            // Another app may have checked the game at the same time; as each claims it before looking again, one of the
+            // two sees the other.
+            ThrowIfAny([.. _ownership.OtherApps(game.Root, plan.Paths.Values)]);
             await transaction.ExecuteAsync(package, new ProgressTracker(progress, InstallStage.Installing, package.Steps.Count,
                 plan.BytesTotal), cancellationToken).ConfigureAwait(false);
             var files = transaction.Result();
@@ -174,11 +187,12 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             var rolledBack = await transaction.RollBackAsync(_logger).ConfigureAwait(false);
             if (rolledBack)
             {
-                Tidy(id, () => TransactionCleanup.RemoveUncommitted(transaction.Journal.Header, folder));
+                await LeaveAsync(game.Root, id, () => TransactionCleanup.RemoveUncommitted(transaction.Journal.Header, folder))
+                    .ConfigureAwait(false);
             }
 
             _logger.InstallFailed(id, rolledBack, exception);
-            if (rolledBack && exception is OperationCanceledException)
+            if (rolledBack && exception is OperationCanceledException or InstallBlockedException)
             {
                 throw;
             }
@@ -235,6 +249,11 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         }
 
         using var gameLock = game is null ? null : Lock(game);
+        if (game is not null)
+        {
+            await _ownership.ClaimAsync(game.Root, cancellationToken).ConfigureAwait(false);
+        }
+
         return await BackupRelocation.RunAsync(record, files, target, folder, _store, moves,
             game?.StagingDirectory(recordId) ?? string.Empty, _hook, progress, _logger, cancellationToken).ConfigureAwait(false);
     }
@@ -286,40 +305,20 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         var preflight = new InstallPreflight(_locks, _volumes, _options.SlowBackupCopyBytes);
         var (report, plan) = await preflight.CheckAsync(package, game, installation, backup, owners, issues, progress,
             cancellationToken, baseline).ConfigureAwait(false);
+        var others = _ownership.OtherApps(game.Root, plan.Paths.Values);
         // Asked last, because hashing the files of a large package takes long enough for the store to start an update.
         var readiness = ReadinessIssues(await _games.ProbeAsync(installation.Key, cancellationToken).ConfigureAwait(false),
             forUninstall: false);
-        return (report with { Issues = [.. report.Issues, .. readiness] }, plan, backup);
+        return (report with { Issues = [.. report.Issues, .. others, .. readiness] }, plan, backup);
     }
 
     /// <summary>
     /// An interrupted operation on this game blocks it until recovery has run, and so does a journal that cannot be read
     /// at all, since installing over its half-done changes would back them up as originals.
     /// </summary>
-    private List<InstallIssue> PendingOn(string gameRoot)
-    {
-        var issues = new List<InstallIssue>();
-        foreach (var folder in _store.Folders().Where(folder => folder.HasJournal))
-        {
-            try
-            {
-                if (TransactionJournal.ReadHeader(folder.JournalFile) is { } header
-                    && PathComparison.Overlaps(header.GameDirectory, gameRoot))
-                {
-                    issues.Add(new RecoveryPendingIssue(folder.Id));
-                }
-            }
-            catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
-            {
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
-            {
-                issues.Add(new RecoveryPendingIssue(folder.Id));
-            }
-        }
-
-        return issues;
-    }
+    private List<InstallIssue> PendingOn(string gameRoot) =>
+        [.. _store.Folders().Where(folder => InstallRecordStore.IsPendingOn(folder, gameRoot))
+            .Select(folder => new RecoveryPendingIssue(folder.Id))];
 
     // A record this version cannot read still names its game folder, unless it is damaged beyond that.
     private static bool OverlapsUnreadable(InstallFolder folder, string gameRoot)
@@ -423,6 +422,20 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         try
         {
             cleanup();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _logger.CleanupFailed(recordId, exception);
+        }
+    }
+
+    // The game is given up before the cleanup removes the journal, so recovery tries again when giving it up fails.
+    private async Task LeaveAsync(string gameRoot, Guid recordId, Action? cleanup = null)
+    {
+        try
+        {
+            await _ownership.ReleaseAsync(gameRoot, recordId).ConfigureAwait(false);
+            cleanup?.Invoke();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

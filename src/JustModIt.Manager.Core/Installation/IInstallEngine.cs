@@ -10,6 +10,14 @@ public interface IInstallEngine
     /// <param name="cancellationToken">Stops recovery.</param>
     Task<IReadOnlyList<RecoveredOperation>> RecoverAsync(CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Other apps, or other builds of this one, that manage files of the game, which keeps this one from installing there;
+    /// asked before a package is downloaded, since the site counts every download.
+    /// </summary>
+    /// <param name="gameDirectory">The game's folder.</param>
+    /// <param name="cancellationToken">Stops the check.</param>
+    Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken);
+
     /// <summary>Everything that would stop the install, and what to tell the player, without changing anything.</summary>
     /// <param name="request">The package and the game.</param>
     /// <param name="progress">Reports the check.</param>

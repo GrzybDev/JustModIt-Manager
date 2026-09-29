@@ -19,7 +19,13 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
 
     private readonly IFileSystem _fileSystem = fileSystem ?? PhysicalFileSystem.Instance;
 
-    /// <exception cref="CreatorBlockedException">A folder is missing, they overlap, or the game holds an install.</exception>
+    /// <summary>Compares the author's folder with the game folder, off the calling thread.</summary>
+    /// <param name="request">The folders, and the installs the app keeps records of.</param>
+    /// <param name="progress">Receives the comparison's progress; null for none.</param>
+    /// <param name="cancellationToken">Cancels the comparison.</param>
+    /// <exception cref="CreatorBlockedException">
+    /// A folder is missing, they overlap, the game holds an install, or another app manages files of it.
+    /// </exception>
     public Task<FolderComparison> CompareAsync(ComparisonRequest request, IProgress<CompareProgress>? progress,
         CancellationToken cancellationToken)
     {
@@ -131,7 +137,7 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
             throw new CreatorBlockedException([new CreatorBlock(CreatorBlockReason.FoldersOverlap, author)]);
         }
 
-        CreatorBlockedException.ThrowIfInstalled(game, request.Installs);
+        CreatorBlockedException.ThrowIfManaged(game, request.Installs, _fileSystem, options);
         return (game, author);
     }
 

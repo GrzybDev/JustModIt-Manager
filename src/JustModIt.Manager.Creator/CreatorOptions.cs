@@ -9,6 +9,9 @@ public sealed record CreatorOptions
     /// <summary>The app's own folder at a game's root, which holds no game files and is never part of a package.</summary>
     public required string HiddenFolderName { get; init; }
 
+    /// <summary>This copy of the app, whose own folders in games are not another app's.</summary>
+    public required string InstanceName { get; init; }
+
     /// <summary>What builds the packages, e.g. the product name and version, written into their manifests.</summary>
     public required string Generator { get; init; }
 
@@ -41,6 +44,7 @@ public sealed record CreatorOptions
         return new CreatorOptions
         {
             HiddenFolderName = identity.HiddenFolderName,
+            InstanceName = identity.InstanceName,
             Generator = generator,
             PackageExtension = packageExtension,
             ProjectExtension = projectExtension,

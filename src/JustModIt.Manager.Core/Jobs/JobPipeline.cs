@@ -57,6 +57,7 @@ internal sealed partial class JobPipeline(
         // Looking first means a game the store is not done with fails before anything is downloaded. Once the package is
         // downloaded, even an automatic job waits rather than leave it to be downloaded, and counted, again.
         var game = await WaitUntilSafeAsync(job, job.Origin == JobOrigin.Automatic, job.Token).ConfigureAwait(false);
+        await EnsureNoOtherAppAsync(game, job.Token).ConfigureAwait(false);
         var package = await PrepareAsync(job, game, request.Project, request.VariantName, fallBackToDefault: false).ConfigureAwait(false);
         var installed = await InstallPackageAsync(job, package.Path, package.Source, isTest: false, canDefer: false, job.Token)
             .ConfigureAwait(false);
@@ -104,6 +105,7 @@ internal sealed partial class JobPipeline(
         }
 
         var game = await WaitUntilSafeAsync(job, job.Origin == JobOrigin.Automatic, job.Token).ConfigureAwait(false);
+        await EnsureNoOtherAppAsync(game, job.Token).ConfigureAwait(false);
         // Downloading first means a missing connection or package leaves the installed release as it is. Only the player
         // may end up with another variant, e.g. text only for a voice-over the new release does not have yet.
         var package = await PrepareAsync(job, game, project, record.Source?.VariantName, fallBackToDefault: job.Origin == JobOrigin.User)
@@ -221,6 +223,15 @@ internal sealed partial class JobPipeline(
                 LogInUse(job.Game);
                 await Task.Delay(InUseRetryDelay, time, cancellationToken).ConfigureAwait(false);
             }
+        }
+    }
+
+    // A game another app manages would refuse the package, so it is not downloaded, and counted, in vain.
+    private async Task EnsureNoOtherAppAsync(InstalledGame game, CancellationToken cancellationToken)
+    {
+        if (await engine.FindOtherAppsAsync(game.InstallDirectory, cancellationToken).ConfigureAwait(false) is { Count: > 0 } others)
+        {
+            throw new InstallBlockedException(others);
         }
     }
 

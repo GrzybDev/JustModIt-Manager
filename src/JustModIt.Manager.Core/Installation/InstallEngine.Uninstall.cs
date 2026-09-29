@@ -96,6 +96,7 @@ public sealed partial class InstallEngine
         }
 
         _hook.Before(ChangeKind.Record);
+        await _ownership.ReleaseAsync(record.InstallDirectory, recordId).ConfigureAwait(false);
         var removed = BackupFolders.DeleteListed(record.Backup.Directory, files);
         InstallRecordStore.DeleteFolder(folder);
         _logger.Forgotten(recordId, removed);
@@ -193,11 +194,8 @@ public sealed partial class InstallEngine
             }
         }
 
-        Tidy(recordId, () =>
-        {
-            _hook.Before(ChangeKind.Tidy);
-            Uninstaller.Finish(header, folder, files);
-        });
+        _hook.Before(ChangeKind.Tidy);
+        await LeaveAsync(game.Root, recordId, () => Uninstaller.Finish(header, folder, files)).ConfigureAwait(false);
         _logger.Uninstalled(recordId, kept.Count);
         return new UninstallResult([.. kept]);
     }

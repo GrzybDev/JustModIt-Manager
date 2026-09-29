@@ -1,4 +1,5 @@
 using System.Text;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Creator.Comparison;
 
 namespace JustModIt.Manager.Creator.Tests.TestSupport;
@@ -10,9 +11,12 @@ internal sealed class Workspace : IDisposable
 
     public const string Generator = "ExampleApp 1.2.3";
 
+    public const string InstanceName = "ExampleApp";
+
     public static readonly CreatorOptions Options = new()
     {
         HiddenFolderName = HiddenFolderName,
+        InstanceName = InstanceName,
         Generator = Generator,
         PackageExtension = ".examplemod",
         ProjectExtension = ".exampleproj",
@@ -58,9 +62,15 @@ internal sealed class Workspace : IDisposable
     public string Output(string name) => Path.Combine(OutputDirectory, name);
 
     public Task<FolderComparison> CompareAsync(IReadOnlyList<ExistingInstall>? installs = null,
-        IProgress<CompareProgress>? progress = null, CancellationToken? cancellationToken = null) =>
-        new FolderComparer(Options).CompareAsync(new ComparisonRequest(GameDirectory, AuthorDirectory, installs ?? []),
+        IProgress<CompareProgress>? progress = null, CancellationToken? cancellationToken = null, CreatorOptions? options = null) =>
+        new FolderComparer(options ?? Options).CompareAsync(new ComparisonRequest(GameDirectory, AuthorDirectory, installs ?? []),
             progress, cancellationToken ?? TestContext.Current.CancellationToken);
+
+    /// <summary>Marks a folder in the game as an app's, as that app's owner file would.</summary>
+    /// <param name="path">The folder, relative to the game.</param>
+    /// <param name="app">The app's instance name, as its owner file gives it.</param>
+    public string MarkGameFolder(string path, string app) =>
+        Game(Path.Combine(path, AppFolders.OwnerFileName), $$"""{"version":1,"app":"{{app}}"}""");
 
     public void Dispose()
     {

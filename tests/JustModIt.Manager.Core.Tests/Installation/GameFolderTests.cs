@@ -1,4 +1,6 @@
+using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Interop;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Tests.TestSupport;
 
@@ -46,6 +48,60 @@ public sealed class GameFolderTests : IDisposable
     [InlineData(".example-app/lock")]
     [InlineData(".EXAMPLE-APP/backups/0")]
     public void Refuses_paths_outside_the_game_or_inside_the_apps_folder(string path) => _game.TryResolve(path).Should().BeNull();
+
+    [Theory]
+    [InlineData(".other-app/backups/0")]
+    [InlineData("Data/Mods/.OTHER-APP/lock")]
+    public void Refuses_paths_inside_another_apps_folder_anywhere_in_the_game(string path)
+    {
+        InstallHarness.WriteOwnerFile(_temp.Combine("Game/.other-app"), "OtherApp");
+        InstallHarness.WriteOwnerFile(_temp.Combine("Game/Data/Mods/.other-app"), "OtherApp");
+
+        _game.TryResolve(path).Should().BeNull();
+    }
+
+    [Fact]
+    public void Refuses_a_link_into_another_apps_folder()
+    {
+        InstallHarness.WriteOwnerFile(_temp.Combine("Game/.other-app"), "OtherApp");
+        _temp.CreateDirectory("Game/.other-app/backups");
+        _temp.CreateDirectoryLink("Game/Sneaky", _temp.Combine("Game/.other-app/backups"));
+
+        _game.TryResolve("Sneaky/0").Should().BeNull();
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public void Refuses_a_short_name_of_another_apps_folder()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "8.3 names exist only on Windows.");
+        var folder = _temp.Combine("Game/Data/.other-app");
+        InstallHarness.WriteOwnerFile(folder, "OtherApp");
+        var shortName = WindowsFileApi.TryGetShortPath(folder) is { } shortPath ? Path.GetFileName(shortPath) : null;
+        Assert.SkipWhen(shortName is null || !shortName.Contains('~', StringComparison.Ordinal), "The volume keeps no 8.3 names.");
+
+        _game.TryResolve($"Data/{shortName}/lock").Should().BeNull();
+        _game.TryResolve($"Data/{shortName}/owner.json").Should().BeNull();
+    }
+
+    [Fact]
+    public void Refuses_a_path_that_would_pass_a_hidden_folder_off_as_an_apps()
+    {
+        _temp.CreateDirectory("Game/Data/.cache");
+        _temp.CreateDirectoryLink("Game/Cache", _temp.Combine("Game/Data/.cache"));
+
+        _game.TryResolve("Data/.cache/owner.json").Should().BeNull();
+        _game.TryResolve("Cache/owner.json").Should().BeNull();
+    }
+
+    [Fact]
+    public void Resolves_paths_in_hidden_folders_of_the_game_itself()
+    {
+        _temp.Write("Game/.config/owner.json", """{"app":"not an owner file without its version"}""");
+
+        _game.TryResolve(".config/settings.ini").Should().Be(Path.Join(_game.Root, ".config", "settings.ini"));
+        _game.TryResolve("Data/owner.json").Should().Be(Path.Join(_game.Root, "Data", "owner.json"));
+    }
 
     [Fact]
     public void Follows_links_that_stay_inside_the_game()

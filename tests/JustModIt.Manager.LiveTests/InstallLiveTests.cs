@@ -74,8 +74,9 @@ public sealed class InstallLiveTests
             .Should().BeEmpty("only the package's files and their new folders change in the game");
         if (record.Backup.Location != BackupLocation.GameFolder)
         {
-            during.Folders.Should().NotContain(LiveApp.Identity.HiddenFolderName,
-                "staging files are removed once the originals are kept elsewhere");
+            Directory.EnumerateFileSystemEntries(Path.Join(game.InstallDirectory, LiveApp.Identity.HiddenFolderName))
+                .Select(Path.GetFileName).Should().Equal([AppFolders.OwnerFileName],
+                    "staging files are removed once the originals are kept elsewhere, while the owner file stays");
         }
 
         var uninstalled = await engine.RunAsync(new UninstallJobRequest(record), Token);

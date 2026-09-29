@@ -142,6 +142,17 @@ public sealed class JobFailuresTests
     }
 
     [Fact]
+    public void A_game_another_app_manages_names_the_app_and_its_folder()
+    {
+        JobFailures.FromIssues([new FileLockedIssue("a.pak", []), new GameManagedByOtherAppIssue("OtherApp", @"D:\Games\Example\.other-app")])
+            .Should().BeEquivalentTo(new JobFailure(JobFailureReason.ManagedByOtherApp)
+            {
+                OtherApp = "OtherApp",
+                Location = @"D:\Games\Example\.other-app",
+            });
+    }
+
+    [Fact]
     public void Every_kind_of_install_issue_has_a_reason_of_its_own()
     {
         var issues = typeof(InstallIssue).Assembly.GetTypes()
@@ -166,6 +177,7 @@ public sealed class JobFailuresTests
         nameof(InstallNotFoundIssue) => new InstallNotFoundIssue(Guid.NewGuid()),
         nameof(UnreadableInstallIssue) => new UnreadableInstallIssue(Guid.NewGuid()),
         nameof(FileOwnedByOtherInstallIssue) => new FileOwnedByOtherInstallIssue("a.pak", Guid.NewGuid()),
+        nameof(GameManagedByOtherAppIssue) => new GameManagedByOtherAppIssue("OtherApp", "folder"),
         nameof(UnsafePathIssue) => new UnsafePathIssue("../a"),
         nameof(PathConflictIssue) => new PathConflictIssue("a"),
         nameof(MissingFileIssue) => new MissingFileIssue("a"),

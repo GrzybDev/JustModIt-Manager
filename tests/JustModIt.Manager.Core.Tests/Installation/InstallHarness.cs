@@ -54,6 +54,7 @@ internal sealed class InstallHarness : IAsyncDisposable
         var root = PathCanonicalizer.Canonicalize(_temp.Path);
         GameRoot = Directory.CreateDirectory(Path.Join(root, "Game")).FullName;
         AppData = Path.Join(root, "AppData");
+        OtherAppData = Path.Join(root, "OtherAppData");
         CustomFolder = Directory.CreateDirectory(Path.Join(root, "Backups")).FullName;
         Packages = Path.Join(root, "Packages");
         Crashes = Path.Join(root, "Crashes");
@@ -71,6 +72,9 @@ internal sealed class InstallHarness : IAsyncDisposable
     public string GameRoot { get; }
 
     public string AppData { get; }
+
+    /// <summary>The data folder of another app installed next to this one.</summary>
+    public string OtherAppData { get; }
 
     public string CustomFolder { get; }
 
@@ -130,6 +134,34 @@ internal sealed class InstallHarness : IAsyncDisposable
             Volumes, new FakeTimeProvider(Now), NullLogger<InstallEngine>.Instance);
         _engines.Add(engine);
         return engine;
+    }
+
+    /// <summary>The engine of another app, or another build of this one, over the same game with a data folder of its own.</summary>
+    /// <param name="instanceName">The other app's instance name, which its owner file carries.</param>
+    /// <param name="hiddenFolderName">The other app's hidden folder in the game, such as <c>.other-app</c>.</param>
+    public InstallEngine CreateOtherApp(string instanceName, string hiddenFolderName)
+    {
+        var engine = new InstallEngine(
+            new InstallEngineOptions
+            {
+                InstanceName = instanceName,
+                HiddenFolderName = hiddenFolderName,
+                InstallsDirectory = Path.Join(OtherAppData, instanceName, "installs"),
+                BackupsDirectory = Path.Join(OtherAppData, instanceName, "backups"),
+            },
+            new PackageReader(), new XDelta3Patcher(memoryBudget: 64 << 20), new FileLockProbe(LockHolders), Probe, Volumes,
+            new FakeTimeProvider(Now), NullLogger<InstallEngine>.Instance);
+        _engines.Add(engine);
+        return engine;
+    }
+
+    /// <summary>Marks a folder as an app's, as that app's owner file would.</summary>
+    /// <param name="directory">The app's hidden folder; created when missing.</param>
+    /// <param name="app">The instance name the owner file names.</param>
+    public static void WriteOwnerFile(string directory, string app)
+    {
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Join(directory, AppFolders.OwnerFileName), $$"""{"version":1,"app":"{{app}}"}""");
     }
 
     public string GameFile(string relativePath) => PackagePath.ToFullPath(GameRoot, relativePath);
@@ -398,11 +430,16 @@ internal sealed class FakeGameProbe : IGameProbe
 
     public ValueList<RunningProcess> Running { get; set; } = [];
 
+    /// <summary>Runs when an operation looks at the game, which it does last before its first change.</summary>
+    public Action? OnProbe { get; set; }
+
     public void Runs(params string[] names) =>
         Running = [.. names.Select((name, index) => new RunningProcess(1000 + index, name, ExecutablePath: null))];
 
-    public Task<GameProbe> ProbeAsync(GameKey key, CancellationToken cancellationToken) =>
-        Task.FromResult(new GameProbe(key, IsGone ? null : new InstalledGame
+    public Task<GameProbe> ProbeAsync(GameKey key, CancellationToken cancellationToken)
+    {
+        OnProbe?.Invoke();
+        return Task.FromResult(new GameProbe(key, IsGone ? null : new InstalledGame
         {
             Key = key,
             Name = "Example Game",
@@ -412,6 +449,7 @@ internal sealed class FakeGameProbe : IGameProbe
             Reason = Reason,
             IsStale = IsStale,
         }, Running));
+    }
 }
 
 internal sealed class FakeLockHolders : ILockHolderSource

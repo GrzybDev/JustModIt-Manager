@@ -107,6 +107,7 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
         RequiredBytes = Number(failure, "requiredBytes"),
         AvailableBytes = Number(failure, "availableBytes"),
         Location = failure.GetTextOrNull("location"),
+        OtherApp = failure.GetTextOrNull("otherApp"),
     };
 
     private static void WriteFailure(Utf8JsonWriter writer, JobFailure failure)
@@ -131,6 +132,11 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
         if (failure.Location is { } location)
         {
             writer.WriteString("location", location);
+        }
+
+        if (failure.OtherApp is { } otherApp)
+        {
+            writer.WriteString("otherApp", otherApp);
         }
     }
 

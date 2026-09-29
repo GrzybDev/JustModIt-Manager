@@ -33,6 +33,7 @@ public sealed class FailedAttemptsFormatTests : IDisposable
                 RequiredBytes = 2048,
                 AvailableBytes = 1024,
                 Location = Path.Join("D:", "Games"),
+                OtherApp = "OtherApp",
             })
             {
                 LostPrevious = true,

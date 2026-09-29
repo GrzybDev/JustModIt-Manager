@@ -85,6 +85,11 @@ public static class JobFailures
             return new JobFailure(JobFailureReason.BackupFolderUnavailable) { Location = backups.Directory };
         }
 
+        if (issues.OfType<GameManagedByOtherAppIssue>().FirstOrDefault() is { } managed)
+        {
+            return new JobFailure(JobFailureReason.ManagedByOtherApp) { OtherApp = managed.App, Location = managed.Directory };
+        }
+
         var simple = issues.Select(issue => issue switch
         {
             GameBusyIssue => JobFailureReason.GameBusy,

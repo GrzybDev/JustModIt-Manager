@@ -27,9 +27,15 @@ public enum RecoveryOutcome
 /// <param name="Outcome">What recovery did.</param>
 public sealed record RecoveredOperation(Guid RecordId, string? GameDirectory, RecoveryOutcome Outcome);
 
-/// <summary>Finishes or undoes what a crash or a power cut interrupted. Runs first when the agent starts.</summary>
-internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOptions options, IVolumes volumes, ChangeHook hook,
-    ILogger logger)
+/// <summary>Finishes or undoes what a crash or a power cut interrupted, first thing when the agent starts.</summary>
+/// <param name="store">The folders of installs and their journals.</param>
+/// <param name="options">The app's hidden folder name.</param>
+/// <param name="ownership">Gives a game up once nothing of the app is left on it.</param>
+/// <param name="volumes">Tells a game folder gone for good from one on an unplugged drive.</param>
+/// <param name="hook">Called right before each change.</param>
+/// <param name="logger">Logs what recovery did.</param>
+internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOptions options, GameFolderOwnership ownership,
+    IVolumes volumes, ChangeHook hook, ILogger logger)
 {
     /// <summary>Finishes or undoes every operation that left a journal.</summary>
     /// <param name="cancellationToken">Stops recovery between operations.</param>
@@ -135,6 +141,7 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
             return Report(header, RecoveryOutcome.Failed);
         }
 
+        await ownership.ReleaseAsync(game.Root, folder.Id).ConfigureAwait(false);
         TransactionCleanup.RemoveUncommitted(header, folder);
         return Report(header, RecoveryOutcome.RolledBack);
     }
@@ -161,6 +168,7 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
             {
             }
 
+            await ownership.ReleaseAsync(header.GameDirectory, folder.Id).ConfigureAwait(false);
             Uninstaller.Finish(header, folder, files);
             return Report(header, RecoveryOutcome.CleanedUp);
         }

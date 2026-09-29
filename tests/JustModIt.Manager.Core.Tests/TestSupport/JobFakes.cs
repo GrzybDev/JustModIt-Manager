@@ -279,6 +279,8 @@ internal sealed class FakeInstallEngine : IInstallEngine
 
     public PreflightReport Prediction { get; set; } = new([], []);
 
+    public IReadOnlyList<GameManagedByOtherAppIssue> OtherApps { get; set; } = [];
+
     public Func<Guid, VerificationResult>? OnVerify { get; set; }
 
     public Func<Guid, InstalledGame, InstallRecord?>? OnAdopt { get; set; }
@@ -305,6 +307,9 @@ internal sealed class FakeInstallEngine : IInstallEngine
         Log("recover");
         return Recovery?.Task.WaitAsync(cancellationToken) ?? Task.FromResult<IReadOnlyList<RecoveredOperation>>([]);
     }
+
+    public Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken) =>
+        Task.FromResult(OtherApps);
 
     public Task<PreflightReport> CheckInstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => Task.FromResult(new PreflightReport([], []));

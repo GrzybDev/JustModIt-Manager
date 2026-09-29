@@ -29,8 +29,13 @@ public sealed class PackageBuilder(IPatchEncoder encoder, CreatorOptions options
     private readonly TimeProvider _time = time ?? TimeProvider.System;
     private readonly IFileSystem _fileSystem = fileSystem ?? PhysicalFileSystem.Instance;
 
+    /// <summary>Builds the plan's package at the request's output path, off the calling thread.</summary>
+    /// <param name="plan">The plan the author confirmed.</param>
+    /// <param name="request">Where the package goes, and the game and installs as they are now.</param>
+    /// <param name="progress">Receives the build's progress; null for none.</param>
+    /// <param name="cancellationToken">Cancels the build, which keeps the package that was there.</param>
     /// <exception cref="PackageBuildException">The request or the files do not allow the build; nothing was written.</exception>
-    /// <exception cref="CreatorBlockedException">The game holds an install.</exception>
+    /// <exception cref="CreatorBlockedException">The game holds an install, or another app manages files of it.</exception>
     public Task<PackageBuildResult> BuildAsync(ConfirmedPlan plan, BuildRequest request, IProgress<BuildProgress>? progress,
         CancellationToken cancellationToken)
     {
@@ -103,7 +108,7 @@ public sealed class PackageBuilder(IPatchEncoder encoder, CreatorOptions options
             }
         }
 
-        CreatorBlockedException.ThrowIfInstalled(plan.GameDirectory, request.Installs);
+        CreatorBlockedException.ThrowIfManaged(plan.GameDirectory, request.Installs, _fileSystem, options);
         return output;
     }
 
