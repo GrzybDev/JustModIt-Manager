@@ -119,7 +119,7 @@ internal sealed class InstallHarness : IAsyncDisposable
         var engine = new InstallEngine(
             new InstallEngineOptions
             {
-                AppId = "ExampleApp",
+                InstanceName = "ExampleApp",
                 HiddenFolderName = HiddenFolderName,
                 InstallsDirectory = InstallsDirectory,
                 BackupsDirectory = Path.Join(AppData, "backups"),

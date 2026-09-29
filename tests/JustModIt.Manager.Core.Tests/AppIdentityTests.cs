@@ -14,6 +14,15 @@ public sealed class AppIdentityTests
         new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: false).HiddenFolderName
             .Should().Be(".example-app");
 
+    [Fact]
+    public void A_development_build_has_its_own_links_and_hidden_folder()
+    {
+        var development = new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: true);
+
+        development.Slug.Should().Be("example-app-dev");
+        development.HiddenFolderName.Should().Be(".example-app-dev");
+    }
+
     [Theory]
     [InlineData("", "ExampleVendor", "example-app")]
     [InlineData("ExampleApp", " ", "example-app")]

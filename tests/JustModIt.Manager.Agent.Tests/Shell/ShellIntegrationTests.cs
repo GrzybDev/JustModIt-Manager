@@ -1,5 +1,6 @@
 using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Agent.Tests.TestSupport;
+using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Messages;
@@ -13,6 +14,9 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
     public ShellIntegrationTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
 
     private string Command => $"\"{_agent.Options.ExecutablePath}\" --background";
+
+    private AppIdentity Development => new(_agent.Options.Identity.AppId, _agent.Options.Identity.VendorId, "example-app",
+        isDevelopmentBuild: true);
 
     [Fact]
     public async Task An_installed_app_registers_its_links_and_starts_with_the_system_by_default()
@@ -56,6 +60,7 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
     [Fact]
     public async Task A_development_build_leaves_the_system_alone()
     {
+        _agent.Options = _agent.Options with { Identity = Development };
         await _agent.SaveSettingsAsync(AppSettings.Default with { StartWithSystem = true });
         _agent.Start();
         var window = await _agent.ConnectWindowAsync();
@@ -63,6 +68,16 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
 
         _agent.Registration.Command.Should().BeNull();
         _agent.Registration.Schemes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_development_build_asked_to_integrate_registers_links_of_its_own()
+    {
+        _agent.Options = _agent.Options with { Identity = Development, IntegratesWithShell = true };
+        _agent.Start();
+
+        await Eventually.HoldsAsync(() => _agent.Registration.Schemes.ContainsKey("example-app-dev"));
+        _agent.Registration.Schemes.Keys.Should().Equal("example-app-dev");
     }
 
     [Fact]

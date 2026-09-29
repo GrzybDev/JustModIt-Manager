@@ -3,8 +3,11 @@ namespace JustModIt.Manager.Core.Installation;
 /// <summary>Where the install engine keeps its data, named after the app so two apps never share it.</summary>
 public sealed record InstallEngineOptions
 {
-    /// <summary>Names the app's folder inside a backup folder the player picked.</summary>
-    public required string AppId { get; init; }
+    /// <summary>
+    /// Names the app's folder inside a backup folder the player picked; a development build's differs from an installed
+    /// copy's.
+    /// </summary>
+    public required string InstanceName { get; init; }
 
     /// <summary>The hidden folder at a game's root that holds staging files and, by default, the originals.</summary>
     public required string HiddenFolderName { get; init; }
@@ -30,7 +33,7 @@ public sealed record InstallEngineOptions
         ArgumentNullException.ThrowIfNull(locations);
         return new InstallEngineOptions
         {
-            AppId = identity.AppId,
+            InstanceName = identity.InstanceName,
             HiddenFolderName = identity.HiddenFolderName,
             InstallsDirectory = locations.InstallsDirectory,
             BackupsDirectory = locations.BackupsDirectory,

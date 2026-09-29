@@ -1,8 +1,8 @@
 namespace JustModIt.Manager.Core.Installation;
 
 /// <summary>
-/// Keeps other copies of the app, such as a development build or another Windows user's, from changing the same game
-/// at the same time. The lock lives in the game folder because game libraries are shared between users.
+/// Keeps other copies of the app that share its folder in games, such as another Windows user's, from changing the same
+/// game at the same time; it lives in the game folder because game libraries are shared between users.
 /// </summary>
 internal sealed class GameFolderLock : IDisposable
 {

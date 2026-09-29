@@ -34,6 +34,13 @@ public sealed class HostEnvironmentTests
     }
 
     [Fact]
+    public void A_development_build_handles_links_of_its_own()
+    {
+        HostEnvironment.Create(Product, Build).Links.Scheme.Should().Be("example-app-dev");
+        HostEnvironment.Create(Product with { IsDevelopmentBuild = false }, Installed).Links.Scheme.Should().Be("example-app");
+    }
+
+    [Fact]
     public void A_development_build_leaves_the_system_alone_unless_asked()
     {
         HostEnvironment.Create(Product, Build).AgentOptions().IntegratesWithShell.Should().BeFalse();

@@ -31,7 +31,7 @@ internal static class BackupFolders
                 return new BackupFolder(BackupLocation.AppData, Path.Join(options.BackupsDirectory, GameFolderName(key), record));
             case BackupLocation.CustomFolder when choice.CustomFolder is { } custom:
                 return Directory.Exists(custom) && !PathComparison.Overlaps(custom, gameRoot)
-                    ? new BackupFolder(BackupLocation.CustomFolder, Path.Join(custom, options.AppId, GameFolderName(key), record))
+                    ? new BackupFolder(BackupLocation.CustomFolder, Path.Join(custom, options.InstanceName, GameFolderName(key), record))
                     : null;
             case BackupLocation.CustomFolder:
                 return null;

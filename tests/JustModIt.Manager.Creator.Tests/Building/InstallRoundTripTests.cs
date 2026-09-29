@@ -109,7 +109,7 @@ public sealed class InstallRoundTripTests : IDisposable
         var data = Path.Combine((workspace ?? _workspace).Root, "app-data");
         var options = new InstallEngineOptions
         {
-            AppId = "ExampleApp",
+            InstanceName = "ExampleApp",
             HiddenFolderName = Workspace.HiddenFolderName,
             InstallsDirectory = Path.Combine(data, "installs"),
             BackupsDirectory = Path.Combine(data, "backups"),
