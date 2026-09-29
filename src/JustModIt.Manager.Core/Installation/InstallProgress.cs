@@ -5,6 +5,8 @@ public enum InstallStage
     Checking,
     Installing,
     RollingBack,
+    Uninstalling,
+    Verifying,
     MovingBackups,
 }
 

@@ -16,9 +16,10 @@ public sealed class BackupTests
 
     [Theory]
     [MemberData(nameof(Moves))]
-    public async Task Moves_backups_to_another_location(string from, string to)
+    public async Task Moves_backups_to_another_location_and_uninstalls_from_there(string from, string to)
     {
         await using var harness = Harness(from, to);
+        var before = harness.Snapshot();
         var result = await harness.InstallAsync(harness.ManifestPackage(Package()));
 
         var moved = await harness.Engine.MoveBackupsAsync(result.Record.Id, Choice(harness, to), null, InstallHarness.Token);
@@ -27,6 +28,9 @@ public sealed class BackupTests
         Directory.Exists(result.Record.Backup.Directory).Should().BeFalse();
         (await harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().Be(moved);
         await BackupsShouldHoldTheOriginalsAsync(harness);
+        (await harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
+        harness.Snapshot().Should().BeEquivalentTo(before);
+        harness.AppFiles().Should().BeEmpty();
     }
 
     [Theory]
@@ -46,6 +50,7 @@ public sealed class BackupTests
         for (var change = 0; change < changes; change++)
         {
             await using var harness = Harness(from, to);
+            var before = harness.Snapshot();
             var result = await harness.InstallAsync(harness.ManifestPackage(Package()));
             harness.CrashAt(change);
             await harness.Engine.MoveBackupsAsync(result.Record.Id, Choice(harness, to), null, InstallHarness.Token);
@@ -56,6 +61,10 @@ public sealed class BackupTests
 
             recovered.Should().ContainSingle().Which.Outcome.Should().Be(RecoveryOutcome.CleanedUp, "crash at change {0}", change);
             await BackupsShouldHoldTheOriginalsAsync(harness);
+            (await engine.UninstallAsync(result.Record.Id, null, InstallHarness.Token)).KeptFiles.Should()
+                .BeEmpty("crash at change {0}", change);
+            harness.Snapshot().Should().BeEquivalentTo(before, "crash at change {0}", change);
+            harness.AppFiles().Should().BeEmpty("crash at change {0}", change);
         }
     }
 
@@ -72,6 +81,52 @@ public sealed class BackupTests
         (await move.Should().ThrowAsync<InstallBlockedException>()).Which.Issues.Should()
             .Equal(new BackupFolderUnavailableIssue(result.Record.Backup.Directory));
         Directory.Move(unplugged, harness.CustomFolder);
+    }
+
+    [Fact]
+    public async Task Lists_backups_that_outlived_their_game_and_removes_only_what_the_record_lists()
+    {
+        await using var harness = Harness("app data on another drive", "game folder");
+        var result = await harness.InstallAsync(harness.ManifestPackage(Package()));
+        var stray = Path.Join(result.Record.Backup.Directory, "notes.txt");
+        await File.WriteAllTextAsync(stray, "the player's own", InstallHarness.Token);
+        TreeCopy.Delete(harness.GameRoot);
+
+        var none = await harness.Engine.FindLeftoverBackupsAsync(_ => false, InstallHarness.Token);
+        var leftovers = await harness.Engine.FindLeftoverBackupsAsync(record => record.Game == InstallHarness.Key, InstallHarness.Token);
+        await harness.Engine.ForgetAsync(result.Record.Id, InstallHarness.Token);
+
+        none.Should().BeEmpty();
+        leftovers.Should().Equal(new LeftoverBackup(result.Record.Id, InstallHarness.Key, "Example Game",
+            result.Record.Backup.Directory, "original library".Length + "Read me".Length + "video".Length));
+        File.Exists(stray).Should().BeTrue();
+        Directory.EnumerateFiles(result.Record.Backup.Directory).Should().Equal(stray);
+        (await harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Skips_leftover_backups_whose_file_list_cannot_be_read()
+    {
+        await using var harness = Harness("app data on another drive", "game folder");
+        var result = await harness.InstallAsync(harness.ManifestPackage(Package()));
+        TreeCopy.Delete(harness.GameRoot);
+        await File.WriteAllTextAsync(Path.Join(harness.InstallsDirectory, result.Record.Id.ToString("N"), "files.json"), "{",
+            InstallHarness.Token);
+
+        var leftovers = await harness.Engine.FindLeftoverBackupsAsync(_ => true, InstallHarness.Token);
+
+        leftovers.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Does_not_list_backups_kept_in_a_game_folder_that_still_exists()
+    {
+        await using var harness = Harness("app data", "game folder");
+        await harness.InstallAsync(harness.ManifestPackage(Package()));
+
+        var leftovers = await harness.Engine.FindLeftoverBackupsAsync(_ => true, InstallHarness.Token);
+
+        leftovers.Should().BeEmpty();
     }
 
     private static async Task BackupsShouldHoldTheOriginalsAsync(InstallHarness harness)

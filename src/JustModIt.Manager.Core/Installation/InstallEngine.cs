@@ -16,10 +16,10 @@ namespace JustModIt.Manager.Core.Installation;
 public sealed record InstallResult(InstallRecord Record, ValueList<InstallWarning> Warnings);
 
 /// <summary>
-/// Installs packages and recovers interrupted operations, one operation at a time on a single background queue, so no
+/// Installs, uninstalls, verifies and recovers packages, one operation at a time on a single background queue, so no
 /// two operations ever touch game files at once and no caller ever waits on file I/O. Recover first after a start.
 /// </summary>
-public sealed class InstallEngine : IAsyncDisposable
+public sealed partial class InstallEngine : IAsyncDisposable
 {
     private readonly InstallEngineOptions _options;
     private readonly IPackageReader _packages;

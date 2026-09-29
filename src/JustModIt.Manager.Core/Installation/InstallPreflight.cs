@@ -146,12 +146,24 @@ internal sealed class InstallPreflight(IFileLockProbe locks, IVolumes volumes, l
         }
     }
 
-    private void CheckSpace(string location, long bytes, List<InstallIssue> issues)
+    /// <summary>Whether a volume lacks room for some bytes and <see cref="SpaceMargin"/>.</summary>
+    /// <param name="volumes">Tells the free space.</param>
+    /// <param name="location">A full path on the volume.</param>
+    /// <param name="bytes">The bytes to write there.</param>
+    /// <returns>Null when the volume has room for the bytes, or when its free space is unknown.</returns>
+    public static NotEnoughSpaceIssue? SpaceIssue(IVolumes volumes, string location, long bytes)
     {
         var required = bytes + SpaceMargin;
-        if (volumes.GetAvailableBytes(location) is { } available && available < required)
+        return volumes.GetAvailableBytes(location) is { } available && available < required
+            ? new NotEnoughSpaceIssue(location, required, available)
+            : null;
+    }
+
+    private void CheckSpace(string location, long bytes, List<InstallIssue> issues)
+    {
+        if (SpaceIssue(volumes, location, bytes) is { } issue)
         {
-            issues.Add(new NotEnoughSpaceIssue(location, required, available));
+            issues.Add(issue);
         }
     }
 }

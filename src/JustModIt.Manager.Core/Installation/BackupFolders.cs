@@ -51,6 +51,29 @@ internal static class BackupFolders
     public static void DeleteIfEmpty(string backupDirectory) =>
         FileOperations.DeleteEmptyDirectories(backupDirectory, OwnedRootOf(backupDirectory));
 
+    /// <summary>
+    /// Removes the backups a record lists and the folders the app made for them once they are empty, leaving anything
+    /// else the player put there, since the app deletes only what its records list.
+    /// </summary>
+    /// <param name="backupDirectory">The record's backup folder.</param>
+    /// <param name="files">The install's files, which name their backups.</param>
+    /// <returns>How many backups were removed.</returns>
+    public static int DeleteListed(string backupDirectory, InstalledFiles files)
+    {
+        var removed = 0;
+        foreach (var file in files.Files)
+        {
+            if (file.Backup is { } name && File.Exists(Path.Join(backupDirectory, name)))
+            {
+                FileOperations.DeleteFile(Path.Join(backupDirectory, name));
+                removed++;
+            }
+        }
+
+        DeleteIfEmpty(backupDirectory);
+        return removed;
+    }
+
     /// <summary>Whether the folder is there; a folder on a disconnected drive must not be recreated empty.</summary>
     /// <param name="backupDirectory">The record's backup folder.</param>
     public static bool IsAvailable(string backupDirectory) => Directory.Exists(backupDirectory);

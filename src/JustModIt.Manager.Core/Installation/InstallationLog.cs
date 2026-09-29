@@ -20,6 +20,21 @@ internal static partial class InstallationLog
     [LoggerMessage(Level = LogLevel.Error, Message = "Install {RecordId} failed; rolled back: {RolledBack}")]
     public static partial void InstallFailed(this ILogger logger, Guid recordId, bool rolledBack, Exception exception);
 
+    /// <summary>Logs a finished uninstall.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="recordId">The install's record id.</param>
+    /// <param name="kept">How many files stayed because something changed them since the install.</param>
+    [LoggerMessage(Level = LogLevel.Information, Message = "Uninstalled {RecordId}; {Kept} files kept")]
+    public static partial void Uninstalled(this ILogger logger, Guid recordId, int kept);
+
+    /// <summary>Logs a failed uninstall.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="recordId">The install's record id.</param>
+    /// <param name="rolledBack">Whether every change was undone.</param>
+    /// <param name="exception">What failed.</param>
+    [LoggerMessage(Level = LogLevel.Error, Message = "Uninstall of {RecordId} failed; rolled back: {RolledBack}")]
+    public static partial void UninstallFailed(this ILogger logger, Guid recordId, bool rolledBack, Exception exception);
+
     /// <summary>Logs a file left alone because something else changed it after the operation.</summary>
     /// <param name="logger">The logger to write to.</param>
     /// <param name="path">The file.</param>
@@ -78,4 +93,18 @@ internal static partial class InstallationLog
     /// <param name="location">The kind of location they moved to.</param>
     [LoggerMessage(Level = LogLevel.Information, Message = "Moved the backups of install {RecordId} to {Location}")]
     public static partial void BackupsMoved(this ILogger logger, Guid recordId, string location);
+
+    /// <summary>Logs an install whose list of files cannot be read.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="recordId">The install's record id.</param>
+    /// <param name="exception">What failed.</param>
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The file list of install {RecordId} cannot be read")]
+    public static partial void UnreadableFileList(this ILogger logger, Guid recordId, Exception exception);
+
+    /// <summary>Logs an install forgotten together with its backups.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="recordId">The install's record id.</param>
+    /// <param name="count">How many backups were removed.</param>
+    [LoggerMessage(Level = LogLevel.Information, Message = "Forgot install {RecordId} and removed {Count} backups")]
+    public static partial void Forgotten(this ILogger logger, Guid recordId, int count);
 }

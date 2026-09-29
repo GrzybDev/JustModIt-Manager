@@ -50,6 +50,9 @@ public sealed class PreflightTests : IAsyncDisposable
             .Should().Equal(InstallHarness.ChangedPak);
         File.Exists(_harness.GameFile("data/strings.pak")).Should().BeFalse();
         result.Record.FileCount.Should().Be(2);
+        await _harness.UninstallAsync(result.Record.Id);
+        (await File.ReadAllBytesAsync(_harness.GameFile("data/strings.pak"), InstallHarness.Token))
+            .Should().Equal(InstallHarness.OriginalPak);
     }
 
     [Fact]

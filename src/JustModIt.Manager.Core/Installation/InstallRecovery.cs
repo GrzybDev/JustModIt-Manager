@@ -5,7 +5,7 @@ namespace JustModIt.Manager.Core.Installation;
 
 public enum RecoveryOutcome
 {
-    /// <summary>An interrupted install was undone, so the game is as it was before it began.</summary>
+    /// <summary>An interrupted install or uninstall was undone, so the game is as it was before it began.</summary>
     RolledBack,
 
     /// <summary>The operation had already committed, or had changed nothing; only leftovers were removed.</summary>
@@ -86,6 +86,7 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
         return header.Kind switch
         {
             TransactionKind.Install => await RecoverInstallAsync(folder, header).ConfigureAwait(false),
+            TransactionKind.Uninstall => await RecoverUninstallAsync(folder, header, cancellationToken).ConfigureAwait(false),
             // Without a readable record there is no telling whether the move committed.
             _ when load.IsUnreadable => Report(header, RecoveryOutcome.Failed),
             _ => Report(header, BackupRelocation.Recover(folder, header, load.Record)),
@@ -135,6 +136,68 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
         }
 
         TransactionCleanup.RemoveUncommitted(header, folder);
+        return Report(header, RecoveryOutcome.RolledBack);
+    }
+
+    // A committed uninstall is tidied up; one that did not commit is undone, which leaves the install as it was.
+    private async Task<RecoveredOperation?> RecoverUninstallAsync(InstallFolder folder, TransactionStarted header,
+        CancellationToken cancellationToken)
+    {
+        if (!folder.HasRecord)
+        {
+            // What is left to tidy, such as the installed files moved aside, may be on the game's drive.
+            if (!Directory.Exists(header.GameDirectory) && !IsGoneForGood(header))
+            {
+                logger.RecoveryUnavailable(folder.Id);
+                return Report(header, RecoveryOutcome.Unavailable);
+            }
+
+            InstalledFiles? files = null;
+            try
+            {
+                files = await InstallRecordStore.LoadFilesAsync(folder, cancellationToken).ConfigureAwait(false);
+            }
+            catch (InvalidDataException)
+            {
+            }
+
+            Uninstaller.Finish(header, folder, files);
+            return Report(header, RecoveryOutcome.CleanedUp);
+        }
+
+        if (GameFolder.TryOpen(header.GameDirectory, options.HiddenFolderName) is not { } game)
+        {
+            if (!IsGoneForGood(header))
+            {
+                logger.RecoveryUnavailable(folder.Id);
+                return Report(header, RecoveryOutcome.Unavailable);
+            }
+
+            // The record stays, so its backups can still be listed and removed.
+            File.Delete(folder.JournalFile);
+            return Report(header, RecoveryOutcome.Discarded);
+        }
+
+        var entries = TransactionJournal.Read(folder.JournalFile);
+        if (entries.OfType<FileRestored>().Any(restored => restored.Moved) && !BackupFolders.IsAvailable(header.BackupDirectory))
+        {
+            logger.RecoveryUnavailable(folder.Id);
+            return Report(header, RecoveryOutcome.Unavailable);
+        }
+
+        using var gameLock = GameFolderLock.TryAcquire(game);
+        if (gameLock is null)
+        {
+            return null;
+        }
+
+        if (!await JournalRollback.UndoAsync(entries, game, hook, logger).ConfigureAwait(false))
+        {
+            return Report(header, RecoveryOutcome.Failed);
+        }
+
+        TransactionCleanup.RemoveStaging(header.StagingDirectory);
+        File.Delete(folder.JournalFile);
         return Report(header, RecoveryOutcome.RolledBack);
     }
 

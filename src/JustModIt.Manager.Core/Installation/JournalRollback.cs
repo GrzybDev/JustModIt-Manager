@@ -5,9 +5,8 @@ using Microsoft.Extensions.Logging;
 namespace JustModIt.Manager.Core.Installation;
 
 /// <summary>
-/// Undoes an install's journal in reverse. Every undo is idempotent, so a rollback cut short by another crash simply
-/// runs again, and an entry whose change never happened undoes nothing. A file someone else wrote after the install
-/// touched it is left alone: undoing over it would break the game.
+/// Undoes a journal in reverse, each undo idempotent so a rollback cut short by another crash simply runs again, leaving
+/// alone a file someone else wrote after the operation touched it, since undoing over it would break the game.
 /// </summary>
 internal static class JournalRollback
 {
@@ -47,6 +46,15 @@ internal static class JournalRollback
                         break;
                     case DirectoryCreated directory:
                         FileOperations.DeleteDirectoryIfEmpty(Resolve(game, directory.Path));
+                        break;
+                    case FileRestored restored:
+                        await TakeBackAsync(restored, header, game, hook).ConfigureAwait(false);
+                        break;
+                    case FileDisplaced displaced:
+                        PutBack(displaced, header, game, hook, logger);
+                        break;
+                    case DirectoryRemoved directory:
+                        Directory.CreateDirectory(Resolve(game, directory.Path));
                         break;
                 }
             }
@@ -110,6 +118,47 @@ internal static class JournalRollback
                 logger.ChangedByOthers(entry.Path, header.RecordId);
                 break;
         }
+    }
+
+    // Returns an original an uninstall put back to where it came from.
+    private static async Task TakeBackAsync(FileRestored entry, TransactionStarted header, GameFolder game, ChangeHook hook)
+    {
+        var path = Resolve(game, entry.Path);
+        var backup = Path.Join(header.BackupDirectory, entry.Backup);
+        switch (await StateOfAsync(path, [], entry.Original).ConfigureAwait(false))
+        {
+            // A backup still in its folder never moved, so the original at the path came from elsewhere, e.g. the store.
+            case PathState.Original when entry.Moved && !File.Exists(backup):
+                hook.Before(ChangeKind.Backup, entry.Path);
+                File.Move(path, backup);
+                break;
+            case PathState.Original when entry.Moved:
+                break;
+            case PathState.Original:
+                hook.Before(ChangeKind.Delete, entry.Path);
+                FileOperations.DeleteFile(path);
+                break;
+        }
+    }
+
+    // Puts back an installed file an uninstall moved aside.
+    private static void PutBack(FileDisplaced entry, TransactionStarted header, GameFolder game, ChangeHook hook, ILogger logger)
+    {
+        var staged = Path.Join(header.StagingDirectory, entry.Name);
+        if (!File.Exists(staged))
+        {
+            return;
+        }
+
+        var path = Resolve(game, entry.Path);
+        if (File.Exists(path))
+        {
+            logger.ChangedByOthers(entry.Path, header.RecordId);
+            return;
+        }
+
+        hook.Before(ChangeKind.Restore, entry.Path);
+        File.Move(staged, path);
     }
 
     // A backup from another volume goes through the staging folder and is checked before it replaces anything; false when

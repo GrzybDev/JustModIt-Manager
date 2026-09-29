@@ -6,10 +6,11 @@ namespace JustModIt.Manager.Core.Installation;
 internal enum TransactionKind
 {
     Install,
+    Uninstall,
     MoveBackups,
 }
 
-/// <summary>A write-ahead journal line. Paths are relative to the game folder its header names.</summary>
+/// <summary>A write-ahead journal line, with paths relative to the game folder its header names.</summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(TransactionStarted), "started")]
 [JsonDerivedType(typeof(DirectoryCreated), "directory")]
@@ -17,6 +18,9 @@ internal enum TransactionKind
 [JsonDerivedType(typeof(FileWasAbsent), "absent")]
 [JsonDerivedType(typeof(FileWritten), "written")]
 [JsonDerivedType(typeof(BackupRelocated), "relocated")]
+[JsonDerivedType(typeof(FileDisplaced), "displaced")]
+[JsonDerivedType(typeof(FileRestored), "restored")]
+[JsonDerivedType(typeof(DirectoryRemoved), "directoryRemoved")]
 internal abstract record JournalEntry;
 
 /// <summary>The journal's first line, which names the operation and the folders it works on.</summary>
@@ -68,6 +72,21 @@ internal sealed record FileWritten(string Path, FileSnapshot Content) : JournalE
 /// <param name="Moved">Whether it is moved rather than copied.</param>
 internal sealed record BackupRelocated(string Name, bool Moved) : JournalEntry;
 
+/// <summary>An installed file an uninstall is about to move aside into its staging folder, under <paramref name="Name"/>.</summary>
+/// <param name="Path">The installed file's path.</param>
+/// <param name="Name">Its name in the staging folder.</param>
+internal sealed record FileDisplaced(string Path, string Name) : JournalEntry;
+
+/// <summary>An original an uninstall is about to put back: moved out of the backup folder, or a checked copy of it.</summary>
+/// <param name="Path">Where the original goes back.</param>
+/// <param name="Backup">The name of the backup it comes from.</param>
+/// <param name="Moved">Whether the backup itself is moved back rather than copied.</param>
+/// <param name="Original">The original's content.</param>
+internal sealed record FileRestored(string Path, string Backup, bool Moved, FileSnapshot Original) : JournalEntry;
+
+/// <summary>An empty folder an uninstall is about to remove, which undoing creates again.</summary>
+/// <param name="Path">The folder's path.</param>
+internal sealed record DirectoryRemoved(string Path) : JournalEntry;
 
 /// <summary>
 /// JSON lines written ahead of the changes they describe, made durable per batch by <see cref="Commit"/> before anything

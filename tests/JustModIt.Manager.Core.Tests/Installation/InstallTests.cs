@@ -17,21 +17,28 @@ public sealed class InstallTests : IAsyncDisposable
     public ValueTask DisposeAsync() => _harness.DisposeAsync();
 
     [Fact]
-    public async Task Adds_a_file_in_new_folders()
+    public async Task Adds_a_file_in_new_folders_and_removes_both_on_uninstall()
     {
+        var before = _harness.Snapshot();
+
         var result = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("data/lang/extra/text.txt", "Text")));
 
         _harness.ReadGameFile("data/lang/extra/text.txt").Should().Be("Text");
         var files = await _harness.Engine.LoadFilesAsync(result.Record.Id, InstallHarness.Token);
         files.CreatedDirectories.Should().Equal("data/lang", "data/lang/extra");
         files.Files.Should().ContainSingle().Which.Change.Should().Be(FileChange.Added);
+
+        (await _harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
+        _harness.Snapshot().Should().BeEquivalentTo(before);
+        _harness.AppFiles().Should().BeEmpty();
     }
 
     [Theory]
     [MemberData(nameof(Locations))]
-    public async Task Installs_every_kind_of_change_wherever_backups_live(string location)
+    public async Task Installs_and_uninstalls_every_kind_of_change_wherever_backups_live(string location)
     {
         Use(location);
+        var before = _harness.Snapshot();
         var patch = await TestPatch.CreateAsync(InstallHarness.OriginalPak, InstallHarness.ChangedPak);
         var package = _harness.ManifestPackage(new TestPackage()
             .Rename("bin/library.dll", "bin/library_original.dll")
@@ -55,6 +62,12 @@ public sealed class InstallTests : IAsyncDisposable
             ("data/lang/text.txt", FileChange.Added));
         Directory.Exists(Path.Join(_harness.HiddenDirectory, "staging")).Should().BeFalse();
         File.Exists(Path.Join(_harness.InstallsDirectory, result.Record.Id.ToString("N"), "journal.jsonl")).Should().BeFalse();
+        (await _harness.Engine.VerifyAsync(result.Record.Id, null, InstallHarness.Token)).IsIntact.Should().BeTrue();
+
+        (await _harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
+
+        _harness.Snapshot().Should().BeEquivalentTo(before);
+        _harness.AppFiles().Should().BeEmpty();
     }
 
     [Theory]
@@ -99,7 +112,7 @@ public sealed class InstallTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Copies_originals_to_another_volume()
+    public async Task Copies_originals_to_another_volume_and_restores_their_time()
     {
         _harness.PutBackupsOnAnotherVolume();
         _harness.Backup = InstallHarness.InAppData;
@@ -111,16 +124,22 @@ public sealed class InstallTests : IAsyncDisposable
 
         File.ReadAllText(backup).Should().Be("Read me");
         File.GetCreationTimeUtc(backup).Should().BeAfter(written);
+        await _harness.UninstallAsync(result.Record.Id);
+        File.GetLastWriteTimeUtc(_harness.GameFile("readme.txt")).Should().Be(written);
     }
 
     [Fact]
     public async Task Installs_a_plain_zip_over_the_game_folder()
     {
+        var before = _harness.Snapshot();
+
         var result = await _harness.InstallAsync(_harness.Zip(new TestPackage().Entry("readme.txt", "Changed").Entry("data/new.txt", "New")));
 
         result.Record.Package.Kind.Should().Be(PackageKind.Zip);
         _harness.ReadGameFile("readme.txt").Should().Be("Changed");
         _harness.ReadGameFile("data/new.txt").Should().Be("New");
+        await _harness.UninstallAsync(result.Record.Id);
+        _harness.Snapshot().Should().BeEquivalentTo(before);
     }
 
     [Fact]
@@ -147,10 +166,11 @@ public sealed class InstallTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Replaces_and_deletes_read_only_files()
+    public async Task Replaces_and_deletes_read_only_files_and_puts_the_attribute_back()
     {
         File.SetAttributes(_harness.GameFile("readme.txt"), FileAttributes.ReadOnly);
         File.SetAttributes(_harness.GameFile("movies/intro.bik"), FileAttributes.ReadOnly | FileAttributes.Hidden);
+        var before = _harness.Snapshot();
 
         var result = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage()
             .Copy("readme.txt", "Changed")
@@ -160,6 +180,8 @@ public sealed class InstallTests : IAsyncDisposable
         File.Exists(_harness.GameFile("movies/intro.bik")).Should().BeFalse();
         (await _harness.Engine.LoadFilesAsync(result.Record.Id, InstallHarness.Token)).Files.Select(file => file.OriginalAttributes)
             .Should().Equal(FileAttributes.ReadOnly, FileAttributes.ReadOnly | FileAttributes.Hidden);
+        await _harness.UninstallAsync(result.Record.Id);
+        _harness.Snapshot().Should().BeEquivalentTo(before);
     }
 
     [Fact]
@@ -242,6 +264,11 @@ public sealed class InstallTests : IAsyncDisposable
 
         (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Select(record => record.Id).Should()
             .BeEquivalentTo([first.Record.Id, second.Record.Id]);
+        await _harness.UninstallAsync(first.Record.Id);
+
+        File.Exists(_harness.GameFile("a.txt")).Should().BeFalse();
+        _harness.ReadGameFile("b.txt").Should().Be("b");
+        (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Id.Should().Be(second.Record.Id);
     }
 
     private void Use(string location)

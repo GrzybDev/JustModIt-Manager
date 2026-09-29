@@ -50,6 +50,92 @@ public sealed class RecoveryTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(Locations))]
+    public async Task Recovers_an_uninstall_that_a_crash_cut_short_at_any_change(string location)
+    {
+        var patch = await TestPatch.CreateAsync(InstallHarness.OriginalPak, InstallHarness.ChangedPak);
+        int changes;
+        await using (var counting = Harness(location))
+        {
+            var installed = await counting.InstallAsync(counting.ManifestPackage(FullPackage(patch)));
+            var count = counting.CountChanges();
+            await counting.UninstallAsync(installed.Record.Id);
+            changes = count();
+        }
+
+        changes.Should().BeGreaterThan(5, "every file is put back or removed");
+
+        for (var change = 0; change < changes; change++)
+        {
+            await using var harness = Harness(location);
+            var before = harness.Snapshot();
+            var result = await harness.InstallAsync(harness.ManifestPackage(FullPackage(patch)));
+            var installed = harness.Snapshot();
+            harness.CrashAt(change);
+            await harness.UninstallAsync(result.Record.Id);
+            harness.RestoreCrash().Should().BeTrue();
+
+            var engine = harness.CreateEngine();
+            var recovered = await engine.RecoverAsync(InstallHarness.Token);
+
+            var outcome = recovered.Should().ContainSingle().Which.Outcome;
+            outcome.Should().BeOneOf([RecoveryOutcome.RolledBack, RecoveryOutcome.CleanedUp], "crash at change {0}", change);
+            if (outcome == RecoveryOutcome.RolledBack)
+            {
+                harness.Snapshot().Should().BeEquivalentTo(installed, "an uninstall that did not commit leaves the install as it was");
+                (await engine.UninstallAsync(result.Record.Id, null, InstallHarness.Token)).KeptFiles.Should().BeEmpty();
+            }
+
+            harness.Snapshot().Should().BeEquivalentTo(before, "crash at change {0}", change);
+            harness.AppFiles().Should().BeEmpty("crash at change {0}", change);
+        }
+    }
+
+    [Fact]
+    public async Task Leaves_an_original_the_store_put_back_while_an_uninstall_was_cut_short()
+    {
+        await using var harness = new InstallHarness();
+        var result = await harness.InstallAsync(harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed")));
+        harness.CrashBefore(ChangeKind.Restore);
+        await harness.UninstallAsync(result.Record.Id);
+        harness.RestoreCrash();
+        harness.WriteGameFile("readme.txt", "Read me");
+
+        var engine = harness.CreateEngine();
+        var recovered = await engine.RecoverAsync(InstallHarness.Token);
+
+        recovered.Should().ContainSingle().Which.Outcome.Should().Be(RecoveryOutcome.RolledBack);
+        harness.ReadGameFile("readme.txt").Should().Be("Read me");
+        (await engine.VerifyAsync(result.Record.Id, null, InstallHarness.Token)).Files.Should().ContainSingle()
+            .Which.Integrity.Should().Be(FileIntegrity.OriginalRestored);
+    }
+
+    [Fact]
+    public async Task Waits_for_the_game_drive_to_tidy_up_after_an_uninstall_that_committed()
+    {
+        await using var harness = new InstallHarness();
+        var before = harness.Snapshot();
+        var result = await harness.InstallAsync(harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed")));
+        harness.CrashBefore(ChangeKind.Tidy);
+        await harness.UninstallAsync(result.Record.Id);
+        harness.RestoreCrash();
+        var unplugged = Path.Join(harness.Crashes, "WholeGame");
+        TreeCopy.Copy(harness.GameRoot, unplugged);
+        TreeCopy.Delete(harness.GameRoot);
+        harness.Volumes.Detached.Add(InstallHarness.GameVolume);
+
+        var waiting = await harness.CreateEngine().RecoverAsync(InstallHarness.Token);
+        TreeCopy.Copy(unplugged, harness.GameRoot);
+        harness.Volumes.Detached.Remove(InstallHarness.GameVolume);
+        var recovered = await harness.CreateEngine().RecoverAsync(InstallHarness.Token);
+
+        waiting.Should().ContainSingle().Which.Outcome.Should().Be(RecoveryOutcome.Unavailable);
+        recovered.Should().ContainSingle().Which.Outcome.Should().Be(RecoveryOutcome.CleanedUp);
+        harness.Snapshot().Should().BeEquivalentTo(before);
+        harness.AppFiles().Should().BeEmpty();
+    }
+
     [Fact]
     public async Task Leaves_files_a_game_update_wrote_after_the_crash()
     {

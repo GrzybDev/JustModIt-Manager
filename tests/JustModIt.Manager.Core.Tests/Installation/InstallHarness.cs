@@ -175,6 +175,9 @@ internal sealed class InstallHarness : IAsyncDisposable
         return blocked;
     }
 
+    public Task<UninstallResult> UninstallAsync(Guid recordId, CancellationToken cancellationToken = default) =>
+        Engine.UninstallAsync(recordId, progress: null, cancellationToken == default ? Token : cancellationToken);
+
     /// <summary>Every file (hash and attributes) and folder of the game, to prove an operation left no trace.</summary>
     public Dictionary<string, string> Snapshot()
     {
