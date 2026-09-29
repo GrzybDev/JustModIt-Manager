@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
@@ -39,6 +40,10 @@ public sealed record InstallRecord
     public required BackupFolder Backup { get; init; }
 
     public int FileCount { get; init; }
+
+    /// <summary>A package the package creator installed to try it out; it has no release to update to.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsTest { get; init; }
 }
 
 public sealed record BackupFolder(BackupLocation Location, string Directory);
@@ -84,6 +89,9 @@ public sealed record InstallSource
     public string? ReleaseLabel { get; init; }
 
     public int? ReleaseVersion { get; init; }
+
+    /// <summary>Tells an older release from a newer one when the backend numbers none.</summary>
+    public DateTimeOffset? ReleasePublishedAt { get; init; }
 
     public string? ReleaseFileId { get; init; }
 

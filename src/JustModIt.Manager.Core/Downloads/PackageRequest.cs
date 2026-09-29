@@ -53,4 +53,12 @@ public interface IPackageDownloader
     /// <param name="request">The file and what to verify it against.</param>
     /// <param name="cancellationToken">Cancels the check.</param>
     Task<DownloadedPackage?> FindCachedAsync(PackageRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes every download except the kept ones and partial downloads that a later attempt may still resume.
+    /// </summary>
+    /// <param name="keep">The file uuids whose downloads stay, e.g. of installed projects and of jobs tried again.</param>
+    /// <param name="cancellationToken">Stops the pruning.</param>
+    /// <returns>How many files were deleted.</returns>
+    Task<int> PruneAsync(IReadOnlySet<Guid> keep, CancellationToken cancellationToken);
 }

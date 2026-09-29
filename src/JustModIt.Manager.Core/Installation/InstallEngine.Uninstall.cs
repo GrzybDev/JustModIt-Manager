@@ -15,12 +15,6 @@ public sealed record LeftoverBackup(Guid RecordId, GameKey Game, string GameName
 
 public sealed partial class InstallEngine
 {
-    /// <summary>
-    /// Whether a package would install once the given install is uninstalled, as an update or repair needs to know before
-    /// it removes anything. Files the install touched count as the uninstall will leave them, all others as they are.
-    /// </summary>
-    /// <exception cref="JustModIt.Manager.Core.Packages.InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
-    /// <exception cref="InstallBlockedException">The install cannot be read or its game folder is gone.</exception>
     public Task<PreflightReport> PredictReplacementAsync(Guid recordId, InstallRequest replacement,
         IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
@@ -28,12 +22,10 @@ public sealed partial class InstallEngine
         return EnqueueAsync(() => PredictCoreAsync(recordId, replacement, progress, cancellationToken), cancellationToken);
     }
 
-    /// <exception cref="InstallBlockedException">Refused before any change.</exception>
     public Task<UninstallResult> UninstallAsync(Guid recordId, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) =>
         EnqueueAsync(() => UninstallCoreAsync(recordId, progress, cancellationToken), cancellationToken);
 
-    /// <exception cref="InstallBlockedException">The game folder is gone.</exception>
     public Task<VerificationResult> VerifyAsync(Guid recordId, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) =>
         EnqueueAsync(async () =>
@@ -46,12 +38,6 @@ public sealed partial class InstallEngine
                 file.Integrity))]);
         }, cancellationToken);
 
-    /// <summary>Backups that outlived their game, with their size, so the player can remove them.</summary>
-    /// <param name="isGameGone">
-    /// Whether the store confirms the game is gone, from a fresh look with every library online; an unplugged drive is
-    /// not a removed game.
-    /// </param>
-    /// <param name="cancellationToken">Stops the search.</param>
     public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(Func<InstallRecord, bool> isGameGone,
         CancellationToken cancellationToken)
     {
@@ -89,24 +75,32 @@ public sealed partial class InstallEngine
         }, cancellationToken);
     }
 
-    /// <summary>Drops a record and the backups it lists without touching the game, e.g. when the game is gone for good.</summary>
-    /// <exception cref="InstallBlockedException">An interrupted operation on it has to be recovered first.</exception>
     public Task ForgetAsync(Guid recordId, CancellationToken cancellationToken) =>
-        EnqueueAsync(async () =>
-        {
-            var folder = _store.FolderOf(recordId);
-            if (folder.HasJournal)
-            {
-                throw new InstallBlockedException([new RecoveryPendingIssue(recordId)]);
-            }
+        EnqueueAsync(() => ForgetCoreAsync(recordId, onlyWhenGone: false, cancellationToken), cancellationToken);
 
-            var (record, files) = await LoadAsync(recordId, cancellationToken).ConfigureAwait(false);
-            _hook.Before(ChangeKind.Record);
-            var removed = BackupFolders.DeleteListed(record.Backup.Directory, files);
-            InstallRecordStore.DeleteFolder(folder);
-            _logger.Forgotten(recordId, removed);
-            return true;
-        }, cancellationToken);
+    public Task<bool> ForgetIfGoneAsync(Guid recordId, CancellationToken cancellationToken) =>
+        EnqueueAsync(() => ForgetCoreAsync(recordId, onlyWhenGone: true, cancellationToken), cancellationToken);
+
+    private async Task<bool> ForgetCoreAsync(Guid recordId, bool onlyWhenGone, CancellationToken cancellationToken)
+    {
+        var folder = _store.FolderOf(recordId);
+        if (folder.HasJournal)
+        {
+            throw new InstallBlockedException([new RecoveryPendingIssue(recordId)]);
+        }
+
+        var (record, files) = await LoadAsync(recordId, cancellationToken).ConfigureAwait(false);
+        if (onlyWhenGone && !GameFolder.IsGoneForGood(record.InstallDirectory, record.GameVolume, _volumes))
+        {
+            return false;
+        }
+
+        _hook.Before(ChangeKind.Record);
+        var removed = BackupFolders.DeleteListed(record.Backup.Directory, files);
+        InstallRecordStore.DeleteFolder(folder);
+        _logger.Forgotten(recordId, removed);
+        return true;
+    }
 
     private async Task<PreflightReport> PredictCoreAsync(Guid recordId, InstallRequest replacement,
         IProgress<InstallProgress>? progress, CancellationToken cancellationToken)

@@ -307,7 +307,13 @@ public sealed class PackageDownloaderTests : IDisposable
 
         var error = await Catching(Downloader.DownloadAsync(Request(), null, Token));
 
-        error.Reason.Should().Be(CatalogueErrorReason.InsufficientSpace);
+        error.Should().BeEquivalentTo(new
+        {
+            Reason = CatalogueErrorReason.InsufficientSpace,
+            RequiredBytes = (long?)Length,
+            AvailableBytes = (long?)(Length - 1),
+            Location = _directory.Path,
+        });
         _api.Resolved.Should().Be(0);
         _storage.Requests.Should().BeEmpty();
     }

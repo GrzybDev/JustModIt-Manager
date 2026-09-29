@@ -10,6 +10,15 @@ internal sealed class CountingTimeProvider : FakeTimeProvider
 {
     private int _timers;
 
+    public CountingTimeProvider()
+    {
+    }
+
+    public CountingTimeProvider(DateTimeOffset startDateTime)
+        : base(startDateTime)
+    {
+    }
+
     public int TimersCreated => Volatile.Read(ref _timers);
 
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)

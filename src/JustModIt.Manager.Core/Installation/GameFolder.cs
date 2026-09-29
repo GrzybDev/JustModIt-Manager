@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Installation;
 
@@ -57,6 +58,19 @@ internal sealed class GameFolder
     /// <summary>The game-relative package path of a full path in the game folder.</summary>
     /// <param name="fullPath">A full path inside the game folder.</param>
     public string RelativePathOf(string fullPath) => PackagePath.FromFullPath(Root, fullPath);
+
+    /// <summary>
+    /// Whether a folder is gone for good: its volume is attached and the folder is not on it, while a drive that is merely
+    /// unplugged may come back with the files.
+    /// </summary>
+    /// <param name="directory">The folder.</param>
+    /// <param name="volumeId">The volume the folder was on; null when it was not recorded.</param>
+    /// <param name="volumes">Tells whether the volume is attached.</param>
+    public static bool IsGoneForGood(string directory, string? volumeId, IVolumes volumes) =>
+        !Directory.Exists(directory)
+        && (volumeId is not null
+            ? volumes.IsAttached(volumeId)
+            : Path.GetPathRoot(directory) is { Length: > 0 } root && Directory.Exists(root));
 
     // Every segment, not just the last, can be a junction or symbolic link, and each one found is followed and checked.
     // Folders are cached for the operation, since many files share them.

@@ -201,15 +201,7 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
         return Report(header, RecoveryOutcome.RolledBack);
     }
 
-    /// <summary>
-    /// A folder is gone for good only when its volume is attached and the folder is not on it; a drive that is merely
-    /// unplugged may come back with the files.
-    /// </summary>
-    private bool IsGoneForGood(TransactionStarted header) =>
-        !Directory.Exists(header.GameDirectory)
-        && (header.GameVolume is { } volume
-            ? volumes.IsAttached(volume)
-            : Path.GetPathRoot(header.GameDirectory) is { Length: > 0 } root && Directory.Exists(root));
+    private bool IsGoneForGood(TransactionStarted header) => GameFolder.IsGoneForGood(header.GameDirectory, header.GameVolume, volumes);
 
     private static RecoveredOperation Report(TransactionStarted header, RecoveryOutcome outcome) =>
         new(header.RecordId, header.GameDirectory, outcome);

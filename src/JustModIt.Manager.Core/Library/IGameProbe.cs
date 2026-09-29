@@ -18,7 +18,10 @@ public interface IGameProbe
 /// <summary>A game as its store describes it at this moment.</summary>
 /// <param name="Key">The game probed.</param>
 /// <param name="Game">Null when the store no longer lists the game.</param>
-/// <param name="RunningProcesses">Programs running from the game's folder, which make it <see cref="GameInstallState.Running"/>.</param>
+/// <param name="RunningProcesses">
+/// Programs running from the game's folder, which make an installed game <see cref="GameInstallState.Running"/> unless
+/// the store waits to update or repair it.
+/// </param>
 public sealed record GameProbe(GameKey Key, InstalledGame? Game, ValueList<RunningProcess> RunningProcesses)
 {
     public bool IsGone => Game is null;

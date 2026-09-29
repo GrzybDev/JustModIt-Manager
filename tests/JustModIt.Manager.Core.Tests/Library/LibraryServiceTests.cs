@@ -347,6 +347,19 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_probe_of_a_game_waiting_for_a_store_update_names_what_runs_and_keeps_the_state()
+    {
+        _steam.Finds(Game("1001") with { State = GameInstallState.UpdatePending, Reason = GameStateReason.UpdateRequired });
+        await StartAsync();
+        _running.Processes = [new RunningProcess(42, "Example.exe", @"D:\Library\steamapps\common\1001\Example.exe")];
+
+        var probe = await Service.ProbeAsync(Key("1001"), Token);
+
+        probe.Game!.State.Should().Be(GameInstallState.UpdatePending);
+        probe.RunningProcesses.Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task A_game_the_snapshot_does_not_know_yet_is_probed_in_the_whole_store()
     {
         _steam.Finds(Game("1001"));

@@ -114,11 +114,6 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
         }
     }
 
-    /// <summary>
-    /// Deletes every download except those of <paramref name="keep"/>, e.g. the packages of installed projects and of
-    /// jobs that will be tried again, and partial downloads that a later attempt may still resume.
-    /// </summary>
-    /// <returns>How many files were deleted.</returns>
     public async Task<int> PruneAsync(IReadOnlySet<Guid> keep, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(keep);
@@ -450,7 +445,12 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
         if (needed is { } bytes && bytes > 0 && _availableSpace(_directory) is { } free && free < bytes)
         {
             throw new CatalogueException(CatalogueErrorReason.InsufficientSpace,
-                $"The download needs {bytes} bytes, but only {free} are free.");
+                $"The download needs {bytes} bytes, but only {free} are free.")
+            {
+                RequiredBytes = bytes,
+                AvailableBytes = free,
+                Location = _directory,
+            };
         }
     }
 

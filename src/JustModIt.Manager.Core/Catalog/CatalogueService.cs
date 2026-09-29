@@ -49,15 +49,20 @@ public sealed record CatalogueSnapshot
 public sealed record IndexRequest(IReadOnlyCollection<GameKey> Games, IReadOnlyCollection<ProjectLocator> InstalledProjects);
 
 /// <summary>
-/// Keeps the catalogue offline first: the copy saved on disk serves at once, and refreshes replace it only once the site
-/// answered. Operations run one at a time, in the order they were asked for, and never under a lock.
+/// Keeps the catalogue offline first, serving the copy saved on disk at once and replacing it only once the site answered,
+/// with operations run one at a time, in the order asked for, never under a lock.
 /// </summary>
+/// <param name="crawler">Reads the whole catalogue from the site.</param>
+/// <param name="indexSource">Builds the installable index.</param>
+/// <param name="pages">Serves project pages, reusing saved ones while current.</param>
+/// <param name="cache">Keeps the catalogue on disk for offline use.</param>
+/// <param name="logger">Logs failed refreshes, saves and listeners.</param>
 public sealed partial class CatalogueService(
     CatalogueCrawler crawler,
     IIndexSource indexSource,
     ProjectPageCache pages,
     CatalogueCache cache,
-    ILogger<CatalogueService> logger)
+    ILogger<CatalogueService> logger) : ICatalogue
 {
     private readonly Lock _gate = new();
     private Task _tail = Task.CompletedTask;
@@ -67,12 +72,10 @@ public sealed partial class CatalogueService(
     // collector reclaim it and reads it back from disk when asked again.
     private WeakReference<CatalogueListing>? _listing;
 
-    /// <summary>Raised for every new snapshot, in order, outside any lock; handlers must return quickly.</summary>
     public event EventHandler<CatalogueSnapshot>? Changed;
 
     public CatalogueSnapshot Current => Volatile.Read(ref _current);
 
-    /// <summary>Shows the copy saved by an earlier run without asking the site anything.</summary>
     public Task<CatalogueSnapshot> LoadCachedAsync(CancellationToken cancellationToken) => Enqueue(async () =>
     {
         if (Current.FetchedAt is not null)
@@ -124,7 +127,6 @@ public sealed partial class CatalogueService(
         });
     }
 
-    /// <summary>Builds the index for new games or installs from the catalogue read last, without reading it again.</summary>
     public Task<CatalogueSnapshot> RebuildIndexAsync(IndexRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -157,9 +159,6 @@ public sealed partial class CatalogueService(
         return loaded;
     }
 
-    /// <summary>A project page; <see cref="PageFreshness.Fresh"/> right before a job.</summary>
-    /// <returns>Null when the site does not have the page and it was never saved.</returns>
-    /// <exception cref="CatalogueException">The page could not be fetched and was never saved.</exception>
     public async Task<CataloguePage?> GetProjectPageAsync(ProjectLocator project, PageFreshness freshness,
         CancellationToken cancellationToken)
     {

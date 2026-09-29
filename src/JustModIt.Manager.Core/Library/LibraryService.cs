@@ -180,15 +180,16 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
             MarkChanged(key.Store);
         }
 
-        if (probed is not { State: GameInstallState.Installed })
+        // An uninstall may also run while the store waits to update or repair the game, and the game may run then too.
+        if (probed is not { State: GameInstallState.Installed or GameInstallState.UpdatePending or GameInstallState.Broken })
         {
             return new GameProbe(key, probed, []);
         }
 
         var running = await Task.Run(() => _runningGames.FindProcessesIn(probed.InstallDirectory, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
-        return running.Count == 0
-            ? new GameProbe(key, probed, [])
+        return running.Count == 0 || probed.State != GameInstallState.Installed
+            ? new GameProbe(key, probed, running)
             : new GameProbe(key, probed with { State = GameInstallState.Running, Reason = GameStateReason.GameRunning }, running);
     }
 

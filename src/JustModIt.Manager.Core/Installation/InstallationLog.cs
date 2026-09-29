@@ -107,4 +107,10 @@ internal static partial class InstallationLog
     /// <param name="count">How many backups were removed.</param>
     [LoggerMessage(Level = LogLevel.Information, Message = "Forgot install {RecordId} and removed {Count} backups")]
     public static partial void Forgotten(this ILogger logger, Guid recordId, int count);
+
+    /// <summary>Logs an install that followed its game to the folder the store moved it to.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="recordId">The install's record id.</param>
+    [LoggerMessage(Level = LogLevel.Information, Message = "Install {RecordId} follows its game to the folder the store moved it to")]
+    public static partial void Adopted(this ILogger logger, Guid recordId);
 }

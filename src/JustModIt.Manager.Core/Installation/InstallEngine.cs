@@ -16,10 +16,10 @@ namespace JustModIt.Manager.Core.Installation;
 public sealed record InstallResult(InstallRecord Record, ValueList<InstallWarning> Warnings);
 
 /// <summary>
-/// Installs, uninstalls, verifies and recovers packages, one operation at a time on a single background queue, so no
-/// two operations ever touch game files at once and no caller ever waits on file I/O. Recover first after a start.
+/// Installs, uninstalls, verifies and recovers packages one operation at a time on a single background queue, so no two
+/// operations ever touch game files at once and no caller ever waits on file I/O; recover first after a start.
 /// </summary>
-public sealed partial class InstallEngine : IAsyncDisposable
+public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
 {
     private readonly InstallEngineOptions _options;
     private readonly IPackageReader _packages;
@@ -64,14 +64,10 @@ public sealed partial class InstallEngine : IAsyncDisposable
         _worker = Task.Run(ProcessAsync);
     }
 
-    /// <summary>Undoes or finishes what a crash interrupted. Meant to be queued first after a start.</summary>
     public Task<IReadOnlyList<RecoveredOperation>> RecoverAsync(CancellationToken cancellationToken) =>
         EnqueueAsync(() => new InstallRecovery(_store, _options, _volumes, _hook, _logger).RunAsync(cancellationToken),
             cancellationToken);
 
-    /// <summary>Everything that would stop the install, and what to tell the player, without changing anything.</summary>
-    /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
-    /// <exception cref="InstallBlockedException">The game folder is gone.</exception>
     public Task<PreflightReport> CheckInstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
@@ -90,9 +86,6 @@ public sealed partial class InstallEngine : IAsyncDisposable
         }, cancellationToken);
     }
 
-    /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
-    /// <exception cref="InstallBlockedException">Refused before any change.</exception>
-    /// <exception cref="InstallFailedException">Failed part-way; the changes were undone unless it says otherwise.</exception>
     public Task<InstallResult> InstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
@@ -100,8 +93,6 @@ public sealed partial class InstallEngine : IAsyncDisposable
         return EnqueueAsync(() => InstallCoreAsync(request, progress, cancellationToken), cancellationToken);
     }
 
-    /// <summary>Moves an install's backups to where the settings now keep them.</summary>
-    /// <exception cref="InstallBlockedException">Refused before any change.</exception>
     public Task<InstallRecord> MoveBackupsAsync(Guid recordId, BackupChoice destination, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
@@ -109,7 +100,6 @@ public sealed partial class InstallEngine : IAsyncDisposable
         return EnqueueAsync(() => MoveBackupsCoreAsync(recordId, destination, progress, cancellationToken), cancellationToken);
     }
 
-    /// <summary>The installs the app can read.</summary>
     public Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken) =>
         EnqueueAsync<IReadOnlyList<InstallRecord>>(async () =>
             [.. (await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false)).Select(load => load.Record)
@@ -174,6 +164,7 @@ public sealed partial class InstallEngine : IAsyncDisposable
                 Source = request.Source,
                 Backup = backup,
                 FileCount = files.Files.Count,
+                IsTest = request.IsTest,
             };
             await transaction.CommitAsync(record, files, _store, cancellationToken).ConfigureAwait(false);
         }

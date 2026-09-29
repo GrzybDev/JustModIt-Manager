@@ -63,6 +63,15 @@ public sealed class CatalogueException : Exception
 
     public TimeSpan? RetryAfter { get; }
 
+    /// <summary>For <see cref="CatalogueErrorReason.InsufficientSpace"/>: what the download needs.</summary>
+    public long? RequiredBytes { get; init; }
+
+    /// <summary>For <see cref="CatalogueErrorReason.InsufficientSpace"/>: what is free where it would go.</summary>
+    public long? AvailableBytes { get; init; }
+
+    /// <summary>For <see cref="CatalogueErrorReason.InsufficientSpace"/>: the folder whose volume lacks the space.</summary>
+    public string? Location { get; init; }
+
     /// <summary>Trying again later may succeed; the other reasons need something to change first.</summary>
     public bool IsTransient => Reason is CatalogueErrorReason.Offline or CatalogueErrorReason.Timeout
         or CatalogueErrorReason.RateLimited or CatalogueErrorReason.Maintenance or CatalogueErrorReason.ServerError;
