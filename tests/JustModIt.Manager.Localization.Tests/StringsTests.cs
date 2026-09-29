@@ -89,6 +89,7 @@ public sealed class StringsTests
 
     private static IEnumerable<(string Name, string Value)> AllTexts() =>
         TestTexts.Translations().Select(translation => translation.Texts)
+            .Concat(TestTexts.AppOverrides().Select(app => app.Texts))
             .Append(TextCatalog.Base.Texts)
             .Append(TestTexts.Polish.Texts)
             .SelectMany(texts => texts.Select(text => (text.Key, text.Value)));

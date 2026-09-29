@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="StatusChecking" xml:space="preserve">
+    <value>Sprawdzanie gier i spolszczeń…</value>
+  </data>
+  <data name="StatusInstalling" xml:space="preserve">
+    <value>Instalowanie spolszczenia gry {game}…</value>
+  </data>
+  <data name="StatusUpdating" xml:space="preserve">
+    <value>Aktualizowanie spolszczenia gry {game}…</value>
+  </data>
+  <data name="StatusRepairing" xml:space="preserve">
+    <value>Przywracanie spolszczenia gry {game}…</value>
+  </data>
+  <data name="StatusUninstalling" xml:space="preserve">
+    <value>Odinstalowywanie spolszczenia gry {game}…</value>
+  </data>
+  <data name="StatusFollowingMove" xml:space="preserve">
+    <value>Przenoszenie spolszczenia gry {game} do jej nowego folderu…</value>
+  </data>
+  <data name="NoticeAvailableTitle" xml:space="preserve">
+    <value>Dostępne spolszczenie gry {game}</value>
+  </data>
+  <data name="NoticeAvailable" xml:space="preserve">
+    <value>Grupa {team} przygotowała spolszczenie, które możesz zainstalować.</value>
+  </data>
+  <data name="NoticeAvailableAnyTeam" xml:space="preserve">
+    <value>Jest spolszczenie, które możesz zainstalować.</value>
+  </data>
+  <data name="NoticeAvailableOfficial" xml:space="preserve">
+    <value>Gra ma oficjalną polską wersję, ale jest też spolszczenie, które możesz zainstalować.</value>
+  </data>
+  <data name="NoticeAvailableSummaryTitle" xml:space="preserve">
+    <value>Nowe spolszczenia Twoich gier</value>
+  </data>
+  <data name="NoticeAvailableSummary" xml:space="preserve">
+    <value>Spolszczenia do zainstalowania czekają na {count, plural, one {# grę} few {# gry} many {# gier} other {# gry}}.</value>
+  </data>
+  <data name="NoticeInstalledTitle" xml:space="preserve">
+    <value>Zainstalowano spolszczenie gry {game}</value>
+  </data>
+  <data name="NoticeInstalled" xml:space="preserve">
+    <value>Spolszczenie jest gotowe. Miłej gry!</value>
+  </data>
+  <data name="NoticeUpdatedTitle" xml:space="preserve">
+    <value>Zaktualizowano spolszczenie gry {game}</value>
+  </data>
+  <data name="NoticeUpdatedLatest" xml:space="preserve">
+    <value>Zainstalowano najnowsze wydanie spolszczenia.</value>
+  </data>
+  <data name="NoticeRepairedTitle" xml:space="preserve">
+    <value>Przywrócono spolszczenie gry {game}</value>
+  </data>
+  <data name="NoticeRepaired" xml:space="preserve">
+    <value>Sklep zmienił pliki gry, więc spolszczenie zostało zainstalowane ponownie.</value>
+  </data>
+  <data name="NoticeFailedTitle" xml:space="preserve">
+    <value>{job, select, Install {Nie udało się zainstalować spolszczenia gry {game}} Update {Nie udało się zaktualizować spolszczenia gry {game}} Repair {Nie udało się przywrócić spolszczenia gry {game}} Uninstall {Nie udało się odinstalować spolszczenia gry {game}} other {Coś poszło nie tak ze spolszczeniem gry {game}}}</value>
+  </data>
+  <data name="NoticePreviousReleaseLostTitle" xml:space="preserve">
+    <value>Aktualizacja spolszczenia gry {game} nie powiodła się</value>
+  </data>
+  <data name="NoticePreviousReleaseLost" xml:space="preserve">
+    <value>Poprzedniej wersji spolszczenia nie udało się przywrócić, więc gra ma teraz oryginalne pliki. Możesz zainstalować spolszczenie ponownie.</value>
+  </data>
+  <data name="WindowClosed" xml:space="preserve">
+    <value>Aplikacja nadal dba o Twoje spolszczenia. Kliknij ikonę w zasobniku systemowym, aby ją otworzyć.</value>
+  </data>
+  <data name="SetupPending" xml:space="preserve">
+    <value>Dopóki jej nie skończysz, aplikacja nie zajmie się Twoimi spolszczeniami. Kliknij, aby do niej wrócić.</value>
+  </data>
+</root>

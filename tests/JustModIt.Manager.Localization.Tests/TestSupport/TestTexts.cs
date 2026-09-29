@@ -18,6 +18,15 @@ public sealed class TestTexts
         Directory.EnumerateFiles(LocalizationResources, "Strings.*.resx")
             .Select(path => (Path.GetFileNameWithoutExtension(path)["Strings.".Length..], Read(path)));
 
+    /// <summary>The texts the apps put over the platform's, in their own words.</summary>
+    public static IEnumerable<(string App, Dictionary<string, string> Texts)> AppOverrides() =>
+        Directory.EnumerateDirectories(Path.Combine(RepositoryRoot, "src"))
+            .Where(project => !string.Equals(Path.Combine(project, "Resources"), LocalizationResources, StringComparison.OrdinalIgnoreCase))
+            .Select(project => Path.Combine(project, "Resources"))
+            .Where(Directory.Exists)
+            .SelectMany(resources => Directory.EnumerateFiles(resources, "Strings.*.resx"))
+            .Select(path => (Path.GetRelativePath(RepositoryRoot, path), Read(path)));
+
     private static Dictionary<string, string> Read(string path) =>
         XDocument.Load(path).Root!.Elements("data")
             .ToDictionary(data => (string)data.Attribute("name")!, data => (string)data.Element("value")!, StringComparer.Ordinal);
