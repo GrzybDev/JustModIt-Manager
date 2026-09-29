@@ -28,6 +28,11 @@ public sealed class AppDataLocations
     /// <summary>The last catalogue, index and project pages read from the site, shown while it cannot be reached.</summary>
     public string CatalogueCacheDirectory => Path.Combine(CacheDirectory, "catalogue");
 
+    /// <summary>
+    /// Downloaded packages, kept while they are installed or may be tried again, so reinstalling counts no new download.
+    /// </summary>
+    public string DownloadsDirectory => Path.Combine(CacheDirectory, "downloads");
+
     public string SettingsFile => Path.Combine(DataDirectory, "settings.json");
 
     /// <summary>Automation history and the last library snapshot.</summary>
