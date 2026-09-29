@@ -71,6 +71,7 @@ internal static partial class Roles
                 Creator = environment.CreatorOptions(),
                 Launch = launch,
                 Loggers = loggers,
+                Notices = options.Notices,
             }));
         }
     }

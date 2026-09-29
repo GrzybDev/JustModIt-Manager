@@ -23,6 +23,9 @@ public sealed record UiContext
     public required LaunchArguments Launch { get; init; }
 
     public required ILoggerFactory Loggers { get; init; }
+
+    /// <summary>What the licences page shows.</summary>
+    public required LegalNotices Notices { get; init; }
 }
 
 /// <summary>The window's process, started by the agent when the player asks for the window and ended when it closes.</summary>

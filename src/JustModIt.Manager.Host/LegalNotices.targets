@@ -1,0 +1,20 @@
+<Project>
+  <!-- The texts of an app's licences page, embedded under the names LegalNotices reads. The licences of the app and of
+       its components also ask for a copy next to the exe, so publishing puts them there. -->
+  <PropertyGroup>
+    <_ManagerRepositoryRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..'))</_ManagerRepositoryRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="$(_ManagerRepositoryRoot)LICENSE.md" LogicalName="JustModIt.Manager.License.md"
+                      WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="$(_ManagerRepositoryRoot)THIRD-PARTY-NOTICES.md" LogicalName="JustModIt.Manager.ThirdPartyNotices.md"
+                      WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="Branding\LICENSE.md" LogicalName="JustModIt.Manager.BrandingNotice.md" WithCulture="false" />
+
+    <None Include="$(_ManagerRepositoryRoot)LICENSE.md" Link="LICENSE.md" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+    <None Include="$(_ManagerRepositoryRoot)THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToPublishDirectory="PreserveNewest"
+          Visible="false" />
+    <None Include="Branding\LICENSE.md" Link="BRANDING.md" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+</Project>

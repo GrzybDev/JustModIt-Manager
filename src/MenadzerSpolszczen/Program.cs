@@ -1,5 +1,6 @@
 using JustModIt.Manager.Host;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Ui;
 
 namespace MenadzerSpolszczen;
 
@@ -10,5 +11,6 @@ internal static class Program
     {
         Product = ProductConfiguration.Settings,
         Texts = TextCatalog.Load(ProductConfiguration.Language, typeof(Program).Assembly),
+        Notices = new LegalNotices(typeof(Program).Assembly),
     });
 }

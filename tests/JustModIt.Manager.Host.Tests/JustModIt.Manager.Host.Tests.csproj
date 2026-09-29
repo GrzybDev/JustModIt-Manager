@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- An invented app's Product.props, so the tests read the ProductConfiguration its build generates. -->
+  <!-- An invented app's Product.props and branding, so the tests read the ProductConfiguration and the legal texts its
+       build generates and embeds. -->
   <PropertyGroup>
     <Product>Example "App"; 100%</Product>
     <ManagerAppId>ExampleApp</ManagerAppId>
@@ -13,6 +14,7 @@
   </PropertyGroup>
 
   <Import Project="..\..\src\JustModIt.Manager.Host\ProductConfiguration.targets" />
+  <Import Project="..\..\src\JustModIt.Manager.Host\LegalNotices.targets" />
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\JustModIt.Manager.Host\JustModIt.Manager.Host.csproj" />

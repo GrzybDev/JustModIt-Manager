@@ -12,6 +12,9 @@ public sealed record AppOptions
     /// <summary>The app's texts, as its build merged them: <see cref="TextCatalog.Load"/> of the app's assembly.</summary>
     public required TextCatalog Texts { get; init; }
 
+    /// <summary>The app's licence and notices, as its build embedded them: <see cref="LegalNotices"/> of the app's assembly.</summary>
+    public required LegalNotices Notices { get; init; }
+
     /// <summary>The app's own agent services, registered after the shared ones, so they add to or replace them.</summary>
     public Action<IServiceCollection>? ConfigureAgent { get; init; }
 

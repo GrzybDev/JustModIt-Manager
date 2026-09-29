@@ -16,5 +16,6 @@
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)ProductConfiguration.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)LegalNotices.targets" />
   <Import Project="$(MSBuildThisFileDirectory)..\JustModIt.Manager.Localization\Texts.targets" />
 </Project>
