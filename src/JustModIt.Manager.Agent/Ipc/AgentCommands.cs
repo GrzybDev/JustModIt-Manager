@@ -1,0 +1,205 @@
+using JustModIt.Manager.Agent.Lifetime;
+using JustModIt.Manager.Agent.Shell;
+using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Protocol.Messages;
+using JustModIt.Manager.Protocol.Transport;
+using JustModIt.Manager.Protocol.Views;
+
+namespace JustModIt.Manager.Agent.Ipc;
+
+/// <summary>The window's commands. Jobs are only started here; how they go reaches the window with the state.</summary>
+public sealed class AgentCommands(
+    StateCoordinator coordinator,
+    JobRunner jobs,
+    ISettingsService settings,
+    ILibraryService library,
+    IVolumes volumes,
+    Checks checks,
+    AgentLifetime lifetime,
+    IDesktopShell shell,
+    AgentOptions options)
+{
+    /// <summary>Carries out one of the window's commands.</summary>
+    /// <param name="request">A command, as opposed to a query.</param>
+    /// <param name="cancellationToken">Cancelled when the window's connection closes.</param>
+    /// <returns>The answer's payload; null for an empty answer.</returns>
+    public async ValueTask<Message?> HandleAsync(Message request, CancellationToken cancellationToken) => request switch
+    {
+        InstallProject install => Start(Install(install)),
+        UpdateProject update => Start(new UpdateJobRequest(Installed(update.Game))),
+        RepairProject repair => Start(new RepairJobRequest(Installed(repair.Game))),
+        UninstallProject uninstall => Start(new UninstallJobRequest(Installed(uninstall.Game))),
+        TestInstallPackage test => Start(TestInstall(test)),
+        MoveBackups => new JobsStarted([.. coordinator.MoveBackups(BackupChoice.From(settings.Current)).Select(handle => handle.Job.Id)]),
+        RemoveLeftoverBackups remove => await RemoveLeftoverBackupsAsync(remove.RecordIds, cancellationToken).ConfigureAwait(false),
+        CancelJob cancel => Done(() => jobs.Cancel(cancel.Game)),
+        DismissFailure dismiss => Done(() => coordinator.DismissFailure(dismiss.Game)),
+        OpenedGame opened => Done(() => coordinator.RequestVerification(opened.Game)),
+        CheckNow => Done(() => _ = checks.CheckNowAsync()),
+        ChangeSettings change => await ChangeSettingsAsync(change.Settings, cancellationToken).ConfigureAwait(false),
+        SetGameAutomation automation => Done(() => settings.Update(current => ChooseAutomation(current, automation))),
+        ChooseProject choose => Done(() => settings.Update(current => current.WithGame(choose.Game, preferences => preferences with
+        {
+            ProjectId = choose.ProjectId?.ToString("D"),
+            VariantName = preferences.ProjectId == choose.ProjectId?.ToString("D") ? preferences.VariantName : null,
+        }))),
+        ChooseVariant choose => Done(() => settings.Update(current =>
+            current.WithGame(choose.Game, preferences => preferences with { VariantName = choose.VariantName }))),
+        HideGame hide => Done(() => settings.Update(current =>
+            current.WithGame(hide.Game, preferences => preferences with { IsHidden = hide.IsHidden }))),
+        LaunchGame launch => Open(StoreLaunchLinks.For(launch.Game) ?? throw new RequestFailedException(ErrorCode.Unsupported)),
+        OpenFolder open => Open(FolderOf(open)),
+        AddLibraryFolder add => await AddLibraryFolderAsync(add.Path, cancellationToken).ConfigureAwait(false),
+        RemoveLibraryFolder remove => Done(() => library.RemoveLibraryFolder(new LibraryFolder(StoreOf(remove.Store), remove.Path))),
+        ValidateBackupFolder validate => new BackupFolderChecked(await CheckBackupFolderAsync(validate.Folder, cancellationToken)
+            .ConfigureAwait(false)),
+        ExitApp exit => Done(() => _ = lifetime.RequestExitAsync(exit.Mode)),
+        _ => throw new RequestFailedException(ErrorCode.Unsupported),
+    };
+
+    private static Message? Done(Action action)
+    {
+        action();
+        return null;
+    }
+
+    private static RequestFailedException Invalid(string detail) => new(ErrorCode.InvalidRequest, detail);
+
+    private static StoreId StoreOf(string store) =>
+        StoreId.TryParse(store, out var id) ? id : throw Invalid("The store is not a store id.");
+
+    private static AppSettings ChooseAutomation(AppSettings current, SetGameAutomation automation)
+    {
+        if (automation.AutoInstall is { } install)
+        {
+            current = current.ChooseAutoInstall(automation.Game, install);
+        }
+
+        return automation.AutoUpdate is { } update ? current.ChooseAutoUpdate(automation.Game, update) : current;
+    }
+
+    private MyGame Find(GameKey game) => coordinator.Current.Find(game) ?? throw Invalid("The game is not among the player's games.");
+
+    private InstalledGame Detected(GameKey game) => Find(game).Game ?? throw Invalid("No store reports the game.");
+
+    private InstallRecord Installed(GameKey game) => Find(game).Installed ?? throw Invalid("The game has no install.");
+
+    private InstallJobRequest Install(InstallProject request)
+    {
+        var game = Detected(request.Game);
+        var offer = Find(request.Game).Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == request.ProjectId)
+            ?? throw Invalid("The project is not made for the game.");
+        return new InstallJobRequest(game.Key, game.Name, offer.Project.Locator, request.VariantName);
+    }
+
+    private TestInstallJobRequest TestInstall(TestInstallPackage request)
+    {
+        var game = Detected(request.Game);
+        return Path.IsPathFullyQualified(request.PackagePath)
+            ? new TestInstallJobRequest(game.Key, game.Name, request.PackagePath)
+            : throw Invalid("The package path is not fully qualified.");
+    }
+
+    private JobStarted Start(JobRequest request)
+    {
+        var handle = jobs.Start(request);
+        // A refused job comes back finished, without any event the window would learn it from.
+        if (handle.Completion is { IsCompletedSuccessfully: true, Result: var refused })
+        {
+            if (refused.Failure?.Reason == JobFailureReason.AlreadyRunning)
+            {
+                throw new RequestFailedException(ErrorCode.Failed, "The game already has a job.");
+            }
+
+            if (refused.Outcome == JobOutcome.Cancelled)
+            {
+                throw new RequestFailedException(ErrorCode.ShuttingDown, "The app is exiting and starts no new jobs.");
+            }
+        }
+
+        return new JobStarted(handle.Job.Id);
+    }
+
+    /// <summary>Only installs whose game its store still confirms gone lose their backups, however old the player's list is.</summary>
+    private async Task<Message> RemoveLeftoverBackupsAsync(IReadOnlyList<Guid> recordIds, CancellationToken cancellationToken)
+    {
+        var confirmed = (await coordinator.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false))
+            .Where(leftover => recordIds.Contains(leftover.RecordId))
+            .Select(leftover => leftover.RecordId)
+            .ToHashSet();
+        var records = coordinator.Current.Games.Select(game => game.Installed).OfType<InstallRecord>()
+            .Where(record => confirmed.Contains(record.Id));
+        return new JobsStarted([.. records.Select(record => Start(new UninstallJobRequest(record)).JobId)]);
+    }
+
+    private async Task<Message?> ChangeSettingsAsync(SettingsView view, CancellationToken cancellationToken)
+    {
+        var current = settings.Current;
+        var choosesFolder = view.BackupLocation == BackupLocation.CustomFolder;
+        if (choosesFolder && view.CustomBackupFolder is null)
+        {
+            throw Invalid("A custom backup location needs a folder.");
+        }
+
+        // A folder checked when it was picked may be gone by the time the player switches back to it.
+        if (view.CustomBackupFolder is { } folder
+            && (!string.Equals(folder, current.CustomBackupFolder, StringComparison.Ordinal)
+                || (choosesFolder && current.BackupLocation != BackupLocation.CustomFolder)))
+        {
+            if (await CheckBackupFolderAsync(folder, cancellationToken).ConfigureAwait(false) is { } problem)
+            {
+                throw Invalid($"The backup folder is refused: {problem}.");
+            }
+
+            view = view with { CustomBackupFolder = PathCanonicalizer.Canonicalize(folder) };
+        }
+
+        var updated = settings.Update(view.ApplyTo);
+        // The automation waited for the first-run setup; a check now fills the player's list and acts on their choices.
+        if (!current.OnboardingCompleted && updated.OnboardingCompleted)
+        {
+            _ = checks.CheckNowAsync();
+        }
+
+        return null;
+    }
+
+    private Task<BackupFolderProblem?> CheckBackupFolderAsync(string folder, CancellationToken cancellationToken)
+    {
+        var gameFolders = library.Snapshot.Games.Values.Select(game => game.InstallDirectory)
+            .Concat(coordinator.Current.Games.Select(game => game.Installed?.InstallDirectory).OfType<string>())
+            .ToList();
+        return Task.Run(() => BackupFolderPolicy.Check(folder, gameFolders, options.InstallDirectory, volumes), cancellationToken);
+    }
+
+    private async Task<Message> AddLibraryFolderAsync(string path, CancellationToken cancellationToken)
+    {
+        var result = await library.AddLibraryFolderAsync(path, cancellationToken).ConfigureAwait(false);
+        return new LibraryFolderAdded(result.Folder?.Store.Value, result.Folder?.Path, result.Rejection);
+    }
+
+    private string FolderOf(OpenFolder request)
+    {
+        if (request.Folder == AppFolder.Logs)
+        {
+            Directory.CreateDirectory(options.Locations.LogsDirectory);
+            return options.Locations.LogsDirectory;
+        }
+
+        var game = Find(request.Game ?? throw Invalid("The folder belongs to a game, which is missing."));
+        return (request.Folder == AppFolder.Game
+                ? game.Game?.InstallDirectory ?? game.Installed?.InstallDirectory
+                : game.Installed?.Backup.Directory)
+            ?? throw Invalid("The game has no such folder.");
+    }
+
+    private Message? Open(string target) =>
+        shell.Open(target) ? null : throw new RequestFailedException(ErrorCode.Failed, "The system could not open it.");
+}

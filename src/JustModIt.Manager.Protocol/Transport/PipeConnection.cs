@@ -198,6 +198,15 @@ public sealed partial class PipeConnection : IAsyncDisposable
         _readLoop = Task.Run(ReadLoopAsync);
     }
 
+    /// <summary>Queues an event without waiting; a peer that is not reading is disconnected rather than waited for.</summary>
+    /// <param name="message">The event's payload.</param>
+    /// <exception cref="InvalidOperationException">The event is over the frame limit.</exception>
+    public void Post(Message message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        Post(FrameCodec.Serialize(new EventFrame(message), _options.MaxFrameLength));
+    }
+
     /// <summary>Queues an already serialized event without waiting; a peer that is not reading is disconnected.</summary>
     /// <param name="eventPayload">A serialized event frame, shared by every connection it goes to.</param>
     internal void Post(byte[] eventPayload)
