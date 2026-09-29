@@ -15,6 +15,7 @@ internal sealed class Workspace : IDisposable
         HiddenFolderName = HiddenFolderName,
         Generator = Generator,
         PackageExtension = ".examplemod",
+        ProjectExtension = ".exampleproj",
     };
 
     public Workspace()

@@ -337,7 +337,7 @@ public sealed class PackageBuilderTests : IDisposable
     public void Names_the_hidden_folder_after_the_app()
     {
         var options = CreatorOptions.For(new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: false),
-            Workspace.Generator, ".examplemod");
+            Workspace.Generator, ".examplemod", ".exampleproj");
 
         options.HiddenFolderName.Should().Be(".example-app");
         options.Rules.Should().BeSameAs(HostingRuleSet.Default);

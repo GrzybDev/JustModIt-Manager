@@ -15,6 +15,9 @@ public sealed record CreatorOptions
     /// <summary>The app's extension for manifest packages, with its dot; the format is shared, the name is the app's.</summary>
     public required string PackageExtension { get; init; }
 
+    /// <summary>The app's extension for project files, with its dot.</summary>
+    public required string ProjectExtension { get; init; }
+
     /// <summary>What the app accepts when it installs a package; a package past them could never be installed.</summary>
     public PackageLimits Limits { get; init; } = PackageLimits.Default;
 
@@ -24,16 +27,23 @@ public sealed record CreatorOptions
     /// <param name="kind">A plain archive or a manifest package.</param>
     public string ExtensionFor(PackageKind kind) => kind == PackageKind.Zip ? PackageLayout.ZipExtension : PackageExtension;
 
-    public static CreatorOptions For(AppIdentity identity, string generator, string packageExtension)
+    /// <summary>The options of an app.</summary>
+    /// <param name="identity">The app's names, which give its folders in games.</param>
+    /// <param name="generator">Written into manifests, e.g. the product name and version.</param>
+    /// <param name="packageExtension">The app's extension for manifest packages, with its dot.</param>
+    /// <param name="projectExtension">The app's extension for project files, with its dot.</param>
+    public static CreatorOptions For(AppIdentity identity, string generator, string packageExtension, string projectExtension)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentException.ThrowIfNullOrWhiteSpace(generator);
         ArgumentException.ThrowIfNullOrWhiteSpace(packageExtension);
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectExtension);
         return new CreatorOptions
         {
             HiddenFolderName = identity.HiddenFolderName,
             Generator = generator,
             PackageExtension = packageExtension,
+            ProjectExtension = projectExtension,
         };
     }
 }

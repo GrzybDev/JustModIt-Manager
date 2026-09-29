@@ -1,9 +1,16 @@
+using System.Text.Json.Serialization;
+
 namespace JustModIt.Manager.Creator;
 
 /// <summary>
-/// One change a package makes, written by the author. Steps run in order, each on the game folder as the steps before
-/// it left it, the way the installer replays a manifest. Paths are game-relative and '/'-separated.
+/// One change a package makes, written by the author and run on the game folder as the steps before it left it, the
+/// way the installer replays a manifest; paths are game-relative and '/'-separated.
 /// </summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
+[JsonDerivedType(typeof(CopyFileStep), "copy")]
+[JsonDerivedType(typeof(PatchFileStep), "patch")]
+[JsonDerivedType(typeof(RenameFileStep), "rename")]
+[JsonDerivedType(typeof(DeleteFileStep), "delete")]
 public abstract record ProjectStep;
 
 /// <summary>Puts the author's file at a path of the game.</summary>

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
@@ -55,6 +56,7 @@ public sealed record PackageMetadata
 /// <param name="SourceUrl">The address of its source code.</param>
 public sealed record ThirdPartyNotice(string ToolId, string License, string SourceUrl)
 {
+    [JsonIgnore]
     public bool IsComplete =>
         !string.IsNullOrWhiteSpace(License)
         && Uri.TryCreate(SourceUrl, UriKind.Absolute, out var source)
