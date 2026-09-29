@@ -84,6 +84,9 @@ public record GameSummary
     public int VisibleProjectCount { get; init; }
 
     public DateTimeOffset? CreatedAt { get; init; }
+
+    /// <summary>A plain copy, without what a derived row adds.</summary>
+    public GameSummary ToSummary() => new(this);
 }
 
 /// <summary>A row of the games list.</summary>
