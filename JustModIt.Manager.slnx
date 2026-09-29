@@ -13,6 +13,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/JustModIt.Manager.Core.Tests/JustModIt.Manager.Core.Tests.csproj" />
+    <Project Path="tests/JustModIt.Manager.Creator.Tests/JustModIt.Manager.Creator.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.Host.Tests/JustModIt.Manager.Host.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.LiveTests/JustModIt.Manager.LiveTests.csproj" />
     <Project Path="tests/JustModIt.Manager.Localization.Tests/JustModIt.Manager.Localization.Tests.csproj" />

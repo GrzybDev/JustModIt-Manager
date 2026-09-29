@@ -29,6 +29,9 @@ public sealed record AppIdentity
 
     public bool IsDevelopmentBuild { get; }
 
+    /// <summary>The app's hidden folder at a game's root, for staging files and, by default, the originals.</summary>
+    public string HiddenFolderName => "." + Slug;
+
     /// <summary>
     /// The name behind the data folder, the mutexes and the pipe, with ".Dev" in a development build so it never shares
     /// data with an installed copy or hands its start over to one.

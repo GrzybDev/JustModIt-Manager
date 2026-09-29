@@ -31,7 +31,7 @@ public sealed record InstallEngineOptions
         return new InstallEngineOptions
         {
             AppId = identity.AppId,
-            HiddenFolderName = "." + identity.Slug,
+            HiddenFolderName = identity.HiddenFolderName,
             InstallsDirectory = locations.InstallsDirectory,
             BackupsDirectory = locations.BackupsDirectory,
         };

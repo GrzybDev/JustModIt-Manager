@@ -9,6 +9,11 @@ public sealed class AppIdentityTests
         new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: true).InstanceName.Should().Be("ExampleApp.Dev");
     }
 
+    [Fact]
+    public void The_hidden_folder_in_game_folders_is_named_after_the_slug() =>
+        new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: false).HiddenFolderName
+            .Should().Be(".example-app");
+
     [Theory]
     [InlineData("", "ExampleVendor", "example-app")]
     [InlineData("ExampleApp", " ", "example-app")]
