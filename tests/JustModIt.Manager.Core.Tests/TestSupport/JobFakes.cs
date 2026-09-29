@@ -253,6 +253,7 @@ internal sealed class FakeInstallEngine : IInstallEngine
 {
     private readonly Lock _gate = new();
     private readonly List<string> _calls = [];
+    private int _verifications;
 
     public ConcurrentDictionary<Guid, InstallRecord> Records { get; } = new();
 
@@ -286,7 +287,12 @@ internal sealed class FakeInstallEngine : IInstallEngine
 
     public IReadOnlyList<LeftoverBackup> Leftovers { get; set; } = [];
 
-    public int Verifications { get; private set; }
+    /// <summary>Installs that keep originals of replaced files.</summary>
+    public ConcurrentDictionary<Guid, bool> Backups { get; } = new();
+
+    public TaskCompletionSource? VerifyGate { get; set; }
+
+    public int Verifications => Volatile.Read(ref _verifications);
 
     public InstallRecord Add(InstallRecord record)
     {
@@ -360,11 +366,16 @@ internal sealed class FakeInstallEngine : IInstallEngine
         return Task.FromResult(new UninstallResult([]));
     }
 
-    public Task<VerificationResult> VerifyAsync(Guid recordId, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
+    public async Task<VerificationResult> VerifyAsync(Guid recordId, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
         Log("verify");
-        Verifications++;
-        return Task.FromResult(OnVerify?.Invoke(recordId) ?? new VerificationResult([]));
+        Interlocked.Increment(ref _verifications);
+        if (VerifyGate is { } gate)
+        {
+            await gate.Task.WaitAsync(cancellationToken);
+        }
+
+        return OnVerify?.Invoke(recordId) ?? new VerificationResult([]);
     }
 
     public Task<InstallRecord> MoveBackupsAsync(Guid recordId, BackupChoice destination, IProgress<InstallProgress>? progress,
@@ -414,7 +425,13 @@ internal sealed class FakeInstallEngine : IInstallEngine
     }
 
     public Task<InstalledFiles> LoadFilesAsync(Guid recordId, CancellationToken cancellationToken) =>
-        Task.FromResult(new InstalledFiles { Files = [], CreatedDirectories = [] });
+        Task.FromResult(new InstalledFiles
+        {
+            Files = Backups.ContainsKey(recordId)
+                ? [new InstalledFile("data/strings.pak", FileChange.Replaced, Backup: "strings.pak.original")]
+                : [new InstalledFile("data/new.pak", FileChange.Added)],
+            CreatedDirectories = [],
+        });
 
     public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(Func<InstallRecord, bool> isGameGone,
         CancellationToken cancellationToken) =>
