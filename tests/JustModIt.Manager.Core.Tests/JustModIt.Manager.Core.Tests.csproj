@@ -6,4 +6,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\JustModIt.Manager.Core\JustModIt.Manager.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Catalog\Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

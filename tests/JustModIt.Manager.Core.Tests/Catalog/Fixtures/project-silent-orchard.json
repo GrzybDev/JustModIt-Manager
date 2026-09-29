@@ -1,0 +1,20 @@
+{
+  "uuid": "50d8a47a-0000-4000-8000-000000000004",
+  "slug": "silent-orchard",
+  "name": "Silent Orchard",
+  "game": {"uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000004", "slug": "silent-orchard", "name": "Silent Orchard", "cover": "", "is_adult": false, "visible_project_count": 1},
+  "status": {"uuid": "06d521ad-0000-4000-8000-000000000001", "name": "Announced", "slug": "announced", "color": "#71717a", "is_completed": false, "is_abandoned": false, "is_creatable": true, "position": 0},
+  "storefront_links": [
+    {
+      "uuid": "5f615d65-0000-4000-8000-000000000041",
+      "platform": {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "provider": "steam", "position": 2},
+      "url": "https://store.example.com/app/1000040/",
+      "operating_systems": [],
+      "additional_data": {"appid": 1000040, "languages": [0, 19, 18, 12]},
+      "position": 0
+    }
+  ],
+  "team": {"uuid": "53c4c7cd-0000-4000-8000-000000000001", "slug": "lantern-works", "name": "Lantern Works"},
+  "releases": [],
+  "updated_at": "2026-08-06T09:00:00.000000+02:00"
+}

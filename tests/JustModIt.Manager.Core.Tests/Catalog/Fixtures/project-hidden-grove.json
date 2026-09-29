@@ -1,0 +1,32 @@
+{
+  "uuid": "50d8a47a-0000-4000-8000-000000000005",
+  "slug": "hidden-grove",
+  "name": "Hidden Grove",
+  "game": {"uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000005", "slug": "hidden-grove", "name": "Hidden Grove", "cover": "https://storage.example.com/games/covers/hidden-grove.jpeg", "is_adult": false, "visible_project_count": 1},
+  "status": {"uuid": "a1686594-0000-4000-8000-000000000001", "name": "Abandoned", "slug": "abandoned", "color": "#71717a", "is_completed": false, "is_abandoned": true, "is_creatable": false, "position": 0},
+  "storefront_links": [
+    {
+      "uuid": "4835ada5-0000-4000-8000-000000000051",
+      "platform": {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "provider": "steam", "position": 2},
+      "url": "https://store.example.com/app/1000050/",
+      "operating_systems": [],
+      "additional_data": {"appid": 1000050, "buildid": "10739751", "languages": [0]},
+      "position": 0
+    }
+  ],
+  "team": {"uuid": "53c4c7cd-0000-4000-8000-000000000001", "slug": "lantern-works", "name": "Lantern Works"},
+  "releases": [
+    {
+      "uuid": "f3713421-0000-4000-8000-000000000051",
+      "version": 1,
+      "name": "v1",
+      "is_public": true,
+      "files": [
+        {"uuid": "e0000000-0000-4000-8000-000000000001", "name": "Release", "requires_manager": false, "download_filename": "hidden-grove-lantern-works-v1.zip", "size": 1144, "status": "ready", "position": 0, "storefront_link_uuids": [], "operating_systems": []}
+      ],
+      "default_file": {"uuid": "e0000000-0000-4000-8000-000000000001", "name": "Release", "requires_manager": false, "download_filename": "hidden-grove-lantern-works-v1.zip", "size": 1144, "status": "ready", "position": 0, "storefront_link_uuids": [], "operating_systems": []},
+      "created_at": "2026-07-20T12:00:00.000000+02:00"
+    }
+  ],
+  "updated_at": "2026-07-20T12:00:00.000000+02:00"
+}

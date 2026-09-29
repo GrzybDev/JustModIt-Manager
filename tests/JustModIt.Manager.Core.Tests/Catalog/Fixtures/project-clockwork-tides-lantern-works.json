@@ -1,0 +1,32 @@
+{
+  "uuid": "50d8a47a-0000-4000-8000-000000000012",
+  "slug": "clockwork-tides",
+  "name": "Clockwork Tides",
+  "game": {"uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000001", "slug": "clockwork-tides", "name": "Clockwork Tides", "cover": "https://storage.example.com/games/covers/clockwork-tides.jpeg", "is_adult": false, "visible_project_count": 2},
+  "status": {"uuid": "968ad28b-0000-4000-8000-000000000001", "name": "Testing", "slug": "testing", "color": "#eab308", "is_completed": false, "is_abandoned": false, "is_creatable": true, "position": 3},
+  "storefront_links": [
+    {
+      "uuid": "3e0bcb90-0000-4000-8000-000000000012",
+      "platform": {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "provider": "steam", "position": 2},
+      "url": "https://store.example.com/app/1000030/",
+      "additional_data": {"appid": 1000030},
+      "position": 0
+    }
+  ],
+  "team": {"uuid": "53c4c7cd-0000-4000-8000-000000000001", "slug": "lantern-works", "name": "Lantern Works"},
+  "releases": [
+    {
+      "uuid": "f3713421-0000-4000-8000-000000000014",
+      "version": 1,
+      "name": "Early",
+      "name_raw": "Early",
+      "is_public": true,
+      "files": [
+        {"uuid": "d0000000-0000-4000-8000-000000000001", "name": "Early build", "requires_manager": false, "download_filename": "clockwork-tides-lantern-works-early.zip", "size": 512, "status": "ready", "position": 0, "storefront_link_uuids": [], "operating_systems": ["windows"]}
+      ],
+      "default_file": null,
+      "created_at": "2026-08-11T09:00:00.000000+02:00"
+    }
+  ],
+  "updated_at": "2026-08-11T10:00:00.000000+02:00"
+}

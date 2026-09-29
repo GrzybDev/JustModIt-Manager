@@ -1,0 +1,125 @@
+{
+  "uuid": "50d8a47a-0000-4000-8000-000000000003",
+  "slug": "starlight-harbor",
+  "name": "Starlight Harbor",
+  "game": {
+    "uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000003",
+    "slug": "starlight-harbor",
+    "name": "Starlight Harbor",
+    "platform": {"uuid": "8e224cea-0000-4000-8000-000000000001", "name": "PC", "slug": "pc", "icon": "FaComputer", "position": 0, "has_operating_systems": true},
+    "cover": "https://storage.example.com/games/covers/starlight-harbor.jpeg",
+    "is_adult": false,
+    "genres": [{"uuid": "d21de9bd-0000-4000-8000-000000000001", "name": "Adventure", "slug": "adventure", "icon": "", "position": 0}],
+    "visible_project_count": 1,
+    "solo_project": {
+      "uuid": "50d8a47a-0000-4000-8000-000000000003",
+      "slug": "starlight-harbor",
+      "name": "Starlight Harbor",
+      "team": {"uuid": "53c4c7cd-0000-4000-8000-000000000001", "slug": "lantern-works", "name": "Lantern Works", "avatar": null},
+      "status": null,
+      "types": [],
+      "summary": "",
+      "primary_progress": null,
+      "storefront_links": [],
+      "updated_at": "2026-08-07T19:05:03.414102+02:00"
+    },
+    "created_at": "2026-08-01T13:00:00.000000+02:00"
+  },
+  "cover_image": null,
+  "status": {"uuid": "59760829-0000-4000-8000-000000000001", "name": "Completed", "slug": "completed", "color": "#22c55e", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 5},
+  "types": [{"uuid": "fae573dd-0000-4000-8000-000000000001", "name": "Voice", "slug": "voice", "icon": "FaMicrophone", "is_default": false, "position": 0}],
+  "summary": "An invented game about a harbour at night.",
+  "primary_progress": null,
+  "storefront_links": [
+    {
+      "uuid": "078c3fa4-0000-4000-8000-000000000031",
+      "platform": {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "^https://store\\.example\\.com/app/", "url_pattern_hint": "", "provider": "steam", "position": 2},
+      "url": "https://store.example.com/app/1000010/",
+      "operating_systems": [],
+      "additional_data": {"appid": 1000010, "buildid": "7770001", "languages": [0, 2, 3, 10]},
+      "position": 0
+    },
+    {
+      "uuid": "006bece2-0000-4000-8000-000000000032",
+      "platform": {"uuid": "bad65a0d-0000-4000-8000-000000000001", "name": "GOG", "icon": "SiGogdotcom", "color": "#6239ff", "url_pattern": "^https://shop\\.example\\.com/game/", "url_pattern_hint": "", "provider": "gog", "position": 1},
+      "url": "https://shop.example.com/game/starlight_harbor",
+      "operating_systems": ["windows"],
+      "additional_data": {"slug": "starlight_harbor", "gog_id": 9007199254740993, "languages": ["en", "fr", "jp"]},
+      "position": 1
+    },
+    {
+      "uuid": "0cdf74b7-0000-4000-8000-000000000033",
+      "platform": {"uuid": "f45fb021-0000-4000-8000-000000000001", "name": "Other Store", "icon": "", "color": "#f97316", "url_pattern": "^https://other\\.example\\.com/", "url_pattern_hint": "", "provider": "", "position": 3},
+      "url": "https://other.example.com/starlight-harbor",
+      "operating_systems": [],
+      "additional_data": {},
+      "position": 2
+    }
+  ],
+  "is_listed": true,
+  "is_approved": true,
+  "review_status": "approved",
+  "is_published": true,
+  "is_pending_deletion": false,
+  "deletion_purge_at": null,
+  "is_outdated": false,
+  "created_at": "2026-08-01T13:05:00.000000+02:00",
+  "team": {
+    "uuid": "53c4c7cd-0000-4000-8000-000000000001",
+    "slug": "lantern-works",
+    "name": "Lantern Works",
+    "summary": "An invented team.",
+    "avatar": "https://storage.example.com/teams/avatars/lantern-works.png",
+    "member_count": 3,
+    "is_listed": true,
+    "is_pending_deletion": false,
+    "has_public_project": true,
+    "created_at": "2026-07-01T18:31:46.589717+02:00",
+    "updated_at": "2026-08-01T23:31:26.077397+02:00",
+    "donation_message": "",
+    "donation_methods": [
+      {"uuid": "b0ee85c0-0000-4000-8000-000000000001", "platform": {"uuid": "c419e6c2-0000-4000-8000-000000000001", "name": "Tip Jar", "icon": "FaCoffee", "color": "#22c55e", "is_link": true, "url_pattern": "^https://tips\\.example\\.com/", "url_pattern_hint": "", "position": 0}, "label": "", "value": "https://tips.example.com/lantern-works", "extra": {}, "position": 0}
+    ],
+    "links": [
+      {"uuid": "6c690de7-0000-4000-8000-000000000001", "platform": {"uuid": "2499fb9a-0000-4000-8000-000000000001", "name": "Website", "icon": "", "color": "#71717a", "url_pattern": "^https://", "url_pattern_hint": "", "position": 0}, "label": "Home", "url": "https://lantern.example.com", "position": 0}
+    ]
+  },
+  "summary_raw": "",
+  "description": "## About\n\nAn invented description with <video src=\"https://media.example.com/clip.mp4\"></video> in it.",
+  "disclaimer": null,
+  "installation_instructions": "Unpack into the game folder.",
+  "background_image": null,
+  "page_background_image": "https://storage.example.com/projects/backgrounds/starlight-harbor.webp",
+  "progress_statuses": [],
+  "credits": [
+    {"uuid": "6b229875-0000-4000-8000-000000000001", "name": "Example Person", "display_name": "", "user": {"uuid": "72dab2e6-0000-4000-8000-000000000001", "username": null, "display": "Example Person", "avatar": null}, "role_label": "Owner", "position": 0}
+  ],
+  "gallery": [
+    {"uuid": "e04ac18b-0000-4000-8000-000000000001", "kind": "youtube", "image": null, "youtube_id": "AAAAAAAAAAA", "caption": "First minutes", "position": 0}
+  ],
+  "releases": [
+    {
+      "uuid": "f3713421-0000-4000-8000-000000000032",
+      "version": 2,
+      "name": "1.1",
+      "name_raw": "1.1",
+      "changelog": "Fixed a typo.",
+      "is_public": true,
+      "allowed_roles": [],
+      "files": [
+        {"uuid": "a0000000-0000-4000-8000-000000000001", "name": "Text only", "description": "Subtitles and menus.", "requires_manager": false, "is_default": true, "download_count": 1200, "unique_download_count": 40, "download_filename": "starlight-harbor-lantern-works-1.1.zip", "content_type": "application/x-zip-compressed", "size": 1000, "status": "ready", "position": 0, "storefront_link_uuids": [], "operating_systems": [], "mirrors": null, "created_at": "2026-08-07T19:04:58.110470+02:00"},
+        {"uuid": "a0000000-0000-4000-8000-000000000002", "name": "Text only", "description": "", "requires_manager": false, "is_default": false, "download_count": 300, "unique_download_count": 9, "download_filename": "starlight-harbor-lantern-works-1.1.zip", "content_type": "application/zip", "size": 1100, "status": "ready", "position": 1, "storefront_link_uuids": ["078c3fa4-0000-4000-8000-000000000031"], "operating_systems": [], "mirrors": [], "created_at": "2026-08-07T19:05:01.439143+02:00"},
+        {"uuid": "a0000000-0000-4000-8000-000000000003", "name": "Text and voice", "description": "", "requires_manager": true, "is_default": false, "download_count": 50, "unique_download_count": 3, "download_filename": "starlight-harbor-lantern-works-1.1.examplemod", "content_type": "application/octet-stream", "size": 5000, "status": "ready", "position": 2, "storefront_link_uuids": [], "operating_systems": [], "mirrors": [], "created_at": "2026-08-07T19:05:02.000000+02:00"},
+        {"uuid": "a0000000-0000-4000-8000-000000000004", "name": "Text and voice", "description": "", "requires_manager": true, "is_default": false, "download_count": 0, "unique_download_count": 0, "download_filename": "starlight-harbor-lantern-works-1.1.examplemod", "content_type": "", "size": null, "status": "pending", "position": 3, "storefront_link_uuids": ["078c3fa4-0000-4000-8000-000000000031"], "operating_systems": [], "mirrors": [], "created_at": "2026-08-07T19:05:02.500000+02:00"},
+        {"uuid": "a0000000-0000-4000-8000-000000000005", "name": "Text only", "description": "", "requires_manager": false, "is_default": false, "download_count": 0, "unique_download_count": 0, "download_filename": "starlight-harbor-lantern-works-1.1.zip", "content_type": "application/zip", "size": 900, "status": "ready", "position": 4, "storefront_link_uuids": [], "operating_systems": ["plan9"], "mirrors": [], "created_at": "2026-08-07T19:05:03.000000+02:00", "checksum_of_the_future": {"kind": "blake3"}}
+      ],
+      "default_file": {"uuid": "a0000000-0000-4000-8000-000000000001", "name": "Text only", "description": "Subtitles and menus.", "requires_manager": false, "is_default": true, "download_count": 1200, "unique_download_count": 40, "download_filename": "starlight-harbor-lantern-works-1.1.zip", "content_type": "application/x-zip-compressed", "size": 1000, "status": "ready", "position": 0, "storefront_link_uuids": [], "operating_systems": [], "mirrors": [], "created_at": "2026-08-07T19:04:58.110470+02:00"},
+      "created_at": "2026-08-07T18:53:35.869921+02:00",
+      "updated_at": "2026-08-07T19:04:57.968555+02:00"
+    }
+  ],
+  "viewer": {"is_member": false, "is_staff": false, "can_manage": false, "can_manage_credits": false, "can_manage_news": false, "can_manage_releases": false},
+  "checklist": null,
+  "total_downloads": 1550,
+  "updated_at": "2026-08-07T19:05:03.414102+02:00"
+}

@@ -1,0 +1,38 @@
+{
+  "uuid": "50d8a47a-0000-4000-8000-000000000011",
+  "slug": "clockwork-tides",
+  "name": "Clockwork Tides",
+  "game": {"uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000001", "slug": "clockwork-tides", "name": "Clockwork Tides", "cover": "https://storage.example.com/games/covers/clockwork-tides.jpeg", "is_adult": false, "genres": [], "visible_project_count": 2, "created_at": "2026-08-01T10:00:00.000000+02:00"},
+  "status": {"uuid": "59760829-0000-4000-8000-000000000001", "name": "Completed", "slug": "completed", "color": "#22c55e", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 5},
+  "types": [],
+  "summary": "The first invented project for the game.",
+  "storefront_links": [
+    {
+      "uuid": "3e0bcb90-0000-4000-8000-000000000011",
+      "platform": {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "provider": "steam", "position": 2},
+      "url": "https://store.example.com/app/1000030/",
+      "operating_systems": [],
+      "additional_data": {"appid": 1000030, "buildid": "1412244", "languages": [0, 2]},
+      "position": 0
+    }
+  ],
+  "is_outdated": true,
+  "team": {"uuid": "53c4c7cd-0000-4000-8000-000000000002", "slug": "paper-moth", "name": "Paper Moth", "avatar": null},
+  "releases": [
+    {
+      "uuid": "f3713421-0000-4000-8000-000000000013",
+      "version": 3,
+      "name": "v3",
+      "name_raw": "",
+      "is_public": true,
+      "first_published_at": "2026-08-10T19:00:00.000000+02:00",
+      "files": [
+        {"uuid": "c0000000-0000-4000-8000-000000000001", "name": "Full", "requires_manager": false, "download_filename": "clockwork-tides-paper-moth-v3.zip", "size": 4096, "md5": "0123456789abcdef0123456789abcdef", "status": "ready", "position": 0, "storefront_link_uuids": ["3e0bcb90-0000-4000-8000-000000000011"], "operating_systems": []},
+        {"uuid": "c0000000-0000-4000-8000-000000000002", "name": "Full", "requires_manager": false, "download_filename": "clockwork-tides-paper-moth-v3.zip", "size": 4000, "status": "ready", "position": 1, "storefront_link_uuids": [], "operating_systems": []}
+      ],
+      "default_file": {"uuid": "c0000000-0000-4000-8000-000000000002", "name": "Full", "requires_manager": false, "download_filename": "clockwork-tides-paper-moth-v3.zip", "size": 4000, "status": "ready", "position": 1, "storefront_link_uuids": [], "operating_systems": []},
+      "created_at": "2026-08-09T18:53:35.869921+02:00"
+    }
+  ],
+  "updated_at": "2026-08-10T19:05:03.414102+02:00"
+}
