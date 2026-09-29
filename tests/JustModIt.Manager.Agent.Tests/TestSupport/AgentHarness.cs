@@ -1,3 +1,4 @@
+using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
@@ -47,7 +48,8 @@ internal sealed class AgentHarness : IAsyncDisposable
 
     public string Directory { get; } = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"));
 
-    public AgentOptions Options { get; }
+    /// <summary>Changed by a test before it starts the agent.</summary>
+    public AgentOptions Options { get; set; }
 
     public FakeUiStarter Starter { get; }
 
@@ -83,7 +85,7 @@ internal sealed class AgentHarness : IAsyncDisposable
                 services.AddSingleton<IUiStarter>(Starter);
                 services.AddSingleton<IForegroundHandoff>(Foreground);
                 services.AddSingleton<ITrayHost>(Tray);
-                services.AddSingleton<Shell.IDesktopShell>(Shell);
+                services.AddSingleton<IDesktopShell>(Shell);
                 services.AddSingleton<IAutostart>(Registration);
                 services.AddSingleton<ILinkRegistration>(Registration);
                 services.AddSingleton<IAgentService>(provider =>

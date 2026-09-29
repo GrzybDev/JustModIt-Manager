@@ -33,7 +33,7 @@ public sealed class TrayTests : IAsyncDisposable
 
         _agent.Tray.Click();
 
-        await Eventually(() => _agent.Starter.Starts == 1);
+        await Eventually.HoldsAsync(() => _agent.Starter.Starts == 1);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class TrayTests : IAsyncDisposable
         shown.Should().Be(("Installed for Example Game", "The project is ready. Have fun!", "example-app://game/gog/1207658924"));
 
         _agent.Tray.ClickNotification(shown.Tag);
-        await Eventually(() => _agent.Starter.Starts == 1);
+        await Eventually.HoldsAsync(() => _agent.Starter.Starts == 1);
         var window = await _agent.ConnectWindowAsync();
         (await window.NextAsync<Navigate>()).Target.Should().Be(new GameTarget("gog", "1207658924"));
     }
@@ -121,15 +121,6 @@ public sealed class TrayTests : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync() => await _agent.DisposeAsync();
-
-    private static async Task Eventually(Func<bool> condition)
-    {
-        for (var attempt = 0; !condition(); attempt++)
-        {
-            attempt.Should().BeLessThan(200, "the condition should hold within ten seconds");
-            await Task.Delay(50, AgentHarness.Token);
-        }
-    }
 
     private async Task Tooltip(Func<string, bool> condition)
     {

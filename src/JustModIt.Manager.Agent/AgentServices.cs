@@ -151,6 +151,7 @@ public static class AgentServices
         services.AddSingleton<Notifier>();
         services.AddSingleton<IAgentService>(provider => provider.GetRequiredService<Notifier>());
         services.AddSingleton<IAgentService, TrayPresenter>();
+        services.AddSingleton<IAgentService, ShellIntegration>();
         services.AddSingleton<AgentRuntime>();
     }
 
