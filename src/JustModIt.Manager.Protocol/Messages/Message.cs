@@ -10,6 +10,49 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(BringToFront), "bringToFront")]
 [JsonDerivedType(typeof(Navigate), "navigate")]
 [JsonDerivedType(typeof(ShutdownRequested), "shutdownRequested")]
+[JsonDerivedType(typeof(ShutdownAnswer), "shutdownAnswer")]
+[JsonDerivedType(typeof(StateChanged), "stateChanged")]
+[JsonDerivedType(typeof(JobProgress), "jobProgress")]
+[JsonDerivedType(typeof(Notify), "notify")]
+[JsonDerivedType(typeof(ExitConfirmationRequested), "exitConfirmationRequested")]
+[JsonDerivedType(typeof(WindowActivity), "windowActivity")]
+[JsonDerivedType(typeof(InstallProject), "installProject")]
+[JsonDerivedType(typeof(UpdateProject), "updateProject")]
+[JsonDerivedType(typeof(RepairProject), "repairProject")]
+[JsonDerivedType(typeof(UninstallProject), "uninstallProject")]
+[JsonDerivedType(typeof(TestInstallPackage), "testInstallPackage")]
+[JsonDerivedType(typeof(MoveBackups), "moveBackups")]
+[JsonDerivedType(typeof(JobStarted), "jobStarted")]
+[JsonDerivedType(typeof(JobsStarted), "jobsStarted")]
+[JsonDerivedType(typeof(CancelJob), "cancelJob")]
+[JsonDerivedType(typeof(DismissFailure), "dismissFailure")]
+[JsonDerivedType(typeof(OpenedGame), "openedGame")]
+[JsonDerivedType(typeof(CheckNow), "checkNow")]
+[JsonDerivedType(typeof(ChangeSettings), "changeSettings")]
+[JsonDerivedType(typeof(SetGameAutomation), "setGameAutomation")]
+[JsonDerivedType(typeof(ChooseProject), "chooseProject")]
+[JsonDerivedType(typeof(ChooseVariant), "chooseVariant")]
+[JsonDerivedType(typeof(HideGame), "hideGame")]
+[JsonDerivedType(typeof(LaunchGame), "launchGame")]
+[JsonDerivedType(typeof(OpenFolder), "openFolder")]
+[JsonDerivedType(typeof(AddLibraryFolder), "addLibraryFolder")]
+[JsonDerivedType(typeof(LibraryFolderAdded), "libraryFolderAdded")]
+[JsonDerivedType(typeof(RemoveLibraryFolder), "removeLibraryFolder")]
+[JsonDerivedType(typeof(ValidateBackupFolder), "validateBackupFolder")]
+[JsonDerivedType(typeof(BackupFolderChecked), "backupFolderChecked")]
+[JsonDerivedType(typeof(RemoveLeftoverBackups), "removeLeftoverBackups")]
+[JsonDerivedType(typeof(ApplyAppUpdate), "applyAppUpdate")]
+[JsonDerivedType(typeof(ExitApp), "exitApp")]
+[JsonDerivedType(typeof(GetProjectPage), "getProjectPage")]
+[JsonDerivedType(typeof(ProjectPageResult), "projectPageResult")]
+[JsonDerivedType(typeof(GetCataloguePage), "getCataloguePage")]
+[JsonDerivedType(typeof(CataloguePageResult), "cataloguePageResult")]
+[JsonDerivedType(typeof(GetCatalogueFilters), "getCatalogueFilters")]
+[JsonDerivedType(typeof(CatalogueFiltersResult), "catalogueFiltersResult")]
+[JsonDerivedType(typeof(GetDetectionReport), "getDetectionReport")]
+[JsonDerivedType(typeof(DetectionReportResult), "detectionReportResult")]
+[JsonDerivedType(typeof(GetLeftoverBackups), "getLeftoverBackups")]
+[JsonDerivedType(typeof(LeftoverBackups), "leftoverBackups")]
 public abstract record Message;
 
 /// <summary>The first frame each side sends; its shape must stay readable by every protocol version.</summary>
@@ -50,6 +93,8 @@ public sealed record BringToFront : Message;
 /// <param name="Target">The place to show.</param>
 public sealed record Navigate(NavigationTarget Target) : Message;
 
+/// <summary>Asks the window to close; it answers with <see cref="ShutdownAnswer"/>.</summary>
+/// <param name="Reason">Why the agent asks.</param>
 public sealed record ShutdownRequested(ShutdownReason Reason) : Message;
 
 public enum ShutdownReason

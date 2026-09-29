@@ -47,8 +47,8 @@ public sealed record StoreDetection(
 {
     public int OfflineLibraryCount => Libraries.Count(library => library.Library.State == LibraryState.Offline);
 
-    public bool HasProblems =>
-        ScanFailed || !IsComplete || Libraries.Any(library => library.Library.State != LibraryState.Online || library.Library.UnreadableEntries > 0);
+    /// <summary>The store, its list of libraries or one of its libraries could not be fully read.</summary>
+    public bool HasProblems => ScanFailed || !IsComplete || Libraries.Any(library => !library.Library.IsFullyRead);
 }
 
 public sealed record LibraryDetection(LibraryLocation Library, int GameCount);

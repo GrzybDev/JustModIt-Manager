@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using JustModIt.Manager.Core.Games;
 
 namespace JustModIt.Manager.Protocol.Transport;
 
@@ -7,6 +8,7 @@ namespace JustModIt.Manager.Protocol.Transport;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     UseStringEnumConverter = true,
     RespectNullableAnnotations = true,
-    RespectRequiredConstructorParameters = true)]
+    RespectRequiredConstructorParameters = true,
+    Converters = [typeof(GameKeyJsonConverter)])]
 [JsonSerializable(typeof(Frame))]
 internal sealed partial class ProtocolJsonContext : JsonSerializerContext;

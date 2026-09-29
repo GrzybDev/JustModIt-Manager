@@ -9,7 +9,11 @@ namespace JustModIt.Manager.Core.Library;
 /// <param name="ScanFailed">The last scan failed as a whole; the store's games are the ones found before, marked stale.</param>
 /// <param name="IsComplete">False when the store's list of libraries could not be read.</param>
 /// <param name="Libraries">Its libraries, including ones kept from earlier scans while they could not be read.</param>
-public sealed record StoreStatus(StoreId Store, bool IsPresent, bool ScanFailed, bool IsComplete, ValueList<LibraryLocation> Libraries);
+public sealed record StoreStatus(StoreId Store, bool IsPresent, bool ScanFailed, bool IsComplete, ValueList<LibraryLocation> Libraries)
+{
+    /// <summary>The last scan read every library and record, all of them online.</summary>
+    public bool IsFullyRead => !ScanFailed && IsComplete && Libraries.All(library => library.IsFullyRead);
+}
 
 /// <summary>Every game the stores reported, one per key, with what each store's scan could and could not read.</summary>
 public sealed record LibrarySnapshot
@@ -47,8 +51,7 @@ public sealed record LibrarySnapshot
     public bool ConfirmsGone(GameKey key) =>
         !IsCached
         && !Games.ContainsKey(key)
-        && FindStore(key.Store) is { ScanFailed: false, IsComplete: true } status
-        && status.Libraries.All(library => library.State == LibraryState.Online && library.UnreadableEntries == 0);
+        && FindStore(key.Store) is { IsFullyRead: true };
 
     /// <summary>
     /// Tells whether <paramref name="other"/> holds the same games and store reports; the version and scan time do not

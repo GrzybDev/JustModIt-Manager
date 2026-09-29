@@ -27,4 +27,8 @@ public sealed record LibraryLocation(
     string? Path,
     LibraryState State,
     bool IsManual = false,
-    int UnreadableEntries = 0);
+    int UnreadableEntries = 0)
+{
+    /// <summary>Online, with every record in it read.</summary>
+    public bool IsFullyRead => State == LibraryState.Online && UnreadableEntries == 0;
+}
