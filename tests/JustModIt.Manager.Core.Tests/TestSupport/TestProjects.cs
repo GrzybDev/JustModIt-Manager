@@ -52,8 +52,8 @@ internal static class TestProjects
     {
         Uuid = LinkOf(game),
         Platform = new StorefrontPlatform { Uuid = SteamPlatform, Name = "Steam", Provider = game.Store.Value },
-        AdditionalData = CatalogueFixtures.Element(
-            $"{{\"appid\":\"{game.StoreGameId}\",\"languages\":[{string.Join(',', languages.Select(language => $"\"{language}\""))}]}}"),
+        AdditionalData = CatalogueFixtures.Element($"{{\"{(game.Store == StoreId.Gog ? "gog_id" : "appid")}\":\"{game.StoreGameId}\","
+            + $"\"languages\":[{string.Join(',', languages.Select(language => $"\"{language}\""))}]}}"),
     };
 
     public static Guid LinkOf(GameKey game) => Guid.Parse($"55555555-0000-4000-8000-{ulong.Parse(game.StoreGameId, System.Globalization.CultureInfo.InvariantCulture):D12}");

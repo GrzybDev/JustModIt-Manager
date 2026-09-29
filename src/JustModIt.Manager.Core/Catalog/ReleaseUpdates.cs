@@ -5,9 +5,9 @@ namespace JustModIt.Manager.Core.Catalog;
 /// <param name="ReleaseVersion">The release's number within the project; 0 when the site gave none.</param>
 /// <param name="PublishedAt">When the release went public; null when the site did not say.</param>
 /// <param name="FileUuid">The installed package.</param>
-/// <param name="VariantName">The variant the player chose, so an update keeps it.</param>
+/// <param name="VariantName">The variant the player chose, so an update keeps it; null when the install does not say.</param>
 public sealed record InstalledRelease(Guid ReleaseUuid, int ReleaseVersion, DateTimeOffset? PublishedAt, Guid FileUuid,
-    string VariantName);
+    string? VariantName);
 
 public enum UpdateState
 {
