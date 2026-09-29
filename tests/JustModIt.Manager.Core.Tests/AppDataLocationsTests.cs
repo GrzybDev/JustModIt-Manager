@@ -24,6 +24,7 @@ public sealed class AppDataLocationsTests
         locations.InstallsDirectory.Should().Be(Path.Combine(data, "installs"));
         locations.BackupsDirectory.Should().Be(Path.Combine(data, "backups"));
         locations.CacheDirectory.Should().Be(Path.Combine(data, "cache"));
+        locations.CatalogueCacheDirectory.Should().Be(Path.Combine(data, "cache", "catalogue"));
         locations.LogsDirectory.Should().Be(Path.Combine(data, "logs"));
     }
 

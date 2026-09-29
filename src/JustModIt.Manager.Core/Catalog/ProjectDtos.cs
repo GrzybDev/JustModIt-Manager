@@ -119,8 +119,8 @@ public sealed record ProjectSummary
     public IReadOnlyList<StorefrontLink> StorefrontLinks { get; init => field = value ?? []; } = [];
 
     /// <summary>
-    /// Moves with every change to the project or its releases, files, links, credits or gallery, but not with changes
-    /// to its team, game or status definitions.
+    /// Moves with the team's changes to the project or its releases, files, links, credits or gallery, but not with
+    /// staff hiding a release, the site's background checks or changes to its team, game or status definitions.
     /// </summary>
     public DateTimeOffset? UpdatedAt { get; init; }
 }

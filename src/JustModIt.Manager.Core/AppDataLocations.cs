@@ -25,6 +25,9 @@ public sealed class AppDataLocations
 
     public string LogsDirectory { get; }
 
+    /// <summary>The last catalogue, index and project pages read from the site, shown while it cannot be reached.</summary>
+    public string CatalogueCacheDirectory => Path.Combine(CacheDirectory, "catalogue");
+
     public string SettingsFile => Path.Combine(DataDirectory, "settings.json");
 
     /// <summary>Automation history and the last library snapshot.</summary>

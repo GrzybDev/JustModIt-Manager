@@ -20,6 +20,8 @@ namespace JustModIt.Manager.Core.Catalog;
 [JsonSerializable(typeof(SiteConfiguration))]
 [JsonSerializable(typeof(DownloadLink))]
 [JsonSerializable(typeof(JsonElement))]
+[JsonSerializable(typeof(ListingData))]
+[JsonSerializable(typeof(IndexData))]
 internal sealed partial class CatalogueJsonContext : JsonSerializerContext;
 
 /// <summary>
