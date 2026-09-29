@@ -1,9 +1,13 @@
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Gog;
 using JustModIt.Manager.Core.Library.Steam;
+using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.Safety;
+using JustModIt.Manager.Core.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Platform.Windows.Tests;
@@ -49,6 +53,60 @@ public sealed class LiveLibraryTests
         }
 
         (await provider.InspectFolderAsync(owned[0].InstallDirectory, Token)).Folder.Should().Be(owned[0].LibraryId);
+    }
+
+    [Fact]
+    public async Task The_library_service_scans_and_watches_the_real_stores()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"));
+        var environment = LibraryEnvironment.ForCurrentUser();
+        var time = TimeProvider.System;
+        await using var settings = await SettingsService.LoadAsync(
+            new JsonDocumentStore<AppSettings>(Path.Combine(directory, "settings.json"), SettingsFormat.Instance, time,
+                NullLogger<JsonDocumentStore<AppSettings>>.Instance),
+            time, NullLogger<SettingsService>.Instance, Token);
+        using var systemEvents = new WindowsSystemEvents();
+        using var service = new LibraryService(
+            [
+                new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<SteamLibraryProvider>.Instance),
+                GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<GogLibraryProvider>.Instance),
+            ],
+            settings,
+            new RunningGameDetector(WindowsProcessSource.Instance, PhysicalFileSystem.Instance, time),
+            PhysicalFileSystem.Instance,
+            FileSystemFolderWatcher.Instance,
+            WindowsRegistryWatcher.Instance,
+            systemEvents,
+            new JsonDocumentStore<LibrarySnapshot>(Path.Combine(directory, "library.json"), LibrarySnapshotFormat.Instance, time,
+                NullLogger<JsonDocumentStore<LibrarySnapshot>>.Instance),
+            time,
+            NullLogger<LibraryService>.Instance);
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        var running = service.RunAsync(stop.Token);
+        try
+        {
+            await service.CheckNowAsync(Token).WaitAsync(TimeSpan.FromMinutes(1), Token);
+
+            var snapshot = service.Snapshot;
+            snapshot.IsCached.Should().BeFalse();
+            snapshot.FindStore(StoreId.Steam)!.IsPresent.Should().BeTrue();
+            service.ActiveWatchCount.Should().BeGreaterThan(0);
+            DetectionReport.From(snapshot).Stores.Should().Contain(store => store.Store == StoreId.Steam && store.GameCount > 0);
+            var owned = snapshot.Games.Values.FirstOrDefault(game => game.Key.Store == StoreId.Steam && OwnerSteamGames.Contains(game.Key.StoreGameId));
+            if (owned is not null)
+            {
+                var probe = await service.ProbeAsync(owned.Key, Token);
+                probe.Game!.InstallDirectory.Should().Be(owned.InstallDirectory);
+            }
+
+            File.Exists(Path.Combine(directory, "library.json")).Should().BeTrue();
+        }
+        finally
+        {
+            await stop.CancelAsync();
+            await FluentActions.Awaiting(() => running).Should().ThrowAsync<OperationCanceledException>();
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]

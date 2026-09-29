@@ -65,14 +65,18 @@ public sealed class WindowsRegistry : IRegistry
     private static bool IsUnreadable(Exception exception) =>
         exception is SecurityException or UnauthorizedAccessException or IOException;
 
-    private static Win32.RegistryHive ToWin32(RegistryHive hive) => hive switch
+    /// <summary>The Win32 counterpart of a hive.</summary>
+    /// <param name="hive">The current user's or the local machine's hive.</param>
+    internal static Win32.RegistryHive ToWin32(RegistryHive hive) => hive switch
     {
         RegistryHive.CurrentUser => Win32.RegistryHive.CurrentUser,
         RegistryHive.LocalMachine => Win32.RegistryHive.LocalMachine,
         _ => throw new ArgumentOutOfRangeException(nameof(hive), hive, null),
     };
 
-    private static Win32.RegistryView ToWin32(RegistryView view) => view switch
+    /// <summary>The Win32 counterpart of a registry view.</summary>
+    /// <param name="view">Which of the 32-bit and 64-bit views to read.</param>
+    internal static Win32.RegistryView ToWin32(RegistryView view) => view switch
     {
         RegistryView.Default => Win32.RegistryView.Default,
         RegistryView.Registry32 => Win32.RegistryView.Registry32,

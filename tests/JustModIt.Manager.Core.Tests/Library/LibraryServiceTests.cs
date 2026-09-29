@@ -1,0 +1,576 @@
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Watching;
+using JustModIt.Manager.Core.Safety;
+using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.Tests.Library.Watching;
+using JustModIt.Manager.Core.Tests.TestSupport;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
+
+namespace JustModIt.Manager.Core.Tests.Library;
+
+public sealed class LibraryServiceTests : IAsyncDisposable
+{
+    private const string LibraryPath = @"D:\Library";
+
+    private static readonly LibraryLocation SteamLibrary = new(LibraryPath, "steam-library", LibraryPath, LibraryState.Online);
+    private static readonly WatchedFolder SteamFolder = new(@"D:\Library\steamapps", ["appmanifest_*.acf"]);
+    private static readonly WatchedFolder GogFolder = new(@"E:\GOG\Example", ["goggame-*.info"]);
+
+    private readonly CountingTimeProvider _time = new();
+    private readonly FakeLibraryProvider _steam = new(StoreId.Steam);
+    private readonly FakeLibraryProvider _gog = new(StoreId.Gog);
+    private readonly FakeWatcher _watcher = new();
+    private readonly FakeSystemEvents _events = new();
+    private readonly InMemoryDocumentStore<LibrarySnapshot> _snapshots = new();
+    private readonly FakeRunningGames _running = new();
+    private readonly InMemoryFileSystem _files = new();
+    private readonly ConcurrentQueue<LibrarySnapshot> _published = new();
+    private readonly CancellationTokenSource _stop = new();
+    private SettingsService? _settings;
+    private LibraryService? _service;
+    private Task? _run;
+
+    public LibraryServiceTests()
+    {
+        _steam.Result = _steam.Result with { Libraries = [SteamLibrary] };
+        _files.AddDirectory(LibraryPath);
+    }
+
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    private LibraryService Service => _service!;
+
+    [Fact]
+    public async Task The_saved_snapshot_is_shown_until_the_first_scan_replaces_it()
+    {
+        var saved = new LibrarySnapshot { Games = Games(Game("1001")), Stores = [new StoreStatus(StoreId.Steam, true, false, true, [SteamLibrary])] };
+        await _snapshots.SaveAsync(saved, Token);
+        _steam.Finds(Game("1002"));
+
+        await StartAsync();
+
+        _published.Select(snapshot => (snapshot.IsCached, snapshot.Version, Keys: string.Join(",", snapshot.Games.Keys))).Should().Equal(
+            (true, 1L, "steam:1001"),
+            (false, 2L, "steam:1002"));
+        Service.Snapshot.ScannedAt.Should().Be(_time.GetUtcNow());
+        _snapshots.Saves.Should().HaveCount(2).And.Subject.Last().Should().BeSameAs(Service.Snapshot);
+        (_steam.Scans, _gog.Scans).Should().Be((1, 1));
+    }
+
+    [Fact]
+    public async Task A_new_watch_is_followed_by_one_more_scan_of_its_store()
+    {
+        _steam.Result = _steam.Result with { Watch = new WatchPlan([SteamFolder], []) };
+
+        await StartAsync();
+        _watcher.Active.Should().Equal(SteamFolder);
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+
+        (_steam.Scans, _gog.Scans).Should().Be((2, 1));
+        _watcher.Started.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Only_the_changed_store_is_rescanned_once_its_changes_settle()
+    {
+        await StartWatchedAsync();
+
+        await _time.WakeAsync(() => _watcher.Report(WatchSignal.Changed, SteamFolder), "the change is noticed");
+        _time.Advance(TimeSpan.FromSeconds(2));
+        await Eventually.SettleAsync();
+        _watcher.Report(WatchSignal.Changed, SteamFolder);
+        await _time.AdvanceAndWaitAsync(TimeSpan.FromSeconds(1));
+        _steam.Scans.Should().Be(2, "changes kept coming");
+
+        await _time.AdvanceAndWaitAsync(TimeSpan.FromSeconds(2));
+
+        (_steam.Scans, _gog.Scans).Should().Be((3, 2));
+    }
+
+    [Fact]
+    public async Task Each_store_settles_on_its_own()
+    {
+        await StartWatchedAsync();
+
+        await _time.WakeAsync(() => _watcher.Report(WatchSignal.Changed, SteamFolder), "the Steam change is noticed");
+        _time.Advance(TimeSpan.FromSeconds(2));
+        await _time.WakeAsync(() => _watcher.Report(WatchSignal.Changed, GogFolder), "the GOG change is noticed");
+        await _time.AdvanceAndWaitAsync(TimeSpan.FromSeconds(1));
+        (_steam.Scans, _gog.Scans).Should().Be((3, 2));
+
+        await _time.AdvanceAndWaitAsync(TimeSpan.FromSeconds(2));
+
+        (_steam.Scans, _gog.Scans).Should().Be((3, 3));
+    }
+
+    [Fact]
+    public async Task A_store_that_keeps_changing_is_rescanned_after_the_longest_delay()
+    {
+        await StartWatchedAsync();
+        await _time.WakeAsync(() => _watcher.Report(WatchSignal.Changed, SteamFolder), "the change is noticed");
+
+        for (var elapsed = TimeSpan.Zero; elapsed < LibraryService.MaxDebounce - TimeSpan.FromSeconds(2); elapsed += TimeSpan.FromSeconds(2))
+        {
+            _time.Advance(TimeSpan.FromSeconds(2));
+            _watcher.Report(WatchSignal.Changed, SteamFolder);
+            await Eventually.SettleAsync();
+            _steam.Scans.Should().Be(2);
+        }
+
+        await Eventually.HoldsAsync(() => _steam.Scans == 3, "the busy store is rescanned",
+            () => _time.Advance(TimeSpan.FromSeconds(1)));
+    }
+
+    [Fact]
+    public async Task A_lost_watch_recreates_every_watch_and_scans_every_store()
+    {
+        await StartWatchedAsync();
+        var started = _watcher.Started;
+
+        await _time.WakeAsync(() => _watcher.Report(WatchSignal.Lost, SteamFolder), "the loss is noticed");
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+
+        (_steam.Scans, _gog.Scans).Should().Be((3, 3));
+        _watcher.Started.Should().Be(started + 2);
+        _watcher.Active.Should().BeEquivalentTo(new object[] { SteamFolder, GogFolder });
+    }
+
+    [Fact]
+    public async Task Every_store_is_rescanned_on_a_long_timer_as_a_safety_net()
+    {
+        await StartAsync();
+
+        await _time.AdvanceAndWaitAsync(LibraryService.RescanInterval);
+
+        (_steam.Scans, _gog.Scans).Should().Be((2, 2));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Resuming_from_sleep_or_a_new_volume_rescans_every_store(bool resumed)
+    {
+        await StartAsync();
+
+        await _time.WakeAsync(() => _events.Raise(resumed), "the event is noticed");
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+
+        (_steam.Scans, _gog.Scans).Should().Be((2, 2));
+    }
+
+    [Fact]
+    public async Task Checking_now_scans_every_store_and_completes_afterwards()
+    {
+        await StartAsync();
+        _steam.Finds(Game("1001"));
+
+        await Service.CheckNowAsync(Token);
+
+        (_steam.Scans, _gog.Scans).Should().Be((2, 2));
+        Service.Snapshot.Find(Key("1001")).Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task A_store_whose_scan_fails_keeps_its_games_as_stale_and_the_others_go_on()
+    {
+        _steam.Finds(Game("1001"));
+        _gog.Finds(Game("2001", store: StoreId.Gog));
+        await StartAsync();
+        _steam.Failure = new InvalidOperationException("The store's data is unreadable.");
+        _gog.Finds(Game("2001", store: StoreId.Gog), Game("2002", store: StoreId.Gog));
+
+        await Service.CheckNowAsync(Token);
+
+        var snapshot = Service.Snapshot;
+        snapshot.FindStore(StoreId.Steam)!.ScanFailed.Should().BeTrue();
+        snapshot.Find(Key("1001"))!.IsStale.Should().BeTrue();
+        snapshot.Find(Key("1001"))!.IsReady.Should().BeFalse();
+        snapshot.Games.Keys.Where(key => key.Store == StoreId.Gog).Should().HaveCount(2);
+
+        _steam.Failure = null;
+        await Service.CheckNowAsync(Token);
+
+        Service.Snapshot.Find(Key("1001"))!.IsReady.Should().BeTrue();
+        Service.Snapshot.FindStore(StoreId.Steam)!.ScanFailed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Games_of_an_offline_library_are_kept_as_offline_until_it_returns()
+    {
+        _steam.Finds(Game("1001"));
+        await StartAsync();
+
+        _steam.Result = _steam.Result with { Games = [], Libraries = [SteamLibrary with { State = LibraryState.Offline }] };
+        await Service.CheckNowAsync(Token);
+        var offline = Service.Snapshot.Find(Key("1001"));
+        await Service.CheckNowAsync(Token);
+        var stillOffline = Service.Snapshot.Find(Key("1001"));
+        _steam.Result = _steam.Result with { Games = [Game("1001")], Libraries = [SteamLibrary] };
+        await Service.CheckNowAsync(Token);
+
+        offline!.State.Should().Be(GameInstallState.Offline);
+        offline.Reason.Should().Be(GameStateReason.LibraryOffline);
+        stillOffline.Should().Be(offline);
+        Service.Snapshot.Find(Key("1001"))!.IsReady.Should().BeTrue();
+        Service.Snapshot.ConfirmsGone(Key("1001")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task An_unreadable_library_or_list_keeps_the_last_good_games_as_stale()
+    {
+        var other = new LibraryLocation(@"E:\Other", "steam-library", @"E:\Other", LibraryState.Online);
+        _steam.Result = _steam.Result with { Libraries = [SteamLibrary, other], Games = [Game("1001"), Game("1002", library: other.Id)] };
+        await StartAsync();
+
+        _steam.Result = _steam.Result with { Libraries = [SteamLibrary with { State = LibraryState.Unreadable }], Games = [], IsComplete = false };
+        await Service.CheckNowAsync(Token);
+
+        var snapshot = Service.Snapshot;
+        snapshot.Games.Values.Should().HaveCount(2).And.OnlyContain(game => game.IsStale && game.State == GameInstallState.Installed);
+        snapshot.FindStore(StoreId.Steam)!.Libraries.Should().Equal(
+            SteamLibrary with { State = LibraryState.Unreadable },
+            other with { State = LibraryState.Unreadable });
+    }
+
+    [Fact]
+    public async Task A_record_caught_mid_write_keeps_the_game_as_stale_and_restarts_its_quiet_period()
+    {
+        var written = _time.GetUtcNow().AddMinutes(1);
+        _steam.Finds(Game("1001"));
+        await StartAsync();
+
+        _steam.Result = _steam.Result with { Games = [], UnreadableGames = [new UnreadableGame(Key("1001"), LibraryPath, written), new UnreadableGame(Key("1009"), LibraryPath, null)] };
+        await Service.CheckNowAsync(Token);
+
+        var game = Service.Snapshot.Find(Key("1001"))!;
+        game.IsStale.Should().BeTrue();
+        game.StoreActivityAt.Should().Be(written);
+        Service.Snapshot.Find(Key("1009")).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task A_game_found_again_elsewhere_wins_over_its_offline_copy()
+    {
+        var other = new LibraryLocation(@"E:\Other", "steam-library", @"E:\Other", LibraryState.Online);
+        _steam.Finds(Game("1001"));
+        await StartAsync();
+
+        _steam.Result = _steam.Result with { Libraries = [SteamLibrary with { State = LibraryState.Offline }, other], Games = [Game("1001", library: other.Id)] };
+        await Service.CheckNowAsync(Token);
+
+        Service.Snapshot.Find(Key("1001"))!.LibraryId.Should().Be(other.Id);
+    }
+
+    [Fact]
+    public async Task An_unchanged_scan_is_neither_announced_nor_saved()
+    {
+        _steam.Finds(Game("1001"));
+        await StartAsync();
+        var version = Service.Snapshot.Version;
+
+        _time.Advance(TimeSpan.FromMinutes(1));
+        await Service.CheckNowAsync(Token);
+
+        _published.Should().ContainSingle();
+        _snapshots.Saves.Should().ContainSingle();
+        Service.Snapshot.Version.Should().Be(version);
+        Service.Snapshot.ScannedAt.Should().Be(_time.GetUtcNow());
+    }
+
+    [Fact]
+    public async Task A_failed_save_or_a_failing_listener_does_not_stop_the_loop()
+    {
+        await StartAsync();
+        _snapshots.FailNextSaves(1);
+        Service.Changed += (_, _) => throw new InvalidOperationException("A listener broke.");
+        _steam.Finds(Game("1001"));
+
+        await Service.CheckNowAsync(Token);
+        _steam.Finds(Game("1001"), Game("1002"));
+        await Service.CheckNowAsync(Token);
+
+        Service.Snapshot.Games.Should().HaveCount(2);
+        _snapshots.Saves[^1].Games.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Folders_the_player_adds_are_scanned_with_their_store()
+    {
+        await StartAsync();
+
+        await _time.WakeAsync(() => _settings!.Update(settings => settings.WithLibraryFolder(new LibraryFolder(StoreId.Gog, @"E:\GOG"))),
+            "the settings change is noticed");
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+
+        (_steam.Scans, _gog.Scans).Should().Be((1, 2));
+        _gog.Contexts.Last().ManualFolders.Should().Equal(@"E:\GOG");
+    }
+
+    [Fact]
+    public async Task A_probe_reads_the_game_again_and_looks_for_running_processes()
+    {
+        _steam.Finds(Game("1001"));
+        await StartAsync();
+
+        var idle = await Service.ProbeAsync(Key("1001"), Token);
+        _running.Processes = [new RunningProcess(42, "Example.exe", @"D:\Library\steamapps\common\1001\Example.exe")];
+        var running = await Service.ProbeAsync(Key("1001"), Token);
+
+        idle.CanWrite.Should().BeTrue();
+        running.CanWrite.Should().BeFalse();
+        running.Game!.State.Should().Be(GameInstallState.Running);
+        running.RunningProcesses.Should().ContainSingle();
+        _running.Directories.Should().Equal(Game("1001").InstallDirectory, Game("1001").InstallDirectory);
+    }
+
+    [Fact]
+    public async Task A_probe_that_finds_a_change_asks_for_a_rescan_of_the_store()
+    {
+        _steam.Finds(Game("1001"));
+        await StartAsync();
+        _steam.Probe = game => game with { State = GameInstallState.Updating, Reason = GameStateReason.StoreBusy };
+
+        var timers = _time.TimersCreated;
+        var probe = await Service.ProbeAsync(Key("1001"), Token);
+        await Eventually.HoldsAsync(() => _time.TimersCreated > timers, "the rescan is scheduled");
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+
+        probe.Game!.State.Should().Be(GameInstallState.Updating);
+        probe.RunningProcesses.Should().BeEmpty();
+        _running.Directories.Should().BeEmpty();
+        _steam.Scans.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task A_game_the_snapshot_does_not_know_yet_is_probed_in_the_whole_store()
+    {
+        _steam.Finds(Game("1001"));
+        await StartAsync();
+        _steam.Finds(Game("1001"), Game("1002"));
+
+        var probe = await Service.ProbeAsync(Key("1002"), Token);
+
+        probe.Game.Should().Be(Game("1002"));
+        probe.CanWrite.Should().BeTrue();
+        _steam.Scans.Should().Be(2);
+        _running.Directories.Should().Equal(Game("1002").InstallDirectory);
+    }
+
+    [Fact]
+    public async Task A_probe_of_an_unknown_or_uninstalled_game_finds_nothing()
+    {
+        _steam.Finds(Game("1001"));
+        await StartAsync();
+        _steam.Probe = _ => null;
+
+        (await Service.ProbeAsync(Key("9999"), Token)).IsGone.Should().BeTrue();
+        (await Service.ProbeAsync(Key("1001"), Token)).IsGone.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task A_folder_with_a_stores_records_is_added_to_the_settings()
+    {
+        _files.AddDirectory(@"E:\Games");
+        _gog.Evidence = LibraryFolderEvidence.Accepted(@"E:\Games");
+        await StartAsync();
+
+        var result = await Service.AddLibraryFolderAsync(@"E:\Games", Token);
+
+        result.Should().Be(new LibraryFolderResult(new LibraryFolder(StoreId.Gog, @"E:\Games"), null));
+        _settings!.Current.LibraryFolders.Should().Equal(new LibraryFolder(StoreId.Gog, @"E:\Games"));
+        (await Service.AddLibraryFolderAsync(@"E:\Games", Token)).Rejection.Should().Be(LibraryFolderRejection.AlreadyAdded);
+        await Eventually.HoldsAsync(() => _gog.Scans > 1, "the added folder is scanned");
+
+        Service.RemoveLibraryFolder(new LibraryFolder(StoreId.Gog, @"E:\Games"));
+
+        _settings.Current.LibraryFolders.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_folder_is_refused_with_the_most_specific_reason()
+    {
+        _files.AddDirectory(@"E:\Expansion");
+        await StartAsync();
+
+        var noEvidence = await Service.AddLibraryFolderAsync(@"E:\Expansion", Token);
+        _gog.Evidence = LibraryFolderEvidence.Rejected(LibraryFolderRejection.DlcOnly);
+        var dlcOnly = await Service.AddLibraryFolderAsync(@"E:\Expansion", Token);
+
+        noEvidence.Rejection.Should().Be(LibraryFolderRejection.NoEvidence);
+        dlcOnly.Rejection.Should().Be(LibraryFolderRejection.DlcOnly);
+        (await Service.AddLibraryFolderAsync(@"E:\Missing", Token)).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
+        (await Service.AddLibraryFolderAsync(@"Relative\Folder", Token)).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
+        _settings!.Current.LibraryFolders.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_library_the_store_already_reports_is_refused()
+    {
+        _steam.Evidence = LibraryFolderEvidence.Accepted(LibraryPath);
+        await StartAsync();
+
+        (await Service.AddLibraryFolderAsync(LibraryPath, Token)).Rejection.Should().Be(LibraryFolderRejection.AlreadyDetected);
+    }
+
+    [Fact]
+    public async Task A_folder_that_does_not_answer_in_time_is_unreachable()
+    {
+        _files.AddDirectory(@"\\server\share");
+        _steam.InspectionDelay = TimeSpan.FromMinutes(5);
+        await StartAsync();
+
+        var adding = Service.AddLibraryFolderAsync(@"\\server\share", Token);
+        await Eventually.HoldsAsync(() => adding.IsCompleted, "the check times out", () => _time.Advance(TimeSpan.FromSeconds(1)));
+
+        (await adding).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
+    }
+
+    [Fact]
+    public async Task The_report_counts_games_per_store_and_library()
+    {
+        var offline = new LibraryLocation(@"E:\Unplugged", "steam-library", @"E:\Unplugged", LibraryState.Offline);
+        _steam.Result = _steam.Result with { Libraries = [SteamLibrary, offline with { UnreadableEntries = 1 }], Games = [Game("1001"), Game("1002")] };
+        _gog.Result = _gog.Result with { IsPresent = false };
+        await StartAsync();
+
+        var report = DetectionReport.From(Service.Snapshot);
+
+        report.ScannedAt.Should().Be(Service.Snapshot.ScannedAt);
+        report.Stores.Should().HaveCount(2);
+        var steam = report.Stores[0];
+        (steam.IsFound, steam.GameCount, steam.OfflineLibraryCount, steam.HasProblems).Should().Be((true, 2, 1, true));
+        steam.Libraries.Select(library => library.GameCount).Should().Equal(2, 0);
+        (report.Stores[1].IsFound, report.Stores[1].GameCount, report.Stores[1].HasProblems).Should().Be((false, 0, false));
+    }
+
+    [Fact]
+    public async Task A_game_is_confirmed_gone_only_by_a_scan_that_read_everything()
+    {
+        await StartAsync();
+
+        Service.Snapshot.ConfirmsGone(Key("1001")).Should().BeTrue();
+        _steam.Result = _steam.Result with
+        {
+            Libraries = [SteamLibrary with { UnreadableEntries = 1 }],
+            UnreadableGames = [new UnreadableGame(Key("1001"), LibraryPath, StoreActivityAt: null)],
+        };
+        await Service.CheckNowAsync(Token);
+        Service.Snapshot.ConfirmsGone(Key("1001")).Should().BeFalse("its record may be caught while the store rewrites it");
+        _steam.Result = _steam.Result with { Libraries = [SteamLibrary], UnreadableGames = [], IsComplete = false };
+        await Service.CheckNowAsync(Token);
+        Service.Snapshot.ConfirmsGone(Key("1001")).Should().BeFalse();
+        LibrarySnapshot.Empty.ConfirmsGone(Key("1001")).Should().BeFalse();
+        (Service.Snapshot with { IsCached = true }).ConfirmsGone(Key("1001")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Stopping_the_loop_stops_every_watch()
+    {
+        await StartWatchedAsync();
+
+        await _stop.CancelAsync();
+
+        await FluentActions.Awaiting(() => _run!).Should().ThrowAsync<OperationCanceledException>();
+        _watcher.Active.Should().BeEmpty();
+        Service.ActiveWatchCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Checks_that_the_stopped_loop_will_never_run_are_cancelled()
+    {
+        await CreateAsync();
+        var pending = Service.CheckNowAsync(Token);
+        await _stop.CancelAsync();
+
+        await FluentActions.Awaiting(() => Service.RunAsync(_stop.Token)).Should().ThrowAsync<OperationCanceledException>();
+
+        await FluentActions.Awaiting(() => pending).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => Service.CheckNowAsync(Token)).Should().ThrowAsync<OperationCanceledException>();
+        _steam.Scans.Should().Be(0);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _stop.CancelAsync();
+        if (_run is not null)
+        {
+            await FluentActions.Awaiting(() => _run).Should().ThrowAsync<OperationCanceledException>();
+        }
+
+        _service?.Dispose();
+        if (_settings is not null)
+        {
+            await _settings.DisposeAsync();
+        }
+
+        _stop.Dispose();
+    }
+
+    private static GameKey Key(string id, StoreId? store = null) => new(store ?? StoreId.Steam, id);
+
+    private static InstalledGame Game(string id, string library = LibraryPath, StoreId? store = null) => new()
+    {
+        Key = Key(id, store),
+        Name = $"Game {id}",
+        InstallDirectory = Path.Join(library, "steamapps", "common", id),
+        LibraryId = library,
+        State = GameInstallState.Installed,
+    };
+
+    private static ValueDictionary<GameKey, InstalledGame> Games(params InstalledGame[] games) =>
+        new(games.ToDictionary(game => game.Key).ToImmutableDictionary());
+
+    private async Task CreateAsync()
+    {
+        _settings = await SettingsService.LoadAsync(new InMemoryDocumentStore<AppSettings>(), new FakeTimeProvider(),
+            NullLogger<SettingsService>.Instance, Token);
+        _service = new LibraryService([_steam, _gog], _settings, _running, _files, _watcher, _watcher, _events, _snapshots, _time,
+            NullLogger<LibraryService>.Instance);
+        _service.Changed += (_, changed) => _published.Enqueue(changed.Snapshot);
+    }
+
+    private async Task StartAsync()
+    {
+        await CreateAsync();
+        await _time.WakeAsync(() => _run = Service.RunAsync(_stop.Token), "the first scan is done");
+    }
+
+    // Starts with a folder watched per store, after the second scan that new watches cause.
+    private async Task StartWatchedAsync()
+    {
+        _steam.Result = _steam.Result with { Watch = new WatchPlan([SteamFolder], []) };
+        _gog.Result = _gog.Result with { Watch = new WatchPlan([GogFolder], []) };
+        await StartAsync();
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+        (_steam.Scans, _gog.Scans).Should().Be((2, 2));
+    }
+
+    private sealed class FakeSystemEvents : ISystemEvents
+    {
+        public event EventHandler? Resumed;
+
+        public event EventHandler? VolumeArrived;
+
+        public void Raise(bool resumed) => (resumed ? Resumed : VolumeArrived)?.Invoke(this, EventArgs.Empty);
+    }
+
+    private sealed class FakeRunningGames : IRunningGameDetector
+    {
+        public ValueList<RunningProcess> Processes { get; set; }
+
+        public ConcurrentQueue<string> Directories { get; } = new();
+
+        public ValueList<RunningProcess> FindProcessesIn(string directory, CancellationToken cancellationToken)
+        {
+            Directories.Enqueue(directory);
+            return Processes;
+        }
+
+        public Task WaitForExitAsync(IEnumerable<RunningProcess> processes, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+}
