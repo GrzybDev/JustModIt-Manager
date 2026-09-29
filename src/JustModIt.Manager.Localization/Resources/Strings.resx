@@ -72,4 +72,120 @@
   <data name="TimeRemaining" xml:space="preserve">
     <value>about {duration} left</value>
   </data>
+  <data name="TrayTooltip" xml:space="preserve">
+    <value>{product} – {status}</value>
+    <comment>The tray icon's tooltip; product is the app's name, status one of the Status texts.</comment>
+  </data>
+  <data name="TrayOpen" xml:space="preserve">
+    <value>Open {product}</value>
+  </data>
+  <data name="TrayCheckNow" xml:space="preserve">
+    <value>Check now</value>
+  </data>
+  <data name="TrayExit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="StatusStarting" xml:space="preserve">
+    <value>Starting…</value>
+  </data>
+  <data name="StatusIdle" xml:space="preserve">
+    <value>Everything is up to date</value>
+  </data>
+  <data name="StatusAttention" xml:space="preserve">
+    <value>{count, plural, one {# game needs} other {# games need}} your attention</value>
+  </data>
+  <data name="StatusChecking" xml:space="preserve">
+    <value>Checking your games…</value>
+  </data>
+  <data name="StatusJobs" xml:space="preserve">
+    <value>{count, plural, one {# job} other {# jobs}} in progress</value>
+  </data>
+  <data name="StatusInstalling" xml:space="preserve">
+    <value>Installing for {game}…</value>
+  </data>
+  <data name="StatusUpdating" xml:space="preserve">
+    <value>Updating for {game}…</value>
+  </data>
+  <data name="StatusRepairing" xml:space="preserve">
+    <value>Repairing for {game}…</value>
+  </data>
+  <data name="StatusUninstalling" xml:space="preserve">
+    <value>Uninstalling from {game}…</value>
+  </data>
+  <data name="StatusMovingBackups" xml:space="preserve">
+    <value>Moving the backups of {game}…</value>
+  </data>
+  <data name="StatusFollowingMove" xml:space="preserve">
+    <value>Following {game} to its new folder…</value>
+  </data>
+  <data name="StatusWaitingForGame" xml:space="preserve">
+    <value>Waiting for {game} to close…</value>
+  </data>
+  <data name="StatusExitPending" xml:space="preserve">
+    <value>Exits once the running jobs are done</value>
+  </data>
+  <data name="NoticeAvailableTitle" xml:space="preserve">
+    <value>New for {game}</value>
+  </data>
+  <data name="NoticeAvailable" xml:space="preserve">
+    <value>{team} made a project for it that you can install.</value>
+  </data>
+  <data name="NoticeAvailableAnyTeam" xml:space="preserve">
+    <value>There is a project for it that you can install.</value>
+  </data>
+  <data name="NoticeAvailableOfficial" xml:space="preserve">
+    <value>It already comes in your language, but you can also install a project for it.</value>
+  </data>
+  <data name="NoticeAvailableSummaryTitle" xml:space="preserve">
+    <value>New for your games</value>
+  </data>
+  <data name="NoticeAvailableSummary" xml:space="preserve">
+    <value>{count, plural, one {# game has} other {# games have}} a project you can install.</value>
+  </data>
+  <data name="NoticeInstalledTitle" xml:space="preserve">
+    <value>Installed for {game}</value>
+  </data>
+  <data name="NoticeInstalled" xml:space="preserve">
+    <value>The project is ready. Have fun!</value>
+  </data>
+  <data name="NoticeUpdatedTitle" xml:space="preserve">
+    <value>Updated for {game}</value>
+  </data>
+  <data name="NoticeUpdated" xml:space="preserve">
+    <value>Release “{release}” is installed.</value>
+  </data>
+  <data name="NoticeUpdatedLatest" xml:space="preserve">
+    <value>The newest release is installed.</value>
+  </data>
+  <data name="NoticeRepairedTitle" xml:space="preserve">
+    <value>Installed again for {game}</value>
+  </data>
+  <data name="NoticeRepaired" xml:space="preserve">
+    <value>The store changed the game's files, so the project was installed again.</value>
+  </data>
+  <data name="NoticeFailedTitle" xml:space="preserve">
+    <value>{job, select, Install {Could not install for {game}} Update {Could not update for {game}} Repair {Could not repair for {game}} Uninstall {Could not uninstall from {game}} other {Something went wrong with {game}}}</value>
+    <comment>job is the kind of job that failed.</comment>
+  </data>
+  <data name="NoticeFailed" xml:space="preserve">
+    <value>Open the app to see what went wrong.</value>
+  </data>
+  <data name="NoticePreviousReleaseLostTitle" xml:space="preserve">
+    <value>The update for {game} failed</value>
+  </data>
+  <data name="NoticePreviousReleaseLost" xml:space="preserve">
+    <value>The previous release could not be put back, so the game has its original files. You can install the project again.</value>
+  </data>
+  <data name="WindowClosedTitle" xml:space="preserve">
+    <value>{product} keeps running</value>
+  </data>
+  <data name="WindowClosed" xml:space="preserve">
+    <value>It keeps looking after your games. Click its icon in the notification area to open it.</value>
+  </data>
+  <data name="SetupPendingTitle" xml:space="preserve">
+    <value>Finish setting up {product}</value>
+  </data>
+  <data name="SetupPending" xml:space="preserve">
+    <value>Until you do, the app changes none of your games. Click to go back to it.</value>
+  </data>
 </root>

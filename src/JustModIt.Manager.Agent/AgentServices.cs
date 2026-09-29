@@ -1,7 +1,9 @@
 using System.Runtime.Versioning;
 using JustModIt.Manager.Agent.Ipc;
 using JustModIt.Manager.Agent.Lifetime;
+using JustModIt.Manager.Agent.Notifications;
 using JustModIt.Manager.Agent.Shell;
+using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Catalog;
@@ -146,6 +148,9 @@ public static class AgentServices
         services.AddSingleton<AgentRequestHandler>();
         services.AddSingleton(provider => new PipeServer(options.Names.PipeName, Hello.ForCurrentProcess(ProcessRole.Agent, options.Version),
             provider.GetRequiredService<AgentRequestHandler>(), provider.GetRequiredService<ILogger<PipeServer>>()));
+        services.AddSingleton<Notifier>();
+        services.AddSingleton<IAgentService>(provider => provider.GetRequiredService<Notifier>());
+        services.AddSingleton<IAgentService, TrayPresenter>();
         services.AddSingleton<AgentRuntime>();
     }
 

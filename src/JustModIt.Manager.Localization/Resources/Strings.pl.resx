@@ -69,4 +69,118 @@
   <data name="TimeRemaining" xml:space="preserve">
     <value>zostało ok. {duration}</value>
   </data>
+  <data name="TrayTooltip" xml:space="preserve">
+    <value>{product} – {status}</value>
+  </data>
+  <data name="TrayOpen" xml:space="preserve">
+    <value>Otwórz {product}</value>
+  </data>
+  <data name="TrayCheckNow" xml:space="preserve">
+    <value>Sprawdź teraz</value>
+  </data>
+  <data name="TrayExit" xml:space="preserve">
+    <value>Zamknij</value>
+  </data>
+  <data name="StatusStarting" xml:space="preserve">
+    <value>Uruchamianie…</value>
+  </data>
+  <data name="StatusIdle" xml:space="preserve">
+    <value>Wszystko jest aktualne</value>
+  </data>
+  <data name="StatusAttention" xml:space="preserve">
+    <value>{count, plural, one {# gra wymaga} few {# gry wymagają} many {# gier wymaga} other {# gry wymaga}} Twojej uwagi</value>
+  </data>
+  <data name="StatusChecking" xml:space="preserve">
+    <value>Sprawdzanie gier…</value>
+  </data>
+  <data name="StatusJobs" xml:space="preserve">
+    <value>{count, plural, one {# zadanie} few {# zadania} many {# zadań} other {# zadania}} w toku</value>
+  </data>
+  <data name="StatusInstalling" xml:space="preserve">
+    <value>Instalowanie dla gry {game}…</value>
+  </data>
+  <data name="StatusUpdating" xml:space="preserve">
+    <value>Aktualizowanie dla gry {game}…</value>
+  </data>
+  <data name="StatusRepairing" xml:space="preserve">
+    <value>Naprawianie dla gry {game}…</value>
+  </data>
+  <data name="StatusUninstalling" xml:space="preserve">
+    <value>Odinstalowywanie z gry {game}…</value>
+  </data>
+  <data name="StatusMovingBackups" xml:space="preserve">
+    <value>Przenoszenie kopii zapasowych gry {game}…</value>
+  </data>
+  <data name="StatusFollowingMove" xml:space="preserve">
+    <value>Przenoszenie instalacji gry {game} do jej nowego folderu…</value>
+  </data>
+  <data name="StatusWaitingForGame" xml:space="preserve">
+    <value>Czekamy, aż zamkniesz grę {game}…</value>
+  </data>
+  <data name="StatusExitPending" xml:space="preserve">
+    <value>Zamknie się po zakończeniu trwających zadań</value>
+  </data>
+  <data name="NoticeAvailableTitle" xml:space="preserve">
+    <value>Nowość dla gry {game}</value>
+  </data>
+  <data name="NoticeAvailable" xml:space="preserve">
+    <value>{team} ma dla niej projekt, który możesz zainstalować.</value>
+  </data>
+  <data name="NoticeAvailableAnyTeam" xml:space="preserve">
+    <value>Jest dla niej projekt, który możesz zainstalować.</value>
+  </data>
+  <data name="NoticeAvailableOfficial" xml:space="preserve">
+    <value>Gra jest już dostępna w Twoim języku, ale możesz też zainstalować dla niej projekt.</value>
+  </data>
+  <data name="NoticeAvailableSummaryTitle" xml:space="preserve">
+    <value>Nowości dla Twoich gier</value>
+  </data>
+  <data name="NoticeAvailableSummary" xml:space="preserve">
+    <value>Projekty do zainstalowania czekają na {count, plural, one {# grę} few {# gry} many {# gier} other {# gry}}.</value>
+  </data>
+  <data name="NoticeInstalledTitle" xml:space="preserve">
+    <value>Zainstalowano dla gry {game}</value>
+  </data>
+  <data name="NoticeInstalled" xml:space="preserve">
+    <value>Projekt jest gotowy. Miłej gry!</value>
+  </data>
+  <data name="NoticeUpdatedTitle" xml:space="preserve">
+    <value>Zaktualizowano dla gry {game}</value>
+  </data>
+  <data name="NoticeUpdated" xml:space="preserve">
+    <value>Zainstalowano wydanie „{release}”.</value>
+  </data>
+  <data name="NoticeUpdatedLatest" xml:space="preserve">
+    <value>Zainstalowano najnowsze wydanie.</value>
+  </data>
+  <data name="NoticeRepairedTitle" xml:space="preserve">
+    <value>Ponownie zainstalowano dla gry {game}</value>
+  </data>
+  <data name="NoticeRepaired" xml:space="preserve">
+    <value>Sklep zmienił pliki gry, więc projekt został zainstalowany ponownie.</value>
+  </data>
+  <data name="NoticeFailedTitle" xml:space="preserve">
+    <value>{job, select, Install {Nie udało się zainstalować dla gry {game}} Update {Nie udało się zaktualizować dla gry {game}} Repair {Nie udało się naprawić dla gry {game}} Uninstall {Nie udało się odinstalować z gry {game}} other {Coś poszło nie tak z grą {game}}}</value>
+  </data>
+  <data name="NoticeFailed" xml:space="preserve">
+    <value>Otwórz aplikację, aby zobaczyć, co poszło nie tak.</value>
+  </data>
+  <data name="NoticePreviousReleaseLostTitle" xml:space="preserve">
+    <value>Aktualizacja dla gry {game} nie powiodła się</value>
+  </data>
+  <data name="NoticePreviousReleaseLost" xml:space="preserve">
+    <value>Poprzedniego wydania nie udało się przywrócić, więc gra ma teraz oryginalne pliki. Możesz ponownie zainstalować projekt.</value>
+  </data>
+  <data name="WindowClosedTitle" xml:space="preserve">
+    <value>{product} działa w tle</value>
+  </data>
+  <data name="WindowClosed" xml:space="preserve">
+    <value>Nadal dba o Twoje gry. Kliknij jej ikonę w obszarze powiadomień, aby ją otworzyć.</value>
+  </data>
+  <data name="SetupPendingTitle" xml:space="preserve">
+    <value>Dokończ konfigurację aplikacji {product}</value>
+  </data>
+  <data name="SetupPending" xml:space="preserve">
+    <value>Dopóki tego nie zrobisz, aplikacja nie zmieni żadnej z Twoich gier. Kliknij, aby do niej wrócić.</value>
+  </data>
 </root>
