@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Threading.Channels;
+using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
@@ -20,10 +21,9 @@ public sealed record StateCoordinatorOptions
 }
 
 /// <summary>
-/// The single owner of what the app knows: the library, the installs, the catalogue's offers, verification results,
-/// failed jobs and the running jobs. One loop applies every change that arrives, in batches, and publishes an immutable
-/// <see cref="AppState"/> after each; nothing else changes that state, no handler runs under a lock, and no caller waits
-/// for the disk or the network.
+/// The single owner of what the app knows, whose one loop applies changes in batches, publishes an immutable
+/// <see cref="AppState"/> after each and lets the automation act on it, so no handler runs under a lock and no caller
+/// waits for I/O.
 /// </summary>
 public sealed partial class StateCoordinator : IAsyncDisposable
 {
@@ -35,6 +35,13 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     private readonly IRunningGameDetector _runningGames;
     private readonly IDocumentStore<FailedAttempts> _failureStore;
     private readonly LatestDocumentWriter<FailedAttempts> _failureWriter;
+    private readonly IDocumentStore<AutomationHistory> _historyStore;
+    private readonly AutomationDriver _automation;
+    private readonly Channel<AutomationNotice> _notices = Channel.CreateUnbounded<AutomationNotice>(new UnboundedChannelOptions
+    {
+        SingleWriter = true,
+    });
+
     private readonly StateCoordinatorOptions _options;
     private readonly TimeProvider _time;
     private readonly ILogger<StateCoordinator> _logger;
@@ -67,9 +74,22 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     private IndexRequest _indexRequest = new([], []);
     private IndexRequest? _indexed;
 
+    /// <summary>Creates the coordinator, which reads nothing before <see cref="RunAsync"/>.</summary>
+    /// <param name="library">The detected games.</param>
+    /// <param name="catalogue">The site's catalogue and the index of the player's games.</param>
+    /// <param name="settings">The player's settings.</param>
+    /// <param name="engine">Reads, checks and forgets install records.</param>
+    /// <param name="jobs">Runs the jobs and recovers what a crash interrupted.</param>
+    /// <param name="runningGames">Tells when a game that held a job back exits.</param>
+    /// <param name="failures">Where failed jobs are kept across restarts.</param>
+    /// <param name="automationHistory">Where the automation's history is kept.</param>
+    /// <param name="options">The app's target language.</param>
+    /// <param name="time">The clock for checks and retries.</param>
+    /// <param name="logger">Logs background work that failed.</param>
     public StateCoordinator(ILibraryService library, ICatalogue catalogue, ISettingsService settings, IInstallEngine engine,
-        JobRunner jobs, IRunningGameDetector runningGames, IDocumentStore<FailedAttempts> failures, StateCoordinatorOptions options,
-        TimeProvider time, ILogger<StateCoordinator> logger)
+        JobRunner jobs, IRunningGameDetector runningGames, IDocumentStore<FailedAttempts> failures,
+        IDocumentStore<AutomationHistory> automationHistory, StateCoordinatorOptions options, TimeProvider time,
+        ILogger<StateCoordinator> logger)
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -78,6 +98,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(jobs);
         ArgumentNullException.ThrowIfNull(runningGames);
         ArgumentNullException.ThrowIfNull(failures);
+        ArgumentNullException.ThrowIfNull(automationHistory);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(time);
         ArgumentNullException.ThrowIfNull(logger);
@@ -89,6 +110,8 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         _runningGames = runningGames;
         _failureStore = failures;
         _failureWriter = new LatestDocumentWriter<FailedAttempts>(failures, "list of failed jobs", logger);
+        _historyStore = automationHistory;
+        _automation = new AutomationDriver(jobs, settings, automationHistory, time, logger);
         _options = options;
         _time = time;
         _logger = logger;
@@ -104,6 +127,12 @@ public sealed partial class StateCoordinator : IAsyncDisposable
             }
         }
     }
+
+    /// <summary>
+    /// What the automation did or found, for the agent to tell the player, kept until read so none is lost while the
+    /// window is closed.
+    /// </summary>
+    public ChannelReader<AutomationNotice> Notices => _notices.Reader;
 
     /// <summary>
     /// The latest state once it is newer than <paramref name="afterVersion"/>, so a consumer slower than the changes skips
@@ -202,7 +231,9 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         Unsubscribe();
+        _notices.Writer.TryComplete();
         await _failureWriter.DisposeAsync().ConfigureAwait(false);
+        await _automation.DisposeAsync().ConfigureAwait(false);
     }
 
     private static TaskCompletionSource<AppState> NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -226,6 +257,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
 
         _failures = (await _failureStore.LoadAsync(cancellationToken).ConfigureAwait(false))?.Games.ToImmutableDictionary()
             ?? ImmutableDictionary<GameKey, FailedAttempt>.Empty;
+        _automation.Load(await _historyStore.LoadAsync(cancellationToken).ConfigureAwait(false));
     }
 
     private async Task<List<Trigger>> NextBatchAsync(CancellationToken cancellationToken)
@@ -266,6 +298,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
                 RetryDeferredFollows();
                 _snapshot = changed.Snapshot;
                 ForgetVerificationsOfBusyGames();
+                _automation.OnLibraryChanged();
                 _backupsChanged = true;
                 break;
             case CatalogueChanged changed:
@@ -317,6 +350,13 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     private void ApplyResult(JobResult result)
     {
         var game = result.Job.Game;
+        foreach (var notice in _automation.OnFinished(result, Current.Find(game)))
+        {
+            _notices.Writer.TryWrite(notice);
+        }
+
+        // What the automation learned from the player applies to its very next look.
+        _current = _settings.Current;
         if (_activeJobs.TryGetValue(game, out var job) && job.Id == result.Job.Id)
         {
             _activeJobs.Remove(game);
@@ -469,6 +509,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     private bool Schedule()
     {
         var changed = FollowMovedGames();
+        changed |= Automate();
         StartVerification();
         CheckBackups();
         IndexNewGames();
@@ -488,6 +529,30 @@ public sealed partial class StateCoordinator : IAsyncDisposable
             {
                 changed |= Track(_jobs.Start(new FollowMoveJobRequest(record)));
             }
+        }
+
+        return changed;
+    }
+
+    // Waits for the first-run setup and for a fresh scan, since the games saved at the last run may have changed while the
+    // app was not running.
+    private bool Automate()
+    {
+        if (!_current.OnboardingCompleted || _snapshot.IsCached || _snapshot.ScannedAt is null)
+        {
+            return false;
+        }
+
+        var step = _automation.Evaluate(Current.Games, _current);
+        foreach (var notice in step.Notices)
+        {
+            _notices.Writer.TryWrite(notice);
+        }
+
+        var changed = false;
+        foreach (var handle in step.Started)
+        {
+            changed |= Track(handle);
         }
 
         return changed;
@@ -530,17 +595,13 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     // Null when no check or automatic retry falls due without some other change.
     private DateTimeOffset? NextDue()
     {
-        if (_verifying is not null)
-        {
-            return null;
-        }
-
         var now = _time.GetUtcNow();
-        return _records.Values
+        var verification = _verifying is not null ? null : _records.Values
             .Select(record => VerificationSchedule.DueAt(record, _snapshot.Find(record.Game), _activeJobs.ContainsKey(record.Game),
                 _verifications.GetValueOrDefault(record.Id), _verificationRequests.Contains(record.Game), now))
-            .Where(due => due is not null)
             .Min();
+        var retry = _automation.NextRetryAt(now);
+        return verification is null ? retry : retry is null || verification < retry ? verification : retry;
     }
 
     private async Task VerifyAsync(Guid recordId, string? buildId)

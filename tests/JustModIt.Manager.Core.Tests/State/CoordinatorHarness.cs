@@ -1,6 +1,8 @@
+using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,10 +17,15 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private Task _run = Task.CompletedTask;
 
-    public CoordinatorHarness(TargetLanguage? language = null)
+    /// <param name="settings">The first-run setup is not finished unless the settings say so, which keeps the automation still.</param>
+    /// <param name="history">The automation's history, shared by harnesses that stand for two runs of the app.</param>
+    public CoordinatorHarness(AppSettings? settings = null, TargetLanguage? language = null,
+        InMemoryDocumentStore<AutomationHistory>? history = null)
     {
+        Settings = new FakeSettings(settings ?? AppSettings.Default);
+        History = history ?? new InMemoryDocumentStore<AutomationHistory>();
         Jobs = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance);
-        Coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, RunningGames, Failures,
+        Coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, RunningGames, Failures, History,
             new StateCoordinatorOptions { TargetLanguage = language ?? TargetLanguage.None }, Time, NullLogger<StateCoordinator>.Instance);
     }
 
@@ -34,9 +41,11 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
 
     public FakeInstallEngine Engine { get; } = new();
 
-    public FakeSettings Settings { get; } = new();
+    public FakeSettings Settings { get; }
 
     public InMemoryDocumentStore<FailedAttempts> Failures { get; } = new();
+
+    public InMemoryDocumentStore<AutomationHistory> History { get; }
 
     public JobRunner Jobs { get; }
 
@@ -52,6 +61,14 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
         Catalogue.Publish(CatalogueState.Fresh, Entry(release: release));
         Catalogue.Add(Page(release: release));
         return this;
+    }
+
+    /// <summary>Publishes release two of the project, which replaces release one on the site.</summary>
+    public void PublishReleaseTwo()
+    {
+        var release = Release(ReleaseTwo, 2, File(FileTwo), File(VoiceFile, "Text and voice"));
+        Catalogue.Publish(CatalogueState.Fresh, Entry(release: release));
+        Catalogue.Add(Page(release: release));
     }
 
     public async Task<AppState> StartAsync()
