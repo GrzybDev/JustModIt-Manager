@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Platform;
 using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Core.Downloads;
@@ -34,6 +35,7 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
     private readonly Func<string, long?> _availableSpace;
     private readonly SemaphoreSlim _slot = new(1, 1);
 
+    /// <summary>Creates a downloader into the given folder.</summary>
     /// <param name="api">Resolves download addresses, which the site counts.</param>
     /// <param name="storage">A client made by <see cref="CatalogueHttp.CreateStorageClient"/>.</param>
     /// <param name="directory">The downloads folder.</param>
@@ -42,7 +44,7 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
     /// <param name="logger">Logs expired addresses, unreadable records and files that could not be deleted.</param>
     public PackageDownloader(ICatalogueApi api, HttpClient storage, string directory, string packageExtension, TimeProvider time,
         ILogger<PackageDownloader> logger)
-        : this(api, storage, directory, packageExtension, time, logger, AvailableSpace)
+        : this(api, storage, directory, packageExtension, time, logger, PhysicalVolumes.Instance.GetAvailableBytes)
     {
     }
 
@@ -516,18 +518,6 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
             && CatalogueErrors.ForTransport(exception, operation, cancellationToken) is { } error)
         {
             throw error;
-        }
-    }
-
-    private static long? AvailableSpace(string directory)
-    {
-        try
-        {
-            return new DriveInfo(Path.GetPathRoot(directory)!).AvailableFreeSpace;
-        }
-        catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException)
-        {
-            return null;
         }
     }
 
