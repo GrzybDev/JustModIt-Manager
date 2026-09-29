@@ -1,3 +1,4 @@
+using System.Globalization;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Packages;
 
@@ -54,13 +55,16 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
                 : new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]);
     }
 
-    /// <summary>The archive entry that holds a copy's or a patch's payload.</summary>
-    public string EntryFor(PlannedOperation operation)
+    /// <summary>The archive entry that holds a copy's or a patch's payload; another payload of its path gets a number.</summary>
+    /// <param name="operation">A copy or a patch.</param>
+    /// <param name="number">Counts the payloads of one path from 1.</param>
+    public string EntryFor(PlannedOperation operation, int number = 1)
     {
         ArgumentNullException.ThrowIfNull(operation);
+        var suffix = number > 1 ? "." + number.ToString(CultureInfo.InvariantCulture) : string.Empty;
         return operation.Kind == OperationKind.Patch
-            ? PackageLayout.PatchesFolder + operation.Path + PackageLayout.PatchExtension
-            : (Kind == PackageKind.Zip ? string.Empty : PackageLayout.FilesFolder) + operation.Path;
+            ? PackageLayout.PatchesFolder + operation.Path + suffix + PackageLayout.PatchExtension
+            : (Kind == PackageKind.Zip ? string.Empty : PackageLayout.FilesFolder) + operation.Path + suffix;
     }
 }
 

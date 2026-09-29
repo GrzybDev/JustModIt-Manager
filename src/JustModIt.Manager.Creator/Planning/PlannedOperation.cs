@@ -66,8 +66,8 @@ public sealed record PlannedOperation
     public FileReference? SourceFile { get; init; }
 
     /// <summary>
-    /// What a patch is made against: the game's file at that point of the package, or an author's file that an earlier
-    /// step put there.
+    /// The file a patch is made against, or a rename takes: the game's file at that point of the package, or an
+    /// author's file that an earlier step put there.
     /// </summary>
     public FileReference? Original { get; init; }
 

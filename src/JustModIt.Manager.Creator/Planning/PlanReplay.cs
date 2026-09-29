@@ -145,7 +145,7 @@ internal sealed class PlanReplay
 
         Write(operation.Path, moved);
         _overlay[from] = new PathState(Origin.RenamedAway, null);
-        return operation;
+        return operation with { Original = moved };
     }
 
     private PlannedOperation Delete(PlannedOperation operation)

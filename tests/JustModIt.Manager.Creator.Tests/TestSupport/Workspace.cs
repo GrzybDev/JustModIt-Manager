@@ -8,7 +8,14 @@ internal sealed class Workspace : IDisposable
 {
     public const string HiddenFolderName = ".example-app";
 
-    public static readonly CreatorOptions Options = new() { HiddenFolderName = HiddenFolderName };
+    public const string Generator = "ExampleApp 1.2.3";
+
+    public static readonly CreatorOptions Options = new()
+    {
+        HiddenFolderName = HiddenFolderName,
+        Generator = Generator,
+        PackageExtension = ".examplemod",
+    };
 
     public Workspace()
     {
