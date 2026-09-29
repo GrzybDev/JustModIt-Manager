@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(xd3shim C CXX)
+project(xd3shim C)
 
 set(XDELTA3_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../xdelta/xdelta3" CACHE PATH "xdelta3 sources (git submodule)")
 set(XDELTA3_VERSION "3.2.0" CACHE STRING "xdelta3 version of XDELTA3_SOURCE_DIR")

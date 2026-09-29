@@ -1,0 +1,30 @@
+<Project>
+  <!-- Puts the xdelta3 shim next to the output of every project that references Core, which includes both apps.
+       native/build.ps1 (build.sh elsewhere) builds it on the first build of a full checkout, and again after its
+       sources change. -->
+  <PropertyGroup>
+    <XdShimRoot>$(MSBuildThisFileDirectory)</XdShimRoot>
+    <XdShimRid Condition="'$(XdShimRid)' == '' and '$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</XdShimRid>
+    <XdShimRid Condition="'$(XdShimRid)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">win-x64</XdShimRid>
+    <XdShimRid Condition="'$(XdShimRid)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">osx-arm64</XdShimRid>
+    <XdShimRid Condition="'$(XdShimRid)' == ''">linux-x64</XdShimRid>
+    <XdShimFileName Condition="$(XdShimRid.StartsWith('win-'))">xd3shim.dll</XdShimFileName>
+    <XdShimFileName Condition="$(XdShimRid.StartsWith('osx-'))">libxd3shim.dylib</XdShimFileName>
+    <XdShimFileName Condition="'$(XdShimFileName)' == ''">libxd3shim.so</XdShimFileName>
+    <XdShimFile>$(XdShimRoot)bin\$(XdShimRid)\$(XdShimFileName)</XdShimFile>
+    <!-- Worktrees and source archives come without the submodules and rely on a shim built elsewhere. -->
+    <XdShimCanBuild Condition="Exists('$(XdShimRoot)xdelta\xdelta3\xdelta3.h') and Exists('$(XdShimRoot)xz\CMakeLists.txt')">true</XdShimCanBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(XdShimFile)" Link="$(XdShimFileName)" CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="BuildXdShim" BeforeTargets="BeforeBuild" Condition="'$(XdShimCanBuild)' == 'true'"
+          Inputs="$(XdShimRoot)xd3shim\xd3shim.c;$(XdShimRoot)xd3shim\CMakeLists.txt" Outputs="$(XdShimFile)">
+    <Exec Condition="$([MSBuild]::IsOSPlatform('Windows'))"
+          Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(XdShimRoot)build.ps1&quot; -Rid $(XdShimRid)" />
+    <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="sh &quot;$(XdShimRoot)build.sh&quot; $(XdShimRid)" />
+  </Target>
+</Project>

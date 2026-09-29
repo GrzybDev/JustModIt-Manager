@@ -13,5 +13,6 @@
 *.zip binary
 *.modit binary
 *.xdelta binary
+*.bin binary
 *.dll binary
 *.exe binary

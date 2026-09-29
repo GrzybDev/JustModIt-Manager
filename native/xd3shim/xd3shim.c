@@ -24,16 +24,12 @@
 #define XDS_SEC_DJW 1
 #define XDS_SEC_LZMA 2
 
-#define XDS_F_NO_CHECKSUM 1u
-
 typedef struct xds_encode_opts {
   uint32_t struct_size;
   int32_t level;
-  int32_t secondary;
-  uint32_t flags;
   uint64_t winsize;
   uint64_t src_winsize;
-  uint64_t src_blksize;
+  int32_t secondary;
 } xds_encode_opts;
 
 typedef struct xds {
@@ -42,23 +38,24 @@ typedef struct xds {
   const uint8_t *src;
   uint64_t src_len;
   int encoder;
-  int pull;
   int final_input;
   int have_output;
   int done;
   int failed;
-  volatile int cancel;
+  volatile int aborted;
   uint8_t empty;
 } xds;
 
+/* The encoder random-accesses its whole source, which the caller keeps in
+ * memory (a read-only mapping), so its blocks are served from there. */
 static int xds_getblk(xd3_stream *stream, xd3_source *source, xoff_t blkno) {
   xds *s = (xds *)source->ioh;
   uint64_t off = (uint64_t)blkno * (uint64_t)source->blksize;
   uint64_t rem;
   /* Indexing a multi-gigabyte source happens inside a single xd3 call, so
-   * this is the only place a cancellation request can interrupt it. */
-  if (s->cancel) {
-    stream->msg = "cancelled";
+   * this is the only place an abort request can interrupt it. */
+  if (s->aborted) {
+    stream->msg = "aborted";
     return XD3_INTERNAL;
   }
   if (off > s->src_len) {
@@ -78,17 +75,14 @@ static uint64_t pow2_roundup(uint64_t x) {
   return p;
 }
 
-static int xds_attach_source(xds *s, const uint8_t *src, uint64_t src_len,
-                             uint64_t blksize, uint64_t max_winsize) {
-  if (src_len == 0 || (src == NULL && !s->pull)) return 0;
-  s->src = src;
+static int xds_attach_source(xds *s, uint64_t src_len, uint64_t blksize, uint64_t max_winsize) {
+  if (src_len == 0) return 0;
   s->src_len = src_len;
   if (max_winsize == 0 || max_winsize > pow2_roundup(src_len)) max_winsize = pow2_roundup(src_len);
   max_winsize = pow2_roundup(max_winsize);
   /* The encoder advances its source window in whole blocks and rejects copies
    * further back than max_winsize, so blocks must stay much smaller than the
    * window (the xdelta3 CLI uses -B / 32); otherwise matching collapses. */
-  if (blksize == 0) blksize = (uint64_t)1 << 26;
   if (blksize > max_winsize / 32) blksize = max_winsize / 32;
   if (blksize < XD3_ALLOCSIZE) blksize = XD3_ALLOCSIZE;
   s->source.blksize = (usize_t)pow2_roundup(blksize);
@@ -99,21 +93,23 @@ static int xds_attach_source(xds *s, const uint8_t *src, uint64_t src_len,
   return xd3_set_source_and_size(&s->stream, &s->source, (xoff_t)src_len);
 }
 
-XDS_API const char *xds_version(void) { return "xd3shim 1 / xdelta3 " XDS_XD3_VERSION; }
+XDS_API const char *xds_version(void) { return "xd3shim 2 / xdelta3 " XDS_XD3_VERSION; }
 
-XDS_API int xds_encoder_new(const uint8_t *src, uint64_t src_len,
-                            const xds_encode_opts *o, xds **out) {
+/* `src` holds `src_len` bytes and must stay valid until xds_free. */
+XDS_API int xds_encoder_new(const uint8_t *src, uint64_t src_len, const xds_encode_opts *o, xds **out) {
   xd3_config config;
   xds *s;
   int ret;
-  uint32_t flags = 0;
+  uint32_t flags = XD3_ADLER32;
   *out = NULL;
   if (o == NULL || o->struct_size < sizeof(xds_encode_opts)) return XD3_INVALID;
   if (o->level < 0 || o->level > 9) return XD3_INVALID;
   if (o->winsize > XD3_HARDMAXWINSIZE) return XD3_INVALID;
+  if (src == NULL && src_len > 0) return XD3_INVALID;
   s = (xds *)calloc(1, sizeof(xds));
   if (s == NULL) return ENOMEM;
   s->encoder = 1;
+  s->src = src;
 
   xd3_init_config(&config, 0);
   config.winsize = (usize_t)(o->winsize ? o->winsize : XD3_DEFAULT_WINSIZE);
@@ -121,9 +117,8 @@ XDS_API int xds_encoder_new(const uint8_t *src, uint64_t src_len,
   config.iopt_size = XD3_DEFAULT_IOPT_SIZE;
   config.getblk = xds_getblk;
 
-  if (!(o->flags & XDS_F_NO_CHECKSUM)) flags |= XD3_ADLER32;
   /* Same level to string-matcher mapping as xdelta3-main.h, so patches match
-   * what translators get from `xdelta3 -e -N`. */
+   * what authors get from `xdelta3 -e -N`. */
   if (o->level == 0) {
     flags |= XD3_NOCOMPRESS;
     config.smatch_cfg = XD3_SMATCH_FASTEST;
@@ -151,7 +146,7 @@ XDS_API int xds_encoder_new(const uint8_t *src, uint64_t src_len,
   config.flags = flags;
 
   if ((ret = xd3_config_stream(&s->stream, &config)) != 0 ||
-      (ret = xds_attach_source(s, src, src_len, o->src_blksize, o->src_winsize)) != 0) {
+      (ret = xds_attach_source(s, src_len, (uint64_t)1 << 26, o->src_winsize)) != 0) {
     xd3_free_stream(&s->stream);
     free(s);
     return ret;
@@ -160,24 +155,20 @@ XDS_API int xds_encoder_new(const uint8_t *src, uint64_t src_len,
   return 0;
 }
 
-/* src == NULL with src_len > 0 selects pull mode: the caller supplies source
- * blocks on XDS_NEED_SOURCE. Reading through the caller turns I/O errors into
- * ordinary exceptions instead of access violations on a memory-mapped view. */
-XDS_API int xds_decoder_new(const uint8_t *src, uint64_t src_len, uint32_t flags,
-                            uint64_t blksize, xds **out) {
+/* The decoder asks for source blocks with XDS_NEED_SOURCE, so the caller reads
+ * them and an I/O error becomes an ordinary error instead of an access
+ * violation on a memory-mapped view. */
+XDS_API int xds_decoder_new(uint64_t src_len, uint64_t blksize, xds **out) {
   xd3_config config;
   xds *s;
   int ret;
   *out = NULL;
   s = (xds *)calloc(1, sizeof(xds));
   if (s == NULL) return ENOMEM;
-  xd3_init_config(&config, (flags & XDS_F_NO_CHECKSUM) ? XD3_ADLER32_NOVER : 0);
+  xd3_init_config(&config, 0);
   config.winsize = XD3_DEFAULT_WINSIZE;
-  s->pull = (src == NULL && src_len > 0);
-  config.getblk = s->pull ? NULL : xds_getblk;
-  if (s->pull && blksize == 0) blksize = (uint64_t)1 << 23;
   if ((ret = xd3_config_stream(&s->stream, &config)) != 0 ||
-      (ret = xds_attach_source(s, src, src_len, blksize, 0)) != 0) {
+      (ret = xds_attach_source(s, src_len, blksize ? blksize : (uint64_t)1 << 23, 0)) != 0) {
     xd3_free_stream(&s->stream);
     free(s);
     return ret;
@@ -211,7 +202,7 @@ XDS_API int xds_step(xds *s, const uint8_t **out, uint64_t *out_len) {
   *out = NULL;
   *out_len = 0;
   if (s->failed) return XD3_INTERNAL;
-  if (s->cancel) {
+  if (s->aborted) {
     s->failed = 1;
     return XD3_INTERNAL;
   }
@@ -233,7 +224,7 @@ XDS_API int xds_step(xds *s, const uint8_t **out, uint64_t *out_len) {
       if (!s->final_input) return XDS_NEED_INPUT;
       goto finish;
     case XD3_GETSRCBLK:
-      if (s->pull) return XDS_NEED_SOURCE;
+      if (!s->encoder) return XDS_NEED_SOURCE;
       s->failed = 1;
       return XD3_INTERNAL;
     case XD3_GOTHEADER:
@@ -270,16 +261,15 @@ XDS_API uint64_t xds_source_request(xds *s, uint64_t *blksize) {
 
 /* `data` must stay valid until the next XDS_NEED_SOURCE. */
 XDS_API int xds_source_block(xds *s, uint64_t blkno, const uint8_t *data, uint64_t len) {
-  if (!s->pull || len > s->source.blksize) return XD3_INVALID;
+  if (s->encoder || len > s->source.blksize) return XD3_INVALID;
   s->source.curblkno = (xoff_t)blkno;
   s->source.curblk = data;
   s->source.onblk = (usize_t)len;
   return 0;
 }
 
-XDS_API void xds_cancel(xds *s) { s->cancel = 1; }
-
-XDS_API uint64_t xds_source_indexed(xds *s) { return (uint64_t)s->stream.srcwin_cksum_pos; }
+/* Safe to call from another thread while xds_step runs. */
+XDS_API void xds_abort(xds *s) { s->aborted = 1; }
 
 XDS_API const char *xds_message(xds *s) {
   return s && s->stream.msg ? s->stream.msg : "";
