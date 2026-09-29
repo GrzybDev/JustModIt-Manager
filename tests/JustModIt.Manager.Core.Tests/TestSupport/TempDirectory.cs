@@ -37,10 +37,11 @@ internal sealed class TempDirectory : IDisposable
     /// <param name="target">The folder the link points to.</param>
     public string CreateDirectoryLink(string relativePath, string target)
     {
-        var link = Combine(relativePath);
+        // mklink takes only backslashes.
+        var link = System.IO.Path.GetFullPath(Combine(relativePath));
         if (OperatingSystem.IsWindows())
         {
-            CreateJunctionOrSkip(link, target);
+            CreateJunctionOrSkip(link, System.IO.Path.GetFullPath(target));
         }
         else
         {
