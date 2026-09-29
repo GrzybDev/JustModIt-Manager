@@ -5,6 +5,7 @@ using JustModIt.Manager.Agent.Notifications;
 using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Agent.Ui;
+using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Downloads;
@@ -152,6 +153,10 @@ public static class AgentServices
         services.AddSingleton<IAgentService>(provider => provider.GetRequiredService<Notifier>());
         services.AddSingleton<IAgentService, TrayPresenter>();
         services.AddSingleton<IAgentService, ShellIntegration>();
+        services.AddSingleton<IAppUpdater, VelopackUpdater>();
+        services.AddSingleton(UpdateSchedule.Default);
+        services.AddSingleton<UpdateService>();
+        services.AddSingleton<IAgentService>(provider => provider.GetRequiredService<UpdateService>());
         services.AddSingleton<AgentRuntime>();
     }
 

@@ -78,6 +78,9 @@
   <data name="TrayCheckNow" xml:space="preserve">
     <value>Sprawdź teraz</value>
   </data>
+  <data name="TrayRestartToUpdate" xml:space="preserve">
+    <value>Uruchom ponownie, aby zaktualizować</value>
+  </data>
   <data name="TrayExit" xml:space="preserve">
     <value>Zamknij</value>
   </data>
@@ -116,6 +119,12 @@
   </data>
   <data name="StatusWaitingForGame" xml:space="preserve">
     <value>Czekamy, aż zamkniesz grę {game}…</value>
+  </data>
+  <data name="StatusUpdateDownloading" xml:space="preserve">
+    <value>Pobieranie wersji {version}…</value>
+  </data>
+  <data name="StatusUpdateReady" xml:space="preserve">
+    <value>Wersja {version} jest gotowa do instalacji</value>
   </data>
   <data name="StatusExitPending" xml:space="preserve">
     <value>Zamknie się po zakończeniu trwających zadań</value>

@@ -30,6 +30,18 @@ public sealed class LaunchArgumentsTests
     }
 
     [Theory]
+    [InlineData]
+    [InlineData("--background")]
+    [InlineData("--agent")]
+    [InlineData("--agent", "--background")]
+    [InlineData("--ui", "example-app://game/steam/480")]
+    [InlineData("--background", "example-app://settings")]
+    public void Arguments_turn_back_into_the_command_line_they_came_from(params string[] args)
+    {
+        Parse(args).ToArgs(_links).Should().Equal(args);
+    }
+
+    [Theory]
     [InlineData("--background")]
     [InlineData("--BACKGROUND")]
     public void Start_with_the_system_is_a_background_launch(string argument)

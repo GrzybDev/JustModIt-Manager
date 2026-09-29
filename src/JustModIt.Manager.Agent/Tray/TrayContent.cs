@@ -11,6 +11,7 @@ public static class TrayCommands
     public const string Open = "open";
     public const string Status = "status";
     public const string CheckNow = "check";
+    public const string RestartToUpdate = "restart";
     public const string Exit = "exit";
 }
 
@@ -23,15 +24,27 @@ public static class TrayContent
     public static string Tooltip(AppStateView state, string product) =>
         Text.Format(Strings.TrayTooltip, ("product", product), ("status", Status(state)));
 
-    public static IReadOnlyList<TrayMenuItem> Menu(AppStateView state, string product) =>
-    [
-        new(TrayCommands.Open, Text.Format(Strings.TrayOpen, ("product", product))) { IsDefault = true },
-        new(TrayCommands.Status, Status(state)) { IsEnabled = false },
-        TrayMenuItem.Separator,
-        new(TrayCommands.CheckNow, Strings.TrayCheckNow),
-        TrayMenuItem.Separator,
-        new(TrayCommands.Exit, Strings.TrayExit),
-    ];
+    /// <summary>The menu, led by opening the window and the status, with exit choices that fit the running jobs.</summary>
+    /// <param name="state">The newest snapshot.</param>
+    /// <param name="product">The app's name as players see it.</param>
+    public static IReadOnlyList<TrayMenuItem> Menu(AppStateView state, string product)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        List<TrayMenuItem> menu =
+        [
+            new(TrayCommands.Open, Text.Format(Strings.TrayOpen, ("product", product))) { IsDefault = true },
+            new(TrayCommands.Status, Status(state)) { IsEnabled = false },
+            TrayMenuItem.Separator,
+            new(TrayCommands.CheckNow, Strings.TrayCheckNow),
+        ];
+        if (state.Update.State == AppUpdateState.Ready)
+        {
+            menu.Add(new TrayMenuItem(TrayCommands.RestartToUpdate, Strings.TrayRestartToUpdate));
+        }
+
+        menu.AddRange([TrayMenuItem.Separator, new TrayMenuItem(TrayCommands.Exit, Strings.TrayExit)]);
+        return menu;
+    }
 
     /// <summary>The one thing most worth knowing, in the order the player needs to hear it.</summary>
     /// <param name="state">The newest snapshot.</param>
@@ -61,6 +74,12 @@ public static class TrayContent
         if (state.Activity.IsChecking || state.Catalogue.State == CatalogueState.Refreshing)
         {
             return Strings.StatusChecking;
+        }
+
+        if (state.Update is { State: AppUpdateState.Downloading or AppUpdateState.Ready, Version: { } version })
+        {
+            return Text.Format(state.Update.State == AppUpdateState.Ready ? Strings.StatusUpdateReady : Strings.StatusUpdateDownloading,
+                ("version", version));
         }
 
         var attention = state.Games.Count(game => game is { NeedsAttention: true, IsHidden: false });

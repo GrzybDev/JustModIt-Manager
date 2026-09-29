@@ -107,6 +107,18 @@ public sealed partial class UiLauncher : IDisposable
         }
     }
 
+    /// <summary>A window runs, or was started and has not connected yet.</summary>
+    public bool IsOpenOrStarting
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _window is not null || (_startedAt is { } started && _time.GetUtcNow() - started <= StartGrace);
+            }
+        }
+    }
+
     /// <summary>Shows the window, starting it when none runs, and then sends it <paramref name="messages"/>.</summary>
     /// <param name="target">Where the window should go; null keeps the page it shows.</param>
     /// <param name="messages">Messages for the window once it is connected.</param>

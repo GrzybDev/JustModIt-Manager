@@ -1,10 +1,18 @@
+using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Library;
 
 namespace JustModIt.Manager.Agent;
 
-/// <summary>A check the player asks for: the stores are scanned and the catalogue is read again, whatever their schedule.</summary>
-public sealed class Checks(ILibraryService library, CatalogueRefreshLoop catalogue, AgentStatus status) : IDisposable
+/// <summary>
+/// A check the player asks for: the stores are scanned, the catalogue is read again and the app looks for its own
+/// update, whatever their schedules.
+/// </summary>
+/// <param name="library">Scans the stores.</param>
+/// <param name="catalogue">Reads the catalogue again.</param>
+/// <param name="updates">Looks for the app's own update.</param>
+/// <param name="status">Shows that a check runs.</param>
+public sealed class Checks(ILibraryService library, CatalogueRefreshLoop catalogue, UpdateService updates, AgentStatus status) : IDisposable
 {
     private readonly CancellationTokenSource _stopping = new();
     private readonly Lock _gate = new();
@@ -19,7 +27,8 @@ public sealed class Checks(ILibraryService library, CatalogueRefreshLoop catalog
         try
         {
             catalogue.RequestRefresh();
-            await library.CheckNowAsync(_stopping.Token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await Task.WhenAll(library.CheckNowAsync(_stopping.Token), updates.CheckNowAsync())
+                .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
         finally
         {

@@ -1,6 +1,7 @@
 using JustModIt.Manager.Agent.Ipc;
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Ui;
+using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Views;
@@ -19,6 +20,7 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
     private readonly UiLauncher _ui;
     private readonly AgentLifetime _lifetime;
     private readonly Checks _checks;
+    private readonly UpdateService _updates;
     private readonly ActivationHandler _activation;
     private readonly AppLinks _links;
     private readonly AgentOptions _options;
@@ -26,8 +28,18 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
     private readonly Lock _gate = new();
     private (string Tooltip, IReadOnlyList<TrayMenuItem> Menu)? _shown;
 
-    // Subscribed from the start, so nothing the player does while the agent starts is lost.
-    public TrayPresenter(ITrayHost tray, StatePublisher publisher, UiLauncher ui, AgentLifetime lifetime, Checks checks,
+    /// <summary>Creates the presenter, which follows the tray and the state from then on.</summary>
+    /// <param name="tray">The tray icon.</param>
+    /// <param name="publisher">Announces every new snapshot.</param>
+    /// <param name="ui">Shows the window.</param>
+    /// <param name="lifetime">Exits the app, and tells whether it is leaving.</param>
+    /// <param name="checks">Runs a check the player asks for.</param>
+    /// <param name="updates">Restarts into a ready update.</param>
+    /// <param name="activation">Opens what a notification links to.</param>
+    /// <param name="links">Reads a notification's link.</param>
+    /// <param name="options">The app's name as players see it.</param>
+    /// <param name="logger">Receives failed commands.</param>
+    public TrayPresenter(ITrayHost tray, StatePublisher publisher, UiLauncher ui, AgentLifetime lifetime, Checks checks, UpdateService updates,
         ActivationHandler activation, AppLinks links, AgentOptions options, ILogger<TrayPresenter> logger)
     {
         _tray = tray;
@@ -35,6 +47,7 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
         _ui = ui;
         _lifetime = lifetime;
         _checks = checks;
+        _updates = updates;
         _activation = activation;
         _links = links;
         _options = options;
@@ -90,6 +103,9 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
                 break;
             case TrayCommands.CheckNow:
                 Run(() => _ = _checks.CheckNowAsync());
+                break;
+            case TrayCommands.RestartToUpdate:
+                Run(() => _ = _updates.RestartToUpdateAsync());
                 break;
             case TrayCommands.Exit:
                 Run(_lifetime.ExitFromTray);

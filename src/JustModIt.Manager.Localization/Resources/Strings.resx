@@ -82,6 +82,9 @@
   <data name="TrayCheckNow" xml:space="preserve">
     <value>Check now</value>
   </data>
+  <data name="TrayRestartToUpdate" xml:space="preserve">
+    <value>Restart to update</value>
+  </data>
   <data name="TrayExit" xml:space="preserve">
     <value>Exit</value>
   </data>
@@ -120,6 +123,12 @@
   </data>
   <data name="StatusWaitingForGame" xml:space="preserve">
     <value>Waiting for {game} to close…</value>
+  </data>
+  <data name="StatusUpdateDownloading" xml:space="preserve">
+    <value>Downloading version {version}…</value>
+  </data>
+  <data name="StatusUpdateReady" xml:space="preserve">
+    <value>Version {version} is ready to install</value>
   </data>
   <data name="StatusExitPending" xml:space="preserve">
     <value>Exits once the running jobs are done</value>

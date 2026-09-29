@@ -39,6 +39,9 @@ public sealed record AgentOptions
 
     /// <summary>Where the app's own updates come from; null turns self-update off.</summary>
     public UpdateFeed? Updates { get; init; }
+
+    /// <summary>The updater started this process after applying an update, or after failing to apply it.</summary>
+    public bool RestartedByUpdater { get; init; }
 }
 
 /// <summary>The feed the app's own updates come from.</summary>

@@ -1,3 +1,4 @@
+using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Activation;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +32,10 @@ public static class AgentHost
             var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
             await using (provider.ConfigureAwait(false))
             {
-                await provider.GetRequiredService<AgentRuntime>().RunAsync(start, cancellationToken).ConfigureAwait(false);
+                if (!provider.GetRequiredService<UpdateService>().ApplyPending(start))
+                {
+                    await provider.GetRequiredService<AgentRuntime>().RunAsync(start, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
     }

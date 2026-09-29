@@ -51,4 +51,28 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
         var role = ui ? ProcessRole.Ui : agent ? ProcessRole.Agent : ProcessRole.Launcher;
         return new LaunchArguments(role, background, target);
     }
+
+    /// <summary>The command line that <see cref="Parse"/> reads back as these arguments.</summary>
+    /// <param name="links">The app's links, to write the target as one.</param>
+    public IReadOnlyList<string> ToArgs(AppLinks links)
+    {
+        ArgumentNullException.ThrowIfNull(links);
+        List<string> args = Role switch
+        {
+            ProcessRole.Agent => [AgentSwitch],
+            ProcessRole.Ui => [UiSwitch],
+            _ => [],
+        };
+        if (Background)
+        {
+            args.Add(BackgroundSwitch);
+        }
+
+        if (Target is not null)
+        {
+            args.Add(links.For(Target));
+        }
+
+        return args;
+    }
 }

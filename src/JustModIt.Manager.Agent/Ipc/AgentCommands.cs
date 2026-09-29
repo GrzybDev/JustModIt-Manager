@@ -1,5 +1,6 @@
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Shell;
+using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
@@ -22,6 +23,8 @@ public sealed class AgentCommands(
     ILibraryService library,
     IVolumes volumes,
     Checks checks,
+    UpdateService updates,
+    AgentStatus status,
     AgentLifetime lifetime,
     IDesktopShell shell,
     AgentOptions options)
@@ -60,6 +63,7 @@ public sealed class AgentCommands(
         RemoveLibraryFolder remove => Done(() => library.RemoveLibraryFolder(new LibraryFolder(StoreOf(remove.Store), remove.Path))),
         ValidateBackupFolder validate => new BackupFolderChecked(await CheckBackupFolderAsync(validate.Folder, cancellationToken)
             .ConfigureAwait(false)),
+        ApplyAppUpdate => RestartToUpdate(),
         ExitApp exit => Done(() => _ = lifetime.RequestExitAsync(exit.Mode)),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),
     };
@@ -199,6 +203,11 @@ public sealed class AgentCommands(
                 : game.Installed?.Backup.Directory)
             ?? throw Invalid("The game has no such folder.");
     }
+
+    // Answered before the window is asked to close, since closing ends the connection the answer would take.
+    private Message? RestartToUpdate() => status.Update.State == AppUpdateState.Ready
+        ? Done(() => _ = updates.RestartToUpdateAsync())
+        : throw Invalid("No update is ready.");
 
     private Message? Open(string target) =>
         shell.Open(target) ? null : throw new RequestFailedException(ErrorCode.Failed, "The system could not open it.");
