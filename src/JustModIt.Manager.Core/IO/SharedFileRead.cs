@@ -1,7 +1,7 @@
 namespace JustModIt.Manager.Core.IO;
 
 /// <summary>Opens files for one sequential, asynchronous read that other programs may share.</summary>
-internal static class SharedFileRead
+public static class SharedFileRead
 {
     /// <summary>Delete sharing lets the owner replace the file with a rename while it is being read.</summary>
     public const FileShare Sharing = FileShare.ReadWrite | FileShare.Delete;

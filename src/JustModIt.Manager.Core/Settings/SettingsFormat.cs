@@ -106,7 +106,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteBoolean(OnboardingCompleted, document.OnboardingCompleted);
         writer.WriteBoolean(TrayNoticeShown, document.TrayNoticeShown);
         writer.WriteString(BackupLocationName, document.BackupLocation.ToString());
-        WriteIfSet(writer, CustomBackupFolder, document.CustomBackupFolder);
+        writer.WriteIfSet(CustomBackupFolder, document.CustomBackupFolder);
         writer.WriteStartArray(PreferredTeams);
         foreach (var team in document.PreferredTeams)
         {
@@ -120,10 +120,10 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         foreach (var (key, preferences) in document.Games.OrderBy(game => game.Key.ToString(), StringComparer.Ordinal))
         {
             writer.WriteStartObject(key.ToString());
-            WriteIfSet(writer, AutoInstall, preferences.AutoInstall);
-            WriteIfSet(writer, AutoUpdate, preferences.AutoUpdate);
-            WriteIfSet(writer, ProjectId, preferences.ProjectId);
-            WriteIfSet(writer, VariantName, preferences.VariantName);
+            writer.WriteIfSet(AutoInstall, preferences.AutoInstall);
+            writer.WriteIfSet(AutoUpdate, preferences.AutoUpdate);
+            writer.WriteIfSet(ProjectId, preferences.ProjectId);
+            writer.WriteIfSet(VariantName, preferences.VariantName);
             if (preferences.IsHidden)
             {
                 writer.WriteBoolean(IsHidden, true);
@@ -144,10 +144,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         }
 
         writer.WriteEndArray();
-        if (document.AdultContentConfirmedUntil is { } confirmedUntil)
-        {
-            writer.WriteString(AdultContentConfirmedUntil, confirmedUntil);
-        }
+        writer.WriteIfSet(AdultContentConfirmedUntil, document.AdultContentConfirmedUntil);
     }
 
     private static ValueDictionary<GameKey, GamePreferences> ReadGames(JsonElement? games)
@@ -211,21 +208,5 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         }
 
         return result;
-    }
-
-    private static void WriteIfSet(Utf8JsonWriter writer, string name, bool? value)
-    {
-        if (value is { } set)
-        {
-            writer.WriteBoolean(name, set);
-        }
-    }
-
-    private static void WriteIfSet(Utf8JsonWriter writer, string name, string? value)
-    {
-        if (value is not null)
-        {
-            writer.WriteString(name, value);
-        }
     }
 }

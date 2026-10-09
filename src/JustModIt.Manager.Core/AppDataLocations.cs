@@ -38,6 +38,15 @@ public sealed class AppDataLocations
     /// <summary>Automation history and the last library snapshot.</summary>
     public string StateDirectory => Path.Combine(DataDirectory, "state");
 
+    /// <summary>The last library snapshot, which the first window shows before any scan.</summary>
+    public string LibrarySnapshotFile => Path.Combine(StateDirectory, "library.json");
+
+    /// <summary>The failed jobs that stay on their games until a job succeeds or the player dismisses them.</summary>
+    public string FailuresFile => Path.Combine(StateDirectory, "failures.json");
+
+    /// <summary>What the automation did and announced, which holds back its repeats.</summary>
+    public string AutomationHistoryFile => Path.Combine(StateDirectory, "automation.json");
+
     /// <summary>One folder per install record, holding the record and its journal.</summary>
     public string InstallsDirectory => Path.Combine(DataDirectory, "installs");
 

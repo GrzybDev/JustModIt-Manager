@@ -96,35 +96,24 @@ public sealed class JsonDocumentStore<T> : IDocumentStore<T>
         ArgumentNullException.ThrowIfNull(document);
         var version = Math.Max(_format.CurrentVersion, _storedVersion);
         var unknownProperties = _unknownProperties;
-        return AtomicFile.WriteAsync(_path, async (stream, token) =>
+        return AtomicFile.WriteJsonAsync(_path, WriteOptions, writer =>
         {
-            var writer = new Utf8JsonWriter(stream, WriteOptions);
-            await using (writer.ConfigureAwait(false))
+            writer.WriteStartObject();
+            writer.WriteNumber(VersionProperty, version);
+            _format.Write(writer, document);
+            foreach (var (name, value) in unknownProperties)
             {
-                writer.WriteStartObject();
-                writer.WriteNumber(VersionProperty, version);
-                _format.Write(writer, document);
-                foreach (var (name, value) in unknownProperties)
-                {
-                    writer.WritePropertyName(name);
-                    value.WriteTo(writer);
-                }
-
-                writer.WriteEndObject();
-                await writer.FlushAsync(token).ConfigureAwait(false);
+                writer.WritePropertyName(name);
+                value.WriteTo(writer);
             }
+
+            writer.WriteEndObject();
         }, cancellationToken, _time);
     }
 
     private T Parse(ReadOnlyMemory<byte> content)
     {
-        // Parsing bytes rejects a byte order mark, and editors like to add one.
-        ReadOnlySpan<byte> byteOrderMark = [0xEF, 0xBB, 0xBF];
-        if (content.Span.StartsWith(byteOrderMark))
-        {
-            content = content[byteOrderMark.Length..];
-        }
-
+        content = Utf8Json.WithoutByteOrderMark(content);
         // The parser checks UTF-8 only when a string is read, so a bad byte would otherwise fail outside this method.
         if (!Utf8.IsValid(content.Span))
         {
@@ -138,10 +127,7 @@ public sealed class JsonDocumentStore<T> : IDocumentStore<T>
             throw new JsonException($"The document is a JSON {root.ValueKind}, not an object.");
         }
 
-        var version = root.TryGetProperty(VersionProperty, out var stored) && stored.ValueKind == JsonValueKind.Number
-            && stored.TryGetInt32(out var number) && number >= 0
-                ? number
-                : 0;
+        var version = root.GetInt32OrNull(VersionProperty) is { } number and >= 0 ? number : 0;
         var document = _format.Read(root, version);
         _storedVersion = version;
         _unknownProperties =

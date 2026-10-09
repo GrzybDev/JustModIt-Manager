@@ -90,7 +90,11 @@ public static class CreatorProjectStore
             byte[] content;
             try
             {
-                content = await ReadAsync(path, cancellationToken).ConfigureAwait(false);
+                content = await SharedFileRead.ReadAllBytesAsync(path, MaxLength, cancellationToken).ConfigureAwait(false);
+            }
+            catch (InvalidDataException exception)
+            {
+                throw new ProjectLoadException(ProjectLoadError.Damaged, exception);
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
@@ -135,35 +139,27 @@ public static class CreatorProjectStore
     /// <exception cref="ProjectLoadException">The content is damaged or was written by a newer app.</exception>
     internal static CreatorProject Deserialize(byte[] content, string projectDirectory)
     {
-        // Editors like to add a byte order mark, which the parser refuses.
-        ReadOnlySpan<byte> byteOrderMark = [0xEF, 0xBB, 0xBF];
-        if (content.AsSpan().StartsWith(byteOrderMark))
-        {
-            content = content[byteOrderMark.Length..];
-        }
-
         try
         {
+            using var json = JsonDocument.Parse(Utf8Json.WithoutByteOrderMark(content.AsMemory()));
+            var root = json.RootElement;
             // The version is read on its own first, so a project from a newer app says "update" even when the rest of
             // it is unreadable to this one.
-            using (var json = JsonDocument.Parse(content))
+            var version = root.ValueKind == JsonValueKind.Object
+                && root.TryGetProperty(FormatVersionProperty, out var stored) && stored.TryGetInt32(out var number)
+                    ? number
+                    : 0;
+            switch (version)
             {
-                var version = json.RootElement.ValueKind == JsonValueKind.Object
-                    && json.RootElement.TryGetProperty(FormatVersionProperty, out var stored) && stored.TryGetInt32(out var number)
-                        ? number
-                        : 0;
-                switch (version)
-                {
-                    case > CurrentFormatVersion:
-                        throw new ProjectLoadException(ProjectLoadError.NewerVersion);
-                    case PrototypeProject.FormatVersion:
-                        return PrototypeProject.Read(json.RootElement);
-                    case < CurrentFormatVersion:
-                        throw new ProjectLoadException(ProjectLoadError.Damaged);
-                }
+                case > CurrentFormatVersion:
+                    throw new ProjectLoadException(ProjectLoadError.NewerVersion);
+                case PrototypeProject.FormatVersion:
+                    return PrototypeProject.Read(root);
+                case < CurrentFormatVersion:
+                    throw new ProjectLoadException(ProjectLoadError.Damaged);
             }
 
-            var document = JsonSerializer.Deserialize(content, ProjectJsonContext.Default.ProjectDocument)
+            var document = root.Deserialize(ProjectJsonContext.Default.ProjectDocument)
                 ?? throw new ProjectLoadException(ProjectLoadError.Damaged);
             return ToProject(document, projectDirectory);
         }
@@ -177,7 +173,7 @@ public static class CreatorProjectStore
 
     private static CreatorProject ToProject(ProjectDocument document, string projectDirectory) => new()
     {
-        Mode = document.Mode is null ? CreatorMode.Simple : Parse<CreatorMode>(document.Mode),
+        Mode = document.Mode is null ? CreatorMode.Simple : Member<CreatorMode>(document.Mode),
         Game = document.Game is { } game ? new ProjectGame(new GameKey(new StoreId(game.Store), game.Id), game.Name ?? game.Id) : null,
         GameFolder = document.GameFolder ?? string.Empty,
         AuthorFolder = document.AuthorFolder switch
@@ -187,7 +183,7 @@ public static class CreatorProjectStore
             var folder => Path.GetFullPath(PackagePath.ToFullPath(projectDirectory, folder)),
         },
         Choices = new ValueDictionary<string, FileChoice>((document.Choices ?? [])
-            .ToImmutableDictionary(choice => choice.Key, choice => Parse<FileChoice>(choice.Value), PackagePath.Comparer)),
+            .ToImmutableDictionary(choice => choice.Key, choice => Member<FileChoice>(choice.Value), PackagePath.Comparer)),
         ExtraSteps = Items(document.ExtraSteps),
         Steps = Items(document.Steps),
         Metadata = new PackageMetadata
@@ -199,6 +195,10 @@ public static class CreatorProjectStore
         ToolNotices = Items(document.ThirdParty),
         Acknowledged = [.. Items(document.Acknowledged).Distinct(StringComparer.Ordinal)],
     };
+
+    private static TEnum Member<TEnum>(string text)
+        where TEnum : struct, Enum =>
+        LenientJson.EnumByName<TEnum>(text) ?? throw new JsonException($"'{text}' is not a {typeof(TEnum).Name}.");
 
     // The serializer checks the nullability of properties but not of list items.
     private static ValueList<T> Items<T>(List<T>? items)
@@ -212,33 +212,9 @@ public static class CreatorProjectStore
             ? PackagePath.FromFullPath(projectDirectory, Path.GetFullPath(folder))
             : folder;
 
-    private static async Task<byte[]> ReadAsync(string path, CancellationToken cancellationToken)
-    {
-        var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 0, FileOptions.Asynchronous);
-        await using (stream.ConfigureAwait(false))
-        {
-            if (stream.Length > MaxLength)
-            {
-                throw new ProjectLoadException(ProjectLoadError.Damaged);
-            }
-
-            var content = new byte[stream.Length];
-            await stream.ReadExactlyAsync(content, cancellationToken).ConfigureAwait(false);
-            return content;
-        }
-    }
-
     /// <summary>A member's name in lower case, as project files store it.</summary>
     /// <param name="value">The member.</param>
     internal static string Word<TEnum>(TEnum value)
         where TEnum : struct, Enum =>
         value.ToString().ToLowerInvariant();
-
-    /// <summary>One member by its name in any letter case; numbers and combinations are refused.</summary>
-    /// <param name="text">The stored name.</param>
-    internal static TEnum Parse<TEnum>(string text)
-        where TEnum : struct, Enum =>
-        Enum.GetNames<TEnum>().FirstOrDefault(name => name.Equals(text, StringComparison.OrdinalIgnoreCase)) is { } name
-            ? Enum.Parse<TEnum>(name)
-            : throw new JsonException($"'{text}' is not a {typeof(TEnum).Name}.");
 }

@@ -104,9 +104,9 @@ public static class AgentServices
             provider.GetRequiredService<IRegistry>(), provider.GetRequiredService<LibraryEnvironment>(),
             provider.GetRequiredService<ILogger<EpicLibraryProvider>>()));
         services.AddSingleton<IRunningGameDetector, RunningGameDetector>();
-        AddStore(services, LibrarySnapshotFormat.FileIn(locations), LibrarySnapshotFormat.Instance);
-        AddStore(services, FailedAttemptsFormat.FileIn(locations), FailedAttemptsFormat.Instance);
-        AddStore(services, AutomationHistoryFormat.FileIn(locations), AutomationHistoryFormat.Instance);
+        AddStore(services, locations.LibrarySnapshotFile, LibrarySnapshotFormat.Instance);
+        AddStore(services, locations.FailuresFile, FailedAttemptsFormat.Instance);
+        AddStore(services, locations.AutomationHistoryFile, AutomationHistoryFormat.Instance);
         services.AddSingleton<LibraryService>();
         services.AddSingleton<ILibraryService>(provider => provider.GetRequiredService<LibraryService>());
         services.AddSingleton<IGameProbe>(provider => provider.GetRequiredService<LibraryService>());

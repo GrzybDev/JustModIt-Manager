@@ -172,9 +172,9 @@ internal sealed class InstallRecordStore(string installsDirectory, TimeProvider 
     public async Task SaveAsync(InstallRecord record, InstalledFiles files, CancellationToken cancellationToken)
     {
         var folder = FolderOf(record.Id);
-        await AtomicFile.WriteAsync(folder.FilesFile, (stream, token) =>
-            WriteAsync(stream, FilesWriterOptions, writer => JsonSerializer.Serialize(writer, files,
-                InstallationJsonContext.Default.InstalledFiles), token), cancellationToken, time).ConfigureAwait(false);
+        await AtomicFile.WriteJsonAsync(folder.FilesFile, FilesWriterOptions,
+            writer => JsonSerializer.Serialize(writer, files, InstallationJsonContext.Default.InstalledFiles), cancellationToken, time)
+            .ConfigureAwait(false);
         await SaveRecordAsync(record, cancellationToken).ConfigureAwait(false);
     }
 
@@ -182,9 +182,8 @@ internal sealed class InstallRecordStore(string installsDirectory, TimeProvider 
     /// <param name="record">The install's record.</param>
     /// <param name="cancellationToken">Stops the write.</param>
     public Task SaveRecordAsync(InstallRecord record, CancellationToken cancellationToken) =>
-        AtomicFile.WriteAsync(FolderOf(record.Id).RecordFile, (stream, token) =>
-            WriteAsync(stream, RecordWriterOptions, writer => JsonSerializer.Serialize(writer, record,
-                InstallationJsonContext.Default.InstallRecord), token), cancellationToken, time);
+        AtomicFile.WriteJsonAsync(FolderOf(record.Id).RecordFile, RecordWriterOptions,
+            writer => JsonSerializer.Serialize(writer, record, InstallationJsonContext.Default.InstallRecord), cancellationToken, time);
 
     /// <summary>Removes the files the app keeps for an install, and the folder when nothing else is in it.</summary>
     /// <param name="folder">The install's folder.</param>
@@ -198,15 +197,4 @@ internal sealed class InstallRecordStore(string installsDirectory, TimeProvider 
 
     private static async Task<byte[]> ReadAsync(string path, CancellationToken cancellationToken) =>
         await SharedFileRead.ReadAllBytesAsync(path, 1L << 30, cancellationToken).ConfigureAwait(false);
-
-    private static async ValueTask WriteAsync(Stream stream, JsonWriterOptions options, Action<Utf8JsonWriter> write,
-        CancellationToken cancellationToken)
-    {
-        var writer = new Utf8JsonWriter(stream, options);
-        await using (writer.ConfigureAwait(false))
-        {
-            write(writer);
-            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
 }

@@ -92,7 +92,7 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
     {
         var locations = new AppDataLocations(@"C:\Data", @"C:\Data\cache", @"C:\Data\logs");
 
-        LibrarySnapshotFormat.FileIn(locations).Should().Be(Path.Combine(locations.StateDirectory, "library.json"));
+        locations.LibrarySnapshotFile.Should().Be(Path.Combine(locations.StateDirectory, "library.json"));
     }
 
     public void Dispose() => _directory.Dispose();

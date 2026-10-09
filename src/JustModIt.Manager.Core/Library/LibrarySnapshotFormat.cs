@@ -24,22 +24,11 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
 
     public IReadOnlySet<string> KnownProperties { get; } = FrozenSet.Create(StringComparer.Ordinal, ScannedAt, Stores, Games);
 
-    /// <summary>Gives the snapshot's file in the app's state folder.</summary>
-    /// <param name="locations">The app's data folders.</param>
-    public static string FileIn(AppDataLocations locations)
-    {
-        ArgumentNullException.ThrowIfNull(locations);
-        return Path.Combine(locations.StateDirectory, "library.json");
-    }
-
     public LibrarySnapshot Read(JsonElement root, int version) => new()
     {
-        ScannedAt = root.TryGetProperty(ScannedAt, out var scannedAt) && scannedAt.ValueKind == JsonValueKind.String
-            && scannedAt.TryGetDateTimeOffset(out var time)
-                ? time
-                : null,
-        Stores = [.. Items(root, Stores).Select(ReadStore).OfType<StoreStatus>()],
-        Games = new ValueDictionary<GameKey, InstalledGame>(Items(root, Games).Select(ReadGame).OfType<InstalledGame>()
+        ScannedAt = root.GetDateTimeOffsetOrNull(ScannedAt),
+        Stores = [.. root.GetItems(Stores).Select(ReadStore).OfType<StoreStatus>()],
+        Games = new ValueDictionary<GameKey, InstalledGame>(root.GetItems(Games).Select(ReadGame).OfType<InstalledGame>()
             .DistinctBy(game => game.Key).ToImmutableDictionary(game => game.Key)),
         IsCached = true,
     };
@@ -48,11 +37,7 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(document);
-        if (document.ScannedAt is { } scannedAt)
-        {
-            writer.WriteString(ScannedAt, scannedAt);
-        }
-
+        writer.WriteIfSet(ScannedAt, document.ScannedAt);
         writer.WriteStartArray(Stores);
         foreach (var store in document.Stores)
         {
@@ -67,11 +52,7 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
                 writer.WriteStartObject();
                 writer.WriteString("id", library.Id);
                 writer.WriteString("source", library.Source);
-                if (library.Path is not null)
-                {
-                    writer.WriteString("path", library.Path);
-                }
-
+                writer.WriteIfSet("path", library.Path);
                 writer.WriteString("state", library.State.ToString());
                 writer.WriteBoolean("isManual", library.IsManual);
                 writer.WriteNumber("unreadableEntries", library.UnreadableEntries);
@@ -93,26 +74,12 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
             writer.WriteString("name", game.Name);
             writer.WriteString("installDirectory", game.InstallDirectory);
             writer.WriteString("libraryId", game.LibraryId);
-            if (game.BuildId is not null)
-            {
-                writer.WriteString("buildId", game.BuildId);
-            }
-
+            writer.WriteIfSet("buildId", game.BuildId);
             writer.WriteString("state", game.State.ToString());
             writer.WriteString("reason", game.Reason.ToString());
-            if (game.StoreActivityAt is { } activity)
-            {
-                writer.WriteString("storeActivityAt", activity);
-            }
-
+            writer.WriteIfSet("storeActivityAt", game.StoreActivityAt);
             writer.WriteString("platform", game.Platform.ToString());
-            writer.WriteStartArray("languages");
-            foreach (var language in game.Languages)
-            {
-                writer.WriteStringValue(language);
-            }
-
-            writer.WriteEndArray();
+            writer.WriteStringsIfAny("languages", game.Languages);
             WriteLaunch(writer, game.Launch);
             writer.WriteBoolean("isStale", game.IsStale);
             writer.WriteEndObject();
@@ -156,7 +123,7 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
                 store.GetBooleanOrNull("isPresent") ?? false,
                 store.GetBooleanOrNull("scanFailed") ?? false,
                 store.GetBooleanOrNull("isComplete") ?? true,
-                [.. Items(store, "libraries").Select(ReadLibrary).OfType<LibraryLocation>()])
+                [.. store.GetItems("libraries").Select(ReadLibrary).OfType<LibraryLocation>()])
             : null;
 
     private static LibraryLocation? ReadLibrary(JsonElement library) =>
@@ -167,7 +134,7 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
                 library.GetTextOrNull("path"),
                 library.GetEnumOrNull<LibraryState>("state") ?? LibraryState.Online,
                 library.GetBooleanOrNull("isManual") ?? false,
-                library.GetOrNull("unreadableEntries", JsonValueKind.Number) is { } count && count.TryGetInt32(out var entries) ? entries : 0)
+                library.GetInt32OrNull("unreadableEntries") ?? 0)
             : null;
 
     private static InstalledGame? ReadGame(JsonElement game)
@@ -190,17 +157,11 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
             // A state that cannot be read must not look installed.
             State = game.GetEnumOrNull<GameInstallState>("state") ?? GameInstallState.Unknown,
             Reason = game.GetEnumOrNull<GameStateReason>("reason") ?? GameStateReason.None,
-            StoreActivityAt = game.TryGetProperty("storeActivityAt", out var activity) && activity.ValueKind == JsonValueKind.String
-                && activity.TryGetDateTimeOffset(out var time)
-                    ? time
-                    : null,
+            StoreActivityAt = game.GetDateTimeOffsetOrNull("storeActivityAt"),
             Platform = game.GetEnumOrNull<OperatingSystemKind>("platform") ?? OperatingSystemKind.Unknown,
-            Languages = [.. Items(game, "languages", JsonValueKind.String).Select(language => language.GetString()!)],
+            Languages = [.. game.GetStrings("languages")],
             Launch = ReadLaunch(game),
             IsStale = game.GetBooleanOrNull("isStale") ?? false,
         };
     }
-
-    private static IEnumerable<JsonElement> Items(JsonElement parent, string name, JsonValueKind kind = JsonValueKind.Object) =>
-        parent.GetOrNull(name, JsonValueKind.Array) is { } array ? array.EnumerateArray().Where(item => item.ValueKind == kind) : [];
 }

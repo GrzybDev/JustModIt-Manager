@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Unicode;
+using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Packages;
 
@@ -12,14 +13,12 @@ internal static class ManifestReader
     private const string TypeProperty = "type";
     private const string ThirdPartyNoticesProperty = "thirdPartyNotices";
 
-    private static readonly byte[] ByteOrderMark = [0xEF, 0xBB, 0xBF];
-
     /// <summary>Reads a package's manifest, refusing one made for a newer app before anything else.</summary>
     /// <param name="json">The bytes of <c>manifest.json</c>, with or without a byte order mark.</param>
     /// <exception cref="InvalidPackageException">The manifest is malformed or made for a newer app.</exception>
     public static PackageManifest Parse(ReadOnlyMemory<byte> json)
     {
-        json = StripByteOrderMark(json);
+        json = Utf8Json.WithoutByteOrderMark(json);
         // The parser checks UTF-8 only when a string is read, which would otherwise fail with another exception type.
         if (!Utf8.IsValid(json.Span))
         {
@@ -52,7 +51,7 @@ internal static class ManifestReader
     {
         try
         {
-            using var document = JsonDocument.Parse(StripByteOrderMark(json));
+            using var document = JsonDocument.Parse(Utf8Json.WithoutByteOrderMark(json));
             return document.RootElement.ValueKind == JsonValueKind.Object
                 && document.RootElement.TryGetProperty(FormatVersionProperty, out _);
         }
@@ -123,9 +122,6 @@ internal static class ManifestReader
             throw new InvalidPackageException(PackageError.UnsupportedCapability, capability);
         }
     }
-
-    private static ReadOnlyMemory<byte> StripByteOrderMark(ReadOnlyMemory<byte> json) =>
-        json.Span.StartsWith(ByteOrderMark) ? json[ByteOrderMark.Length..] : json;
 
     private static InvalidPackageException Invalid(string detail) => new(PackageError.InvalidManifest, detail);
 }

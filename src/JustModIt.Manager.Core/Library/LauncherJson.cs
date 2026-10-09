@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library;
@@ -27,15 +28,8 @@ internal static class LauncherJson
             throw new InvalidDataException("The file is too large to be launcher metadata.");
         }
 
-        // Launchers write these files without a byte order mark, but hand-edited or third-party copies may have one.
         var content = await fileSystem.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-        ReadOnlySpan<byte> json = content;
-        if (json.StartsWith(Encoding.UTF8.Preamble))
-        {
-            json = json[Encoding.UTF8.Preamble.Length..];
-        }
-
-        return JsonSerializer.Deserialize(json, typeInfo);
+        return JsonSerializer.Deserialize(Utf8Json.WithoutByteOrderMark(content.AsSpan()), typeInfo);
     }
 
     /// <summary>Gives the trimmed text, or null when it is empty or only white space.</summary>

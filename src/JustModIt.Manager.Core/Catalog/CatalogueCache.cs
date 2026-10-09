@@ -132,19 +132,14 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
 
     private Task WriteAsync(string path, int version, DateTimeOffset fetchedAt, Action<Utf8JsonWriter> writeData,
         CancellationToken cancellationToken) =>
-        AtomicFile.WriteAsync(path, async (stream, token) =>
+        AtomicFile.WriteJsonAsync(path, WriteOptions, writer =>
         {
-            var writer = new Utf8JsonWriter(stream, WriteOptions);
-            await using (writer.ConfigureAwait(false))
-            {
-                writer.WriteStartObject();
-                writer.WriteNumber(VersionProperty, version);
-                writer.WriteString(FetchedAtProperty, fetchedAt);
-                writer.WritePropertyName(DataProperty);
-                writeData(writer);
-                writer.WriteEndObject();
-                await writer.FlushAsync(token).ConfigureAwait(false);
-            }
+            writer.WriteStartObject();
+            writer.WriteNumber(VersionProperty, version);
+            writer.WriteString(FetchedAtProperty, fetchedAt);
+            writer.WritePropertyName(DataProperty);
+            writeData(writer);
+            writer.WriteEndObject();
         }, cancellationToken, time);
 
     private async Task<(DateTimeOffset FetchedAt, T Data)?> ReadAsync<T>(string path, int version, JsonTypeInfo<T> type,

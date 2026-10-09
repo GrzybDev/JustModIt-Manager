@@ -464,12 +464,6 @@ internal sealed class FakeSettings(AppSettings? settings = null) : ISettingsServ
 
     public event EventHandler<SettingsChangedEventArgs>? Changed;
 
-    public event EventHandler? SaveFailed
-    {
-        add { }
-        remove { }
-    }
-
     public AppSettings Current => Volatile.Read(ref _current);
 
     public AppSettings Update(Func<AppSettings, AppSettings> change)
@@ -491,6 +485,4 @@ internal sealed class FakeSettings(AppSettings? settings = null) : ISettingsServ
         Changed?.Invoke(this, new SettingsChangedEventArgs(previous, updated));
         return updated;
     }
-
-    public Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

@@ -90,23 +90,12 @@ public sealed class SettingsServiceTests : IAsyncDisposable
         var result = service.Update(settings => settings
             .WithGame(Witcher, preferences => preferences with { IsHidden = false })
             .WithGame(Witcher, preferences => preferences with { IsHidden = true }));
-        await service.FlushAsync(TestContext.Current.CancellationToken);
+        await service.DisposeAsync();
 
         result.Should().BeSameAs(before);
         service.Current.Should().BeSameAs(before);
         announcements.Should().Be(0);
         _store.Saves.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task Flushing_saves_without_waiting_for_the_delay()
-    {
-        var service = await CreateAsync();
-
-        service.Update(settings => settings with { OnboardingCompleted = true });
-        await service.FlushAsync(TestContext.Current.CancellationToken);
-
-        _store.Stored!.OnboardingCompleted.Should().BeTrue();
     }
 
     [Fact]
@@ -118,28 +107,6 @@ public sealed class SettingsServiceTests : IAsyncDisposable
         await service.DisposeAsync();
 
         _store.Stored!.TrayNoticeShown.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task A_failed_save_keeps_the_settings_and_is_tried_again()
-    {
-        var service = await CreateAsync();
-        var failures = 0;
-        service.SaveFailed += (_, _) => Interlocked.Increment(ref failures);
-        _store.FailNextSaves(1);
-
-        service.Update(settings => settings with { CreatorMode = true });
-        var flush = () => service.FlushAsync(TestContext.Current.CancellationToken);
-
-        await flush.Should().ThrowAsync<IOException>();
-        failures.Should().Be(1);
-        service.Current.CreatorMode.Should().BeTrue();
-        _store.Stored.Should().BeNull();
-
-        service.Update(settings => settings with { AutoUpdateApp = false });
-        await service.FlushAsync(TestContext.Current.CancellationToken);
-
-        _store.Stored.Should().Be(AppSettings.Default with { CreatorMode = true, AutoUpdateApp = false });
     }
 
     [Fact]

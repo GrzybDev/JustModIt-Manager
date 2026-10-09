@@ -21,30 +21,18 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
     public IReadOnlySet<string> KnownProperties { get; } =
         FrozenSet.Create(StringComparer.Ordinal, AttemptsProperty, AnnouncementsProperty, RepairAnnouncementsProperty, BaselineProperty);
 
-    /// <summary>The history's file.</summary>
-    /// <param name="locations">The app's data folders.</param>
-    public static string FileIn(AppDataLocations locations)
-    {
-        ArgumentNullException.ThrowIfNull(locations);
-        return Path.Combine(locations.StateDirectory, "automation.json");
-    }
-
     public AutomationHistory Read(JsonElement root, int version) => new(
-        [.. Items(root, AttemptsProperty).Select(ReadAttempt).OfType<KeyValuePair<AttemptKey, AttemptEntry>>()
+        [.. root.GetItems(AttemptsProperty).Select(ReadAttempt).OfType<KeyValuePair<AttemptKey, AttemptEntry>>()
             .DistinctBy(attempt => attempt.Key)],
-        Items(root, AnnouncementsProperty).Select(ReadAnnouncement).OfType<Announcement>(),
-        Items(root, RepairAnnouncementsProperty).Select(ReadRepairAnnouncement).OfType<RepairAnnouncement>(),
-        Time(root, BaselineProperty));
+        root.GetItems(AnnouncementsProperty).Select(ReadAnnouncement).OfType<Announcement>(),
+        root.GetItems(RepairAnnouncementsProperty).Select(ReadRepairAnnouncement).OfType<RepairAnnouncement>(),
+        root.GetDateTimeOffsetOrNull(BaselineProperty));
 
     public void Write(Utf8JsonWriter writer, AutomationHistory document)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(document);
-        if (document.BaselineAt is { } baseline)
-        {
-            writer.WriteString(BaselineProperty, baseline);
-        }
-
+        writer.WriteIfSet(BaselineProperty, document.BaselineAt);
         writer.WriteStartArray(AttemptsProperty);
         foreach (var (key, attempt) in document.Attempts.OrderBy(pair => pair.Key.Game.ToString(), StringComparer.Ordinal)
             .ThenBy(pair => pair.Key.Release).ThenBy(pair => pair.Key.Action))
@@ -55,16 +43,8 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
             writer.WriteString("action", key.Action.ToString());
             writer.WriteString("at", attempt.At);
             writer.WriteNumber("failures", attempt.Failures);
-            if (attempt.Reason is { } reason)
-            {
-                writer.WriteString("reason", reason.ToString());
-            }
-
-            if (attempt.Build is { } build)
-            {
-                writer.WriteString("build", build);
-            }
-
+            writer.WriteEnumIfSet("reason", attempt.Reason);
+            writer.WriteIfSet("build", attempt.Build);
             writer.WriteEndObject();
         }
 
@@ -86,11 +66,7 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
         {
             writer.WriteStartObject();
             writer.WriteString("install", announcement.Install.ToString("D"));
-            if (announcement.Build is { } build)
-            {
-                writer.WriteString("build", build);
-            }
-
+            writer.WriteIfSet("build", announcement.Build);
             writer.WriteEndObject();
         }
 
@@ -99,28 +75,22 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
 
     private static KeyValuePair<AttemptKey, AttemptEntry>? ReadAttempt(JsonElement attempt) =>
         GameKey.TryParse(attempt.GetTextOrNull("game"), out var game)
-        && Guid.TryParse(attempt.GetTextOrNull("release"), out var release)
+        && attempt.GetGuidOrNull("release") is { } release
         && attempt.GetEnumOrNull<AutomationAction>("action") is { } action
-        && Time(attempt, "at") is { } at
+        && attempt.GetDateTimeOffsetOrNull("at") is { } at
             ? new KeyValuePair<AttemptKey, AttemptEntry>(new AttemptKey(game, release, action), new AttemptEntry(at,
-                attempt.GetOrNull("failures", JsonValueKind.Number) is { } count && count.TryGetInt32(out var failures) ? Math.Max(failures, 0) : 0,
+                Math.Max(attempt.GetInt32OrNull("failures") ?? 0, 0),
                 attempt.GetEnumOrNull<JobFailureReason>("reason"),
                 attempt.GetTextOrNull("build")))
             : null;
 
     private static Announcement? ReadAnnouncement(JsonElement announcement) =>
-        GameKey.TryParse(announcement.GetTextOrNull("game"), out var game) && Guid.TryParse(announcement.GetTextOrNull("release"), out var release)
+        GameKey.TryParse(announcement.GetTextOrNull("game"), out var game) && announcement.GetGuidOrNull("release") is { } release
             ? new Announcement(game, release)
             : null;
 
     private static RepairAnnouncement? ReadRepairAnnouncement(JsonElement announcement) =>
-        Guid.TryParse(announcement.GetTextOrNull("install"), out var install)
+        announcement.GetGuidOrNull("install") is { } install
             ? new RepairAnnouncement(install, announcement.GetTextOrNull("build"))
             : null;
-
-    private static DateTimeOffset? Time(JsonElement parent, string name) =>
-        parent.GetOrNull(name, JsonValueKind.String) is { } text && text.TryGetDateTimeOffset(out var time) ? time : null;
-
-    private static IEnumerable<JsonElement> Items(JsonElement parent, string name) =>
-        parent.GetOrNull(name, JsonValueKind.Array) is { } array ? array.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.Object) : [];
 }

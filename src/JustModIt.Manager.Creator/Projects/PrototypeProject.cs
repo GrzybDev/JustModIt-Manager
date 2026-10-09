@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
 
 namespace JustModIt.Manager.Creator.Projects;
@@ -18,12 +19,15 @@ internal static class PrototypeProject
     /// <param name="root">The project file's root object.</param>
     public static CreatorProject Read(JsonElement root) => new()
     {
-        Mode = string.Equals(Text(root, "mode"), "advanced", StringComparison.OrdinalIgnoreCase) ? CreatorMode.Advanced : CreatorMode.Simple,
+        Mode = string.Equals(root.GetTextOrNull("mode"), "advanced", StringComparison.OrdinalIgnoreCase)
+            ? CreatorMode.Advanced
+            : CreatorMode.Simple,
         Game = Game(root),
-        GameFolder = Text(root, "gameFolder") ?? string.Empty,
-        AuthorFolder = Text(root, "modFolder") ?? string.Empty,
+        GameFolder = root.GetTextOrNull("gameFolder") ?? string.Empty,
+        AuthorFolder = root.GetTextOrNull("modFolder") ?? string.Empty,
         Choices = new ValueDictionary<string, FileChoice>(Objects(root, "entries")
-            .Select(entry => (Path: Text(entry, "path"), Choice: ChoiceOf(Text(entry, "difference"), Text(entry, "action"))))
+            .Select(entry => (Path: entry.GetTextOrNull("path"),
+                Choice: ChoiceOf(entry.GetTextOrNull("difference"), entry.GetTextOrNull("action"))))
             .Where(entry => entry.Path is not null && entry.Choice is not null)
             .DistinctBy(entry => entry.Path, PackagePath.Comparer)
             .ToImmutableDictionary(entry => entry.Path!, entry => entry.Choice!.Value, PackagePath.Comparer)),
@@ -34,9 +38,9 @@ internal static class PrototypeProject
     private static ProjectGame? Game(JsonElement root)
     {
         var target = Objects(root, "targets").FirstOrDefault();
-        return target.ValueKind == JsonValueKind.Object && StoreId.TryParse(Text(target, "store"), out var store)
-            && Text(target, "id") is { } id
-                ? new ProjectGame(new GameKey(store, id), Text(root, "gameName") ?? id)
+        return target.ValueKind == JsonValueKind.Object && StoreId.TryParse(target.GetTextOrNull("store"), out var store)
+            && target.GetTextOrNull("id") is { } id
+                ? new ProjectGame(new GameKey(store, id), root.GetTextOrNull("gameName") ?? id)
                 : null;
     }
 
@@ -51,22 +55,19 @@ internal static class PrototypeProject
         _ => null,
     };
 
-    private static ProjectStep? Step(JsonElement step) => Text(step, "type") switch
+    private static ProjectStep? Step(JsonElement step) => step.GetTextOrNull("type") switch
     {
-        "copy" when Text(step, "source") is { } source && Text(step, "path") is { } path => new CopyFileStep(source, path),
-        "patch" when Text(step, "source") is { } source && Text(step, "path") is { } path => new PatchFileStep(source, path),
-        "rename" when Text(step, "from") is { } from && Text(step, "to") is { } to => new RenameFileStep(from, to),
-        "delete" when Text(step, "path") is { } path => new DeleteFileStep(path),
+        "copy" when step.GetTextOrNull("source") is { } source && step.GetTextOrNull("path") is { } path =>
+            new CopyFileStep(source, path),
+        "patch" when step.GetTextOrNull("source") is { } source && step.GetTextOrNull("path") is { } path =>
+            new PatchFileStep(source, path),
+        "rename" when step.GetTextOrNull("from") is { } from && step.GetTextOrNull("to") is { } to => new RenameFileStep(from, to),
+        "delete" when step.GetTextOrNull("path") is { } path => new DeleteFileStep(path),
         _ => null,
     };
 
     private static IEnumerable<JsonElement> Objects(JsonElement root, string name) =>
-        root.TryGetProperty(name, out var items) && items.ValueKind == JsonValueKind.Array
+        root.GetOrNull(name, JsonValueKind.Array) is { } items
             ? items.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.Object)
             : [];
-
-    private static string? Text(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(value.GetString())
-            ? value.GetString()
-            : null;
 }

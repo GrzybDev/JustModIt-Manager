@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace JustModIt.Manager.Core.IO;
 
@@ -18,6 +19,27 @@ public static class AtomicFile
     public static Task WriteAllBytesAsync(string path, ReadOnlyMemory<byte> content, CancellationToken cancellationToken,
         TimeProvider? time = null) =>
         WriteAsync(path, (stream, token) => stream.WriteAsync(content, token), cancellationToken, time);
+
+    /// <summary>Replaces the file at <paramref name="path"/> with the JSON that <paramref name="write"/> writes.</summary>
+    /// <param name="path">The file; its folder is created when missing.</param>
+    /// <param name="options">How the JSON is written.</param>
+    /// <param name="write">Writes the document with the writer it is given.</param>
+    /// <param name="cancellationToken">Cancels the write and keeps the previous file.</param>
+    /// <param name="time">Paces the retries of the final rename; the system clock when null.</param>
+    public static Task WriteJsonAsync(string path, JsonWriterOptions options, Action<Utf8JsonWriter> write,
+        CancellationToken cancellationToken, TimeProvider? time = null)
+    {
+        ArgumentNullException.ThrowIfNull(write);
+        return WriteAsync(path, async (stream, token) =>
+        {
+            var writer = new Utf8JsonWriter(stream, options);
+            await using (writer.ConfigureAwait(false))
+            {
+                write(writer);
+                await writer.FlushAsync(token).ConfigureAwait(false);
+            }
+        }, cancellationToken, time);
+    }
 
     /// <summary>Replaces the file at <paramref name="path"/> with what <paramref name="write"/> writes.</summary>
     /// <param name="path">The file; its folder is created when missing.</param>
