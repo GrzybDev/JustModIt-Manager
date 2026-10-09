@@ -268,38 +268,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         Func<string, SimulatedFile?>? baseline, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
         var issues = PendingOn(game.Root);
-        var owners = new Dictionary<string, Guid>(PathComparison.Comparer);
-        foreach (var load in records.Where(load => load.Folder.Id != replacing))
-        {
-            if (load.Record is not { } record)
-            {
-                if (load.IsUnreadable && OverlapsUnreadable(load.Folder, game.Root))
-                {
-                    issues.Add(new UnreadableInstallIssue(load.Folder.Id));
-                }
-
-                continue;
-            }
-
-            if (!PathComparison.Overlaps(record.InstallDirectory, game.Root))
-            {
-                continue;
-            }
-
-            try
-            {
-                var files = await InstallRecordStore.LoadFilesAsync(load.Folder, cancellationToken).ConfigureAwait(false);
-                foreach (var file in files.Files)
-                {
-                    owners[PackagePath.ToFullPath(record.InstallDirectory, file.Path)] = record.Id;
-                }
-            }
-            catch (InvalidDataException)
-            {
-                issues.Add(new UnreadableInstallIssue(record.Id));
-            }
-        }
-
+        var owners = await OwnersAsync(records, game.Root, replacing, issues, cancellationToken).ConfigureAwait(false);
         var backup = BackupFolders.For(choice, game.Root, installation.Key, recordId, _options);
         if (backup is null)
         {
@@ -322,13 +291,50 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         }, plan, backup);
     }
 
-    /// <summary>
-    /// An interrupted operation on this game blocks it until recovery has run, and so does a journal that cannot be read
-    /// at all, since installing over its half-done changes would back them up as originals.
-    /// </summary>
+    // An interrupted operation on this game blocks it until recovery has run, and so does a journal that cannot be read at
+    // all, since installing over its half-done changes would back them up as originals.
     private List<InstallIssue> PendingOn(string gameRoot) =>
         [.. _store.Folders().Where(folder => InstallRecordStore.IsPendingOn(folder, gameRoot))
             .Select(folder => new RecoveryPendingIssue(folder.Id))];
+
+    // By full path. An install on the game folder that cannot be read is an issue, since it may own any of the files.
+    private static async Task<Dictionary<string, Guid>> OwnersAsync(IReadOnlyList<RecordLoad> records, string gameRoot, Guid? except,
+        List<InstallIssue> issues, CancellationToken cancellationToken)
+    {
+        var owners = new Dictionary<string, Guid>(PathComparison.Comparer);
+        foreach (var load in records.Where(load => load.Folder.Id != except))
+        {
+            if (load.Record is not { } record)
+            {
+                if (load.IsUnreadable && OverlapsUnreadable(load.Folder, gameRoot))
+                {
+                    issues.Add(new UnreadableInstallIssue(load.Folder.Id));
+                }
+
+                continue;
+            }
+
+            if (!PathComparison.Overlaps(record.InstallDirectory, gameRoot))
+            {
+                continue;
+            }
+
+            try
+            {
+                var files = await InstallRecordStore.LoadFilesAsync(load.Folder, cancellationToken).ConfigureAwait(false);
+                foreach (var file in files.Files)
+                {
+                    owners[PackagePath.ToFullPath(record.InstallDirectory, file.Path)] = record.Id;
+                }
+            }
+            catch (InvalidDataException)
+            {
+                issues.Add(new UnreadableInstallIssue(record.Id));
+            }
+        }
+
+        return owners;
+    }
 
     // A record this version cannot read still names its game folder, unless it is damaged beyond that.
     private static bool OverlapsUnreadable(InstallFolder folder, string gameRoot)

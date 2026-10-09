@@ -45,15 +45,27 @@ public sealed class AdoptionTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Never_gives_a_folder_a_second_install()
+    public async Task Every_install_follows_the_game_into_a_folder_where_no_other_install_owns_its_files()
+    {
+        var first = await InstallAsync();
+        var second = (await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("extra.txt", "Extra")))).Record;
+        var moved = _harness.Game with { InstallDirectory = Move() };
+
+        (await _harness.Engine.AdoptMovedAsync(first.Id, moved, null, InstallHarness.Token)).Should().NotBeNull();
+        (await _harness.Engine.AdoptMovedAsync(second.Id, moved, null, InstallHarness.Token)).Should().NotBeNull();
+        (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Select(record => record.InstallDirectory)
+            .Should().AllBe(PathCanonicalizer.Canonicalize(moved.InstallDirectory));
+    }
+
+    [Fact]
+    public async Task Never_gives_a_file_a_second_install()
     {
         var installed = await InstallAsync();
-        var moved = Move();
-        var other = _harness.Game with { InstallDirectory = moved };
-        await _harness.Engine.InstallAsync(new InstallRequest(other, _harness.ManifestPackage(new TestPackage().Copy("extra.txt", "Extra")),
+        var moved = _harness.Game with { InstallDirectory = Move() };
+        await _harness.Engine.InstallAsync(new InstallRequest(moved, _harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Other")),
             _harness.Backup), null, InstallHarness.Token);
 
-        (await _harness.Engine.AdoptMovedAsync(installed.Id, other, null, InstallHarness.Token)).Should().BeNull();
+        (await _harness.Engine.AdoptMovedAsync(installed.Id, moved, null, InstallHarness.Token)).Should().BeNull();
     }
 
     [Fact]

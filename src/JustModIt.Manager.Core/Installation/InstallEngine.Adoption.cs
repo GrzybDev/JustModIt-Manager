@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 
 namespace JustModIt.Manager.Core.Installation;
@@ -29,10 +30,12 @@ public sealed partial class InstallEngine
         }
 
         ThrowIfAny(PendingOn(target.Root));
-        // The player may have installed into the new folder meanwhile; two records must never own one folder.
-        var records = await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false);
-        if (records.Any(load => load.Folder.Id != recordId
-            && (load.IsUnreadable || (load.Record is { } other && PathComparison.Overlaps(other.InstallDirectory, target.Root)))))
+        // The player may have installed into the new folder meanwhile, backing this install's files up as originals; two
+        // installs must never own one file.
+        var unreadable = new List<InstallIssue>();
+        var owners = await OwnersAsync(await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false), target.Root, recordId,
+            unreadable, cancellationToken).ConfigureAwait(false);
+        if (unreadable.Count > 0 || files.Files.Any(file => owners.ContainsKey(PackagePath.ToFullPath(target.Root, file.Path))))
         {
             return null;
         }
