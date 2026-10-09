@@ -77,7 +77,7 @@ internal sealed class GameFolder
         !Directory.Exists(directory)
         && (volumeId is not null
             ? volumes.IsAttached(volumeId)
-            : Path.GetPathRoot(directory) is { Length: > 0 } root && Directory.Exists(root));
+            : !PhysicalFileSystem.Instance.IsDriveMissing(directory));
 
     // Every segment, not just the last, can be a junction or symbolic link, and each one found is followed and checked.
     // Folders are cached for the operation, since many files share them.

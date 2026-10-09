@@ -115,7 +115,7 @@ internal sealed class InstallRecordScanner<TRecord>(StoreId store, IReadOnlyList
             UnansweredGames = [.. unanswered.Select(record => new UnansweredGame(new GameKey(store, record.GameId), record.InstallPath)).Distinct()],
             IsComplete = scans.All(scan => scan is not null),
             Watch = scans.OfType<SourceScan<TRecord>>().Aggregate(WatchPlan.Empty, (watch, scan) => watch.Merge(scan.Watch))
-                .Merge(new WatchPlan([.. installs.Select(finding => finding.Watch).OfType<WatchedFolder>()], [])),
+                .Merge(WatchPlan.ForFolders(installs.Select(finding => finding.Watch))),
         };
     }
 
@@ -182,9 +182,9 @@ internal static class InstallFolder
     /// <param name="fileSystem">Tells whether the folder's drive exists.</param>
     /// <param name="directory">The game's missing folder.</param>
     public static (GameInstallState State, GameStateReason Reason) MissingState(IFileSystem fileSystem, string directory) =>
-        Path.GetPathRoot(directory) is { Length: > 0 } root && fileSystem.DirectoryExists(root)
-            ? (GameInstallState.Broken, GameStateReason.InstallDirectoryMissing)
-            : (GameInstallState.Offline, GameStateReason.LibraryOffline);
+        fileSystem.IsDriveMissing(directory)
+            ? (GameInstallState.Offline, GameStateReason.LibraryOffline)
+            : (GameInstallState.Broken, GameStateReason.InstallDirectoryMissing);
 }
 
 internal static partial class InstallRecordLog

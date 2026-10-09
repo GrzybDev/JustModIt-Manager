@@ -26,6 +26,8 @@ internal sealed class InMemoryDocumentStore<T>(T? stored = null) : IDocumentStor
     /// <param name="count">How many saves fail.</param>
     public void FailNextSaves(int count) => Interlocked.Exchange(ref _failuresLeft, count);
 
+    public bool FailsNextSave => Volatile.Read(ref _failuresLeft) > 0;
+
     public Task<T?> LoadAsync(CancellationToken cancellationToken) => Task.FromResult(Stored);
 
     public Task SaveAsync(T document, CancellationToken cancellationToken)

@@ -19,14 +19,17 @@ public sealed record WatchPlan(ValueList<WatchedFolder> Folders, ValueList<Watch
 {
     public static WatchPlan Empty { get; } = new([], []);
 
+    /// <summary>A plan of folders only, each once.</summary>
+    /// <param name="folders">The folders; null ones are left out.</param>
+    public static WatchPlan ForFolders(params IEnumerable<WatchedFolder?> folders) =>
+        new([.. folders.OfType<WatchedFolder>().Distinct()], []);
+
     /// <summary>Combines this plan with <paramref name="other"/>, keeping each folder and key once.</summary>
     /// <param name="other">The plan of another source of the store.</param>
     public WatchPlan Merge(WatchPlan other)
     {
         ArgumentNullException.ThrowIfNull(other);
-        return new WatchPlan(
-            new ValueList<WatchedFolder>([.. Folders.Concat(other.Folders).Distinct()]),
-            new ValueList<WatchedRegistryKey>([.. RegistryKeys.Concat(other.RegistryKeys).Distinct()]));
+        return new WatchPlan([.. Folders.Concat(other.Folders).Distinct()], [.. RegistryKeys.Concat(other.RegistryKeys).Distinct()]);
     }
 }
 
@@ -43,8 +46,7 @@ public sealed class WatchedFolder : IEquatable<WatchedFolder>
     {
         ArgumentNullException.ThrowIfNull(filters);
         Directory = PathComparison.Normalize(directory);
-        Filters = new ValueList<string>([.. filters.Distinct(StringComparer.OrdinalIgnoreCase)
-            .Order(StringComparer.OrdinalIgnoreCase)]);
+        Filters = [.. filters.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase)];
     }
 
     public string Directory { get; }

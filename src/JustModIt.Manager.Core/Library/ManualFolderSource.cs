@@ -20,7 +20,7 @@ public abstract class ManualFolderSource<TRecord>(IFileSystem fileSystem, string
         var folders = await Task.WhenAll(context.ManualFolders.Distinct(PathComparison.Comparer)
             .Select(folder => ReadFolderAsync(folder, context.Access, cancellationToken))).ConfigureAwait(false);
         return new([.. folders.Select(folder => folder.Library)], [.. folders.SelectMany(folder => folder.Records)],
-            new WatchPlan([.. folders.Select(folder => folder.Watch).OfType<WatchedFolder>()], []));
+            WatchPlan.ForFolders(folders.Select(folder => folder.Watch)));
     }
 
     /// <summary>Finds the records of the games the store's files describe in <paramref name="folder"/>, their library.</summary>
@@ -47,9 +47,8 @@ public abstract class ManualFolderSource<TRecord>(IFileSystem fileSystem, string
         var canonical = FileSystem.GetCanonicalPath(folder);
         if (!FileSystem.DirectoryExists(canonical))
         {
-            var isOffline = Path.GetPathRoot(canonical) is not { Length: > 0 } root || !FileSystem.DirectoryExists(root);
-            return new FolderRead(
-                new LibraryLocation(canonical, librarySource, canonical, isOffline ? LibraryState.Offline : LibraryState.Online, IsManual: true),
+            var state = FileSystem.IsDriveMissing(canonical) ? LibraryState.Offline : LibraryState.Online;
+            return new FolderRead(new LibraryLocation(canonical, librarySource, canonical, state, IsManual: true),
                 [], WatchedFolder.Toward(FileSystem, canonical));
         }
 

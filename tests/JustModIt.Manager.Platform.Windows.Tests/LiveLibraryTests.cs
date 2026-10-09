@@ -70,7 +70,7 @@ public sealed class LiveLibraryTests
                 NullLogger<JsonDocumentStore<AppSettings>>.Instance),
             time, NullLogger<SettingsService>.Instance, Token);
         using var systemEvents = new WindowsSystemEvents(NullLogger<WindowsSystemEvents>.Instance);
-        using var service = new LibraryService(
+        await using var service = new LibraryService(
             [
                 new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, time,
                     NullLogger<SteamLibraryProvider>.Instance),

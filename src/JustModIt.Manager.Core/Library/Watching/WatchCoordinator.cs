@@ -118,8 +118,9 @@ public sealed partial class WatchCoordinator : IDisposable
             }
 
             var targets = Targets(_plans[store]).ToHashSet();
-            removed = [.. _active.Where(entry => entry.Key.Store == store && !targets.Contains(entry.Key.Target)).Select(entry => entry.Value)];
-            foreach (var key in _active.Keys.Where(key => key.Store == store && !targets.Contains(key.Target)).ToList())
+            var stale = _active.Keys.Where(key => key.Store == store && !targets.Contains(key.Target)).ToList();
+            removed = [.. stale.Select(key => _active[key])];
+            foreach (var key in stale)
             {
                 _active.Remove(key);
             }

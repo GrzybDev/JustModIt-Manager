@@ -202,7 +202,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
             await Jobs.DisposeAsync();
             await Engine.DisposeAsync();
             await Settings.DisposeAsync();
-            Library.Dispose();
+            await Library.DisposeAsync();
             _systemEvents.Dispose();
             _downloader.Dispose();
             _storage.Dispose();

@@ -60,7 +60,8 @@ public sealed class LibraryServiceTests : IAsyncDisposable
             (true, 1L, "steam:1001"),
             (false, 2L, "steam:1002"));
         Service.Snapshot.ScannedAt.Should().Be(_time.GetUtcNow());
-        _snapshots.Saves.Should().HaveCount(2).And.Subject.Last().Should().BeSameAs(Service.Snapshot);
+        await Eventually.HoldsAsync(() => _snapshots.Saves.Count == 2, "the scanned snapshot is saved");
+        _snapshots.Saves[^1].Should().BeSameAs(Service.Snapshot);
         (_steam.Scans, _gog.Scans).Should().Be((1, 1));
     }
 
@@ -278,9 +279,11 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         _steam.Finds(Game("1001"));
         await StartAsync();
         var version = Service.Snapshot.Version;
+        await Eventually.HoldsAsync(() => _snapshots.Saves.Count == 1, "the first snapshot is saved");
 
         _time.Advance(TimeSpan.FromMinutes(1));
         await Service.CheckNowAsync(Token);
+        await Eventually.SettleAsync();
 
         _published.Should().ContainSingle();
         _snapshots.Saves.Should().ContainSingle();
@@ -292,16 +295,18 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     public async Task A_failed_save_or_a_failing_listener_does_not_stop_the_loop()
     {
         await StartAsync();
+        await Eventually.HoldsAsync(() => _snapshots.Saves.Count == 1, "the first snapshot is saved");
         _snapshots.FailNextSaves(1);
         Service.Changed += (_, _) => throw new InvalidOperationException("A listener broke.");
         _steam.Finds(Game("1001"));
 
         await Service.CheckNowAsync(Token);
+        await Eventually.HoldsAsync(() => !_snapshots.FailsNextSave, "the save of the change fails");
         _steam.Finds(Game("1001"), Game("1002"));
         await Service.CheckNowAsync(Token);
 
         Service.Snapshot.Games.Should().HaveCount(2);
-        _snapshots.Saves[^1].Games.Should().HaveCount(2);
+        await Eventually.HoldsAsync(() => _snapshots.Saves is [.., { Games.Count: 2 }], "the later snapshot is saved");
     }
 
     [Fact]
@@ -577,9 +582,11 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         report.ScannedAt.Should().Be(Service.Snapshot.ScannedAt);
         report.Stores.Should().HaveCount(2);
         var steam = report.Stores[0];
-        (steam.IsFound, steam.GameCount, steam.OfflineLibraryCount, steam.HasProblems).Should().Be((true, 2, 1, true));
-        steam.Libraries.Select(library => library.GameCount).Should().Equal(2, 0);
-        (report.Stores[1].IsFound, report.Stores[1].GameCount, report.Stores[1].HasProblems).Should().Be((false, 0, false));
+        (steam.IsFound, steam.GameCount, steam.ScanFailed, steam.IsComplete).Should().Be((true, 2, false, true));
+        steam.Libraries.Select(library => (library.Library.State, library.Library.IsFullyRead, library.GameCount))
+            .Should().Equal((LibraryState.Online, true, 2), (LibraryState.Offline, false, 0));
+        var gog = report.Stores[1];
+        (gog.IsFound, gog.GameCount, gog.ScanFailed, gog.IsComplete, gog.Libraries.Count).Should().Be((false, 0, false, true, 0));
     }
 
     [Fact]
@@ -642,7 +649,11 @@ public sealed class LibraryServiceTests : IAsyncDisposable
             await FluentActions.Awaiting(() => _run).Should().ThrowAsync<OperationCanceledException>();
         }
 
-        _service?.Dispose();
+        if (_service is not null)
+        {
+            await _service.DisposeAsync();
+        }
+
         _watcher.Dispose();
         if (_settings is not null)
         {

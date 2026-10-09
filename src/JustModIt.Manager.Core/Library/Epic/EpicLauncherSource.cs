@@ -36,17 +36,14 @@ public sealed class EpicLauncherSource(IFileSystem fileSystem, IRegistry registr
     {
         if (!fileSystem.DirectoryExists(manifests))
         {
-            return new([], [], new WatchPlan(WatchedFolder.Toward(fileSystem, manifests) is { } toward ? [toward] : [], []));
+            return new([], [], WatchPlan.ForFolders(WatchedFolder.Toward(fileSystem, manifests)));
         }
 
         var pending = Path.Join(manifests, "Pending");
-        WatchedFolder?[] watches =
-        [
+        var watch = WatchPlan.ForFolders(
             new WatchedFolder(manifests, ["*.item", "Pending"]),
             fileSystem.DirectoryExists(pending) ? new WatchedFolder(pending, ["*.item"]) : null,
-            WatchedFolder.Toward(fileSystem, InstalledFile),
-        ];
-        var watch = new WatchPlan([.. watches.OfType<WatchedFolder>()], []);
+            WatchedFolder.Toward(fileSystem, InstalledFile));
         var library = fileSystem.GetCanonicalPath(manifests);
         var records = new List<EpicInstallRecord>();
         try

@@ -20,6 +20,8 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
     // "downloading" before the manifest says anything.
     private static readonly string[] SteamAppsEntries = [SteamPaths.ManifestPattern, SteamPaths.Downloading, SteamPaths.LibraryFoldersFile];
 
+    private const int MaxLevelsAboveLibrary = 3;
+
     private static readonly string[] SteamGameMarkers = ["steam_api.dll", "steam_api64.dll", "steam_appid.txt"];
 
     private readonly IFileSystem _fileSystem;
@@ -100,7 +102,7 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
 
         // A picked steamapps folder, or a game folder inside one, stands for the library above it.
         var candidate = picked;
-        for (var level = 0; candidate is not null && level <= 3; level++, candidate = Path.GetDirectoryName(candidate))
+        for (var level = 0; candidate is not null && level <= MaxLevelsAboveLibrary; level++, candidate = Path.GetDirectoryName(candidate))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (SteamPaths.FindSteamApps(_fileSystem, candidate) is { } steamApps && HasManifest(steamApps))
@@ -131,7 +133,7 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
         ReadAsync(access, candidate, _ =>
             {
                 // Steam on a drive that is not attached is no more uninstalled than a library on an unplugged one.
-                if (Path.GetPathRoot(candidate) is { Length: > 0 } drive && !_fileSystem.DirectoryExists(drive))
+                if (_fileSystem.IsDriveMissing(candidate))
                 {
                     return Task.FromResult(RootCandidate.Unanswered);
                 }

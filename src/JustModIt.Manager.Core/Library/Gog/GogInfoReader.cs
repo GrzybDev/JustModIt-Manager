@@ -116,7 +116,7 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
         }
 
         return new GogGameInfo(gameId, LauncherJson.NullIfBlank(info.RootGameId), LauncherJson.NullIfBlank(info.Name), buildId,
-            info.PlayTasks is { Count: > 0 }, file.LastWriteTimeUtc, new ValueList<string>([.. languages]), PrimaryTask(info.PlayTasks));
+            info.PlayTasks is { Count: > 0 }, file.LastWriteTimeUtc, [.. languages], PrimaryTask(info.PlayTasks));
     }
 
     // A primary link task opens a web page rather than the game.

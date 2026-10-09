@@ -49,13 +49,10 @@ public sealed class LegendarySource(IFileSystem fileSystem, string legendaryDire
     private async Task<SourceScan<EpicInstallRecord>> ReadInstalledAsync(CancellationToken cancellationToken)
     {
         var temporary = Path.Join(legendaryDirectory, "tmp");
-        WatchedFolder?[] watches =
-        [
+        var watch = WatchPlan.ForFolders(
             WatchedFolder.Toward(fileSystem, InstalledFile),
             fileSystem.DirectoryExists(temporary) ? new WatchedFolder(temporary, ["*.resume", "*.repair"]) : null,
-            heroicDirectory is null ? null : WatchedFolder.Toward(fileSystem, HeroicLauncher.QueueFile(heroicDirectory)),
-        ];
-        var watch = new WatchPlan([.. watches.OfType<WatchedFolder>().Distinct()], []);
+            heroicDirectory is null ? null : WatchedFolder.Toward(fileSystem, HeroicLauncher.QueueFile(heroicDirectory)));
         if (!fileSystem.FileExists(InstalledFile))
         {
             return new([], [], watch);
@@ -71,8 +68,8 @@ public sealed class LegendarySource(IFileSystem fileSystem, string legendaryDire
                 ?? [];
             if (installed.Count > 0 && fileSystem.DirectoryExists(MetadataDirectory))
             {
-                var metadata = new WatchedFolder(MetadataDirectory, [.. installed.Select(game => $"{game.AppName}.json")]);
-                watch = watch.Merge(new WatchPlan([metadata], []));
+                watch = watch.Merge(WatchPlan.ForFolders(
+                    new WatchedFolder(MetadataDirectory, [.. installed.Select(game => $"{game.AppName}.json")])));
             }
 
             var queued = heroicDirectory is null

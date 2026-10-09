@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library.Watching;
@@ -15,7 +13,7 @@ namespace JustModIt.Manager.Core.Library;
 /// scan goes out of date, and every store after a lost watch, a resume from sleep, a new volume or
 /// <see cref="RescanInterval"/>.
 /// </summary>
-public sealed partial class LibraryService : ILibraryService, IDisposable
+public sealed partial class LibraryService : ILibraryService, IAsyncDisposable
 {
     /// <summary>Stores rewrite their files many times per job; one rescan after they calm down is enough.</summary>
     public static readonly TimeSpan Debounce = TimeSpan.FromSeconds(3);
@@ -34,6 +32,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
     private readonly IFileSystem _fileSystem;
     private readonly ISystemEvents _systemEvents;
     private readonly IDocumentStore<LibrarySnapshot> _snapshots;
+    private readonly LatestDocumentWriter<LibrarySnapshot> _snapshotWriter;
     private readonly TimeProvider _time;
     private readonly ILogger _logger;
     private readonly WatchCoordinator _watches;
@@ -79,6 +78,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         _fileSystem = fileSystem;
         _systemEvents = systemEvents;
         _snapshots = snapshots;
+        _snapshotWriter = new LatestDocumentWriter<LibrarySnapshot>(snapshots, "library snapshot", logger);
         _time = time;
         _logger = logger;
         _watches = new WatchCoordinator(folderWatcher, registryWatcher, OnWatchSignal, logger);
@@ -128,9 +128,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         }
         finally
         {
-            Unsubscribe();
-            _watches.Dispose();
-            CancelWaiters();
+            await StopAsync().ConfigureAwait(false);
         }
     }
 
@@ -242,11 +240,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         RequestCheck();
     }
 
-    public void Dispose()
-    {
-        Unsubscribe();
-        _watches.Dispose();
-    }
+    public ValueTask DisposeAsync() => new(StopAsync());
 
     private static TaskCompletionSource NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -377,39 +371,11 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         }
 
         var previous = Snapshot;
-        var now = _time.GetUtcNow();
-        var stores = new List<StoreStatus>();
-        var games = ImmutableDictionary.CreateBuilder<GameKey, InstalledGame>();
-        foreach (var provider in _providers)
-        {
-            var store = provider.Store;
-            var previousStatus = previous.FindStore(store);
-            List<InstalledGame> previousGames = [.. previous.Games.Values.Where(game => game.Key.Store == store)];
-            var (status, storeGames) = !scans.TryGetValue(store, out var scan) ? (previousStatus, previousGames)
-                : scan is null ? Failed(store, previousStatus, previousGames)
-                : Merge(scan, previousStatus, previousGames, now);
-            if (status is not null)
-            {
-                stores.Add(status);
-            }
-
-            foreach (var game in storeGames.GroupBy(game => game.Key).Select(sameKey => sameKey.MinBy(Trust)!))
-            {
-                games[game.Key] = game;
-            }
-        }
-
-        var snapshot = new LibrarySnapshot
-        {
-            Version = previous.Version + 1,
-            Games = new ValueDictionary<GameKey, InstalledGame>(games.ToImmutable()),
-            Stores = [.. stores],
-            ScannedAt = now,
-        };
+        var snapshot = LibrarySnapshotMerge.Next(previous, _providers.Select(provider => provider.Store), scans, _time.GetUtcNow());
 
         if (Publish(previous, snapshot))
         {
-            await SaveAsync(snapshot, cancellationToken).ConfigureAwait(false);
+            _snapshotWriter.Save(snapshot);
         }
 
         await Task.WhenAll(scans.Where(pair => pair.Value is not null).Select(pair => WatchAsync(() =>
@@ -443,79 +409,6 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         }
     }
 
-    private static (StoreStatus Status, List<InstalledGame> Games) Merge(StoreScan scan, StoreStatus? previousStatus,
-        List<InstalledGame> previousGames, DateTimeOffset now)
-    {
-        var games = new List<InstalledGame>(scan.Games);
-        var libraries = new List<LibraryLocation>(scan.Libraries);
-        var found = games.Select(game => game.Key).ToHashSet();
-        void Keep(InstalledGame game)
-        {
-            if (found.Add(game.Key))
-            {
-                games.Add(game);
-            }
-        }
-
-        IEnumerable<InstalledGame> Of(string libraryId) => previousGames.Where(game => game.LibraryId == libraryId);
-
-        // An unplugged drive or a list caught mid-write must not look like an uninstall, which would orphan what was
-        // installed into those games.
-        foreach (var library in scan.Libraries)
-        {
-            foreach (var game in library.State switch
-            {
-                LibraryState.Offline => Of(library.Id).Select(game => game.AsOffline()),
-                LibraryState.Unreadable => Of(library.Id).Select(game => game with { IsStale = true }),
-                _ => [],
-            })
-            {
-                Keep(game);
-            }
-        }
-
-        if (!scan.IsComplete && previousStatus is not null)
-        {
-            foreach (var library in previousStatus.Libraries.Where(library => scan.Libraries.All(current => current.Id != library.Id)))
-            {
-                libraries.Add(library with { State = LibraryState.Unreadable });
-                foreach (var game in Of(library.Id))
-                {
-                    Keep(game with { IsStale = true });
-                }
-            }
-        }
-
-        foreach (var unreadable in scan.UnreadableGames)
-        {
-            if (previousGames.FirstOrDefault(game => game.Key == unreadable.Key) is { } last)
-            {
-                // The store is most likely rewriting the record right now, so the quiet period starts again.
-                var activity = unreadable.StoreActivityAt ?? now;
-                Keep(last with { IsStale = true, StoreActivityAt = last.StoreActivityAt > activity ? last.StoreActivityAt : activity });
-            }
-        }
-
-        foreach (var last in previousGames.Where(game => scan.UnansweredGames.Any(unanswered => unanswered.Matches(game))))
-        {
-            Keep(last.AsOffline());
-        }
-
-        return (new StoreStatus(scan.Store, scan.IsPresent, ScanFailed: false, scan.IsComplete, [.. libraries]), games);
-    }
-
-    private static (StoreStatus Status, List<InstalledGame> Games) Failed(StoreId store, StoreStatus? previousStatus,
-        List<InstalledGame> previousGames) =>
-        ((previousStatus ?? new StoreStatus(store, IsPresent: false, ScanFailed: true, IsComplete: true, [])) with { ScanFailed = true },
-            [.. previousGames.Select(game => game with { IsStale = true })]);
-
-    // A key reported twice (the same game in two libraries, or kept from an earlier scan) goes to the most trustworthy copy.
-    private static int Trust(InstalledGame game) =>
-        game.IsReady ? 0
-        : game.IsStale ? 3
-        : game.State == GameInstallState.Offline ? 2
-        : 1;
-
     // Returns whether the snapshot's content changed and it was announced.
     private bool Publish(LibrarySnapshot previous, LibrarySnapshot snapshot)
     {
@@ -533,19 +426,6 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         LogChanged(snapshot.Games.Count, added, removed, updated);
         EventRaising.RaiseEach(Changed, this, snapshot, LogListenerFailed);
         return true;
-    }
-
-    private async Task SaveAsync(LibrarySnapshot snapshot, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _snapshots.SaveAsync(snapshot, cancellationToken).ConfigureAwait(false);
-        }
-        // Only the next start's first picture depends on it.
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            LogSnapshotNotSaved(exception.GetType().Name);
-        }
     }
 
     // Watching opens the folders, which may hang on a drive that stopped answering since the scan read it.
@@ -618,31 +498,10 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
             return;
         }
 
-        bool started;
-        lock (_gate)
-        {
-            started = Extend(ref _lost);
-        }
-
-        if (started)
-        {
-            Wake();
-        }
+        ExtendAndWake(ref _lost);
     }
 
-    private void OnSystemChanged(object? sender, EventArgs e)
-    {
-        bool started;
-        lock (_gate)
-        {
-            started = Extend(ref _systemChange);
-        }
-
-        if (started)
-        {
-            Wake();
-        }
-    }
+    private void OnSystemChanged(object? sender, EventArgs e) => ExtendAndWake(ref _systemChange);
 
     private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
     {
@@ -669,6 +528,20 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
             var burst = _changedStores.TryGetValue(store, out var ongoing) ? ongoing : (Burst?)null;
             started = Extend(ref burst);
             _changedStores[store] = burst!.Value;
+        }
+
+        if (started)
+        {
+            Wake();
+        }
+    }
+
+    private void ExtendAndWake(ref Burst? burst)
+    {
+        bool started;
+        lock (_gate)
+        {
+            started = Extend(ref burst);
         }
 
         if (started)
@@ -715,6 +588,15 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         }
     }
 
+    // The loop's end and disposal both stop the service, whichever comes first, and the last snapshot is saved.
+    private async Task StopAsync()
+    {
+        Unsubscribe();
+        _watches.Dispose();
+        CancelWaiters();
+        await _snapshotWriter.DisposeAsync().ConfigureAwait(false);
+    }
+
     private void Unsubscribe()
     {
         _settings.Changed -= OnSettingsChanged;
@@ -733,9 +615,6 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Watching the libraries takes long; the check goes on without waiting")]
     private partial void LogWatchingSlow();
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The library snapshot could not be saved: {Error}")]
-    private partial void LogSnapshotNotSaved(string error);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "A library listener failed")]
     private partial void LogListenerFailed(Exception exception);

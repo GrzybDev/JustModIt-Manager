@@ -28,24 +28,6 @@ public interface ISystemEvents
     event EventHandler? VolumeArrived;
 }
 
-/// <summary>For platforms and tests without system events.</summary>
-public sealed class NoSystemEvents : ISystemEvents
-{
-    public static NoSystemEvents Instance { get; } = new();
-
-    public event EventHandler? Resumed
-    {
-        add { }
-        remove { }
-    }
-
-    public event EventHandler? VolumeArrived
-    {
-        add { }
-        remove { }
-    }
-}
-
 public sealed class FileSystemFolderWatcher : IFolderWatcher
 {
     public static FileSystemFolderWatcher Instance { get; } = new();

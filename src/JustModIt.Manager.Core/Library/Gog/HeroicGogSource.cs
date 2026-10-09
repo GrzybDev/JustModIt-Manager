@@ -25,8 +25,8 @@ public sealed class HeroicGogSource(IFileSystem fileSystem, string configDirecto
     private async Task<SourceScan<GogInstallRecord>> ReadInstalledAsync(CancellationToken cancellationToken)
     {
         // Heroic may be installed, or signed in to GOG, only later; each scan watches one folder closer to the file.
-        var watch = new WatchPlan([.. new[] { InstalledFile, HeroicLauncher.QueueFile(configDirectory) }
-            .Select(file => WatchedFolder.Toward(fileSystem, file)).OfType<WatchedFolder>().Distinct()], []);
+        var watch = WatchPlan.ForFolders(WatchedFolder.Toward(fileSystem, InstalledFile),
+            WatchedFolder.Toward(fileSystem, HeroicLauncher.QueueFile(configDirectory)));
         if (!fileSystem.FileExists(InstalledFile))
         {
             return new([], [], watch);

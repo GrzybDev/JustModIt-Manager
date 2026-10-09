@@ -17,6 +17,12 @@ internal static class FileListing
         MatchType = MatchType.Simple,
     };
 
+    /// <summary>Whether the drive a path is on is not there, such as an unplugged one, rather than only the path.</summary>
+    /// <param name="fileSystem">Tells whether the drive's root exists.</param>
+    /// <param name="path">A full path.</param>
+    public static bool IsDriveMissing(this IFileSystem fileSystem, string path) =>
+        Path.GetPathRoot(path) is not { Length: > 0 } root || !fileSystem.DirectoryExists(root);
+
     /// <summary>Lists a folder at once; empty when it is missing or cannot be read.</summary>
     /// <param name="fileSystem">Lists the folder.</param>
     /// <param name="folder">The folder to list.</param>
