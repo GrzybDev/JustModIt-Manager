@@ -100,6 +100,26 @@ public sealed class MyGamesComposerTests
     }
 
     [Fact]
+    public void Takes_the_project_of_the_most_preferred_team_unless_the_player_chose_one()
+    {
+        var entries = new[]
+        {
+            Entry(release: Release(ReleaseOne, 1, File(FileOne))),
+            Entry(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"),
+        };
+        var preferring = AppSettings.Default with { PreferredTeams = [Guid.NewGuid(), TeamOf("paper-team"), TeamOf("lantern-team")] };
+
+        Compose(Input([Installed()], entries) with { Settings = preferring }).Single().Project!.Project.ProjectUuid
+            .Should().Be(OtherProject);
+        Compose(Input([Installed()], entries) with
+        {
+            Settings = preferring.WithGame(Game, preferences => preferences with { ProjectId = Project.ToString("D") }),
+        }).Single().Project!.Project.ProjectUuid.Should().Be(Project);
+        Compose(Input([Installed()], entries, [Record()]) with { Settings = preferring }).Single().Project!.Project.ProjectUuid
+            .Should().Be(Project, "a preference never swaps the installed project");
+    }
+
+    [Fact]
     public void Tells_that_the_store_offers_the_target_language_from_the_link_or_the_game()
     {
         var polishLink = Entry(release: Release(ReleaseOne, 1, File(FileOne)), languages: ["12"]);

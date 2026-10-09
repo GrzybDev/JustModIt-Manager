@@ -15,6 +15,9 @@ public enum NoticeKind
     /// </summary>
     AvailableSummary,
 
+    /// <summary>Several teams offer a project for the game, and the player is asked to choose the one to install.</summary>
+    ChoiceNeeded,
+
     /// <summary>A new release of the installed project, which the app did not install since automatic updates are off.</summary>
     UpdateAvailable,
 

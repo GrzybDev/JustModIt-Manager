@@ -147,6 +147,12 @@
   <data name="NoticeAvailableOfficial" xml:space="preserve">
     <value>Gra jest już dostępna w Twoim języku, ale możesz też zainstalować dla niej projekt.</value>
   </data>
+  <data name="NoticeChoiceNeededTitle" xml:space="preserve">
+    <value>Kilka projektów dla gry {game}</value>
+  </data>
+  <data name="NoticeChoiceNeeded" xml:space="preserve">
+    <value>Przygotowały je różne zespoły, więc do zainstalowania trzeba wybrać jeden z nich.</value>
+  </data>
   <data name="NoticeAvailableSummaryTitle" xml:space="preserve">
     <value>Nowości dla Twoich gier</value>
   </data>

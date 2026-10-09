@@ -19,6 +19,7 @@ public static class NoticeTexts
                 notice.OffersTargetLanguage ? Strings.NoticeAvailableOfficial
                 : notice.TeamName is { } team ? Text.Format(Strings.NoticeAvailable, ("team", team))
                 : Strings.NoticeAvailableAnyTeam),
+            NoticeKind.ChoiceNeeded => (Title(Strings.NoticeChoiceNeededTitle), Strings.NoticeChoiceNeeded),
             NoticeKind.AvailableSummary => (Strings.NoticeAvailableSummaryTitle, Summary(notice)),
             NoticeKind.UpdateAvailable => (Title(Strings.NoticeUpdateAvailableTitle),
                 notice.ReleaseLabel is { Length: > 0 } label

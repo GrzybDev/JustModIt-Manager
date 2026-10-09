@@ -42,6 +42,12 @@
   <data name="NoticeAvailableOfficial" xml:space="preserve">
     <value>Gra ma oficjalną polską wersję, ale jest też spolszczenie, które możesz zainstalować.</value>
   </data>
+  <data name="NoticeChoiceNeededTitle" xml:space="preserve">
+    <value>Kilka spolszczeń gry {game}</value>
+  </data>
+  <data name="NoticeChoiceNeeded" xml:space="preserve">
+    <value>Przygotowały je różne grupy, więc do zainstalowania trzeba wybrać jedno z nich.</value>
+  </data>
   <data name="NoticeAvailableSummary" xml:space="preserve">
     <value>Spolszczenia do zainstalowania czekają na {count, plural, one {# grę} few {# gry} many {# gier} other {# gry}}.</value>
   </data>

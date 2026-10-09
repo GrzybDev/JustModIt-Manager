@@ -42,6 +42,40 @@ public sealed class AutomationScenarioTests
     }
 
     [Fact]
+    public async Task Installs_the_project_of_the_preferred_team_when_several_teams_offer_one()
+    {
+        await using var app = new CoordinatorHarness(AutoInstall with { PreferredTeams = [TeamOf("paper-team")] }).WithGameAndProject();
+        var paper = Release(ReleaseTwo, 1, File(FileTwo));
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseOne, 1, File(FileOne))),
+            Entry(OtherProject, paper, teamSlug: "paper-team"));
+        app.Catalogue.Add(Page(OtherProject, paper, teamSlug: "paper-team"));
+
+        await app.StartAsync();
+
+        (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.Installed);
+        (await app.GameAsync(game => game.Installed is not null, "a project is installed")).Find(Game)!.Installed!.Source!.ProjectId
+            .Should().Be(OtherProject.ToString("D"));
+    }
+
+    [Fact]
+    public async Task Tells_once_of_a_choice_between_teams_nobody_made_and_installs_nothing()
+    {
+        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
+        await using var app = new CoordinatorHarness(AutoInstall, history: history);
+        app.Library.Publish(Installed());
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseOne, 1, File(FileOne))),
+            Entry(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
+
+        await app.StartAsync();
+
+        (await app.NoticeAsync()).Should().BeEquivalentTo(new { Kind = NoticeKind.ChoiceNeeded, Game = (GameKey?)Game });
+        app.Library.Publish(Installed());
+        await Eventually.SettleAsync();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse("the choice is told of once");
+        app.Catalogue.PageRequests.Should().BeEmpty("nothing is installed");
+    }
+
+    [Fact]
     public async Task Waits_for_the_first_run_setup_and_then_sums_up_what_is_on_offer()
     {
         await using var app = new CoordinatorHarness(AppSettings.Default with { AutoUpdateProjects = false }).WithGameAndProject();

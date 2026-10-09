@@ -92,6 +92,8 @@ public sealed class TrayContentTests
         "The previous release could not be put back, so the game has its original files. You can install the project again.")]
     [InlineData(NoticeKind.RepairNeeded, "Repair needed for Example Game",
         "The store changed the game's files, so the project needs to be installed again.")]
+    [InlineData(NoticeKind.ChoiceNeeded, "Several projects for Example Game",
+        "Different teams made them, so one of them needs to be chosen.")]
     public void Notices_are_told_in_the_apps_words(NoticeKind kind, string title, string message) =>
         NoticeTexts.For(new AutomationNotice(kind) { Game = Game, GameName = "Example Game" }).Should().Be((title, message));
 

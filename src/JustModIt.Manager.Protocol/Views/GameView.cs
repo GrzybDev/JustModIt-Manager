@@ -21,10 +21,7 @@ public sealed record GameView
     /// <summary>The projects the player may choose for a new install: completed, with a package that fits the game.</summary>
     public IReadOnlyList<ProjectOfferView> Projects { get; init; } = [];
 
-    /// <summary>
-    /// The installed project, also once it is no longer on offer; otherwise the chosen or only one on offer. Null while
-    /// several teams offer one and the player has not chosen.
-    /// </summary>
+    /// <inheritdoc cref="MyGame.Project"/>
     public ProjectOfferView? Project { get; init; }
 
     public InstallView? Installed { get; init; }

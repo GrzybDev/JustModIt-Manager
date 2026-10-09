@@ -23,7 +23,7 @@ public sealed class GameOfferTests
 
         offer.Projects.Should().ContainSingle().Which.Project.ProjectUuid
             .Should().Be(PaperMothProject, "the other team's project is in testing");
-        offer.Choose(LanternWorksProject)!.Project.ProjectUuid.Should().Be(PaperMothProject, "a project in testing cannot be chosen");
+        offer.Choose(LanternWorksProject, [])!.Project.ProjectUuid.Should().Be(PaperMothProject, "a project in testing cannot be chosen");
         GameOffer.For(_index, Orchard, OperatingSystemKind.Windows, TargetLanguage.None).Projects
             .Should().BeEmpty("nothing is released yet");
     }

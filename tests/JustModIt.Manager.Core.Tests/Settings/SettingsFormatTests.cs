@@ -39,6 +39,7 @@ public sealed class SettingsFormatTests : IDisposable
             TrayNoticeShown = true,
             BackupLocation = BackupLocation.CustomFolder,
             CustomBackupFolder = Rooted("Backups"),
+            PreferredTeams = [Guid.Parse("5a6b7c8d-0000-4000-8000-000000000002"), Guid.Parse("5a6b7c8d-0000-4000-8000-000000000001")],
         }
             .WithGame(Witcher, preferences => preferences with
             {
@@ -172,6 +173,7 @@ public sealed class SettingsFormatTests : IDisposable
               "autoUpdateProjects": "yes",
               "creatorMode": true,
               "startWithSystem": null,
+              "preferredTeams": [ "not a team", 7, "5a6b7c8d-0000-4000-8000-000000000001", "5A6B7C8D-0000-4000-8000-000000000001" ],
               "games": {
                 "steam:400": { "autoInstall": "maybe", "isHidden": true, "projectId": 12 },
                 "not a key": { "isHidden": true },
@@ -193,6 +195,7 @@ public sealed class SettingsFormatTests : IDisposable
         settings.AutoUpdateProjects.Should().BeTrue();
         settings.StartWithSystem.Should().BeTrue();
         settings.CreatorMode.Should().BeTrue();
+        settings.PreferredTeams.Should().Equal(Guid.Parse("5a6b7c8d-0000-4000-8000-000000000001"));
         settings.Games.Keys.Should().Equal(Portal);
         settings.GetGame(Portal).Should().Be(new GamePreferences { IsHidden = true });
         settings.LibraryFolders.Should().BeEmpty();
@@ -201,7 +204,7 @@ public sealed class SettingsFormatTests : IDisposable
     [Fact]
     public async Task Null_collections_load_empty()
     {
-        _directory.Write("settings.json", """{ "games": null, "libraryFolders": null, "creatorMode": true }""");
+        _directory.Write("settings.json", """{ "games": null, "libraryFolders": null, "preferredTeams": null, "creatorMode": true }""");
 
         (await LoadAsync()).Should().Be(AppSettings.Default with { CreatorMode = true });
     }

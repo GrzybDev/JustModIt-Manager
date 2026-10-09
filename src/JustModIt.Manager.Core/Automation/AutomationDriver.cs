@@ -74,7 +74,7 @@ internal sealed class AutomationDriver : IAsyncDisposable
             {
                 History = decision.Reason == AutomationReason.ReapplyOff
                     ? History.RecordRepairAnnouncement(game.Key, game.Game?.BuildId)
-                    : History.RecordAnnouncement(game.Key, decision.ReleaseId);
+                    : decision.Announces.Aggregate(History, (history, release) => history.RecordAnnouncement(game.Key, release));
                 announced.Add((game, decision));
             }
             else if (decision.StartsJob && RequestFor(game, decision) is { } request)
@@ -159,6 +159,7 @@ internal sealed class AutomationDriver : IAsyncDisposable
     {
         AutomationReason.AutoUpdateOff => NoticeKind.UpdateAvailable,
         AutomationReason.ReapplyOff => NoticeKind.RepairNeeded,
+        AutomationReason.NoProjectChosen => NoticeKind.ChoiceNeeded,
         _ => NoticeKind.Available,
     };
 

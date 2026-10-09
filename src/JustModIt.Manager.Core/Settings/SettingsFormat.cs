@@ -26,6 +26,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string TrayNoticeShown = "trayNoticeShown";
     private const string BackupLocationName = "backupLocation";
     private const string CustomBackupFolder = "customBackupFolder";
+    private const string PreferredTeams = "preferredTeams";
     private const string Games = "games";
     private const string LibraryFolders = "libraryFolders";
 
@@ -49,7 +50,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     public IReadOnlySet<string> KnownProperties { get; } = FrozenSet.Create(StringComparer.Ordinal,
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
         AutoUpdateApp, ShowNotifications, BlurAdultContent, CreatorMode, OnboardingCompleted, TrayNoticeShown,
-        BackupLocationName, CustomBackupFolder, Games, LibraryFolders, LegacyShowAdultContent, LegacyAutoInstallProjects,
+        BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders, LegacyShowAdultContent, LegacyAutoInstallProjects,
         LegacyAutoUpdateProjects);
 
     public AppSettings Read(JsonElement root, int version)
@@ -81,6 +82,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             TrayNoticeShown = root.GetBooleanOrNull(TrayNoticeShown) ?? defaults.TrayNoticeShown,
             BackupLocation = backupLocation,
             CustomBackupFolder = customBackupFolder,
+            PreferredTeams = ReadTeams(root.GetOrNull(PreferredTeams, JsonValueKind.Array)),
             Games = ReadGames(root.GetOrNull(Games, JsonValueKind.Object)),
             LibraryFolders = ReadLibraryFolders(root.GetOrNull(LibraryFolders, JsonValueKind.Array)),
         };
@@ -103,6 +105,13 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteBoolean(TrayNoticeShown, document.TrayNoticeShown);
         writer.WriteString(BackupLocationName, document.BackupLocation.ToString());
         WriteIfSet(writer, CustomBackupFolder, document.CustomBackupFolder);
+        writer.WriteStartArray(PreferredTeams);
+        foreach (var team in document.PreferredTeams)
+        {
+            writer.WriteStringValue(team);
+        }
+
+        writer.WriteEndArray();
 
         writer.WriteStartObject(Games);
         // Sorted, so a file changes only where a game changed.
@@ -166,6 +175,14 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
 
         return new ValueDictionary<GameKey, GamePreferences>(result.ToImmutable());
     }
+
+    private static ValueList<Guid> ReadTeams(JsonElement? teams) =>
+        teams is { } entries
+            ? [.. entries.EnumerateArray()
+                .Select(team => team.ValueKind == JsonValueKind.String && Guid.TryParse(team.GetString(), out var uuid) ? uuid : Guid.Empty)
+                .Where(uuid => uuid != Guid.Empty)
+                .Distinct()]
+            : [];
 
     private static ValueList<LibraryFolder> ReadLibraryFolders(JsonElement? folders)
     {

@@ -78,6 +78,7 @@ internal static class TestStates
         OnboardingCompleted = true,
         BackupLocation = BackupLocation.CustomFolder,
         CustomBackupFolder = @"E:\Backups",
+        PreferredTeams = [Guid.Parse("77777777-0000-4000-8000-000000000001")],
     };
 
     public static JobSnapshot RunningJob { get; } = new()

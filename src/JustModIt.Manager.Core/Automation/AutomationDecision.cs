@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Collections;
 
 namespace JustModIt.Manager.Core.Automation;
 
@@ -31,7 +32,7 @@ public enum AutomationReason
 
     UpToDate,
 
-    /// <summary>Several teams offer a project for the game and the player has not chosen one.</summary>
+    /// <summary>Several teams offer a project for the game, and the player neither chose one nor prefers any of the teams.</summary>
     NoProjectChosen,
 
     AutoInstallOff,
@@ -62,6 +63,11 @@ public sealed record AutomationDecision(AutomationAction Action, AutomationReaso
     public Guid ReleaseId { get; init; }
 
     public ReleaseVariant? Variant { get; init; }
+
+    /// <summary>
+    /// The releases an announcement tells of, each only once: the one on offer, or every team's while the player chooses.
+    /// </summary>
+    public ValueList<Guid> Announces { get; init; }
 
     public bool StartsJob => Action is AutomationAction.Install or AutomationAction.Update or AutomationAction.Repair;
 

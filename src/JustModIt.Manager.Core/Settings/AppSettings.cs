@@ -69,6 +69,12 @@ public sealed record AppSettings
     /// </summary>
     public string? CustomBackupFolder { get; init; }
 
+    /// <summary>
+    /// Teams by uuid, most preferred first, whose project becomes a game's project, which the automation may install, when
+    /// several teams offer one and the player chose none.
+    /// </summary>
+    public ValueList<Guid> PreferredTeams { get; init; }
+
     /// <summary>Only games with choices other than <see cref="GamePreferences.Default"/>.</summary>
     public ValueDictionary<GameKey, GamePreferences> Games { get; init; }
 

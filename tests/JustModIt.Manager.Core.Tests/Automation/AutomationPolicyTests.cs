@@ -80,11 +80,13 @@ public sealed class AutomationPolicyTests
     }
 
     [Fact]
-    public void Leaves_the_choice_between_teams_to_the_player()
+    public void Tells_once_of_a_choice_between_teams_and_leaves_it_to_the_player()
     {
         var game = Game(One) with { Project = null };
 
-        Decide(game).Reason.Should().Be(AutomationReason.NoProjectChosen);
+        Decide(game).Should().BeEquivalentTo(new { Action = AutomationAction.Announce, Reason = AutomationReason.NoProjectChosen });
+        Decide(game, history: AutomationHistory.Empty.RecordAnnouncement(TestProjects.Game, ReleaseOne)).Reason
+            .Should().Be(AutomationReason.AlreadyAnnounced);
     }
 
     [Fact]

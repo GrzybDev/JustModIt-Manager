@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 
@@ -53,7 +54,7 @@ public static class AutomationPolicy
     {
         if (game.Project is not { Selection: { Release: { } release } selection })
         {
-            return AutomationDecision.Skip(AutomationReason.NoProjectChosen);
+            return AnnounceChoice(game, history);
         }
 
         var (variant, _) = selection.Choose(game.Preferences.VariantName);
@@ -74,7 +75,21 @@ public static class AutomationPolicy
     private static AutomationDecision Announce(MyGame game, Release release, AutomationReason reason, AutomationHistory history) =>
         history.WasAnnounced(game.Key, release.Uuid)
             ? AutomationDecision.Skip(AutomationReason.AlreadyAnnounced)
-            : new AutomationDecision(AutomationAction.Announce, reason) { Release = release, ReleaseId = release.Uuid };
+            : new AutomationDecision(AutomationAction.Announce, reason)
+            {
+                Release = release,
+                ReleaseId = release.Uuid,
+                Announces = [release.Uuid],
+            };
+
+    // The choice between teams is the player's alone; the automation only asks for it.
+    private static AutomationDecision AnnounceChoice(MyGame game, AutomationHistory history)
+    {
+        ValueList<Guid> releases = [.. game.Projects.Select(offer => offer.Selection.Release?.Uuid).OfType<Guid>()];
+        return releases.All(release => history.WasAnnounced(game.Key, release))
+            ? AutomationDecision.Skip(AutomationReason.AlreadyAnnounced)
+            : new AutomationDecision(AutomationAction.Announce, AutomationReason.NoProjectChosen) { Announces = releases };
+    }
 
     // Updates and repairs keep the installed variant: another one would swap e.g. the player's voice-over for text only,
     // while the one installed may just not be ready yet in the new release.

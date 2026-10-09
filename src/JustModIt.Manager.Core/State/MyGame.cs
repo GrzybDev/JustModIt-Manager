@@ -23,8 +23,8 @@ public sealed record MyGame
     public IReadOnlyList<ProjectOffer> Projects { get; init; } = [];
 
     /// <summary>
-    /// The installed project as the catalogue has it now, also once it is no longer on offer; otherwise the chosen or only
-    /// one on offer. Null while several teams offer one and the player has not chosen.
+    /// The installed project as the catalogue has it now, also once it is no longer on offer; otherwise the one on offer
+    /// that <see cref="GameOffer.Choose"/> takes. Null while several teams offer one and none of them is chosen or preferred.
     /// </summary>
     public ProjectOffer? Project { get; init; }
 

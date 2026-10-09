@@ -152,6 +152,12 @@
   <data name="NoticeAvailableOfficial" xml:space="preserve">
     <value>It already comes in your language, but you can also install a project for it.</value>
   </data>
+  <data name="NoticeChoiceNeededTitle" xml:space="preserve">
+    <value>Several projects for {game}</value>
+  </data>
+  <data name="NoticeChoiceNeeded" xml:space="preserve">
+    <value>Different teams made them, so one of them needs to be chosen.</value>
+  </data>
   <data name="NoticeAvailableSummaryTitle" xml:space="preserve">
     <value>New for your games</value>
   </data>

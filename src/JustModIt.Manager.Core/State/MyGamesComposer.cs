@@ -86,7 +86,9 @@ public static class MyGamesComposer
         var current = game is { State: GameInstallState.Installed } && running.Count > 0
             ? game with { State = GameInstallState.Running, Reason = GameStateReason.GameRunning }
             : game;
-        var project = record is not null ? InstalledProject(input.Index, offer, record, key, game) : offer.Choose(ParseProject(preferences));
+        var project = record is not null
+            ? InstalledProject(input.Index, offer, record, key, game)
+            : offer.Choose(ParseProject(preferences), input.Settings.PreferredTeams);
         var job = input.Jobs.GetValueOrDefault(key);
         RepairReason? repair = record is not null && input.Repairs.TryGetValue(record.Id, out var found) ? found : null;
         var status = MyGameStatusRules.Resolve(current, record, project, repair, job is not null,

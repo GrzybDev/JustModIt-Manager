@@ -17,11 +17,20 @@ public sealed record ProjectOffer(IndexEntry Project, ReleaseSelection Selection
 public sealed record GameOffer(GameKey Game, IReadOnlyList<ProjectOffer> Projects, bool OffersTargetLanguage)
 {
     /// <summary>
-    /// The project to install: the chosen one while it is on offer, otherwise the only one. Null while several teams offer
-    /// one and nobody chose, which the automation must not decide.
+    /// The project to install: the chosen one while it is on offer, otherwise the only one, otherwise the one of the most
+    /// preferred team that offers one.
     /// </summary>
-    public ProjectOffer? Choose(Guid? preferredProject) =>
-        Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == preferredProject) ?? (Projects.Count == 1 ? Projects[0] : null);
+    /// <param name="preferredProject">The project the player chose for the game; null when none.</param>
+    /// <param name="preferredTeams">The teams the player prefers, the most preferred first.</param>
+    /// <returns>Null while several teams offer one and none is chosen or preferred, which the automation must not decide.</returns>
+    public ProjectOffer? Choose(Guid? preferredProject, IReadOnlyList<Guid> preferredTeams)
+    {
+        ArgumentNullException.ThrowIfNull(preferredTeams);
+        return Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == preferredProject)
+            ?? (Projects.Count == 1 ? Projects[0] : null)
+            ?? preferredTeams.Select(team => Projects.FirstOrDefault(offer => offer.Project.Team.Uuid == team))
+                .FirstOrDefault(offer => offer is not null);
+    }
 
     /// <summary>What the index offers the game.</summary>
     /// <param name="index">The installable index.</param>

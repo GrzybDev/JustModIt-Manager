@@ -33,6 +33,9 @@ public sealed record SettingsView
     /// <summary>The folder the player picked; kept while another location is chosen, so the player can go back to it.</summary>
     public string? CustomBackupFolder { get; init; }
 
+    /// <inheritdoc cref="AppSettings.PreferredTeams"/>
+    public IReadOnlyList<Guid> PreferredTeams { get; init; } = [];
+
     /// <summary>Takes the values the window shows from the settings.</summary>
     /// <param name="settings">The current settings.</param>
     public static SettingsView From(AppSettings settings)
@@ -52,6 +55,7 @@ public sealed record SettingsView
             OnboardingCompleted = settings.OnboardingCompleted,
             BackupLocation = settings.BackupLocation,
             CustomBackupFolder = settings.CustomBackupFolder,
+            PreferredTeams = [.. settings.PreferredTeams],
         };
     }
 
@@ -74,6 +78,7 @@ public sealed record SettingsView
             OnboardingCompleted = OnboardingCompleted,
             BackupLocation = BackupLocation,
             CustomBackupFolder = CustomBackupFolder,
+            PreferredTeams = [.. PreferredTeams.Distinct()],
         };
     }
 }

@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
@@ -101,7 +103,7 @@ internal static class TestProjects
             Slug = "example-project",
             Name = "Example Project",
             Game = new GameSummary { Uuid = Guid.Parse("66666666-0000-4000-8000-000000000001"), Slug = "example-game", Name = "Example Game" },
-            Team = new Team { Uuid = Guid.Parse("77777777-0000-4000-8000-000000000001"), Slug = teamSlug, Name = "Lantern Team" },
+            Team = new Team { Uuid = TeamOf(teamSlug), Slug = teamSlug, Name = "Lantern Team" },
             CoverImage = "https://images.example.com/covers/example-game.jpg",
             Status = Completed,
             StorefrontLinks = [Link(key, languages)],
@@ -113,6 +115,8 @@ internal static class TestProjects
     public static IndexEntry Entry(Guid? project = null, Release? release = null, GameKey? game = null, string teamSlug = "lantern-team",
         params string[] languages) =>
         IndexEntry.From(Page(project, release, game, teamSlug, languages));
+
+    public static Guid TeamOf(string slug) => new(SHA256.HashData(Encoding.UTF8.GetBytes(slug)).AsSpan(0, 16));
 
     public static ProjectLocator Locator(Guid? project = null, string teamSlug = "lantern-team") =>
         new("example-game", teamSlug, project ?? Project);
