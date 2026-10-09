@@ -79,5 +79,5 @@ public static class ReleaseUpdates
     private static bool IsOlder(Release release, InstalledRelease installed) =>
         release.Version > 0 && installed.ReleaseVersion > 0
             ? release.Version < installed.ReleaseVersion
-            : release.PublishedAt < installed.PublishedAt;
+            : release.FirstPublishedAt < installed.PublishedAt;
 }

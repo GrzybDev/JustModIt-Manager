@@ -357,7 +357,6 @@ public sealed class CatalogueApiClientTests
         page.Credits.Should().ContainSingle().Which.User!.Avatar.Should().BeEmpty();
         var release = page.PublicRelease!;
         release.FirstPublishedAt.Should().BeNull();
-        release.PublishedAt.Should().Be(release.CreatedAt);
         release.Files[0].Mirrors.Should().BeEmpty();
         release.Files[3].Size.Should().BeNull();
         release.Files[4].OperatingSystems.Should().Equal(OperatingSystemKind.Unknown);

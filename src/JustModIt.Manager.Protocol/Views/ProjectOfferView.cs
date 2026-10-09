@@ -111,19 +111,33 @@ public sealed record ProjectStatusView(Guid Id, string Name)
     }
 }
 
+public enum ReleaseDateKind
+{
+    Released,
+    Updated,
+}
+
 public sealed record ReleaseView(Guid Id, int Version)
 {
     /// <summary>The team's own name for the release; empty when it gave none.</summary>
     public string Name { get; init; } = "";
 
-    public DateTimeOffset? PublishedAt { get; init; }
+    /// <summary>As the site shows it: when the release came out, or when it last changed if the site does not know.</summary>
+    public DateTimeOffset? Date { get; init; }
+
+    public ReleaseDateKind DateKind { get; init; }
 
     /// <summary>Maps a project's public release.</summary>
     /// <param name="release">The release as the project's page holds it.</param>
     public static ReleaseView From(Release release)
     {
         ArgumentNullException.ThrowIfNull(release);
-        return new ReleaseView(release.Uuid, release.Version) { Name = release.Name, PublishedAt = release.PublishedAt };
+        return new ReleaseView(release.Uuid, release.Version)
+        {
+            Name = release.Name,
+            Date = release.FirstPublishedAt ?? release.UpdatedAt,
+            DateKind = release.FirstPublishedAt is null ? ReleaseDateKind.Updated : ReleaseDateKind.Released,
+        };
     }
 }
 

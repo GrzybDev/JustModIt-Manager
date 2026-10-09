@@ -33,6 +33,7 @@ public sealed record Release
     /// <summary>Hidden by staff, so offered to nobody; <see cref="IsPublic"/> keeps its value for when it is restored.</summary>
     public bool IsHidden { get; init; }
 
+    /// <summary>Null when the site does not know, which never means the release's creation.</summary>
     public DateTimeOffset? FirstPublishedAt { get; init; }
 
     /// <summary>Includes files whose upload has not finished; see <see cref="ReleaseFile.IsReady"/>.</summary>
@@ -44,10 +45,6 @@ public sealed record Release
     public DateTimeOffset? CreatedAt { get; init; }
 
     public DateTimeOffset? UpdatedAt { get; init; }
-
-    /// <summary>When the release was first published, or created when the backend does not say.</summary>
-    [JsonIgnore]
-    public DateTimeOffset? PublishedAt => FirstPublishedAt ?? CreatedAt;
 }
 
 /// <summary>

@@ -316,7 +316,7 @@ internal sealed partial class JobPipeline(
             ReleaseId = release.Uuid.ToString("D"),
             ReleaseLabel = release.NameRaw.Length > 0 ? release.NameRaw : null,
             ReleaseVersion = release.Version > 0 ? release.Version : null,
-            ReleasePublishedAt = release.PublishedAt,
+            ReleasePublishedAt = release.FirstPublishedAt,
             ReleaseFileId = file.Uuid.ToString("D"),
             VariantName = variant.Name,
             CoverUrl = CoverOf(detail),

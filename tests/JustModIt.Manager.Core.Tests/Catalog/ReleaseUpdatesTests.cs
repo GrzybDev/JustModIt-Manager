@@ -56,8 +56,11 @@ public sealed class ReleaseUpdatesTests
     [Fact]
     public void Never_offers_an_older_release_made_public_again()
     {
+        var dated = _project with { Releases = [_project.Releases[0] with { FirstPublishedAt = Published }] };
+
         var byNumber = Check(new InstalledRelease(Guid.NewGuid(), 3, Published.AddDays(-1), Guid.NewGuid(), "Text only"));
-        var byDate = Check(new InstalledRelease(Guid.NewGuid(), 0, Published.AddDays(1), Guid.NewGuid(), "Text only"));
+        var byDate = ReleaseUpdates.Check(new InstalledRelease(Guid.NewGuid(), 0, Published.AddDays(1), Guid.NewGuid(), "Text only"),
+            ReleaseSelector.Select(dated, OnSteam, OperatingSystemKind.Windows));
 
         byNumber.Should().Be(new UpdateCheck(UpdateState.RolledBack));
         byDate.Should().Be(new UpdateCheck(UpdateState.RolledBack));

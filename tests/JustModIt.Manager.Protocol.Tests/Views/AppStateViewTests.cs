@@ -66,11 +66,19 @@ public sealed class AppStateViewTests
         offer.Team.Name.Should().Be("Lantern Team");
         offer.Status!.IsCompleted.Should().BeTrue();
         offer.Types.Should().Equal("Text");
-        offer.Release.Should().Be(new ReleaseView(ReleaseTwo, 2) { Name = "Autumn patch", PublishedAt = Now.AddDays(-1) });
+        offer.Release.Should().Be(new ReleaseView(ReleaseTwo, 2) { Name = "Autumn patch", Date = Now.AddDays(-1), DateKind = ReleaseDateKind.Released });
         offer.DefaultVariant.Should().Be("Text only");
         offer.Variants.Select(variant => (variant.Name, variant.Package?.FileId, variant.Unavailable))
             .Should().Equal(("Text only", FileTwo, null), ("Text and voice", null, SelectionUnavailability.OtherSystems));
         offer.Variants[0].Package!.Format.Should().Be(PackageFormat.Manifest);
+    }
+
+    [Fact]
+    public void A_release_without_a_known_publication_shows_when_it_last_changed_never_when_it_was_created()
+    {
+        var release = new Release { Uuid = ReleaseTwo, Version = 2, CreatedAt = Now.AddYears(-1), UpdatedAt = Now.AddDays(-3) };
+
+        ReleaseView.From(release).Should().Be(new ReleaseView(ReleaseTwo, 2) { Date = Now.AddDays(-3), DateKind = ReleaseDateKind.Updated });
     }
 
     [Fact]
