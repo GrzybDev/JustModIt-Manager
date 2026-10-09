@@ -45,7 +45,10 @@ public enum CatalogueOrder
     Alphabetical,
 }
 
-/// <summary>What the player looks for in the catalogue. Project filters match a game when one of its projects fits them all.</summary>
+/// <summary>
+/// What the player looks for in the catalogue: the status, type and store filters match a game when one of its listed
+/// projects fits them all, while the team filter may match another of its projects.
+/// </summary>
 public sealed record CatalogueQuery
 {
     /// <summary>Words that the game's name, or a project's or team's name, must all contain, ignoring case and diacritics.</summary>
@@ -61,6 +64,9 @@ public sealed record CatalogueQuery
     public Guid? StatusUuid { get; init; }
 
     public Guid? TypeUuid { get; init; }
+
+    /// <summary>A store the project links the game to (<see cref="StorefrontPlatform.Uuid"/>).</summary>
+    public Guid? StorefrontUuid { get; init; }
 
     public Guid? TeamUuid { get; init; }
 
@@ -138,7 +144,7 @@ public sealed class CatalogueListing
             .Select((listed, index) => (Listed: listed, Texts: _searchTexts[index]))
             .Where(candidate => words.Length == 0 || SearchText.Matches(words, candidate.Texts))
             .Select(candidate => candidate.Listed)
-            .Where(listed => Fits(listed.Game, query) && listed.Projects.Any(project => Fits(project, query)));
+            .Where(listed => Fits(listed, query));
         return query.Order switch
         {
             CatalogueOrder.Popular => [.. found.OrderByDescending(listed => listed.Game.TotalDownloads ?? 0)
@@ -146,7 +152,7 @@ public sealed class CatalogueListing
             CatalogueOrder.Alphabetical => [.. found.OrderBy(listed => listed.Game.Name, names)],
             // Descending puts games without a date last.
             _ => [.. found.OrderByDescending(listed => listed.Game.LatestReleaseAt)
-                .ThenByDescending(listed => listed.Projects.Where(IsListed).Max(project => project.FirstPublishedAt))
+                .ThenByDescending(listed => CardProjects(listed, query).Max(project => project.FirstPublishedAt))
                 .ThenBy(listed => listed.Game.Name, names)],
         };
     }
@@ -154,13 +160,19 @@ public sealed class CatalogueListing
     // The catalogue's lists leave abandoned projects out, though a game's own project list keeps them.
     private static bool IsListed(ProjectSummary project) => project.Status?.IsAbandoned != true;
 
-    private static bool Fits(GameSummary game, CatalogueQuery query) =>
-        (query.PlatformUuid is not { } platform || game.Platform?.Uuid == platform)
-        && (query.GenreUuid is not { } genre || game.Genres.Any(candidate => candidate.Uuid == genre))
-        && (query.IncludeAdult || !game.IsAdult);
+    private static bool Fits(ListedGame listed, CatalogueQuery query)
+    {
+        var game = listed.Game;
+        return (query.PlatformUuid is not { } platform || game.Platform?.Uuid == platform)
+            && (query.GenreUuid is not { } genre || game.Genres.Any(candidate => candidate.Uuid == genre))
+            && (query.IncludeAdult || !game.IsAdult)
+            && CardProjects(listed, query).Any()
+            && (query.TeamUuid is not { } team || listed.Projects.Any(project => IsListed(project) && project.Team.Uuid == team));
+    }
 
-    private static bool Fits(ProjectSummary project, CatalogueQuery query) =>
-        (query.StatusUuid is not { } status || project.Status?.Uuid == status)
-        && (query.TypeUuid is not { } type || project.Types.Any(candidate => candidate.Uuid == type))
-        && (query.TeamUuid is not { } team || project.Team.Uuid == team);
+    private static IEnumerable<ProjectSummary> CardProjects(ListedGame listed, CatalogueQuery query) =>
+        listed.Projects.Where(project => IsListed(project)
+            && (query.StatusUuid is not { } status || project.Status?.Uuid == status)
+            && (query.TypeUuid is not { } type || project.Types.Any(candidate => candidate.Uuid == type))
+            && (query.StorefrontUuid is not { } store || project.StorefrontLinks.Any(link => link.Platform?.Uuid == store)));
 }

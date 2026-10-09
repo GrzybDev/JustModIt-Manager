@@ -81,7 +81,7 @@ public sealed record CatalogueProjectView(Guid Id, string Slug, string Name, Tea
 /// <param name="Name">The value's name in the site's language.</param>
 public sealed record CatalogueOptionView(Guid Id, string Name);
 
-/// <summary>The values the catalogue's filters offer.</summary>
+/// <summary>The values the catalogue's filters offer, in the order the site lists them: higher positions first.</summary>
 public sealed record CatalogueFiltersView
 {
     public IReadOnlyList<CatalogueOptionView> Platforms { get; init; } = [];
@@ -92,6 +92,8 @@ public sealed record CatalogueFiltersView
 
     public IReadOnlyList<CatalogueOptionView> Types { get; init; } = [];
 
+    public IReadOnlyList<CatalogueOptionView> Stores { get; init; } = [];
+
     public IReadOnlyList<CatalogueOptionView> Teams { get; init; } = [];
 
     /// <summary>Maps the site's lists of platforms, genres, statuses, types, stores and teams.</summary>
@@ -101,10 +103,11 @@ public sealed record CatalogueFiltersView
         ArgumentNullException.ThrowIfNull(reference);
         return new CatalogueFiltersView
         {
-            Platforms = [.. reference.Platforms.OrderBy(item => item.Position).Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
-            Genres = [.. reference.Genres.OrderBy(item => item.Position).Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
-            Statuses = [.. reference.Statuses.OrderBy(item => item.Position).Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
-            Types = [.. reference.Types.OrderBy(item => item.Position).Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
+            Platforms = [.. reference.Platforms.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
+            Genres = [.. reference.Genres.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
+            Statuses = [.. reference.Statuses.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
+            Types = [.. reference.Types.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
+            Stores = [.. reference.StorefrontPlatforms.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
             Teams = [.. reference.Teams.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
         };
     }

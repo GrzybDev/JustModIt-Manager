@@ -11,6 +11,7 @@ public sealed class CatalogueListingTests : IDisposable
     private static readonly Guid Testing = Guid.Parse("968ad28b-0000-4000-8000-000000000001");
     private static readonly Guid Voice = Guid.Parse("fae573dd-0000-4000-8000-000000000001");
     private static readonly Guid PaperMoth = Guid.Parse("53c4c7cd-0000-4000-8000-000000000002");
+    private static readonly Guid Gog = Guid.Parse("bad65a0d-0000-4000-8000-000000000001");
 
     private static readonly StringComparer Names = StringComparer.Create(CultureInfo.GetCultureInfo("pl-PL"), ignoreCase: true);
 
@@ -77,9 +78,30 @@ public sealed class CatalogueListingTests : IDisposable
         Slugs(listing.Search(new CatalogueQuery { GenreUuid = Adventure }, Names)).Should().Equal("clockwork-tides", "starlight-harbor");
         Slugs(listing.Search(new CatalogueQuery { StatusUuid = Testing }, Names)).Should().Equal("clockwork-tides");
         Slugs(listing.Search(new CatalogueQuery { TypeUuid = Voice }, Names)).Should().Equal("starlight-harbor");
+        Slugs(listing.Search(new CatalogueQuery { StorefrontUuid = Gog }, Names)).Should().Equal("starlight-harbor");
         Slugs(listing.Search(new CatalogueQuery { TeamUuid = PaperMoth, GenreUuid = Adventure }, Names)).Should().Equal("clockwork-tides");
-        Slugs(listing.Search(new CatalogueQuery { StatusUuid = Testing, TeamUuid = PaperMoth }, Names)).Should().BeEmpty(
-            "one project must fit every project filter");
+    }
+
+    [Fact]
+    public void Status_type_and_store_must_fit_one_listed_project_while_the_team_may_have_made_another()
+    {
+        var steam = new StorefrontPlatform { Uuid = Guid.NewGuid(), Name = "Steam" };
+        var gog = new StorefrontPlatform { Uuid = Guid.NewGuid(), Name = "GOG" };
+        var completed = new ProjectStatus { Uuid = Guid.NewGuid(), Name = "Completed" };
+        var abandoned = new ProjectStatus { Uuid = Guid.NewGuid(), Name = "Abandoned", IsAbandoned = true };
+        var lantern = new TeamReference { Uuid = Guid.NewGuid(), Slug = "lantern", Name = "Lantern" };
+        var moth = new TeamReference { Uuid = Guid.NewGuid(), Slug = "moth", Name = "Moth" };
+        var listing = new CatalogueListing(DateTimeOffset.UnixEpoch,
+        [
+            Listed("Mixed", Project(status: completed, team: lantern, store: steam), Project(team: moth, store: gog)),
+            Listed("Left behind", Project(status: completed, team: moth, store: steam), Project(status: abandoned, team: lantern, store: gog)),
+        ], new CatalogueReference());
+
+        GameNames(listing, new CatalogueQuery { StatusUuid = completed.Uuid, StorefrontUuid = gog.Uuid }).Should().BeEmpty();
+        GameNames(listing, new CatalogueQuery { StorefrontUuid = gog.Uuid }).Should().Equal("Mixed");
+        GameNames(listing, new CatalogueQuery { TeamUuid = lantern.Uuid }).Should().Equal("Mixed");
+        GameNames(listing, new CatalogueQuery { StatusUuid = completed.Uuid, TeamUuid = moth.Uuid, Order = CatalogueOrder.Alphabetical })
+            .Should().Equal("Left behind", "Mixed");
     }
 
     [Fact]
@@ -111,13 +133,13 @@ public sealed class CatalogueListingTests : IDisposable
         var listing = new CatalogueListing(DateTimeOffset.UnixEpoch,
         [
             Listed("Mgła", Project(new DateTimeOffset(2026, 8, 10, 0, 0, 0, TimeSpan.Zero))),
-            Listed("Lato", Project(null)),
+            Listed("Lato", Project()),
             Listed("Łąka", Project(new DateTimeOffset(2026, 8, 10, 0, 0, 0, TimeSpan.Zero)),
-                Project(new DateTimeOffset(2026, 8, 20, 0, 0, 0, TimeSpan.Zero)) with { Status = abandoned }),
+                Project(new DateTimeOffset(2026, 8, 20, 0, 0, 0, TimeSpan.Zero), abandoned)),
             Listed("Kra", Project(new DateTimeOffset(2026, 8, 12, 0, 0, 0, TimeSpan.Zero))),
         ], new CatalogueReference());
 
-        listing.Search(new CatalogueQuery(), Names).Select(listed => listed.Game.Name).Should().Equal("Kra", "Łąka", "Mgła", "Lato");
+        GameNames(listing, new CatalogueQuery()).Should().Equal("Kra", "Łąka", "Mgła", "Lato");
     }
 
     [Theory]
@@ -134,12 +156,18 @@ public sealed class CatalogueListingTests : IDisposable
     private static ListedGame Listed(string name, params ProjectSummary[] projects) =>
         new(new GameSummary { Uuid = Guid.NewGuid(), Slug = name, Name = name }, projects);
 
-    private static ProjectSummary Project(DateTimeOffset? firstPublishedAt) => new()
+    private static IEnumerable<string> GameNames(CatalogueListing listing, CatalogueQuery query) =>
+        listing.Search(query, Names).Select(listed => listed.Game.Name);
+
+    private static ProjectSummary Project(DateTimeOffset? firstPublishedAt = null, ProjectStatus? status = null,
+        TeamReference? team = null, StorefrontPlatform? store = null) => new()
     {
         Uuid = Guid.NewGuid(),
         Slug = "example-project",
         Name = "Example Project",
-        Team = new TeamReference { Uuid = Guid.NewGuid(), Slug = "example-team", Name = "Example Team" },
+        Team = team ?? new TeamReference { Uuid = Guid.NewGuid(), Slug = "example-team", Name = "Example Team" },
+        Status = status,
+        StorefrontLinks = store is null ? [] : [new StorefrontLink { Uuid = Guid.NewGuid(), Platform = store }],
         FirstPublishedAt = firstPublishedAt,
     };
 }
