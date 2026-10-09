@@ -13,9 +13,12 @@ namespace JustModIt.Manager.Core.Catalog;
 public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
 {
     private static readonly MediaTypeWithQualityHeaderValue JsonMediaType = new("application/json");
+    private static readonly string[] NeededScopes = ["catalog.read", "site.read", "releases.download"];
 
     private readonly HttpClient _http;
     private readonly Uri _apiAddress;
+    private readonly bool _hasKey;
+    private readonly ApiKeyStatus _keyStatus = new();
     private readonly TimeProvider _time;
 
     /// <summary>Creates a client with pooled connections of its own.</summary>
@@ -27,9 +30,13 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(time);
         _apiAddress = options.ApiAddress;
+        _hasKey = options.ApiKey is not null;
         _time = time;
-        _http = CatalogueHttp.CreateApiClient(options, time, connection);
+        _http = CatalogueHttp.CreateApiClient(options, _keyStatus, time, connection);
     }
+
+    /// <summary>Completes the first time the site refuses the API key, which is dropped then; without a key, never.</summary>
+    public Task<ApiKeyRefusal> KeyRefused => _keyStatus.Refused;
 
     private static CatalogueJsonContext Json => CatalogueJsonContext.Default;
 
@@ -95,6 +102,34 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
             && (url.Scheme == Uri.UriSchemeHttps || (url.Scheme == Uri.UriSchemeHttp && _apiAddress.Scheme == Uri.UriSchemeHttp))
                 ? url
                 : throw new CatalogueException(CatalogueErrorReason.InvalidResponse, $"GET {path} returned an unusable download address.");
+    }
+
+    /// <summary>
+    /// Drops the API key when the site says it lacks a scope the app needs; a site that cannot say leaves the key, since
+    /// every request still drops it when refused.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels the check.</param>
+    public async Task CheckKeyAsync(CancellationToken cancellationToken)
+    {
+        if (!_hasKey || _keyStatus.IsRefused)
+        {
+            return;
+        }
+
+        ApiKeyDetails details;
+        try
+        {
+            details = await GetAsync("api-keys/v1/self/", Json.ApiKeyDetails, cancellationToken).ConfigureAwait(false);
+        }
+        catch (CatalogueException)
+        {
+            return;
+        }
+
+        if (!NeededScopes.All(details.Scopes.Contains))
+        {
+            _keyStatus.Refuse(ApiKeyRefusal.NoAccess);
+        }
     }
 
     public void Dispose() => _http.Dispose();

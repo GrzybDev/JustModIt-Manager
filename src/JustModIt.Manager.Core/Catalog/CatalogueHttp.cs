@@ -32,7 +32,13 @@ public static class CatalogueHttp
         return client;
     }
 
-    internal static HttpClient CreateApiClient(CatalogueApiOptions options, TimeProvider time, HttpMessageHandler? connection)
+    /// <summary>A client for the API, which repeats requests that may pass and sends the key when the build has one.</summary>
+    /// <param name="options">The API's settings: the User-Agent and the optional key.</param>
+    /// <param name="keyStatus">Records a refusal of the key, which drops it for later requests.</param>
+    /// <param name="time">The clock for attempt timeouts and retry delays.</param>
+    /// <param name="connection">Replaces the network connection, e.g. in tests; null for the real one.</param>
+    internal static HttpClient CreateApiClient(CatalogueApiOptions options, ApiKeyStatus keyStatus, TimeProvider time,
+        HttpMessageHandler? connection)
     {
         HttpMessageHandler handler = new CatalogueRetryHandler(time)
         {
@@ -40,7 +46,7 @@ public static class CatalogueHttp
         };
         if (options.ApiKey is { } key)
         {
-            handler = new ApiKeyHandler(key) { InnerHandler = handler };
+            handler = new ApiKeyHandler(key, keyStatus) { InnerHandler = handler };
         }
 
         // The retry handler times every attempt; a total timeout here would cut its retries short.

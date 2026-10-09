@@ -106,7 +106,8 @@ public static class AgentServices
         services.AddSingleton<ILibraryService>(provider => provider.GetRequiredService<LibraryService>());
         services.AddSingleton<IGameProbe>(provider => provider.GetRequiredService<LibraryService>());
 
-        services.AddSingleton<ICatalogueApi>(provider => new CatalogueApiClient(options.Api, provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton(provider => new CatalogueApiClient(options.Api, provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<ICatalogueApi>(provider => provider.GetRequiredService<CatalogueApiClient>());
         services.AddSingleton(provider => new CatalogueCache(locations.CatalogueCacheDirectory, provider.GetRequiredService<TimeProvider>(),
             provider.GetRequiredService<ILogger<CatalogueCache>>()));
         services.AddSingleton<ProjectPageCache>();
@@ -161,6 +162,7 @@ public static class AgentServices
         services.AddSingleton<IManagedHeap>(ManagedHeap.Instance);
         services.AddSingleton(MemoryTrimSchedule.Default);
         services.AddSingleton<IAgentService, MemoryTrimmer>();
+        services.AddSingleton<IAgentService, ApiKeyCheck>();
         services.AddSingleton<AgentRuntime>();
     }
 
