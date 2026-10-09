@@ -47,6 +47,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     private readonly ILogger<StateCoordinator> _logger;
     private readonly Channel<Trigger> _triggers = Channel.CreateUnbounded<Trigger>(new UnboundedChannelOptions { SingleReader = true });
     private readonly Lock _publishGate = new();
+    private readonly LibraryAccess _backupChecks;
 
     // Only the loop touches these, so they need no lock.
     private readonly Dictionary<Guid, InstallRecord> _records = [];
@@ -119,6 +120,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         _options = options;
         _time = time;
         _logger = logger;
+        _backupChecks = new LibraryAccess(time);
     }
 
     public AppState Current
@@ -763,40 +765,48 @@ public sealed partial class StateCoordinator : IAsyncDisposable
 
         _checkingBackups = true;
         _backupsChanged = false;
-        _ = CheckBackupsAsync([.. _records.Values], new Dictionary<Guid, bool>(_hasBackups));
+        _ = CheckBackupsAsync([.. _records.Values], new Dictionary<Guid, bool>(_hasBackups), _unavailableBackups);
     }
 
-    private async Task CheckBackupsAsync(IReadOnlyList<InstallRecord> records, Dictionary<Guid, bool> known)
+    // Every folder is checked at once, so a drive that does not answer holds up only the installs on it.
+    private async Task CheckBackupsAsync(IReadOnlyList<InstallRecord> records, Dictionary<Guid, bool> known,
+        ImmutableHashSet<Guid> wasUnavailable)
     {
-        var unavailable = ImmutableHashSet.CreateBuilder<Guid>();
-        var hasBackups = new Dictionary<Guid, bool>();
-        foreach (var record in records)
+        var checks = await Task.WhenAll(records.Select(record => CheckBackupAsync(record, known, wasUnavailable))).ConfigureAwait(false);
+        if (!_stopping.IsCancellationRequested)
         {
-            try
-            {
-                // An install that only added files keeps no originals, and its empty backup folder was removed.
-                if (!known.TryGetValue(record.Id, out var has))
-                {
-                    has = BackupFolders.KeepsOriginals(await _engine.LoadFilesAsync(record.Id, _stopping).ConfigureAwait(false));
-                }
-
-                hasBackups[record.Id] = has;
-                if (has && !await Task.Run(() => Directory.Exists(record.Backup.Directory), _stopping).ConfigureAwait(false))
-                {
-                    unavailable.Add(record.Id);
-                }
-            }
-            catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (Exception exception)
-            {
-                LogBackupCheckFailed(record.Id, exception.GetType().Name);
-            }
+            Post(new BackupsChecked([.. checks.Where(check => check.IsUnavailable).Select(check => check.Id)], checks
+                .Where(check => check.KeepsOriginals is not null)
+                .ToDictionary(check => check.Id, check => check.KeepsOriginals!.Value)));
         }
+    }
 
-        Post(new BackupsChecked(unavailable.ToImmutable(), hasBackups));
+    private async Task<(Guid Id, bool? KeepsOriginals, bool IsUnavailable)> CheckBackupAsync(InstallRecord record,
+        Dictionary<Guid, bool> known, ImmutableHashSet<Guid> wasUnavailable)
+    {
+        bool? has = known.TryGetValue(record.Id, out var knownHas) ? knownHas : null;
+        try
+        {
+            // An install that only added files keeps no originals, and its empty backup folder was removed.
+            has ??= BackupFolders.KeepsOriginals(await _engine.LoadFilesAsync(record.Id, _stopping).ConfigureAwait(false));
+            var directory = record.Backup.Directory;
+            return (record.Id, has, has.Value && !await _backupChecks.ReadAsync(directory,
+                _ => Task.FromResult(BackupFolders.IsAvailable(directory)), _stopping).ConfigureAwait(false));
+        }
+        catch (TimeoutException)
+        {
+            // A drive that does not answer keeps what was last known of the folder on it.
+            return (record.Id, has, wasUnavailable.Contains(record.Id));
+        }
+        catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
+        {
+            return (record.Id, has, false);
+        }
+        catch (Exception exception)
+        {
+            LogBackupCheckFailed(record.Id, exception.GetType().Name);
+            return (record.Id, has, false);
+        }
     }
 
     // Games found after the catalogue's last refresh get their projects from the saved catalogue.
