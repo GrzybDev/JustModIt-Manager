@@ -1,0 +1,128 @@
+name: Release
+
+# Each app is released on its own: a tag <ManagerAppSlug>/v<version>, or a manual run naming the app and the version,
+# builds, tests and publishes that app alone to its update feed (ManagerUpdateUrl). A version with a "-" suffix is a
+# pre-release.
+on:
+  push:
+    tags: ['*/v*.*.*']
+  workflow_dispatch:
+    inputs:
+      app:
+        description: The app to release, by the prefix of its tags (its ManagerAppSlug)
+        required: true
+        type: choice
+        options:
+          - justmodit-manager
+          - menadzer-spolszczen
+      version:
+        description: The version, such as 1.2.3, or 1.2.3-alpha.1 for a pre-release
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+  AVALONIA_TELEMETRY_OPTOUT: '1'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+          # The release notes list the commits since the app's previous tag.
+          fetch-depth: 0
+
+      - name: Read the app and version
+        id: release
+        shell: pwsh
+        env:
+          TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
+          APP: ${{ inputs.app }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ($env:TAG) { $app, $version = $env:TAG -split '/v', 2 } else { $app, $version = $env:APP, $env:VERSION }
+          $tag = "$app/v$version"
+          if (-not $env:TAG -and (git tag --list $tag) -and (git rev-list -n 1 $tag) -ne $env:GITHUB_SHA) {
+            throw "$tag already marks another commit."
+          }
+          @(
+            "app=$app", "version=$version", "tag=$tag", "prerelease=$($version.Contains('-').ToString().ToLowerInvariant())"
+          ) | Add-Content -Path $env:GITHUB_OUTPUT
+
+      - uses: ./.github/actions/build
+
+      - name: Package
+        id: package
+        shell: pwsh
+        env:
+          APP: ${{ steps.release.outputs.app }}
+          VERSION: ${{ steps.release.outputs.version }}
+          TAG: ${{ steps.release.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          MANAGER_API_KEY: ${{ secrets.MANAGER_API_KEY }}
+        run: >
+          ./build/package.ps1 -App $env:APP -Version $env:VERSION -Token $env:GH_TOKEN
+          -SourceUrl "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/tree/$env:TAG"
+
+      - name: Keep the symbols
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.package.outputs.app-id }}-${{ steps.release.outputs.version }}-symbols
+          path: ${{ steps.package.outputs.symbols }}
+          if-no-files-found: error
+
+      - name: Publish
+        shell: pwsh
+        env:
+          VPK: ${{ steps.package.outputs.vpk }}
+          RELEASES: ${{ steps.package.outputs.releases }}
+          UPDATE_URL: ${{ steps.package.outputs.update-url }}
+          CHANNEL: ${{ steps.package.outputs.channel }}
+          PRODUCT: ${{ steps.package.outputs.product }}
+          VERSION: ${{ steps.release.outputs.version }}
+          TAG: ${{ steps.release.outputs.tag }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REPOSITORY_TOKEN: ${{ secrets.RELEASE_REPOSITORY_TOKEN }}
+        run: |
+          # An app whose feed is this repository is released on its own tag with the workflow's token; a release-only
+          # repository gets plain version tags and needs a token that may write to it.
+          $own = $env:UPDATE_URL -eq "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY"
+          if ($own) {
+            $token, $tag = $env:GH_TOKEN, $env:TAG
+          }
+          elseif ($env:RELEASE_REPOSITORY_TOKEN) {
+            $token, $tag = $env:RELEASE_REPOSITORY_TOKEN, "v$env:VERSION"
+          }
+          else {
+            throw "Publishing to $env:UPDATE_URL needs the RELEASE_REPOSITORY_TOKEN secret: a token that may write to that repository's contents."
+          }
+
+          $arguments = @('upload', 'github', '--repoUrl', $env:UPDATE_URL, '--token', $token, '--outputDir', $env:RELEASES,
+            '--tag', $tag, '--releaseName', "$env:PRODUCT $env:VERSION", '--publish', '--skip-updates')
+          if ($own) { $arguments += @('--targetCommitish', $env:GITHUB_SHA) }
+          if ($env:CHANNEL) { $arguments += @('--channel', $env:CHANNEL) }
+          if ($env:PRERELEASE -eq 'true') { $arguments += '--pre' }
+          & $env:VPK @arguments
+          exit $LASTEXITCODE
+
+      # A manual run tags the commit it released, so the next release's notes start there, and only once it is
+      # published, so a failed run leaves no tag behind. A tag pushed with the workflow's token starts no other run.
+      - name: Tag the release
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          if (-not (git tag --list $env:TAG)) { git tag $env:TAG $env:GITHUB_SHA }
+          git push origin "refs/tags/$env:TAG"

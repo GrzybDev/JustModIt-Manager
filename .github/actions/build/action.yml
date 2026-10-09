@@ -1,0 +1,49 @@
+name: Build and test
+description: Builds the native shim and the solution in Release and runs the tests.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-dotnet@v6
+      with:
+        global-json-file: global.json
+        cache: true
+        cache-dependency-path: '**/packages.lock.json'
+
+    - name: Restore the native shim
+      id: shim
+      uses: actions/cache@v6
+      with:
+        path: native/bin/win-x64
+        key: xd3shim-win-x64-${{ hashFiles('native/**') }}
+
+    - name: Build the native shim
+      shell: pwsh
+      env:
+        RESTORED: ${{ steps.shim.outputs.cache-hit }}
+      run: |
+        if ($env:RESTORED -eq 'true') {
+          # The checkout is newer than the restored shim, which would make MSBuild build it again.
+          (Get-Item native/bin/win-x64/xd3shim.dll).LastWriteTime = Get-Date
+        }
+        else {
+          ./native/build.ps1 -Rid win-x64
+        }
+
+    - name: Build
+      shell: pwsh
+      run: dotnet build JustModIt.Manager.slnx -c Release
+
+    - name: Test
+      id: test
+      shell: pwsh
+      run: >
+        dotnet test --solution JustModIt.Manager.slnx -c Release --no-build
+        --report-xunit-trx --results-directory "$env:GITHUB_WORKSPACE/artifacts/test-results"
+
+    - name: Keep the test results
+      if: failure() && steps.test.outcome == 'failure'
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-results
+        path: artifacts/test-results

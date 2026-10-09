@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,27 +25,28 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: true
+          # A CI package's version follows its app's tags.
+          fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: global.json
+      - uses: ./.github/actions/build
 
-      - name: Build native shim
+      - name: Test the build scripts
         shell: pwsh
-        run: ./native/build.ps1 -Rid win-x64
+        run: Invoke-Pester -Path build/tests -CI
 
-      - name: Build
-        run: dotnet build JustModIt.Manager.slnx -c Release
-
-      - name: Test
-        run: dotnet test --solution JustModIt.Manager.slnx -c Release --no-build
-
-      # NativeAOT and trimming warnings only surface at publish time, and they are errors here. Every app is published,
-      # so a shared change cannot break one that nobody was looking at.
-      - name: Publish NativeAOT
+      # NativeAOT and trimming warnings only surface at publish time, and they are errors here. Every app is packaged as
+      # its release would be, so a shared change cannot break one that nobody was looking at.
+      - name: Package every app
         shell: pwsh
         run: |
-          foreach ($app in (Get-ChildItem src/*/Product.props).Directory) {
-            dotnet publish $app.FullName -c Release -r win-x64 -o "publish/$($app.Name)"
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($app in (Get-ChildItem src/*/Product.props).Directory.Name) {
+            ./build/package.ps1 -App $app -Version (./build/version.ps1 -App $app -Ci ${{ github.run_number }}) -NoDelta
           }
+
+      - name: Keep the installers
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: artifacts/release/*/releases/
+          retention-days: 7
+          if-no-files-found: error
