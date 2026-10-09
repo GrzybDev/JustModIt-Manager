@@ -34,8 +34,19 @@ public sealed partial class JobRunner : IAsyncDisposable
     private TaskCompletionSource _idle = CompletedSignal();
     private bool _shutDown;
 
+    /// <summary>Creates the runner, whose jobs wait for <see cref="RecoverAsync"/>.</summary>
+    /// <param name="engine">Changes game files on its single queue and recovers what a crash interrupted.</param>
+    /// <param name="catalogue">Reads the release to install fresh from the site.</param>
+    /// <param name="downloader">Downloads, keeps and prunes packages.</param>
+    /// <param name="library">Gives a fresh look at a game before any write.</param>
+    /// <param name="runningGames">Waits for a game's processes to exit.</param>
+    /// <param name="settings">Where new installs keep their backups.</param>
+    /// <param name="time">The clock for waits and progress.</param>
+    /// <param name="logger">Logs every job and what went wrong.</param>
+    /// <param name="installPolicy">The app's rule for installs of several projects on one game; by default they share it.</param>
     public JobRunner(IInstallEngine engine, ICatalogue catalogue, IPackageDownloader downloader, ILibraryService library,
-        IRunningGameDetector runningGames, ISettingsService settings, TimeProvider time, ILogger<JobRunner> logger)
+        IRunningGameDetector runningGames, ISettingsService settings, TimeProvider time, ILogger<JobRunner> logger,
+        IInstallPolicy? installPolicy = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -49,9 +60,12 @@ public sealed partial class JobRunner : IAsyncDisposable
         _downloader = downloader;
         _time = time;
         _logger = logger;
-        _pipeline = new JobPipeline(engine, catalogue, downloader, library, runningGames, settings, _downloadSlot, time, logger,
-            _halting.Token);
+        InstallPolicy = installPolicy ?? SideBySideInstallPolicy.Instance;
+        _pipeline = new JobPipeline(engine, catalogue, downloader, library, runningGames, settings, InstallPolicy, _downloadSlot, time,
+            logger, _halting.Token);
     }
+
+    public IInstallPolicy InstallPolicy { get; }
 
     /// <summary>A job started, or changed its stage or what it waits for.</summary>
     public event EventHandler<JobSnapshot>? Changed;

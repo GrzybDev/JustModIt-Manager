@@ -65,6 +65,21 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
+    public async Task Under_an_apps_one_project_rule_another_project_takes_the_installed_ones_place()
+    {
+        await using var app = new CoordinatorHarness(policy: new OneProjectPolicy()).WithGameAndProject();
+        var record = app.Engine.Add(Record());
+        app.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
+        await app.StartAsync();
+        await app.GameAsync(game => game.NewInstall?.Replaces == record, "installing another project replaces the install");
+
+        var result = await app.RunJobAsync(new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"), null));
+
+        await app.GameAsync(game => game.Installed == result.Installed && game.NewInstall?.Replaces == result.Installed,
+            "the other project is the one install on the game");
+    }
+
+    [Fact]
     public async Task Verifies_an_install_on_first_sight_and_shows_that_it_needs_repair()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();

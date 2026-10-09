@@ -476,6 +476,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
             Index = _catalogueSnapshot.Index,
             Settings = _current,
             Language = _options.TargetLanguage,
+            InstallPolicy = _jobs.InstallPolicy,
             Jobs = _activeJobs.ToImmutableDictionary(),
             Repairs = _verifications.Where(pair => pair.Value.Repair is not null).ToImmutableDictionary(pair => pair.Key, pair => pair.Value.Repair!.Value),
             UnavailableBackups = _unavailableBackups,

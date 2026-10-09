@@ -13,6 +13,7 @@ public abstract record JobRequest(GameKey Game, string GameName, JobOrigin Origi
     public abstract JobKind Kind { get; }
 }
 
+/// <summary>Installs a project next to the game's installs, or in place of them, as the app's install policy says.</summary>
 /// <param name="Game">The game to install on.</param>
 /// <param name="GameName">The game's name, shown with the job.</param>
 /// <param name="Project">The project to install, as the site locates it.</param>

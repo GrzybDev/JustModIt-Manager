@@ -24,6 +24,8 @@ public sealed record MyGamesInput
 
     public TargetLanguage Language { get; init; } = TargetLanguage.None;
 
+    public IInstallPolicy InstallPolicy { get; init; } = SideBySideInstallPolicy.Instance;
+
     public IReadOnlyDictionary<GameKey, JobSnapshot> Jobs { get; init; } = ImmutableDictionary<GameKey, JobSnapshot>.Empty;
 
     /// <summary>What verification found wrong with installs, by record id.</summary>
@@ -56,32 +58,29 @@ public static class MyGamesComposer
         {
             var game = input.Library.Find(key);
             var offer = GameOffer.For(input.Index, key, game?.Platform ?? OperatingSystemKind.Unknown, input.Language);
-            var record = recordsByGame.TryGetValue(key, out var records) ? RecordFor(records, game) : null;
-            if (record is null && offer.Projects.Count == 0)
+            var records = recordsByGame.GetValueOrDefault(key) ?? [];
+            if (records.Count == 0 && offer.Projects.Count == 0)
             {
                 continue;
             }
 
-            games.Add(Compose(input, key, game, offer, record));
+            games.Add(Compose(input, key, game, offer, records));
         }
 
         return [.. games.OrderBy(game => game.Name, StringComparer.OrdinalIgnoreCase).ThenBy(game => game.Key.ToString(), StringComparer.Ordinal)];
     }
 
-    /// <summary>
-    /// The install that belongs to the game where its store reports it; the latest otherwise. A second one can only come
-    /// from an older app or a copy of the game made by hand.
-    /// </summary>
-    public static InstallRecord RecordFor(IReadOnlyList<InstallRecord> records, InstalledGame? game)
+    /// <summary>The install the player's list shows for a game: the latest where its store reports the game, else the latest.</summary>
+    private static InstallRecord RecordFor(List<InstallRecord> records, InstalledGame? game)
     {
-        ArgumentNullException.ThrowIfNull(records);
-        return records.Where(record => game is not null && PathComparison.AreSame(record.InstallDirectory, game.InstallDirectory))
-            .Concat(records.OrderByDescending(record => record.InstalledAt))
-            .First();
+        var latest = records.OrderByDescending(record => record.InstalledAt).ToList();
+        return latest.Find(record => game is not null && PathComparison.AreSame(record.InstallDirectory, game.InstallDirectory))
+            ?? latest[0];
     }
 
-    private static MyGame Compose(MyGamesInput input, GameKey key, InstalledGame? game, GameOffer offer, InstallRecord? record)
+    private static MyGame Compose(MyGamesInput input, GameKey key, InstalledGame? game, GameOffer offer, List<InstallRecord> records)
     {
+        var record = records.Count > 0 ? RecordFor(records, game) : null;
         var preferences = input.Settings.GetGame(key);
         var running = input.Running.TryGetValue(key, out var processes) && processes.Count > 0 ? processes : [];
         var current = game is { State: GameInstallState.Installed } && running.Count > 0
@@ -103,6 +102,7 @@ public static class MyGamesComposer
             Installed = record,
             Preferences = preferences,
             Job = job,
+            NewInstall = game is null ? null : InstallAdmission.For(input.InstallPolicy, game, records),
             OffersTargetLanguage = offer.OffersTargetLanguage
                 || (input.Language.Code is { } language && game?.HasLanguage(language) == true),
             LastFailure = input.Failures.GetValueOrDefault(key),

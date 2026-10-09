@@ -5,6 +5,7 @@ using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Downloads;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Safety;
@@ -442,6 +443,13 @@ internal sealed class FakeInstallEngine : IInstallEngine
             _calls.Add(call);
         }
     }
+}
+
+/// <summary>An app's rule that a game holds one project, so another one takes its place.</summary>
+internal sealed class OneProjectPolicy : IInstallPolicy
+{
+    public InstallAdmission Admit(IReadOnlyList<InstallRecord> installs) =>
+        installs is [var installed] ? InstallAdmission.Replacing(installed) : InstallAdmission.Alongside;
 }
 
 /// <summary>Settings in memory, changed at once and announced on the caller's thread.</summary>

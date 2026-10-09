@@ -19,7 +19,18 @@ namespace JustModIt.Manager.Core.Jobs;
 /// <param name="Source">What the install's record keeps of where it came from.</param>
 internal sealed record PreparedPackage(string Path, Guid FileId, Guid ReleaseId, InstallSource Source);
 
-/// <summary>The steps of every kind of job. Nothing in a game changes before its package is downloaded and checked.</summary>
+/// <summary>The steps of every kind of job, none of which changes a game before its package is downloaded and checked.</summary>
+/// <param name="engine">Changes game files and reads install records.</param>
+/// <param name="catalogue">Reads the release to install fresh from the site.</param>
+/// <param name="downloader">Downloads and keeps packages.</param>
+/// <param name="library">Gives a fresh look at a game before any write.</param>
+/// <param name="runningGames">Waits for a game's processes to exit.</param>
+/// <param name="settings">Where new installs keep their backups.</param>
+/// <param name="policy">The app's rule for installs of several projects on one game.</param>
+/// <param name="downloadSlot">The single download slot that all jobs share.</param>
+/// <param name="time">The clock for waits.</param>
+/// <param name="logger">Logs what a job did besides its outcome.</param>
+/// <param name="halting">Cancelled only by an exit that does not wait for jobs, which alone stops putting a previous release back.</param>
 internal sealed partial class JobPipeline(
     IInstallEngine engine,
     ICatalogue catalogue,
@@ -27,6 +38,7 @@ internal sealed partial class JobPipeline(
     ILibraryService library,
     IRunningGameDetector runningGames,
     ISettingsService settings,
+    IInstallPolicy policy,
     SemaphoreSlim downloadSlot,
     TimeProvider time,
     ILogger logger,
@@ -58,6 +70,15 @@ internal sealed partial class JobPipeline(
         // downloaded, even an automatic job waits rather than leave it to be downloaded, and counted, again.
         var game = await WaitUntilSafeAsync(job, job.Origin == JobOrigin.Automatic, job.Token).ConfigureAwait(false);
         await EnsureNoOtherAppAsync(game, job.Token).ConfigureAwait(false);
+        if (await AdmitAsync(job, game).ConfigureAwait(false) is { } replaced)
+        {
+            // Only the player swaps the project they have for another.
+            return job.Origin == JobOrigin.Automatic
+                ? throw new JobFailedException(new JobFailure(JobFailureReason.OtherProjectInstalled))
+                : await ReplaceAsync(job, replaced, game, request.Project, request.VariantName, fallBackToDefault: false)
+                    .ConfigureAwait(false);
+        }
+
         var package = await PrepareAsync(job, game, request.Project, request.VariantName, fallBackToDefault: false).ConfigureAwait(false);
         var installed = await InstallPackageAsync(job, package.Path, package.Source, isTest: false, canDefer: false, job.Token)
             .ConfigureAwait(false);
@@ -66,6 +87,13 @@ internal sealed partial class JobPipeline(
 
     private async Task<JobResult> TestInstallAsync(JobContext job, TestInstallJobRequest request)
     {
+        var game = await WaitUntilSafeAsync(job, canDefer: false, job.Token).ConfigureAwait(false);
+        // A package on trial has no kept release to be put back from, so it never takes an install's place.
+        if (await AdmitAsync(job, game).ConfigureAwait(false) is not null)
+        {
+            throw new JobFailedException(new JobFailure(JobFailureReason.OtherProjectInstalled));
+        }
+
         var installed = await InstallPackageAsync(job, request.PackagePath, request.Source, isTest: true, canDefer: false, job.Token)
             .ConfigureAwait(false);
         return job.Succeeded() with { Installed = installed.Record, Warnings = installed.Warnings };
@@ -99,17 +127,23 @@ internal sealed partial class JobPipeline(
     {
         var project = InstallSources.ProjectOf(record.Source)
             ?? throw new JobFailedException(new JobFailure(JobFailureReason.ProjectNotFound));
+        var game = await WaitUntilSafeAsync(job, job.Origin == JobOrigin.Automatic, job.Token).ConfigureAwait(false);
+        await EnsureNoOtherAppAsync(game, job.Token).ConfigureAwait(false);
+        // Only the player may end up with another variant, e.g. text only for a voice-over the new release does not have yet.
+        return await ReplaceAsync(job, record, game, project, record.Source?.VariantName, fallBackToDefault: job.Origin == JobOrigin.User)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<JobResult> ReplaceAsync(JobContext job, InstallRecord record, InstalledGame game, ProjectLocator project,
+        string? variantName, bool fallBackToDefault)
+    {
         if (Guid.TryParse(record.Source?.ReleaseFileId, out var installedFile))
         {
             job.Protect(installedFile);
         }
 
-        var game = await WaitUntilSafeAsync(job, job.Origin == JobOrigin.Automatic, job.Token).ConfigureAwait(false);
-        await EnsureNoOtherAppAsync(game, job.Token).ConfigureAwait(false);
-        // Downloading first means a missing connection or package leaves the installed release as it is. Only the player
-        // may end up with another variant, e.g. text only for a voice-over the new release does not have yet.
-        var package = await PrepareAsync(job, game, project, record.Source?.VariantName, fallBackToDefault: job.Origin == JobOrigin.User)
-            .ConfigureAwait(false);
+        // Downloading first means a missing connection or package leaves the installed release as it is.
+        var package = await PrepareAsync(job, game, project, variantName, fallBackToDefault).ConfigureAwait(false);
         job.Enter(JobStage.Checking);
         var removed = await WhenSafeAsync(job, detected: true, canDefer: false, async current =>
         {
@@ -224,6 +258,13 @@ internal sealed partial class JobPipeline(
                 await Task.Delay(InUseRetryDelay, time, cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    /// <returns>The install the new one replaces; null when it goes next to the others.</returns>
+    private async Task<InstallRecord?> AdmitAsync(JobContext job, InstalledGame game)
+    {
+        var admission = InstallAdmission.For(policy, game, await engine.LoadRecordsAsync(job.Token).ConfigureAwait(false));
+        return admission.Refusal is { } refusal ? throw new JobFailedException(new JobFailure(refusal)) : admission.Replaces;
     }
 
     // A game another app manages would refuse the package, so it is not downloaded, and counted, in vain.

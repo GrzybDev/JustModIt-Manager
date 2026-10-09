@@ -29,7 +29,7 @@ public sealed record JobResult(JobSnapshot Job, JobOutcome Outcome)
     /// </summary>
     public InstallRecord? Installed { get; init; }
 
-    /// <summary>The install that no longer exists: uninstalled, replaced by an update or forgotten.</summary>
+    /// <summary>The install that no longer exists: uninstalled, replaced or forgotten.</summary>
     public Guid? RemovedRecord { get; init; }
 
     public ValueList<InstallWarning> Warnings { get; init; }
@@ -40,10 +40,10 @@ public sealed record JobResult(JobSnapshot Job, JobOutcome Outcome)
     /// <summary>The game folder was gone for good, so only the record and its backups were dropped.</summary>
     public bool Forgotten { get; init; }
 
-    /// <summary>An update or repair had already uninstalled the previous release when it failed.</summary>
+    /// <summary>A job replacing an install, such as an update or repair, had already uninstalled it when it failed.</summary>
     public bool RemovedPrevious { get; init; }
 
-    /// <summary>The previous release was put back after the update or repair failed.</summary>
+    /// <summary>The replaced install's release was put back after the job failed.</summary>
     public bool RestoredPrevious { get; init; }
 
     /// <summary>The player cancelled the job; otherwise the app's exit did, or it never started.</summary>
@@ -62,6 +62,6 @@ public sealed record JobResult(JobSnapshot Job, JobOutcome Outcome)
 
     public bool IsSuccess => Outcome == JobOutcome.Succeeded;
 
-    /// <summary>The player lost the release an update or repair started from.</summary>
+    /// <summary>The player lost the release a replacement started from.</summary>
     public bool LostPrevious => RemovedPrevious && !RestoredPrevious;
 }

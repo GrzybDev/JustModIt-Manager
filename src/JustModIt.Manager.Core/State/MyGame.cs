@@ -30,6 +30,9 @@ public sealed record MyGame
 
     public InstallRecord? Installed { get; init; }
 
+    /// <summary>What installing a project on the game does with its installs; null while no store reports the game.</summary>
+    public InstallAdmission? NewInstall { get; init; }
+
     public GamePreferences Preferences { get; init; } = GamePreferences.Default;
 
     public JobSnapshot? Job { get; init; }

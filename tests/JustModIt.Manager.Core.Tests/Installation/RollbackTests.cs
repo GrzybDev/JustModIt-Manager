@@ -144,8 +144,8 @@ public sealed class RollbackTests : IAsyncDisposable
         var engine = _harness.CreateEngine();
         await engine.DisposeAsync();
 
-        var load = () => engine.LoadRecordsAsync(InstallHarness.Token);
+        var recover = () => engine.RecoverAsync(InstallHarness.Token);
 
-        await load.Should().ThrowAsync<ObjectDisposedException>();
+        await recover.Should().ThrowAsync<ObjectDisposedException>();
     }
 }

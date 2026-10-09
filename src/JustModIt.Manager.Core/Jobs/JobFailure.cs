@@ -45,6 +45,12 @@ public enum JobFailureReason
     ConflictingInstall,
 
     /// <summary>
+    /// Another project is installed on the game, and this one may neither join it, by the app's rule, nor take its place:
+    /// a test install never does, and only the player swaps projects.
+    /// </summary>
+    OtherProjectInstalled,
+
+    /// <summary>
     /// Another app, or another build of this one, manages the game's files (<see cref="JobFailure.OtherApp"/>, whose folder
     /// is <see cref="JobFailure.Location"/>); once it has uninstalled, the game is free.
     /// </summary>

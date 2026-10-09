@@ -113,8 +113,9 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         return EnqueueAsync(() => MoveBackupsCoreAsync(recordId, destination, progress, cancellationToken), cancellationToken);
     }
 
+    // Only reads, so it need not wait for the operations queued before it, such as a long install of another game.
     public Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken) =>
-        EnqueueAsync<IReadOnlyList<InstallRecord>>(async () =>
+        Task.Run<IReadOnlyList<InstallRecord>>(async () =>
             [.. (await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false)).Select(load => load.Record)
                 .OfType<InstallRecord>()],
             cancellationToken);

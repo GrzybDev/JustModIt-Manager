@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 
@@ -27,6 +28,12 @@ public sealed record GameView
     public ProjectOfferView? Project { get; init; }
 
     public InstallView? Installed { get; init; }
+
+    /// <summary>Installing a project takes the place of the installed one, the way an update does, rather than joining it.</summary>
+    public bool InstallReplaces { get; init; }
+
+    /// <summary>Why no project can be installed on the game now; null when one can.</summary>
+    public JobFailureReason? InstallRefusal { get; init; }
 
     public GamePreferences Preferences { get; init; } = GamePreferences.Default;
 
@@ -61,6 +68,8 @@ public sealed record GameView
             Projects = [.. game.Projects.Select(ProjectOfferView.From)],
             Project = game.Project is { } project ? ProjectOfferView.From(project) : null,
             Installed = game.Installed is { } record ? InstallView.From(record) : null,
+            InstallReplaces = game.NewInstall?.Replaces is not null,
+            InstallRefusal = game.NewInstall?.Refusal,
             Preferences = game.Preferences,
             Job = game.Job is { } job ? JobView.From(job) : null,
             OffersTargetLanguage = game.OffersTargetLanguage,

@@ -8,6 +8,7 @@ using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using static JustModIt.Manager.Core.Tests.TestSupport.TestProjects;
 
 namespace JustModIt.Manager.Core.Tests.State;
@@ -174,6 +175,19 @@ public sealed class MyGamesComposerTests
         var elsewhere = Record(folder: Path.Join("copy", "Example")) with { InstalledAt = Now };
 
         Compose(Input([Installed()], records: [elsewhere, here])).Single().Installed.Should().Be(here);
+    }
+
+    [Fact]
+    public void Tells_whether_a_new_install_joins_the_game_or_replaces_the_install_in_its_folder()
+    {
+        var record = Record();
+        var input = Input([Installed()], [Entry(release: Release(ReleaseOne, 1, File(FileOne)))], [record]);
+        var oneProject = input with { InstallPolicy = new OneProjectPolicy() };
+
+        Compose(input).Single().NewInstall.Should().Be(InstallAdmission.Alongside);
+        Compose(oneProject).Single().NewInstall!.Replaces.Should().Be(record);
+        Compose(oneProject with { Records = [Record(folder: Path.Join("copy", "Example"))] }).Single().NewInstall
+            .Should().Be(InstallAdmission.Alongside, "a replacement uninstalls and installs in the game's one folder");
     }
 
     [Fact]

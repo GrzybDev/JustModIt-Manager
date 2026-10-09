@@ -17,14 +17,17 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private Task _run = Task.CompletedTask;
 
+    /// <summary>Builds the coordinator and the job runner; nothing runs before <see cref="StartAsync"/>.</summary>
     /// <param name="settings">The first-run setup is not finished unless the settings say so, which keeps the automation still.</param>
+    /// <param name="language">The app's target language; null for none, which skips the official-language rule.</param>
     /// <param name="history">The automation's history, shared by harnesses that stand for two runs of the app.</param>
+    /// <param name="policy">The app's install policy; null for the platform's, which lets projects share a game.</param>
     public CoordinatorHarness(AppSettings? settings = null, TargetLanguage? language = null,
-        InMemoryDocumentStore<AutomationHistory>? history = null)
+        InMemoryDocumentStore<AutomationHistory>? history = null, IInstallPolicy? policy = null)
     {
         Settings = new FakeSettings(settings ?? AppSettings.Default);
         History = history ?? new InMemoryDocumentStore<AutomationHistory>();
-        Jobs = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance);
+        Jobs = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance, policy);
         Coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, RunningGames, Failures, History,
             new StateCoordinatorOptions { TargetLanguage = language ?? TargetLanguage.None }, Time, NullLogger<StateCoordinator>.Instance);
     }

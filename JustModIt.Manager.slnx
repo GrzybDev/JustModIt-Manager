@@ -20,5 +20,6 @@
     <Project Path="tests/JustModIt.Manager.Localization.Tests/JustModIt.Manager.Localization.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.Platform.Windows.Tests/JustModIt.Manager.Platform.Windows.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.Protocol.Tests/JustModIt.Manager.Protocol.Tests.csproj" />
+    <Project Path="tests/MenadzerSpolszczen.Tests/MenadzerSpolszczen.Tests.csproj" />
   </Folder>
 </Solution>

@@ -11,9 +11,10 @@ namespace JustModIt.Manager.Core.Tests.Jobs;
 /// <summary>A job runner over fakes: one installed, idle game whose project offers release one.</summary>
 internal sealed class JobsHarness : IAsyncDisposable
 {
-    private JobsHarness()
+    private JobsHarness(IInstallPolicy? policy)
     {
-        Runner = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance);
+        Runner = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance,
+            policy);
         Runner.Changed += (_, job) => Changes.Enqueue(job);
         Runner.Progressed += (_, job) => Progress.Enqueue(job);
         Runner.Finished += (_, result) => Results.Enqueue(result);
@@ -46,9 +47,12 @@ internal sealed class JobsHarness : IAsyncDisposable
 
     public static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public static async Task<JobsHarness> CreateAsync(bool recover = true)
+    /// <summary>Creates the harness, by default with crash recovery done, which every job waits for.</summary>
+    /// <param name="recover">False to leave crash recovery to the test, so jobs wait for it.</param>
+    /// <param name="policy">The app's install policy; null for the platform's, which lets projects share a game.</param>
+    public static async Task<JobsHarness> CreateAsync(bool recover = true, IInstallPolicy? policy = null)
     {
-        var harness = new JobsHarness();
+        var harness = new JobsHarness(policy);
         if (recover)
         {
             await harness.Runner.RecoverAsync(Token);
