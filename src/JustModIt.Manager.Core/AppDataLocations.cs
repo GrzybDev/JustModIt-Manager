@@ -41,6 +41,12 @@ public sealed class AppDataLocations
     /// <summary>One folder per install record, holding the record and its journal.</summary>
     public string InstallsDirectory => Path.Combine(DataDirectory, "installs");
 
+    /// <summary>
+    /// One folder per install forgotten with its game, holding its record and file list while the originals it kept
+    /// outside the game folder remain.
+    /// </summary>
+    public string LeftoversDirectory => Path.Combine(DataDirectory, "leftovers");
+
     /// <summary>Backups of original game files, one folder per game, when the player keeps them here.</summary>
     public string BackupsDirectory => Path.Combine(DataDirectory, "backups");
 

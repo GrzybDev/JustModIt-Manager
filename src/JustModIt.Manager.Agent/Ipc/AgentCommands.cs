@@ -19,6 +19,7 @@ namespace JustModIt.Manager.Agent.Ipc;
 public sealed class AgentCommands(
     StateCoordinator coordinator,
     JobRunner jobs,
+    IInstallEngine engine,
     ISettingsService settings,
     ILibraryService library,
     IVolumes volumes,
@@ -131,16 +132,14 @@ public sealed class AgentCommands(
         return new JobStarted(handle.Job.Id);
     }
 
-    /// <summary>Only installs whose game its store still confirms gone lose their backups, however old the player's list is.</summary>
-    private async Task<Message> RemoveLeftoverBackupsAsync(IReadOnlyList<Guid> recordIds, CancellationToken cancellationToken)
+    private async Task<Message?> RemoveLeftoverBackupsAsync(IReadOnlyList<Guid> recordIds, CancellationToken cancellationToken)
     {
-        var confirmed = (await coordinator.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false))
-            .Where(leftover => recordIds.Contains(leftover.RecordId))
-            .Select(leftover => leftover.RecordId)
-            .ToHashSet();
-        var records = coordinator.Current.Games.Select(game => game.Installed).OfType<InstallRecord>()
-            .Where(record => confirmed.Contains(record.Id));
-        return new JobsStarted([.. records.Select(record => Start(new UninstallJobRequest(record)).JobId)]);
+        foreach (var record in recordIds)
+        {
+            await engine.RemoveLeftoverBackupsAsync(record, cancellationToken).ConfigureAwait(false);
+        }
+
+        return null;
     }
 
     private async Task<Message?> ChangeSettingsAsync(SettingsView view, CancellationToken cancellationToken)

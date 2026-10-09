@@ -24,6 +24,11 @@ public enum NoticeKind
 
     /// <summary>An automatic update or repair removed the installed release and could not put it back.</summary>
     PreviousReleaseLost,
+
+    /// <summary>
+    /// The game's folder is gone for good, so the app forgot the install on it; see <see cref="AutomationNotice.KeptBackups"/>.
+    /// </summary>
+    Forgotten,
 }
 
 /// <summary>Something the automation did or found, for the app to tell the player in its own words.</summary>
@@ -48,6 +53,9 @@ public sealed record AutomationNotice(NoticeKind Kind)
 
     /// <summary>The store already offers the game in the app's target language, which is why the project was not installed.</summary>
     public bool OffersTargetLanguage { get; init; }
+
+    /// <summary>The originals a forgotten install kept outside the game folder stay, listed among the leftover backups.</summary>
+    public bool KeptBackups { get; init; }
 
     /// <summary>The games a summary is about.</summary>
     public ValueList<GameKey> Games { get; init; }

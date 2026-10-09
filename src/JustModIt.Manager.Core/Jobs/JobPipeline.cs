@@ -85,7 +85,7 @@ internal sealed partial class JobPipeline(
         }
         catch (InstallBlockedException blocked) when (blocked.Issues.All(issue => issue is GameFolderMissingIssue))
         {
-            if (!await engine.ForgetIfGoneAsync(record.Id, job.Token).ConfigureAwait(false))
+            if (await engine.ForgetIfGoneAsync(record.Id, keepBackups: false, job.Token).ConfigureAwait(false) == ForgetOutcome.Kept)
             {
                 throw;
             }

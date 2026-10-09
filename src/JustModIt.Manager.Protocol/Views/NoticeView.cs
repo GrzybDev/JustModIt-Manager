@@ -25,6 +25,9 @@ public sealed record NoticeView(NoticeKind Kind)
     /// <summary>The store already offers the game in the app's target language, which is why nothing was installed.</summary>
     public bool OffersTargetLanguage { get; init; }
 
+    /// <summary>The originals a forgotten install kept outside the game folder stay, listed among the leftover backups.</summary>
+    public bool KeptBackups { get; init; }
+
     /// <summary>The games a summary is about.</summary>
     public IReadOnlyList<GameKey> Games { get; init; } = [];
 
@@ -43,6 +46,7 @@ public sealed record NoticeView(NoticeKind Kind)
             Job = notice.Job,
             Failure = notice.Failure is { } failure ? JobFailureView.From(failure) : null,
             OffersTargetLanguage = notice.OffersTargetLanguage,
+            KeptBackups = notice.KeptBackups,
             Games = [.. notice.Games],
         };
     }

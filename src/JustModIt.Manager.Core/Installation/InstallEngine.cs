@@ -30,6 +30,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     private readonly TimeProvider _time;
     private readonly ILogger _logger;
     private readonly InstallRecordStore _store;
+    private readonly InstallRecordStore _leftovers;
+    private readonly LibraryAccess _folderChecks;
     private readonly GameFolderOwnership _ownership;
     private readonly ChangeHook _hook;
     private readonly Channel<Func<Task>> _queue = Channel.CreateUnbounded<Func<Task>>(new UnboundedChannelOptions
@@ -61,6 +63,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         _time = time;
         _logger = logger;
         _store = new InstallRecordStore(options.InstallsDirectory, time);
+        _leftovers = new InstallRecordStore(options.LeftoversDirectory, time);
+        _folderChecks = new LibraryAccess(time);
         _ownership = new GameFolderOwnership(_store, options);
         _hook = new ChangeHook(options.BeforeChange);
         _worker = Task.Run(ProcessAsync);

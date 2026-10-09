@@ -29,9 +29,10 @@ internal sealed class HeldRecoveryEngine : IInstallEngine
     public Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<InstallRecord>>([]);
 
-    public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(Func<InstallRecord, bool> isGameGone,
-        CancellationToken cancellationToken) =>
+    public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<LeftoverBackup>>([]);
+
+    public Task<bool> RemoveLeftoverBackupsAsync(Guid recordId, CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
@@ -57,9 +58,8 @@ internal sealed class HeldRecoveryEngine : IInstallEngine
     public Task<InstallRecord?> AdoptMovedAsync(Guid recordId, InstalledGame game, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => throw new NotSupportedException();
 
-    public Task ForgetAsync(Guid recordId, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-    public Task<bool> ForgetIfGoneAsync(Guid recordId, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
 
     public Task<InstalledFiles> LoadFilesAsync(Guid recordId, CancellationToken cancellationToken) =>
         throw new NotSupportedException();

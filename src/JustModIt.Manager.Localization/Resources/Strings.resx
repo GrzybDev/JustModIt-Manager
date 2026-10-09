@@ -185,6 +185,15 @@
   <data name="NoticePreviousReleaseLost" xml:space="preserve">
     <value>The previous release could not be put back, so the game has its original files. You can install the project again.</value>
   </data>
+  <data name="NoticeForgottenTitle" xml:space="preserve">
+    <value>{game} is no longer installed</value>
+  </data>
+  <data name="NoticeForgotten" xml:space="preserve">
+    <value>The game's folder is gone, so the project installed in it was removed from the list.</value>
+  </data>
+  <data name="NoticeForgottenKeepingBackups" xml:space="preserve">
+    <value>The game's folder is gone, so the project installed in it was removed from the list. The backed-up original files are kept and can be removed in the settings.</value>
+  </data>
   <data name="WindowClosedTitle" xml:space="preserve">
     <value>{product} keeps running</value>
   </data>

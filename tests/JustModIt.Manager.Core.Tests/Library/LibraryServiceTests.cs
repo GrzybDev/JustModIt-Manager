@@ -223,7 +223,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         offline.IsStale.Should().BeFalse();
         stillOffline.Should().Be(offline);
         Service.Snapshot.Find(Key("1001"))!.IsReady.Should().BeTrue();
-        Service.Snapshot.ConfirmsGone(Key("1001")).Should().BeFalse();
+        Service.Snapshot.ConfirmsGone(Key("1001"), Game("1001").InstallDirectory).Should().BeFalse();
     }
 
     [Fact]
@@ -485,7 +485,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
             game.State == GameInstallState.Offline && game.Reason == GameStateReason.LibraryOffline && game.Name == "Slow Quest");
         snapshot.Find(Key("1002"))!.IsReady.Should().BeTrue();
         snapshot.Find(Key("2001", StoreId.Gog))!.IsReady.Should().BeTrue();
-        snapshot.ConfirmsGone(Key("1003")).Should().BeFalse();
+        snapshot.ConfirmsGone(Key("1003"), Game("1003").InstallDirectory).Should().BeFalse();
         files.HungCalls.Should().Be(1, "a drive whose read still hangs is not read again");
     }
 
@@ -588,19 +588,25 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     {
         await StartAsync();
 
-        Service.Snapshot.ConfirmsGone(Key("1001")).Should().BeTrue();
+        Service.Snapshot.ConfirmsGone(Key("1001"), Game("1001").InstallDirectory).Should().BeTrue();
         _steam.Result = _steam.Result with
         {
             Libraries = [SteamLibrary with { UnreadableEntries = 1 }],
             UnreadableGames = [new UnreadableGame(Key("1001"), LibraryPath, StoreActivityAt: null)],
         };
         await Service.CheckNowAsync(Token);
-        Service.Snapshot.ConfirmsGone(Key("1001")).Should().BeFalse("its record may be caught while the store rewrites it");
+        Service.Snapshot.ConfirmsGone(Key("1001"), Game("1001").InstallDirectory).Should().BeFalse("its record may be caught while the store rewrites it");
         _steam.Result = _steam.Result with { Libraries = [SteamLibrary], UnreadableGames = [], IsComplete = false };
         await Service.CheckNowAsync(Token);
-        Service.Snapshot.ConfirmsGone(Key("1001")).Should().BeFalse();
-        LibrarySnapshot.Empty.ConfirmsGone(Key("1001")).Should().BeFalse();
-        (Service.Snapshot with { IsCached = true }).ConfirmsGone(Key("1001")).Should().BeFalse();
+        Service.Snapshot.ConfirmsGone(Key("1001"), Game("1001").InstallDirectory).Should().BeFalse();
+        LibrarySnapshot.Empty.ConfirmsGone(Key("1001"), Game("1001").InstallDirectory).Should().BeFalse();
+        (Service.Snapshot with { IsCached = true }).ConfirmsGone(Key("1001"), Game("1001").InstallDirectory).Should().BeFalse();
+
+        var moved = Game("1001") with { InstallDirectory = Path.Join(LibraryPath, "steamapps", "common", "1001-moved") };
+        _steam.Result = _steam.Result with { IsComplete = true, Games = [moved] };
+        await Service.CheckNowAsync(Token);
+        Service.Snapshot.ConfirmsGone(Key("1001"), Game("1001").InstallDirectory).Should().BeTrue("the store moved it");
+        Service.Snapshot.ConfirmsGone(Key("1001"), moved.InstallDirectory).Should().BeFalse();
     }
 
     [Fact]

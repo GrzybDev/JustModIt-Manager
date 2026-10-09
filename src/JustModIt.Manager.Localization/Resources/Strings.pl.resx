@@ -180,6 +180,15 @@
   <data name="NoticePreviousReleaseLost" xml:space="preserve">
     <value>Poprzedniego wydania nie udało się przywrócić, więc gra ma teraz oryginalne pliki. Możesz ponownie zainstalować projekt.</value>
   </data>
+  <data name="NoticeForgottenTitle" xml:space="preserve">
+    <value>Gra {game} nie jest już zainstalowana</value>
+  </data>
+  <data name="NoticeForgotten" xml:space="preserve">
+    <value>Folderu gry już nie ma, więc zainstalowany w nim projekt usunięto z listy.</value>
+  </data>
+  <data name="NoticeForgottenKeepingBackups" xml:space="preserve">
+    <value>Folderu gry już nie ma, więc zainstalowany w nim projekt usunięto z listy. Kopie oryginalnych plików zostały zachowane i można je usunąć w ustawieniach.</value>
+  </data>
   <data name="WindowClosedTitle" xml:space="preserve">
     <value>{product} działa w tle</value>
   </data>

@@ -112,6 +112,7 @@ public sealed class InstallRoundTripTests : IDisposable
             InstanceName = "ExampleApp",
             HiddenFolderName = Workspace.HiddenFolderName,
             InstallsDirectory = Path.Combine(data, "installs"),
+            LeftoversDirectory = Path.Combine(data, "leftovers"),
             BackupsDirectory = Path.Combine(data, "backups"),
         };
         return new InstallEngine(options, new PackageReader(), new XDelta3Patcher(), new FileLockProbe(holders: null),

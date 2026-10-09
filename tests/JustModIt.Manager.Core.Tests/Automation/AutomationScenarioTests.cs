@@ -21,8 +21,6 @@ public sealed class AutomationScenarioTests
     private static readonly VerificationResult Modified =
         new([new FileVerification("data/strings.pak", FileChange.Replaced, FileIntegrity.Modified)]);
 
-    private static CancellationToken Token => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task Installs_a_project_on_its_own_and_tells_the_player()
     {
@@ -30,7 +28,7 @@ public sealed class AutomationScenarioTests
 
         await app.StartAsync();
 
-        var notice = await NoticeAsync(app);
+        var notice = await app.NoticeAsync();
         notice.Should().BeEquivalentTo(new
         {
             Kind = NoticeKind.Installed,
@@ -56,7 +54,7 @@ public sealed class AutomationScenarioTests
         app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
         app.Settings.Update(settings => settings with { OnboardingCompleted = true });
 
-        var summary = await NoticeAsync(app);
+        var summary = await app.NoticeAsync();
         summary.Kind.Should().Be(NoticeKind.AvailableSummary);
         summary.Games.Should().BeEquivalentTo([Game, OtherGame]);
         await Eventually.SettleAsync();
@@ -72,7 +70,7 @@ public sealed class AutomationScenarioTests
         {
             await first.StartAsync();
 
-            (await NoticeAsync(first)).Should().BeEquivalentTo(new { Kind = NoticeKind.Available, ReleaseVersion = 1, OffersTargetLanguage = false });
+            (await first.NoticeAsync()).Should().BeEquivalentTo(new { Kind = NoticeKind.Available, ReleaseVersion = 1, OffersTargetLanguage = false });
         }
 
         await using var second = new CoordinatorHarness(AnnounceOnly, history: history).WithGameAndProject();
@@ -92,7 +90,7 @@ public sealed class AutomationScenarioTests
 
         await app.StartAsync();
 
-        (await NoticeAsync(app)).Should().BeEquivalentTo(new { Kind = NoticeKind.Available, OffersTargetLanguage = true });
+        (await app.NoticeAsync()).Should().BeEquivalentTo(new { Kind = NoticeKind.Available, OffersTargetLanguage = true });
         app.Catalogue.PageRequests.Should().BeEmpty();
         app.Jobs.IsBusy.Should().BeFalse();
     }
@@ -104,7 +102,7 @@ public sealed class AutomationScenarioTests
         app.Downloader.Failure = new CatalogueException(CatalogueErrorReason.Offline, "No connection.");
         await app.StartAsync();
 
-        var failed = await NoticeAsync(app);
+        var failed = await app.NoticeAsync();
         failed.Should().BeEquivalentTo(new { Kind = NoticeKind.Failed, Job = (JobKind?)JobKind.Install });
         failed.Failure!.Reason.Should().Be(JobFailureReason.Offline);
         await app.GameAsync(game => game.LastFailure is not null && game.Job is null, "the failure shows");
@@ -131,7 +129,7 @@ public sealed class AutomationScenarioTests
         app.Engine.Prediction = new PreflightReport([new MissingFileIssue("data/strings.pak")], []);
         await app.StartAsync();
 
-        (await NoticeAsync(app)).Failure!.Reason.Should().Be(JobFailureReason.UnsupportedGameVersion);
+        (await app.NoticeAsync()).Failure!.Reason.Should().Be(JobFailureReason.UnsupportedGameVersion);
         app.Time.Advance(TimeSpan.FromDays(2));
         app.Library.Publish(Installed());
         await Eventually.SettleAsync();
@@ -192,7 +190,7 @@ public sealed class AutomationScenarioTests
 
         await app.StartAsync();
 
-        var notices = new[] { await NoticeAsync(app), await NoticeAsync(app) };
+        var notices = new[] { await app.NoticeAsync(), await app.NoticeAsync() };
         notices.Should().ContainSingle(notice => notice.Kind == NoticeKind.Updated && notice.ReleaseVersion == 2);
         notices.Should().ContainSingle(notice => notice.Kind == NoticeKind.Repaired && notice.Game == OtherGame);
     }
@@ -207,7 +205,7 @@ public sealed class AutomationScenarioTests
 
         await app.StartAsync();
 
-        (await NoticeAsync(app)).Kind.Should().Be(NoticeKind.Repaired);
+        (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.Repaired);
         await Eventually.HoldsAsync(() => app.Engine.Verifications == 2, "the repaired install is checked");
         await app.GameAsync(game => game.Status.State == MyGameState.NeedsRepair && game.Job is null, "the files changed again");
         await Eventually.SettleAsync();
@@ -215,7 +213,7 @@ public sealed class AutomationScenarioTests
 
         app.Time.Advance(AutomationHistory.RetryAfter);
 
-        (await NoticeAsync(app)).Kind.Should().Be(NoticeKind.Repaired);
+        (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.Repaired);
     }
 
     [Fact]
@@ -233,7 +231,7 @@ public sealed class AutomationScenarioTests
         app.Library.Probes.Clear();
         app.Library.Publish(Installed());
 
-        (await NoticeAsync(app)).Kind.Should().Be(NoticeKind.Installed);
+        (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.Installed);
     }
 
     [Fact]
@@ -278,7 +276,7 @@ public sealed class AutomationScenarioTests
         app.Library.Probes.Clear();
         app.RunningGames.ExitAll();
 
-        (await NoticeAsync(app)).Kind.Should().Be(NoticeKind.Installed);
+        (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.Installed);
     }
 
     [Fact]
@@ -293,7 +291,7 @@ public sealed class AutomationScenarioTests
 
         await app.StartAsync();
 
-        var lost = await NoticeAsync(app);
+        var lost = await app.NoticeAsync();
         lost.Kind.Should().Be(NoticeKind.PreviousReleaseLost);
         lost.Job.Should().Be(JobKind.Update);
         var state = await app.GameAsync(game => game.Status.State == MyGameState.NotInstalled && game.Job is null, "the install is gone");
@@ -302,7 +300,4 @@ public sealed class AutomationScenarioTests
         app.Engine.Installs.Should().HaveCount(2, "the lost release is not installed again at once");
         app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
     }
-
-    private static async Task<AutomationNotice> NoticeAsync(CoordinatorHarness app) =>
-        await app.Coordinator.Notices.ReadAsync(Token).AsTask().WaitAsync(TimeSpan.FromSeconds(10), Token);
 }

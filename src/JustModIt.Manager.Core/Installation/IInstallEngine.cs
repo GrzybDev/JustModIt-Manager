@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 
 namespace JustModIt.Manager.Core.Installation;
@@ -87,16 +88,17 @@ public interface IInstallEngine
     Task<InstallRecord?> AdoptMovedAsync(Guid recordId, InstalledGame game, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken);
 
-    /// <summary>Drops a record and the backups it lists without touching the game, e.g. when the game is gone for good.</summary>
-    /// <exception cref="InstallBlockedException">An interrupted operation on it has to be recovered first.</exception>
-    Task ForgetAsync(Guid recordId, CancellationToken cancellationToken);
-
     /// <summary>
-    /// Forgets an install whose game folder is gone for good: its drive is attached and the folder is not on it. A folder
-    /// on an unplugged drive is kept, since forgetting it would strand the installed files.
+    /// Forgets, without changing the game, an install whose folder is gone from its attached drive, but never one on a
+    /// drive that is unplugged or does not answer in <see cref="LibraryAccess.TimeLimit"/>, which would strand its files.
     /// </summary>
-    /// <returns>Whether the install was forgotten.</returns>
-    Task<bool> ForgetIfGoneAsync(Guid recordId, CancellationToken cancellationToken);
+    /// <param name="recordId">The install's record id.</param>
+    /// <param name="keepBackups">
+    /// Originals kept outside the game folder stay, listed among the leftover backups; otherwise they go with the record.
+    /// </param>
+    /// <param name="cancellationToken">Stops the check.</param>
+    /// <exception cref="InstallBlockedException">An interrupted operation on it has to be recovered first.</exception>
+    Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken);
 
     /// <summary>The installs the app can read.</summary>
     /// <param name="cancellationToken">Stops the read.</param>
@@ -107,12 +109,27 @@ public interface IInstallEngine
     /// <param name="cancellationToken">Stops the read.</param>
     Task<InstalledFiles> LoadFilesAsync(Guid recordId, CancellationToken cancellationToken);
 
-    /// <summary>Backups that outlived their game, with their size, so the player can remove them.</summary>
-    /// <param name="isGameGone">
-    /// Whether the store confirms the game is gone, from a fresh look with every library online; an unplugged drive is
-    /// not a removed game.
-    /// </param>
+    /// <summary>
+    /// The originals that installs forgotten with their game left outside the game folder, with their size, so the player
+    /// can remove them; those whose folder is not there, or does not answer, are left out until it is back.
+    /// </summary>
     /// <param name="cancellationToken">Stops the search.</param>
-    Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(Func<InstallRecord, bool> isGameGone,
-        CancellationToken cancellationToken);
+    Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(CancellationToken cancellationToken);
+
+    /// <summary>Removes the originals a forgotten install left, and the app's list of them.</summary>
+    /// <param name="recordId">The forgotten install's record id.</param>
+    /// <param name="cancellationToken">Stops the removal before it starts deleting.</param>
+    /// <returns>False when there are none, or their folder is not there, which keeps the list for when it is back.</returns>
+    Task<bool> RemoveLeftoverBackupsAsync(Guid recordId, CancellationToken cancellationToken);
+}
+
+public enum ForgetOutcome
+{
+    /// <summary>The game folder is there, or may be.</summary>
+    Kept,
+
+    Forgotten,
+
+    /// <summary>Forgotten, while the originals it kept outside the game folder stay as leftover backups.</summary>
+    ForgottenKeepingBackups,
 }

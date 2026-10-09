@@ -108,6 +108,19 @@ internal static partial class InstallationLog
     [LoggerMessage(Level = LogLevel.Information, Message = "Forgot install {RecordId} and removed {Count} backups")]
     public static partial void Forgotten(this ILogger logger, Guid recordId, int count);
 
+    /// <summary>Logs an install forgotten whose backups stay as leftovers.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="recordId">The install's record id.</param>
+    [LoggerMessage(Level = LogLevel.Information, Message = "Forgot install {RecordId} and kept its backups as leftovers")]
+    public static partial void ForgottenKeepingBackups(this ILogger logger, Guid recordId);
+
+    /// <summary>Logs leftover backups that were removed.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="recordId">The forgotten install's record id.</param>
+    /// <param name="count">How many backups were removed.</param>
+    [LoggerMessage(Level = LogLevel.Information, Message = "Removed {Count} leftover backups of install {RecordId}")]
+    public static partial void LeftoverBackupsRemoved(this ILogger logger, Guid recordId, int count);
+
     /// <summary>Logs an install that followed its game to the folder the store moved it to.</summary>
     /// <param name="logger">The logger to write to.</param>
     /// <param name="recordId">The install's record id.</param>

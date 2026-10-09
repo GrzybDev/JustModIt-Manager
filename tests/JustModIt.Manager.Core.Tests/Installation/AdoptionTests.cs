@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Tests.TestSupport;
 
 namespace JustModIt.Manager.Core.Tests.Installation;
@@ -80,21 +81,32 @@ public sealed class AdoptionTests : IAsyncDisposable
         var installed = await InstallAsync();
         TreeCopy.Delete(_harness.GameRoot);
 
-        (await _harness.Engine.ForgetIfGoneAsync(installed.Id, InstallHarness.Token)).Should().BeTrue();
+        var outcome = await _harness.Engine.ForgetIfGoneAsync(installed.Id, keepBackups: true, InstallHarness.Token);
 
+        outcome.Should().Be(ForgetOutcome.Forgotten, "its originals went with the game folder");
         (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().BeEmpty();
+        (await _harness.Engine.FindLeftoverBackupsAsync(InstallHarness.Token)).Should().BeEmpty();
+        _harness.AppFiles().Should().BeEmpty();
     }
 
     [Fact]
-    public async Task Keeps_an_install_whose_drive_is_unplugged_or_whose_folder_is_there()
+    public async Task Keeps_an_install_whose_folder_is_there_or_whose_drive_is_unplugged_or_does_not_answer()
     {
         var installed = await InstallAsync();
+        var forget = () => _harness.Engine.ForgetIfGoneAsync(installed.Id, keepBackups: true, InstallHarness.Token);
 
-        (await _harness.Engine.ForgetIfGoneAsync(installed.Id, InstallHarness.Token)).Should().BeFalse();
+        (await forget()).Should().Be(ForgetOutcome.Kept);
         TreeCopy.Delete(_harness.GameRoot);
         _harness.Volumes.Detached.Add(InstallHarness.GameVolume);
-        (await _harness.Engine.ForgetIfGoneAsync(installed.Id, InstallHarness.Token)).Should().BeFalse();
+        (await forget()).Should().Be(ForgetOutcome.Kept);
+        _harness.Volumes.Detached.Clear();
+        _harness.Volumes.Answering.Reset();
+        var unanswered = forget();
+        await Eventually.HoldsAsync(() => unanswered.IsCompleted, "the drive is given up on",
+            () => _harness.Time.Advance(LibraryAccess.TimeLimit));
+        _harness.Volumes.Answering.Set();
 
+        (await unanswered).Should().Be(ForgetOutcome.Kept);
         (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle();
     }
 

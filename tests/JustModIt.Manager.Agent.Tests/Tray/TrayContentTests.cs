@@ -97,6 +97,17 @@ public sealed class TrayContentTests
             .Should().Be(("New for your games", "2 games have a project you can install."));
     }
 
+    [Fact]
+    public void A_forgotten_install_says_whether_its_originals_are_kept()
+    {
+        var notice = new AutomationNotice(NoticeKind.Forgotten) { Game = Game, GameName = "Example Game" };
+
+        NoticeTexts.For(notice).Should().Be(("Example Game is no longer installed",
+            "The game's folder is gone, so the project installed in it was removed from the list."));
+        NoticeTexts.For(notice with { KeptBackups = true }).Message.Should().EndWith(
+            "The backed-up original files are kept and can be removed in the settings.");
+    }
+
     [Theory]
     [InlineData(JobKind.Install, "Could not install for Example Game")]
     [InlineData(JobKind.Update, "Could not update for Example Game")]

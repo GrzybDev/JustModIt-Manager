@@ -516,7 +516,7 @@ public sealed class JobRunnerTests
         var record = jobs.Installed();
         jobs.Library.Publish();
         jobs.Engine.OnUninstall = (_, _) => throw new InstallBlockedException([new GameFolderMissingIssue(record.InstallDirectory)]);
-        jobs.Engine.GoneForGood = true;
+        jobs.Engine.Forgetting = ForgetOutcome.Forgotten;
 
         var result = await jobs.RunAsync(new UninstallJobRequest(record));
 

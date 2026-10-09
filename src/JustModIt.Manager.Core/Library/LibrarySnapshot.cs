@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Library;
 
@@ -44,14 +45,15 @@ public sealed record LibrarySnapshot
     public StoreStatus? FindStore(StoreId store) => Stores.FirstOrDefault(status => status.Store == store);
 
     /// <summary>
-    /// Whether the store confirms that a game is no longer installed: its last scan read every library and every record
-    /// in them, all libraries online, and did not find the game. An unplugged drive, a record caught mid-write or a
-    /// failed scan never confirms that.
+    /// Tells whether the store confirms a game gone from <paramref name="folder"/>, which takes a fresh scan that read every
+    /// library and record, all online, and found the game nowhere or elsewhere.
     /// </summary>
-    public bool ConfirmsGone(GameKey key) =>
+    /// <param name="key">The game.</param>
+    /// <param name="folder">The folder the game was installed in.</param>
+    public bool ConfirmsGone(GameKey key, string folder) =>
         !IsCached
-        && !Games.ContainsKey(key)
-        && FindStore(key.Store) is { IsFullyRead: true };
+        && FindStore(key.Store) is { IsFullyRead: true }
+        && (Find(key) is not { } game || !PathComparison.AreSame(game.InstallDirectory, folder));
 
     /// <summary>
     /// Tells whether <paramref name="other"/> holds the same games and store reports; the version and scan time do not

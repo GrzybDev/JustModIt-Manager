@@ -15,6 +15,9 @@ public sealed record InstallEngineOptions
     /// <summary>One folder per install record, holding the record and its journal.</summary>
     public required string InstallsDirectory { get; init; }
 
+    /// <inheritdoc cref="AppDataLocations.LeftoversDirectory"/>
+    public required string LeftoversDirectory { get; init; }
+
     /// <summary>Originals of games whose backups the player keeps in the app's data folder.</summary>
     public required string BackupsDirectory { get; init; }
 
@@ -36,6 +39,7 @@ public sealed record InstallEngineOptions
             InstanceName = identity.InstanceName,
             HiddenFolderName = identity.HiddenFolderName,
             InstallsDirectory = locations.InstallsDirectory,
+            LeftoversDirectory = locations.LeftoversDirectory,
             BackupsDirectory = locations.BackupsDirectory,
         };
     }

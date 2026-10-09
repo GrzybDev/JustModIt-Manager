@@ -75,6 +75,12 @@
   <data name="NoticePreviousReleaseLost" xml:space="preserve">
     <value>Poprzedniej wersji spolszczenia nie udało się przywrócić, więc gra ma teraz oryginalne pliki. Możesz zainstalować spolszczenie ponownie.</value>
   </data>
+  <data name="NoticeForgotten" xml:space="preserve">
+    <value>Folderu gry już nie ma, więc zainstalowane w nim spolszczenie usunięto z listy.</value>
+  </data>
+  <data name="NoticeForgottenKeepingBackups" xml:space="preserve">
+    <value>Folderu gry już nie ma, więc zainstalowane w nim spolszczenie usunięto z listy. Kopie oryginalnych plików zostały zachowane i można je usunąć w ustawieniach.</value>
+  </data>
   <data name="WindowClosed" xml:space="preserve">
     <value>Aplikacja nadal dba o Twoje spolszczenia. Kliknij ikonę w zasobniku systemowym, aby ją otworzyć.</value>
   </data>

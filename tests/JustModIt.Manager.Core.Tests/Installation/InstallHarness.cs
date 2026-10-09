@@ -86,6 +86,8 @@ internal sealed class InstallHarness : IAsyncDisposable
 
     public FakeVolumes Volumes { get; } = new();
 
+    public FakeTimeProvider Time { get; } = new(Now);
+
     public FakeGameProbe Probe { get; } = new();
 
     public FakeLockHolders LockHolders { get; } = new();
@@ -108,6 +110,8 @@ internal sealed class InstallHarness : IAsyncDisposable
 
     public string InstallsDirectory => Path.Join(AppData, "installs");
 
+    public string LeftoversDirectory => Path.Join(AppData, "leftovers");
+
     public string HiddenDirectory => Path.Join(GameRoot, HiddenFolderName);
 
     public static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -126,12 +130,13 @@ internal sealed class InstallHarness : IAsyncDisposable
                 InstanceName = "ExampleApp",
                 HiddenFolderName = HiddenFolderName,
                 InstallsDirectory = InstallsDirectory,
+                LeftoversDirectory = LeftoversDirectory,
                 BackupsDirectory = Path.Join(AppData, "backups"),
                 SlowBackupCopyBytes = SlowBackupCopyBytes,
                 BeforeChange = (kind, path) => BeforeChange?.Invoke(kind, path),
             },
             new PackageReader(), decoder ?? new XDelta3Patcher(memoryBudget: 64 << 20), new FileLockProbe(LockHolders), Probe,
-            Volumes, new FakeTimeProvider(Now), NullLogger<InstallEngine>.Instance);
+            Volumes, Time, NullLogger<InstallEngine>.Instance);
         _engines.Add(engine);
         return engine;
     }
@@ -147,10 +152,11 @@ internal sealed class InstallHarness : IAsyncDisposable
                 InstanceName = instanceName,
                 HiddenFolderName = hiddenFolderName,
                 InstallsDirectory = Path.Join(OtherAppData, instanceName, "installs"),
+                LeftoversDirectory = Path.Join(OtherAppData, instanceName, "leftovers"),
                 BackupsDirectory = Path.Join(OtherAppData, instanceName, "backups"),
             },
             new PackageReader(), new XDelta3Patcher(memoryBudget: 64 << 20), new FileLockProbe(LockHolders), Probe, Volumes,
-            new FakeTimeProvider(Now), NullLogger<InstallEngine>.Instance);
+            Time, NullLogger<InstallEngine>.Instance);
         _engines.Add(engine);
         return engine;
     }
@@ -408,7 +414,14 @@ internal sealed class FakeVolumes : IVolumes
         _volumes.Where(volume => PathComparison.IsWithin(volume.Folder, path)).MaxBy(volume => volume.Folder.Length).Volume
         ?? "VOLUME-SYSTEM";
 
-    public bool IsAttached(string volumeId) => !Detached.Contains(volumeId);
+    /// <summary>While reset, looking at a volume blocks, as on a drive that does not answer.</summary>
+    public ManualResetEventSlim Answering { get; } = new(initialState: true);
+
+    public bool IsAttached(string volumeId)
+    {
+        Answering.Wait();
+        return !Detached.Contains(volumeId);
+    }
 
     public long? GetAvailableBytes(string path) =>
         GetVolumeId(path) is { } volume && Available.TryGetValue(volume, out var available) ? available : null;

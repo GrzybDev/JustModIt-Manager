@@ -58,7 +58,10 @@ public sealed record GetDetectionReport : Message;
 /// <param name="Report">What each store integration found.</param>
 public sealed record DetectionReportResult(DetectionReportView Report) : Message;
 
-/// <summary>Backups whose game its store confirms is gone, with their size; answered with <see cref="LeftoverBackups"/>.</summary>
+/// <summary>
+/// Asks for the backups that installs forgotten with their game left behind, with their size; answered with
+/// <see cref="LeftoverBackups"/>.
+/// </summary>
 public sealed record GetLeftoverBackups : Message;
 
 /// <summary>The answer to <see cref="GetLeftoverBackups"/>.</summary>

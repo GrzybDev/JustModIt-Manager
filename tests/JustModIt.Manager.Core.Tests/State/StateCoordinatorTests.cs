@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
@@ -309,21 +310,108 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
-    public async Task Lists_leftover_backups_only_of_games_the_store_confirms_gone()
+    public async Task Forgets_an_install_once_its_folder_is_gone_for_good_and_says_so_once()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();
-        var gone = app.Engine.Add(Record(OtherGame));
-        var unplugged = app.Engine.Add(Record(new GameKey(StoreId.Gog, "1207658924")));
-        app.Engine.Leftovers = [new LeftoverBackup(gone.Id, OtherGame, "Other Game", "backups", 2048),
-            new LeftoverBackup(unplugged.Id, unplugged.Game, "Offline Game", "backups", 1024)];
-        app.Library.Publish([Installed()], cached: false,
-            new StoreStatus(StoreId.Steam, true, false, true, [new LibraryLocation("library-1", "steam-library", "library", LibraryState.Online)]),
-            new StoreStatus(StoreId.Gog, true, false, true, [new LibraryLocation("gog", "gog-registry", null, LibraryState.Offline)]));
+        app.Engine.Add(Record());
+        app.Library.Publish(Installed(OtherGame));
         await app.StartAsync();
 
-        var leftovers = await app.Coordinator.FindLeftoverBackupsAsync(CoordinatorHarness.Token);
+        await Eventually.HoldsAsync(() => app.Engine.Calls.Contains("forget if gone"), "the install's folder is looked for");
+        await Eventually.SettleAsync();
+        app.Coordinator.Current.Find(Game)!.Status.Orphan.Should().Be(OrphanReason.GameNotDetected, "its folder is still there");
+        app.Engine.Calls.Count(call => call == "forget if gone").Should().Be(1, "it is looked for again only after a change");
 
-        leftovers.Should().ContainSingle().Which.RecordId.Should().Be(gone.Id);
+        app.Engine.Forgetting = ForgetOutcome.ForgottenKeepingBackups;
+        app.Library.Publish(Installed(OtherGame));
+
+        (await app.NoticeAsync()).Should().BeEquivalentTo(new { Kind = NoticeKind.Forgotten, Game = (GameKey?)Game, KeptBackups = true });
+        await app.StateAsync(state => state.Find(Game) is null, "the game leaves the list");
+        app.Library.Publish(Installed(OtherGame));
+        await Eventually.SettleAsync();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Forgets_the_install_of_a_hidden_game_without_a_word()
+    {
+        await using var app = new CoordinatorHarness(AppSettings.Default.WithGame(Game, preferences => preferences with { IsHidden = true }))
+            .WithGameAndProject();
+        app.Engine.Add(Record());
+        app.Engine.Forgetting = ForgetOutcome.ForgottenKeepingBackups;
+        app.Library.Publish(Installed(OtherGame));
+
+        await app.StartAsync();
+
+        await app.StateAsync(state => state.Find(Game) is null, "the install is forgotten");
+        await Eventually.SettleAsync();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("cached")]
+    [InlineData("incomplete")]
+    [InlineData("offline library")]
+    public async Task Never_forgets_an_install_on_a_partial_look_at_the_store(string look)
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Engine.Add(Record());
+        app.Engine.Forgetting = ForgetOutcome.Forgotten;
+        var library = new LibraryLocation("library-1", "steam-library", "library", LibraryState.Online);
+        var steam = new StoreStatus(StoreId.Steam, IsPresent: true, ScanFailed: false, IsComplete: look != "incomplete",
+            [look == "offline library" ? library with { State = LibraryState.Offline } : library]);
+        app.Library.Publish([], cached: look == "cached", steam);
+        await app.StartAsync();
+        await Eventually.SettleAsync();
+
+        app.Engine.Calls.Should().NotContain("forget if gone");
+        app.Library.Publish();
+        await app.StateAsync(state => state.Find(Game) is null, "a full look lets the install go");
+    }
+
+    [Fact]
+    public async Task Forgets_an_install_only_once_no_job_works_on_its_game()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        var record = app.Engine.Add(Record());
+        app.Engine.Forgetting = ForgetOutcome.Forgotten;
+        var uninstalling = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        app.Engine.OnUninstall = async (_, token) =>
+        {
+            await uninstalling.Task.WaitAsync(token);
+            throw new InstallBlockedException([new BackupFolderUnavailableIssue("backups")]);
+        };
+        await app.StartAsync();
+        app.Jobs.Start(new UninstallJobRequest(record));
+        await Eventually.HoldsAsync(() => app.Engine.Calls.Contains("uninstall"), "the uninstall runs");
+
+        app.Library.Publish();
+        await Eventually.SettleAsync();
+
+        app.Engine.Calls.Should().NotContain("forget if gone");
+        uninstalling.SetResult();
+        await app.StateAsync(state => state.Find(Game) is null, "the install is forgotten once the job is done");
+    }
+
+    [Fact]
+    public async Task Forgets_what_a_moved_game_left_behind_only_once_its_new_folder_was_looked_through_in_vain()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Engine.Add(Record());
+        app.Engine.Forgetting = ForgetOutcome.Forgotten;
+        app.Engine.OnAdopt = (_, _) => throw new IOException("The new folder could not be read.");
+        app.Library.Publish(Installed(folder: Path.Join("Library B", "Example")));
+
+        await app.StartAsync();
+        await app.GameAsync(game => game.Job is null && app.Engine.Calls.Contains("adopt"), "the install is looked for");
+        await Eventually.SettleAsync();
+        app.Engine.Calls.Should().NotContain("forget if gone", "a look that failed proves nothing");
+
+        app.Engine.OnAdopt = (_, _) => null;
+        app.Library.Publish(Installed(folder: Path.Join("Library C", "Example")));
+
+        (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.Forgotten);
+        await app.GameAsync(game => game.Installed is null && game.Status.State == MyGameState.NotInstalled, "the game is offered afresh");
     }
 
     [Fact]

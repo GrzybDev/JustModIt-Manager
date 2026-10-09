@@ -120,8 +120,8 @@ public sealed record ValidateBackupFolder(string Folder) : Message;
 public sealed record BackupFolderChecked(BackupFolderProblem? Problem = null) : Message;
 
 /// <summary>
-/// Removes backups of games that are gone, which only the player may decide, by uninstalling what is left of those
-/// installs; answered with <see cref="JobsStarted"/>. Installs whose game is not confirmed gone are left alone.
+/// Removes the backups that installs forgotten with their game left behind, which only the player may decide; answered
+/// once they are gone.
 /// </summary>
 /// <param name="RecordIds">The forgotten installs' ids; one whose folder is not there stays listed.</param>
 public sealed record RemoveLeftoverBackups(IReadOnlyList<Guid> RecordIds) : Message;

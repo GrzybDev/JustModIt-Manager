@@ -26,6 +26,8 @@ public static class NoticeTexts
                 notice.ReleaseLabel is { Length: > 0 } release ? Text.Format(Strings.NoticeUpdated, ("release", release)) : Strings.NoticeUpdatedLatest),
             NoticeKind.Repaired => (Title(Strings.NoticeRepairedTitle), Strings.NoticeRepaired),
             NoticeKind.PreviousReleaseLost => (Title(Strings.NoticePreviousReleaseLostTitle), Strings.NoticePreviousReleaseLost),
+            NoticeKind.Forgotten => (Title(Strings.NoticeForgottenTitle),
+                notice.KeptBackups ? Strings.NoticeForgottenKeepingBackups : Strings.NoticeForgotten),
             _ => (Text.Format(Strings.NoticeFailedTitle, ("job", notice.Job?.ToString() ?? ""), ("game", game)), Strings.NoticeFailed),
         };
     }

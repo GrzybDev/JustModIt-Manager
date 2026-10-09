@@ -112,6 +112,10 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
     public Task<AppState> GameAsync(Func<MyGame, bool> condition, string because, GameKey? game = null) =>
         StateAsync(state => state.Find(game ?? Game) is { } found && condition(found), because);
 
+    /// <summary>The next thing the app tells the player.</summary>
+    public async Task<AutomationNotice> NoticeAsync() =>
+        await Coordinator.Notices.ReadAsync(Token).AsTask().WaitAsync(TimeSpan.FromSeconds(10), Token);
+
     public async Task<JobResult> RunJobAsync(JobRequest request) =>
         await Jobs.Start(request).Completion.WaitAsync(TimeSpan.FromSeconds(10), Token);
 

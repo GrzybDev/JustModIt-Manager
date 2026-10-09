@@ -1,7 +1,7 @@
 using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Library;
-using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
@@ -9,7 +9,7 @@ using JustModIt.Manager.Protocol.Views;
 namespace JustModIt.Manager.Agent.Ipc;
 
 /// <summary>What the window reads beyond the state: project pages, the catalogue and detection details.</summary>
-public sealed class AgentQueries(CatalogueService catalogue, ILibraryService library, StateCoordinator coordinator)
+public sealed class AgentQueries(CatalogueService catalogue, ILibraryService library, IInstallEngine engine)
 {
     /// <summary>A slice larger than this is cut, so no answer comes near the frame limit.</summary>
     public const int MaxCataloguePage = 200;
@@ -27,7 +27,7 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
                 : new CatalogueFiltersView()),
         GetDetectionReport => new DetectionReportResult(DetectionReportView.From(DetectionReport.From(library.Snapshot))),
         GetLeftoverBackups => new LeftoverBackups(
-            [.. (await coordinator.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false)).Select(LeftoverBackupView.From)]),
+            [.. (await engine.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false)).Select(LeftoverBackupView.From)]),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),
     };
 

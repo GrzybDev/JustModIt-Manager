@@ -260,9 +260,10 @@ public sealed class UninstallTests : IAsyncDisposable
         TreeCopy.Delete(_harness.GameRoot);
 
         var failure = InstallBlockedException(await UninstallFailureAsync(result.Record.Id));
-        await _harness.Engine.ForgetAsync(result.Record.Id, InstallHarness.Token);
+        var forgotten = await _harness.Engine.ForgetIfGoneAsync(result.Record.Id, keepBackups: false, InstallHarness.Token);
 
         failure.Issues.Should().Equal(new GameFolderMissingIssue(result.Record.InstallDirectory));
+        forgotten.Should().Be(ForgetOutcome.Forgotten);
         (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().BeEmpty();
         _harness.AppFiles().Should().BeEmpty();
     }

@@ -5,7 +5,7 @@ using JustModIt.Manager.Core.Settings;
 
 namespace JustModIt.Manager.Core.Installation;
 
-/// <summary>Backups an install still keeps although the store says its game is gone.</summary>
+/// <summary>Originals that an install forgotten with its game left outside the game folder.</summary>
 /// <param name="RecordId">The forgotten install's record id.</param>
 /// <param name="Game">The game the install was on.</param>
 /// <param name="GameName">The game's name, for the settings page.</param>
@@ -38,50 +38,55 @@ public sealed partial class InstallEngine
                 file.Integrity))]);
         }, cancellationToken);
 
-    public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(Func<InstallRecord, bool> isGameGone,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(isGameGone);
-        return EnqueueAsync<IReadOnlyList<LeftoverBackup>>(async () =>
+    // Leftovers are read and removed apart from the queue, which a long install may hold: only forgetting adds to them, and
+    // it adds whole folders at once.
+    public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(CancellationToken cancellationToken) =>
+        Task.Run<IReadOnlyList<LeftoverBackup>>(async () =>
         {
             var leftovers = new List<LeftoverBackup>();
-            foreach (var load in await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false))
+            foreach (var load in await _leftovers.LoadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (load.Record is not { } record || record.Backup.Location == BackupLocation.GameFolder
-                    || Directory.Exists(record.InstallDirectory) || !Directory.Exists(record.Backup.Directory)
-                    || !isGameGone(record))
+                if (load.Record is { } record
+                    && await SizeOfLeftoversAsync(load.Folder, record, cancellationToken).ConfigureAwait(false) is { } bytes)
                 {
-                    continue;
+                    leftovers.Add(new LeftoverBackup(record.Id, record.Game, record.GameName, record.Backup.Directory, bytes));
                 }
-
-                InstalledFiles files;
-                try
-                {
-                    files = await InstallRecordStore.LoadFilesAsync(load.Folder, cancellationToken).ConfigureAwait(false);
-                }
-                catch (InvalidDataException exception)
-                {
-                    _logger.UnreadableFileList(record.Id, exception);
-                    continue;
-                }
-
-                var bytes = files.Files
-                    .Select(file => file.Backup is { } name ? new FileInfo(Path.Join(record.Backup.Directory, name)) : null)
-                    .Sum(file => file is { Exists: true } ? file.Length : 0);
-                leftovers.Add(new LeftoverBackup(record.Id, record.Game, record.GameName, record.Backup.Directory, bytes));
             }
 
             return leftovers;
         }, cancellationToken);
+
+    public Task<bool> RemoveLeftoverBackupsAsync(Guid recordId, CancellationToken cancellationToken) =>
+        Task.Run(async () =>
+        {
+            var folder = _leftovers.FolderOf(recordId);
+            if ((await InstallRecordStore.LoadAsync(folder, cancellationToken).ConfigureAwait(false)).Record is not { } record
+                || !BackupFolders.IsAvailable(record.Backup.Directory))
+            {
+                return false;
+            }
+
+            var removed = BackupFolders.DeleteListed(record.Backup.Directory,
+                await InstallRecordStore.LoadFilesAsync(folder, cancellationToken).ConfigureAwait(false));
+            InstallRecordStore.DeleteFolder(folder);
+            _logger.LeftoverBackupsRemoved(recordId, removed);
+            return true;
+        }, cancellationToken);
+
+    public async Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken)
+    {
+        // Looked at first apart from the queue, so a drive that does not answer holds up neither the caller nor the
+        // operations queued after this one.
+        if ((await InstallRecordStore.LoadAsync(_store.FolderOf(recordId), cancellationToken).ConfigureAwait(false)).Record is { } record
+            && !await IsGoneForGoodAsync(record, cancellationToken).ConfigureAwait(false))
+        {
+            return ForgetOutcome.Kept;
+        }
+
+        return await EnqueueAsync(() => ForgetCoreAsync(recordId, keepBackups, cancellationToken), cancellationToken).ConfigureAwait(false);
     }
 
-    public Task ForgetAsync(Guid recordId, CancellationToken cancellationToken) =>
-        EnqueueAsync(() => ForgetCoreAsync(recordId, onlyWhenGone: false, cancellationToken), cancellationToken);
-
-    public Task<bool> ForgetIfGoneAsync(Guid recordId, CancellationToken cancellationToken) =>
-        EnqueueAsync(() => ForgetCoreAsync(recordId, onlyWhenGone: true, cancellationToken), cancellationToken);
-
-    private async Task<bool> ForgetCoreAsync(Guid recordId, bool onlyWhenGone, CancellationToken cancellationToken)
+    private async Task<ForgetOutcome> ForgetCoreAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken)
     {
         var folder = _store.FolderOf(recordId);
         if (folder.HasJournal)
@@ -90,17 +95,62 @@ public sealed partial class InstallEngine
         }
 
         var (record, files) = await LoadAsync(recordId, cancellationToken).ConfigureAwait(false);
-        if (onlyWhenGone && !GameFolder.IsGoneForGood(record.InstallDirectory, record.GameVolume, _volumes))
+        if (!GameFolder.IsGoneForGood(record.InstallDirectory, record.GameVolume, _volumes))
         {
-            return false;
+            return ForgetOutcome.Kept;
         }
 
         _hook.Before(ChangeKind.Record);
         await _ownership.ReleaseAsync(record.InstallDirectory, recordId).ConfigureAwait(false);
+        if (keepBackups && record.Backup.Location != BackupLocation.GameFolder && files.Files.Any(file => file.Backup is not null))
+        {
+            Directory.CreateDirectory(_options.LeftoversDirectory);
+            Directory.Move(folder.Root, _leftovers.FolderOf(recordId).Root);
+            _logger.ForgottenKeepingBackups(recordId);
+            return ForgetOutcome.ForgottenKeepingBackups;
+        }
+
         var removed = BackupFolders.DeleteListed(record.Backup.Directory, files);
         InstallRecordStore.DeleteFolder(folder);
         _logger.Forgotten(recordId, removed);
-        return true;
+        return ForgetOutcome.Forgotten;
+    }
+
+    private async Task<bool> IsGoneForGoodAsync(InstallRecord record, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _folderChecks.ReadAsync(record.InstallDirectory,
+                _ => Task.FromResult(GameFolder.IsGoneForGood(record.InstallDirectory, record.GameVolume, _volumes)),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            return false;
+        }
+    }
+
+    // Null while their folder is not there or does not answer, or their list cannot be read.
+    private async Task<long?> SizeOfLeftoversAsync(InstallFolder folder, InstallRecord record, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var files = await InstallRecordStore.LoadFilesAsync(folder, cancellationToken).ConfigureAwait(false);
+            var directory = record.Backup.Directory;
+            return await _folderChecks.ReadAsync(directory, _ => Task.FromResult(BackupFolders.IsAvailable(directory)
+                ? files.Files.Select(file => file.Backup is { } name ? new FileInfo(Path.Join(directory, name)) : null)
+                    .Sum(file => file is { Exists: true } ? file.Length : 0)
+                : (long?)null), cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidDataException exception)
+        {
+            _logger.UnreadableFileList(record.Id, exception);
+            return null;
+        }
+        catch (TimeoutException)
+        {
+            return null;
+        }
     }
 
     private async Task<PreflightReport> PredictCoreAsync(Guid recordId, InstallRequest replacement,

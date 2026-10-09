@@ -285,9 +285,8 @@ internal sealed class FakeInstallEngine : IInstallEngine
 
     public Func<Guid, InstalledGame, InstallRecord?>? OnAdopt { get; set; }
 
-    public bool GoneForGood { get; set; }
-
-    public IReadOnlyList<LeftoverBackup> Leftovers { get; set; } = [];
+    /// <summary>What forgetting an install finds; <see cref="ForgetOutcome.Kept"/> stands for a folder that is there.</summary>
+    public ForgetOutcome Forgetting { get; set; }
 
     /// <summary>Installs that keep originals of replaced files.</summary>
     public ConcurrentDictionary<Guid, bool> Backups { get; } = new();
@@ -405,22 +404,15 @@ internal sealed class FakeInstallEngine : IInstallEngine
         return Task.FromResult(adopted);
     }
 
-    public Task ForgetAsync(Guid recordId, CancellationToken cancellationToken)
-    {
-        Log("forget");
-        Records.TryRemove(recordId, out _);
-        return Task.CompletedTask;
-    }
-
-    public Task<bool> ForgetIfGoneAsync(Guid recordId, CancellationToken cancellationToken)
+    public Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken)
     {
         Log("forget if gone");
-        if (GoneForGood)
+        if (Forgetting != ForgetOutcome.Kept)
         {
             Records.TryRemove(recordId, out _);
         }
 
-        return Task.FromResult(GoneForGood);
+        return Task.FromResult(Forgetting);
     }
 
     public Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken)
@@ -438,10 +430,10 @@ internal sealed class FakeInstallEngine : IInstallEngine
             CreatedDirectories = [],
         });
 
-    public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(Func<InstallRecord, bool> isGameGone,
-        CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<LeftoverBackup>>([.. Leftovers.Where(leftover =>
-            Records.TryGetValue(leftover.RecordId, out var record) && isGameGone(record))]);
+    public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
+    public Task<bool> RemoveLeftoverBackupsAsync(Guid recordId, CancellationToken cancellationToken) => throw new NotSupportedException();
 
     private void Log(string call)
     {
