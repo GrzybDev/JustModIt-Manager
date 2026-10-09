@@ -44,10 +44,11 @@ public sealed class AutomationScenarioTests
     [Fact]
     public async Task Waits_for_the_first_run_setup_and_then_sums_up_what_is_on_offer()
     {
-        await using var app = new CoordinatorHarness().WithGameAndProject();
+        await using var app = new CoordinatorHarness(AppSettings.Default with { AutoUpdateProjects = false }).WithGameAndProject();
         app.Library.Publish(Installed(), Installed(OtherGame));
-        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseOne, 1, File(FileOne))),
-            Entry(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), OtherGame));
+        app.Engine.Add(Record());
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseTwo, 2, File(FileTwo))),
+            Entry(OtherProject, Release(Guid.NewGuid(), 1, File(VoiceFile)), OtherGame));
         await app.StartAsync();
         await Eventually.SettleAsync();
 
@@ -57,6 +58,7 @@ public sealed class AutomationScenarioTests
         var summary = await app.NoticeAsync();
         summary.Kind.Should().Be(NoticeKind.AvailableSummary);
         summary.Games.Should().BeEquivalentTo([Game, OtherGame]);
+        summary.Updates.Should().Equal(Game);
         await Eventually.SettleAsync();
         app.Coordinator.Notices.TryRead(out _).Should().BeFalse("each project is announced once");
         app.Jobs.IsBusy.Should().BeFalse();
@@ -78,6 +80,45 @@ public sealed class AutomationScenarioTests
         await Eventually.SettleAsync();
 
         second.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Announces_an_update_once_instead_of_installing_it_while_automatic_updates_are_off()
+    {
+        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
+        await using var app = new CoordinatorHarness(AnnounceOnly with { AutoUpdateProjects = false }, history: history).WithGameAndProject();
+        app.Engine.Add(Record());
+        app.PublishReleaseTwo();
+
+        await app.StartAsync();
+
+        (await app.NoticeAsync()).Should().BeEquivalentTo(new { Kind = NoticeKind.UpdateAvailable, Game = (GameKey?)Game, ReleaseLabel = "v2" });
+        app.Library.Publish(Installed());
+        await Eventually.SettleAsync();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+        app.Catalogue.PageRequests.Should().BeEmpty("nothing is downloaded");
+    }
+
+    [Fact]
+    public async Task Announces_a_repair_once_per_break_while_reapplying_is_off()
+    {
+        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
+        await using var app = new CoordinatorHarness(AnnounceOnly with { ReapplyAfterGameUpdate = false }, history: history)
+            .WithGameAndProject();
+        var record = app.Engine.Add(Record());
+        app.Engine.OnVerify = _ => Modified;
+        await app.StartAsync();
+
+        (await app.NoticeAsync()).Should().BeEquivalentTo(new { Kind = NoticeKind.RepairNeeded, Game = (GameKey?)Game });
+        app.Library.Publish(Installed());
+        await Eventually.SettleAsync();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse("the same build broke the install");
+        app.Engine.Calls.Should().NotContain("predict", "nothing is repaired on its own");
+
+        (await app.RunJobAsync(new RepairJobRequest(record))).IsSuccess.Should().BeTrue();
+        (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.RepairNeeded, "the player's repair broke again");
+        app.Library.Publish(Installed(build: "101"));
+        (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.RepairNeeded, "a new build broke it again");
     }
 
     [Fact]

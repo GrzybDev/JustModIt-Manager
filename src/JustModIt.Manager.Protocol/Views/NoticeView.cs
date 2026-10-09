@@ -31,6 +31,12 @@ public sealed record NoticeView(NoticeKind Kind)
     /// <summary>The games a summary is about.</summary>
     public IReadOnlyList<GameKey> Games { get; init; } = [];
 
+    /// <summary>Those of <see cref="Games"/> with an update.</summary>
+    public IReadOnlyList<GameKey> Updates { get; init; } = [];
+
+    /// <summary>Those of <see cref="Games"/> whose install needs a repair.</summary>
+    public IReadOnlyList<GameKey> Repairs { get; init; } = [];
+
     /// <summary>Maps a notice of the automation.</summary>
     /// <param name="notice">The typed notice the engine produced.</param>
     public static NoticeView From(AutomationNotice notice)
@@ -48,6 +54,8 @@ public sealed record NoticeView(NoticeKind Kind)
             OffersTargetLanguage = notice.OffersTargetLanguage,
             KeptBackups = notice.KeptBackups,
             Games = [.. notice.Games],
+            Updates = [.. notice.Updates],
+            Repairs = [.. notice.Repairs],
         };
     }
 }

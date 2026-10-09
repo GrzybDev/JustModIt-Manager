@@ -9,7 +9,7 @@ public enum AutomationAction
     Update,
     Repair,
 
-    /// <summary>Tells the player a project can be installed instead of installing it.</summary>
+    /// <summary>Tells the player of a project to install, an update or a repair instead of doing it.</summary>
     Announce,
 }
 

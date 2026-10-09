@@ -29,14 +29,17 @@ public static class AutomationPolicy
         return game.Status.State switch
         {
             MyGameState.NotInstalled => DecideInstall(game, settings.ResolveAutoInstall(game.Key), history, now),
-            MyGameState.UpdateAvailable => settings.ResolveAutoUpdate(game.Key)
-                ? AttemptUpdate(game, history, now)
+            MyGameState.UpdateAvailable when settings.ResolveAutoUpdate(game.Key) => AttemptUpdate(game, history, now),
+            MyGameState.UpdateAvailable => game.Project?.Selection.Release is { } release
+                ? Announce(game, release, AutomationReason.AutoUpdateOff, history)
                 : AutomationDecision.Skip(AutomationReason.AutoUpdateOff),
 
-            // A player who turned automatic updates off for a game wants it left alone, repairs included.
-            MyGameState.NeedsRepair => settings.ReapplyAfterGameUpdate && game.Preferences.AutoUpdate != false
-                ? AttemptRepair(game, history, now)
-                : AutomationDecision.Skip(AutomationReason.ReapplyOff),
+            // A player who turned automatic updates off for a game is only told of its repairs too.
+            MyGameState.NeedsRepair when settings.ReapplyAfterGameUpdate && game.Preferences.AutoUpdate != false =>
+                AttemptRepair(game, history, now),
+            MyGameState.NeedsRepair => history.WasRepairAnnounced(game.Key, game.Game?.BuildId)
+                ? AutomationDecision.Skip(AutomationReason.AlreadyAnnounced)
+                : new AutomationDecision(AutomationAction.Announce, AutomationReason.ReapplyOff),
             MyGameState.Busy => AutomationDecision.Skip(AutomationReason.Busy),
             MyGameState.GameNotReady => AutomationDecision.Skip(AutomationReason.GameNotReady),
             MyGameState.Orphaned => AutomationDecision.Skip(AutomationReason.Orphaned),
@@ -65,16 +68,19 @@ public static class AutomationPolicy
         var reason = !autoInstall ? AutomationReason.AutoInstallOff
             : game.OffersTargetLanguage ? AutomationReason.TargetLanguageOffered
             : (AutomationReason?)null;
-        if (reason is not null)
+        if (reason is { } announced)
         {
-            return history.WasAnnounced(game.Key, release.Uuid)
-                ? AutomationDecision.Skip(AutomationReason.AlreadyAnnounced)
-                : new AutomationDecision(AutomationAction.Announce, reason) { Release = release, ReleaseId = release.Uuid, Variant = variant };
+            return Announce(game, release, announced, history);
         }
 
         var install = Attempt(game, AutomationAction.Install, release, history, now);
         return install.Action == AutomationAction.Install ? install with { Variant = variant } : install;
     }
+
+    private static AutomationDecision Announce(MyGame game, Release release, AutomationReason reason, AutomationHistory history) =>
+        history.WasAnnounced(game.Key, release.Uuid)
+            ? AutomationDecision.Skip(AutomationReason.AlreadyAnnounced)
+            : new AutomationDecision(AutomationAction.Announce, reason) { Release = release, ReleaseId = release.Uuid };
 
     // Updates and repairs keep the installed variant: another one would swap e.g. the player's voice-over for text only,
     // while the one installed may just not be ready yet in the new release.

@@ -35,12 +35,16 @@ public sealed class AutomationHistoryTests : IDisposable
         var history = AutomationHistory.Empty.RecordAttempt(Game, ReleaseOne, AutomationAction.Install, Now)
             .RecordAttempt(Game, ReleaseTwo, AutomationAction.Update, Now)
             .RecordAttempt(OtherGame, ReleaseOne, AutomationAction.Install, Now)
-            .RecordAnnouncement(Game, ReleaseOne);
+            .RecordAnnouncement(Game, ReleaseOne)
+            .RecordRepairAnnouncement(Game, "100")
+            .RecordRepairAnnouncement(OtherGame, null);
 
         history.ForgetAttempt(Game, ReleaseOne, AutomationAction.Install).Attempts.Should().HaveCount(2);
         var reset = history.Reset(Game);
         reset.Attempts.Keys.Should().Equal(new AttemptKey(OtherGame, ReleaseOne, AutomationAction.Install));
         reset.WasAnnounced(Game, ReleaseOne).Should().BeTrue("a player's action does not bring an announcement back");
+        reset.WasRepairAnnounced(Game, "100").Should().BeTrue();
+        history.ForgetRepairAnnouncements(Game).RepairAnnouncements.Should().Equal(new RepairAnnouncement(OtherGame, null));
     }
 
     [Fact]
@@ -73,6 +77,8 @@ public sealed class AutomationHistoryTests : IDisposable
             .RecordFailure(Game, ReleaseOne, AutomationAction.Repair, JobFailureReason.UnsupportedGameVersion, "100", Now, out _)
             .RecordAttempt(OtherGame, ReleaseTwo, AutomationAction.Install, Now.AddHours(-1))
             .RecordAnnouncement(OtherGame, ReleaseOne)
+            .RecordRepairAnnouncement(Game, "100")
+            .RecordRepairAnnouncement(OtherGame, null)
             .WithBaseline(Now.AddDays(-3));
 
         await Store().SaveAsync(history, TestContext.Current.CancellationToken);
@@ -80,6 +86,7 @@ public sealed class AutomationHistoryTests : IDisposable
 
         loaded.Attempts.Should().BeEquivalentTo(history.Attempts);
         loaded.Announcements.Should().BeEquivalentTo(history.Announcements);
+        loaded.RepairAnnouncements.Should().BeEquivalentTo(history.RepairAnnouncements);
         loaded.BaselineAt.Should().Be(Now.AddDays(-3));
     }
 

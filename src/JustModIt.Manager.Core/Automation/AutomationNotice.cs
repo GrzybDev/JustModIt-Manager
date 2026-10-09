@@ -9,8 +9,19 @@ public enum NoticeKind
     /// <summary>A project can be installed, which the app did not do on its own; see <see cref="AutomationNotice.OffersTargetLanguage"/>.</summary>
     Available,
 
-    /// <summary>Several projects became available at once; see <see cref="AutomationNotice.Games"/>.</summary>
+    /// <summary>
+    /// Several projects, updates or repairs at once; see <see cref="AutomationNotice.Games"/>,
+    /// <see cref="AutomationNotice.Updates"/> and <see cref="AutomationNotice.Repairs"/>.
+    /// </summary>
     AvailableSummary,
+
+    /// <summary>A new release of the installed project, which the app did not install since automatic updates are off.</summary>
+    UpdateAvailable,
+
+    /// <summary>
+    /// Something, usually a game update, changed the installed files, which the app did not repair since reapplying is off.
+    /// </summary>
+    RepairNeeded,
 
     Installed,
 
@@ -59,4 +70,10 @@ public sealed record AutomationNotice(NoticeKind Kind)
 
     /// <summary>The games a summary is about.</summary>
     public ValueList<GameKey> Games { get; init; }
+
+    /// <summary>Those of <see cref="Games"/> with an update.</summary>
+    public ValueList<GameKey> Updates { get; init; }
+
+    /// <summary>Those of <see cref="Games"/> whose install needs a repair.</summary>
+    public ValueList<GameKey> Repairs { get; init; }
 }

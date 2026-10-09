@@ -15,11 +15,15 @@ public sealed record AttemptEntry(DateTimeOffset At, int Failures, JobFailureRea
 
 public readonly record struct Announcement(GameKey Game, Guid Release);
 
+/// <param name="Game">The game whose install the build broke.</param>
+/// <param name="Build">The game's build that broke the install; null when its store names none.</param>
+public readonly record struct RepairAnnouncement(GameKey Game, string? Build);
+
 /// <summary>
 /// What the automation already did, so it never loops: an action on a release is tried at most once per
 /// <see cref="RetryAfter"/>, not at all while the game's build is the one its package did not fit, and never again once
-/// its package turned out to be made for another game; a failure is reported once, and a release is announced once.
-/// Immutable: every change returns a new history.
+/// its package turned out to be made for another game; a failure is reported once, a release is announced once, and so
+/// is a repair that a build of the game made necessary. Immutable: every change returns a new history.
 /// </summary>
 public sealed class AutomationHistory
 {
@@ -33,30 +37,41 @@ public sealed class AutomationHistory
 
     private readonly ImmutableDictionary<AttemptKey, AttemptEntry> _attempts;
     private readonly ImmutableHashSet<Announcement> _announcements;
+    private readonly ImmutableHashSet<RepairAnnouncement> _repairAnnouncements;
 
+    /// <summary>Creates a history as it was saved; every change then returns a new one.</summary>
+    /// <param name="attempts">The last try of each action on a release.</param>
+    /// <param name="announcements">The releases announced for each game.</param>
+    /// <param name="repairAnnouncements">The repairs the player was told of.</param>
+    /// <param name="baselineAt">When the automation first looked after the first-run setup; null before it did.</param>
     public AutomationHistory(IEnumerable<KeyValuePair<AttemptKey, AttemptEntry>> attempts, IEnumerable<Announcement> announcements,
-        DateTimeOffset? baselineAt)
+        IEnumerable<RepairAnnouncement> repairAnnouncements, DateTimeOffset? baselineAt)
     {
         ArgumentNullException.ThrowIfNull(attempts);
         ArgumentNullException.ThrowIfNull(announcements);
+        ArgumentNullException.ThrowIfNull(repairAnnouncements);
         _attempts = attempts.ToImmutableDictionary();
         _announcements = [.. announcements];
+        _repairAnnouncements = [.. repairAnnouncements];
         BaselineAt = baselineAt;
     }
 
     private AutomationHistory(ImmutableDictionary<AttemptKey, AttemptEntry> attempts, ImmutableHashSet<Announcement> announcements,
-        DateTimeOffset? baselineAt)
+        ImmutableHashSet<RepairAnnouncement> repairAnnouncements, DateTimeOffset? baselineAt)
     {
         _attempts = attempts;
         _announcements = announcements;
+        _repairAnnouncements = repairAnnouncements;
         BaselineAt = baselineAt;
     }
 
-    public static AutomationHistory Empty { get; } = new([], [], null);
+    public static AutomationHistory Empty { get; } = new([], [], [], null);
 
     public IReadOnlyDictionary<AttemptKey, AttemptEntry> Attempts => _attempts;
 
     public IReadOnlySet<Announcement> Announcements => _announcements;
+
+    public IReadOnlySet<RepairAnnouncement> RepairAnnouncements => _repairAnnouncements;
 
     /// <summary>
     /// When the automation first looked at the player's games after the first-run setup, announcing everything on offer
@@ -146,10 +161,23 @@ public sealed class AutomationHistory
     public AutomationHistory RecordAnnouncement(GameKey game, Guid release)
     {
         var announcements = _announcements.Add(new Announcement(game, release));
-        return announcements == _announcements ? this : new AutomationHistory(_attempts, announcements, BaselineAt);
+        return announcements == _announcements ? this : new AutomationHistory(_attempts, announcements, _repairAnnouncements, BaselineAt);
     }
 
-    public AutomationHistory WithBaseline(DateTimeOffset at) => new(_attempts, _announcements, at);
+    /// <param name="game">The game whose install the build broke.</param>
+    /// <param name="build">The game's build that broke the install.</param>
+    public bool WasRepairAnnounced(GameKey game, string? build) => _repairAnnouncements.Contains(new RepairAnnouncement(game, build));
+
+    public AutomationHistory RecordRepairAnnouncement(GameKey game, string? build) =>
+        WithRepairs(_repairAnnouncements.Add(new RepairAnnouncement(game, build)));
+
+    /// <summary>The player repaired or replaced the install, so the next repair it needs is news again, on any build.</summary>
+    public AutomationHistory ForgetRepairAnnouncements(GameKey game) =>
+        WithRepairs(_repairAnnouncements.Except(_repairAnnouncements.Where(announcement => announcement.Game == game)));
+
+    /// <summary>The history with the time of the first look after the first-run setup.</summary>
+    /// <param name="at">When that look ran.</param>
+    public AutomationHistory WithBaseline(DateTimeOffset at) => new(_attempts, _announcements, _repairAnnouncements, at);
 
     /// <summary>
     /// Drops attempts too old to hold anything back, and restarts the wait of attempts dated ahead by a wrong clock.
@@ -161,5 +189,8 @@ public sealed class AutomationHistory
             .ToImmutableDictionary(pair => pair.Key, pair => pair.Value.At - now > ClockSkewTolerance ? pair.Value with { At = now } : pair.Value));
 
     private AutomationHistory With(ImmutableDictionary<AttemptKey, AttemptEntry> attempts) =>
-        attempts == _attempts ? this : new AutomationHistory(attempts, _announcements, BaselineAt);
+        attempts == _attempts ? this : new AutomationHistory(attempts, _announcements, _repairAnnouncements, BaselineAt);
+
+    private AutomationHistory WithRepairs(ImmutableHashSet<RepairAnnouncement> repairAnnouncements) =>
+        repairAnnouncements == _repairAnnouncements ? this : new AutomationHistory(_attempts, _announcements, repairAnnouncements, BaselineAt);
 }

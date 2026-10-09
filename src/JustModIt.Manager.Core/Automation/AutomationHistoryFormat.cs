@@ -11,6 +11,7 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
 {
     private const string AttemptsProperty = "attempts";
     private const string AnnouncementsProperty = "announcements";
+    private const string RepairAnnouncementsProperty = "repairAnnouncements";
     private const string BaselineProperty = "baselineAt";
 
     public static AutomationHistoryFormat Instance { get; } = new();
@@ -18,7 +19,7 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
     public int CurrentVersion => 1;
 
     public IReadOnlySet<string> KnownProperties { get; } =
-        FrozenSet.Create(StringComparer.Ordinal, AttemptsProperty, AnnouncementsProperty, BaselineProperty);
+        FrozenSet.Create(StringComparer.Ordinal, AttemptsProperty, AnnouncementsProperty, RepairAnnouncementsProperty, BaselineProperty);
 
     /// <summary>The history's file.</summary>
     /// <param name="locations">The app's data folders.</param>
@@ -32,6 +33,7 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
         [.. Items(root, AttemptsProperty).Select(ReadAttempt).OfType<KeyValuePair<AttemptKey, AttemptEntry>>()
             .DistinctBy(attempt => attempt.Key)],
         Items(root, AnnouncementsProperty).Select(ReadAnnouncement).OfType<Announcement>(),
+        Items(root, RepairAnnouncementsProperty).Select(ReadRepairAnnouncement).OfType<RepairAnnouncement>(),
         Time(root, BaselineProperty));
 
     public void Write(Utf8JsonWriter writer, AutomationHistory document)
@@ -78,6 +80,21 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
         }
 
         writer.WriteEndArray();
+        writer.WriteStartArray(RepairAnnouncementsProperty);
+        foreach (var announcement in document.RepairAnnouncements.OrderBy(item => item.Game.ToString(), StringComparer.Ordinal)
+            .ThenBy(item => item.Build, StringComparer.Ordinal))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("game", announcement.Game.ToString());
+            if (announcement.Build is { } build)
+            {
+                writer.WriteString("build", build);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
     }
 
     private static KeyValuePair<AttemptKey, AttemptEntry>? ReadAttempt(JsonElement attempt) =>
@@ -95,6 +112,9 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
         GameKey.TryParse(announcement.GetTextOrNull("game"), out var game) && Guid.TryParse(announcement.GetTextOrNull("release"), out var release)
             ? new Announcement(game, release)
             : null;
+
+    private static RepairAnnouncement? ReadRepairAnnouncement(JsonElement announcement) =>
+        GameKey.TryParse(announcement.GetTextOrNull("game"), out var game) ? new RepairAnnouncement(game, announcement.GetTextOrNull("build")) : null;
 
     private static DateTimeOffset? Time(JsonElement parent, string name) =>
         parent.GetOrNull(name, JsonValueKind.String) is { } text && text.TryGetDateTimeOffset(out var time) ? time : null;

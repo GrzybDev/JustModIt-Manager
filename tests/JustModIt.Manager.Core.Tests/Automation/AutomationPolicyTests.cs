@@ -75,6 +75,8 @@ public sealed class AutomationPolicyTests
         var hidden = Automatic.WithGame(TestProjects.Game, preferences => preferences with { IsHidden = true });
         Decide(Game(One, settings: hidden), hidden).Reason.Should().Be(AutomationReason.Hidden);
         Decide(Game(Two, Record(), hidden), hidden).Reason.Should().Be(AutomationReason.Hidden, "hidden games are not even updated");
+        var hiddenManual = hidden with { AutoUpdateProjects = false };
+        Decide(Game(Two, Record(), hiddenManual), hiddenManual).Reason.Should().Be(AutomationReason.Hidden, "nor told of updates");
     }
 
     [Fact]
@@ -102,12 +104,13 @@ public sealed class AutomationPolicyTests
     [InlineData(true, false, false)]
     [InlineData(false, null, false)]
     [InlineData(false, true, true)]
-    public void Updates_as_the_settings_and_the_game_say(bool global, bool? own, bool updates)
+    public void Updates_or_announces_the_update_once_as_the_settings_and_the_game_say(bool global, bool? own, bool updates)
     {
         var settings = (Automatic with { AutoUpdateProjects = global })
             .WithGame(TestProjects.Game, preferences => preferences with { AutoUpdate = own });
+        var game = Game(Two, Record(), settings);
 
-        var decision = Decide(Game(Two, Record(), settings), settings);
+        var decision = Decide(game, settings);
 
         if (updates)
         {
@@ -115,7 +118,9 @@ public sealed class AutomationPolicyTests
         }
         else
         {
-            decision.Reason.Should().Be(AutomationReason.AutoUpdateOff);
+            decision.Should().BeEquivalentTo(new { Action = AutomationAction.Announce, Reason = AutomationReason.AutoUpdateOff, ReleaseId = ReleaseTwo });
+            Decide(game, settings, AutomationHistory.Empty.RecordAnnouncement(TestProjects.Game, ReleaseTwo)).Reason
+                .Should().Be(AutomationReason.AlreadyAnnounced);
         }
     }
 
@@ -130,13 +135,18 @@ public sealed class AutomationPolicyTests
     }
 
     [Fact]
-    public void Repairs_with_the_current_release_unless_reapplying_is_off_for_the_app_or_the_game()
+    public void Repairs_with_the_current_release_unless_reapplying_is_off_and_then_announces_it_once_per_build()
     {
         Decide(Game(Two, Record(), repair: RepairReason.OriginalsRestored))
             .Should().BeEquivalentTo(new { Action = AutomationAction.Repair, ReleaseId = ReleaseTwo });
 
         var off = Automatic with { ReapplyAfterGameUpdate = false };
-        Decide(Game(Two, Record(), off, RepairReason.OriginalsRestored), off).Reason.Should().Be(AutomationReason.ReapplyOff);
+        var broken = Game(Two, Record(), off, RepairReason.OriginalsRestored);
+        var told = AutomationHistory.Empty.RecordRepairAnnouncement(TestProjects.Game, "100");
+        Decide(broken, off).Should().BeEquivalentTo(new { Action = AutomationAction.Announce, Reason = AutomationReason.ReapplyOff });
+        Decide(broken, off, told).Reason.Should().Be(AutomationReason.AlreadyAnnounced);
+        Decide(broken with { Game = broken.Game! with { BuildId = "101" } }, off, told).Action
+            .Should().Be(AutomationAction.Announce, "another build broke it again");
         var leftAlone = Automatic.WithGame(TestProjects.Game, preferences => preferences with { AutoUpdate = false });
         Decide(Game(Two, Record(), leftAlone, RepairReason.OriginalsRestored), leftAlone).Reason.Should().Be(AutomationReason.ReapplyOff);
     }

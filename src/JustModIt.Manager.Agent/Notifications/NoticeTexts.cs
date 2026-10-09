@@ -19,8 +19,12 @@ public static class NoticeTexts
                 notice.OffersTargetLanguage ? Strings.NoticeAvailableOfficial
                 : notice.TeamName is { } team ? Text.Format(Strings.NoticeAvailable, ("team", team))
                 : Strings.NoticeAvailableAnyTeam),
-            NoticeKind.AvailableSummary => (Strings.NoticeAvailableSummaryTitle,
-                Text.Format(Strings.NoticeAvailableSummary, ("count", notice.Games.Count))),
+            NoticeKind.AvailableSummary => (Strings.NoticeAvailableSummaryTitle, Summary(notice)),
+            NoticeKind.UpdateAvailable => (Title(Strings.NoticeUpdateAvailableTitle),
+                notice.ReleaseLabel is { Length: > 0 } label
+                    ? Text.Format(Strings.NoticeUpdateAvailable, ("release", label))
+                    : Strings.NoticeUpdateAvailableLatest),
+            NoticeKind.RepairNeeded => (Title(Strings.NoticeRepairNeededTitle), Strings.NoticeRepairNeeded),
             NoticeKind.Installed => (Title(Strings.NoticeInstalledTitle), Strings.NoticeInstalled),
             NoticeKind.Updated => (Title(Strings.NoticeUpdatedTitle),
                 notice.ReleaseLabel is { Length: > 0 } release ? Text.Format(Strings.NoticeUpdated, ("release", release)) : Strings.NoticeUpdatedLatest),
@@ -30,5 +34,16 @@ public static class NoticeTexts
                 notice.KeptBackups ? Strings.NoticeForgottenKeepingBackups : Strings.NoticeForgotten),
             _ => (Text.Format(Strings.NoticeFailedTitle, ("job", notice.Job?.ToString() ?? ""), ("game", game)), Strings.NoticeFailed),
         };
+    }
+
+    private static string Summary(AutomationNotice notice)
+    {
+        (string Pattern, int Count)[] parts =
+        [
+            (Strings.NoticeAvailableSummary, notice.Games.Count - notice.Updates.Count - notice.Repairs.Count),
+            (Strings.NoticeUpdatesSummary, notice.Updates.Count),
+            (Strings.NoticeRepairsSummary, notice.Repairs.Count),
+        ];
+        return string.Join(" ", parts.Where(part => part.Count > 0).Select(part => Text.Format(part.Pattern, ("count", part.Count))));
     }
 }

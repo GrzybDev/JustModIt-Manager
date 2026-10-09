@@ -42,11 +42,26 @@
   <data name="NoticeAvailableOfficial" xml:space="preserve">
     <value>Gra ma oficjalną polską wersję, ale jest też spolszczenie, które możesz zainstalować.</value>
   </data>
-  <data name="NoticeAvailableSummaryTitle" xml:space="preserve">
-    <value>Nowe spolszczenia Twoich gier</value>
-  </data>
   <data name="NoticeAvailableSummary" xml:space="preserve">
     <value>Spolszczenia do zainstalowania czekają na {count, plural, one {# grę} few {# gry} many {# gier} other {# gry}}.</value>
+  </data>
+  <data name="NoticeUpdatesSummary" xml:space="preserve">
+    <value>Aktualizacje spolszczeń czekają na {count, plural, one {# grę} few {# gry} many {# gier} other {# gry}}.</value>
+  </data>
+  <data name="NoticeRepairsSummary" xml:space="preserve">
+    <value>Spolszczenia dla {count, plural, one {# gry} few {# gier} many {# gier} other {# gry}} trzeba przywrócić.</value>
+  </data>
+  <data name="NoticeUpdateAvailableTitle" xml:space="preserve">
+    <value>Aktualizacja spolszczenia gry {game}</value>
+  </data>
+  <data name="NoticeUpdateAvailableLatest" xml:space="preserve">
+    <value>Nowe wydanie spolszczenia jest gotowe do instalacji.</value>
+  </data>
+  <data name="NoticeRepairNeededTitle" xml:space="preserve">
+    <value>Spolszczenie gry {game} wymaga przywrócenia</value>
+  </data>
+  <data name="NoticeRepairNeeded" xml:space="preserve">
+    <value>Sklep zmienił pliki gry, więc spolszczenie trzeba zainstalować ponownie.</value>
   </data>
   <data name="NoticeInstalledTitle" xml:space="preserve">
     <value>Zainstalowano spolszczenie gry {game}</value>

@@ -81,6 +81,8 @@ public sealed class TrayContentTests
     [InlineData(NoticeKind.Repaired, "Installed again for Example Game", "The store changed the game's files, so the project was installed again.")]
     [InlineData(NoticeKind.PreviousReleaseLost, "The update for Example Game failed",
         "The previous release could not be put back, so the game has its original files. You can install the project again.")]
+    [InlineData(NoticeKind.RepairNeeded, "Repair needed for Example Game",
+        "The store changed the game's files, so the project needs to be installed again.")]
     public void Notices_are_told_in_the_apps_words(NoticeKind kind, string title, string message) =>
         NoticeTexts.For(new AutomationNotice(kind) { Game = Game, GameName = "Example Game" }).Should().Be((title, message));
 
@@ -95,6 +97,18 @@ public sealed class TrayContentTests
             .Should().Be("It already comes in your language, but you can also install a project for it.");
         NoticeTexts.For(new AutomationNotice(NoticeKind.AvailableSummary) { Games = [Game, Game] })
             .Should().Be(("New for your games", "2 games have a project you can install."));
+    }
+
+    [Fact]
+    public void A_summary_tells_projects_updates_and_repairs_apart()
+    {
+        GameKey updated = new(StoreId.Steam, "2000"), broken = new(StoreId.Gog, "3000");
+        var notice = new AutomationNotice(NoticeKind.AvailableSummary) { Games = [Game, updated, broken], Updates = [updated], Repairs = [broken] };
+
+        NoticeTexts.For(notice).Message.Should().Be("1 game has a project you can install. 1 game has an update ready to install. "
+            + "1 game needs its project installed again.");
+        NoticeTexts.For(notice with { Games = [updated, broken] }).Message.Should().Be("1 game has an update ready to install. "
+            + "1 game needs its project installed again.");
     }
 
     [Fact]
@@ -124,6 +138,10 @@ public sealed class TrayContentTests
 
         NoticeTexts.For(notice).Message.Should().Be("Release “v2” is installed.");
         NoticeTexts.For(notice with { ReleaseLabel = null }).Message.Should().Be("The newest release is installed.");
+        NoticeTexts.For(notice with { Kind = NoticeKind.UpdateAvailable }).Should().Be(("Update for Example Game",
+            "Release “v2” is ready to install."));
+        NoticeTexts.For(notice with { Kind = NoticeKind.UpdateAvailable, ReleaseLabel = null }).Message
+            .Should().Be("A new release is ready to install.");
     }
 
     private static GameView Attention(bool hidden = false) => new()

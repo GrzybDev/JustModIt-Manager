@@ -72,7 +72,9 @@ internal sealed class AutomationDriver : IAsyncDisposable
             var decision = AutomationPolicy.Decide(game, settings, History, now);
             if (decision.Action == AutomationAction.Announce)
             {
-                History = History.RecordAnnouncement(game.Key, decision.ReleaseId);
+                History = decision.Reason == AutomationReason.ReapplyOff
+                    ? History.RecordRepairAnnouncement(game.Key, game.Game?.BuildId)
+                    : History.RecordAnnouncement(game.Key, decision.ReleaseId);
                 announced.Add((game, decision));
             }
             else if (decision.StartsJob && RequestFor(game, decision) is { } request)
@@ -102,7 +104,7 @@ internal sealed class AutomationDriver : IAsyncDisposable
         }
         else if (announced.Count == 1)
         {
-            notices.Add(Available(announced[0].Game, announced[0].Decision));
+            notices.Add(Announcement(announced[0].Game, announced[0].Decision));
         }
         else if (announced.Count > 1)
         {
@@ -146,9 +148,21 @@ internal sealed class AutomationDriver : IAsyncDisposable
     };
 
     private static AutomationNotice Summary(List<(MyGame Game, AutomationDecision Decision)> announced) =>
-        new(NoticeKind.AvailableSummary) { Games = [.. announced.Select(item => item.Game.Key)] };
+        new(NoticeKind.AvailableSummary)
+        {
+            Games = [.. announced.Select(item => item.Game.Key)],
+            Updates = [.. announced.Where(item => KindOf(item.Decision) == NoticeKind.UpdateAvailable).Select(item => item.Game.Key)],
+            Repairs = [.. announced.Where(item => KindOf(item.Decision) == NoticeKind.RepairNeeded).Select(item => item.Game.Key)],
+        };
 
-    private static AutomationNotice Available(MyGame game, AutomationDecision decision) => new(NoticeKind.Available)
+    private static NoticeKind KindOf(AutomationDecision announcement) => announcement.Reason switch
+    {
+        AutomationReason.AutoUpdateOff => NoticeKind.UpdateAvailable,
+        AutomationReason.ReapplyOff => NoticeKind.RepairNeeded,
+        _ => NoticeKind.Available,
+    };
+
+    private static AutomationNotice Announcement(MyGame game, AutomationDecision decision) => new(KindOf(decision))
     {
         Game = game.Key,
         GameName = game.Name,
@@ -189,18 +203,15 @@ internal sealed class AutomationDriver : IAsyncDisposable
                 });
                 break;
             case JobOutcome.Cancelled when result.CancelledByPlayer:
-                // Starting again what the player cancelled would overrule the player.
+                // Starting again what the player cancelled would overrule the player, and announcing it would only repeat
+                // what the player saw.
                 History = History.ForgetAttempt(attempt.Game, attempt.Release, attempt.Action);
-                if (attempt.Action == AutomationAction.Install)
-                {
-                    History = History.RecordAnnouncement(attempt.Game, attempt.Release);
-                    _settings.Update(settings => settings.WithGame(attempt.Game, preferences => preferences with { AutoInstall = false }));
-                }
-                else
-                {
-                    _settings.Update(settings => settings.WithGame(attempt.Game, preferences => preferences with { AutoUpdate = false }));
-                }
-
+                History = attempt.Action == AutomationAction.Repair
+                    ? History.RecordRepairAnnouncement(attempt.Game, attempt.Build)
+                    : History.RecordAnnouncement(attempt.Game, attempt.Release);
+                _settings.Update(settings => settings.WithGame(attempt.Game, preferences => attempt.Action == AutomationAction.Install
+                    ? preferences with { AutoInstall = false }
+                    : preferences with { AutoUpdate = false }));
                 break;
             case JobOutcome.Cancelled:
             case JobOutcome.Deferred:
@@ -236,6 +247,7 @@ internal sealed class AutomationDriver : IAsyncDisposable
             return;
         }
 
+        History = History.ForgetRepairAnnouncements(key);
         if (result.Job.Kind == JobKind.Uninstall)
         {
             // Otherwise the next look would announce, or install again, what the player just removed.
