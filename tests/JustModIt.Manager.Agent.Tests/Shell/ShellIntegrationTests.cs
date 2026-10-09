@@ -85,7 +85,7 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
     {
         _agent.Registration.State = AutostartState.DisabledBySystem;
 
-        ShellRegistration.Register(_agent.Registration, _agent.Registration, _agent.Options, startWithSystem: true);
+        Register();
 
         _agent.Registration.State.Should().Be(AutostartState.DisabledBySystem);
         _agent.Registration.Schemes.Should().ContainKey("example-app");
@@ -94,13 +94,16 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
     [Fact]
     public void Uninstalling_removes_the_links_and_autostart()
     {
-        ShellRegistration.Register(_agent.Registration, _agent.Registration, _agent.Options, startWithSystem: true);
+        Register();
 
-        ShellRegistration.Unregister(_agent.Registration, _agent.Registration, _agent.Options);
+        ShellRegistration.Unregister(_agent.Registration, _agent.Registration, _agent.Options.Identity.Slug);
 
         _agent.Registration.State.Should().Be(AutostartState.Disabled);
         _agent.Registration.Schemes.Should().BeEmpty();
     }
 
     public async ValueTask DisposeAsync() => await _agent.DisposeAsync();
+
+    private void Register() => ShellRegistration.Register(_agent.Registration, _agent.Registration, _agent.Options.Identity.Slug,
+        _agent.Options.ProductName, _agent.Options.ExecutablePath, startWithSystem: true);
 }

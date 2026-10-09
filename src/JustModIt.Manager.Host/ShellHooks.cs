@@ -20,13 +20,14 @@ internal static class ShellHooks
     /// <param name="product">The app's build settings.</param>
     public static void Register(ProductSettings product) => Apply(product, environment =>
         ShellRegistration.Register(WindowsLinkRegistration.Instance, new WindowsAutostart(environment.Identity.InstanceName),
-            environment.AgentOptions(), ReadSettings(environment.Locations).StartWithSystem));
+            environment.Identity.Slug, product.ProductName, environment.Install.ExecutablePath,
+            ReadSettings(environment.Locations).StartWithSystem));
 
     /// <summary>Removes the link scheme and autostart before the app is uninstalled.</summary>
     /// <param name="product">The app's build settings.</param>
     public static void Unregister(ProductSettings product) => Apply(product, environment =>
         ShellRegistration.Unregister(WindowsLinkRegistration.Instance, new WindowsAutostart(environment.Identity.InstanceName),
-            environment.AgentOptions()));
+            environment.Identity.Slug));
 
     private static void Apply(ProductSettings product, Action<HostEnvironment> change)
     {

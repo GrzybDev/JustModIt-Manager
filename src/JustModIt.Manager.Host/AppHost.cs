@@ -32,7 +32,7 @@ public static class AppHost
         }
 
         velopack.Run();
-        Text.Use(options.Texts);
+        Text.Use(TextCatalog.Load(product.Language, options.App));
 
         HostEnvironment environment;
         try

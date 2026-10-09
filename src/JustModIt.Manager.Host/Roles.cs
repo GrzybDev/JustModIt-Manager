@@ -26,23 +26,12 @@ internal static partial class Roles
     /// <param name="options">What the app hands the startup about itself.</param>
     /// <param name="launch">The command line, parsed.</param>
     /// <param name="args">The command line as given, for a hand-over.</param>
-    public static int RunAgent(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args)
-    {
-        var claim = Claim(environment, environment.Names.AgentLock, args);
-        if (claim is not Claimed { Lock: var instanceLock })
+    public static int RunAgent(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
+        RunClaimed(environment, environment.Names.AgentLock, "agent", args, loggers =>
         {
-            return claim is Forwarded ? 0 : 1;
-        }
-
-        using (instanceLock)
-        {
-            return RunRole(environment, "agent", loggers =>
-            {
-                AgentHost.RunAsync(environment.AgentOptions(), launch, loggers, options.ConfigureAgent).GetAwaiter().GetResult();
-                return 0;
-            });
-        }
-    }
+            AgentHost.RunAsync(environment.AgentOptions(), launch, loggers, options.ConfigureAgent).GetAwaiter().GetResult();
+            return 0;
+        });
 
     /// <summary>
     /// Runs the window's process, or hands the command line to the agent when a window runs already, and returns the
@@ -52,17 +41,9 @@ internal static partial class Roles
     /// <param name="options">What the app hands the startup about itself.</param>
     /// <param name="launch">The command line, parsed.</param>
     /// <param name="args">The command line as given, for a hand-over.</param>
-    public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args)
-    {
-        var claim = Claim(environment, environment.Names.UiLock, args);
-        if (claim is not Claimed { Lock: var instanceLock })
-        {
-            return claim is Forwarded ? 0 : 1;
-        }
-
-        using (instanceLock)
-        {
-            return RunRole(environment, "ui", loggers => (options.Ui ?? new ConnectionOnlyUiHost()).Run(new UiContext
+    public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
+        RunClaimed(environment, environment.Names.UiLock, "ui", args, loggers => (options.Ui ?? new ConnectionOnlyUiHost()).Run(
+            new UiContext
             {
                 ProductName = environment.Product.ProductName,
                 Version = environment.Version,
@@ -71,19 +52,31 @@ internal static partial class Roles
                 Creator = environment.CreatorOptions(),
                 Launch = launch,
                 Loggers = loggers,
-                Notices = options.Notices,
+                Notices = new LegalNotices(options.App),
             }));
-        }
-    }
 
-    // Anything but Claimed ends the process; a failed hand-over is in the launcher's log.
-    private static InstanceClaim Claim(HostEnvironment environment, string lockName, string[] args)
+    // A launch whose role is taken hands its command line over and ends; a failed hand-over is in the launcher's log.
+    private static int RunClaimed(HostEnvironment environment, string lockName, string role, string[] args,
+        Func<ILoggerFactory, int> run)
     {
-        using var log = new RoleLog(environment, "launcher");
-        return SingleInstance.ClaimOrForwardAsync(lockName, environment.Names.PipeName,
-                Hello.ForCurrentProcess(ProcessRole.Launcher, environment.Version), args, HandOverTimeout, AllowForeground,
-                logger: log.Loggers.CreateLogger(typeof(Roles).FullName!))
-            .GetAwaiter().GetResult();
+        InstanceClaim claim;
+        using (var log = new RoleLog(environment, "launcher"))
+        {
+            claim = SingleInstance.ClaimOrForwardAsync(lockName, environment.Names.PipeName,
+                    Hello.ForCurrentProcess(ProcessRole.Launcher, environment.Version), args, HandOverTimeout, AllowForeground,
+                    logger: log.Loggers.CreateLogger(typeof(Roles).FullName!))
+                .GetAwaiter().GetResult();
+        }
+
+        if (claim is not Claimed { Lock: var instanceLock })
+        {
+            return claim is Forwarded ? 0 : 1;
+        }
+
+        using (instanceLock)
+        {
+            return RunRole(environment, role, run);
+        }
     }
 
     // The launcher has the foreground because the player just started it; the agent needs it to bring the window up.

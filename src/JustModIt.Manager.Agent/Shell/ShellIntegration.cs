@@ -19,44 +19,44 @@ public static class ShellRegistration
     /// </summary>
     /// <param name="links">Registers the link scheme.</param>
     /// <param name="autostart">The system's autostart entry.</param>
-    /// <param name="options">The app's slug, name and executable.</param>
+    /// <param name="scheme">The app's link scheme.</param>
+    /// <param name="productName">The name the system shows for the scheme.</param>
+    /// <param name="executable">The executable that links and autostart start.</param>
     /// <param name="startWithSystem">The saved setting.</param>
-    public static void Register(ILinkRegistration links, IAutostart autostart, AgentOptions options, bool startWithSystem)
+    public static void Register(ILinkRegistration links, IAutostart autostart, string scheme, string productName, string executable,
+        bool startWithSystem)
     {
         ArgumentNullException.ThrowIfNull(links);
         ArgumentNullException.ThrowIfNull(autostart);
-        ArgumentNullException.ThrowIfNull(options);
-        links.Register(options.Identity.Slug, options.ProductName, options.ExecutablePath);
+        links.Register(scheme, productName, executable);
         if (!startWithSystem || autostart.GetState() != AutostartState.DisabledBySystem)
         {
-            ApplyAutostart(autostart, options, startWithSystem);
+            ApplyAutostart(autostart, executable, startWithSystem);
         }
     }
 
     /// <summary>Removes the link scheme and autostart, as uninstalling does.</summary>
     /// <param name="links">Removes the link scheme.</param>
     /// <param name="autostart">The system's autostart entry.</param>
-    /// <param name="options">The app's slug.</param>
-    public static void Unregister(ILinkRegistration links, IAutostart autostart, AgentOptions options)
+    /// <param name="scheme">The app's link scheme.</param>
+    public static void Unregister(ILinkRegistration links, IAutostart autostart, string scheme)
     {
         ArgumentNullException.ThrowIfNull(links);
         ArgumentNullException.ThrowIfNull(autostart);
-        ArgumentNullException.ThrowIfNull(options);
-        links.Unregister(options.Identity.Slug);
+        links.Unregister(scheme);
         autostart.Disable();
     }
 
     /// <summary>Follows a change of the setting, which overrides the system's switch.</summary>
     /// <param name="autostart">The system's autostart entry.</param>
-    /// <param name="options">The app's executable.</param>
+    /// <param name="executable">The executable that autostart starts.</param>
     /// <param name="startWithSystem">The new setting.</param>
-    public static void ApplyAutostart(IAutostart autostart, AgentOptions options, bool startWithSystem)
+    public static void ApplyAutostart(IAutostart autostart, string executable, bool startWithSystem)
     {
         ArgumentNullException.ThrowIfNull(autostart);
-        ArgumentNullException.ThrowIfNull(options);
         if (startWithSystem)
         {
-            autostart.Enable(AutostartCommand(options.ExecutablePath));
+            autostart.Enable(AutostartCommand(executable));
         }
         else
         {
@@ -105,7 +105,8 @@ public sealed partial class ShellIntegration(
                         settings.Update(current => current with { StartWithSystem = false });
                     }
 
-                    ShellRegistration.Register(links, autostart, options, settings.Current.StartWithSystem);
+                    ShellRegistration.Register(links, autostart, options.Identity.Slug, options.ProductName, options.ExecutablePath,
+                        settings.Current.StartWithSystem);
                 });
             }
             finally
@@ -136,7 +137,7 @@ public sealed partial class ShellIntegration(
         await _applying.WaitAsync().ConfigureAwait(false);
         try
         {
-            Apply(() => ShellRegistration.ApplyAutostart(autostart, options, settings.Current.StartWithSystem));
+            Apply(() => ShellRegistration.ApplyAutostart(autostart, options.ExecutablePath, settings.Current.StartWithSystem));
         }
         finally
         {
