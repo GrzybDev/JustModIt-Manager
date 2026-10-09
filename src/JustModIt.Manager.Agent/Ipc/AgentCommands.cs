@@ -65,7 +65,7 @@ public sealed class AgentCommands(
         DismissFailure dismiss => Done(() => coordinator.DismissFailure(dismiss.Game, dismiss.Install)),
         OpenedGame opened => Done(() => coordinator.RequestVerification(opened.Game)),
         CheckNow => Done(() => _ = checks.CheckNowAsync()),
-        ChangeSettings change => await ChangeSettingsAsync(change.Settings, cancellationToken).ConfigureAwait(false),
+        ChangeSettings change => ChangeSettings(change.Settings),
         SetGameAutomation automation => Done(() => settings.Update(current => ChooseAutomation(current, automation))),
         ChooseProject choose => Done(() => settings.Update(current => current.WithGame(choose.Game, preferences => preferences with
         {
@@ -81,8 +81,7 @@ public sealed class AgentCommands(
         OpenFolder open => Open(FolderOf(open)),
         AddLibraryFolder add => await AddLibraryFolderAsync(add.Path, cancellationToken).ConfigureAwait(false),
         RemoveLibraryFolder remove => Done(() => library.RemoveLibraryFolder(new LibraryFolder(StoreOf(remove.Store), remove.Path))),
-        ValidateBackupFolder validate => new BackupFolderChecked(await CheckBackupFolderAsync(validate.Folder, cancellationToken)
-            .ConfigureAwait(false)),
+        ValidateBackupFolder validate => new BackupFolderChecked(CheckBackupFolder(validate.Folder)),
         ApplyAppUpdate => RestartToUpdate(),
         ExitApp exit => Done(() => _ = lifetime.RequestExitAsync(exit.Mode)),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),
@@ -163,7 +162,7 @@ public sealed class AgentCommands(
         return null;
     }
 
-    private async Task<Message?> ChangeSettingsAsync(SettingsView view, CancellationToken cancellationToken)
+    private Message? ChangeSettings(SettingsView view)
     {
         var current = settings.Current;
         var choosesFolder = view.BackupLocation == BackupLocation.CustomFolder;
@@ -177,7 +176,7 @@ public sealed class AgentCommands(
             && (!string.Equals(folder, current.CustomBackupFolder, StringComparison.Ordinal)
                 || (choosesFolder && current.BackupLocation != BackupLocation.CustomFolder)))
         {
-            if (await CheckBackupFolderAsync(folder, cancellationToken).ConfigureAwait(false) is { } problem)
+            if (CheckBackupFolder(folder) is { } problem)
             {
                 throw Invalid($"The backup folder is refused: {problem}.");
             }
@@ -195,12 +194,13 @@ public sealed class AgentCommands(
         return null;
     }
 
-    private Task<BackupFolderProblem?> CheckBackupFolderAsync(string folder, CancellationToken cancellationToken)
+    // Requests are answered on the thread pool, so the check's file system calls hold up no other request.
+    private BackupFolderProblem? CheckBackupFolder(string folder)
     {
         var gameFolders = library.Snapshot.Games.Values.Select(game => game.InstallDirectory)
             .Concat(coordinator.Current.Games.SelectMany(game => game.Installs).Select(install => install.Record.InstallDirectory))
             .ToList();
-        return Task.Run(() => BackupFolderPolicy.Check(folder, gameFolders, options.InstallDirectory, volumes), cancellationToken);
+        return BackupFolderPolicy.Check(folder, gameFolders, options.InstallDirectory, volumes);
     }
 
     private async Task<Message> AddLibraryFolderAsync(string path, CancellationToken cancellationToken)

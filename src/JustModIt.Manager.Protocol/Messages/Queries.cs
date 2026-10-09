@@ -1,14 +1,18 @@
 using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Protocol.Messages;
+
+/// <summary>A request the agent answers by reading, never by changing anything.</summary>
+public abstract record Query : Message;
 
 /// <summary>Asks for a project page, reused while current; answered with <see cref="ProjectPageResult"/>.</summary>
 /// <param name="GameSlug">The game's slug in the site's addresses.</param>
 /// <param name="TeamSlug">The team's slug in the site's addresses.</param>
 /// <param name="ProjectId">The project, whose saved page is reused.</param>
-public sealed record GetProjectPage(string GameSlug, string TeamSlug, Guid ProjectId) : Message;
+public sealed record GetProjectPage(string GameSlug, string TeamSlug, Guid ProjectId) : Query;
 
 /// <summary>The answer to <see cref="GetProjectPage"/>.</summary>
 public sealed record ProjectPageResult : Message
@@ -35,7 +39,7 @@ public sealed record ProjectPageResult : Message
 /// <param name="Query">The search, filters and order the games must match.</param>
 /// <param name="Offset">How many matching games to skip.</param>
 /// <param name="Count">How many games to return at most; the agent caps it.</param>
-public sealed record GetCataloguePage(CatalogueQuery Query, int Offset, int Count) : Message;
+public sealed record GetCataloguePage(CatalogueQuery Query, int Offset, int Count) : Query;
 
 /// <summary>The answer to <see cref="GetCataloguePage"/>.</summary>
 /// <param name="Total">How many games match, of which <paramref name="Games"/> are the slice asked for.</param>
@@ -45,14 +49,14 @@ public sealed record CataloguePageResult(int Total, IReadOnlyList<CatalogueGameV
     : Message;
 
 /// <summary>Asks for the options of the catalogue's filters; answered with <see cref="CatalogueFiltersResult"/>.</summary>
-public sealed record GetCatalogueFilters : Message;
+public sealed record GetCatalogueFilters : Query;
 
 /// <summary>The answer to <see cref="GetCatalogueFilters"/>.</summary>
 /// <param name="Filters">The options of every filter.</param>
 public sealed record CatalogueFiltersResult(CatalogueFiltersView Filters) : Message;
 
 /// <summary>Asks what each store integration found; answered with <see cref="DetectionReportResult"/>.</summary>
-public sealed record GetDetectionReport : Message;
+public sealed record GetDetectionReport : Query;
 
 /// <summary>The answer to <see cref="GetDetectionReport"/>.</summary>
 /// <param name="Report">What each store integration found.</param>
@@ -62,8 +66,8 @@ public sealed record DetectionReportResult(DetectionReportView Report) : Message
 /// Asks for the backups that installs forgotten with their game left behind, with their size; answered with
 /// <see cref="LeftoverBackups"/>.
 /// </summary>
-public sealed record GetLeftoverBackups : Message;
+public sealed record GetLeftoverBackups : Query;
 
 /// <summary>The answer to <see cref="GetLeftoverBackups"/>.</summary>
 /// <param name="Backups">The leftover backups with their size.</param>
-public sealed record LeftoverBackups(IReadOnlyList<LeftoverBackupView> Backups) : Message;
+public sealed record LeftoverBackups(IReadOnlyList<LeftoverBackup> Backups) : Message;

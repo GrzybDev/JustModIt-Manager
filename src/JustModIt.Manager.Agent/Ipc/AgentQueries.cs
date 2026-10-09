@@ -23,9 +23,9 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
     public const int MaxCataloguePage = 200;
 
     /// <summary>Answers one of the window's queries.</summary>
-    /// <param name="request">A query for a project page, the catalogue, the detection report or leftover backups.</param>
+    /// <param name="request">The query.</param>
     /// <param name="cancellationToken">Cancelled when the window's connection closes.</param>
-    public async ValueTask<Message?> HandleAsync(Message request, CancellationToken cancellationToken) => request switch
+    public async ValueTask<Message?> HandleAsync(Query request, CancellationToken cancellationToken) => request switch
     {
         GetProjectPage page => await GetProjectPageAsync(page, cancellationToken).ConfigureAwait(false),
         GetCataloguePage page => await GetCataloguePageAsync(page, cancellationToken).ConfigureAwait(false),
@@ -35,8 +35,7 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
                 : new CatalogueFiltersView()),
         GetDetectionReport => new DetectionReportResult(DetectionReportView.From(DetectionReport.From(library.Snapshot),
             (await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false))?.Reference.StorefrontPlatforms ?? [])),
-        GetLeftoverBackups => new LeftoverBackups(
-            [.. (await engine.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false)).Select(LeftoverBackupView.From)]),
+        GetLeftoverBackups => new LeftoverBackups(await engine.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false)),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),
     };
 
@@ -58,10 +57,9 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
             return new ProjectPageResult { IsGone = true };
         }
 
-        using var json = JsonDocument.Parse(page.Document.Json);
         return new ProjectPageResult
         {
-            Page = json.RootElement.Clone(),
+            Page = JsonElement.Parse(page.Document.Json.Span),
             FetchedAt = page.FetchedAt,
             IsStale = page.IsStale,
             IsGone = page.IsGone,

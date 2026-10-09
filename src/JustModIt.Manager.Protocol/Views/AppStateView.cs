@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 
@@ -37,7 +38,7 @@ public sealed record AppStateView
     public AppUpdateView Update { get; init; } = new();
 
     /// <summary>Operations a crash interrupted that could not be finished or undone yet.</summary>
-    public IReadOnlyList<RecoveryView> PendingRecoveries { get; init; } = [];
+    public IReadOnlyList<RecoveredOperation> PendingRecoveries { get; init; } = [];
 
     /// <summary>Makes the snapshot of the engine's state and the agent's own status.</summary>
     /// <param name="version">The snapshot's number among those the agent sent.</param>
@@ -74,7 +75,7 @@ public sealed record AppStateView
             },
             Activity = activity,
             Update = update,
-            PendingRecoveries = [.. state.PendingRecoveries.Select(RecoveryView.From)],
+            PendingRecoveries = state.PendingRecoveries,
         };
     }
 }

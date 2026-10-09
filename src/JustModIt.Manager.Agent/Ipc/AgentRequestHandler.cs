@@ -69,8 +69,6 @@ public sealed class AgentRequestHandler(
             throw new RequestFailedException(ErrorCode.Unsupported);
         }
 
-        return request is GetProjectPage or GetCataloguePage or GetCatalogueFilters or GetDetectionReport or GetLeftoverBackups
-            ? queries.HandleAsync(request, cancellationToken)
-            : commands.HandleAsync(request, cancellationToken);
+        return request is Query query ? queries.HandleAsync(query, cancellationToken) : commands.HandleAsync(request, cancellationToken);
     }
 }

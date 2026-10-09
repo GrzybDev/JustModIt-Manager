@@ -97,7 +97,7 @@ public sealed class MessageTests
             ScannedAt = Now,
         }), [new StorefrontPlatform { Uuid = Guid.Empty, Name = "Steam", Provider = "steam", InstallHint = "Open **Properties**." }])),
         new GetLeftoverBackups(),
-        new LeftoverBackups([new LeftoverBackupView(RecordId, FailedGame, "Other Game", @"E:\Backups\ExampleApp\gog-1", 4096)]),
+        new LeftoverBackups([new LeftoverBackup(RecordId, FailedGame, "Other Game", @"E:\Backups\ExampleApp\gog-1", 4096)]),
     ];
 
     public static TheoryData<int> SampleIndexes => [.. Enumerable.Range(0, Samples.Length)];

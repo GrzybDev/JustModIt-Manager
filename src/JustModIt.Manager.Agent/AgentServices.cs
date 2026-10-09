@@ -53,8 +53,6 @@ public static class AgentServices
         ArgumentNullException.ThrowIfNull(loggers);
 
         services.AddSingleton(options);
-        services.AddSingleton(options.Identity);
-        services.AddSingleton(options.Locations);
         services.AddSingleton(new AppLinks(options.Identity.Slug));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(settings);
@@ -140,7 +138,6 @@ public static class AgentServices
 
     private static void AddAgentParts(IServiceCollection services, AgentOptions options)
     {
-        services.AddSingleton(options.Names);
         services.AddSingleton<AgentStatus>();
         services.AddSingleton<IUiStarter, UiProcessStarter>();
         services.AddSingleton<UiLauncher>();

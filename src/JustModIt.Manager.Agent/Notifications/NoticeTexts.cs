@@ -18,6 +18,8 @@ public static class NoticeTexts
         string InstallTitle(string pattern, string projectPattern) => notice.ProjectName is { } project
             ? Text.Format(projectPattern, ("project", project), ("game", game), job)
             : Title(pattern);
+        string Versioned(string pattern, string latest) =>
+            Formats.Version(notice.ReleaseLabel ?? "") is { Length: > 0 } version ? Text.Format(pattern, ("version", version)) : latest;
         return notice.Kind switch
         {
             NoticeKind.Available => (Title(Strings.NoticeAvailableTitle),
@@ -27,16 +29,12 @@ public static class NoticeTexts
             NoticeKind.ChoiceNeeded => (Title(Strings.NoticeChoiceNeededTitle), Strings.NoticeChoiceNeeded),
             NoticeKind.AvailableSummary => (Strings.NoticeAvailableSummaryTitle, Summary(notice)),
             NoticeKind.UpdateAvailable => (InstallTitle(Strings.NoticeUpdateAvailableTitle, Strings.NoticeUpdateAvailableProjectTitle),
-                Formats.Version(notice.ReleaseLabel ?? "") is { Length: > 0 } available
-                    ? Text.Format(Strings.NoticeUpdateAvailable, ("version", available))
-                    : Strings.NoticeUpdateAvailableLatest),
+                Versioned(Strings.NoticeUpdateAvailable, Strings.NoticeUpdateAvailableLatest)),
             NoticeKind.RepairNeeded => (InstallTitle(Strings.NoticeRepairNeededTitle, Strings.NoticeRepairNeededProjectTitle),
                 Strings.NoticeRepairNeeded),
             NoticeKind.Installed => (Title(Strings.NoticeInstalledTitle), Strings.NoticeInstalled),
             NoticeKind.Updated => (InstallTitle(Strings.NoticeUpdatedTitle, Strings.NoticeUpdatedProjectTitle),
-                Formats.Version(notice.ReleaseLabel ?? "") is { Length: > 0 } version
-                    ? Text.Format(Strings.NoticeUpdated, ("version", version))
-                    : Strings.NoticeUpdatedLatest),
+                Versioned(Strings.NoticeUpdated, Strings.NoticeUpdatedLatest)),
             NoticeKind.Repaired => (InstallTitle(Strings.NoticeRepairedTitle, Strings.NoticeRepairedProjectTitle), Strings.NoticeRepaired),
             NoticeKind.PreviousReleaseLost => (
                 InstallTitle(Strings.NoticePreviousReleaseLostTitle, Strings.NoticePreviousReleaseLostProjectTitle),

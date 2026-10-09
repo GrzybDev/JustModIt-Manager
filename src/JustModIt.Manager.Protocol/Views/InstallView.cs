@@ -1,5 +1,3 @@
-using JustModIt.Manager.Core.Games;
-using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
@@ -118,37 +116,5 @@ public sealed record ThirdPartyNoticeView(string Name, string License, string So
     {
         ArgumentNullException.ThrowIfNull(notice);
         return new ThirdPartyNoticeView(notice.Name, notice.License, notice.SourceUrl);
-    }
-}
-
-/// <summary>An operation a crash interrupted that could not be finished or undone yet; its game stays untouched.</summary>
-/// <param name="RecordId">The install the operation was for.</param>
-/// <param name="Outcome">Why it is still pending.</param>
-/// <param name="GameDirectory">The game's folder; null when the journal is too damaged to tell.</param>
-public sealed record RecoveryView(Guid RecordId, RecoveryOutcome Outcome, string? GameDirectory = null)
-{
-    /// <summary>Maps an operation that crash recovery left pending.</summary>
-    /// <param name="operation">What recovery found.</param>
-    public static RecoveryView From(RecoveredOperation operation)
-    {
-        ArgumentNullException.ThrowIfNull(operation);
-        return new RecoveryView(operation.RecordId, operation.Outcome, operation.GameDirectory);
-    }
-}
-
-/// <summary>Backups of a game its store confirms is gone, which the player may remove.</summary>
-/// <param name="RecordId">The forgotten install, as <see cref="Messages.RemoveLeftoverBackups"/> names it.</param>
-/// <param name="Game">The game that is gone.</param>
-/// <param name="GameName">The game's name as it was last seen.</param>
-/// <param name="Directory">The folder holding the backups.</param>
-/// <param name="Bytes">The backups' size.</param>
-public sealed record LeftoverBackupView(Guid RecordId, GameKey Game, string GameName, string Directory, long Bytes)
-{
-    /// <summary>Maps backups that a forgotten install left.</summary>
-    /// <param name="backup">The backups the engine found.</param>
-    public static LeftoverBackupView From(LeftoverBackup backup)
-    {
-        ArgumentNullException.ThrowIfNull(backup);
-        return new LeftoverBackupView(backup.RecordId, backup.Game, backup.GameName, backup.Directory, backup.Bytes);
     }
 }
