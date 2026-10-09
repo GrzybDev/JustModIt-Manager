@@ -12,7 +12,7 @@ public sealed record GamePreferences
     public bool? AutoUpdate { get; init; }
 
     /// <summary>The project to use when several teams made one for the game.</summary>
-    public string? ProjectId { get; init; }
+    public Guid? ProjectId { get; init; }
 
     /// <summary>The name of the release file that identifies the chosen variant, remembered for automatic installs.</summary>
     public string? VariantName { get; init; }

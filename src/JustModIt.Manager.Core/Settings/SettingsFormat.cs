@@ -166,7 +166,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             {
                 AutoInstall = game.Value.GetBooleanOrNull(AutoInstall),
                 AutoUpdate = game.Value.GetBooleanOrNull(AutoUpdate),
-                ProjectId = game.Value.GetTextOrNull(ProjectId),
+                ProjectId = game.Value.GetGuidOrNull(ProjectId),
                 VariantName = game.Value.GetTextOrNull(VariantName),
                 IsHidden = game.Value.GetBooleanOrNull(IsHidden) ?? false,
             };

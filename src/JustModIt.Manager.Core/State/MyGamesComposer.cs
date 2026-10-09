@@ -82,7 +82,7 @@ public static class MyGamesComposer
             .OrderByDescending(record => game is not null && PathComparison.AreSame(record.InstallDirectory, game.InstallDirectory))
             .ThenByDescending(record => record.InstalledAt)
             .Select(record => Install(input, record, key, game, current, offer, job is not null))];
-        var project = offer.Choose(ParseProject(preferences), input.Settings.PreferredTeams);
+        var project = offer.Choose(preferences.ProjectId, input.Settings.PreferredTeams);
         var first = installs.FirstOrDefault();
         return new MyGame
         {
@@ -124,7 +124,7 @@ public static class MyGamesComposer
     private static ProjectOffer? InstalledProject(InstallableIndex index, GameOffer offer, InstallRecord record, GameKey key,
         InstalledGame? game)
     {
-        if (!Guid.TryParse(record.Source?.ProjectId, out var uuid) || record.IsTest)
+        if (record.Source?.ProjectUuid is not { } uuid || record.IsTest)
         {
             return null;
         }
@@ -134,7 +134,4 @@ public static class MyGamesComposer
                 ? new ProjectOffer(entry, ReleaseSelector.Select(entry, key, game?.Platform ?? OperatingSystemKind.Unknown))
                 : null);
     }
-
-    private static Guid? ParseProject(GamePreferences preferences) =>
-        Guid.TryParse(preferences.ProjectId, out var project) ? project : null;
 }

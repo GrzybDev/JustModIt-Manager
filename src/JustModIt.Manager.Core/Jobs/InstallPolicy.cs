@@ -52,7 +52,7 @@ public sealed record InstallAdmission
         }
 
         // Another variant of the same project would own the same files, and the player means to swap them.
-        var same = installs.Find(record => !record.IsTest && Guid.TryParse(record.Source?.ProjectId, out var installed) && installed == project);
+        var same = installs.Find(record => !record.IsTest && record.Source?.ProjectUuid == project);
         return same is null ? admission : Replacing(same);
     }
 }

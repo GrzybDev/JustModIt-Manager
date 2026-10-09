@@ -1,5 +1,4 @@
 using JustModIt.Manager.Core.Games;
-using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
@@ -267,7 +266,7 @@ internal sealed class AutomationDriver : IAsyncDisposable
         {
             // Otherwise the next look would announce, or install again, what the player just removed.
             var removed = result.Job.InstallId is { } install ? game?.FindInstall(install) : null;
-            Guid?[] releases = [removed?.Project?.Selection.Release?.Uuid, InstalledRelease(removed?.Record)];
+            Guid?[] releases = [removed?.Project?.Selection.Release?.Uuid, removed?.Record.Source?.ReleaseUuid];
             foreach (var release in releases.OfType<Guid>())
             {
                 History = History.RecordAnnouncement(key, release);
@@ -278,12 +277,9 @@ internal sealed class AutomationDriver : IAsyncDisposable
         else if (result.Installed is { IsTest: false, Source: { } source })
         {
             _settings.Update(settings => settings.WithGame(key, preferences =>
-                preferences with { ProjectId = source.ProjectId, VariantName = source.VariantName }));
+                preferences with { ProjectId = source.ProjectUuid, VariantName = source.VariantName }));
         }
     }
-
-    private static Guid? InstalledRelease(InstallRecord? record) =>
-        Guid.TryParse(record?.Source?.ReleaseId, out var release) ? release : null;
 
     private static AutomationNotice Notice(NoticeKind kind, Attempt attempt) =>
         new(kind) { Game = attempt.Game, GameName = attempt.GameName, ProjectName = attempt.ProjectName };

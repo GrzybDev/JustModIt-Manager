@@ -8,7 +8,7 @@ internal static class InstallSources
     /// <summary>The project an install came from; null when the site did not supply it, e.g. for a test install.</summary>
     /// <param name="source">Where the install came from, as its record keeps it.</param>
     public static ProjectLocator? ProjectOf(InstallSource? source) =>
-        source is { GameSlug: { } game, TeamSlug: { } team } && Guid.TryParse(source.ProjectId, out var project)
+        source is { GameSlug: { } game, TeamSlug: { } team, ProjectUuid: { } project }
             ? new ProjectLocator(game, team, project)
             : null;
 }

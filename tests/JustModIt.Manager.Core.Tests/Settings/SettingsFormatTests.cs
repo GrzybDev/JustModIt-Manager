@@ -46,7 +46,7 @@ public sealed class SettingsFormatTests : IDisposable
             {
                 AutoInstall = false,
                 AutoUpdate = true,
-                ProjectId = "0b2c4d6e-8f10-4a12-b314-c516d718e920",
+                ProjectId = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920"),
                 VariantName = "Text + voice-over",
                 IsHidden = true,
             })
@@ -124,7 +124,7 @@ public sealed class SettingsFormatTests : IDisposable
         }.WithGame(Witcher, preferences => preferences with
         {
             AutoInstall = false,
-            ProjectId = "0b2c4d6e-8f10-4a12-b314-c516d718e920",
+            ProjectId = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920"),
             VariantName = "Café + voice-over",
         }));
     }

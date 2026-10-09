@@ -837,7 +837,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         }
 
         _pruneWanted = false;
-        var keep = _records.Values.Select(record => Guid.TryParse(record.Source?.ReleaseFileId, out var file) ? file : (Guid?)null)
+        var keep = _records.Values.Select(record => record.Source?.ReleaseFileUuid)
             .Concat(_failures.Values.Select(failure => failure.PackageFileId))
             .OfType<Guid>()
             .ToHashSet();

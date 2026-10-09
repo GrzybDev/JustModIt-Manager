@@ -51,13 +51,13 @@ public sealed class AppSettingsTests
     {
         var settings = AppSettings.Default
             .WithGame(Witcher, preferences => preferences with { IsHidden = true })
-            .WithGame(Portal, preferences => preferences with { ProjectId = "project-1" });
+            .WithGame(Portal, preferences => preferences with { ProjectId = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920") });
 
         var updated = settings.WithGame(Witcher, preferences => preferences with { IsHidden = false });
 
         updated.Games.Keys.Should().Equal(Portal);
         updated.GetGame(Witcher).Should().Be(GamePreferences.Default);
-        updated.GetGame(Portal).ProjectId.Should().Be("project-1");
+        updated.GetGame(Portal).ProjectId.Should().Be(Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920"));
     }
 
     [Fact]

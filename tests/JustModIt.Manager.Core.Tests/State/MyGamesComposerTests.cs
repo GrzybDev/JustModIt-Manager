@@ -93,7 +93,7 @@ public sealed class MyGamesComposerTests
 
         var chosen = Input([Installed()], entries) with
         {
-            Settings = AppSettings.Default.WithGame(Game, preferences => preferences with { ProjectId = OtherProject.ToString("D") }),
+            Settings = AppSettings.Default.WithGame(Game, preferences => preferences with { ProjectId = OtherProject }),
         };
         var game = Compose(chosen).Single();
         game.Project!.Project.ProjectUuid.Should().Be(OtherProject);
@@ -114,7 +114,7 @@ public sealed class MyGamesComposerTests
             .Should().Be(OtherProject);
         Compose(Input([Installed()], entries) with
         {
-            Settings = preferring.WithGame(Game, preferences => preferences with { ProjectId = Project.ToString("D") }),
+            Settings = preferring.WithGame(Game, preferences => preferences with { ProjectId = Project }),
         }).Single().Project!.Project.ProjectUuid.Should().Be(Project);
         Compose(Input([Installed()], entries, [Record()]) with { Settings = preferring }).Single().Installs.Single().Project!.Project
             .ProjectUuid.Should().Be(Project, "a preference never swaps the installed project");

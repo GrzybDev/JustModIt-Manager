@@ -125,7 +125,7 @@ public sealed class AgentIpcTests : IAsyncDisposable
         {
             AutoInstall = true,
             AutoUpdate = false,
-            ProjectId = project.ToString("D"),
+            ProjectId = project,
             VariantName = "Text only",
             IsHidden = true,
         });

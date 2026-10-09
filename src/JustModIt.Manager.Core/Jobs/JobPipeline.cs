@@ -137,7 +137,7 @@ internal sealed partial class JobPipeline(
     private async Task<JobResult> ReplaceAsync(JobContext job, InstallRecord record, InstalledGame game, ProjectLocator project,
         string? variantName, bool fallBackToDefault)
     {
-        if (Guid.TryParse(record.Source?.ReleaseFileId, out var installedFile))
+        if (record.Source?.ReleaseFileUuid is { } installedFile)
         {
             job.Protect(installedFile);
         }
@@ -381,7 +381,7 @@ internal sealed partial class JobPipeline(
         }
 
         var failure = JobFailures.FromIssues(report.Issues);
-        var isNewRelease = !Guid.TryParse(record.Source?.ReleaseId, out var installedRelease) || installedRelease != package.ReleaseId;
+        var isNewRelease = record.Source?.ReleaseUuid != package.ReleaseId;
         throw new JobFailedException(failure.Reason == JobFailureReason.UnsupportedGameVersion && isNewRelease
             ? failure with { Reason = JobFailureReason.NewReleaseIncompatible }
             : failure);
@@ -391,14 +391,13 @@ internal sealed partial class JobPipeline(
     // from; only an exit without waiting for jobs does.
     private async Task<InstallRecord?> TryRestoreAsync(JobContext job, InstallRecord record)
     {
-        if (record.Source is not { TeamSlug: { } team, ProjectSlug: { } project } source
-            || !Guid.TryParse(source.ReleaseId, out var release) || !Guid.TryParse(source.ReleaseFileId, out var file))
+        if (record.Source is not { TeamSlug: { } team, ProjectSlug: { } project, ReleaseUuid: { } release, ReleaseFileUuid: { } file } source)
         {
             return null;
         }
 
         job.Enter(JobStage.RestoringPrevious);
-        var listed = Guid.TryParse(source.ProjectId, out var projectId) ? catalogue.Current.Index.FindProject(projectId) : null;
+        var listed = source.ProjectUuid is { } projectId ? catalogue.Current.Index.FindProject(projectId) : null;
         try
         {
             var path = await FindPreviousPackageAsync(new ReleaseFileLocator(listed?.Team.Slug ?? team, listed?.ProjectSlug ?? project,

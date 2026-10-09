@@ -90,10 +90,9 @@ public static class MyGameStatusRules
     public static InstalledRelease? InstalledReleaseOf(InstallRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
-        return record.Source is { } source && Guid.TryParse(source.ReleaseId, out var release)
-            && Guid.TryParse(source.ReleaseFileId, out var file)
-                ? new InstalledRelease(release, source.ReleaseVersion ?? 0, source.ReleasePublishedAt, file, source.VariantName)
-                : null;
+        return record.Source is { ReleaseUuid: { } release, ReleaseFileUuid: { } file } source
+            ? new InstalledRelease(release, source.ReleaseVersion ?? 0, source.ReleasePublishedAt, file, source.VariantName)
+            : null;
     }
 
     // Not the order the rules for one install test in: a test install must not hide that another install needs a repair.

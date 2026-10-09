@@ -103,6 +103,16 @@ public sealed record InstallSource
 
     /// <summary>A copy of the cover in the app's cache, shown offline.</summary>
     public string? CoverPath { get; init; }
+
+    // The ids stay text in the record, so one that is not a GUID reads as missing instead of making the record unreadable.
+    [JsonIgnore]
+    public Guid? ProjectUuid => Guid.TryParse(ProjectId, out var id) ? id : null;
+
+    [JsonIgnore]
+    public Guid? ReleaseUuid => Guid.TryParse(ReleaseId, out var id) ? id : null;
+
+    [JsonIgnore]
+    public Guid? ReleaseFileUuid => Guid.TryParse(ReleaseFileId, out var id) ? id : null;
 }
 
 /// <summary>The files an install touched and the folders it created, in the order it touched them.</summary>

@@ -131,7 +131,7 @@ public static class AutomationPolicy
 
         // A repair installs the current release, so a newer one is a new try even when the installed one stopped fitting.
         var target = install.Project?.Selection.Release?.Uuid
-            ?? (Guid.TryParse(install.Record.Source?.ReleaseId, out var installedRelease) ? installedRelease : Guid.Empty);
+            ?? install.Record.Source?.ReleaseUuid ?? Guid.Empty;
         return history.CanTry(game.Key, target, AutomationAction.Repair, game.Game?.BuildId, now)
             ? new AutomationDecision(AutomationAction.Repair) { ReleaseId = target, Release = install.Project?.Selection.Release }
             : AutomationDecision.Skip(AutomationReason.RecentlyTried);

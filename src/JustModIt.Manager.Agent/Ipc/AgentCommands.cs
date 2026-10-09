@@ -69,8 +69,8 @@ public sealed class AgentCommands(
         SetGameAutomation automation => Done(() => settings.Update(current => ChooseAutomation(current, automation))),
         ChooseProject choose => Done(() => settings.Update(current => current.WithGame(choose.Game, preferences => preferences with
         {
-            ProjectId = choose.ProjectId?.ToString("D"),
-            VariantName = preferences.ProjectId == choose.ProjectId?.ToString("D") ? preferences.VariantName : null,
+            ProjectId = choose.ProjectId,
+            VariantName = preferences.ProjectId == choose.ProjectId ? preferences.VariantName : null,
         }))),
         ChooseVariant choose => Done(() => settings.Update(current =>
             current.WithGame(choose.Game, preferences => preferences with { VariantName = choose.VariantName }))),
