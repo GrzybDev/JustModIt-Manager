@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
@@ -67,6 +68,29 @@ public sealed class RollbackTests : IAsyncDisposable
             .Copy("readme.txt", "Changed again")), cancellationToken: cancellation.Token);
 
         await install.Should().ThrowAsync<OperationCanceledException>();
+        _harness.Snapshot().Should().BeEquivalentTo(_before);
+        _harness.AppFiles().Should().BeEmpty();
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public async Task Undoes_everything_at_once_when_the_journal_cannot_be_written()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows refuses writes to a locked range.");
+        var package = _harness.ManifestPackage(new TestPackage()
+            .Copy("readme.txt", "Changed")
+            .Copy("a.txt", "a")
+            .Copy("readme.txt", "Changed again"));
+        InstallFailedException failure;
+        using (_harness.FailJournalWritesFrom(ChangeKind.Write))
+        {
+            var install = () => _harness.InstallAsync(package);
+
+            failure = (await install.Should().ThrowAsync<InstallFailedException>()).Which;
+        }
+
+        failure.RolledBack.Should().BeTrue();
+        failure.InnerException.Should().BeOfType<IOException>();
         _harness.Snapshot().Should().BeEquivalentTo(_before);
         _harness.AppFiles().Should().BeEmpty();
     }

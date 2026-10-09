@@ -18,6 +18,18 @@ internal static class JournalRollback
         Foreign,
     }
 
+    /// <summary>Closes the journal of an operation that failed and undoes it.</summary>
+    /// <param name="journal">The operation's journal, still open.</param>
+    /// <param name="game">The game folder the entries' paths are relative to.</param>
+    /// <param name="hook">Called right before each change.</param>
+    /// <param name="logger">Logs the files left alone and the entries that could not be undone.</param>
+    /// <returns>False when some change could not be undone; the journal must then stay for another attempt.</returns>
+    public static Task<bool> RollBackAsync(TransactionJournal journal, GameFolder game, ChangeHook hook, ILogger logger)
+    {
+        journal.CloseAfterFailure();
+        return UndoAsync(journal.Entries, game, hook, logger);
+    }
+
     /// <summary>Undoes every entry after the header, the last first.</summary>
     /// <param name="entries">The journal's lines, the header first.</param>
     /// <param name="game">The game folder the entries' paths are relative to.</param>

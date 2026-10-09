@@ -126,7 +126,7 @@ internal sealed class TransactionJournal : IDisposable
         }
         catch
         {
-            journal.Dispose();
+            journal.CloseAfterFailure();
             FileOperations.TryDeleteFile(path);
             throw;
         }
@@ -164,6 +164,28 @@ internal sealed class TransactionJournal : IDisposable
 
     /// <summary>Makes every entry added so far durable; only then may the changes they describe happen.</summary>
     public void Commit() => _stream.Flush(flushToDisk: true);
+
+    /// <summary>Makes durable what it can and closes the journal, so an undo can follow even a refused write.</summary>
+    public void CloseAfterFailure()
+    {
+        // An entry that never became durable describes a change that never ran, and every undo is idempotent.
+        try
+        {
+            Commit();
+        }
+        catch (IOException)
+        {
+        }
+
+        // Closing retries the failed write, but closes the file even when that fails again.
+        try
+        {
+            _stream.Dispose();
+        }
+        catch (IOException)
+        {
+        }
+    }
 
     public void Dispose() => _stream.Dispose();
 

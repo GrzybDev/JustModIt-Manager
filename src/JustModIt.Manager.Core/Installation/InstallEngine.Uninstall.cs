@@ -225,9 +225,7 @@ public sealed partial class InstallEngine
             catch (Exception exception)
             {
                 progress?.Report(new InstallProgress(InstallStage.RollingBack, null, 0, 0, 0, 0));
-                journal.Commit();
-                var rolledBack = await JournalRollback.UndoAsync(journal.Entries, game, _hook, _logger).ConfigureAwait(false);
-                journal.Dispose();
+                var rolledBack = await JournalRollback.RollBackAsync(journal, game, _hook, _logger).ConfigureAwait(false);
                 if (rolledBack)
                 {
                     Tidy(recordId, () => TransactionCleanup.RemoveStaging(header.StagingDirectory));

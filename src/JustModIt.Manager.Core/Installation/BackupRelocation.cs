@@ -65,7 +65,7 @@ internal static class BackupRelocation
         }
         catch
         {
-            journal.Dispose();
+            journal.CloseAfterFailure();
             if (Undo(journal.Entries, header))
             {
                 File.Delete(folder.JournalFile);

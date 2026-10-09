@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
 using JustModIt.Manager.Core.Collections;
@@ -289,6 +290,24 @@ internal sealed class InstallHarness : IAsyncDisposable
         };
     }
 
+    /// <summary>From the first change of a kind on, every write to the operation's journal fails, as on a full disk.</summary>
+    /// <param name="kind">The kind of change.</param>
+    /// <param name="path">The changed path; null for any.</param>
+    /// <returns>Lets the journal be written again.</returns>
+    [SupportedOSPlatform("windows")]
+    public IDisposable FailJournalWritesFrom(ChangeKind kind, string? path = null)
+    {
+        var journal = new JournalLock();
+        BeforeChange = (changing, changed) =>
+        {
+            if (changing == kind && (path is null || changed == path))
+            {
+                journal.Lock(Directory.EnumerateFiles(InstallsDirectory, "journal.jsonl", SearchOption.AllDirectories).Single());
+            }
+        };
+        return journal;
+    }
+
     /// <summary>Counts the changes an operation makes, to crash at each of them.</summary>
     /// <returns>A function that reads the count so far.</returns>
     public Func<int> CountChanges()
@@ -340,6 +359,26 @@ internal sealed class InstallHarness : IAsyncDisposable
         "Save the game"u8.CopyTo(changed.AsSpan(4096));
         "Load the game"u8.CopyTo(changed.AsSpan(100_000));
         return changed;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private sealed class JournalLock : IDisposable
+    {
+        private FileStream? _stream;
+
+        public void Lock(string journal)
+        {
+            if (_stream is not null)
+            {
+                return;
+            }
+
+            _stream = new FileStream(journal, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            // A range locked by another handle past the end refuses every write that would grow the file.
+            _stream.Lock(_stream.Length, int.MaxValue);
+        }
+
+        public void Dispose() => _stream?.Dispose();
     }
 }
 

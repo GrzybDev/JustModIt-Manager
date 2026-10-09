@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Settings;
@@ -246,6 +247,29 @@ public sealed class UninstallTests : IAsyncDisposable
         var uninstall = () => _harness.UninstallAsync(result.Record.Id);
 
         (await uninstall.Should().ThrowAsync<InstallFailedException>()).Which.RolledBack.Should().BeTrue();
+        _harness.Snapshot().Should().BeEquivalentTo(installed);
+        _harness.BeforeChange = null;
+        await _harness.UninstallAsync(result.Record.Id);
+        _harness.Snapshot().Should().BeEquivalentTo(_before);
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public async Task Undoes_itself_at_once_when_its_journal_cannot_be_written()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows refuses writes to a locked range.");
+        var result = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed").Copy("mods/new.txt", "New"));
+        var installed = _harness.Snapshot();
+        InstallFailedException failure;
+        using (_harness.FailJournalWritesFrom(ChangeKind.Delete, "mods/new.txt"))
+        {
+            var uninstall = () => _harness.UninstallAsync(result.Record.Id);
+
+            failure = (await uninstall.Should().ThrowAsync<InstallFailedException>()).Which;
+        }
+
+        failure.RolledBack.Should().BeTrue();
+        failure.InnerException.Should().BeOfType<IOException>();
         _harness.Snapshot().Should().BeEquivalentTo(installed);
         _harness.BeforeChange = null;
         await _harness.UninstallAsync(result.Record.Id);

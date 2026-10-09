@@ -193,21 +193,7 @@ internal sealed class InstallTransaction : IDisposable
     /// <summary>Undoes everything the install changed.</summary>
     /// <param name="logger">Logs the files left alone and the changes that could not be undone.</param>
     /// <returns>False when some change could not be undone and the journal stays for recovery.</returns>
-    public async Task<bool> RollBackAsync(ILogger logger)
-    {
-        try
-        {
-            // Every entry, including those of the batch that was being prepared, must be durable before undoing begins.
-            _journal.Commit();
-        }
-        catch (IOException)
-        {
-        }
-
-        var complete = await JournalRollback.UndoAsync(_journal.Entries, _game, _hook, logger).ConfigureAwait(false);
-        _journal.Dispose();
-        return complete;
-    }
+    public Task<bool> RollBackAsync(ILogger logger) => JournalRollback.RollBackAsync(_journal, _game, _hook, logger);
 
     public void Dispose() => _journal.Dispose();
 

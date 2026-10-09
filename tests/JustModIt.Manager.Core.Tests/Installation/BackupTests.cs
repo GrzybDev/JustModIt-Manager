@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.Tests.TestSupport;
@@ -66,6 +67,26 @@ public sealed class BackupTests
             harness.Snapshot().Should().BeEquivalentTo(before, "crash at change {0}", change);
             harness.AppFiles().Should().BeEmpty("crash at change {0}", change);
         }
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public async Task Undoes_a_move_at_once_when_its_journal_cannot_be_written()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows refuses writes to a locked range.");
+        await using var harness = Harness("game folder", "app data");
+        var result = await harness.InstallAsync(harness.ManifestPackage(Package()));
+        using (harness.FailJournalWritesFrom(ChangeKind.Commit))
+        {
+            var move = () => harness.Engine.MoveBackupsAsync(result.Record.Id, InstallHarness.InAppData, null, InstallHarness.Token);
+
+            await move.Should().ThrowAsync<IOException>();
+        }
+
+        harness.BeforeChange = null;
+        await BackupsShouldHoldTheOriginalsAsync(harness);
+        var moved = await harness.Engine.MoveBackupsAsync(result.Record.Id, InstallHarness.InAppData, null, InstallHarness.Token);
+        moved.Backup.Location.Should().Be(BackupLocation.AppData);
     }
 
     [Fact]
