@@ -24,7 +24,9 @@ internal sealed record InstallFolder(Guid Id, string Root)
 /// <param name="Folder">The install's folder.</param>
 /// <param name="Record">Null when there is none or it cannot be read.</param>
 /// <param name="IsUnreadable">A record exists but is damaged or was written by a newer app.</param>
-internal readonly record struct RecordLoad(InstallFolder Folder, InstallRecord? Record, bool IsUnreadable);
+/// <param name="InstallDirectory">The game folder an unreadable record still names; null when it names none.</param>
+internal readonly record struct RecordLoad(InstallFolder Folder, InstallRecord? Record, bool IsUnreadable,
+    string? InstallDirectory = null);
 
 /// <summary>Reads and writes the folders of installs.</summary>
 /// <param name="installsDirectory">The folder that holds one folder per install.</param>
@@ -32,6 +34,10 @@ internal readonly record struct RecordLoad(InstallFolder Folder, InstallRecord? 
 internal sealed class InstallRecordStore(string installsDirectory, TimeProvider time)
 {
     private const string FolderFormat = "N";
+    private const long MaxFileLength = 1L << 30;
+
+    // How InstallationJsonContext names InstallRecord.InstallDirectory.
+    private const string InstallDirectoryProperty = "installDirectory";
 
     // People read these files, so letters stay letters instead of escapes.
     private static readonly JsonWriterOptions RecordWriterOptions = new()
@@ -75,22 +81,33 @@ internal sealed class InstallRecordStore(string installsDirectory, TimeProvider 
     /// <param name="cancellationToken">Stops the read.</param>
     public static async Task<RecordLoad> LoadAsync(InstallFolder folder, CancellationToken cancellationToken)
     {
+        byte[] content;
         try
         {
-            var record = JsonSerializer.Deserialize(await ReadAsync(folder.RecordFile, cancellationToken).ConfigureAwait(false),
-                InstallationJsonContext.Default.InstallRecord);
-            return record is not null && record.Id == folder.Id && record.FormatVersion <= InstallRecord.CurrentFormatVersion
-                ? new RecordLoad(folder, record, IsUnreadable: false)
-                : new RecordLoad(folder, null, IsUnreadable: true);
+            content = await ReadAsync(folder.RecordFile, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
         {
             return new RecordLoad(folder, null, IsUnreadable: false);
         }
-        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             return new RecordLoad(folder, null, IsUnreadable: true);
         }
+
+        try
+        {
+            if (JsonSerializer.Deserialize(content, InstallationJsonContext.Default.InstallRecord) is { } record
+                && record.Id == folder.Id && record.FormatVersion <= InstallRecord.CurrentFormatVersion)
+            {
+                return new RecordLoad(folder, record, IsUnreadable: false);
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return new RecordLoad(folder, null, IsUnreadable: true, InstallDirectoryOf(content));
     }
 
     /// <summary>
@@ -195,6 +212,22 @@ internal sealed class InstallRecordStore(string installsDirectory, TimeProvider 
         FileOperations.DeleteDirectoryIfEmpty(folder.Root);
     }
 
-    private static async Task<byte[]> ReadAsync(string path, CancellationToken cancellationToken) =>
-        await SharedFileRead.ReadAllBytesAsync(path, 1L << 30, cancellationToken).ConfigureAwait(false);
+    private static Task<byte[]> ReadAsync(string path, CancellationToken cancellationToken) =>
+        SharedFileRead.ReadAllBytesAsync(path, MaxFileLength, cancellationToken);
+
+    // A record this version cannot read still names its game folder, unless it is damaged beyond that.
+    private static string? InstallDirectoryOf(byte[] content)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(content);
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                ? document.RootElement.GetFullPathOrNull(InstallDirectoryProperty)
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 }

@@ -81,7 +81,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
         _downloader = new PackageDownloader(_api, _storage, DownloadsDirectory, ProductConfiguration.PackageExtension, _time,
             _loggers.CreateLogger<PackageDownloader>());
         Downloads = new CountingDownloader(_downloader);
-        Engine = new InstallEngine(InstallEngineOptions.For(LiveApp.Identity, locations), new PackageReader(), new XDelta3Patcher(),
+        Engine = new InstallEngine(InstallEngineOptions.For(LiveApp.Identity, locations), new PackageReader(),
             new FileLockProbe(RestartManagerLockHolders.Instance), Library, PhysicalVolumes.Instance, _time,
             _loggers.CreateLogger<InstallEngine>());
         Jobs = new JobRunner(Engine, Catalogue, Downloads, Library, _runningGames, settings, _time, _loggers.CreateLogger<JobRunner>());

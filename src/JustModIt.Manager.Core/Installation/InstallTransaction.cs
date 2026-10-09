@@ -12,12 +12,9 @@ namespace JustModIt.Manager.Core.Installation;
 /// </summary>
 internal sealed class InstallTransaction : IDisposable
 {
-    private const int MaxBatchSteps = 512;
-
     private readonly GameFolder _game;
     private readonly InstallPlan _plan;
     private readonly TransactionJournal _journal;
-    private readonly IPatchDecoder _decoder;
     private readonly ChangeHook _hook;
     private readonly OrderedDictionary<string, TouchedFile> _touched = new(PathComparison.Comparer);
     private readonly List<string> _createdDirectories = [];
@@ -27,12 +24,11 @@ internal sealed class InstallTransaction : IDisposable
     private int _batchSteps;
     private int _staged;
 
-    private InstallTransaction(GameFolder game, InstallPlan plan, TransactionJournal journal, IPatchDecoder decoder, ChangeHook hook)
+    private InstallTransaction(GameFolder game, InstallPlan plan, TransactionJournal journal, ChangeHook hook)
     {
         _game = game;
         _plan = plan;
         _journal = journal;
-        _decoder = decoder;
         _hook = hook;
     }
 
@@ -48,10 +44,9 @@ internal sealed class InstallTransaction : IDisposable
     /// <param name="backup">Where the originals go.</param>
     /// <param name="gameVolume">The game folder's volume, for recovery; null when unknown.</param>
     /// <param name="plan">The plan the check made.</param>
-    /// <param name="decoder">Applies the package's patches.</param>
     /// <param name="hook">Called right before each change.</param>
     public static InstallTransaction Begin(GameFolder game, InstallFolder folder, BackupFolder backup, string? gameVolume,
-        InstallPlan plan, IPatchDecoder decoder, ChangeHook hook)
+        InstallPlan plan, ChangeHook hook)
     {
         Directory.CreateDirectory(folder.Root);
         var header = new TransactionStarted(TransactionStarted.CurrentFormatVersion, TransactionKind.Install, folder.Id, game.Root,
@@ -62,7 +57,7 @@ internal sealed class InstallTransaction : IDisposable
             // The app's own folders appear only once the journal names them, so recovery knows to remove them.
             Directory.CreateDirectory(header.StagingDirectory);
             Directory.CreateDirectory(header.BackupDirectory);
-            return new InstallTransaction(game, plan, journal, decoder, hook);
+            return new InstallTransaction(game, plan, journal, hook);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -93,7 +88,7 @@ internal sealed class InstallTransaction : IDisposable
             // Each step prepares what needs no change to the game (staged content, copies of originals on another volume),
             // the batch's journal entries are made durable at once, and only then are the renames made. A step that
             // touches a path already in the batch starts a new one, so it sees the changes before it.
-            if (_batchSteps >= MaxBatchSteps || paths.Exists(_batchPaths.Contains))
+            if (_batchSteps >= TransactionJournal.MaxBatch || paths.Exists(_batchPaths.Contains))
             {
                 ApplyBatch();
             }
@@ -208,19 +203,7 @@ internal sealed class InstallTransaction : IDisposable
 
     private void ApplyBatch()
     {
-        if (_batchSteps == 0)
-        {
-            return;
-        }
-
-        _hook.Before(ChangeKind.Commit);
-        _journal.Commit();
-        foreach (var action in _actions)
-        {
-            action();
-        }
-
-        _actions.Clear();
+        _journal.CommitThen(_actions, _hook);
         _batchPaths.Clear();
         _batchSteps = 0;
     }
@@ -254,7 +237,7 @@ internal sealed class InstallTransaction : IDisposable
         await using (patch.ConfigureAwait(false))
         {
             // The file is still the one the check hashed: in this batch nothing touched it yet.
-            await _decoder.DecodeAsync(target, patch, staged, new PatchTarget(step.TargetSize, step.TargetSha256), progress.Bytes,
+            await XDelta3Patcher.DecodeAsync(target, patch, staged, new PatchTarget(step.TargetSize, step.TargetSha256), progress.Bytes,
                 cancellationToken).ConfigureAwait(false);
         }
 

@@ -18,7 +18,6 @@ using JustModIt.Manager.Core.Library.Gog;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Packages;
-using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
@@ -129,9 +128,8 @@ public static class AgentServices
         services.AddSingleton<IPackageDownloader>(provider => new PackageDownloader(provider.GetRequiredService<ICatalogueApi>(),
             provider.GetRequiredKeyedService<HttpClient>(StorageClient), locations.DownloadsDirectory, options.PackageExtension,
             provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<PackageDownloader>>()));
-        services.AddSingleton<IPackageReader>(new PackageReader());
-        services.AddSingleton<IPatchDecoder>(new XDelta3Patcher());
-        services.AddSingleton<IFileLockProbe>(provider => new FileLockProbe(provider.GetService<ILockHolderSource>()));
+        services.AddSingleton(new PackageReader());
+        services.AddSingleton(provider => new FileLockProbe(provider.GetService<ILockHolderSource>()));
         services.AddSingleton(InstallEngineOptions.For(options.Identity, locations));
         services.AddSingleton<IInstallEngine, InstallEngine>();
         services.AddSingleton<IInstallPolicy>(SideBySideInstallPolicy.Instance);

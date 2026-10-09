@@ -1,11 +1,9 @@
-using System.Text.Json;
 using System.Threading.Channels;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
-using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
@@ -22,9 +20,8 @@ public sealed record InstallResult(InstallRecord Record, ValueList<InstallWarnin
 public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
 {
     private readonly InstallEngineOptions _options;
-    private readonly IPackageReader _packages;
-    private readonly IPatchDecoder _decoder;
-    private readonly IFileLockProbe _locks;
+    private readonly PackageReader _packages;
+    private readonly FileLockProbe _locks;
     private readonly IGameProbe _games;
     private readonly IVolumes _volumes;
     private readonly TimeProvider _time;
@@ -44,19 +41,17 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     /// <summary>Creates the engine and starts its queue.</summary>
     /// <param name="options">The app's data folders and names.</param>
     /// <param name="packages">Opens and validates packages.</param>
-    /// <param name="decoder">Applies the patches of manifest packages.</param>
     /// <param name="locks">Tells which files are in use, and by whom.</param>
     /// <param name="games">A fresh look at a game right before its files change, which the library service provides.</param>
     /// <param name="volumes">Tells whether originals can be moved or must be copied, and whether a folder is gone for good.</param>
     /// <param name="time">The clock for records and folder checks.</param>
     /// <param name="logger">Logs every operation.</param>
-    public InstallEngine(InstallEngineOptions options, IPackageReader packages, IPatchDecoder decoder, IFileLockProbe locks,
+    public InstallEngine(InstallEngineOptions options, PackageReader packages, FileLockProbe locks,
         IGameProbe games, IVolumes volumes, TimeProvider time, ILogger<InstallEngine> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         _options = options;
         _packages = packages;
-        _decoder = decoder;
         _locks = locks;
         _games = games;
         _volumes = volumes;
@@ -158,7 +153,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     {
         var folder = _store.FolderOf(id);
         var gameVolume = _volumes.GetVolumeId(game.Root);
-        using var transaction = InstallTransaction.Begin(game, folder, backup, gameVolume, plan, _decoder, _hook);
+        using var transaction = InstallTransaction.Begin(game, folder, backup, gameVolume, plan, _hook);
         InstallRecord record;
         try
         {
@@ -275,8 +270,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         }
 
         var preflight = new InstallPreflight(_locks, _volumes, _options.SlowBackupCopyBytes);
-        var (report, plan) = await preflight.CheckAsync(package, game, installation, backup, owners, issues, progress,
-            cancellationToken, baseline).ConfigureAwait(false);
+        var (report, plan) = await preflight.CheckAsync(package, game, installation, backup, owners, issues, baseline, progress,
+            cancellationToken).ConfigureAwait(false);
         var others = _ownership.OtherApps(game.Root, plan.Paths.Values);
         // Asked last, because hashing the files of a large package takes long enough for the store to start an update.
         var probe = await _games.ProbeAsync(installation.Key, cancellationToken).ConfigureAwait(false);
@@ -304,7 +299,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         {
             if (load.Record is not { } record)
             {
-                if (load.IsUnreadable && OverlapsUnreadable(load.Folder, gameRoot))
+                if (load.IsUnreadable && (load.InstallDirectory is null || PathComparison.Overlaps(load.InstallDirectory, gameRoot)))
                 {
                     issues.Add(new UnreadableInstallIssue(load.Folder.Id));
                 }
@@ -332,24 +327,6 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         }
 
         return owners;
-    }
-
-    // A record this version cannot read still names its game folder, unless it is damaged beyond that.
-    private static bool OverlapsUnreadable(InstallFolder folder, string gameRoot)
-    {
-        try
-        {
-            using var document = JsonDocument.Parse(File.ReadAllBytes(folder.RecordFile));
-            return document.RootElement.ValueKind != JsonValueKind.Object
-                || !document.RootElement.TryGetProperty("installDirectory", out var directory)
-                || directory.ValueKind != JsonValueKind.String
-                || PathComparison.Overlaps(directory.GetString()!, gameRoot);
-        }
-        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException
-            or ArgumentException)
-        {
-            return true;
-        }
     }
 
     private static IEnumerable<InstallIssue> ReadinessIssues(GameProbe probe, bool forUninstall)

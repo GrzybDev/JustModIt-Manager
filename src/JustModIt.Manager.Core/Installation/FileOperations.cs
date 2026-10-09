@@ -9,9 +9,7 @@ namespace JustModIt.Manager.Core.Installation;
 /// </summary>
 internal static class FileOperations
 {
-    public const FileAttributes PreservedAttributes = FileAttributes.ReadOnly | FileAttributes.Hidden | FileAttributes.System;
-
-    private const int BufferSize = 1 << 20;
+    private const FileAttributes PreservedAttributes = FileAttributes.ReadOnly | FileAttributes.Hidden | FileAttributes.System;
 
     /// <summary>Writes a new file, hashing exactly the bytes written, and makes it durable before anything relies on it.</summary>
     /// <param name="content">The bytes to write, read to its end.</param>
@@ -52,6 +50,52 @@ internal static class FileOperations
         await using (stream.ConfigureAwait(false))
         {
             return await WriteNewFileAsync(stream, destination, progress, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Copies a backup to a new file and checks the copy against the original the backup should hold.</summary>
+    /// <param name="source">The backup.</param>
+    /// <param name="destination">The new file; nothing may exist there yet.</param>
+    /// <param name="expected">The original's content and time.</param>
+    /// <param name="progress">Receives the bytes written.</param>
+    /// <param name="cancellationToken">Stops the copy and removes the new file.</param>
+    /// <returns>False when the copy differs from the original, which removes it; true once it carries the original's time.</returns>
+    public static async Task<bool> CopyCheckedAsync(string source, string destination, FileSnapshot expected,
+        IProgress<long>? progress, CancellationToken cancellationToken)
+    {
+        var copy = await CopyNewFileAsync(source, destination, progress, cancellationToken).ConfigureAwait(false);
+        if (!copy.HasSameContent(expected))
+        {
+            DeleteFile(destination);
+            return false;
+        }
+
+        if (expected.LastWriteTimeUtc is { } time)
+        {
+            File.SetLastWriteTimeUtc(destination, time);
+        }
+
+        return true;
+    }
+
+    /// <summary>Creates a file in a folder and deletes it at once, to learn whether the user may create files there.</summary>
+    /// <param name="directory">The folder.</param>
+    /// <returns>Null when another error than a refused access, such as a missing folder or a full disk, stopped it.</returns>
+    public static bool? TryCreateProbe(string directory)
+    {
+        try
+        {
+            using var probe = new FileStream(Path.Join(directory, $".{Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(4))}.probe"),
+                FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize: 0, FileOptions.DeleteOnClose);
+            return true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (IOException)
+        {
+            return null;
         }
     }
 

@@ -9,6 +9,10 @@ namespace JustModIt.Manager.Core.Patching;
 /// </summary>
 internal sealed unsafe class XDelta3Session : IDisposable
 {
+    // Older Windows xdelta3 builds that authors still use, and tools bundling them, cannot decode LZMA, while DJW
+    // compresses game data as well or better.
+    private const int DjwSecondary = 1;
+
     private readonly nint _handle;
 
     // Native memory, because xdelta3 keeps a pointer to its input until it asks for more.
@@ -37,7 +41,7 @@ internal sealed unsafe class XDelta3Session : IDisposable
     /// <summary>Starts an encoder over a source held in memory.</summary>
     /// <param name="source">The whole source, which must stay valid until the session is disposed.</param>
     /// <param name="sourceLength">The original's size in bytes.</param>
-    /// <param name="options">The level, source window and secondary compression.</param>
+    /// <param name="options">The level and the source window.</param>
     /// <param name="windowSize">The target bytes per window, which is also the input buffer's size.</param>
     public static XDelta3Session CreateEncoder(nint source, long sourceLength, XDelta3EncodeOptions options, int windowSize)
     {
@@ -45,7 +49,7 @@ internal sealed unsafe class XDelta3Session : IDisposable
         {
             StructSize = (uint)sizeof(XDelta3Native.EncodeOptions),
             Level = options.Level,
-            Secondary = (int)options.Secondary,
+            Secondary = DjwSecondary,
             WindowSize = (ulong)windowSize,
             SourceWindowSize = (ulong)Math.Max(0, options.SourceWindow),
         };

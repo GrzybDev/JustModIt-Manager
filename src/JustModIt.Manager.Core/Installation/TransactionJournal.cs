@@ -94,9 +94,10 @@ internal sealed record DirectoryRemoved(string Path) : JournalEntry;
 /// </summary>
 internal sealed class TransactionJournal : IDisposable
 {
-    private const int BufferSize = 1 << 16;
+    /// <summary>The most changes one commit covers, so a long operation keeps its journal durable as it goes.</summary>
+    public const int MaxBatch = 512;
 
-    private static readonly JsonWriterOptions LineOptions = new() { Indented = false, SkipValidation = false };
+    private const int BufferSize = 1 << 16;
 
     private readonly FileStream _stream;
     private readonly List<JournalEntry> _entries;
@@ -153,7 +154,7 @@ internal sealed class TransactionJournal : IDisposable
     /// <param name="entry">The change about to happen.</param>
     public void Add(JournalEntry entry)
     {
-        using (var writer = new Utf8JsonWriter(_stream, LineOptions))
+        using (var writer = new Utf8JsonWriter(_stream))
         {
             JsonSerializer.Serialize(writer, entry, InstallationJsonContext.Default.JournalEntry);
         }
@@ -164,6 +165,26 @@ internal sealed class TransactionJournal : IDisposable
 
     /// <summary>Makes every entry added so far durable; only then may the changes they describe happen.</summary>
     public void Commit() => _stream.Flush(flushToDisk: true);
+
+    /// <summary>Commits the entries added so far and then makes the changes they describe, in order.</summary>
+    /// <param name="changes">The batch's changes; emptied once they ran.</param>
+    /// <param name="hook">Called right before the commit.</param>
+    public void CommitThen(List<Action> changes, ChangeHook hook)
+    {
+        if (changes.Count == 0)
+        {
+            return;
+        }
+
+        hook.Before(ChangeKind.Commit);
+        Commit();
+        foreach (var change in changes)
+        {
+            change();
+        }
+
+        changes.Clear();
+    }
 
     /// <summary>Makes durable what it can and closes the journal, so an undo can follow even a refused write.</summary>
     public void CloseAfterFailure()

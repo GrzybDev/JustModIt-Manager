@@ -22,10 +22,7 @@ public enum FileLockState
 /// <param name="InUse">Files other programs hold open.</param>
 /// <param name="AccessDenied">Files the user may not write.</param>
 /// <param name="Holders">The executables holding the files in use, when the system names them.</param>
-public sealed record FileLockReport(ValueList<string> InUse, ValueList<string> AccessDenied, ValueList<string> Holders)
-{
-    public bool IsClear => InUse.Count == 0 && AccessDenied.Count == 0;
-}
+public sealed record FileLockReport(ValueList<string> InUse, ValueList<string> AccessDenied, ValueList<string> Holders);
 
 /// <summary>Names the programs that hold files open.</summary>
 public interface ILockHolderSource
@@ -35,24 +32,16 @@ public interface ILockHolderSource
     IReadOnlyList<string> FindHolders(IReadOnlyList<string> paths);
 }
 
-public interface IFileLockProbe
+/// <summary>Finds game files that cannot be replaced right now, by opening them exclusively for writing.</summary>
+/// <param name="holders">Names the programs holding files in use; null to leave them unnamed.</param>
+public sealed class FileLockProbe(ILockHolderSource? holders)
 {
+    // Enough files to name the programs holding them; a running game may hold hundreds.
+    private const int MaxFilesAskedForHolders = 100;
+
     /// <summary>Tells which of <paramref name="paths"/> cannot be written right now, and why.</summary>
     /// <param name="paths">The files to check; missing ones are left out of the report.</param>
     /// <param name="cancellationToken">Stops the check.</param>
-    FileLockReport Probe(IEnumerable<string> paths, CancellationToken cancellationToken);
-}
-
-/// <summary>Finds game files that cannot be replaced right now, by opening them exclusively for writing.</summary>
-/// <param name="holders">Names the programs holding files in use; null to leave them unnamed.</param>
-public sealed class FileLockProbe(ILockHolderSource? holders) : IFileLockProbe
-{
-    /// <summary>Enough files to name the programs holding them; a running game may hold hundreds.</summary>
-    public const int MaxFilesAskedForHolders = 100;
-
-    private const int ErrorSharingViolation = 32;
-    private const int ErrorLockViolation = 33;
-
     public FileLockReport Probe(IEnumerable<string> paths, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(paths);
@@ -93,7 +82,7 @@ public sealed class FileLockProbe(ILockHolderSource? holders) : IFileLockProbe
         {
             return FileLockState.Missing;
         }
-        catch (IOException exception) when (IsSharingViolation(exception))
+        catch (IOException exception) when (IOErrors.IsSharingViolation(exception))
         {
             return FileLockState.InUse;
         }
@@ -122,7 +111,7 @@ public sealed class FileLockProbe(ILockHolderSource? holders) : IFileLockProbe
             using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.None);
             return FileLockState.ReadOnly;
         }
-        catch (IOException exception) when (IsSharingViolation(exception))
+        catch (IOException exception) when (IOErrors.IsSharingViolation(exception))
         {
             return FileLockState.InUse;
         }
@@ -131,7 +120,4 @@ public sealed class FileLockProbe(ILockHolderSource? holders) : IFileLockProbe
             return FileLockState.AccessDenied;
         }
     }
-
-    private static bool IsSharingViolation(IOException exception) =>
-        (exception.HResult & 0xFFFF) is ErrorSharingViolation or ErrorLockViolation;
 }

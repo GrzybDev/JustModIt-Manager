@@ -7,7 +7,6 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
-using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
@@ -122,8 +121,7 @@ internal sealed class InstallHarness : IAsyncDisposable
     public BackupChoice InCustomFolder => new(BackupLocation.CustomFolder, CustomFolder);
 
     /// <summary>A fresh engine over the same folders, as after a restart of the app.</summary>
-    /// <param name="decoder">The patch decoder; null for the real xdelta3 one.</param>
-    public InstallEngine CreateEngine(IPatchDecoder? decoder = null)
+    public InstallEngine CreateEngine()
     {
         var engine = new InstallEngine(
             new InstallEngineOptions
@@ -136,7 +134,7 @@ internal sealed class InstallHarness : IAsyncDisposable
                 SlowBackupCopyBytes = SlowBackupCopyBytes,
                 BeforeChange = (kind, path) => BeforeChange?.Invoke(kind, path),
             },
-            new PackageReader(), decoder ?? new XDelta3Patcher(memoryBudget: 64 << 20), new FileLockProbe(LockHolders), Probe,
+            new PackageReader(), new FileLockProbe(LockHolders), Probe,
             Volumes, Time, NullLogger<InstallEngine>.Instance);
         _engines.Add(engine);
         return engine;
@@ -156,7 +154,7 @@ internal sealed class InstallHarness : IAsyncDisposable
                 LeftoversDirectory = Path.Join(OtherAppData, instanceName, "leftovers"),
                 BackupsDirectory = Path.Join(OtherAppData, instanceName, "backups"),
             },
-            new PackageReader(), new XDelta3Patcher(memoryBudget: 64 << 20), new FileLockProbe(LockHolders), Probe, Volumes,
+            new PackageReader(), new FileLockProbe(LockHolders), Probe, Volumes,
             Time, NullLogger<InstallEngine>.Instance);
         _engines.Add(engine);
         return engine;

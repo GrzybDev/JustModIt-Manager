@@ -60,7 +60,9 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
             {
                 if (await RecoverAsync(folder, cancellationToken).ConfigureAwait(false) is { } operation)
                 {
-                    logger.Recovered(folder.Id, operation.Outcome);
+                    logger.Recovered(operation.Outcome is RecoveryOutcome.Unavailable or RecoveryOutcome.Failed
+                        ? LogLevel.Warning
+                        : LogLevel.Information, folder.Id, operation.Outcome);
                     recovered.Add(operation);
                 }
             }
@@ -115,7 +117,6 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
             if (!IsGoneForGood(header))
             {
                 // Once the drive is back, only this journal and its backups can undo what the install changed.
-                logger.RecoveryUnavailable(folder.Id);
                 return Report(header, RecoveryOutcome.Unavailable);
             }
 
@@ -126,24 +127,14 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
         var entries = TransactionJournal.Read(folder.JournalFile);
         if (entries.OfType<FileBackedUp>().Any() && !BackupFolders.IsAvailable(header.BackupDirectory))
         {
-            logger.RecoveryUnavailable(folder.Id);
             return Report(header, RecoveryOutcome.Unavailable);
         }
 
-        using var gameLock = GameFolderLock.TryAcquire(game);
-        if (gameLock is null)
+        return await UndoAsync(header, game, entries, async () =>
         {
-            return null;
-        }
-
-        if (!await JournalRollback.UndoAsync(entries, game, hook, logger).ConfigureAwait(false))
-        {
-            return Report(header, RecoveryOutcome.Failed);
-        }
-
-        await ownership.ReleaseAsync(game.Root, folder.Id).ConfigureAwait(false);
-        TransactionCleanup.RemoveUncommitted(header, folder);
-        return Report(header, RecoveryOutcome.RolledBack);
+            await ownership.ReleaseAsync(game.Root, folder.Id).ConfigureAwait(false);
+            TransactionCleanup.RemoveUncommitted(header, folder);
+        }).ConfigureAwait(false);
     }
 
     // A committed uninstall is tidied up; one that did not commit is undone, which leaves the install as it was.
@@ -155,7 +146,6 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
             // What is left to tidy, such as the installed files moved aside, may be on the game's drive.
             if (!Directory.Exists(header.GameDirectory) && !IsGoneForGood(header))
             {
-                logger.RecoveryUnavailable(folder.Id);
                 return Report(header, RecoveryOutcome.Unavailable);
             }
 
@@ -177,7 +167,6 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
         {
             if (!IsGoneForGood(header))
             {
-                logger.RecoveryUnavailable(folder.Id);
                 return Report(header, RecoveryOutcome.Unavailable);
             }
 
@@ -189,10 +178,20 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
         var entries = TransactionJournal.Read(folder.JournalFile);
         if (entries.OfType<FileRestored>().Any(restored => restored.Moved) && !BackupFolders.IsAvailable(header.BackupDirectory))
         {
-            logger.RecoveryUnavailable(folder.Id);
             return Report(header, RecoveryOutcome.Unavailable);
         }
 
+        return await UndoAsync(header, game, entries, () =>
+        {
+            TransactionCleanup.RemoveStaging(header.StagingDirectory);
+            File.Delete(folder.JournalFile);
+            return Task.CompletedTask;
+        }).ConfigureAwait(false);
+    }
+
+    private async Task<RecoveredOperation?> UndoAsync(TransactionStarted header, GameFolder game, IReadOnlyList<JournalEntry> entries,
+        Func<Task> afterUndo)
+    {
         using var gameLock = GameFolderLock.TryAcquire(game);
         if (gameLock is null)
         {
@@ -204,8 +203,7 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
             return Report(header, RecoveryOutcome.Failed);
         }
 
-        TransactionCleanup.RemoveStaging(header.StagingDirectory);
-        File.Delete(folder.JournalFile);
+        await afterUndo().ConfigureAwait(false);
         return Report(header, RecoveryOutcome.RolledBack);
     }
 

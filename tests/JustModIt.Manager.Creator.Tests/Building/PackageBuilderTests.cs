@@ -151,7 +151,7 @@ public sealed class PackageBuilderTests : IDisposable
         var decoded = _workspace.Output("decoded.pak");
         await using (var patch = await package.OpenEntryAsync(step.Entry, TestContext.Current.CancellationToken))
         {
-            await new XDelta3Patcher().DecodeAsync(_workspace.GamePath("data/strings.pak"), patch, decoded,
+            await XDelta3Patcher.DecodeAsync(_workspace.GamePath("data/strings.pak"), patch, decoded,
                 new PatchTarget(step.TargetSize, step.TargetSha256), progress: null, TestContext.Current.CancellationToken);
         }
 

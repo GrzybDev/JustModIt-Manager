@@ -40,8 +40,6 @@ internal sealed record UninstallPlan(IReadOnlyList<UndoStep> Steps, IReadOnlyLis
 /// </summary>
 internal static class Uninstaller
 {
-    private const int MaxBatchSteps = 512;
-
     /// <summary>Decides what to do with each of the install's files, without changing anything.</summary>
     /// <param name="record">The install.</param>
     /// <param name="files">The install's files.</param>
@@ -114,9 +112,9 @@ internal static class Uninstaller
         {
             cancellationToken.ThrowIfCancellationRequested();
             tracker.StartFile(file.Path);
-            if (actions.Count >= MaxBatchSteps)
+            if (actions.Count >= TransactionJournal.MaxBatch)
             {
-                Apply(journal, actions, hook);
+                journal.CommitThen(actions, hook);
             }
 
             string? source = null;
@@ -159,7 +157,7 @@ internal static class Uninstaller
             tracker.FinishFile();
         }
 
-        Apply(journal, actions, hook);
+        journal.CommitThen(actions, hook);
         RemoveCreatedDirectories(files, game, journal, hook);
         // The last chance to cancel before the record goes.
         cancellationToken.ThrowIfCancellationRequested();
@@ -216,31 +214,9 @@ internal static class Uninstaller
             return check.HasSameContent(original) ? backup : null;
         }
 
-        var copy = await FileOperations.CopyNewFileAsync(backup, staged, tracker.Bytes, cancellationToken).ConfigureAwait(false);
-        if (!copy.HasSameContent(original))
-        {
-            FileOperations.DeleteFile(staged);
-            return null;
-        }
-
-        if (original.LastWriteTimeUtc is { } time)
-        {
-            File.SetLastWriteTimeUtc(staged, time);
-        }
-
-        return staged;
-    }
-
-    private static void Apply(TransactionJournal journal, List<Action> actions, ChangeHook hook)
-    {
-        hook.Before(ChangeKind.Commit);
-        journal.Commit();
-        foreach (var action in actions)
-        {
-            action();
-        }
-
-        actions.Clear();
+        return await FileOperations.CopyCheckedAsync(backup, staged, original, tracker.Bytes, cancellationToken).ConfigureAwait(false)
+            ? staged
+            : null;
     }
 
     private static void RemoveCreatedDirectories(InstalledFiles files, GameFolder game, TransactionJournal journal, ChangeHook hook)

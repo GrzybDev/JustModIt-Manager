@@ -66,12 +66,13 @@ internal static partial class InstallationLog
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not remove what operation {RecordId} left behind")]
     public static partial void CleanupFailed(this ILogger logger, Guid recordId, Exception exception);
 
-    /// <summary>Logs an interrupted operation that recovery finished or undid.</summary>
+    /// <summary>Logs what recovery did with an interrupted operation.</summary>
     /// <param name="logger">The logger to write to.</param>
+    /// <param name="level">A warning when the operation waits for another attempt.</param>
     /// <param name="recordId">The operation's record id.</param>
     /// <param name="outcome">What recovery did.</param>
-    [LoggerMessage(Level = LogLevel.Information, Message = "Recovered interrupted operation {RecordId}: {Outcome}")]
-    public static partial void Recovered(this ILogger logger, Guid recordId, RecoveryOutcome outcome);
+    [LoggerMessage(Message = "Recovery of interrupted operation {RecordId}: {Outcome}")]
+    public static partial void Recovered(this ILogger logger, LogLevel level, Guid recordId, RecoveryOutcome outcome);
 
     /// <summary>Logs an interrupted operation that recovery failed on.</summary>
     /// <param name="logger">The logger to write to.</param>
@@ -79,13 +80,6 @@ internal static partial class InstallationLog
     /// <param name="exception">What failed.</param>
     [LoggerMessage(Level = LogLevel.Error, Message = "Could not recover operation {RecordId}")]
     public static partial void RecoveryFailed(this ILogger logger, Guid recordId, Exception exception);
-
-    /// <summary>Logs an interrupted operation that waits for its game folder or backups to come back.</summary>
-    /// <param name="logger">The logger to write to.</param>
-    /// <param name="recordId">The operation's record id.</param>
-    [LoggerMessage(Level = LogLevel.Warning,
-        Message = "The game folder or the backups of interrupted operation {RecordId} are not available")]
-    public static partial void RecoveryUnavailable(this ILogger logger, Guid recordId);
 
     /// <summary>Logs an install whose backups moved.</summary>
     /// <param name="logger">The logger to write to.</param>

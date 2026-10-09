@@ -107,7 +107,7 @@ internal static class JournalRollback
             hook.Before(ChangeKind.Restore, entry.Path);
             FileOperations.MoveOver(backup, path);
         }
-        else if (!await CopyBackAsync(backup, path, entry.Original, header, nextRestore(), hook).ConfigureAwait(false))
+        else if (!await CopyBackAsync(backup, path, entry.Path, entry.Original, header, nextRestore(), hook).ConfigureAwait(false))
         {
             logger.BackupDamaged(entry.Path, header.RecordId);
             return;
@@ -175,26 +175,18 @@ internal static class JournalRollback
 
     // A backup from another volume goes through the staging folder and is checked before it replaces anything; false when
     // it no longer holds the original.
-    private static async Task<bool> CopyBackAsync(string backup, string path, FileSnapshot original, TransactionStarted header,
-        int number, ChangeHook hook)
+    private static async Task<bool> CopyBackAsync(string backup, string path, string relativePath, FileSnapshot original,
+        TransactionStarted header, int number, ChangeHook hook)
     {
         Directory.CreateDirectory(header.StagingDirectory);
         var staged = Path.Join(header.StagingDirectory, "restore-" + number.ToString(CultureInfo.InvariantCulture));
         FileOperations.TryDeleteFile(staged);
-        var copied = await FileOperations.CopyNewFileAsync(backup, staged, progress: null, CancellationToken.None)
-            .ConfigureAwait(false);
-        if (!copied.HasSameContent(original))
+        if (!await FileOperations.CopyCheckedAsync(backup, staged, original, progress: null, CancellationToken.None).ConfigureAwait(false))
         {
-            FileOperations.DeleteFile(staged);
             return false;
         }
 
-        if (original.LastWriteTimeUtc is { } time)
-        {
-            File.SetLastWriteTimeUtc(staged, time);
-        }
-
-        hook.Before(ChangeKind.Restore, PackagePath.FromFullPath(header.GameDirectory, path));
+        hook.Before(ChangeKind.Restore, relativePath);
         FileOperations.MoveOver(staged, path);
         return true;
     }

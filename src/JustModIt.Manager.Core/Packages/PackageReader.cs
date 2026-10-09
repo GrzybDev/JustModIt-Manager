@@ -23,26 +23,21 @@ public interface IPackage : IAsyncDisposable
     Task<Stream> OpenEntryAsync(string entry, CancellationToken cancellationToken);
 }
 
-public interface IPackageReader
-{
-    /// <summary>Opens a package file and validates it in full.</summary>
-    /// <param name="path">The package's full path.</param>
-    /// <param name="cancellationToken">Cancels the validation.</param>
-    /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
-    Task<IPackage> OpenAsync(string path, CancellationToken cancellationToken);
-}
-
 /// <summary>
 /// Opens packages of either kind, telling them apart by content, never by extension, since a manifest package unpacked
 /// as a plain archive would spill its manifest and payload folders into the game.
 /// </summary>
 /// <param name="limits">The limits to enforce; null for the defaults.</param>
-public sealed class PackageReader(PackageLimits? limits = null) : IPackageReader
+public sealed class PackageReader(PackageLimits? limits = null)
 {
     private const int BufferSize = 1 << 16;
 
     private readonly PackageLimits _limits = limits ?? PackageLimits.Default;
 
+    /// <summary>Opens a package file and validates it in full.</summary>
+    /// <param name="path">The package's full path.</param>
+    /// <param name="cancellationToken">Cancels the validation.</param>
+    /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
     public async Task<IPackage> OpenAsync(string path, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -149,11 +144,8 @@ public sealed class PackageReader(PackageLimits? limits = null) : IPackageReader
         await using (stream.ConfigureAwait(false))
         {
             await stream.ReadExactlyAsync(content, cancellationToken).ConfigureAwait(false);
-            // Reading past the declared end proves the entry does not inflate further.
-            if (await stream.ReadAsync(new byte[1], cancellationToken).ConfigureAwait(false) != 0)
-            {
-                throw new InvalidPackageException(PackageError.PayloadMismatch, entry.FullName);
-            }
+            // Reading past the declared end, which the stream refuses when more comes, proves the entry does not inflate further.
+            await stream.ReadAsync(new byte[1], cancellationToken).ConfigureAwait(false);
         }
 
         return content;

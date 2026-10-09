@@ -6,11 +6,19 @@ namespace JustModIt.Manager.Core.Patching;
 
 /// <summary>VCDIFF patches as xdelta3 3.2.0 makes and reads them, through the native shim.</summary>
 /// <param name="memoryBudget">For the encoder's match index; <see cref="XDelta3EncodeOptions.DefaultMemoryBudget"/> when null.</param>
-public sealed class XDelta3Patcher(long? memoryBudget = null) : IPatchDecoder, IPatchEncoder
+public sealed class XDelta3Patcher(long? memoryBudget = null)
 {
     private const int OutputBufferSize = 1 << 20;
 
-    public async Task DecodeAsync(string sourcePath, Stream patch, string outputPath, PatchTarget target,
+    /// <summary>Applies a patch and writes the checked result, flushed to disk, to a new file; a failure leaves no output.</summary>
+    /// <param name="sourcePath">The original, taken as given: callers check it, and a wrong one cannot produce the promised hash.</param>
+    /// <param name="patch">The VCDIFF patch, read to its end.</param>
+    /// <param name="outputPath">Where the result goes; nothing may exist there yet.</param>
+    /// <param name="target">What the result must match.</param>
+    /// <param name="progress">Bytes written since the previous report.</param>
+    /// <param name="cancellationToken">Stops decoding and removes the output.</param>
+    /// <exception cref="PatchException">The patch is damaged, or its result differs from the target.</exception>
+    public static async Task DecodeAsync(string sourcePath, Stream patch, string outputPath, PatchTarget target,
         IProgress<long>? progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(patch);
@@ -60,6 +68,12 @@ public sealed class XDelta3Patcher(long? memoryBudget = null) : IPatchDecoder, I
         }
     }
 
+    /// <summary>Writes a patch that turns one file into another; for a large source it may use a sizeable share of memory.</summary>
+    /// <param name="sourcePath">The original file.</param>
+    /// <param name="targetPath">The changed file.</param>
+    /// <param name="patch">The stream the patch is written to.</param>
+    /// <param name="progress">Reports hashing the original, then encoding the changed file.</param>
+    /// <param name="cancellationToken">Stops encoding.</param>
     public async Task<PatchInfo> EncodeAsync(string sourcePath, string targetPath, Stream patch,
         IProgress<PatchProgress>? progress, CancellationToken cancellationToken)
     {

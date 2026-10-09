@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
@@ -22,7 +21,7 @@ internal sealed record InstallPlan(
 /// <param name="locks">Tells which files are in use, and by whom.</param>
 /// <param name="volumes">Tells whether originals move or are copied, and how much space is free.</param>
 /// <param name="slowCopyBytes">Copying this much to another drive takes long enough to tell the player why.</param>
-internal sealed class InstallPreflight(IFileLockProbe locks, IVolumes volumes, long slowCopyBytes)
+internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, long slowCopyBytes)
 {
     /// <summary>Room for the journal, the record and file system overhead on top of the files themselves.</summary>
     internal const long SpaceMargin = 64L << 20;
@@ -34,14 +33,14 @@ internal sealed class InstallPreflight(IFileLockProbe locks, IVolumes volumes, l
     /// <param name="backup">Where the install would keep the originals.</param>
     /// <param name="owners">Records of other installs on this game, by the full path of each file they own.</param>
     /// <param name="knownIssues">Problems the caller found already.</param>
+    /// <param name="baseline">What a path holds before the install, when that is not the file on disk; null for the disk.</param>
     /// <param name="progress">Reports the check.</param>
     /// <param name="cancellationToken">Stops the check.</param>
-    /// <param name="baseline">What a path holds before the install, when that is not the file on disk.</param>
     /// <returns>Every problem and warning, and the plan the install follows when it can go ahead.</returns>
     public async Task<(PreflightReport Report, InstallPlan Plan)> CheckAsync(IPackage package, GameFolder game,
         InstalledGame installation, BackupFolder backup, IReadOnlyDictionary<string, Guid> owners,
-        IEnumerable<InstallIssue> knownIssues, IProgress<InstallProgress>? progress, CancellationToken cancellationToken,
-        Func<string, SimulatedFile?>? baseline = null)
+        IEnumerable<InstallIssue> knownIssues, Func<string, SimulatedFile?>? baseline, IProgress<InstallProgress>? progress,
+        CancellationToken cancellationToken)
     {
         var tracker = new ProgressTracker(progress, InstallStage.Checking, package.Steps.Count,
             InstallSimulation.BytesToHash(package.Steps));
@@ -58,7 +57,7 @@ internal sealed class InstallPreflight(IFileLockProbe locks, IVolumes volumes, l
 
         var movesOriginals = volumes.AreOnSameVolume(game.Root, backup.Directory);
         var newBytes = simulation.CopiedBytes + simulation.PatchedBytes;
-        var originalBytes = simulation.Originals.Values.Sum(original => original.Size);
+        var originalBytes = simulation.Originals.Values.Sum();
         var warnings = new List<InstallWarning>();
         // A renamed original reaches its new name as a copy, since the original itself moves to the backup folder.
         CheckSpace(game.Root, newBytes + (movesOriginals ? simulation.RenamedOriginalBytes : 0), issues);
@@ -75,7 +74,7 @@ internal sealed class InstallPreflight(IFileLockProbe locks, IVolumes volumes, l
         // Moved originals are hashed unless the check already did, and renamed ones are copied to their new name;
         // copied originals are written and read back. New content is written once.
         var hashed = simulation.Originals.Where(original => simulation.Hashes.ContainsKey(original.Key))
-            .Sum(original => original.Value.Size);
+            .Sum(original => original.Value);
         var bytesTotal = newBytes + (movesOriginals
             ? originalBytes - hashed + simulation.RenamedOriginalBytes
             : 2 * originalBytes);
@@ -133,25 +132,8 @@ internal sealed class InstallPreflight(IFileLockProbe locks, IVolumes volumes, l
         }
     }
 
-    private static bool CanCreateFilesIn(string directory)
-    {
-        var probe = Path.Join(directory, $".{Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(4))}.probe");
-        try
-        {
-            using var stream = new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize: 0,
-                FileOptions.DeleteOnClose);
-            return true;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return false;
-        }
-        catch (IOException)
-        {
-            // A missing folder or a full disk is reported by the checks made for them.
-            return true;
-        }
-    }
+    // A missing folder or a full disk is reported by the checks made for them.
+    private static bool CanCreateFilesIn(string directory) => FileOperations.TryCreateProbe(directory) != false;
 
     /// <summary>Whether a volume lacks room for some bytes and <see cref="SpaceMargin"/>.</summary>
     /// <param name="volumes">Tells the free space.</param>

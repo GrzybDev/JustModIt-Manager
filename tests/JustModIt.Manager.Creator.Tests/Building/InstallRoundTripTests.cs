@@ -115,7 +115,7 @@ public sealed class InstallRoundTripTests : IDisposable
             LeftoversDirectory = Path.Combine(data, "leftovers"),
             BackupsDirectory = Path.Combine(data, "backups"),
         };
-        return new InstallEngine(options, new PackageReader(), new XDelta3Patcher(), new FileLockProbe(holders: null),
+        return new InstallEngine(options, new PackageReader(), new FileLockProbe(holders: null),
             new FixedProbe(game), PhysicalVolumes.Instance, TimeProvider.System, NullLogger<InstallEngine>.Instance);
     }
 

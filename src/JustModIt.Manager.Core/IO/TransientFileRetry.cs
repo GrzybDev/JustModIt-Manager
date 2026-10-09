@@ -6,10 +6,6 @@ namespace JustModIt.Manager.Core.IO;
 /// </summary>
 internal static class TransientFileRetry
 {
-    private const int ErrorAccessDenied = 5;
-    private const int ErrorSharingViolation = 32;
-    private const int ErrorLockViolation = 33;
-
     private static readonly TimeSpan[] Delays =
     [
         TimeSpan.FromMilliseconds(50),
@@ -58,5 +54,5 @@ internal static class TransientFileRetry
     /// <param name="exception">The exception a file operation threw.</param>
     public static bool IsTransient(Exception exception) =>
         exception is UnauthorizedAccessException
-        || (exception is IOException && (exception.HResult & 0xFFFF) is ErrorAccessDenied or ErrorSharingViolation or ErrorLockViolation);
+        || (exception is IOException io && (IOErrors.IsAccessDenied(io) || IOErrors.IsSharingViolation(io)));
 }

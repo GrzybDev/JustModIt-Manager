@@ -21,7 +21,7 @@ namespace JustModIt.Manager.Creator.Building;
 /// <param name="options">The app's extensions, limits and hosting rules.</param>
 /// <param name="time">Dates the package; null for the system clock.</param>
 /// <param name="fileSystem">Checks the folders and the plan's files; null for the real file system.</param>
-public sealed class PackageBuilder(IPatchEncoder encoder, CreatorOptions options, TimeProvider? time = null,
+public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions options, TimeProvider? time = null,
     IFileSystem? fileSystem = null)
 {
     private const int BufferSize = 1 << 20;
@@ -219,7 +219,7 @@ public sealed class PackageBuilder(IPatchEncoder encoder, CreatorOptions options
         }
     }
 
-    private sealed class ArchiveRun(ZipArchive zip, PackagePlan plan, IPatchEncoder encoder, CreatorOptions options,
+    private sealed class ArchiveRun(ZipArchive zip, PackagePlan plan, XDelta3Patcher encoder, CreatorOptions options,
         DateTimeOffset createdAt, Tracker tracker)
     {
         // Advanced steps may write one path twice, e.g. copy it, rename it away and copy it again, each with its payload.

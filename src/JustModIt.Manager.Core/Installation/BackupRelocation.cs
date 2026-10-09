@@ -9,8 +9,6 @@ namespace JustModIt.Manager.Core.Installation;
 /// </summary>
 internal static class BackupRelocation
 {
-    private const int BatchSize = 256;
-
     /// <summary>Moves the backups as a journaled operation.</summary>
     /// <param name="record">The install.</param>
     /// <param name="files">The install's files, which name their backups.</param>
@@ -41,7 +39,7 @@ internal static class BackupRelocation
         InstallRecord moved;
         try
         {
-            foreach (var batch in backups.Chunk(BatchSize))
+            foreach (var batch in backups.Chunk(TransactionJournal.MaxBatch))
             {
                 foreach (var file in batch)
                 {

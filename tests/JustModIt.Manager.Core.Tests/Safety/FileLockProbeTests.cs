@@ -21,7 +21,7 @@ public sealed class FileLockProbeTests : IDisposable
 
         var report = Probe(free, _directory.Combine("missing.pak"), folder);
 
-        report.IsClear.Should().BeTrue();
+        (report.InUse.Count, report.AccessDenied.Count).Should().Be((0, 0));
         FileLockProbe.ProbeFile(folder).Should().Be(FileLockState.Missing);
         _holders.Calls.Should().BeEmpty();
     }
@@ -41,7 +41,7 @@ public sealed class FileLockProbeTests : IDisposable
         report.InUse.Should().Equal(held);
         report.Holders.Should().Equal("Holder.exe");
         _holders.Calls.Should().ContainSingle().Which.Should().Equal(held);
-        Probe(held).IsClear.Should().BeTrue();
+        Probe(held).InUse.Should().BeEmpty();
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class FileLockProbeTests : IDisposable
         try
         {
             FileLockProbe.ProbeFile(readOnly).Should().Be(FileLockState.ReadOnly);
-            Probe(readOnly).IsClear.Should().BeTrue();
+            (Probe(readOnly).InUse.Count, Probe(readOnly).AccessDenied.Count).Should().Be((0, 0));
             if (OperatingSystem.IsWindows())
             {
                 using var reader = new FileStream(readOnly, FileMode.Open, FileAccess.Read, FileShare.Read);

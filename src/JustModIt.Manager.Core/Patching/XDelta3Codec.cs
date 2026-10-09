@@ -24,7 +24,6 @@ internal static class XDelta3Codec
     public static async Task<long> DecodeAsync(SafeFileHandle? source, long sourceLength, Stream patch, Stream output,
         long maxOutput, Action<ReadOnlySpan<byte>> onOutput, CancellationToken cancellationToken)
     {
-        XDelta3Native.EnsureAvailable();
         using var session = XDelta3Session.CreateDecoder(source is null ? 0 : sourceLength, DecodeSourceBlock, DecodeInputChunk);
         using var cache = source is null || sourceLength == 0 ? null : new SourceBlockCache(source, sourceLength, DecodeCacheSlots);
         session.CancelWith(cancellationToken);
@@ -38,21 +37,15 @@ internal static class XDelta3Codec
     /// <param name="target">The changed file, read to its end.</param>
     /// <param name="targetLength">The changed file's size in bytes.</param>
     /// <param name="patch">Receives the patch.</param>
-    /// <param name="options">The level, window sizes and secondary compression.</param>
+    /// <param name="options">The level and the source window.</param>
     /// <param name="onInput">Sees each piece of the target as it is read.</param>
     /// <param name="cancellationToken">Stops encoding, also inside a long native call.</param>
     /// <returns>The size of the patch.</returns>
     public static async Task<long> EncodeAsync(nint source, long sourceLength, Stream target, long targetLength, Stream patch,
         XDelta3EncodeOptions options, Action<ReadOnlySpan<byte>> onInput, CancellationToken cancellationToken)
     {
-        if (options.WindowSize is < XDelta3EncodeOptions.MinWindowSize or > XDelta3EncodeOptions.MaxWindowSize)
-        {
-            throw new ArgumentOutOfRangeException(nameof(options), options.WindowSize, "The window size is out of range.");
-        }
-
-        XDelta3Native.EnsureAvailable();
         // Like the xdelta3 CLI, a small target gets no full window and match table.
-        var window = (int)Math.Clamp(targetLength, XDelta3EncodeOptions.MinWindowSize, options.WindowSize);
+        var window = (int)Math.Clamp(targetLength, XDelta3EncodeOptions.MinWindowSize, XDelta3EncodeOptions.WindowSize);
         using var session = XDelta3Session.CreateEncoder(source, sourceLength, options, window);
         session.CancelWith(cancellationToken);
         return await RunAsync(session, target, patch, long.MaxValue, fillWholeWindows: true, onInput, onOutput: null,

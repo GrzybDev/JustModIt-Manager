@@ -2,20 +2,12 @@ using System.Numerics;
 
 namespace JustModIt.Manager.Core.Patching;
 
-/// <summary>The compressor xdelta3 applies on top of its delta encoding.</summary>
-public enum XDelta3Secondary
-{
-    None = 0,
-    Djw = 1,
-    Lzma = 2,
-}
-
 public sealed record XDelta3EncodeOptions
 {
     public const int MinWindowSize = 16 << 10;
 
-    /// <summary>xdelta3 decoders reject target windows above <c>XD3_HARDMAXWINSIZE</c>.</summary>
-    public const int MaxWindowSize = 64 << 20;
+    /// <summary>The target bytes per window, well below the 64 MiB above which xdelta3 decoders refuse a window.</summary>
+    public const int WindowSize = 8 << 20;
 
     private const long MinSourceWindow = 16L << 20;
     private const long MinMemoryBudget = 64L << 20;
@@ -24,14 +16,8 @@ public sealed record XDelta3EncodeOptions
     /// <summary>0 (no compression) to 9, as in <c>xdelta3 -0</c> to <c>-9</c>.</summary>
     public int Level { get; init; } = 9;
 
-    // Older Windows xdelta3 builds that authors still use, and tools bundling them, cannot decode LZMA, while DJW
-    // compresses game data as well or better.
-    public XDelta3Secondary Secondary { get; init; } = XDelta3Secondary.Djw;
-
     /// <summary>How much of the source is indexed at once; 0 indexes all of it.</summary>
     public long SourceWindow { get; init; }
-
-    public int WindowSize { get; init; } = 8 << 20;
 
     /// <summary>
     /// A quarter of the machine's memory, within 64 MiB and 1 GiB, for the encoder's match index, so encoding while the

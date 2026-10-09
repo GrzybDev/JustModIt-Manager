@@ -54,7 +54,7 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
     public Dictionary<string, string> Paths { get; } = new(PackagePath.Comparer);
 
     /// <summary>Existing files the install changes, which get backed up and must not be locked, by full path.</summary>
-    public Dictionary<string, (string RelativePath, long Size)> Originals { get; } = new(PathComparison.Comparer);
+    public Dictionary<string, long> Originals { get; } = new(PathComparison.Comparer);
 
     /// <summary>Every full path the install touches, by game-relative path.</summary>
     public Dictionary<string, string> Touched { get; } = new(PathComparison.Comparer);
@@ -220,7 +220,7 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
             Touched[relativePath] = path;
             if (current is not null)
             {
-                Originals[path] = (relativePath, current.Size);
+                Originals[path] = current.Size;
             }
         }
 
@@ -232,17 +232,16 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
     {
         for (var directory = Path.GetDirectoryName(path); directory is not null; directory = Path.GetDirectoryName(directory))
         {
-            if (Directory.Exists(directory) || _createdDirectories.Contains(directory))
+            if (Directory.Exists(directory))
             {
-                if (Directory.Exists(directory))
-                {
-                    TargetDirectories.Add(directory);
-                }
-
+                TargetDirectories.Add(directory);
                 return;
             }
 
-            _createdDirectories.Add(directory);
+            if (!_createdDirectories.Add(directory))
+            {
+                return;
+            }
         }
     }
 

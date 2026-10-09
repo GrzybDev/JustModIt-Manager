@@ -25,7 +25,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         var info = await _patcher.EncodeAsync(original, modified, patch, new InlineProgress<PatchProgress>(progress.Add), Token);
         patch.Position = 0;
         var output = _temp.Combine("out.bin");
-        await _patcher.DecodeAsync(original, patch, output, Target(info), progress: null, Token);
+        await XDelta3Patcher.DecodeAsync(original, patch, output, Target(info), progress: null, Token);
 
         (await File.ReadAllBytesAsync(output, Token)).Should().Equal(await File.ReadAllBytesAsync(modified, Token));
         info.SourceSha256.Should().Be(await Sha256Async(original));
@@ -60,7 +60,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         var info = await _patcher.EncodeAsync(original, modified, patch, progress: null, Token);
         patch.Position = 0;
         var output = _temp.Combine("out.bin");
-        await _patcher.DecodeAsync(original, patch, output, Target(info), progress: null, Token);
+        await XDelta3Patcher.DecodeAsync(original, patch, output, Target(info), progress: null, Token);
 
         (await File.ReadAllTextAsync(output, Token)).Should().Be("A new file");
     }
@@ -74,7 +74,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         var otherVersion = _temp.Write("other.bin", TestPatch.RandomBytes(64 << 10, seed: 99));
         var output = _temp.Combine("out.bin");
 
-        var decode = () => _patcher.DecodeAsync(otherVersion, patch, output, Target(info), progress: null, Token);
+        var decode = () => XDelta3Patcher.DecodeAsync(otherVersion, patch, output, Target(info), progress: null, Token);
 
         (await decode.Should().ThrowAsync<PatchException>()).Which.Error.Should().BeOneOf(PatchError.Damaged, PatchError.OutputMismatch);
         File.Exists(output).Should().BeFalse();
@@ -88,7 +88,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         bytes[bytes.Length * 2 / 3] ^= 0xFF;
         var output = _temp.Combine("out.bin");
 
-        var decode = () => _patcher.DecodeAsync(original, new MemoryStream(bytes), output, Target(info), progress: null, Token);
+        var decode = () => XDelta3Patcher.DecodeAsync(original, new MemoryStream(bytes), output, Target(info), progress: null, Token);
 
         await decode.Should().ThrowAsync<PatchException>();
         File.Exists(output).Should().BeFalse();
@@ -100,7 +100,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         var (original, modified) = WriteModifiedPair(256 << 10);
         var (bytes, info) = await EncodeBytesAsync(original, modified);
 
-        var decode = () => _patcher.DecodeAsync(original, new MemoryStream(bytes[..(bytes.Length / 2)]), _temp.Combine("out.bin"),
+        var decode = () => XDelta3Patcher.DecodeAsync(original, new MemoryStream(bytes[..(bytes.Length / 2)]), _temp.Combine("out.bin"),
             Target(info), progress: null, Token);
 
         await decode.Should().ThrowAsync<PatchException>();
@@ -112,7 +112,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         var original = _temp.Write("original.bin", "abc");
         var sha = await Sha256Async(original);
 
-        var decode = () => _patcher.DecodeAsync(original, new MemoryStream(), _temp.Combine("out.bin"), new PatchTarget(3, sha),
+        var decode = () => XDelta3Patcher.DecodeAsync(original, new MemoryStream(), _temp.Combine("out.bin"), new PatchTarget(3, sha),
             progress: null, Token);
 
         (await decode.Should().ThrowAsync<PatchException>()).Which.Error.Should().Be(PatchError.Damaged);
@@ -124,7 +124,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         var (original, modified) = WriteModifiedPair(64 << 10);
         var (bytes, info) = await EncodeBytesAsync(original, modified);
 
-        var decode = () => _patcher.DecodeAsync(original, new MemoryStream(bytes), _temp.Combine("out.bin"),
+        var decode = () => XDelta3Patcher.DecodeAsync(original, new MemoryStream(bytes), _temp.Combine("out.bin"),
             new PatchTarget(info.TargetSize, new string('0', 64)), progress: null, Token);
 
         (await decode.Should().ThrowAsync<PatchException>()).Which.Error.Should().Be(PatchError.OutputMismatch);
@@ -140,7 +140,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         long written = 0;
         var output = _temp.Combine("out.bin");
 
-        var decode = () => _patcher.DecodeAsync(original, new MemoryStream(bytes), output, promised,
+        var decode = () => XDelta3Patcher.DecodeAsync(original, new MemoryStream(bytes), output, promised,
             new InlineProgress<long>(bytes => written += bytes), Token);
 
         (await decode.Should().ThrowAsync<PatchException>()).Which.Error.Should().Be(PatchError.OutputTooLarge);
@@ -155,7 +155,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         var (bytes, info) = await EncodeBytesAsync(original, modified);
         long written = 0;
 
-        await _patcher.DecodeAsync(original, new MemoryStream(bytes), _temp.Combine("out.bin"), Target(info),
+        await XDelta3Patcher.DecodeAsync(original, new MemoryStream(bytes), _temp.Combine("out.bin"), Target(info),
             new InlineProgress<long>(bytes => written += bytes), Token);
 
         written.Should().Be(info.TargetSize);
@@ -182,7 +182,7 @@ public sealed class XDelta3PatcherTests : IDisposable
         await cancellation.CancelAsync();
         var output = _temp.Combine("out.bin");
 
-        var decode = () => _patcher.DecodeAsync(original, new MemoryStream(bytes), output, Target(info), progress: null,
+        var decode = () => XDelta3Patcher.DecodeAsync(original, new MemoryStream(bytes), output, Target(info), progress: null,
             cancellation.Token);
 
         await decode.Should().ThrowAsync<OperationCanceledException>();
@@ -204,7 +204,7 @@ public sealed class XDelta3PatcherTests : IDisposable
 
         await using (var patch = File.OpenRead(XDeltaFixture(fixture)))
         {
-            await _patcher.DecodeAsync(original, patch, output, target, progress: null, Token);
+            await XDelta3Patcher.DecodeAsync(original, patch, output, target, progress: null, Token);
         }
 
         (await File.ReadAllBytesAsync(output, Token)).Should().Equal(await File.ReadAllBytesAsync(modified, Token));

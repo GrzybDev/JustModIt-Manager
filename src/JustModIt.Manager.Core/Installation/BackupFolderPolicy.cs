@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 
@@ -60,20 +59,6 @@ public static class BackupFolderPolicy
             return BackupFolderProblem.InsideAppFolder;
         }
 
-        return CanWrite(canonical) ? null : BackupFolderProblem.NotWritable;
-    }
-
-    private static bool CanWrite(string folder)
-    {
-        try
-        {
-            using var probe = new FileStream(Path.Join(folder, $".{Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(4))}.probe"),
-                FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize: 0, FileOptions.DeleteOnClose);
-            return true;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return false;
-        }
+        return FileOperations.TryCreateProbe(canonical) == true ? null : BackupFolderProblem.NotWritable;
     }
 }

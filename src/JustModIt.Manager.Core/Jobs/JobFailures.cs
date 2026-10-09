@@ -1,6 +1,7 @@
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Core.Safety;
@@ -28,9 +29,6 @@ internal sealed class JobDeferredException(JobWaitReason reason, ValueList<Runni
 /// <summary>Turns what stopped a job into a typed reason the app words in its own language.</summary>
 public static class JobFailures
 {
-    private const int ErrorHandleDiskFull = 39;
-    private const int ErrorDiskFull = 112;
-
     /// <summary>The typed failure for what stopped a job.</summary>
     /// <param name="exception">What stopped the job.</param>
     public static JobFailure From(Exception exception) => exception switch
@@ -47,7 +45,7 @@ public static class JobFailures
         PatchException => new JobFailure(JobFailureReason.InvalidPackage),
         CatalogueException catalogue => FromCatalogue(catalogue),
         UnauthorizedAccessException => new JobFailure(JobFailureReason.AccessDenied),
-        IOException io when IsDiskFull(io) => new JobFailure(JobFailureReason.NotEnoughSpace),
+        IOException io when IOErrors.IsDiskFull(io) => new JobFailure(JobFailureReason.NotEnoughSpace),
         IOException => new JobFailure(JobFailureReason.DiskError),
         _ => new JobFailure(JobFailureReason.Unexpected),
     };
@@ -184,6 +182,4 @@ public static class JobFailures
     };
 
     private static ValueList<string> Distinct(IEnumerable<string> values) => [.. values.Distinct(StringComparer.OrdinalIgnoreCase)];
-
-    private static bool IsDiskFull(IOException exception) => (exception.HResult & 0xFFFF) is ErrorDiskFull or ErrorHandleDiskFull;
 }
