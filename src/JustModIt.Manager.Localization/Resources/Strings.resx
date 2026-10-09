@@ -17,7 +17,7 @@
   </data>
   <data name="MinimumGroupingDigits" xml:space="preserve">
     <value>1</value>
-    <comment>Not a message: the language's CLDR minimumGroupingDigits. 1 groups digits from four on (1,234), 2 from five.</comment>
+    <comment>Not a message: how many digits come before the first group separator. 1 groups digits from four on (1,234), 2 from five.</comment>
   </data>
   <data name="SizeBytes" xml:space="preserve">
     <value>{size}&#160;B</value>
@@ -41,6 +41,10 @@
     <value>d MMM yyyy</value>
     <comment>.NET custom date format, not a message.</comment>
   </data>
+  <data name="LongDatePattern" xml:space="preserve">
+    <value>d MMMM yyyy</value>
+    <comment>.NET custom date format, not a message: when a release or a project came out.</comment>
+  </data>
   <data name="TimePattern" xml:space="preserve">
     <value>HH:mm</value>
     <comment>.NET custom time format, not a message.</comment>
@@ -60,6 +64,10 @@
   <data name="TimeYesterday" xml:space="preserve">
     <value>yesterday at {time}</value>
   </data>
+  <data name="CalendarAge" xml:space="preserve">
+    <value>{unit, select, day {{count, plural, =0 {today} =1 {yesterday} other {# days ago}}} month {{count, plural, one {a month ago} other {# months ago}}} other {{count, plural, one {a year ago} other {# years ago}}}}</value>
+    <comment>How long ago a release or a project came out, counted in calendar days, months or years; unit is day, month or year.</comment>
+  </data>
   <data name="DurationSeconds" xml:space="preserve">
     <value>{seconds}&#160;s</value>
   </data>
@@ -71,6 +79,14 @@
   </data>
   <data name="TimeRemaining" xml:space="preserve">
     <value>about {duration} left</value>
+  </data>
+  <data name="VersionWords" xml:space="preserve">
+    <value>version</value>
+    <comment>Not a message: words for "version" that teams write before a release's version, in this language and in English, separated by spaces. A version label leaves them out.</comment>
+  </data>
+  <data name="VersionAbbreviations" xml:space="preserve">
+    <value>ver v</value>
+    <comment>Not a message: short forms of those words, left out only right before a number, so "Vol. 2" keeps its V.</comment>
   </data>
   <data name="TrayTooltip" xml:space="preserve">
     <value>{product} – {status}</value>
@@ -174,7 +190,7 @@
     <value>Update for {game}</value>
   </data>
   <data name="NoticeUpdateAvailable" xml:space="preserve">
-    <value>Release “{release}” is ready to install.</value>
+    <value>Version {version} is ready to install.</value>
   </data>
   <data name="NoticeUpdateAvailableLatest" xml:space="preserve">
     <value>A new release is ready to install.</value>
@@ -195,7 +211,7 @@
     <value>Updated for {game}</value>
   </data>
   <data name="NoticeUpdated" xml:space="preserve">
-    <value>Release “{release}” is installed.</value>
+    <value>Version {version} is installed.</value>
   </data>
   <data name="NoticeUpdatedLatest" xml:space="preserve">
     <value>The newest release is installed.</value>

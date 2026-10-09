@@ -157,14 +157,16 @@ public sealed class TrayContentTests
     }
 
     [Fact]
-    public void An_update_names_the_release_when_the_team_named_it()
+    public void An_update_names_the_version_when_the_team_named_the_release()
     {
         var notice = new AutomationNotice(NoticeKind.Updated) { Game = Game, GameName = "Example Game", ReleaseLabel = "v2" };
 
-        NoticeTexts.For(notice).Message.Should().Be("Release “v2” is installed.");
+        NoticeTexts.For(notice).Message.Should().Be("Version 2 is installed.");
+        NoticeTexts.For(notice with { ReleaseLabel = "Final cut" }).Message.Should().Be("Version Final cut is installed.");
+        NoticeTexts.For(notice with { ReleaseLabel = "Version" }).Message.Should().Be("The newest release is installed.");
         NoticeTexts.For(notice with { ReleaseLabel = null }).Message.Should().Be("The newest release is installed.");
         NoticeTexts.For(notice with { Kind = NoticeKind.UpdateAvailable }).Should().Be(("Update for Example Game",
-            "Release “v2” is ready to install."));
+            "Version 2 is ready to install."));
         NoticeTexts.For(notice with { Kind = NoticeKind.UpdateAvailable, ReleaseLabel = null }).Message
             .Should().Be("A new release is ready to install.");
     }

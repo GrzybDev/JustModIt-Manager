@@ -7,19 +7,10 @@ public static class Formats
     private static readonly TimeSpan OneHour = TimeSpan.FromHours(1);
 
     /// <summary>At most two decimals, with digits grouped only from where the language groups them.</summary>
-    public static string Number(double value)
-    {
-        var rounded = Math.Round(value, 2, MidpointRounding.AwayFromZero);
-        if (rounded == 0)
-        {
-            // A tiny negative value rounds to -0, which .NET prints with its sign.
-            rounded = 0;
-        }
+    /// <param name="value">Rounded half away from zero.</param>
+    public static string Number(double value) => Grouped(Math.Round(value, 2, MidpointRounding.AwayFromZero), "0.##");
 
-        return rounded.ToString(Math.Abs(rounded) < Text.SmallestGroupedNumber ? "0.##" : "#,0.##", Text.Culture);
-    }
-
-    /// <summary>Binary units, as Windows Explorer and the website count them.</summary>
+    /// <summary>Binary units with one decimal, as Windows Explorer and the website count them.</summary>
     /// <param name="bytes">The size; a negative one prints as 0 bytes.</param>
     public static string FileSize(long bytes)
     {
@@ -35,7 +26,7 @@ public static class Formats
         {
             value /= 1024;
             unit++;
-            shown = RoundSize(value);
+            shown = Math.Round(value, 1, MidpointRounding.AwayFromZero);
         }
         while (shown >= 1024 && unit < 4);
 
@@ -46,8 +37,7 @@ public static class Formats
             3 => Strings.SizeGigabytes,
             _ => Strings.SizeTerabytes,
         };
-        var size = shown < 100 ? shown.ToString("0.0", Text.Culture) : Number(shown);
-        return Text.Format(pattern, ("size", size));
+        return Text.Format(pattern, ("size", Grouped(shown, "0.0")));
     }
 
     /// <summary>A whole percentage.</summary>
@@ -78,6 +68,12 @@ public static class Formats
     /// <param name="value">The moment.</param>
     /// <param name="zone">The time zone whose date it is.</param>
     public static string Date(DateTimeOffset value, TimeZoneInfo zone) => LocalDate(TimeZoneInfo.ConvertTime(value, zone));
+
+    /// <summary>With the month's name, as the site shows when a release or a project came out.</summary>
+    /// <param name="value">The moment.</param>
+    /// <param name="zone">The time zone whose date it is.</param>
+    public static string LongDate(DateTimeOffset value, TimeZoneInfo zone) =>
+        TimeZoneInfo.ConvertTime(value, zone).ToString(Strings.LongDatePattern, Text.Culture);
 
     /// <summary>The date and time of a moment.</summary>
     /// <param name="value">The moment.</param>
@@ -116,6 +112,40 @@ public static class Formats
             : LocalDateAndTime(then);
     }
 
+    /// <summary>
+    /// Today, yesterday, then calendar days, months and years ago in the clock's time zone, as the site tells the age of a
+    /// release or a project.
+    /// </summary>
+    /// <param name="value">The moment.</param>
+    /// <param name="clock">Gives the time now and the local time zone.</param>
+    public static string CalendarAge(DateTimeOffset value, TimeProvider clock)
+    {
+        var zone = clock.LocalTimeZone;
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.GetUtcNow(), zone).DateTime);
+        var then = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(value, zone).DateTime);
+        var days = today.DayNumber - then.DayNumber;
+        if (days < 31)
+        {
+            return Text.Format(Strings.CalendarAge, ("unit", "day"), ("count", Math.Max(days, 0)));
+        }
+
+        var months = ((today.Year - then.Year) * 12) + today.Month - then.Month - (today.Day < then.Day ? 1 : 0);
+        return months < 12
+            ? Text.Format(Strings.CalendarAge, ("unit", "month"), ("count", months))
+            : Text.Format(Strings.CalendarAge, ("unit", "year"), ("count", months / 12));
+    }
+
+    /// <summary>
+    /// A release's name as a version, as the site shows it: without a word for "version" before it, which teams write in
+    /// the app's language or in English, and empty when the name is nothing but that word.
+    /// </summary>
+    /// <param name="name">The release's name as the site gives it.</param>
+    public static string Version(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        return Text.VersionWord.Replace(name.Trim(), "", 1);
+    }
+
     /// <summary>A duration in seconds, minutes and seconds, or hours and minutes.</summary>
     /// <param name="duration">Rounded to whole seconds; a negative one counts as zero.</param>
     public static string Duration(TimeSpan duration) =>
@@ -146,9 +176,10 @@ public static class Formats
     private static string LocalDateAndTime(DateTimeOffset local) =>
         Text.Format(Strings.DateAndTime, ("date", LocalDate(local)), ("time", LocalTime(local)));
 
-    private static double RoundSize(double value)
+    private static string Grouped(double value, string format)
     {
-        var tenths = Math.Round(value, 1, MidpointRounding.AwayFromZero);
-        return tenths < 100 ? tenths : Math.Round(value, MidpointRounding.AwayFromZero);
+        // A tiny negative value rounds to -0, which .NET prints with its sign.
+        var number = value == 0 ? 0 : value;
+        return number.ToString(Math.Abs(number) < Text.SmallestGroupedNumber ? format : "#," + format, Text.Culture);
     }
 }

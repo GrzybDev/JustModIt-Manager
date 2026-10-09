@@ -16,7 +16,7 @@
     <value>{count, plural, one {# gra} few {# gry} many {# gier} other {# gry}}</value>
   </data>
   <data name="MinimumGroupingDigits" xml:space="preserve">
-    <value>2</value>
+    <value>1</value>
   </data>
   <data name="SizeBytes" xml:space="preserve">
     <value>{size}&#160;B</value>
@@ -39,6 +39,9 @@
   <data name="DatePattern" xml:space="preserve">
     <value>d.MM.yyyy</value>
   </data>
+  <data name="LongDatePattern" xml:space="preserve">
+    <value>d MMMM yyyy</value>
+  </data>
   <data name="TimePattern" xml:space="preserve">
     <value>HH:mm</value>
   </data>
@@ -57,6 +60,9 @@
   <data name="TimeYesterday" xml:space="preserve">
     <value>wczoraj o {time}</value>
   </data>
+  <data name="CalendarAge" xml:space="preserve">
+    <value>{unit, select, day {{count, plural, =0 {dzisiaj} =1 {wczoraj} few {# dni temu} many {# dni temu} other {# dnia temu}}} month {{count, plural, one {miesiąc temu} few {# miesiące temu} many {# miesięcy temu} other {# miesiąca temu}}} other {{count, plural, one {rok temu} few {# lata temu} many {# lat temu} other {# roku temu}}}}</value>
+  </data>
   <data name="DurationSeconds" xml:space="preserve">
     <value>{seconds}&#160;s</value>
   </data>
@@ -68,6 +74,12 @@
   </data>
   <data name="TimeRemaining" xml:space="preserve">
     <value>zostało ok. {duration}</value>
+  </data>
+  <data name="VersionWords" xml:space="preserve">
+    <value>wersja version</value>
+  </data>
+  <data name="VersionAbbreviations" xml:space="preserve">
+    <value>ver v</value>
   </data>
   <data name="TrayTooltip" xml:space="preserve">
     <value>{product} – {status}</value>
@@ -169,7 +181,7 @@
     <value>Aktualizacja dla gry {game}</value>
   </data>
   <data name="NoticeUpdateAvailable" xml:space="preserve">
-    <value>Wydanie „{release}” jest gotowe do instalacji.</value>
+    <value>Wersja {version} jest gotowa do instalacji.</value>
   </data>
   <data name="NoticeUpdateAvailableLatest" xml:space="preserve">
     <value>Nowe wydanie jest gotowe do instalacji.</value>
@@ -190,7 +202,7 @@
     <value>Zaktualizowano dla gry {game}</value>
   </data>
   <data name="NoticeUpdated" xml:space="preserve">
-    <value>Zainstalowano wydanie „{release}”.</value>
+    <value>Zainstalowano wersję {version}.</value>
   </data>
   <data name="NoticeUpdatedLatest" xml:space="preserve">
     <value>Zainstalowano najnowsze wydanie.</value>

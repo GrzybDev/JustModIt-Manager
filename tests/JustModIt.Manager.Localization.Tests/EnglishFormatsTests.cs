@@ -27,9 +27,9 @@ public sealed class EnglishFormatsTests
     [Theory]
     [InlineData(512, "512\u00A0B")]
     [InlineData(1536, "1.5\u00A0KB")]
-    [InlineData(102_350, "100\u00A0KB")]
+    [InlineData(102_350, "100.0\u00A0KB")]
     [InlineData(16_043_212, "15.3\u00A0MB")]
-    [InlineData(long.MaxValue, "8,388,608\u00A0TB")]
+    [InlineData(long.MaxValue, "8,388,608.0\u00A0TB")]
     public void File_sizes_use_binary_units_and_a_decimal_point(long bytes, string expected)
     {
         Formats.FileSize(bytes).Should().Be(expected);
@@ -40,6 +40,19 @@ public sealed class EnglishFormatsTests
     {
         Formats.Date(new DateOnly(2026, 12, 31)).Should().Be("31 Dec 2026");
         Formats.DateAndTime(new DateTimeOffset(2026, 9, 5, 23, 30, 0, TimeSpan.Zero), Zone).Should().Be("6 Sep 2026, 01:30");
+    }
+
+    [Fact]
+    public void Release_dates_ages_and_versions_read_in_english()
+    {
+        var clock = new FixedClock(DateTimeOffset.Parse("2026-09-26T12:00:00+02:00", CultureInfo.InvariantCulture), Zone);
+
+        Formats.LongDate(new DateTimeOffset(2026, 9, 5, 12, 0, 0, TimeSpan.Zero), Zone).Should().Be("5 September 2026");
+        Formats.CalendarAge(clock.GetUtcNow().AddDays(-1), clock).Should().Be("yesterday");
+        Formats.CalendarAge(clock.GetUtcNow().AddDays(-40), clock).Should().Be("a month ago");
+        Formats.CalendarAge(clock.GetUtcNow().AddYears(-3), clock).Should().Be("3 years ago");
+        Formats.Version("Version 1.2").Should().Be("1.2");
+        Formats.Version("Wersja 1.2").Should().Be("Wersja 1.2");
     }
 
     [Theory]

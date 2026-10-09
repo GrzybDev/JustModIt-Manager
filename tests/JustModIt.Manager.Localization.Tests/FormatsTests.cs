@@ -13,36 +13,46 @@ public sealed class FormatsTests
 
     [Theory]
     [InlineData(0, "0")]
-    [InlineData(1234, "1234")]
-    [InlineData(9999, "9999")]
+    [InlineData(999, "999")]
+    [InlineData(1234, "1\u00A0234")]
     [InlineData(10000, "10\u00A0000")]
     [InlineData(-12345, "-12\u00A0345")]
     [InlineData(1234567.891, "1\u00A0234\u00A0567,89")]
     [InlineData(1.5, "1,5")]
     [InlineData(0.125, "0,13")]
     [InlineData(-0.001, "0")]
-    public void Numbers_group_digits_from_five_on_with_a_decimal_comma(double value, string expected)
+    public void Numbers_group_digits_from_four_on_with_a_decimal_comma(double value, string expected)
     {
         Formats.Number(value).Should().Be(expected);
+    }
+
+    [Fact]
+    public void A_translation_may_group_digits_only_from_five_on()
+    {
+        Text.Use(new TextCatalog("pl", [new(nameof(Strings.MinimumGroupingDigits), "2")]));
+
+        Formats.Number(9999).Should().Be("9999");
+        Formats.Number(10000).Should().Be("10\u00A0000");
     }
 
     [Theory]
     [InlineData(-5, "0\u00A0B")]
     [InlineData(0, "0\u00A0B")]
     [InlineData(512, "512\u00A0B")]
-    [InlineData(1023, "1023\u00A0B")]
+    [InlineData(1023, "1\u00A0023\u00A0B")]
     [InlineData(1024, "1,0\u00A0KB")]
     [InlineData(1536, "1,5\u00A0KB")]
     [InlineData(102_297, "99,9\u00A0KB")]
-    [InlineData(102_350, "100\u00A0KB")]
-    [InlineData(245_760, "240\u00A0KB")]
+    [InlineData(102_350, "100,0\u00A0KB")]
+    [InlineData(245_760, "240,0\u00A0KB")]
+    [InlineData(1_048_524, "1\u00A0023,9\u00A0KB")]
     [InlineData(1_048_575, "1,0\u00A0MB")]
     [InlineData(1_572_864, "1,5\u00A0MB")]
     [InlineData(16_043_212, "15,3\u00A0MB")]
     [InlineData(5_368_709_120, "5,0\u00A0GB")]
     [InlineData(1_649_267_441_664, "1,5\u00A0TB")]
-    [InlineData(long.MaxValue, "8\u00A0388\u00A0608\u00A0TB")]
-    public void File_sizes_use_binary_units_and_a_decimal_comma(long bytes, string expected)
+    [InlineData(long.MaxValue, "8\u00A0388\u00A0608,0\u00A0TB")]
+    public void File_sizes_use_binary_units_and_one_decimal(long bytes, string expected)
     {
         Formats.FileSize(bytes).Should().Be(expected);
     }
@@ -76,6 +86,50 @@ public sealed class FormatsTests
         Formats.Date(new DateTimeOffset(2026, 9, 5, 10, 0, 0, TimeSpan.Zero), Zone).Should().Be("5.09.2026");
         Formats.Date(new DateTimeOffset(2026, 9, 5, 23, 30, 0, TimeSpan.Zero), Zone).Should().Be("6.09.2026");
         Formats.DateAndTime(new DateTimeOffset(2026, 9, 5, 23, 30, 0, TimeSpan.Zero), Zone).Should().Be("6.09.2026, 01:30");
+    }
+
+    [Fact]
+    public void Long_dates_name_the_month_in_the_given_time_zone()
+    {
+        Formats.LongDate(new DateTimeOffset(2026, 9, 5, 23, 30, 0, TimeSpan.Zero), Zone).Should().Be("6 września 2026");
+    }
+
+    [Theory]
+    [InlineData("2026-09-26T23:59:00+02:00", "dzisiaj")]
+    [InlineData("2026-09-27T09:00:00+02:00", "dzisiaj")]
+    [InlineData("2026-09-25T23:30:00+02:00", "wczoraj")]
+    [InlineData("2026-09-24T12:00:00+02:00", "2 dni temu")]
+    [InlineData("2026-09-04T12:00:00+02:00", "22 dni temu")]
+    [InlineData("2026-08-27T12:00:00+02:00", "30 dni temu")]
+    [InlineData("2026-08-26T12:00:00+02:00", "miesiąc temu")]
+    [InlineData("2026-07-27T12:00:00+02:00", "miesiąc temu")]
+    [InlineData("2026-07-26T12:00:00+02:00", "2 miesiące temu")]
+    [InlineData("2025-10-26T12:00:00+02:00", "11 miesięcy temu")]
+    [InlineData("2025-09-26T12:00:00+02:00", "rok temu")]
+    [InlineData("2024-09-26T12:00:00+02:00", "2 lata temu")]
+    [InlineData("2021-09-26T12:00:00+02:00", "5 lat temu")]
+    public void Calendar_age_counts_days_then_months_then_years(string value, string expected)
+    {
+        var clock = new FixedClock(DateTimeOffset.Parse("2026-09-26T00:10:00+02:00", CultureInfo.InvariantCulture), Zone);
+
+        Formats.CalendarAge(DateTimeOffset.Parse(value, CultureInfo.InvariantCulture), clock).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("Wersja 1.2", "1.2")]
+    [InlineData("wersja beta", "beta")]
+    [InlineData("Version 2", "2")]
+    [InlineData("v1.0", "1.0")]
+    [InlineData("V. 3", "3")]
+    [InlineData("ver 4", "4")]
+    [InlineData("  wersja2  ", "2")]
+    [InlineData("Wersja", "")]
+    [InlineData("Vol. 2", "Vol. 2")]
+    [InlineData("Ver beta", "Ver beta")]
+    [InlineData("Final cut", "Final cut")]
+    public void Versions_leave_out_a_word_for_version(string name, string expected)
+    {
+        Formats.Version(name).Should().Be(expected);
     }
 
     [Fact]

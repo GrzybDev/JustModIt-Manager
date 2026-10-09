@@ -23,13 +23,15 @@ public static class NoticeTexts
             NoticeKind.ChoiceNeeded => (Title(Strings.NoticeChoiceNeededTitle), Strings.NoticeChoiceNeeded),
             NoticeKind.AvailableSummary => (Strings.NoticeAvailableSummaryTitle, Summary(notice)),
             NoticeKind.UpdateAvailable => (Title(Strings.NoticeUpdateAvailableTitle),
-                notice.ReleaseLabel is { Length: > 0 } label
-                    ? Text.Format(Strings.NoticeUpdateAvailable, ("release", label))
+                Formats.Version(notice.ReleaseLabel ?? "") is { Length: > 0 } available
+                    ? Text.Format(Strings.NoticeUpdateAvailable, ("version", available))
                     : Strings.NoticeUpdateAvailableLatest),
             NoticeKind.RepairNeeded => (Title(Strings.NoticeRepairNeededTitle), Strings.NoticeRepairNeeded),
             NoticeKind.Installed => (Title(Strings.NoticeInstalledTitle), Strings.NoticeInstalled),
             NoticeKind.Updated => (Title(Strings.NoticeUpdatedTitle),
-                notice.ReleaseLabel is { Length: > 0 } release ? Text.Format(Strings.NoticeUpdated, ("release", release)) : Strings.NoticeUpdatedLatest),
+                Formats.Version(notice.ReleaseLabel ?? "") is { Length: > 0 } version
+                    ? Text.Format(Strings.NoticeUpdated, ("version", version))
+                    : Strings.NoticeUpdatedLatest),
             NoticeKind.Repaired => (Title(Strings.NoticeRepairedTitle), Strings.NoticeRepaired),
             NoticeKind.PreviousReleaseLost => (Title(Strings.NoticePreviousReleaseLostTitle), Strings.NoticePreviousReleaseLost),
             NoticeKind.Forgotten => (Title(Strings.NoticeForgottenTitle),

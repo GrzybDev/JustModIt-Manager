@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Jeffijoe.MessageFormat;
 
 namespace JustModIt.Manager.Localization;
@@ -15,6 +16,8 @@ public static class Text
     public static StringComparer Comparer => _current.Comparer;
 
     internal static double SmallestGroupedNumber => _current.SmallestGroupedNumber;
+
+    internal static Regex VersionWord => _current.VersionWord;
 
     /// <summary>Makes <paramref name="catalog"/> the app's texts and language; an app calls it once, at startup.</summary>
     /// <param name="catalog">The texts the app's build merged (<see cref="TextCatalog.Load"/>).</param>
@@ -52,6 +55,7 @@ public static class Text
             Catalog = catalog;
             Comparer = StringComparer.Create(catalog.Culture, CompareOptions.IgnoreCase | CompareOptions.NumericOrdering);
             SmallestGroupedNumber = Math.Pow(10, FirstGroupSize(catalog.Culture) + MinimumGroupingDigits(catalog) - 1);
+            VersionWord = VersionWordPattern(catalog);
             Formatter = new MessageFormatter(useCache: true, catalog.Culture);
             Formatter.Formatters.Insert(0, new LocalizedPluralFormatter());
             Formatter.Formatters.Insert(0, new LocalizedNumberFormatter());
@@ -62,15 +66,27 @@ public static class Text
         public StringComparer Comparer { get; }
 
         /// <summary>
-        /// .NET groups digits from the first full group on, but CLDR lets a language wait for more digits (Polish writes
-        /// 1234 and 12 345), and .NET does not know how many, so the translation says it.
+        /// .NET groups digits from the first full group on, but a language may wait for more digits (Spanish writes
+        /// 1234 but 12.345), and .NET does not know how many, so the translation says it.
         /// </summary>
         public double SmallestGroupedNumber { get; }
 
         public MessageFormatter Formatter { get; }
 
+        public Regex VersionWord { get; }
+
         private static int FirstGroupSize(CultureInfo culture) =>
             culture.NumberFormat.NumberGroupSizes is [> 0 and var size, ..] ? size : 3;
+
+        private static Regex VersionWordPattern(TextCatalog catalog)
+        {
+            static string Alternatives(string words) =>
+                string.Join('|', words.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(Regex.Escape));
+
+            var words = Alternatives(catalog[nameof(Strings.VersionWords)]);
+            var all = Alternatives(catalog[nameof(Strings.VersionWords)] + " " + catalog[nameof(Strings.VersionAbbreviations)]);
+            return new Regex($@"^(?:(?:{words})(?:\s+|$)|(?:{all})\.?\s*(?=[0-9]))", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
 
         private static int MinimumGroupingDigits(TextCatalog catalog) =>
             int.TryParse(catalog[nameof(Strings.MinimumGroupingDigits)], NumberStyles.None, CultureInfo.InvariantCulture,

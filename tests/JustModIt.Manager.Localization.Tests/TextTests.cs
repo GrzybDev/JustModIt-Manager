@@ -27,7 +27,7 @@ public sealed class TextTests
     [InlineData(102, "102 tytuły")]
     [InlineData(112, "112 tytułów")]
     [InlineData(122, "122 tytuły")]
-    [InlineData(1234, "1234 tytuły")]
+    [InlineData(1234, "1\u00A0234 tytuły")]
     [InlineData(12345, "12\u00A0345 tytułów")]
     public void Counts_pick_the_polish_plural_form(long count, string expected)
     {
@@ -67,7 +67,7 @@ public sealed class TextTests
             ("folder", "Data"),
             ("share", 0.5));
 
-        text.Should().Be("1234 files, 12\u00A0345 bytes in Data, 50%");
+        text.Should().Be("1\u00A0234 files, 12\u00A0345 bytes in Data, 50%");
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class TextTests
     {
         var library = new MessageFormatter(useCache: false, Text.Culture);
 
-        for (var count = 0; count <= 1000; count++)
+        for (var count = 0; count < 1000; count++)
         {
             var arguments = new Dictionary<string, object?> { ["count"] = count };
             Text.Format(Strings.GameCount, ("count", count)).Should().Be(library.FormatMessage(Strings.GameCount, arguments));
@@ -172,7 +172,8 @@ public sealed class TextTests
     public void Formatting_is_safe_from_many_threads()
     {
         var library = new MessageFormatter(useCache: false, Text.Culture);
-        var counts = Enumerable.Range(0, 10_000).ToArray();
+        // The library groups no digits, so the counts stay below the first group.
+        var counts = Enumerable.Range(0, 10_000).Select(count => count % 1000).ToArray();
         var texts = new string[counts.Length];
 
         Parallel.For(0, counts.Length, i => texts[i] = Text.Format(Strings.GameCount, ("count", counts[i])));
