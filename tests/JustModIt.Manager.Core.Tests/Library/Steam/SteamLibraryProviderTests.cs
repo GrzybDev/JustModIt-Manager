@@ -40,6 +40,7 @@ public sealed class SteamLibraryProviderTests
             StoreActivityAt = written,
             Platform = OperatingSystemKind.Windows,
             Languages = ["pl"],
+            Launch = LaunchLink.TryCreate("steam://rungameid/1001"),
         });
     }
 

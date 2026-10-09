@@ -15,6 +15,7 @@ public sealed class GogRegistrySource(IRegistry registry) : IGogInstallSource
 
     internal const string GogKey = @"SOFTWARE\GOG.com";
     internal const string GamesKey = @"SOFTWARE\GOG.com\Games";
+    internal const string GalaxyClientKey = @"SOFTWARE\GOG.com\GalaxyClient";
     internal const string UninstallKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
 
     private const string InnoSetupSuffix = "_is1";
@@ -48,6 +49,12 @@ public sealed class GogRegistrySource(IRegistry registry) : IGogInstallSource
             cancellationToken.ThrowIfCancellationRequested();
             records.AddRange(ReadSubkeys(hive, view, UninstallKey, name => UninstallGameId(name) is not null)
                 .Select(FromUninstallKey).OfType<GogInstallRecord>());
+        }
+
+        // Galaxy installs games with the same records as GOG's offline installers, so only its presence tells them apart.
+        if (SearchOrder.Any(location => registry.ReadKey(location.Hive, location.View, GalaxyClientKey) is not null))
+        {
+            records = [.. records.Select(record => record with { Launch = LaunchLink.TryCreate($"goggalaxy://openGameView/{record.GameId}") })];
         }
 
         ValueList<LibraryLocation> libraries = [new LibraryLocation(LibrarySource, LibrarySource, Path: null, LibraryState.Online)];

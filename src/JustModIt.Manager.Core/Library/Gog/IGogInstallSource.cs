@@ -19,6 +19,9 @@ public sealed record GogInstallRecord(string GameId, string InstallPath, string 
     public string? Language { get; init; }
 
     public OperatingSystemKind Platform { get; init; }
+
+    /// <summary>How the source starts its game; null to start the primary play task of its <c>.info</c> file.</summary>
+    public GameLaunch? Launch { get; init; }
 }
 
 /// <param name="Libraries">The source's own library, none when the source does not exist on this machine.</param>

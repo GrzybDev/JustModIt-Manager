@@ -373,6 +373,7 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
             StoreActivityAt = lastWriteTime,
             Platform = _environment.Platform.AsOperatingSystem(),
             Languages = LanguageNames.FromName(manifest.Language) is { } language ? [language] : [],
+            Launch = LaunchLink.TryCreate($"steam://rungameid/{manifest.AppId.ToString(CultureInfo.InvariantCulture)}"),
         };
         return new SteamInstallation(game, manifest);
     }

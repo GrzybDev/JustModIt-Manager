@@ -35,6 +35,9 @@ public sealed record InstalledGame
     /// </summary>
     public ValueList<string> Languages { get; init; }
 
+    /// <summary>How the store or launcher that installed the game starts it; null when the app cannot start it.</summary>
+    public GameLaunch? Launch { get; init; }
+
     /// <summary>
     /// Kept from an earlier scan because the store's records could not be read this time; not trusted for writing.
     /// </summary>

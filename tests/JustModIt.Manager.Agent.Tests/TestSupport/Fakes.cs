@@ -3,6 +3,7 @@ using System.Threading.Channels;
 using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
@@ -32,11 +33,19 @@ internal sealed class FakeShell : IDesktopShell
 {
     public ConcurrentQueue<string> Opened { get; } = new();
 
+    public ConcurrentQueue<ProgramStart> Started { get; } = new();
+
     public bool Succeeds { get; set; } = true;
 
     public bool Open(string target)
     {
         Opened.Enqueue(target);
+        return Succeeds;
+    }
+
+    public bool Start(ProgramStart program)
+    {
+        Started.Enqueue(program);
         return Succeeds;
     }
 }

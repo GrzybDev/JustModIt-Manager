@@ -1,4 +1,5 @@
 using System.Text;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library.Gog;
 using JustModIt.Manager.Core.Tests.TestSupport;
 
@@ -23,7 +24,7 @@ public sealed class GogInfoReaderTests
 
         infos.Entries.Should().HaveCount(3);
         infos.Base.Should().Be(new GogGameInfo("1971477531", "1971477531", "Card Duel", "59534219748634025", HasPlayTasks: true,
-            GogFiles.WrittenAt, ["pl-PL", "en-US"]));
+            GogFiles.WrittenAt, ["pl-PL", "en-US"], LaunchProgram.TryCreate("game.exe", null, null)));
         infos.Find("2001")!.IsDlc.Should().BeTrue();
     }
 
@@ -83,6 +84,28 @@ public sealed class GogInfoReaderTests
         _files.AddFile(Path.Join(Folder, "goggame-3001.info"), """{ "gameId": "3001", "language": "Polish", "playTasks": [ {} ] }""");
 
         (await Read()).Base!.Languages.Should().Equal("pl");
+    }
+
+    [Theory]
+    [InlineData("""
+        [ { "category": "tool", "type": "FileTask", "path": "setup.exe" },
+          { "category": "game", "isPrimary": true, "type": "FileTask", "path": "bin\\x64\\game.exe", "arguments": "-skipintro",
+            "workingDir": "bin\\x64" } ]
+        """, "bin/x64/game.exe", "-skipintro", "bin/x64")]
+    [InlineData("""[ { "isPrimary": true, "path": "DOSBOX/dosbox.exe", "workingDir": "" } ]""", "DOSBOX/dosbox.exe", "", "")]
+    [InlineData("""[ { "isPrimary": true, "type": "URLTask", "link": "https://example.com" } ]""", null, null, null)]
+    [InlineData("""[ { "isPrimary": false, "type": "FileTask", "path": "game.exe" } ]""", null, null, null)]
+    [InlineData("""[ { "isPrimary": true, "type": "FileTask", "path": "..\\Other Game\\game.exe" } ]""", null, null, null)]
+    [InlineData("""[ { "isPrimary": true, "type": "FileTask", "path": "C:\\Windows\\notepad.exe" } ]""", null, null, null)]
+    [InlineData("""[ { "isPrimary": true, "type": "FileTask", "path": "game.exe", "workingDir": "..\\.." } ]""", null, null, null)]
+    public async Task The_game_starts_from_its_primary_file_task_inside_its_folder(string tasks, string? executable, string? arguments,
+        string? workingDirectory)
+    {
+        _files.AddFile(Path.Join(Folder, "goggame-3001.info"), $$"""{ "gameId": "3001", "playTasks": {{tasks}} }""");
+
+        var playTask = (await Read()).Base!.PlayTask;
+
+        (playTask?.Executable, playTask?.Arguments, playTask?.WorkingDirectory).Should().Be((executable, arguments, workingDirectory));
     }
 
     [Fact]

@@ -139,6 +139,8 @@ public sealed record DetectedGameView
     /// <summary>Kept from an earlier scan because the store's records could not be read this time.</summary>
     public bool IsStale { get; init; }
 
+    public bool CanLaunch { get; init; }
+
     /// <summary>Maps a game as its store reports it.</summary>
     /// <param name="game">The game from the library's snapshot.</param>
     public static DetectedGameView From(InstalledGame game)
@@ -153,6 +155,7 @@ public sealed record DetectedGameView
             Reason = game.Reason,
             Platform = game.Platform,
             IsStale = game.IsStale,
+            CanLaunch = game.Launch is not null,
         };
     }
 }

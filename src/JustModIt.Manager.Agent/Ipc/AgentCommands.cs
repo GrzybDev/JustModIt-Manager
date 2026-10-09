@@ -23,6 +23,7 @@ public sealed class AgentCommands(
     ISettingsService settings,
     ILibraryService library,
     IVolumes volumes,
+    IFileSystem fileSystem,
     Checks checks,
     UpdateService updates,
     AgentStatus status,
@@ -58,7 +59,7 @@ public sealed class AgentCommands(
             current.WithGame(choose.Game, preferences => preferences with { VariantName = choose.VariantName }))),
         HideGame hide => Done(() => settings.Update(current =>
             current.WithGame(hide.Game, preferences => preferences with { IsHidden = hide.IsHidden }))),
-        LaunchGame launch => Open(StoreLaunchLinks.For(launch.Game) ?? throw new RequestFailedException(ErrorCode.Unsupported)),
+        LaunchGame launch => Launch(library.Snapshot.Find(launch.Game)),
         OpenFolder open => Open(FolderOf(open)),
         AddLibraryFolder add => await AddLibraryFolderAsync(add.Path, cancellationToken).ConfigureAwait(false),
         RemoveLibraryFolder remove => Done(() => library.RemoveLibraryFolder(new LibraryFolder(StoreOf(remove.Store), remove.Path))),
@@ -210,4 +211,15 @@ public sealed class AgentCommands(
 
     private Message? Open(string target) =>
         shell.Open(target) ? null : throw new RequestFailedException(ErrorCode.Failed, "The system could not open it.");
+
+    private Message? Launch(InstalledGame? game) => game?.Launch switch
+    {
+        LaunchLink link => Open(link.Uri),
+        LaunchProgram program => StartProgram(program.Resolve(fileSystem, game.InstallDirectory)
+            ?? throw new RequestFailedException(ErrorCode.Failed, "The game's program is missing or leads out of its folder.")),
+        _ => throw new RequestFailedException(ErrorCode.Unsupported),
+    };
+
+    private Message? StartProgram(ProgramStart program) =>
+        shell.Start(program) ? null : throw new RequestFailedException(ErrorCode.Failed, "The system could not start it.");
 }

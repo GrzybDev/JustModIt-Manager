@@ -2,11 +2,21 @@ using System.Security;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library.Gog;
 
 /// <summary>One <c>goggame-&lt;id&gt;.info</c> file: GOG's own description of a game or DLC in its folder.</summary>
+/// <param name="GameId">The product id the file is named after.</param>
+/// <param name="RootGameId">The id of the game it belongs to, its own for a game; null in old files.</param>
+/// <param name="Name">The product's name.</param>
+/// <param name="BuildId">The installed build, from the file or its <c>.id</c> companion.</param>
+/// <param name="HasPlayTasks">The file names ways to start the product, which some DLC files do not.</param>
+/// <param name="LastWriteTime">When GOG last wrote the file.</param>
+/// <param name="Languages">The installed languages as BCP 47 tags.</param>
+/// <param name="PlayTask">The primary play task that starts a program; null when there is none.</param>
 public sealed record GogGameInfo(
     string GameId,
     string? RootGameId,
@@ -14,7 +24,8 @@ public sealed record GogGameInfo(
     string? BuildId,
     bool HasPlayTasks,
     DateTimeOffset LastWriteTime,
-    ValueList<string> Languages)
+    ValueList<string> Languages,
+    LaunchProgram? PlayTask)
 {
     public bool IsDlc => RootGameId is not null && RootGameId != GameId;
 }
@@ -125,8 +136,16 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
         }
 
         return new GogGameInfo(gameId, GogJson.NullIfBlank(info.RootGameId), GogJson.NullIfBlank(info.Name), buildId,
-            info.PlayTasks is { Count: > 0 }, file.LastWriteTimeUtc, new ValueList<string>([.. languages]));
+            info.PlayTasks is { Count: > 0 }, file.LastWriteTimeUtc, new ValueList<string>([.. languages]), PrimaryTask(info.PlayTasks));
     }
+
+    // A primary link task opens a web page rather than the game.
+    private static LaunchProgram? PrimaryTask(IReadOnlyList<JsonElement>? tasks) =>
+        tasks?.FirstOrDefault(task => task.ValueKind == JsonValueKind.Object && task.GetBooleanOrNull("isPrimary") == true) is
+            { ValueKind: JsonValueKind.Object } primary
+        && primary.GetTextOrNull("type") is null or "FileTask"
+            ? LaunchProgram.TryCreate(primary.GetTextOrNull("path"), primary.GetTextOrNull("arguments"), primary.GetTextOrNull("workingDir"))
+            : null;
 
     private async Task<T?> TryParseAsync<T>(string path, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
         CancellationToken cancellationToken)

@@ -79,6 +79,7 @@ public sealed class HeroicGogSource(IFileSystem fileSystem, string storeDirector
                     "OSX" or "MAC" => OperatingSystemKind.MacOS,
                     _ => OperatingSystemKind.Unknown,
                 },
+                Launch = LaunchLink.TryCreate($"heroic://launch?appName={game.AppName}&runner=gog"),
             }
             : null;
 }

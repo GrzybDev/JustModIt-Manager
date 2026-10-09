@@ -42,6 +42,30 @@ public sealed class GogLibraryProviderTests
             StoreActivityAt = GogFiles.WrittenAt,
             Platform = OperatingSystemKind.Windows,
             Languages = ["pl-PL", "de"],
+            Launch = LaunchProgram.TryCreate("game.exe", null, null),
+        });
+    }
+
+    [Fact]
+    public async Task Each_game_starts_through_what_installed_it()
+    {
+        _registry.SetText(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\GOG.com\GalaxyClient", "clientExecutable",
+            "GalaxyClient.exe");
+        _files.AddInfo(Folder, "1207658924", "Through Galaxy");
+        AddRecord("1207658924", Folder);
+        _files.AddInfo(@"D:\Heroic\Another", "1001", "Through Heroic");
+        _files.AddFile(@"R:\Roaming\heroic\gog_store\installed.json",
+            """{ "installed": [ { "appName": "1001", "install_path": "D:\\Heroic\\Another", "platform": "windows" } ] }""");
+        _files.AddInfo(@"E:\Offline Installs\Third", "1002", "From Its Folder");
+
+        var scan = await CreateProvider(new HeroicGogSource(_files, @"R:\Roaming\heroic\gog_store"))
+            .ScanAsync(Manual(@"E:\Offline Installs"), Token);
+
+        scan.Games.ToDictionary(game => game.Name, game => game.Launch).Should().BeEquivalentTo(new Dictionary<string, GameLaunch?>
+        {
+            ["Through Galaxy"] = LaunchLink.TryCreate("goggalaxy://openGameView/1207658924"),
+            ["Through Heroic"] = LaunchLink.TryCreate("heroic://launch?appName=1001&runner=gog"),
+            ["From Its Folder"] = LaunchProgram.TryCreate("game.exe", null, null),
         });
     }
 

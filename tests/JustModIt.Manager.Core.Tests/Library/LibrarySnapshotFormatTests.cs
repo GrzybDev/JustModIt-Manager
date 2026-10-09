@@ -23,7 +23,14 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
         StoreActivityAt = new DateTimeOffset(2026, 3, 1, 10, 0, 0, TimeSpan.Zero),
         Platform = OperatingSystemKind.Linux,
         Languages = ["pl-PL", "en"],
+        Launch = LaunchProgram.TryCreate(@"bin\game.exe", "-windowed", "bin"),
         IsStale = true,
+    };
+
+    private static readonly InstalledGame LinkedGame = Game with
+    {
+        Key = new GameKey(StoreId.Steam, "620"),
+        Launch = LaunchLink.TryCreate("steam://rungameid/620"),
     };
 
     private readonly TempDirectory _directory = new();
@@ -34,7 +41,8 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
         var snapshot = new LibrarySnapshot
         {
             Version = 7,
-            Games = new ValueDictionary<GameKey, InstalledGame>(ImmutableDictionary<GameKey, InstalledGame>.Empty.Add(Game.Key, Game)),
+            Games = new ValueDictionary<GameKey, InstalledGame>(ImmutableDictionary<GameKey, InstalledGame>.Empty
+                .Add(Game.Key, Game).Add(LinkedGame.Key, LinkedGame)),
             Stores =
             [
                 new StoreStatus(StoreId.Gog, IsPresent: true, ScanFailed: true, IsComplete: false,
@@ -62,7 +70,8 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
               "stores": [ { "store": "steam", "libraries": [ { "id": "x" }, { "id": "D:\\Library", "source": "steam-library", "state": "Sideways" } ] },
                           { "store": "" }, 42 ],
               "games": [
-                { "key": "steam:10", "name": "Kept", "installDirectory": "D:\\Library\\Kept", "libraryId": "D:\\Library", "state": "Hovering" },
+                { "key": "steam:10", "name": "Kept", "installDirectory": "D:\\Library\\Kept", "libraryId": "D:\\Library", "state": "Hovering",
+                  "launch": { "executable": "..\\Elsewhere\\tool.exe" } },
                 { "key": "steam:11", "name": "Relative", "installDirectory": "Library\\Relative", "libraryId": "D:\\Library" },
                 { "key": "no-separator", "name": "Broken", "installDirectory": "D:\\Broken", "libraryId": "D:\\Library" }
               ]
@@ -74,7 +83,8 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
         snapshot.IsCached.Should().BeTrue();
         snapshot.Stores.Should().Equal(new StoreStatus(StoreId.Steam, false, false, true,
             [new LibraryLocation(@"D:\Library", "steam-library", null, LibraryState.Online)]));
-        snapshot.Games.Values.Should().ContainSingle().Which.State.Should().Be(GameInstallState.Unknown);
+        snapshot.Games.Values.Should().ContainSingle().Which.Should().Match<InstalledGame>(game =>
+            game.State == GameInstallState.Unknown && game.Launch == null);
     }
 
     [Fact]

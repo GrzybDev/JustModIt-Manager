@@ -203,6 +203,7 @@ public sealed partial class GogLibraryProvider : ILibraryProvider
             StoreActivityAt = info?.LastWriteTime,
             Platform = record.Platform,
             Languages = [.. languages],
+            Launch = record.Launch ?? info?.PlayTask,
         };
         var watch = _fileSystem.DirectoryExists(directory) ? new WatchedFolder(directory, GameFolderEntries) : null;
         return new Finding(record.GameId, IsDlc: false, game, state, watch);

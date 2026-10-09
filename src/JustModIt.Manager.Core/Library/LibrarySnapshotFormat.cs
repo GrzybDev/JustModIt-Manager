@@ -16,10 +16,11 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
     private const string ScannedAt = "scannedAt";
     private const string Stores = "stores";
     private const string Games = "games";
+    private const string Launch = "launch";
 
     public static LibrarySnapshotFormat Instance { get; } = new();
 
-    public int CurrentVersion => 1;
+    public int CurrentVersion => 2;
 
     public IReadOnlySet<string> KnownProperties { get; } = FrozenSet.Create(StringComparer.Ordinal, ScannedAt, Stores, Games);
 
@@ -112,12 +113,41 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
             }
 
             writer.WriteEndArray();
+            WriteLaunch(writer, game.Launch);
             writer.WriteBoolean("isStale", game.IsStale);
             writer.WriteEndObject();
         }
 
         writer.WriteEndArray();
     }
+
+    private static void WriteLaunch(Utf8JsonWriter writer, GameLaunch? launch)
+    {
+        if (launch is null)
+        {
+            return;
+        }
+
+        writer.WriteStartObject(Launch);
+        if (launch is LaunchLink link)
+        {
+            writer.WriteString("link", link.Uri);
+        }
+        else if (launch is LaunchProgram program)
+        {
+            writer.WriteString("executable", program.Executable);
+            writer.WriteString("arguments", program.Arguments);
+            writer.WriteString("workingDirectory", program.WorkingDirectory);
+        }
+
+        writer.WriteEndObject();
+    }
+
+    private static GameLaunch? ReadLaunch(JsonElement game) =>
+        game.GetOrNull(Launch, JsonValueKind.Object) is not { } launch ? null
+        : launch.GetTextOrNull("link") is { } link ? LaunchLink.TryCreate(link)
+        : LaunchProgram.TryCreate(launch.GetTextOrNull("executable"), launch.GetTextOrNull("arguments"),
+            launch.GetTextOrNull("workingDirectory"));
 
     private static StoreStatus? ReadStore(JsonElement store) =>
         StoreId.TryParse(store.GetTextOrNull("store"), out var id)
@@ -166,6 +196,7 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
                     : null,
             Platform = game.GetEnumOrNull<OperatingSystemKind>("platform") ?? OperatingSystemKind.Unknown,
             Languages = [.. Items(game, "languages", JsonValueKind.String).Select(language => language.GetString()!)],
+            Launch = ReadLaunch(game),
             IsStale = game.GetBooleanOrNull("isStale") ?? false,
         };
     }
