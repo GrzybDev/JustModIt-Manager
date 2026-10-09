@@ -128,7 +128,16 @@ internal static class TestStates
                     GameName = "Example Game",
                     InstallDirectory = @"C:\Games\Example Game",
                     InstalledAt = Now.AddDays(-3),
-                    Package = new InstalledPackage(PackageKind.Manifest, "package.examplemod"),
+                    Package = new InstalledPackage(PackageKind.Manifest, "package.examplemod", ThirdPartyNotices:
+                    [
+                        new ThirdPartyNotice
+                        {
+                            Name = "Example Loader",
+                            License = "MIT",
+                            SourceUrl = "https://example.com/loader/source",
+                            Paths = ["loader.dll"],
+                        },
+                    ]),
                     Source = new InstallSource
                     {
                         ProjectId = Project.ToString("D"),

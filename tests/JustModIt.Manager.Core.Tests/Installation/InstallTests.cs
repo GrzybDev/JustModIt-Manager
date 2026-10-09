@@ -143,20 +143,21 @@ public sealed class InstallTests : IAsyncDisposable
     [Fact]
     public async Task Keeps_everything_needed_offline_in_the_record()
     {
-        var package = _harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed"));
+        var notice = new ThirdPartyNotice { Name = "Example Loader", License = "MIT", SourceUrl = "https://example.com/loader/source" };
+        var package = _harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed").Notices(notice));
 
         var result = await _harness.InstallAsync(package);
 
         var record = (await _harness.CreateEngine().LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which;
-        record.Should().Be(result.Record);
+        record.Should().BeEquivalentTo(result.Record);
         record.Game.Should().Be(InstallHarness.Key);
         record.GameName.Should().Be("Example Game");
         record.GameBuildId.Should().Be("42");
         record.GameVolume.Should().Be(InstallHarness.GameVolume);
         record.InstalledAt.Should().Be(InstallHarness.Now);
         record.Source.Should().Be(InstallHarness.Source);
-        record.Package.Should().Be(new InstalledPackage(PackageKind.Manifest, Path.GetFileName(package), TestPackage.Id,
-            "Example package", "1.0"));
+        record.Package.Should().BeEquivalentTo(new InstalledPackage(PackageKind.Manifest, Path.GetFileName(package), TestPackage.Id,
+            "Example package", "1.0", [notice]));
         record.FileCount.Should().Be(1);
         var file = (await _harness.Engine.LoadFilesAsync(record.Id, InstallHarness.Token)).Files.Should().ContainSingle().Which;
         file.Installed!.LastWriteTimeUtc.Should().Be(File.GetLastWriteTimeUtc(_harness.GameFile("readme.txt")));

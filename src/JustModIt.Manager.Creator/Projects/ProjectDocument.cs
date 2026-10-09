@@ -23,7 +23,7 @@ internal sealed record ProjectDocument
 
     public MetadataDocument? Metadata { get; init; }
 
-    public List<ThirdPartyNotice>? ThirdParty { get; init; }
+    public List<ToolNotice>? ThirdParty { get; init; }
 
     public List<string>? Acknowledged { get; init; }
 }

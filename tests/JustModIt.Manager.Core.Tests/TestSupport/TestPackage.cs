@@ -17,6 +17,7 @@ internal sealed partial class TestPackage
     private int _formatVersion = PackageManifest.CurrentFormatVersion;
     private IReadOnlyList<string>? _requires;
     private IReadOnlyList<PackageTarget> _targets = [];
+    private IReadOnlyList<ThirdPartyNotice>? _notices;
 
     public TestPackage Copy(string path, string content) => Copy(path, Encoding.UTF8.GetBytes(content));
 
@@ -73,6 +74,12 @@ internal sealed partial class TestPackage
         return this;
     }
 
+    public TestPackage Notices(params ThirdPartyNotice[] notices)
+    {
+        _notices = notices;
+        return this;
+    }
+
     public TestPackage RawManifest(string json)
     {
         _manifest = json;
@@ -87,6 +94,7 @@ internal sealed partial class TestPackage
         Version = "1.0",
         Targets = _targets,
         Requires = _requires,
+        ThirdPartyNotices = _notices,
         Operations = [.. _operations],
     };
 

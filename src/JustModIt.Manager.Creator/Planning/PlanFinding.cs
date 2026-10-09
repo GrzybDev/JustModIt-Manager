@@ -79,7 +79,7 @@ public enum FindingKind
 
     /// <summary>
     /// The package carries a third-party tool, e.g. a mod loader. Needs the tool's licence and the address of its source
-    /// code (<see cref="ThirdPartyNotice"/>).
+    /// code (<see cref="ToolNotice"/>), which the package's manifest carries.
     /// </summary>
     ThirdPartyTool,
 }

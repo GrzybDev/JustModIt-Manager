@@ -60,7 +60,7 @@ public sealed class PackageManifestTests
 
         var json = JsonSerializer.Serialize(manifest, PackageJsonContext.Default.PackageManifest);
 
-        json.Should().NotContain("requires").And.NotContain("generator").And.NotContain("createdAt");
+        json.Should().NotContain("requires").And.NotContain("generator").And.NotContain("createdAt").And.NotContain("thirdPartyNotices");
     }
 
     [Fact]

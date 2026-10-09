@@ -182,6 +182,7 @@ public sealed class PackageBuilder(IPatchEncoder encoder, CreatorOptions options
             ? [new PackageTarget(game.Key.Store, game.Key.StoreGameId, string.IsNullOrWhiteSpace(game.BuildId) ? null : game.BuildId)]
             : [],
         Requires = PackageCapabilities.Of(operations),
+        ThirdPartyNotices = plan.ThirdPartyNotices.Count > 0 ? [.. plan.ThirdPartyNotices] : null,
         Operations = operations,
     };
 

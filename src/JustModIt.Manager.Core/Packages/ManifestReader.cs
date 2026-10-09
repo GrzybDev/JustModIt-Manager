@@ -10,6 +10,7 @@ internal static class ManifestReader
     private const string RequiresProperty = "requires";
     private const string OperationsProperty = "operations";
     private const string TypeProperty = "type";
+    private const string ThirdPartyNoticesProperty = "thirdPartyNotices";
 
     private static readonly byte[] ByteOrderMark = [0xEF, 0xBB, 0xBF];
 
@@ -29,7 +30,12 @@ internal static class ManifestReader
         {
             using var document = JsonDocument.Parse(json);
             CheckVersionAndCapabilities(document.RootElement);
-            return document.RootElement.Deserialize(PackageJsonContext.Default.PackageManifest) ?? throw Invalid("null");
+            var manifest = document.RootElement.Deserialize(PackageJsonContext.Default.PackageManifest) ?? throw Invalid("null");
+            // The serializer checks the nullability of properties but not of list items.
+            return manifest.ThirdPartyNotices is not { } notices
+                || (notices.Count <= ThirdPartyNotice.MaxPerPackage && notices.All(notice => notice?.IsValid() == true))
+                    ? manifest
+                    : throw Invalid(ThirdPartyNoticesProperty);
         }
         catch (JsonException exception)
         {

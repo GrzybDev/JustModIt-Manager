@@ -95,6 +95,22 @@ public sealed class PackageBuilderTests : IDisposable
     }
 
     [Fact]
+    public async Task Builds_copies_of_a_third_party_tool_into_a_manifest_package_that_names_its_licence_and_source()
+    {
+        _workspace.Author("dinput8.dll", "loader");
+        _workspace.Author("scripts/example-mod.asi", "plugin");
+        var plan = await PlanAsync(Project.WithToolNotice(new ToolNotice("asi-loader", "MIT", "https://example.com/loader/source")));
+
+        var result = await BuildAsync(plan, "example.examplemod");
+
+        await using var package = await new PackageReader().OpenAsync(result.OutputPath, TestContext.Current.CancellationToken);
+        package.Kind.Should().Be(PackageKind.Manifest);
+        package.Steps.Select(Describe).Should().Equal("copy dinput8.dll", "copy scripts/example-mod.asi");
+        package.Manifest!.ThirdPartyNotices.Should().BeEquivalentTo(
+            [new ThirdPartyNotice { Name = "Ultimate ASI Loader", License = "MIT", SourceUrl = "https://example.com/loader/source" }]);
+    }
+
+    [Fact]
     public async Task Packs_a_patch_that_turns_the_game_file_into_the_authors()
     {
         var original = Workspace.Bytes(200_000, 1);

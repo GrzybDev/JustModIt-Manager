@@ -47,7 +47,8 @@ public static class CreatorPlanner
         }
 
         findings.AddRange(HostingRules.Check(comparison, resolved, options.Rules));
-        var format = PackageFormatDecision.For(resolved);
+        var tools = findings.Where(finding => finding.Kind == FindingKind.ThirdPartyTool).Select(finding => finding.ToolId!).ToList();
+        var format = PackageFormatDecision.For(resolved, carriesThirdPartyTools: tools.Count > 0);
         findings.AddRange(PackageChecks(resolved, format, project.Metadata, options));
         var plan = new PackagePlan
         {
@@ -57,6 +58,7 @@ public static class CreatorPlanner
             Format = format,
             Findings = [.. findings.Select(finding => Acknowledge(finding, project))],
             Metadata = project.Metadata,
+            ThirdPartyNotices = [.. tools.Select(tool => NoticeOf(tool, project, options.Rules)).OfType<ThirdPartyNotice>()],
             Acknowledged = project.Acknowledged,
         };
         return new CreatorReview([.. entries], plan);
@@ -66,12 +68,24 @@ public static class CreatorPlanner
     private static PlanFinding Acknowledge(PlanFinding finding, CreatorProject project) => finding switch
     {
         { AcknowledgementKey: null } => finding,
-        { Kind: FindingKind.ThirdPartyTool } => finding with
-        {
-            IsAcknowledged = project.ThirdParty.Any(notice => notice.ToolId == finding.ToolId && notice.IsComplete),
-        },
+        { Kind: FindingKind.ThirdPartyTool } => finding with { IsAcknowledged = CompleteNotice(finding.ToolId!, project) is not null },
         _ => finding with { IsAcknowledged = project.Acknowledged.Contains(finding.AcknowledgementKey) },
     };
+
+    private static ToolNotice? CompleteNotice(string toolId, CreatorProject project) =>
+        project.ToolNotices.FirstOrDefault(notice => notice.ToolId == toolId && notice.IsComplete);
+
+    // Names no paths: the rules tell a tool by its folder and loader names, which also hold the author's own plugins, so
+    // the creator cannot tell which files the tool's licence covers.
+    private static ThirdPartyNotice? NoticeOf(string toolId, CreatorProject project, HostingRuleSet rules) =>
+        CompleteNotice(toolId, project) is { } notice
+            ? new ThirdPartyNotice
+            {
+                Name = rules.ThirdPartyTools.First(tool => tool.Id == toolId).Name,
+                License = notice.License.Trim(),
+                SourceUrl = notice.SourceUrl.Trim(),
+            }
+            : null;
 
     // The author's extra steps run first, then renames and deletions, then the files in path order, so a game file can
     // be renamed away and replaced, as a proxy library needs.

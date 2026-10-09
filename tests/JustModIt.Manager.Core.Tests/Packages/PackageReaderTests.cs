@@ -10,6 +10,14 @@ public sealed class PackageReaderTests : IDisposable
 {
     private const string Hash = "0000000000000000000000000000000000000000000000000000000000000000";
 
+    private static readonly ThirdPartyNotice Loader = new()
+    {
+        Name = "Example Loader",
+        License = "MIT",
+        SourceUrl = "https://example.com/loader/source",
+        Paths = ["loader.dll"],
+    };
+
     private readonly TempDirectory _temp = new();
     private readonly PackageReader _reader = new();
 
@@ -129,6 +137,48 @@ public sealed class PackageReaderTests : IDisposable
         await using var package = await _reader.OpenAsync(ManifestPackage, TestContext.Current.CancellationToken);
 
         package.Steps.Should().Equal(new DeleteStep("a.txt"));
+    }
+
+    [Fact]
+    public async Task Reads_the_third_party_notices_a_package_carries()
+    {
+        new TestPackage().Copy("loader.dll", "loader").Notices(Loader).WriteManifestPackage(ManifestPackage);
+
+        await using var package = await _reader.OpenAsync(ManifestPackage, TestContext.Current.CancellationToken);
+
+        package.Manifest!.ThirdPartyNotices.Should().BeEquivalentTo([Loader]);
+    }
+
+    [Theory]
+    [InlineData("""{ "name": " ", "license": "MIT", "sourceUrl": "https://example.com/loader" }""")]
+    [InlineData("""{ "name": "Example Loader", "sourceUrl": "https://example.com/loader" }""")]
+    [InlineData("""{ "name": "Example Loader", "license": "MIT", "sourceUrl": "ftp://example.com/loader" }""")]
+    [InlineData("""{ "name": "Example Loader", "license": "MIT", "sourceUrl": "example.com/loader" }""")]
+    [InlineData("""{ "name": "Example Loader", "license": "MIT", "sourceUrl": "https://example.com/loader", "paths": ["../loader.dll"] }""")]
+    [InlineData("null")]
+    public async Task Rejects_a_malformed_third_party_notice_as_a_damaged_package(string notice)
+    {
+        new TestPackage()
+            .RawManifest($$"""
+                { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "thirdPartyNotices": [ {{notice}} ],
+                  "operations": [ { "type": "delete", "path": "a.txt" } ] }
+                """)
+            .WriteManifestPackage(ManifestPackage);
+
+        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidManifest);
+    }
+
+    [Fact]
+    public async Task Rejects_third_party_notices_past_the_limits()
+    {
+        var tooMany = _temp.Combine("many.examplemod");
+        new TestPackage().Delete("a.txt").Notices(Loader with { License = new string('L', ThirdPartyNotice.MaxTextLength + 1) })
+            .WriteManifestPackage(ManifestPackage);
+        new TestPackage().Delete("a.txt").Notices([.. Enumerable.Repeat(Loader, ThirdPartyNotice.MaxPerPackage + 1)])
+            .WriteManifestPackage(tooMany);
+
+        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidManifest);
+        (await ErrorAsync(tooMany)).Should().Be(PackageError.InvalidManifest);
     }
 
     [Fact]

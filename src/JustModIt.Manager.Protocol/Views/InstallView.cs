@@ -48,6 +48,8 @@ public sealed record InstallView
     /// <summary>A package the package creator installed to try it out; never updated or repaired.</summary>
     public bool IsTest { get; init; }
 
+    public IReadOnlyList<ThirdPartyNoticeView> ThirdPartyNotices { get; init; } = [];
+
     public static InstallView From(InstallRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
@@ -73,7 +75,26 @@ public sealed record InstallView
             BackupLocation = record.Backup.Location,
             BackupDirectory = record.Backup.Directory,
             IsTest = record.IsTest,
+            ThirdPartyNotices = [.. record.Package.ThirdPartyNotices?.Select(ThirdPartyNoticeView.From) ?? []],
         };
+    }
+}
+
+/// <summary>
+/// A third-party component an installed package carries; the files it covers stay in the record, so a long list cannot
+/// swell every snapshot.
+/// </summary>
+/// <param name="Name">The component's name.</param>
+/// <param name="License">Its licence, as the package names it.</param>
+/// <param name="SourceUrl">The address of its source.</param>
+public sealed record ThirdPartyNoticeView(string Name, string License, string SourceUrl)
+{
+    /// <summary>Maps a notice of the installed package.</summary>
+    /// <param name="notice">The notice as the install record keeps it.</param>
+    public static ThirdPartyNoticeView From(ThirdPartyNotice notice)
+    {
+        ArgumentNullException.ThrowIfNull(notice);
+        return new ThirdPartyNoticeView(notice.Name, notice.License, notice.SourceUrl);
     }
 }
 

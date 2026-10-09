@@ -50,17 +50,15 @@ public sealed record PackageMetadata
     public ValueList<string> Authors { get; init; }
 }
 
-/// <summary>The licence and the source code of a third-party tool that a package carries.</summary>
+/// <summary>The licence and the source code of a third-party tool that a package carries, as the author gives them.</summary>
 /// <param name="ToolId">The tool as the hosting rules name it.</param>
-/// <param name="License">Its licence, as the hosting rules require one.</param>
-/// <param name="SourceUrl">The address of its source code.</param>
-public sealed record ThirdPartyNotice(string ToolId, string License, string SourceUrl)
+/// <param name="License">The licence text.</param>
+/// <param name="SourceUrl">An http(s) address of the tool's source code.</param>
+public sealed record ToolNotice(string ToolId, string License, string SourceUrl)
 {
+    /// <summary>Whether the package's manifest can carry it.</summary>
     [JsonIgnore]
-    public bool IsComplete =>
-        !string.IsNullOrWhiteSpace(License)
-        && Uri.TryCreate(SourceUrl, UriKind.Absolute, out var source)
-        && (source.Scheme == Uri.UriSchemeHttps || source.Scheme == Uri.UriSchemeHttp);
+    public bool IsComplete => ThirdPartyNotice.IsValidText(License) && ThirdPartyNotice.IsValidSourceUrl(SourceUrl);
 }
 
 /// <summary>
@@ -89,7 +87,7 @@ public sealed record CreatorProject
 
     public PackageMetadata Metadata { get; init; } = new();
 
-    public ValueList<ThirdPartyNotice> ThirdParty { get; init; }
+    public ValueList<ToolNotice> ToolNotices { get; init; }
 
     /// <summary>Keys of warnings the author has read and accepted (<see cref="PlanFinding.AcknowledgementKey"/>).</summary>
     public ValueList<string> Acknowledged { get; init; }
@@ -134,13 +132,14 @@ public sealed record CreatorProject
         return Acknowledged.Contains(key) ? this : this with { Acknowledged = Acknowledged.Add(key) };
     }
 
-    /// <summary>Replaces the notice of the same tool.</summary>
-    public CreatorProject WithThirdPartyNotice(ThirdPartyNotice notice)
+    /// <summary>A copy of the project with a tool's notice, replacing the notice of the same tool.</summary>
+    /// <param name="notice">The licence and source the author gave.</param>
+    public CreatorProject WithToolNotice(ToolNotice notice)
     {
         ArgumentNullException.ThrowIfNull(notice);
         return this with
         {
-            ThirdParty = ThirdParty.RemoveAll(existing => string.Equals(existing.ToolId, notice.ToolId, StringComparison.Ordinal))
+            ToolNotices = ToolNotices.RemoveAll(existing => string.Equals(existing.ToolId, notice.ToolId, StringComparison.Ordinal))
                 .Add(notice),
         };
     }

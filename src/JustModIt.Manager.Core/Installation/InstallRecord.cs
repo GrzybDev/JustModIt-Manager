@@ -48,13 +48,15 @@ public sealed record InstallRecord
 
 public sealed record BackupFolder(BackupLocation Location, string Directory);
 
+/// <summary>The package an install came from.</summary>
 /// <param name="Kind">A plain archive or a manifest package, as its content says.</param>
 /// <param name="FileName">The package file as it was downloaded.</param>
 /// <param name="ManifestId">The manifest's id; null for a plain archive.</param>
 /// <param name="Title">The manifest's title.</param>
 /// <param name="Version">The manifest's version.</param>
+/// <param name="ThirdPartyNotices">The licences of third-party tools the manifest lists.</param>
 public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? ManifestId = null, string? Title = null,
-    string? Version = null)
+    string? Version = null, IReadOnlyList<ThirdPartyNotice>? ThirdPartyNotices = null)
 {
     /// <summary>What an install keeps of an opened package.</summary>
     /// <param name="package">The package.</param>
@@ -62,7 +64,7 @@ public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? M
     {
         ArgumentNullException.ThrowIfNull(package);
         return new InstalledPackage(package.Kind, package.FileName, package.Manifest?.Id, package.Manifest?.Title,
-            package.Manifest?.Version);
+            package.Manifest?.Version, package.Manifest?.ThirdPartyNotices);
     }
 }
 

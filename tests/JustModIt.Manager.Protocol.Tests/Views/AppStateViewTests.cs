@@ -50,6 +50,7 @@ public sealed class AppStateViewTests
             VariantName = "Text only",
             BackupLocation = BackupLocation.GameFolder,
         });
+        game.Installed!.ThirdPartyNotices.Should().Equal(new ThirdPartyNoticeView("Example Loader", "MIT", "https://example.com/loader/source"));
         game.Preferences.AutoUpdate.Should().BeFalse();
         game.Job!.Should().BeEquivalentTo(new { Id = Job, Stage = JobStage.Waiting, WaitReason = JobWaitReason.GameRunning, Sequence = 7L });
         game.Job.RunningProcesses.Should().Equal("example.exe");

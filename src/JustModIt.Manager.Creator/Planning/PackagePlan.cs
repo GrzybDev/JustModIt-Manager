@@ -24,11 +24,17 @@ public enum FormatReason
     /// package: it has a <c>manifest.json</c> at its root, or nothing outside a manifest package's payload folders.
     /// </summary>
     ReadsAsManifestPackage,
+
+    /// <summary>It carries a third-party tool, whose licence and source only a manifest can name.</summary>
+    CarriesThirdPartyNotices,
 }
 
 public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatReason> Reasons)
 {
-    public static PackageFormatDecision For(IReadOnlyList<PlannedOperation> operations)
+    /// <summary>The format the operations need, with every reason for it.</summary>
+    /// <param name="operations">The plan's operations, in order.</param>
+    /// <param name="carriesThirdPartyTools">The package carries a tool that needs a <see cref="ToolNotice"/>.</param>
+    public static PackageFormatDecision For(IReadOnlyList<PlannedOperation> operations, bool carriesThirdPartyTools)
     {
         ArgumentNullException.ThrowIfNull(operations);
         ValueList<FormatReason> reasons =
@@ -47,6 +53,11 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
         if (reasons.Count > 0)
         {
             return new PackageFormatDecision(PackageKind.Manifest, reasons);
+        }
+
+        if (carriesThirdPartyTools)
+        {
+            return new PackageFormatDecision(PackageKind.Manifest, [FormatReason.CarriesThirdPartyNotices]);
         }
 
         return operations.Any(operation => operation.Path == PackageLayout.ManifestEntry)
@@ -86,6 +97,9 @@ public sealed record PackagePlan
     public required ValueList<PlanFinding> Findings { get; init; }
 
     public required PackageMetadata Metadata { get; init; }
+
+    /// <summary>What the manifest names: each third-party tool the package carries whose notice the author completed.</summary>
+    public ValueList<ThirdPartyNotice> ThirdPartyNotices { get; init; }
 
     /// <summary>What the author has acknowledged, for warnings that only the build can find.</summary>
     public ValueList<string> Acknowledged { get; init; }

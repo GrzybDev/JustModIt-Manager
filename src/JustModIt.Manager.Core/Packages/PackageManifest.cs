@@ -39,6 +39,9 @@ public sealed record PackageManifest
     /// </summary>
     public IReadOnlyList<string>? Requires { get; init; }
 
+    /// <summary>Third-party components the package carries, which older apps ignore, so it needs no capability.</summary>
+    public IReadOnlyList<ThirdPartyNotice>? ThirdPartyNotices { get; init; }
+
     public required IReadOnlyList<PackageOperation> Operations { get; init; }
 }
 

@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Creator.Rules;
 using JustModIt.Manager.Creator.Tests.TestSupport;
@@ -157,7 +158,7 @@ public sealed class HostingRulesTests : IDisposable
     }
 
     [Fact]
-    public async Task Asks_for_the_licence_and_source_of_a_third_party_tool()
+    public async Task Asks_for_the_licence_and_source_of_a_third_party_tool_and_names_them_in_the_manifest()
     {
         _workspace.Author("BepInEx/core/BepInEx.dll", "loader");
         _workspace.Author("doorstop_config.ini", "config");
@@ -166,15 +167,23 @@ public sealed class HostingRulesTests : IDisposable
         var plan = await PlanAsync(Project);
         var finding = plan.Findings.Should().ContainSingle().Subject;
         var plainly = await PlanAsync(Project.Acknowledge(finding.AcknowledgementKey!));
-        var noSource = await PlanAsync(Project.WithThirdPartyNotice(new ThirdPartyNotice("bepinex", "LGPL-2.1", "not a link")));
-        var noticed = await PlanAsync(Project.WithThirdPartyNotice(
-            new ThirdPartyNotice("bepinex", "LGPL-2.1", "https://example.com/loader/source")));
+        var noSource = await PlanAsync(Project.WithToolNotice(new ToolNotice("bepinex", "LGPL-2.1", "not a link")));
+        var longLicence = await PlanAsync(Project.WithToolNotice(new ToolNotice("bepinex",
+            new string('L', ThirdPartyNotice.MaxTextLength + 1), "https://example.com/loader/source")));
+        var noticed = await PlanAsync(Project
+            .WithToolNotice(new ToolNotice("bepinex", " LGPL-2.1 ", "https://example.com/loader/source"))
+            .WithToolNotice(new ToolNotice("ue4ss", "MIT", "https://example.com/scripting/source")));
 
         finding.Should().Match<PlanFinding>(found => found.Kind == FindingKind.ThirdPartyTool && found.ToolId == "bepinex"
             && found.Path == "BepInEx/core/BepInEx.dll" && found.BlocksBuild);
         plainly.CanBuild.Should().BeFalse();
         noSource.CanBuild.Should().BeFalse();
+        longLicence.CanBuild.Should().BeFalse("the manifest could not carry the licence");
         noticed.CanBuild.Should().BeTrue();
+        noticed.ThirdPartyNotices.Should().Equal(
+            new ThirdPartyNotice { Name = "BepInEx", License = "LGPL-2.1", SourceUrl = "https://example.com/loader/source" });
+        plan.Format.Should().Be(new PackageFormatDecision(PackageKind.Manifest, [FormatReason.CarriesThirdPartyNotices]),
+            "a plain zip of these copies could not carry the notice");
     }
 
     [Fact]

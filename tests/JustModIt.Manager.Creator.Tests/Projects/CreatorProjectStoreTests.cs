@@ -36,7 +36,7 @@ public sealed class CreatorProjectStoreTests : IDisposable
                 new DeleteFileStep("c.bin"),
             ],
             Metadata = new PackageMetadata { Title = "Example package", Version = "2.0", Authors = ["Example Team"] },
-            ThirdParty = [new ThirdPartyNotice("bepinex", "LGPL-2.1", "https://example.com/loader")],
+            ToolNotices = [new ToolNotice("bepinex", "LGPL-2.1", "https://example.com/loader")],
             Acknowledged = ["whole-game-file:data/fonts.bin:1234"],
         };
 
@@ -58,7 +58,7 @@ public sealed class CreatorProjectStoreTests : IDisposable
             AuthorFolder = _workspace.AuthorDirectory,
             Choices = Choices(("data/fonts.bin", FileChoice.Skip)),
             ExtraSteps = [new DeleteFileStep("movies/intro.bik")],
-            ThirdParty = [new ThirdPartyNotice("bepinex", "LGPL-2.1", "https://example.com/loader")],
+            ToolNotices = [new ToolNotice("bepinex", "LGPL-2.1", "https://example.com/loader")],
         };
 
         await CreatorProjectStore.SaveAsync(project, ProjectPath, TestContext.Current.CancellationToken);
