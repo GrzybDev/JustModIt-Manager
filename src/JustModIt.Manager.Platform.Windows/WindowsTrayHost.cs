@@ -143,8 +143,17 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
     /// <summary>Cuts a text to what the system shows, ending it with an ellipsis.</summary>
     /// <param name="text">The text to show.</param>
     /// <param name="length">The most characters the system shows.</param>
-    internal static string Clip(string text, int length) =>
-        text.Length <= length ? text : string.Concat(text.AsSpan(0, length - 1), "…");
+    internal static string Clip(string text, int length)
+    {
+        if (text.Length <= length)
+        {
+            return text;
+        }
+
+        // A cut between the halves of a surrogate pair would leave half a character, such as of an emoji in a game's name.
+        var kept = length > 1 && char.IsHighSurrogate(text[length - 2]) ? length - 2 : length - 1;
+        return string.Concat(text.AsSpan(0, kept), "…");
+    }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static nint WindowProc(nint window, uint message, nint wParam, nint lParam)

@@ -22,6 +22,8 @@ public sealed class WindowsTrayHostTests
     [InlineData(5, "Short", "Short")]
     [InlineData(5, "Exactly", "Exac…")]
     [InlineData(7, "Exactly", "Exactly")]
+    [InlineData(4, "ab\U0001F3AEc", "ab…")]
+    [InlineData(5, "ab\U0001F3AEcd", "ab\U0001F3AE…")]
     public void Texts_over_the_system_limit_end_in_an_ellipsis(int limit, string text, string expected) =>
         WindowsTrayHost.Clip(text, limit).Should().Be(expected);
 }
