@@ -4,12 +4,12 @@ using System.Text.Json;
 namespace JustModIt.Manager.Core.IO;
 
 /// <summary>
-/// Replaces one of the app's own data files in one step, so a crash, a power cut or a concurrent reader never sees half
-/// of it and a failed write leaves the previous file as it was.
+/// Replaces one of the app's own files, such as its data or a package the creator built, in one step, so a crash, a power
+/// cut or a concurrent reader never sees half of it and a failed write leaves the previous file as it was.
 /// </summary>
 public static class AtomicFile
 {
-    private const int BufferSize = 16 * 1024;
+    private const int DefaultBufferSize = 16 * 1024;
 
     /// <summary>Replaces the file at <paramref name="path"/> with <paramref name="content"/>.</summary>
     /// <param name="path">The file; its folder is created when missing.</param>
@@ -46,8 +46,9 @@ public static class AtomicFile
     /// <param name="write">Writes the new content into the stream it is given.</param>
     /// <param name="cancellationToken">Cancels the write and keeps the previous file.</param>
     /// <param name="time">Paces the retries of the final rename; the system clock when null.</param>
+    /// <param name="bufferSize">The write buffer's size, larger for large files.</param>
     public static async Task WriteAsync(string path, Func<Stream, CancellationToken, ValueTask> write,
-        CancellationToken cancellationToken, TimeProvider? time = null)
+        CancellationToken cancellationToken, TimeProvider? time = null, int bufferSize = DefaultBufferSize)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(write);
@@ -58,7 +59,7 @@ public static class AtomicFile
         var temporary = $"{target}.{Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(4))}.tmp";
         try
         {
-            var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize,
+            var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize,
                 FileOptions.Asynchronous);
             await using (stream.ConfigureAwait(false))
             {

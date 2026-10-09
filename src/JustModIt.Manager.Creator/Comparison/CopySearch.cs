@@ -31,7 +31,7 @@ internal sealed class CopySearch
         new(game,
         [
             .. candidates.Where(candidate => !candidate.SameSize && candidate.Stamp.Size >= MinSize
-                && game.WithSize(candidate.Stamp.Size).Any(file => !IsSame(file.Path, candidate.Path))),
+                && OtherFilesOfSize(game, candidate).Any()),
         ]);
 
     /// <summary>The bytes the search hashes that the comparison does not hash anyway.</summary>
@@ -41,7 +41,7 @@ internal sealed class CopySearch
         var hashedAnyway = all.Where(candidate => candidate.SameSize).Select(candidate => candidate.Game!.FullPath)
             .ToHashSet(PathComparison.Comparer);
         var gameFiles = _candidates
-            .SelectMany(candidate => _game.WithSize(candidate.Stamp.Size).Where(file => !IsSame(file.Path, candidate.Path)))
+            .SelectMany(candidate => OtherFilesOfSize(_game, candidate))
             .DistinctBy(file => file.FullPath, PathComparison.Comparer)
             .Where(file => !hashedAnyway.Contains(file.FullPath));
         return _candidates.Sum(candidate => candidate.Stamp.Size) + gameFiles.Sum(file => file.Stamp.Size);
@@ -102,7 +102,7 @@ internal sealed class CopySearch
             return matches;
         }
 
-        foreach (var file in _game.WithSize(candidate.Stamp.Size).Where(file => !IsSame(file.Path, candidate.Path)))
+        foreach (var file in OtherFilesOfSize(_game, candidate))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (await hashes.TryHashAsync(file.FullPath, file.Stamp.Size, bytes, cancellationToken).ConfigureAwait(false)
@@ -128,6 +128,9 @@ internal sealed class CopySearch
     }
 
     private static bool IsSame(string first, string second) => PackagePath.Comparer.Equals(first, second);
+
+    private static IEnumerable<GameFile> OtherFilesOfSize(GameIndex game, FolderComparer.Candidate candidate) =>
+        game.WithSize(candidate.Stamp.Size).Where(file => !IsSame(file.Path, candidate.Path));
 
     private static bool SameName(string first, string second) => IsSame(GameIndex.NameOf(first), GameIndex.NameOf(second));
 

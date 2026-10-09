@@ -58,8 +58,8 @@ internal static class HostingRules
     private static IEnumerable<PlanFinding> CheckOperation(FolderComparison comparison, PlannedOperation operation,
         HostingRuleSet rules)
     {
-        if (new[] { operation.From, operation.Path }.OfType<string>().FirstOrDefault(path => Matches(rules.StoreLibraries, NameOf(path)))
-            is { } library)
+        if (new[] { operation.From, operation.Path }.OfType<string>()
+                .FirstOrDefault(path => Matches(rules.StoreLibraries, GameIndex.NameOf(path))) is { } library)
         {
             yield return new PlanFinding(FindingKind.StoreLibrary, library);
         }
@@ -107,21 +107,22 @@ internal static class HostingRules
     }
 
     private static bool IsCircumvention(string path, HostingRuleSet rules) =>
-        Matches(rules.CircumventionFiles, NameOf(path))
-        || path.Split(PackagePath.Separator)[..^1].Any(folder => Matches(rules.CircumventionFolders, folder));
+        Matches(rules.CircumventionFiles, GameIndex.NameOf(path))
+        || FoldersOf(path).Any(folder => Matches(rules.CircumventionFolders, folder));
 
     private static bool IsArchive(string path, long size, HostingRuleSet rules) =>
         size >= rules.LargeFileBytes || rules.ArchiveExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
 
     private static ThirdPartyTool? ToolOf(string path, HostingRuleSet rules)
     {
-        var folders = path.Split(PackagePath.Separator)[..^1];
+        var folders = FoldersOf(path);
         return rules.ThirdPartyTools.FirstOrDefault(tool =>
-            folders.Any(folder => tool.Folders.Contains(folder, StringComparer.OrdinalIgnoreCase)) || Matches(tool.Files, NameOf(path)));
+            folders.Any(folder => tool.Folders.Contains(folder, StringComparer.OrdinalIgnoreCase))
+            || Matches(tool.Files, GameIndex.NameOf(path)));
     }
 
     private static bool Matches(IEnumerable<string> patterns, string name) =>
         patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, name, ignoreCase: true));
 
-    private static string NameOf(string path) => GameIndex.NameOf(path);
+    private static string[] FoldersOf(string path) => path.Split(PackagePath.Separator)[..^1];
 }

@@ -84,16 +84,10 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
             try
             {
                 var listed = 0;
-                foreach (var entry in _fileSystem.Enumerate(comparison.AuthorDirectory, "*", AuthorFiles))
+                foreach (var entry in AuthorFilesIn(comparison.AuthorDirectory, cancellationToken))
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (entry.IsDirectory || entry.IsLink)
-                    {
-                        continue;
-                    }
-
                     if (!stamps.TryGetValue(PackagePath.FromFullPath(comparison.AuthorDirectory, entry.FullPath), out var stamp)
-                        || stamp != FileStamp.Of(entry))
+                        || !stamp.Matches(entry))
                     {
                         return true;
                     }
@@ -103,7 +97,7 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
 
                 return listed != stamps.Count
                     || comparison.Files.Select(file => file.Game).OfType<GameFile>()
-                        .Any(game => _fileSystem.GetEntry(game.FullPath) is not { IsDirectory: false } entry || FileStamp.Of(entry) != game.Stamp);
+                        .Any(game => !game.Stamp.Matches(_fileSystem.GetEntry(game.FullPath)));
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
@@ -144,14 +138,8 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
     private List<Candidate> ListAuthorFiles(GameIndex game, string authorDirectory, CancellationToken cancellationToken)
     {
         var candidates = new List<Candidate>();
-        foreach (var entry in _fileSystem.Enumerate(authorDirectory, "*", AuthorFiles))
+        foreach (var entry in AuthorFilesIn(authorDirectory, cancellationToken))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (entry.IsDirectory || entry.IsLink)
-            {
-                continue;
-            }
-
             var authorPath = PackagePath.FromFullPath(authorDirectory, entry.FullPath);
             var path = game.Spell(authorPath);
             candidates.Add(new Candidate(path, authorPath, entry.FullPath, FileStamp.Of(entry),
@@ -160,6 +148,18 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
 
         candidates.Sort((left, right) => StringComparer.OrdinalIgnoreCase.Compare(left.Path, right.Path));
         return candidates;
+    }
+
+    private IEnumerable<FileEntry> AuthorFilesIn(string authorDirectory, CancellationToken cancellationToken)
+    {
+        foreach (var entry in _fileSystem.Enumerate(authorDirectory, "*", AuthorFiles))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!entry.IsDirectory && !entry.IsLink)
+            {
+                yield return entry;
+            }
+        }
     }
 
     private static async Task<ComparedFile> ClassifyAsync(Candidate candidate, ContentHashes hashes, IProgress<long> bytes,

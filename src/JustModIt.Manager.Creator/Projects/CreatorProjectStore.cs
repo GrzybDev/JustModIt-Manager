@@ -108,7 +108,7 @@ public static class CreatorProjectStore
     /// <summary>The content of the project's file.</summary>
     /// <param name="project">The project to store.</param>
     /// <param name="projectDirectory">The project file's folder, which a relative author's folder starts from.</param>
-    internal static byte[] Serialize(CreatorProject project, string projectDirectory)
+    private static byte[] Serialize(CreatorProject project, string projectDirectory)
     {
         var document = new ProjectDocument
         {
@@ -137,7 +137,7 @@ public static class CreatorProjectStore
     /// <param name="content">The file's bytes, with or without a byte order mark.</param>
     /// <param name="projectDirectory">The project file's folder, which a relative author's folder starts from.</param>
     /// <exception cref="ProjectLoadException">The content is damaged or was written by a newer app.</exception>
-    internal static CreatorProject Deserialize(byte[] content, string projectDirectory)
+    private static CreatorProject Deserialize(byte[] content, string projectDirectory)
     {
         try
         {
@@ -214,7 +214,7 @@ public static class CreatorProjectStore
 
     /// <summary>A member's name in lower case, as project files store it.</summary>
     /// <param name="value">The member.</param>
-    internal static string Word<TEnum>(TEnum value)
+    private static string Word<TEnum>(TEnum value)
         where TEnum : struct, Enum =>
         value.ToString().ToLowerInvariant();
 }

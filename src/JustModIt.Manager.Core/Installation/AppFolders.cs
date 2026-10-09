@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Text.Json;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Platform;
 
@@ -103,6 +104,15 @@ public static class AppFolders
 
         return [.. directories.SelectMany(directory => OthersIn(fileSystem, directory, app))];
     }
+
+    /// <summary>
+    /// Whether a folder at a game's root is one no package may write into and that holds no game files: the app's own
+    /// hidden folder or a store's (<see cref="StoreFolders"/>).
+    /// </summary>
+    /// <param name="name">The folder's name.</param>
+    /// <param name="hiddenFolderName">The name of the app's hidden folder at the game root.</param>
+    public static bool IsReservedTopFolder(string name, string hiddenFolderName) =>
+        name.Equals(hiddenFolderName, StringComparison.OrdinalIgnoreCase) || StoreFolders.Contains(name);
 
     /// <summary>Whether a game-relative path puts an owner file into a hidden folder, passing that folder off as an app's.</summary>
     /// <param name="relativePath">A game-relative package path.</param>

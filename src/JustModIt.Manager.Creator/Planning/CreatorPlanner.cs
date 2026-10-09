@@ -218,8 +218,7 @@ public static class CreatorPlanner
     private static IEnumerable<PlanFinding> PackageChecks(List<PlannedOperation> operations, PackageFormatDecision format,
         PackageMetadata metadata, CreatorOptions options)
     {
-        var entries = operations.Count(operation => operation.HasPayload) + (format.Kind == PackageKind.Manifest ? 1 : 0);
-        if (entries > options.Limits.MaxEntries)
+        if (format.EntryCount(operations) > options.Limits.MaxEntries)
         {
             yield return new PlanFinding(FindingKind.TooManyFiles);
         }

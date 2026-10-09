@@ -49,8 +49,7 @@ internal sealed class GameFolder
     public string? TryResolve(string relativePath)
     {
         if (!PackagePath.IsValid(relativePath)
-            || string.Equals(PackagePath.FirstSegment(relativePath), HiddenFolderName, StringComparison.OrdinalIgnoreCase)
-            || StoreFolders.Contains(PackagePath.FirstSegment(relativePath)))
+            || AppFolders.IsReservedTopFolder(PackagePath.FirstSegment(relativePath), HiddenFolderName))
         {
             return null;
         }

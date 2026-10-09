@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Platform;
@@ -16,6 +17,10 @@ public readonly record struct FileStamp(long Size, DateTimeOffset LastWriteTime)
     /// <summary>The stamp of a listed file.</summary>
     /// <param name="entry">The file as the file system listed it.</param>
     internal static FileStamp Of(FileEntry entry) => new(entry.Length, entry.LastWriteTimeUtc);
+
+    /// <summary>Whether a file as listed now is still the one this stamp describes.</summary>
+    /// <param name="entry">The file as the file system lists it now; null when nothing is there.</param>
+    internal bool Matches(FileEntry? entry) => entry is { IsDirectory: false } file && Of(file) == this;
 }
 
 /// <summary>A file of the game folder as the index listed it.</summary>
@@ -69,8 +74,7 @@ public sealed class GameIndex
         foreach (var entry in fileSystem.Enumerate(root, "*", TopLevel))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (entry.IsDirectory
-                && (entry.Name.Equals(hiddenFolderName, StringComparison.OrdinalIgnoreCase) || StoreFolders.Contains(entry.Name)))
+            if (entry.IsDirectory && AppFolders.IsReservedTopFolder(entry.Name, hiddenFolderName))
             {
                 continue;
             }

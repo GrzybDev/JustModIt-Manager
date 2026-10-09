@@ -53,29 +53,22 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
         var tracker = new Tracker(progress, payload.Count, payload.Sum(PlannedBytes));
         tracker.Checking();
         CheckFiles(plan);
-        if (payload.Count + (plan.Format.Kind == PackageKind.Manifest ? 1 : 0) > options.Limits.MaxEntries)
+        if (plan.Format.EntryCount(plan.Operations) > options.Limits.MaxEntries)
         {
             throw new PackageBuildException(BuildFailure.TooManyEntries);
         }
 
-        // Next to the output, so the finished package is renamed into place rather than copied across volumes.
-        var work = Path.Join(Path.GetDirectoryName(output), $".{Path.GetFileName(output)}.{Guid.NewGuid():N}.tmp");
-        Directory.CreateDirectory(work);
-        try
+        PackageManifest? manifest = null;
+        ValueList<PackageOperation> operations = [];
+        ValueList<PlanFinding> findings = [];
+        await AtomicFile.WriteAsync(output, async (stream, token) =>
         {
-            var archive = Path.Join(work, "package");
-            var (manifest, operations, findings) = await WriteArchiveAsync(plan, request, archive, tracker, cancellationToken)
-                .ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-            File.Move(archive, output, overwrite: true);
-            var size = new FileInfo(output).Length;
-            return new PackageBuildResult(output, plan.Format.Kind, manifest, operations, size,
-                [.. findings, .. SiteFindings(plan.Format.Kind, size, request.Site)]);
-        }
-        finally
-        {
-            TryDeleteDirectory(work);
-        }
+            (manifest, operations, findings) = await WriteArchiveAsync(plan, request, stream, tracker, token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+        }, cancellationToken, _time, BufferSize).ConfigureAwait(false);
+        var size = new FileInfo(output).Length;
+        return new PackageBuildResult(output, plan.Format.Kind, manifest, operations, size,
+            [.. findings, .. SiteFindings(plan.Format.Kind, size, request.Site)]);
     }
 
     private string CheckRequest(PackagePlan plan, BuildRequest request)
@@ -122,8 +115,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
             .SelectMany(operation => new[] { operation.SourceFile, operation.Original })
             .OfType<FileReference>()
             .DistinctBy(file => file.FullPath, PathComparison.Comparer)
-            .Where(file => _fileSystem.GetEntry(file.FullPath) is not { IsDirectory: false } entry
-                || entry.Length != file.Stamp.Size || entry.LastWriteTimeUtc != file.Stamp.LastWriteTime)
+            .Where(file => !file.Stamp.Matches(_fileSystem.GetEntry(file.FullPath)))
             .Select(file => file.FullPath)
             .ToList();
         if (changed.Count > 0)
@@ -133,43 +125,36 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
     }
 
     private async Task<(PackageManifest?, ValueList<PackageOperation>, ValueList<PlanFinding>)> WriteArchiveAsync(PackagePlan plan,
-        BuildRequest request, string path, Tracker tracker, CancellationToken cancellationToken)
+        BuildRequest request, Stream stream, Tracker tracker, CancellationToken cancellationToken)
     {
         var createdAt = _time.GetUtcNow();
-        var stream = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, BufferSize, FileOptions.Asynchronous);
-        await using (stream.ConfigureAwait(false))
+        PackageManifest? manifest = null;
+        List<PackageOperation> operations = [];
+        var zip = await ZipArchive.CreateAsync(stream, ZipArchiveMode.Create, leaveOpen: true, entryNameEncoding: null,
+            cancellationToken).ConfigureAwait(false);
+        var run = new ArchiveRun(zip, plan, encoder, options, createdAt, tracker, _fileSystem);
+        await using (zip.ConfigureAwait(false))
         {
-            PackageManifest? manifest = null;
-            List<PackageOperation> operations = [];
-            var zip = await ZipArchive.CreateAsync(stream, ZipArchiveMode.Create, leaveOpen: true, entryNameEncoding: null,
-                cancellationToken).ConfigureAwait(false);
-            var run = new ArchiveRun(zip, plan, encoder, options, createdAt, tracker);
-            await using (zip.ConfigureAwait(false))
+            for (var i = 0; i < plan.Operations.Count; i++)
             {
-                for (var i = 0; i < plan.Operations.Count; i++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    operations.Add(await run.WriteAsync(plan.Operations[i], i, cancellationToken).ConfigureAwait(false));
-                }
-
-                if (run.Findings.Any(finding => finding.BlocksBuild))
-                {
-                    throw new PackageBuildException(BuildFailure.UnacknowledgedFindings, findings: run.Findings);
-                }
-
-                if (plan.Format.Kind == PackageKind.Manifest)
-                {
-                    tracker.Manifest();
-                    manifest = CreateManifest(plan, request, createdAt, operations);
-                    await run.WriteManifestAsync(manifest, cancellationToken).ConfigureAwait(false);
-                }
+                cancellationToken.ThrowIfCancellationRequested();
+                operations.Add(await run.WriteAsync(plan.Operations[i], i, cancellationToken).ConfigureAwait(false));
             }
 
-            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-            // Without this the rename can reach the disk before the data and leave a broken package after a power cut.
-            stream.Flush(flushToDisk: true);
-            return (manifest, [.. operations], [.. run.Findings]);
+            if (run.Findings.Any(finding => finding.BlocksBuild))
+            {
+                throw new PackageBuildException(BuildFailure.UnacknowledgedFindings, findings: run.Findings);
+            }
+
+            if (plan.Format.Kind == PackageKind.Manifest)
+            {
+                tracker.Manifest();
+                manifest = CreateManifest(plan, request, createdAt, operations);
+                await run.WriteManifestAsync(manifest, cancellationToken).ConfigureAwait(false);
+            }
         }
+
+        return (manifest, [.. operations], [.. run.Findings]);
     }
 
     // Warnings, not refusals: the app installs the package either way, and the site may change what it takes.
@@ -208,19 +193,8 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
     private static long PlannedBytes(PlannedOperation operation) =>
         (operation.SourceFile?.Stamp.Size ?? 0) + (operation.Kind == OperationKind.Patch ? operation.Original?.Stamp.Size ?? 0 : 0);
 
-    private static void TryDeleteDirectory(string path)
-    {
-        try
-        {
-            Directory.Delete(path, recursive: true);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-        }
-    }
-
     private sealed class ArchiveRun(ZipArchive zip, PackagePlan plan, XDelta3Patcher encoder, CreatorOptions options,
-        DateTimeOffset createdAt, Tracker tracker)
+        DateTimeOffset createdAt, Tracker tracker, IFileSystem fileSystem)
     {
         // Advanced steps may write one path twice, e.g. copy it, rename it away and copy it again, each with its payload.
         private readonly HashSet<string> _entries = new(PackagePath.Comparer);
@@ -267,7 +241,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
             var name = EntryFor(operation);
             long done = 0;
             var bytes = new InlineProgress<long>(read => tracker.Report(BuildStage.Copying, done += read));
-            var source = OpenRead(file.FullPath);
+            var source = fileSystem.OpenRead(file.FullPath, FileShare.Read);
             await using (source.ConfigureAwait(false))
             {
                 var compression = await PayloadCompression.ForAsync(source, cancellationToken).ConfigureAwait(false);
@@ -355,9 +329,6 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
                 throw new PackageBuildException(BuildFailure.TooLarge);
             }
         }
-
-        private static FileStream OpenRead(string path) =>
-            new(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 0, FileOptions.Asynchronous | FileOptions.SequentialScan);
 
         private static InvalidOperationException Unresolved(PlannedOperation operation) =>
             new($"The plan left {operation.Path} unresolved, which a confirmed plan cannot.");

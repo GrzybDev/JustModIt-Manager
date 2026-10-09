@@ -31,6 +31,11 @@ public enum FormatReason
 
 public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatReason> Reasons)
 {
+    /// <summary>The archive entries a package of this format holds: one per payload, and the manifest.</summary>
+    /// <param name="operations">The plan's operations.</param>
+    public int EntryCount(IEnumerable<PlannedOperation> operations) =>
+        operations.Count(operation => operation.HasPayload) + (Kind == PackageKind.Manifest ? 1 : 0);
+
     /// <summary>The format the operations need, with every reason for it.</summary>
     /// <param name="operations">The plan's operations, in order.</param>
     /// <param name="carriesThirdPartyTools">The package carries a tool that needs a <see cref="ToolNotice"/>.</param>
