@@ -19,12 +19,12 @@ public sealed record MyGame
     /// <summary>What its store reports; null when no store lists the game any more.</summary>
     public InstalledGame? Game { get; init; }
 
-    /// <summary>Every project made for the game, with what each offers it, installable or not.</summary>
+    /// <inheritdoc cref="GameOffer.Projects"/>
     public IReadOnlyList<ProjectOffer> Projects { get; init; } = [];
 
     /// <summary>
-    /// The installed project as the catalogue has it now; otherwise the chosen or only installable one. Null while
-    /// several teams offer one and the player has not chosen.
+    /// The installed project as the catalogue has it now, also once it is no longer on offer; otherwise the chosen or only
+    /// one on offer. Null while several teams offer one and the player has not chosen.
     /// </summary>
     public ProjectOffer? Project { get; init; }
 

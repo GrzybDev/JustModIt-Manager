@@ -31,6 +31,15 @@ internal static class TestProjects
 
     public static readonly Guid VoiceFile = Guid.Parse("33333333-0000-4000-8000-000000000003");
 
+    public static readonly ProjectStatus Completed = new()
+    {
+        Uuid = Guid.Parse("88888888-0000-4000-8000-000000000001"),
+        Name = "Completed",
+        IsCompleted = true,
+    };
+
+    public static readonly ProjectStatus InProgress = new() { Uuid = Guid.Parse("88888888-0000-4000-8000-000000000002"), Name = "In progress" };
+
     private static readonly Guid SteamPlatform = Guid.Parse("44444444-0000-4000-8000-000000000001");
 
     public static string GameFolder(GameKey game) =>
@@ -94,6 +103,7 @@ internal static class TestProjects
             Game = new GameSummary { Uuid = Guid.Parse("66666666-0000-4000-8000-000000000001"), Slug = "example-game", Name = "Example Game" },
             Team = new Team { Uuid = Guid.Parse("77777777-0000-4000-8000-000000000001"), Slug = teamSlug, Name = "Lantern Team" },
             CoverImage = "https://images.example.com/covers/example-game.jpg",
+            Status = Completed,
             StorefrontLinks = [Link(key, languages)],
             Releases = release is null ? [] : [release],
             UpdatedAt = Now,

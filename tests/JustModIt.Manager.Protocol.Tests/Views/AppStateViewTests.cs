@@ -41,7 +41,7 @@ public sealed class AppStateViewTests
             UpdateVariantFellBack = true,
         });
         game.Detected!.InstallDirectory.Should().Be(@"C:\Games\Example Game");
-        game.ProjectId.Should().Be(Project);
+        game.Project!.ProjectId.Should().Be(Project);
         game.Installed.Should().BeEquivalentTo(new
         {
             Id = RecordId,

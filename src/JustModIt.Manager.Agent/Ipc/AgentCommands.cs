@@ -101,7 +101,7 @@ public sealed class AgentCommands(
     {
         var game = Detected(request.Game);
         var offer = Find(request.Game).Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == request.ProjectId)
-            ?? throw Invalid("The project is not made for the game.");
+            ?? throw Invalid("The project is not on offer for the game.");
         return new InstallJobRequest(game.Key, game.Name, offer.Project.Locator, request.VariantName);
     }
 

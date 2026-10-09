@@ -247,6 +247,12 @@ internal sealed partial class JobPipeline(
         }
 
         var detail = page.Page;
+        // The player chose an install already there, so it keeps its updates and repairs whatever the project's status.
+        if (job.Kind == JobKind.Install && detail.Status is not { IsCompleted: true })
+        {
+            throw new JobFailedException(new JobFailure(JobFailureReason.ProjectNotCompleted));
+        }
+
         var selection = ReleaseSelector.Select(detail, game.Key, game.Platform);
         var variant = Choose(selection, variantName, fallBackToDefault)
             ?? throw new JobFailedException(new JobFailure(JobFailureReason.NoPackage) { Unavailability = UnavailabilityOf(selection, variantName) });

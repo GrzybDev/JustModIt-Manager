@@ -25,9 +25,6 @@ public enum MyGameState
     /// </summary>
     GameNotReady,
 
-    /// <summary>The chosen project has nothing for the game's store version and system; see <see cref="MyGameStatus.Unavailability"/>.</summary>
-    Unavailable,
-
     /// <summary>A job is queued or running; see <see cref="MyGame.Job"/>.</summary>
     Busy,
 
@@ -80,8 +77,6 @@ public sealed record MyGameStatus(MyGameState State)
     public RepairReason? Repair { get; init; }
 
     public OrphanReason? Orphan { get; init; }
-
-    public SelectionUnavailability? Unavailability { get; init; }
 
     /// <summary>For an installed release the catalogue knows: whether and what to update to.</summary>
     public UpdateCheck? Update { get; init; }

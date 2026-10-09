@@ -17,14 +17,14 @@ public sealed record GameView
     /// <summary>What its store reports; null when no store lists the game any more.</summary>
     public DetectedGameView? Detected { get; init; }
 
-    /// <summary>Every project made for the game, installable or not.</summary>
+    /// <summary>The projects the player may choose for a new install: completed, with a package that fits the game.</summary>
     public IReadOnlyList<ProjectOfferView> Projects { get; init; } = [];
 
     /// <summary>
-    /// The installed project, otherwise the chosen or only installable one; null while several teams offer one and the
-    /// player has not chosen.
+    /// The installed project, also once it is no longer on offer; otherwise the chosen or only one on offer. Null while
+    /// several teams offer one and the player has not chosen.
     /// </summary>
-    public Guid? ProjectId { get; init; }
+    public ProjectOfferView? Project { get; init; }
 
     public InstallView? Installed { get; init; }
 
@@ -59,7 +59,7 @@ public sealed record GameView
             Status = GameStatusView.From(game.Status),
             Detected = game.Game is { } detected ? DetectedGameView.From(detected) : null,
             Projects = [.. game.Projects.Select(ProjectOfferView.From)],
-            ProjectId = game.Project?.Project.ProjectUuid,
+            Project = game.Project is { } project ? ProjectOfferView.From(project) : null,
             Installed = game.Installed is { } record ? InstallView.From(record) : null,
             Preferences = game.Preferences,
             Job = game.Job is { } job ? JobView.From(job) : null,
@@ -85,8 +85,6 @@ public sealed record GameStatusView(MyGameState State)
 
     public OrphanReason? Orphan { get; init; }
 
-    public SelectionUnavailability? Unavailability { get; init; }
-
     public UpdateState? Update { get; init; }
 
     public UpdateKind? UpdateKind { get; init; }
@@ -111,7 +109,6 @@ public sealed record GameStatusView(MyGameState State)
             StateReason = status.StateReason,
             Repair = status.Repair,
             Orphan = status.Orphan,
-            Unavailability = status.Unavailability,
             Update = status.Update?.State,
             UpdateKind = status.Update?.Kind,
             UpdateVariant = status.Update?.Variant?.Name,

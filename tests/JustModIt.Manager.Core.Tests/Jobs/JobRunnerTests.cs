@@ -373,6 +373,23 @@ public sealed class JobRunnerTests
     }
 
     [Fact]
+    public async Task A_project_that_is_not_completed_is_not_installed_anew_but_its_install_keeps_its_updates()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        jobs.Catalogue.Add(jobs.Catalogue.Pages[Project] with { Status = InProgress });
+
+        var install = await jobs.RunAsync(JobsHarness.Install());
+
+        install.Failure!.Reason.Should().Be(JobFailureReason.ProjectNotCompleted);
+        jobs.Downloader.Downloads.Should().BeEmpty();
+
+        var record = jobs.Installed();
+        jobs.PublishReleaseTwo();
+        jobs.Catalogue.Add(jobs.Catalogue.Pages[Project] with { Status = InProgress });
+        (await jobs.RunAsync(new UpdateJobRequest(record))).Outcome.Should().Be(JobOutcome.Succeeded);
+    }
+
+    [Fact]
     public async Task A_project_the_site_no_longer_has_fails_as_not_found()
     {
         await using var jobs = await JobsHarness.CreateAsync();

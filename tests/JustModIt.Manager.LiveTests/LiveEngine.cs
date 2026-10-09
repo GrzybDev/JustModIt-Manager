@@ -149,7 +149,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
     public async Task<OfferedRelease> FindReleaseAsync(InstalledGame game, CancellationToken cancellationToken)
     {
         var snapshot = await Catalogue.RefreshAsync(new IndexRequest([game.Key], []), cancellationToken);
-        var offer = GameOffer.For(snapshot.Index, game.Key, game.Platform, LiveApp.Language).Installable.Should().ContainSingle().Subject;
+        var offer = GameOffer.For(snapshot.Index, game.Key, game.Platform, LiveApp.Language).Projects.Should().ContainSingle().Subject;
         var release = offer.Selection.Release!;
         var file = offer.Selection.Default!.Package!;
         return new OfferedRelease(offer.Project.Locator, offer.Project.LocateFile(release, file), file);

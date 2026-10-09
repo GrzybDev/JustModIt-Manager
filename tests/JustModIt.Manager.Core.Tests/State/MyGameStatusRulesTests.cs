@@ -19,15 +19,6 @@ public sealed class MyGameStatusRulesTests
         Resolve(Installed(), null, null).State.Should().Be(MyGameState.NotInstalled, "several teams offer one and nobody chose");
     }
 
-    [Fact]
-    public void A_chosen_project_with_nothing_for_the_game_is_unavailable_with_the_reason()
-    {
-        Resolve(Installed(), null, Offer(Release(ReleaseOne, 1, File(FileOne, onlyFor: OtherGame))))
-            .Should().Be(new MyGameStatus(MyGameState.Unavailable) { Unavailability = SelectionUnavailability.OtherStores });
-        Resolve(Installed(), null, Offer(null))
-            .Should().Be(new MyGameStatus(MyGameState.Unavailable) { Unavailability = SelectionUnavailability.NoPublicRelease });
-    }
-
     [Theory]
     [InlineData(GameInstallState.Updating, false)]
     [InlineData(GameInstallState.Broken, false)]

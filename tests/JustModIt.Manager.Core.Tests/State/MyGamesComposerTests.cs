@@ -33,6 +33,19 @@ public sealed class MyGamesComposerTests
     }
 
     [Fact]
+    public void A_project_that_is_not_completed_keeps_its_game_off_the_list_unless_the_player_installed_it()
+    {
+        var testing = Entry(release: Release(ReleaseTwo, 2, File(FileTwo))) with { Status = InProgress };
+
+        Compose(Input([Installed()], [testing])).Should().BeEmpty();
+
+        var game = Compose(Input([Installed()], [testing], [Record()])).Single();
+        game.Projects.Should().BeEmpty();
+        game.Project!.Project.ProjectUuid.Should().Be(Project);
+        game.Status.State.Should().Be(MyGameState.UpdateAvailable);
+    }
+
+    [Fact]
     public void Keeps_an_install_whose_game_and_project_are_gone_under_the_name_it_was_installed_with()
     {
         var record = Record(source: new InstallSource { ProjectId = Project.ToString("D"), GameName = "Example Game (installed)" });

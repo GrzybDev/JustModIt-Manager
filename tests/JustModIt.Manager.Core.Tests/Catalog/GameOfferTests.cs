@@ -10,39 +10,22 @@ public sealed class GameOfferTests
     private static readonly GameKey Orchard = new(StoreId.Steam, "1000040");
     private static readonly GameKey Starlight = new(StoreId.Steam, "1000010");
     private static readonly Guid PaperMothProject = Guid.Parse("50d8a47a-0000-4000-8000-000000000011");
+    private static readonly Guid LanternWorksProject = Guid.Parse("50d8a47a-0000-4000-8000-000000000012");
 
     private readonly InstallableIndex _index = new(DateTimeOffset.UnixEpoch,
         new[] { "starlight-harbor", "clockwork-tides-paper-moth", "clockwork-tides-lantern-works", "silent-orchard" }
             .Select(name => IndexEntry.From(CatalogueFixtures.Project(name))));
 
     [Fact]
-    public void Leaves_the_choice_to_the_player_when_several_teams_offer_something()
+    public void Offers_only_completed_projects_with_a_package_for_the_game()
     {
         var offer = GameOffer.For(_index, Clockwork, OperatingSystemKind.Windows, TargetLanguage.None);
 
-        offer.Installable.Should().HaveCount(2);
-        offer.Choose(null).Should().BeNull();
-        offer.Choose(PaperMothProject)!.Project.Team.Slug.Should().Be("paper-moth");
-        offer.Choose(Guid.NewGuid()).Should().BeNull();
-    }
-
-    [Fact]
-    public void Takes_the_only_installable_project()
-    {
-        var offer = GameOffer.For(_index, Clockwork, OperatingSystemKind.Linux, TargetLanguage.None);
-
-        offer.Projects.Should().HaveCount(2);
-        offer.Choose(null)!.Project.ProjectUuid.Should().Be(PaperMothProject, "the other team made its build for Windows only");
-    }
-
-    [Fact]
-    public void Keeps_a_project_without_a_release_off_the_players_games()
-    {
-        var offer = GameOffer.For(_index, Orchard, OperatingSystemKind.Windows, TargetLanguage.None);
-
-        offer.Projects.Should().ContainSingle().Which.Selection.Unavailable.Should().Be(SelectionUnavailability.NoPublicRelease);
-        offer.Installable.Should().BeEmpty();
-        offer.Choose(null).Should().BeNull();
+        offer.Projects.Should().ContainSingle().Which.Project.ProjectUuid
+            .Should().Be(PaperMothProject, "the other team's project is in testing");
+        offer.Choose(LanternWorksProject)!.Project.ProjectUuid.Should().Be(PaperMothProject, "a project in testing cannot be chosen");
+        GameOffer.For(_index, Orchard, OperatingSystemKind.Windows, TargetLanguage.None).Projects
+            .Should().BeEmpty("nothing is released yet");
     }
 
     [Fact]

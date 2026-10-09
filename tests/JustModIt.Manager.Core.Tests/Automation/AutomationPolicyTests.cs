@@ -93,7 +93,6 @@ public sealed class AutomationPolicyTests
         Decide(Game(One, Record(), repair: null)).Reason.Should().Be(AutomationReason.UpToDate);
         Decide(Game(One, installed: Installed(state: GameInstallState.Updating))).Reason.Should().Be(AutomationReason.GameNotReady);
         Decide(Game(One, Record(), detected: false)).Reason.Should().Be(AutomationReason.Orphaned);
-        Decide(Game(One) with { Status = new MyGameStatus(MyGameState.Unavailable) }).Reason.Should().Be(AutomationReason.Unavailable);
         Decide(Game(One, Record(isTest: true))).Reason.Should().Be(AutomationReason.TestInstall);
         Decide(Game(One) with { Status = new MyGameStatus(MyGameState.Busy) }).Reason.Should().Be(AutomationReason.Busy);
         Decide(Game(One) with { Status = new MyGameStatus(MyGameState.BackupsUnavailable) }).Reason.Should().Be(AutomationReason.BackupsUnavailable);

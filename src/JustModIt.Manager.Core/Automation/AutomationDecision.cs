@@ -24,7 +24,6 @@ public enum AutomationReason
     Busy,
     GameNotReady,
     Orphaned,
-    Unavailable,
     BackupsUnavailable,
 
     /// <summary>The current release has nothing yet for the installed variant, e.g. its voice-over is still being uploaded.</summary>

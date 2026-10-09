@@ -40,8 +40,8 @@ public sealed record MyGamesInput
 }
 
 /// <summary>
-/// The player's list: the detected games with something installable, plus every game with an install, so an install
-/// can be removed even offline or after its game is gone. Nothing else; the rest of the catalogue is only browsed.
+/// Makes the player's list: the detected games with a project on offer plus every game with an install, so an install
+/// keeps its updates and can be removed even offline or after its game is gone; the rest of the catalogue is only browsed.
 /// </summary>
 public static class MyGamesComposer
 {
@@ -57,7 +57,7 @@ public static class MyGamesComposer
             var game = input.Library.Find(key);
             var offer = GameOffer.For(input.Index, key, game?.Platform ?? OperatingSystemKind.Unknown, input.Language);
             var record = recordsByGame.TryGetValue(key, out var records) ? RecordFor(records, game) : null;
-            if (record is null && offer.Installable.Count == 0)
+            if (record is null && offer.Projects.Count == 0)
             {
                 continue;
             }
@@ -110,10 +110,8 @@ public static class MyGamesComposer
         };
     }
 
-    /// <summary>
-    /// The project an install came from, as the catalogue has it now. The index also holds installed projects that no
-    /// longer link the game, e.g. once abandoned, so they can still be updated.
-    /// </summary>
+    // Also once the project is no longer on offer, since the player chose it and it keeps its updates; the index holds
+    // installed projects even when they no longer link the game.
     private static ProjectOffer? InstalledProject(InstallableIndex index, GameOffer offer, InstallRecord record, GameKey key,
         InstalledGame? game)
     {

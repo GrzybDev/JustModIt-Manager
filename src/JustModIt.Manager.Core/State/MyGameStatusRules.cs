@@ -13,7 +13,7 @@ public static class MyGameStatusRules
 {
     /// <param name="game">What its store reports, running when it is known to run; null when no store lists it.</param>
     /// <param name="record">The install on the game; null when nothing is installed.</param>
-    /// <param name="project">The installed project as the catalogue has it now, or the one to install; null when there is none.</param>
+    /// <param name="project">The installed project as the catalogue has it now; null when it does not have it.</param>
     /// <param name="repair">What verification found wrong with the install; null while it is intact or unchecked.</param>
     /// <param name="hasJob">The game has a job, which keeps every install on it from changing otherwise.</param>
     /// <param name="backupsUnavailable">The folder holding the install's originals is not there.</param>
@@ -70,14 +70,7 @@ public static class MyGameStatusRules
             };
         }
 
-        if (game is not { IsReady: true })
-        {
-            return NotReady(game);
-        }
-
-        return project is { Selection.IsInstallable: false }
-            ? new MyGameStatus(MyGameState.Unavailable) { Unavailability = project.Selection.Unavailable }
-            : new MyGameStatus(MyGameState.NotInstalled);
+        return game is { IsReady: true } ? new MyGameStatus(MyGameState.NotInstalled) : NotReady(game);
     }
 
     /// <summary>The release an install came from, for telling whether the catalogue offers a newer one; null when unknown.</summary>

@@ -43,7 +43,6 @@ public static class AutomationPolicy
             MyGameState.Busy => AutomationDecision.Skip(AutomationReason.Busy),
             MyGameState.GameNotReady => AutomationDecision.Skip(AutomationReason.GameNotReady),
             MyGameState.Orphaned => AutomationDecision.Skip(AutomationReason.Orphaned),
-            MyGameState.Unavailable => AutomationDecision.Skip(AutomationReason.Unavailable),
             MyGameState.BackupsUnavailable => AutomationDecision.Skip(AutomationReason.BackupsUnavailable),
             MyGameState.TestInstalled => AutomationDecision.Skip(AutomationReason.TestInstall),
             _ => AutomationDecision.Skip(AutomationReason.UpToDate),
@@ -54,15 +53,10 @@ public static class AutomationPolicy
     {
         if (game.Project is not { Selection: { Release: { } release } selection })
         {
-            return AutomationDecision.Skip(game.Project is null ? AutomationReason.NoProjectChosen : AutomationReason.Unavailable);
+            return AutomationDecision.Skip(AutomationReason.NoProjectChosen);
         }
 
         var (variant, _) = selection.Choose(game.Preferences.VariantName);
-        if (variant is null)
-        {
-            return AutomationDecision.Skip(AutomationReason.Unavailable);
-        }
-
         // The player can still install it by hand; the app just does not push it on a game its store already offers in
         // the language.
         var reason = !autoInstall ? AutomationReason.AutoInstallOff
