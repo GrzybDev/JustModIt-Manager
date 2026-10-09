@@ -113,7 +113,7 @@ public sealed class GogLibraryProvider : ILibraryProvider
         var (state, reason) = GogStateResolver.Resolve(_fileSystem, directory, record, info);
         var languages = new List<string>(info?.Languages ?? []);
         if (LanguageNames.FromTagOrName(record.Language) is { } recorded
-            && !languages.Any(tag => tag.Split('-')[0].Equals(recorded.Split('-')[0], StringComparison.OrdinalIgnoreCase)))
+            && !languages.Any(tag => LanguageNames.Base(tag).Equals(LanguageNames.Base(recorded), StringComparison.OrdinalIgnoreCase)))
         {
             languages.Add(recorded);
         }

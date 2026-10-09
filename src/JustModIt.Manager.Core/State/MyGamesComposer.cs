@@ -97,8 +97,7 @@ public static class MyGamesComposer
             Preferences = preferences,
             Job = job,
             NewInstall = game is null ? null : InstallAdmission.For(input.InstallPolicy, game, records),
-            OffersTargetLanguage = offer.OffersTargetLanguage
-                || (input.Language.Code is { } language && game?.HasLanguage(language) == true),
+            OffersTargetLanguage = offer.OffersTargetLanguage || game?.Languages.Any(input.Language.IsNamedBy) == true,
             LastFailure = input.Failures.GetValueOrDefault(new FailureKey(key, null)),
             RunningProcesses = [.. running.Select(process => process.Name).Distinct(StringComparer.OrdinalIgnoreCase)],
         };

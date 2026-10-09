@@ -47,6 +47,18 @@ public sealed class TargetLanguageTests
         language.IsOfferedBy(Link("gog", """["en", "pl"]""")).Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData("pl", "pl-PL", true)]
+    [InlineData("pl", "pl", true)]
+    [InlineData("PT", "pt-BR", true)]
+    [InlineData("es", "es_MX", true)]
+    [InlineData("no", "nb-NO", true)]
+    [InlineData("pl", "p", false)]
+    [InlineData("pl", "en", false)]
+    [InlineData("", "pl", false)]
+    public void Matches_a_game_language_in_any_region(string code, string tag, bool named) =>
+        TargetLanguage.FromCode(code).IsNamedBy(tag).Should().Be(named);
+
     [Fact]
     public void Reads_the_language_from_a_regional_tag()
     {

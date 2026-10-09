@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Library;
 
 namespace JustModIt.Manager.Core.Catalog;
 
@@ -9,39 +10,38 @@ namespace JustModIt.Manager.Core.Catalog;
 /// </summary>
 public sealed class TargetLanguage
 {
-    // Steam names languages by SteamKit's ELanguage numbers in store data and by its own API names elsewhere; a
-    // language with regional variants on Steam lists all of them.
-    private static readonly FrozenDictionary<string, (string[] Numbers, string[] Names)> SteamLanguages =
-        new Dictionary<string, (string[] Numbers, string[] Names)>
-        {
-            ["en"] = (["0"], ["english"]),
-            ["de"] = (["1"], ["german"]),
-            ["fr"] = (["2"], ["french"]),
-            ["it"] = (["3"], ["italian"]),
-            ["ko"] = (["4"], ["koreana"]),
-            ["es"] = (["5", "27"], ["spanish", "latam"]),
-            ["zh"] = (["6", "7"], ["schinese", "tchinese"]),
-            ["ru"] = (["8"], ["russian"]),
-            ["th"] = (["9"], ["thai"]),
-            ["ja"] = (["10"], ["japanese"]),
-            ["pt"] = (["11", "22"], ["portuguese", "brazilian"]),
-            ["pl"] = (["12"], ["polish"]),
-            ["da"] = (["13"], ["danish"]),
-            ["nl"] = (["14"], ["dutch"]),
-            ["fi"] = (["15"], ["finnish"]),
-            ["no"] = (["16"], ["norwegian"]),
-            ["sv"] = (["17"], ["swedish"]),
-            ["hu"] = (["18"], ["hungarian"]),
-            ["cs"] = (["19"], ["czech"]),
-            ["ro"] = (["20"], ["romanian"]),
-            ["tr"] = (["21"], ["turkish"]),
-            ["bg"] = (["23"], ["bulgarian"]),
-            ["el"] = (["24"], ["greek"]),
-            ["ar"] = (["25"], ["arabic"]),
-            ["uk"] = (["26"], ["ukrainian"]),
-            ["vi"] = (["28"], ["vietnamese"]),
-            ["id"] = (["29"], ["indonesian"]),
-        }.ToFrozenDictionary();
+    // Steam names languages by SteamKit's ELanguage numbers in store data and by its API names (LanguageNames)
+    // elsewhere; a language with regional variants on Steam lists all of them.
+    private static readonly FrozenDictionary<string, string[]> SteamNumbers = new Dictionary<string, string[]>
+    {
+        ["en"] = ["0"],
+        ["de"] = ["1"],
+        ["fr"] = ["2"],
+        ["it"] = ["3"],
+        ["ko"] = ["4"],
+        ["es"] = ["5", "27"],
+        ["zh"] = ["6", "7"],
+        ["ru"] = ["8"],
+        ["th"] = ["9"],
+        ["ja"] = ["10"],
+        ["pt"] = ["11", "22"],
+        ["pl"] = ["12"],
+        ["da"] = ["13"],
+        ["nl"] = ["14"],
+        ["fi"] = ["15"],
+        ["no"] = ["16"],
+        ["sv"] = ["17"],
+        ["hu"] = ["18"],
+        ["cs"] = ["19"],
+        ["ro"] = ["20"],
+        ["tr"] = ["21"],
+        ["bg"] = ["23"],
+        ["el"] = ["24"],
+        ["ar"] = ["25"],
+        ["uk"] = ["26"],
+        ["vi"] = ["28"],
+        ["id"] = ["29"],
+    }.ToFrozenDictionary();
 
     // GOG uses ISO codes except for these; the rest are the ISO code itself.
     private static readonly FrozenDictionary<string, string[]> GogLanguages = new Dictionary<string, string[]>
@@ -68,8 +68,8 @@ public sealed class TargetLanguage
     private TargetLanguage(string? code)
     {
         Code = code;
-        var steam = code is not null && SteamLanguages.TryGetValue(code, out var known) ? known : ([], []);
-        _steam = steam.Numbers.Concat(steam.Names).ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+        _steam = (code is null ? [] : SteamNumbers.GetValueOrDefault(code, []).Concat(LanguageNames.NamesOf(code)))
+            .ToFrozenSet(StringComparer.OrdinalIgnoreCase);
         _gog = (code is null ? [] : GogLanguages.TryGetValue(code, out var codes) ? codes : [code]).ToFrozenSet(StringComparer.OrdinalIgnoreCase);
     }
 
@@ -82,16 +82,11 @@ public sealed class TargetLanguage
 
     /// <summary>The target language an app's build names.</summary>
     /// <param name="code">An ISO 639-1 code or a tag starting with one, such as <c>pt-BR</c>; empty means none.</param>
-    public static TargetLanguage FromCode(string? code)
-    {
-        var language = code?.Trim().Split('-', '_')[0].ToLowerInvariant();
-        if (string.IsNullOrEmpty(language))
-        {
-            return None;
-        }
+    public static TargetLanguage FromCode(string? code) => CodeOf(code) is { } language ? new TargetLanguage(language) : None;
 
-        return new TargetLanguage(Aliases.GetValueOrDefault(language, language));
-    }
+    /// <summary>Whether a tag names the language, in any region.</summary>
+    /// <param name="tag">A language tag such as <c>pl-PL</c>, e.g. one a store names for a game's install.</param>
+    public bool IsNamedBy(string tag) => IsSet && CodeOf(tag) == Code;
 
     /// <summary>
     /// Whether the store sells the game in the language; a store that gave no languages, or one the app cannot read them
@@ -107,7 +102,8 @@ public sealed class TargetLanguage
         }
 
         var accepted = link.Store == StoreId.Steam ? _steam : link.Store == StoreId.Gog ? _gog : null;
-        return accepted is not null && link.Languages.Any(language => accepted.Contains(language) || accepted.Contains(Base(language)));
+        return accepted is not null
+            && link.Languages.Any(language => accepted.Contains(language) || accepted.Contains(LanguageNames.Base(language)));
     }
 
     /// <summary>Whether any of the stores sells the game in the language.</summary>
@@ -120,6 +116,9 @@ public sealed class TargetLanguage
 
     public override string ToString() => Code ?? "";
 
-    // A regional code such as "es_mx" or "pl-PL" names the language too.
-    private static string Base(string language) => language.Split('-', '_')[0];
+    private static string? CodeOf(string? tag)
+    {
+        var language = tag is null ? null : LanguageNames.Base(tag.Trim()).ToLowerInvariant();
+        return string.IsNullOrEmpty(language) ? null : Aliases.GetValueOrDefault(language, language);
+    }
 }

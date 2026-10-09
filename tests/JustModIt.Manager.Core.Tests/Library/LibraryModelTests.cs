@@ -85,17 +85,6 @@ public sealed class LibraryModelTests
         (Game with { State = GameInstallState.Running }).IsReady.Should().BeFalse();
     }
 
-    [Fact]
-    public void A_game_has_a_language_in_any_region()
-    {
-        var game = Game with { Languages = ["pl-PL", "pt-BR"] };
-
-        game.HasLanguage("pl").Should().BeTrue();
-        game.HasLanguage("PT").Should().BeTrue();
-        game.HasLanguage("pl-PL").Should().BeTrue();
-        game.HasLanguage("p").Should().BeFalse();
-        game.HasLanguage("en").Should().BeFalse();
-    }
 
     [Theory]
     [InlineData("polish", "pl")]

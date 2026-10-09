@@ -75,6 +75,15 @@ internal static partial class LanguageNames
         return string.Join('-', parts);
     }
 
+    /// <summary>Every language name whose tag is of the language, such as <c>schinese</c> and <c>tchinese</c> for <c>zh</c>.</summary>
+    /// <param name="code">An ISO 639-1 code.</param>
+    public static IEnumerable<string> NamesOf(string code) =>
+        Names.Where(name => Base(name.Value).Equals(code, StringComparison.OrdinalIgnoreCase)).Select(name => name.Key);
+
+    /// <summary>The language of a tag without its region, such as <c>pl</c> for <c>pl-PL</c> or <c>es</c> for <c>es_mx</c>.</summary>
+    /// <param name="tag">A language tag or a store's language code.</param>
+    public static string Base(string tag) => tag.Split('-', '_')[0];
+
     /// <summary>Reads a tag or, failing that, a language name; null when the text is neither.</summary>
     /// <param name="text">The text as a store wrote it; may be null.</param>
     public static string? FromTagOrName(string? text) => FromTag(text) ?? FromName(text);
