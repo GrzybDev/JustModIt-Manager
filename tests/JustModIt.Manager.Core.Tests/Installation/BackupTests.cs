@@ -70,17 +70,24 @@ public sealed class BackupTests
     }
 
     [Fact]
-    public async Task Refuses_to_move_backups_to_a_drive_without_room_for_them_and_the_margin()
+    public async Task Refuses_to_move_backups_onto_a_drive_without_room_or_while_recovery_waits()
     {
         await using var harness = InstallHarness.At("game folder", "custom folder on another drive");
         var result = await harness.InstallAsync(harness.ManifestPackage(Package()));
         harness.Volumes.Available[InstallHarness.OtherVolume] = InstallPreflight.SpaceMargin;
-
         var move = () => harness.Engine.MoveBackupsAsync(result.Record.Id, harness.InCustomFolder, null, InstallHarness.Token);
 
         (await move.Should().ThrowAsync<InstallBlockedException>()).Which.Issues.Should().ContainSingle()
-            .Which.Should().BeOfType<NotEnoughSpaceIssue>();
+            .Which.Should().BeOfType<NotEnoughSpaceIssue>("the backups and the margin do not fit");
+        harness.Volumes.Available.Clear();
+        harness.CrashBefore(ChangeKind.Record);
+        await harness.InstallAsync(harness.ManifestPackage(new TestPackage().Copy("data/new.txt", "New")));
+        harness.RestoreCrash().Should().BeTrue();
+        (await move.Should().ThrowAsync<InstallBlockedException>()).Which.Issues.Should().ContainSingle()
+            .Which.Should().BeOfType<RecoveryPendingIssue>();
+
         (await harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().Be(result.Record);
+        Directory.EnumerateFileSystemEntries(harness.CustomFolder).Should().BeEmpty();
     }
 
     [Fact]

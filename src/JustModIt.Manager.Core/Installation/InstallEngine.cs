@@ -211,8 +211,9 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         var folder = _store.FolderOf(recordId);
         var (record, files) = await LoadAsync(recordId, cancellationToken).ConfigureAwait(false);
         var game = GameFolder.TryOpen(record.InstallDirectory, _options.HiddenFolderName);
-        var issues = new List<InstallIssue>();
-        if (folder.HasJournal)
+        // Gigabytes of originals are not moved about a game that another interrupted operation left half changed.
+        var issues = PendingOn(game?.Root ?? record.InstallDirectory);
+        if (folder.HasJournal && !issues.Contains(new RecoveryPendingIssue(recordId)))
         {
             issues.Add(new RecoveryPendingIssue(recordId));
         }
