@@ -97,6 +97,20 @@ public sealed class TrayContentTests
     public void Notices_are_told_in_the_apps_words(NoticeKind kind, string title, string message) =>
         NoticeTexts.For(new AutomationNotice(kind) { Game = Game, GameName = "Example Game" }).Should().Be((title, message));
 
+    [Theory]
+    [InlineData(NoticeKind.UpdateAvailable, null, "Update for Example Project (Example Game)", "A new release is ready to install.")]
+    [InlineData(NoticeKind.Repaired, null, "Installed Example Project again (Example Game)",
+        "The store changed the game's files, so the project was installed again.")]
+    [InlineData(NoticeKind.Failed, JobKind.Update, "Could not update Example Project (Example Game)", "Open the app to see what went wrong.")]
+    [InlineData(NoticeKind.PreviousReleaseLost, JobKind.Update, "The update of Example Project (Example Game) failed",
+        "The previous release could not be put back, so the files it had changed are original again. You can install the project again.")]
+    [InlineData(NoticeKind.Forgotten, null, "Example Project (Example Game) is no longer installed",
+        "The game's folder is gone, so the project installed in it was removed from the list.")]
+    public void A_notice_about_one_of_several_installs_on_a_game_names_its_project(NoticeKind kind, JobKind? job, string title,
+        string message) =>
+        NoticeTexts.For(new AutomationNotice(kind) { Game = Game, GameName = "Example Game", ProjectName = "Example Project", Job = job })
+            .Should().Be((title, message));
+
     [Fact]
     public void An_available_project_names_its_team_unless_the_game_speaks_the_language_already()
     {
@@ -120,6 +134,9 @@ public sealed class TrayContentTests
             + "1 game needs its project installed again.");
         NoticeTexts.For(notice with { Games = [updated, broken] }).Message.Should().Be("1 game has an update ready to install. "
             + "1 game needs its project installed again.");
+        NoticeTexts.For(notice with { Games = [Game, broken], Updates = [broken] }).Message.Should().Be("1 game has a project you can "
+            + "install. 1 game has an update ready to install. 1 game needs its project installed again.",
+            "one install on a game may have an update while another needs a repair");
     }
 
     [Fact]

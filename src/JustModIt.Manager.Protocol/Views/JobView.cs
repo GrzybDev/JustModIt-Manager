@@ -18,6 +18,9 @@ public sealed record JobView
 
     public required JobOrigin Origin { get; init; }
 
+    /// <inheritdoc cref="JobSnapshot.InstallId"/>
+    public Guid? InstallId { get; init; }
+
     public JobStage Stage { get; init; }
 
     public JobWaitReason? WaitReason { get; init; }
@@ -45,6 +48,7 @@ public sealed record JobView
             GameName = job.GameName,
             Kind = job.Kind,
             Origin = job.Origin,
+            InstallId = job.InstallId,
             Stage = job.Stage,
             WaitReason = job.WaitReason,
             RunningProcesses = [.. job.RunningProcesses],
@@ -102,7 +106,7 @@ public sealed record JobFailureView(JobFailureReason Reason)
     }
 }
 
-/// <summary>A job on the game that did not end well, kept until a later job on it succeeds or the player dismisses it.</summary>
+/// <summary>A job that did not end well, kept until a later job succeeds or the player dismisses it.</summary>
 /// <param name="Kind">What the job did.</param>
 /// <param name="Origin">Whether the player or the automation started it.</param>
 /// <param name="At">When it ended.</param>

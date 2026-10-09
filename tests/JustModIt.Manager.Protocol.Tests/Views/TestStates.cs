@@ -88,6 +88,7 @@ internal static class TestStates
         GameName = "Example Game",
         Kind = JobKind.Update,
         Origin = JobOrigin.Automatic,
+        InstallId = RecordId,
         Stage = JobStage.Waiting,
         WaitReason = JobWaitReason.GameRunning,
         RunningProcesses = ["example.exe"],
@@ -122,35 +123,45 @@ internal static class TestStates
                 },
                 Projects = [Offer],
                 Project = Offer,
-                Installed = new InstallRecord
-                {
-                    Id = RecordId,
-                    Game = Game,
-                    GameName = "Example Game",
-                    InstallDirectory = @"C:\Games\Example Game",
-                    InstalledAt = Now.AddDays(-3),
-                    Package = new InstalledPackage(PackageKind.Manifest, "package.examplemod", ThirdPartyNotices:
-                    [
-                        new ThirdPartyNotice
-                        {
-                            Name = "Example Loader",
-                            License = "MIT",
-                            SourceUrl = "https://example.com/loader/source",
-                            Paths = ["loader.dll"],
-                        },
-                    ]),
-                    Source = new InstallSource
+                Installs =
+                [
+                    new MyInstall
                     {
-                        ProjectId = Project.ToString("D"),
-                        ProjectName = "Example Project",
-                        TeamName = "Lantern Team",
-                        ReleaseLabel = "v1",
-                        ReleaseVersion = 1,
-                        VariantName = "Text only",
+                        Record = new InstallRecord
+                        {
+                            Id = RecordId,
+                            Game = Game,
+                            GameName = "Example Game",
+                            InstallDirectory = @"C:\Games\Example Game",
+                            InstalledAt = Now.AddDays(-3),
+                            Package = new InstalledPackage(PackageKind.Manifest, "package.examplemod", ThirdPartyNotices:
+                            [
+                                new ThirdPartyNotice
+                                {
+                                    Name = "Example Loader",
+                                    License = "MIT",
+                                    SourceUrl = "https://example.com/loader/source",
+                                    Paths = ["loader.dll"],
+                                },
+                            ]),
+                            Source = new InstallSource
+                            {
+                                ProjectId = Project.ToString("D"),
+                                ProjectName = "Example Project",
+                                TeamName = "Lantern Team",
+                                ReleaseLabel = "v1",
+                                ReleaseVersion = 1,
+                                VariantName = "Text only",
+                            },
+                            Backup = new BackupFolder(BackupLocation.GameFolder, @"C:\Games\Example Game\.example-app\backups"),
+                            FileCount = 3,
+                        },
+                        Status = new MyGameStatus(MyGameState.Busy),
+                        Project = Offer,
+                        LastFailure = new FailedAttempt(JobKind.Repair, JobOrigin.Automatic, Now.AddDays(-1),
+                            new JobFailure(JobFailureReason.Offline)),
                     },
-                    Backup = new BackupFolder(BackupLocation.GameFolder, @"C:\Games\Example Game\.example-app\backups"),
-                    FileCount = 3,
-                },
+                ],
                 Preferences = Settings.GetGame(Game),
                 Job = RunningJob,
                 RunningProcesses = ["example.exe"],

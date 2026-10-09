@@ -42,7 +42,8 @@ public sealed class MyGamesComposerTests
 
         var game = Compose(Input([Installed()], [testing], [Record()])).Single();
         game.Projects.Should().BeEmpty();
-        game.Project!.Project.ProjectUuid.Should().Be(Project);
+        game.Project.Should().BeNull();
+        game.Installs.Single().Project!.Project.ProjectUuid.Should().Be(Project);
         game.Status.State.Should().Be(MyGameState.UpdateAvailable);
     }
 
@@ -55,7 +56,7 @@ public sealed class MyGamesComposerTests
 
         game.Status.Should().Be(new MyGameStatus(MyGameState.Orphaned) { Orphan = OrphanReason.GameNotDetected });
         game.Name.Should().Be("Example Game (installed)");
-        game.Installed.Should().Be(record);
+        game.Installs.Single().Record.Should().Be(record);
         game.NeedsAttention.Should().BeTrue();
     }
 
@@ -75,7 +76,7 @@ public sealed class MyGamesComposerTests
 
         var game = Compose(Input([Installed()], [abandoned], [Record()])).Single();
 
-        game.Project!.Project.ProjectUuid.Should().Be(Project);
+        game.Installs.Single().Project!.Project.ProjectUuid.Should().Be(Project);
         game.Status.State.Should().Be(MyGameState.Installed);
     }
 
@@ -115,8 +116,8 @@ public sealed class MyGamesComposerTests
         {
             Settings = preferring.WithGame(Game, preferences => preferences with { ProjectId = Project.ToString("D") }),
         }).Single().Project!.Project.ProjectUuid.Should().Be(Project);
-        Compose(Input([Installed()], entries, [Record()]) with { Settings = preferring }).Single().Project!.Project.ProjectUuid
-            .Should().Be(Project, "a preference never swaps the installed project");
+        Compose(Input([Installed()], entries, [Record()]) with { Settings = preferring }).Single().Installs.Single().Project!.Project
+            .ProjectUuid.Should().Be(Project, "a preference never swaps the installed project");
     }
 
     [Fact]
@@ -162,18 +163,29 @@ public sealed class MyGamesComposerTests
     }
 
     [Fact]
-    public void A_failed_job_needs_attention_until_it_is_cleared()
+    public void A_failed_job_needs_attention_on_the_install_it_worked_on_or_on_the_game()
     {
-        var failure = new FailedAttempt(JobKind.Update, JobOrigin.Automatic, Now, new JobFailure(JobFailureReason.Offline));
+        var record = Record();
+        var update = new FailedAttempt(JobKind.Update, JobOrigin.Automatic, Now, new JobFailure(JobFailureReason.Offline));
+        var install = new FailedAttempt(JobKind.Install, JobOrigin.User, Now, new JobFailure(JobFailureReason.ConflictingInstall));
+        var input = Input([Installed()], [Entry(release: Release(ReleaseOne, 1, File(FileOne)))], [record]);
 
-        var game = Compose(Input([Installed()], [Entry(release: Release(ReleaseOne, 1, File(FileOne)))], [Record()]) with
+        var onInstall = Compose(input with
         {
-            Failures = ImmutableDictionary<GameKey, FailedAttempt>.Empty.Add(Game, failure),
+            Failures = ImmutableDictionary<FailureKey, FailedAttempt>.Empty.Add(new FailureKey(Game, record.Id), update),
+        }).Single();
+        var onGame = Compose(input with
+        {
+            Failures = ImmutableDictionary<FailureKey, FailedAttempt>.Empty.Add(new FailureKey(Game, null), install),
         }).Single();
 
-        game.LastFailure.Should().Be(failure);
-        game.NeedsAttention.Should().BeTrue();
-        game.Status.State.Should().Be(MyGameState.Installed);
+        onInstall.Installs.Single().LastFailure.Should().Be(update);
+        onInstall.LastFailure.Should().BeNull();
+        onInstall.NeedsAttention.Should().BeTrue();
+        onInstall.Status.State.Should().Be(MyGameState.Installed);
+        onGame.LastFailure.Should().Be(install);
+        onGame.Installs.Single().NeedsAttention.Should().BeFalse();
+        onGame.NeedsAttention.Should().BeTrue();
     }
 
     [Fact]
@@ -189,12 +201,29 @@ public sealed class MyGamesComposerTests
     }
 
     [Fact]
-    public void The_install_where_the_store_reports_the_game_wins_over_a_later_one_elsewhere()
+    public void Lists_every_install_with_its_own_status_and_heads_the_game_with_what_matters_most()
     {
-        var here = Record();
-        var elsewhere = Record(folder: Path.Join("copy", "Example")) with { InstalledAt = Now };
+        var updatable = Record();
+        var broken = Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject)) with { InstalledAt = Now.AddHours(-1) };
+        var left = Record(folder: Path.Join("copy", "Example")) with { InstalledAt = Now };
+        IndexEntry[] entries =
+        [
+            Entry(release: Release(ReleaseTwo, 2, File(FileTwo))),
+            Entry(OtherProject, Release(ReleaseOne, 1, File(FileOne)), teamSlug: "paper-team"),
+        ];
+        var input = Input([Installed()], entries, [left, updatable, broken]) with
+        {
+            Repairs = ImmutableDictionary<Guid, RepairReason>.Empty.Add(broken.Id, RepairReason.FilesModified),
+        };
 
-        Compose(Input([Installed()], records: [elsewhere, here])).Single().Installed.Should().Be(here);
+        var game = Compose(input).Single();
+
+        game.Installs.Select(install => (install.Record.Id, install.Status.State, install.Project?.Project.ProjectUuid)).Should().Equal(
+            (broken.Id, MyGameState.NeedsRepair, (Guid?)OtherProject),
+            (updatable.Id, MyGameState.UpdateAvailable, Project),
+            (left.Id, MyGameState.Orphaned, Project));
+        game.Status.Should().Be(new MyGameStatus(MyGameState.Orphaned) { Orphan = OrphanReason.GameMoved }, "an install lost its game");
+        Compose(input with { Records = [updatable, broken] }).Single().Status.State.Should().Be(MyGameState.NeedsRepair);
     }
 
     [Fact]

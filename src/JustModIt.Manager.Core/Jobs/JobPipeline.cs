@@ -70,7 +70,7 @@ internal sealed partial class JobPipeline(
         // downloaded, even an automatic job waits rather than leave it to be downloaded, and counted, again.
         var game = await WaitUntilSafeAsync(job, job.Origin == JobOrigin.Automatic, job.Token).ConfigureAwait(false);
         await EnsureNoOtherAppAsync(game, job.Token).ConfigureAwait(false);
-        if (await AdmitAsync(job, game).ConfigureAwait(false) is { } replaced)
+        if (await AdmitAsync(job, game, request.Project.ProjectUuid).ConfigureAwait(false) is { } replaced)
         {
             // Only the player swaps the project they have for another.
             return job.Origin == JobOrigin.Automatic
@@ -89,7 +89,7 @@ internal sealed partial class JobPipeline(
     {
         var game = await WaitUntilSafeAsync(job, canDefer: false, job.Token).ConfigureAwait(false);
         // A package on trial has no kept release to be put back from, so it never takes an install's place.
-        if (await AdmitAsync(job, game).ConfigureAwait(false) is not null)
+        if (await AdmitAsync(job, game, project: null).ConfigureAwait(false) is not null)
         {
             throw new JobFailedException(new JobFailure(JobFailureReason.OtherProjectInstalled));
         }
@@ -260,10 +260,10 @@ internal sealed partial class JobPipeline(
         }
     }
 
-    /// <returns>The install the new one replaces; null when it goes next to the others.</returns>
-    private async Task<InstallRecord?> AdmitAsync(JobContext job, InstalledGame game)
+    // Returns the install the new one replaces; null when it goes next to the others.
+    private async Task<InstallRecord?> AdmitAsync(JobContext job, InstalledGame game, Guid? project)
     {
-        var admission = InstallAdmission.For(policy, game, await engine.LoadRecordsAsync(job.Token).ConfigureAwait(false));
+        var admission = InstallAdmission.For(policy, game, await engine.LoadRecordsAsync(job.Token).ConfigureAwait(false), project);
         return admission.Refusal is { } refusal ? throw new JobFailedException(new JobFailure(refusal)) : admission.Replaces;
     }
 

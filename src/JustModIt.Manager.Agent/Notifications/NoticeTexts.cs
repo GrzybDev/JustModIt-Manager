@@ -13,7 +13,11 @@ public static class NoticeTexts
     {
         ArgumentNullException.ThrowIfNull(notice);
         var game = notice.GameName ?? notice.Game?.ToString() ?? "";
-        string Title(string pattern) => Text.Format(pattern, ("game", game));
+        var job = ("job", (object?)notice.Job?.ToString() ?? "");
+        string Title(string pattern) => Text.Format(pattern, ("game", game), job);
+        string InstallTitle(string pattern, string projectPattern) => notice.ProjectName is { } project
+            ? Text.Format(projectPattern, ("project", project), ("game", game), job)
+            : Title(pattern);
         return notice.Kind switch
         {
             NoticeKind.Available => (Title(Strings.NoticeAvailableTitle),
@@ -22,21 +26,24 @@ public static class NoticeTexts
                 : Strings.NoticeAvailableAnyTeam),
             NoticeKind.ChoiceNeeded => (Title(Strings.NoticeChoiceNeededTitle), Strings.NoticeChoiceNeeded),
             NoticeKind.AvailableSummary => (Strings.NoticeAvailableSummaryTitle, Summary(notice)),
-            NoticeKind.UpdateAvailable => (Title(Strings.NoticeUpdateAvailableTitle),
+            NoticeKind.UpdateAvailable => (InstallTitle(Strings.NoticeUpdateAvailableTitle, Strings.NoticeUpdateAvailableProjectTitle),
                 Formats.Version(notice.ReleaseLabel ?? "") is { Length: > 0 } available
                     ? Text.Format(Strings.NoticeUpdateAvailable, ("version", available))
                     : Strings.NoticeUpdateAvailableLatest),
-            NoticeKind.RepairNeeded => (Title(Strings.NoticeRepairNeededTitle), Strings.NoticeRepairNeeded),
+            NoticeKind.RepairNeeded => (InstallTitle(Strings.NoticeRepairNeededTitle, Strings.NoticeRepairNeededProjectTitle),
+                Strings.NoticeRepairNeeded),
             NoticeKind.Installed => (Title(Strings.NoticeInstalledTitle), Strings.NoticeInstalled),
-            NoticeKind.Updated => (Title(Strings.NoticeUpdatedTitle),
+            NoticeKind.Updated => (InstallTitle(Strings.NoticeUpdatedTitle, Strings.NoticeUpdatedProjectTitle),
                 Formats.Version(notice.ReleaseLabel ?? "") is { Length: > 0 } version
                     ? Text.Format(Strings.NoticeUpdated, ("version", version))
                     : Strings.NoticeUpdatedLatest),
-            NoticeKind.Repaired => (Title(Strings.NoticeRepairedTitle), Strings.NoticeRepaired),
-            NoticeKind.PreviousReleaseLost => (Title(Strings.NoticePreviousReleaseLostTitle), Strings.NoticePreviousReleaseLost),
-            NoticeKind.Forgotten => (Title(Strings.NoticeForgottenTitle),
+            NoticeKind.Repaired => (InstallTitle(Strings.NoticeRepairedTitle, Strings.NoticeRepairedProjectTitle), Strings.NoticeRepaired),
+            NoticeKind.PreviousReleaseLost => (
+                InstallTitle(Strings.NoticePreviousReleaseLostTitle, Strings.NoticePreviousReleaseLostProjectTitle),
+                notice.ProjectName is null ? Strings.NoticePreviousReleaseLost : Strings.NoticePreviousReleaseLostProject),
+            NoticeKind.Forgotten => (InstallTitle(Strings.NoticeForgottenTitle, Strings.NoticeForgottenProjectTitle),
                 notice.KeptBackups ? Strings.NoticeForgottenKeepingBackups : Strings.NoticeForgotten),
-            _ => (Text.Format(Strings.NoticeFailedTitle, ("job", notice.Job?.ToString() ?? ""), ("game", game)),
+            _ => (InstallTitle(Strings.NoticeFailedTitle, Strings.NoticeFailedProjectTitle),
                 notice.Failure?.Reason == JobFailureReason.ReleaseUnavailable ? Strings.NoticeReleaseUnavailable : Strings.NoticeFailed),
         };
     }
@@ -45,7 +52,7 @@ public static class NoticeTexts
     {
         (string Pattern, int Count)[] parts =
         [
-            (Strings.NoticeAvailableSummary, notice.Games.Count - notice.Updates.Count - notice.Repairs.Count),
+            (Strings.NoticeAvailableSummary, notice.Games.Count(game => !notice.Updates.Contains(game) && !notice.Repairs.Contains(game))),
             (Strings.NoticeUpdatesSummary, notice.Updates.Count),
             (Strings.NoticeRepairsSummary, notice.Repairs.Count),
         ];

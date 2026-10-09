@@ -53,8 +53,8 @@ public sealed class AutomationScenarioTests
         await app.StartAsync();
 
         (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.Installed);
-        (await app.GameAsync(game => game.Installed is not null, "a project is installed")).Find(Game)!.Installed!.Source!.ProjectId
-            .Should().Be(OtherProject.ToString("D"));
+        var state = await app.GameAsync(game => game.Installs.Count > 0, "a project is installed");
+        state.Find(Game)!.Installs.Single().Record.Source!.ProjectId.Should().Be(OtherProject.ToString("D"));
     }
 
     [Fact]
@@ -221,9 +221,9 @@ public sealed class AutomationScenarioTests
         await using var app = new CoordinatorHarness(AutoInstall).WithGameAndProject();
         app.Catalogue.PageGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await app.StartAsync();
-        await app.GameAsync(game => game.Job is not null, "the automatic install runs");
+        var running = await app.GameAsync(game => game.Job is not null, "the automatic install runs");
 
-        app.Jobs.Cancel(Game);
+        app.Jobs.Cancel(running.Find(Game)!.Job!.Id);
 
         await app.GameAsync(game => game.Job is null, "the install is cancelled");
         app.Settings.Current.GetGame(Game).AutoInstall.Should().BeFalse();
@@ -268,6 +268,54 @@ public sealed class AutomationScenarioTests
         var notices = new[] { await app.NoticeAsync(), await app.NoticeAsync() };
         notices.Should().ContainSingle(notice => notice.Kind == NoticeKind.Updated && notice.ReleaseVersion == 2);
         notices.Should().ContainSingle(notice => notice.Kind == NoticeKind.Repaired && notice.Game == OtherGame);
+        notices.Should().OnlyContain(notice => notice.ProjectName == null, "a game with one install is named alone");
+    }
+
+    [Fact]
+    public async Task Announces_an_update_of_one_of_several_installs_by_its_project()
+    {
+        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
+        await using var app = new CoordinatorHarness(AnnounceOnly with { AutoUpdateProjects = false }, history: history).WithGameAndProject();
+        var paper = Release(Guid.NewGuid(), 1, File(VoiceFile));
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseTwo, 2, File(FileTwo))),
+            Entry(OtherProject, paper, teamSlug: "paper-team") with { ProjectName = "Paper Project" });
+        app.Engine.Add(Record());
+        app.Engine.Add(Record(source: Source(paper.Uuid, VoiceFile, 1, project: OtherProject)));
+
+        await app.StartAsync();
+
+        (await app.NoticeAsync()).Should().BeEquivalentTo(new
+        {
+            Kind = NoticeKind.UpdateAvailable,
+            Game = (GameKey?)Game,
+            ProjectName = "Example Project",
+            ReleaseLabel = "v2",
+        });
+    }
+
+    [Fact]
+    public async Task Updates_every_install_on_a_game_in_turn_and_never_adds_another_project()
+    {
+        await using var app = new CoordinatorHarness(AutoInstall).WithGameAndProject();
+        var two = Release(ReleaseTwo, 2, File(FileTwo));
+        var paper = Release(Guid.NewGuid(), 2, File(VoiceFile));
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: two),
+            Entry(OtherProject, paper, teamSlug: "paper-team") with { ProjectName = "Paper Project" },
+            Entry(Guid.NewGuid(), Release(Guid.NewGuid(), 1, File(Guid.NewGuid())), teamSlug: "quill-team"));
+        app.Catalogue.Add(Page(release: two));
+        app.Catalogue.Add(Page(OtherProject, paper, teamSlug: "paper-team"));
+        app.Engine.Add(Record());
+        app.Engine.Add(Record(source: Source(Guid.NewGuid(), Guid.NewGuid(), 1, project: OtherProject)));
+
+        await app.StartAsync();
+
+        new[] { await app.NoticeAsync(), await app.NoticeAsync() }.Select(notice => (notice.Kind, notice.ProjectName))
+            .Should().BeEquivalentTo([(NoticeKind.Updated, "Example Project"), (NoticeKind.Updated, "Paper Project")],
+                "each notice names the project, as the game holds two");
+        var state = await app.GameAsync(game => game.Job is null
+            && game.Installs.All(install => install.Status.State == MyGameState.Installed), "both installs are up to date");
+        state.Find(Game)!.Installs.Select(install => install.Record.Source!.ReleaseId).Should()
+            .BeEquivalentTo([ReleaseTwo.ToString("D"), paper.Uuid.ToString("D")], "the third team's project is not installed on its own");
     }
 
     [Fact]

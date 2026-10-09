@@ -237,6 +237,30 @@
   <data name="NoticeForgottenKeepingBackups" xml:space="preserve">
     <value>Folderu gry już nie ma, więc zainstalowany w nim projekt usunięto z listy. Kopie oryginalnych plików zostały zachowane i można je usunąć w ustawieniach.</value>
   </data>
+  <data name="NoticeUpdateAvailableProjectTitle" xml:space="preserve">
+    <value>Aktualizacja projektu „{project}” ({game})</value>
+  </data>
+  <data name="NoticeRepairNeededProjectTitle" xml:space="preserve">
+    <value>Potrzebna naprawa projektu „{project}” ({game})</value>
+  </data>
+  <data name="NoticeUpdatedProjectTitle" xml:space="preserve">
+    <value>Zaktualizowano projekt „{project}” ({game})</value>
+  </data>
+  <data name="NoticeRepairedProjectTitle" xml:space="preserve">
+    <value>Ponownie zainstalowano projekt „{project}” ({game})</value>
+  </data>
+  <data name="NoticeFailedProjectTitle" xml:space="preserve">
+    <value>{job, select, Install {Nie udało się zainstalować projektu „{project}” ({game})} Update {Nie udało się zaktualizować projektu „{project}” ({game})} Repair {Nie udało się naprawić projektu „{project}” ({game})} Uninstall {Nie udało się odinstalować projektu „{project}” ({game})} other {Coś poszło nie tak z projektem „{project}” ({game})}}</value>
+  </data>
+  <data name="NoticePreviousReleaseLostProjectTitle" xml:space="preserve">
+    <value>Aktualizacja projektu „{project}” ({game}) nie powiodła się</value>
+  </data>
+  <data name="NoticePreviousReleaseLostProject" xml:space="preserve">
+    <value>Poprzedniego wydania nie udało się przywrócić, więc zmienione przez nie pliki są znów oryginalne. Możesz ponownie zainstalować projekt.</value>
+  </data>
+  <data name="NoticeForgottenProjectTitle" xml:space="preserve">
+    <value>Projekt „{project}” ({game}) nie jest już zainstalowany</value>
+  </data>
   <data name="WindowClosedTitle" xml:space="preserve">
     <value>{product} działa w tle</value>
   </data>

@@ -167,7 +167,7 @@ public sealed class ReinstallJobTests
         var handle = jobs.Runner.Start(new UpdateJobRequest(record));
         await installing.Task.WaitAsync(TimeSpan.FromSeconds(10), JobsHarness.Token);
 
-        jobs.Runner.Cancel(Game);
+        jobs.Runner.Cancel(handle.Job.Id);
         var result = await handle.Completion.WaitAsync(TimeSpan.FromSeconds(10), JobsHarness.Token);
 
         result.Outcome.Should().Be(JobOutcome.Cancelled);

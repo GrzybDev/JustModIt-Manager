@@ -34,21 +34,22 @@ public sealed class MessageTests
         {
             Game = Game,
             GameName = "Example Game",
+            ProjectName = "Example Project",
             Job = JobKind.Update,
             Failure = new JobFailure(JobFailureReason.NotEnoughSpace) { RequiredBytes = 2048, AvailableBytes = 1024 },
         })),
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.AvailableSummary) { Games = [Game, FailedGame], Updates = [FailedGame] })),
         new WindowActivity(IsActive: true),
         new InstallProject(Game, Project, "Text only"),
-        new UpdateProject(Game),
-        new RepairProject(Game),
-        new UninstallProject(Game),
+        new UpdateProject(RecordId),
+        new RepairProject(RecordId),
+        new UninstallProject(RecordId),
         new TestInstallPackage(Game, @"C:\Work\example.examplemod"),
         new MoveBackups(),
         new JobStarted(Job),
-        new JobsStarted([Job]),
-        new CancelJob(Game),
+        new CancelJob(Job),
         new DismissFailure(FailedGame),
+        new DismissFailure(Game, RecordId),
         new OpenedGame(Game),
         new CheckNow(),
         new ChangeSettings(SettingsView.From(Settings)),
@@ -58,7 +59,8 @@ public sealed class MessageTests
         new HideGame(Game, IsHidden: true),
         new ConfirmAdultContent(),
         new LaunchGame(Game),
-        new OpenFolder(AppFolder.GameBackups, Game),
+        new OpenFolder(AppFolder.Game, Game),
+        new OpenFolder(AppFolder.InstallBackups, Install: RecordId),
         new OpenFolder(AppFolder.Logs),
         new AddLibraryFolder(@"D:\GOG Games"),
         new LibraryFolderAdded(null, null, LibraryFolderRejection.DlcOnly),
@@ -124,9 +126,9 @@ public sealed class MessageTests
     [Fact]
     public void Games_travel_as_their_text_key()
     {
-        Json(new UpdateProject(new GameKey(StoreId.Gog, "1207658924000000001")))
+        Json(new LaunchGame(new GameKey(StoreId.Gog, "1207658924000000001")))
             .Should().Contain("""
-                {"type":"updateProject","game":"gog:1207658924000000001"}
+                {"type":"launchGame","game":"gog:1207658924000000001"}
                 """);
     }
 
@@ -150,7 +152,8 @@ public sealed class MessageTests
     }
 
     [Theory]
-    [InlineData("""{"kind":"request","id":1,"payload":{"type":"updateProject","game":"not a key"}}""")]
+    [InlineData("""{"kind":"request","id":1,"payload":{"type":"launchGame","game":"not a key"}}""")]
+    [InlineData("""{"kind":"request","id":1,"payload":{"type":"updateProject","install":"not an id"}}""")]
     [InlineData("""{"kind":"request","id":1,"payload":{"type":"updateProject"}}""")]
     [InlineData("""{"kind":"request","id":1,"payload":{"type":"exitApp","mode":"Explode"}}""")]
     public void A_command_with_a_broken_value_is_invalid_data(string json)

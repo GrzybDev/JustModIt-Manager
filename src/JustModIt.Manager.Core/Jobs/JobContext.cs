@@ -43,6 +43,7 @@ internal sealed class JobContext
             GameName = request.GameName,
             Kind = request.Kind,
             Origin = request.Origin,
+            InstallId = (request as RecordJobRequest)?.Record.Id,
         };
     }
 

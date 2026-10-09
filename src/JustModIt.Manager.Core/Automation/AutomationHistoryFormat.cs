@@ -81,11 +81,11 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
 
         writer.WriteEndArray();
         writer.WriteStartArray(RepairAnnouncementsProperty);
-        foreach (var announcement in document.RepairAnnouncements.OrderBy(item => item.Game.ToString(), StringComparer.Ordinal)
+        foreach (var announcement in document.RepairAnnouncements.OrderBy(item => item.Install)
             .ThenBy(item => item.Build, StringComparer.Ordinal))
         {
             writer.WriteStartObject();
-            writer.WriteString("game", announcement.Game.ToString());
+            writer.WriteString("install", announcement.Install.ToString("D"));
             if (announcement.Build is { } build)
             {
                 writer.WriteString("build", build);
@@ -114,7 +114,9 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
             : null;
 
     private static RepairAnnouncement? ReadRepairAnnouncement(JsonElement announcement) =>
-        GameKey.TryParse(announcement.GetTextOrNull("game"), out var game) ? new RepairAnnouncement(game, announcement.GetTextOrNull("build")) : null;
+        Guid.TryParse(announcement.GetTextOrNull("install"), out var install)
+            ? new RepairAnnouncement(install, announcement.GetTextOrNull("build"))
+            : null;
 
     private static DateTimeOffset? Time(JsonElement parent, string name) =>
         parent.GetOrNull(name, JsonValueKind.String) is { } text && text.TryGetDateTimeOffset(out var time) ? time : null;

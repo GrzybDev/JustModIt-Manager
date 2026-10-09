@@ -102,6 +102,30 @@
   <data name="NoticeForgottenKeepingBackups" xml:space="preserve">
     <value>Folderu gry już nie ma, więc zainstalowane w nim spolszczenie usunięto z listy. Kopie oryginalnych plików zostały zachowane i można je usunąć w ustawieniach.</value>
   </data>
+  <data name="NoticeUpdateAvailableProjectTitle" xml:space="preserve">
+    <value>Aktualizacja spolszczenia „{project}” ({game})</value>
+  </data>
+  <data name="NoticeRepairNeededProjectTitle" xml:space="preserve">
+    <value>Spolszczenie „{project}” ({game}) wymaga przywrócenia</value>
+  </data>
+  <data name="NoticeUpdatedProjectTitle" xml:space="preserve">
+    <value>Zaktualizowano spolszczenie „{project}” ({game})</value>
+  </data>
+  <data name="NoticeRepairedProjectTitle" xml:space="preserve">
+    <value>Przywrócono spolszczenie „{project}” ({game})</value>
+  </data>
+  <data name="NoticeFailedProjectTitle" xml:space="preserve">
+    <value>{job, select, Install {Nie udało się zainstalować spolszczenia „{project}” ({game})} Update {Nie udało się zaktualizować spolszczenia „{project}” ({game})} Repair {Nie udało się przywrócić spolszczenia „{project}” ({game})} Uninstall {Nie udało się odinstalować spolszczenia „{project}” ({game})} other {Coś poszło nie tak ze spolszczeniem „{project}” ({game})}}</value>
+  </data>
+  <data name="NoticePreviousReleaseLostProjectTitle" xml:space="preserve">
+    <value>Aktualizacja spolszczenia „{project}” ({game}) nie powiodła się</value>
+  </data>
+  <data name="NoticePreviousReleaseLostProject" xml:space="preserve">
+    <value>Poprzedniej wersji spolszczenia nie udało się przywrócić, więc zmienione przez nią pliki są znów oryginalne. Możesz zainstalować spolszczenie ponownie.</value>
+  </data>
+  <data name="NoticeForgottenProjectTitle" xml:space="preserve">
+    <value>Spolszczenie „{project}” ({game}) nie jest już zainstalowane</value>
+  </data>
   <data name="WindowClosed" xml:space="preserve">
     <value>Aplikacja nadal dba o Twoje spolszczenia. Kliknij ikonę w zasobniku systemowym, aby ją otworzyć.</value>
   </data>

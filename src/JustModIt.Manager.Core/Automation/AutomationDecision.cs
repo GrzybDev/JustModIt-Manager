@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.State;
 
 namespace JustModIt.Manager.Core.Automation;
 
@@ -53,6 +54,9 @@ public enum AutomationReason
 /// <param name="Reason">Why nothing is done, or why a project is only announced.</param>
 public sealed record AutomationDecision(AutomationAction Action, AutomationReason? Reason = null)
 {
+    /// <summary>The install an update or a repair, or the announcement of one, is about; null for a new install.</summary>
+    public MyInstall? Install { get; init; }
+
     /// <summary>The release to install or announce; null for a repair, which installs the project's current one.</summary>
     public Release? Release { get; init; }
 

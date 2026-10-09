@@ -15,15 +15,15 @@ public sealed record AttemptEntry(DateTimeOffset At, int Failures, JobFailureRea
 
 public readonly record struct Announcement(GameKey Game, Guid Release);
 
-/// <param name="Game">The game whose install the build broke.</param>
+/// <summary>A repair the player was told of instead of the app making it.</summary>
+/// <param name="Install">
+/// The install that needs the repair; a repair or an update installs anew, so what its successor needs is news again.
+/// </param>
 /// <param name="Build">The game's build that broke the install; null when its store names none.</param>
-public readonly record struct RepairAnnouncement(GameKey Game, string? Build);
+public readonly record struct RepairAnnouncement(Guid Install, string? Build);
 
 /// <summary>
-/// What the automation already did, so it never loops: an action on a release is tried at most once per
-/// <see cref="RetryAfter"/>, not at all while the game's build is the one its package did not fit, and never again once
-/// its package turned out to be made for another game; a failure is reported once, a release is announced once, and so
-/// is a repair that a build of the game made necessary. Immutable: every change returns a new history.
+/// What the automation already did, so it never loops and tells each failure, release and needed repair once.
 /// </summary>
 public sealed class AutomationHistory
 {
@@ -164,16 +164,25 @@ public sealed class AutomationHistory
         return announcements == _announcements ? this : new AutomationHistory(_attempts, announcements, _repairAnnouncements, BaselineAt);
     }
 
-    /// <param name="game">The game whose install the build broke.</param>
+    /// <summary>Whether the player was told that the install needs a repair on this build.</summary>
+    /// <param name="install">The install's record id.</param>
     /// <param name="build">The game's build that broke the install.</param>
-    public bool WasRepairAnnounced(GameKey game, string? build) => _repairAnnouncements.Contains(new RepairAnnouncement(game, build));
+    public bool WasRepairAnnounced(Guid install, string? build) => _repairAnnouncements.Contains(new RepairAnnouncement(install, build));
 
-    public AutomationHistory RecordRepairAnnouncement(GameKey game, string? build) =>
-        WithRepairs(_repairAnnouncements.Add(new RepairAnnouncement(game, build)));
+    /// <summary>Records that the player was told that the install needs a repair on this build.</summary>
+    /// <param name="install">The install's record id.</param>
+    /// <param name="build">The game's build that broke the install; null when its store names none.</param>
+    public AutomationHistory RecordRepairAnnouncement(Guid install, string? build) =>
+        WithRepairs(_repairAnnouncements.Add(new RepairAnnouncement(install, build)));
 
-    /// <summary>The player repaired or replaced the install, so the next repair it needs is news again, on any build.</summary>
-    public AutomationHistory ForgetRepairAnnouncements(GameKey game) =>
-        WithRepairs(_repairAnnouncements.Except(_repairAnnouncements.Where(announcement => announcement.Game == game)));
+    /// <summary>Drops what was announced of installs that are gone, which nothing can ask about again.</summary>
+    /// <param name="installs">The record ids of the installs that exist.</param>
+    public AutomationHistory KeepRepairAnnouncementsOf(IReadOnlySet<Guid> installs)
+    {
+        ArgumentNullException.ThrowIfNull(installs);
+        return WithRepairs(_repairAnnouncements.Except(
+            _repairAnnouncements.Where(announcement => !installs.Contains(announcement.Install))));
+    }
 
     /// <summary>The history with the time of the first look after the first-run setup.</summary>
     /// <param name="at">When that look ran.</param>

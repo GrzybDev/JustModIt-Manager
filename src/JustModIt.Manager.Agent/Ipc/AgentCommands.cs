@@ -55,14 +55,14 @@ public sealed class AgentCommands(
     public async ValueTask<Message?> HandleAsync(Message request, CancellationToken cancellationToken) => request switch
     {
         InstallProject install => Start(Install(install)),
-        UpdateProject update => Start(new UpdateJobRequest(Installed(update.Game))),
-        RepairProject repair => Start(new RepairJobRequest(Installed(repair.Game))),
-        UninstallProject uninstall => Start(new UninstallJobRequest(Installed(uninstall.Game))),
+        UpdateProject update => Start(new UpdateJobRequest(FindInstall(update.Install).Record)),
+        RepairProject repair => Start(new RepairJobRequest(FindInstall(repair.Install).Record)),
+        UninstallProject uninstall => Start(new UninstallJobRequest(FindInstall(uninstall.Install).Record)),
         TestInstallPackage test => Start(TestInstall(test)),
-        MoveBackups => new JobsStarted([.. coordinator.MoveBackups(BackupChoice.From(settings.Current)).Select(handle => handle.Job.Id)]),
+        MoveBackups => Done(() => coordinator.MoveBackups(BackupChoice.From(settings.Current))),
         RemoveLeftoverBackups remove => await RemoveLeftoverBackupsAsync(remove.RecordIds, cancellationToken).ConfigureAwait(false),
-        CancelJob cancel => Done(() => jobs.Cancel(cancel.Game)),
-        DismissFailure dismiss => Done(() => coordinator.DismissFailure(dismiss.Game)),
+        CancelJob cancel => Done(() => jobs.Cancel(cancel.Job)),
+        DismissFailure dismiss => Done(() => coordinator.DismissFailure(dismiss.Game, dismiss.Install)),
         OpenedGame opened => Done(() => coordinator.RequestVerification(opened.Game)),
         CheckNow => Done(() => _ = checks.CheckNowAsync()),
         ChangeSettings change => await ChangeSettingsAsync(change.Settings, cancellationToken).ConfigureAwait(false),
@@ -113,7 +113,9 @@ public sealed class AgentCommands(
 
     private InstalledGame Detected(GameKey game) => Find(game).Game ?? throw Invalid("No store reports the game.");
 
-    private InstallRecord Installed(GameKey game) => Find(game).Installed ?? throw Invalid("The game has no install.");
+    private MyInstall FindInstall(Guid install) =>
+        coordinator.Current.Games.Select(game => game.FindInstall(install)).OfType<MyInstall>().FirstOrDefault()
+        ?? throw Invalid("The install is not among the player's games.");
 
     private InstallJobRequest Install(InstallProject request)
     {
@@ -196,7 +198,7 @@ public sealed class AgentCommands(
     private Task<BackupFolderProblem?> CheckBackupFolderAsync(string folder, CancellationToken cancellationToken)
     {
         var gameFolders = library.Snapshot.Games.Values.Select(game => game.InstallDirectory)
-            .Concat(coordinator.Current.Games.Select(game => game.Installed?.InstallDirectory).OfType<string>())
+            .Concat(coordinator.Current.Games.SelectMany(game => game.Installs).Select(install => install.Record.InstallDirectory))
             .ToList();
         return Task.Run(() => BackupFolderPolicy.Check(folder, gameFolders, options.InstallDirectory, volumes), cancellationToken);
     }
@@ -215,10 +217,14 @@ public sealed class AgentCommands(
             return options.Locations.LogsDirectory;
         }
 
+        if (request.Folder == AppFolder.InstallBackups)
+        {
+            var install = request.Install ?? throw Invalid("The folder belongs to an install, which is missing.");
+            return FindInstall(install).Record.Backup.Directory;
+        }
+
         var game = Find(request.Game ?? throw Invalid("The folder belongs to a game, which is missing."));
-        return (request.Folder == AppFolder.Game
-                ? game.Game?.InstallDirectory ?? game.Installed?.InstallDirectory
-                : game.Installed?.Backup.Directory)
+        return game.Game?.InstallDirectory ?? (game.Installs is [var first, ..] ? first.Record.InstallDirectory : null)
             ?? throw Invalid("The game has no such folder.");
     }
 

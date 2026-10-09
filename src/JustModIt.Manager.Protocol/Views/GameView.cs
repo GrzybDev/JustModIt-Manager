@@ -13,6 +13,7 @@ public sealed record GameView
 
     public required string Name { get; init; }
 
+    /// <inheritdoc cref="MyGame.Status"/>
     public required GameStatusView Status { get; init; }
 
     /// <summary>What its store reports; null when no store lists the game any more.</summary>
@@ -24,9 +25,12 @@ public sealed record GameView
     /// <inheritdoc cref="MyGame.Project"/>
     public ProjectOfferView? Project { get; init; }
 
-    public InstallView? Installed { get; init; }
+    /// <inheritdoc cref="MyGame.Installs"/>
+    public IReadOnlyList<InstallView> Installs { get; init; } = [];
 
-    /// <summary>Installing a project takes the place of the installed one, the way an update does, rather than joining it.</summary>
+    /// <summary>
+    /// Installing another project takes the place of the installed one, the way an update does, rather than joining it.
+    /// </summary>
     public bool InstallReplaces { get; init; }
 
     /// <summary>Why no project can be installed on the game now; null when one can.</summary>
@@ -39,6 +43,7 @@ public sealed record GameView
     /// <summary>The store already offers the game in the app's target language, so the app never changes it on its own.</summary>
     public bool OffersTargetLanguage { get; init; }
 
+    /// <inheritdoc cref="MyGame.LastFailure"/>
     public FailureView? LastFailure { get; init; }
 
     /// <summary>What runs from the game's folder, when the app happens to know.</summary>
@@ -64,7 +69,7 @@ public sealed record GameView
             Detected = game.Game is { } detected ? DetectedGameView.From(detected) : null,
             Projects = [.. game.Projects.Select(ProjectOfferView.From)],
             Project = game.Project is { } project ? ProjectOfferView.From(project) : null,
-            Installed = game.Installed is { } record ? InstallView.From(record) : null,
+            Installs = [.. game.Installs.Select(InstallView.From)],
             InstallReplaces = game.NewInstall?.Replaces is not null,
             InstallRefusal = game.NewInstall?.Refusal,
             Preferences = game.Preferences,
@@ -79,7 +84,7 @@ public sealed record GameView
     }
 }
 
-/// <summary>What a game in the player's list is, and why, for the app to say in its own words.</summary>
+/// <summary>What a game in the player's list, or an install on it, is, and why, for the app to say in its own words.</summary>
 /// <param name="State">The status; the other properties give its reasons.</param>
 public sealed record GameStatusView(MyGameState State)
 {

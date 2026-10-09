@@ -1,8 +1,13 @@
+using System.Collections.Immutable;
+using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.State;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MenadzerSpolszczen.Tests;
@@ -25,6 +30,35 @@ public sealed class OneProjectPerGamePolicyTests
     {
         Policy.Admit([Install(isTest: true)]).Refusal.Should().Be(JobFailureReason.OtherProjectInstalled);
         Policy.Admit([Install(), Install()]).Refusal.Should().Be(JobFailureReason.OtherProjectInstalled);
+    }
+
+    [Fact]
+    public void The_players_list_shows_the_one_install_that_another_project_would_replace()
+    {
+        var installed = Install();
+        var game = new InstalledGame
+        {
+            Key = installed.Game,
+            Name = installed.GameName,
+            InstallDirectory = installed.InstallDirectory,
+            LibraryId = "library-1",
+        };
+
+        var listed = MyGamesComposer.Compose(new MyGamesInput
+        {
+            Library = new LibrarySnapshot
+            {
+                Games = new ValueDictionary<GameKey, InstalledGame>(ImmutableDictionary<GameKey, InstalledGame>.Empty.Add(game.Key, game)),
+            },
+            Records = [installed],
+            Index = new InstallableIndex(installed.InstalledAt, []),
+            Settings = AppSettings.Default,
+            InstallPolicy = Policy,
+        }).Single();
+
+        listed.Installs.Should().ContainSingle().Which.Record.Should().Be(installed);
+        listed.Status.Should().Be(listed.Installs[0].Status);
+        listed.NewInstall!.Replaces.Should().Be(installed);
     }
 
     [Fact]

@@ -35,10 +35,26 @@ public sealed record InstallAdmission
     /// <param name="reason">Why it may not.</param>
     public static InstallAdmission Refused(JobFailureReason reason) => new() { Refusal = reason };
 
-    // Installs in another folder are left out, since a replacement uninstalls and installs in one folder.
-    internal static InstallAdmission For(IInstallPolicy policy, InstalledGame game, IEnumerable<InstallRecord> records) =>
-        policy.Admit([.. records.Where(record =>
-            record.Game == game.Key && PathComparison.AreSame(record.InstallDirectory, game.InstallDirectory))]);
+    /// <summary>What a new install on the game does with the installs in its folder.</summary>
+    /// <param name="policy">The app's rule for several projects on one game.</param>
+    /// <param name="game">The game as its store reports it.</param>
+    /// <param name="records">The installs; those on other games or in other folders are left out.</param>
+    /// <param name="project">The project to install; a project already installed next to others takes its install's place.</param>
+    internal static InstallAdmission For(IInstallPolicy policy, InstalledGame game, IEnumerable<InstallRecord> records, Guid? project = null)
+    {
+        // Installs in another folder are left out, since a replacement uninstalls and installs in one folder.
+        List<InstallRecord> installs = [.. records.Where(record =>
+            record.Game == game.Key && PathComparison.AreSame(record.InstallDirectory, game.InstallDirectory))];
+        var admission = policy.Admit(installs);
+        if (admission != Alongside || project is null)
+        {
+            return admission;
+        }
+
+        // Another variant of the same project would own the same files, and the player means to swap them.
+        var same = installs.Find(record => !record.IsTest && Guid.TryParse(record.Source?.ProjectId, out var installed) && installed == project);
+        return same is null ? admission : Replacing(same);
+    }
 }
 
 /// <summary>The platform's rule: projects share a game as long as their files do not overlap.</summary>

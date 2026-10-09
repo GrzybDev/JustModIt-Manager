@@ -9,10 +9,14 @@ using JustModIt.Manager.Core.Jobs;
 
 namespace JustModIt.Manager.Core.State;
 
-/// <summary>The last failed job of each game, kept across restarts until a job on the game succeeds or the player dismisses it.</summary>
-public sealed record FailedAttempts(ValueDictionary<GameKey, FailedAttempt> Games)
+/// <summary>
+/// The last failed job of each install and of each game, kept across restarts until a job on it succeeds or the player
+/// dismisses it.
+/// </summary>
+/// <param name="Failures">The last failed job, by the install or the game it is kept on.</param>
+public sealed record FailedAttempts(ValueDictionary<FailureKey, FailedAttempt> Failures)
 {
-    public static FailedAttempts Empty { get; } = new(default(ValueDictionary<GameKey, FailedAttempt>));
+    public static FailedAttempts Empty { get; } = new(default(ValueDictionary<FailureKey, FailedAttempt>));
 }
 
 /// <summary>The format of <c>state/failures.json</c>, which leaves out an entry it cannot read.</summary>
@@ -37,15 +41,16 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
     public FailedAttempts Read(JsonElement root, int version)
     {
         var entries = root.GetOrNull(GamesProperty, JsonValueKind.Array) is { } games
-            ? games.EnumerateArray().Where(entry => entry.ValueKind == JsonValueKind.Object).Select(ReadEntry).OfType<(GameKey, FailedAttempt)>()
+            ? games.EnumerateArray().Where(entry => entry.ValueKind == JsonValueKind.Object).Select(ReadEntry)
+                .OfType<(FailureKey, FailedAttempt)>()
             : [];
-        var builder = ImmutableDictionary.CreateBuilder<GameKey, FailedAttempt>();
-        foreach (var (game, attempt) in entries)
+        var builder = ImmutableDictionary.CreateBuilder<FailureKey, FailedAttempt>();
+        foreach (var (key, attempt) in entries)
         {
-            builder[game] = attempt;
+            builder[key] = attempt;
         }
 
-        return new FailedAttempts(new ValueDictionary<GameKey, FailedAttempt>(builder.ToImmutable()));
+        return new FailedAttempts(new ValueDictionary<FailureKey, FailedAttempt>(builder.ToImmutable()));
     }
 
     public void Write(Utf8JsonWriter writer, FailedAttempts document)
@@ -53,10 +58,12 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(document);
         writer.WriteStartArray(GamesProperty);
-        foreach (var (game, attempt) in document.Games.OrderBy(pair => pair.Key.ToString(), StringComparer.Ordinal))
+        foreach (var (key, attempt) in document.Failures.OrderBy(pair => pair.Key.Game.ToString(), StringComparer.Ordinal)
+            .ThenBy(pair => pair.Key.Install))
         {
             writer.WriteStartObject();
-            writer.WriteString("game", game.ToString());
+            writer.WriteString("game", key.Game.ToString());
+            WriteGuid(writer, "install", key.Install);
             writer.WriteString("kind", attempt.Kind.ToString());
             writer.WriteString("origin", attempt.Origin.ToString());
             writer.WriteString("at", attempt.At);
@@ -76,7 +83,7 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
         writer.WriteEndArray();
     }
 
-    private static (GameKey, FailedAttempt)? ReadEntry(JsonElement entry)
+    private static (FailureKey, FailedAttempt)? ReadEntry(JsonElement entry)
     {
         if (!GameKey.TryParse(entry.GetTextOrNull("game"), out var game)
             || entry.GetEnumOrNull<JobKind>("kind") is not { } kind
@@ -88,7 +95,8 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
         var failure = entry.GetOrNull("failure", JsonValueKind.Object) is { } failed && failed.GetEnumOrNull<JobFailureReason>("reason") is { } reason
             ? ReadFailure(failed, reason)
             : null;
-        return (game, new FailedAttempt(kind, entry.GetEnumOrNull<JobOrigin>("origin") ?? JobOrigin.User, at, failure)
+        return (new FailureKey(game, ReadGuid(entry, "install")), new FailedAttempt(kind,
+            entry.GetEnumOrNull<JobOrigin>("origin") ?? JobOrigin.User, at, failure)
         {
             LostPrevious = entry.GetBooleanOrNull("lostPrevious") ?? false,
             ReleaseId = ReadGuid(entry, "releaseId"),

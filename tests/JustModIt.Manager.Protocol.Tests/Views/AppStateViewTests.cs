@@ -28,7 +28,7 @@ public sealed class AppStateViewTests
     }
 
     [Fact]
-    public void A_game_carries_its_status_install_offer_and_job()
+    public void A_game_carries_its_status_installs_offer_and_job()
     {
         var game = View.Games[0];
 
@@ -42,17 +42,29 @@ public sealed class AppStateViewTests
         });
         game.Detected!.InstallDirectory.Should().Be(@"C:\Games\Example Game");
         game.Project!.ProjectId.Should().Be(Project);
-        game.Installed.Should().BeEquivalentTo(new
+        var install = game.Installs.Should().ContainSingle().Subject;
+        install.Should().BeEquivalentTo(new
         {
             Id = RecordId,
             ProjectId = (Guid?)Project,
             ReleaseLabel = "v1",
             VariantName = "Text only",
             BackupLocation = BackupLocation.GameFolder,
+            NeedsAttention = true,
         });
-        game.Installed!.ThirdPartyNotices.Should().Equal(new ThirdPartyNoticeView("Example Loader", "MIT", "https://example.com/loader/source"));
+        install.Status.State.Should().Be(MyGameState.Busy);
+        install.Project!.Release!.Id.Should().Be(ReleaseTwo);
+        install.LastFailure!.Failure!.Reason.Should().Be(JobFailureReason.Offline);
+        install.ThirdPartyNotices.Should().Equal(new ThirdPartyNoticeView("Example Loader", "MIT", "https://example.com/loader/source"));
         game.Preferences.AutoUpdate.Should().BeFalse();
-        game.Job!.Should().BeEquivalentTo(new { Id = Job, Stage = JobStage.Waiting, WaitReason = JobWaitReason.GameRunning, Sequence = 7L });
+        game.Job!.Should().BeEquivalentTo(new
+        {
+            Id = Job,
+            InstallId = (Guid?)RecordId,
+            Stage = JobStage.Waiting,
+            WaitReason = JobWaitReason.GameRunning,
+            Sequence = 7L,
+        });
         game.Job.RunningProcesses.Should().Equal("example.exe");
         game.RunningProcesses.Should().Equal("example.exe");
     }

@@ -2,13 +2,29 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.State;
 
 namespace JustModIt.Manager.Protocol.Views;
 
-/// <summary>What an install changed and where it came from, as its record keeps it, so it shows offline.</summary>
+/// <summary>
+/// An install on a game with what its record keeps, so it shows offline; the files it changed stay in the record, so a
+/// long list cannot swell every snapshot.
+/// </summary>
 public sealed record InstallView
 {
+    /// <summary>The id commands about the install address it by.</summary>
     public required Guid Id { get; init; }
+
+    public required GameStatusView Status { get; init; }
+
+    /// <inheritdoc cref="MyInstall.Project"/>
+    public ProjectOfferView? Project { get; init; }
+
+    /// <inheritdoc cref="MyInstall.LastFailure"/>
+    public FailureView? LastFailure { get; init; }
+
+    /// <inheritdoc cref="MyInstall.NeedsAttention"/>
+    public bool NeedsAttention { get; init; }
 
     public required DateTimeOffset InstalledAt { get; init; }
 
@@ -50,13 +66,20 @@ public sealed record InstallView
 
     public IReadOnlyList<ThirdPartyNoticeView> ThirdPartyNotices { get; init; } = [];
 
-    public static InstallView From(InstallRecord record)
+    /// <summary>Maps an install with its status and record.</summary>
+    /// <param name="install">The install as the engine's state holds it.</param>
+    public static InstallView From(MyInstall install)
     {
-        ArgumentNullException.ThrowIfNull(record);
+        ArgumentNullException.ThrowIfNull(install);
+        var record = install.Record;
         var source = record.Source;
         return new InstallView
         {
             Id = record.Id,
+            Status = GameStatusView.From(install.Status),
+            Project = install.Project is { } offer ? ProjectOfferView.From(offer) : null,
+            LastFailure = install.LastFailure is { } failure ? FailureView.From(failure) : null,
+            NeedsAttention = install.NeedsAttention,
             InstalledAt = record.InstalledAt,
             InstallDirectory = record.InstallDirectory,
             GameBuildId = record.GameBuildId,

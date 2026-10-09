@@ -247,6 +247,32 @@
   <data name="NoticeForgottenKeepingBackups" xml:space="preserve">
     <value>The game's folder is gone, so the project installed in it was removed from the list. The backed-up original files are kept and can be removed in the settings.</value>
   </data>
+  <data name="NoticeUpdateAvailableProjectTitle" xml:space="preserve">
+    <value>Update for {project} ({game})</value>
+    <comment>Used instead of NoticeUpdateAvailableTitle when the game holds several projects.</comment>
+  </data>
+  <data name="NoticeRepairNeededProjectTitle" xml:space="preserve">
+    <value>Repair needed for {project} ({game})</value>
+  </data>
+  <data name="NoticeUpdatedProjectTitle" xml:space="preserve">
+    <value>Updated {project} ({game})</value>
+  </data>
+  <data name="NoticeRepairedProjectTitle" xml:space="preserve">
+    <value>Installed {project} again ({game})</value>
+  </data>
+  <data name="NoticeFailedProjectTitle" xml:space="preserve">
+    <value>{job, select, Install {Could not install {project} ({game})} Update {Could not update {project} ({game})} Repair {Could not repair {project} ({game})} Uninstall {Could not uninstall {project} ({game})} other {Something went wrong with {project} ({game})}}</value>
+    <comment>job is the kind of job that failed.</comment>
+  </data>
+  <data name="NoticePreviousReleaseLostProjectTitle" xml:space="preserve">
+    <value>The update of {project} ({game}) failed</value>
+  </data>
+  <data name="NoticePreviousReleaseLostProject" xml:space="preserve">
+    <value>The previous release could not be put back, so the files it had changed are original again. You can install the project again.</value>
+  </data>
+  <data name="NoticeForgottenProjectTitle" xml:space="preserve">
+    <value>{project} ({game}) is no longer installed</value>
+  </data>
   <data name="WindowClosedTitle" xml:space="preserve">
     <value>{product} keeps running</value>
   </data>

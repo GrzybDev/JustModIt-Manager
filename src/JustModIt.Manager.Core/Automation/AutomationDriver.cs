@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
@@ -67,28 +68,37 @@ internal sealed class AutomationDriver : IAsyncDisposable
         var now = _time.GetUtcNow();
         var started = new List<JobHandle>();
         var announced = new List<(MyGame Game, AutomationDecision Decision)>();
+        History = History.KeepRepairAnnouncementsOf(
+            games.SelectMany(game => game.Installs).Select(install => install.Record.Id).ToHashSet());
         foreach (var game in games.Where(game => !_awaitingStore.Contains(game.Key)))
         {
-            var decision = AutomationPolicy.Decide(game, settings, History, now);
-            if (decision.Action == AutomationAction.Announce)
+            // A game has one job at a time, so whatever else it needs waits for the next look.
+            var tried = false;
+            foreach (var decision in AutomationPolicy.Decide(game, settings, History, now))
             {
-                History = decision.Reason == AutomationReason.ReapplyOff
-                    ? History.RecordRepairAnnouncement(game.Key, game.Game?.BuildId)
-                    : decision.Announces.Aggregate(History, (history, release) => history.RecordAnnouncement(game.Key, release));
-                announced.Add((game, decision));
-            }
-            else if (decision.StartsJob && RequestFor(game, decision) is { } request)
-            {
-                var handle = _jobs.Start(request);
-                // Another job runs on the game, or the app is exiting; the decision stands for the next look.
-                if (handle.Completion.IsCompleted)
+                if (decision.Action == AutomationAction.Announce)
                 {
-                    continue;
+                    History = decision is { Reason: AutomationReason.ReapplyOff, Install: { } broken }
+                        ? History.RecordRepairAnnouncement(broken.Record.Id, game.Game?.BuildId)
+                        : decision.Announces.Aggregate(History, (history, release) => history.RecordAnnouncement(game.Key, release));
+                    announced.Add((game, decision));
                 }
+                else if (decision.StartsJob && !tried && RequestFor(game, decision) is { } request)
+                {
+                    tried = true;
+                    var handle = _jobs.Start(request);
+                    // Another job runs on the game, or the app is exiting; the decision stands for the next look.
+                    if (handle.Completion.IsCompleted)
+                    {
+                        continue;
+                    }
 
-                History = History.RecordAttempt(game.Key, decision.ReleaseId, decision.Action, now);
-                _running[handle.Job.Id] = new Attempt(game.Key, game.Name, decision.ReleaseId, decision.Action, game.Game?.BuildId);
-                started.Add(handle);
+                    History = History.RecordAttempt(game.Key, decision.ReleaseId, decision.Action, now);
+                    var install = decision.Install?.Record.Id;
+                    _running[handle.Job.Id] = new Attempt(game.Key, game.Name, decision.ReleaseId, decision.Action, game.Game?.BuildId,
+                        install, install is { } id ? AutomationNotice.ProjectNameFor(game, id) : null);
+                    started.Add(handle);
+                }
             }
         }
 
@@ -142,18 +152,21 @@ internal sealed class AutomationDriver : IAsyncDisposable
     {
         AutomationAction.Install when game.Project is { } project =>
             new InstallJobRequest(game.Key, game.Name, project.Project.Locator, decision.Variant?.Name, JobOrigin.Automatic),
-        AutomationAction.Update when game.Installed is { } record => new UpdateJobRequest(record, JobOrigin.Automatic),
-        AutomationAction.Repair when game.Installed is { } record => new RepairJobRequest(record, JobOrigin.Automatic),
+        AutomationAction.Update when decision.Install is { } install => new UpdateJobRequest(install.Record, JobOrigin.Automatic),
+        AutomationAction.Repair when decision.Install is { } install => new RepairJobRequest(install.Record, JobOrigin.Automatic),
         _ => null,
     };
 
     private static AutomationNotice Summary(List<(MyGame Game, AutomationDecision Decision)> announced) =>
         new(NoticeKind.AvailableSummary)
         {
-            Games = [.. announced.Select(item => item.Game.Key)],
-            Updates = [.. announced.Where(item => KindOf(item.Decision) == NoticeKind.UpdateAvailable).Select(item => item.Game.Key)],
-            Repairs = [.. announced.Where(item => KindOf(item.Decision) == NoticeKind.RepairNeeded).Select(item => item.Game.Key)],
+            Games = [.. announced.Select(item => item.Game.Key).Distinct()],
+            Updates = [.. GamesWith(announced, NoticeKind.UpdateAvailable)],
+            Repairs = [.. GamesWith(announced, NoticeKind.RepairNeeded)],
         };
+
+    private static IEnumerable<GameKey> GamesWith(List<(MyGame Game, AutomationDecision Decision)> announced, NoticeKind kind) =>
+        announced.Where(item => KindOf(item.Decision) == kind).Select(item => item.Game.Key).Distinct();
 
     private static NoticeKind KindOf(AutomationDecision announcement) => announcement.Reason switch
     {
@@ -167,7 +180,8 @@ internal sealed class AutomationDriver : IAsyncDisposable
     {
         Game = game.Key,
         GameName = game.Name,
-        TeamName = game.Project?.Project.Team.Name,
+        ProjectName = decision.Install is { } install ? AutomationNotice.ProjectNameFor(game, install.Record.Id) : null,
+        TeamName = (decision.Install?.Project ?? game.Project)?.Project.Team.Name,
         ReleaseLabel = decision.Release is { NameRaw.Length: > 0 } release ? release.NameRaw : null,
         ReleaseVersion = decision.Release is { Version: > 0 } numbered ? numbered.Version : null,
         OffersTargetLanguage = decision.Reason == AutomationReason.TargetLanguageOffered,
@@ -178,8 +192,8 @@ internal sealed class AutomationDriver : IAsyncDisposable
         var now = _time.GetUtcNow();
         if (result.LostPrevious)
         {
-            // The game has nothing installed now; announcing or installing that release again at once would only repeat
-            // what just failed, so it waits like any failed install.
+            // The install is gone now; announcing or installing that release again at once would only repeat what just
+            // failed, so it waits like any failed install.
             History = History.RecordAnnouncement(attempt.Game, attempt.Release)
                 .RecordFailure(attempt.Game, attempt.Release, AutomationAction.Install, result.Failure?.Reason ?? JobFailureReason.InstallFailed,
                     attempt.Build, now, out _);
@@ -207,8 +221,9 @@ internal sealed class AutomationDriver : IAsyncDisposable
                 // Starting again what the player cancelled would overrule the player, and announcing it would only repeat
                 // what the player saw.
                 History = History.ForgetAttempt(attempt.Game, attempt.Release, attempt.Action);
-                History = attempt.Action == AutomationAction.Repair
-                    ? History.RecordRepairAnnouncement(attempt.Game, attempt.Build)
+                // A repair cancelled after its uninstall put the install back as a new one.
+                History = attempt.Action == AutomationAction.Repair && (result.Installed?.Id ?? attempt.Install) is { } broken
+                    ? History.RecordRepairAnnouncement(broken, attempt.Build)
                     : History.RecordAnnouncement(attempt.Game, attempt.Release);
                 _settings.Update(settings => settings.WithGame(attempt.Game, preferences => attempt.Action == AutomationAction.Install
                     ? preferences with { AutoInstall = false }
@@ -248,11 +263,12 @@ internal sealed class AutomationDriver : IAsyncDisposable
             return;
         }
 
-        History = History.ForgetRepairAnnouncements(key);
         if (result.Job.Kind == JobKind.Uninstall)
         {
             // Otherwise the next look would announce, or install again, what the player just removed.
-            foreach (var release in new[] { game?.Project?.Selection.Release?.Uuid, InstalledRelease(game) }.OfType<Guid>())
+            var removed = result.Job.InstallId is { } install ? game?.FindInstall(install) : null;
+            Guid?[] releases = [removed?.Project?.Selection.Release?.Uuid, InstalledRelease(removed?.Record)];
+            foreach (var release in releases.OfType<Guid>())
             {
                 History = History.RecordAnnouncement(key, release);
             }
@@ -266,10 +282,11 @@ internal sealed class AutomationDriver : IAsyncDisposable
         }
     }
 
-    private static Guid? InstalledRelease(MyGame? game) =>
-        Guid.TryParse(game?.Installed?.Source?.ReleaseId, out var release) ? release : null;
+    private static Guid? InstalledRelease(InstallRecord? record) =>
+        Guid.TryParse(record?.Source?.ReleaseId, out var release) ? release : null;
 
-    private static AutomationNotice Notice(NoticeKind kind, Attempt attempt) => new(kind) { Game = attempt.Game, GameName = attempt.GameName };
+    private static AutomationNotice Notice(NoticeKind kind, Attempt attempt) =>
+        new(kind) { Game = attempt.Game, GameName = attempt.GameName, ProjectName = attempt.ProjectName };
 
     private void SaveIfChanged(AutomationHistory before)
     {
@@ -279,10 +296,14 @@ internal sealed class AutomationDriver : IAsyncDisposable
         }
     }
 
+    /// <summary>An automatic job that runs, as the history and the notices need it.</summary>
     /// <param name="Game">The game the job works on.</param>
     /// <param name="GameName">The game's name for notices.</param>
     /// <param name="Release">The release the history tracks the action by.</param>
     /// <param name="Action">What the job does.</param>
     /// <param name="Build">The game's build when the job started, which a failure is bound to.</param>
-    private sealed record Attempt(GameKey Game, string GameName, Guid Release, AutomationAction Action, string? Build);
+    /// <param name="Install">The install an update or a repair works on.</param>
+    /// <param name="ProjectName">Its project as notices about it name it.</param>
+    private sealed record Attempt(GameKey Game, string GameName, Guid Release, AutomationAction Action, string? Build, Guid? Install,
+        string? ProjectName);
 }

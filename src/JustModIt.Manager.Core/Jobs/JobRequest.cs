@@ -13,7 +13,10 @@ public abstract record JobRequest(GameKey Game, string GameName, JobOrigin Origi
     public abstract JobKind Kind { get; }
 }
 
-/// <summary>Installs a project next to the game's installs, or in place of them, as the app's install policy says.</summary>
+/// <summary>
+/// Installs a project next to the game's installs or in place of them, as the app's install policy says; a project the
+/// game has already takes the place of its install, e.g. to switch the variant.
+/// </summary>
 /// <param name="Game">The game to install on.</param>
 /// <param name="GameName">The game's name, shown with the job.</param>
 /// <param name="Project">The project to install, as the site locates it.</param>
@@ -25,8 +28,15 @@ public sealed record InstallJobRequest(GameKey Game, string GameName, ProjectLoc
     public override JobKind Kind => JobKind.Install;
 }
 
-public sealed record UninstallJobRequest(InstallRecord Record, JobOrigin Origin = JobOrigin.User)
-    : JobRequest(Record.Game, Record.GameName, Origin)
+/// <summary>A job on one of the game's installs.</summary>
+/// <param name="Record">The install's record.</param>
+/// <param name="Origin">Whether the player or the automation asked for the job.</param>
+public abstract record RecordJobRequest(InstallRecord Record, JobOrigin Origin) : JobRequest(Record.Game, Record.GameName, Origin);
+
+/// <summary>Uninstalls an install, putting the game's originals back.</summary>
+/// <param name="Record">The install's record.</param>
+/// <param name="Origin">Whether the player or the automation asked for the job.</param>
+public sealed record UninstallJobRequest(InstallRecord Record, JobOrigin Origin = JobOrigin.User) : RecordJobRequest(Record, Origin)
 {
     public override JobKind Kind => JobKind.Uninstall;
 }
@@ -35,7 +45,9 @@ public sealed record UninstallJobRequest(InstallRecord Record, JobOrigin Origin 
 /// Installs the project's current release in place of the installed one: download, check that it fits once the old one
 /// is gone, uninstall, install, and put the old one back if anything fails.
 /// </summary>
-public abstract record ReinstallJobRequest(InstallRecord Record, JobOrigin Origin) : JobRequest(Record.Game, Record.GameName, Origin);
+/// <param name="Record">The installed release's record.</param>
+/// <param name="Origin">Whether the player or the automation asked for the job.</param>
+public abstract record ReinstallJobRequest(InstallRecord Record, JobOrigin Origin) : RecordJobRequest(Record, Origin);
 
 /// <summary>Installs the project's newer release in place of the installed one.</summary>
 /// <param name="Record">The installed release's record.</param>
@@ -64,13 +76,17 @@ public sealed record TestInstallJobRequest(GameKey Game, string GameName, string
     public override JobKind Kind => JobKind.TestInstall;
 }
 
-public sealed record MoveBackupsJobRequest(InstallRecord Record, BackupChoice Destination)
-    : JobRequest(Record.Game, Record.GameName, JobOrigin.User)
+/// <summary>Moves an install's backups to where the settings now keep them.</summary>
+/// <param name="Record">The install's record.</param>
+/// <param name="Destination">Where the backups go.</param>
+public sealed record MoveBackupsJobRequest(InstallRecord Record, BackupChoice Destination) : RecordJobRequest(Record, JobOrigin.User)
 {
     public override JobKind Kind => JobKind.MoveBackups;
 }
 
-public sealed record FollowMoveJobRequest(InstallRecord Record) : JobRequest(Record.Game, Record.GameName, JobOrigin.Automatic)
+/// <summary>Points an install at the folder its store moved the game to.</summary>
+/// <param name="Record">The install's record.</param>
+public sealed record FollowMoveJobRequest(InstallRecord Record) : RecordJobRequest(Record, JobOrigin.Automatic)
 {
     public override JobKind Kind => JobKind.FollowMove;
 }

@@ -24,6 +24,22 @@ public sealed class ProjectReplacementTests
     }
 
     [Fact]
+    public async Task Installing_a_project_the_game_has_in_another_variant_replaces_its_install_even_next_to_others()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var record = jobs.Installed();
+        var other = jobs.Engine.Add(Record(source: Source(ReleaseTwo, FileTwo, 1, project: OtherProject)));
+
+        var result = await jobs.RunAsync(JobsHarness.Install(variant: "Text and voice"));
+
+        result.Outcome.Should().Be(JobOutcome.Succeeded);
+        result.RemovedRecord.Should().Be(record.Id);
+        result.Installed!.Source!.VariantName.Should().Be("Text and voice");
+        jobs.Engine.Calls.Should().ContainInOrder("predict", "uninstall", "install " + VoiceFile.ToString("D") + ".zip");
+        jobs.Engine.Records.Keys.Should().BeEquivalentTo([other.Id, result.Installed.Id]);
+    }
+
+    [Fact]
     public async Task Where_the_app_keeps_one_project_another_replaces_it_the_way_an_update_does()
     {
         await using var jobs = await JobsHarness.CreateAsync(policy: new OneProjectPolicy());

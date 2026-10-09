@@ -316,13 +316,13 @@ public sealed class JobRunnerTests
         var handle = jobs.Runner.Start(JobsHarness.Install());
         await Eventually.HoldsAsync(() => jobs.Downloader.Downloads.Contains(FileOne), "the download starts");
 
-        jobs.Runner.Cancel(Game).Should().BeTrue();
+        jobs.Runner.Cancel(handle.Job.Id).Should().BeTrue();
         var result = await handle.Completion;
 
         result.Outcome.Should().Be(JobOutcome.Cancelled);
         result.CancelledByPlayer.Should().BeTrue();
         jobs.Engine.Installs.Should().BeEmpty();
-        jobs.Runner.Cancel(Game).Should().BeFalse();
+        jobs.Runner.Cancel(handle.Job.Id).Should().BeFalse();
     }
 
     [Fact]

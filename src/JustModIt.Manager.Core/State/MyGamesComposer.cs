@@ -34,7 +34,7 @@ public sealed record MyGamesInput
     /// <summary>Installs whose originals' folder is not there, by record id.</summary>
     public IReadOnlySet<Guid> UnavailableBackups { get; init; } = ImmutableHashSet<Guid>.Empty;
 
-    public IReadOnlyDictionary<GameKey, FailedAttempt> Failures { get; init; } = ImmutableDictionary<GameKey, FailedAttempt>.Empty;
+    public IReadOnlyDictionary<FailureKey, FailedAttempt> Failures { get; init; } = ImmutableDictionary<FailureKey, FailedAttempt>.Empty;
 
     /// <summary>Games known to run right now, with what runs from their folders.</summary>
     public IReadOnlyDictionary<GameKey, ValueList<RunningProcess>> Running { get; init; } =
@@ -70,45 +70,52 @@ public static class MyGamesComposer
         return [.. games.OrderBy(game => game.Name, StringComparer.OrdinalIgnoreCase).ThenBy(game => game.Key.ToString(), StringComparer.Ordinal)];
     }
 
-    /// <summary>The install the player's list shows for a game: the latest where its store reports the game, else the latest.</summary>
-    private static InstallRecord RecordFor(List<InstallRecord> records, InstalledGame? game)
-    {
-        var latest = records.OrderByDescending(record => record.InstalledAt).ToList();
-        return latest.Find(record => game is not null && PathComparison.AreSame(record.InstallDirectory, game.InstallDirectory))
-            ?? latest[0];
-    }
-
     private static MyGame Compose(MyGamesInput input, GameKey key, InstalledGame? game, GameOffer offer, List<InstallRecord> records)
     {
-        var record = records.Count > 0 ? RecordFor(records, game) : null;
         var preferences = input.Settings.GetGame(key);
         var running = input.Running.TryGetValue(key, out var processes) && processes.Count > 0 ? processes : [];
         var current = game is { State: GameInstallState.Installed } && running.Count > 0
             ? game with { State = GameInstallState.Running, Reason = GameStateReason.GameRunning }
             : game;
-        var project = record is not null
-            ? InstalledProject(input.Index, offer, record, key, game)
-            : offer.Choose(ParseProject(preferences), input.Settings.PreferredTeams);
         var job = input.Jobs.GetValueOrDefault(key);
-        RepairReason? repair = record is not null && input.Repairs.TryGetValue(record.Id, out var found) ? found : null;
-        var status = MyGameStatusRules.Resolve(current, record, project, repair, job is not null,
-            record is not null && input.UnavailableBackups.Contains(record.Id));
+        List<MyInstall> installs = [.. records
+            .OrderByDescending(record => game is not null && PathComparison.AreSame(record.InstallDirectory, game.InstallDirectory))
+            .ThenByDescending(record => record.InstalledAt)
+            .Select(record => Install(input, record, key, game, current, offer, job is not null))];
+        var project = offer.Choose(ParseProject(preferences), input.Settings.PreferredTeams);
+        var first = installs.FirstOrDefault();
         return new MyGame
         {
             Key = key,
-            Name = project?.Project.Game.Name ?? record?.Source?.GameName ?? game?.Name ?? record?.GameName ?? key.ToString(),
-            Status = status,
+            Name = (first?.Project ?? project)?.Project.Game.Name ?? first?.Record.Source?.GameName ?? game?.Name ?? first?.Record.GameName
+                ?? key.ToString(),
+            Status = MyGameStatusRules.Resolve(current, job is not null, installs.Select(install => install.Status)),
             Game = game,
             Projects = offer.Projects,
             Project = project,
-            Installed = record,
+            Installs = [.. installs],
             Preferences = preferences,
             Job = job,
             NewInstall = game is null ? null : InstallAdmission.For(input.InstallPolicy, game, records),
             OffersTargetLanguage = offer.OffersTargetLanguage
                 || (input.Language.Code is { } language && game?.HasLanguage(language) == true),
-            LastFailure = input.Failures.GetValueOrDefault(key),
+            LastFailure = input.Failures.GetValueOrDefault(new FailureKey(key, null)),
             RunningProcesses = [.. running.Select(process => process.Name).Distinct(StringComparer.OrdinalIgnoreCase)],
+        };
+    }
+
+    // The game is what its store reports, and current the same, running when it is known to run.
+    private static MyInstall Install(MyGamesInput input, InstallRecord record, GameKey key, InstalledGame? game, InstalledGame? current,
+        GameOffer offer, bool hasJob)
+    {
+        var project = InstalledProject(input.Index, offer, record, key, game);
+        RepairReason? repair = input.Repairs.TryGetValue(record.Id, out var found) ? found : null;
+        return new MyInstall
+        {
+            Record = record,
+            Status = MyGameStatusRules.Resolve(current, record, project, repair, hasJob, input.UnavailableBackups.Contains(record.Id)),
+            Project = project,
+            LastFailure = input.Failures.GetValueOrDefault(new FailureKey(key, record.Id)),
         };
     }
 

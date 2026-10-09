@@ -177,14 +177,15 @@ public sealed partial class JobRunner : IAsyncDisposable
         return new JobHandle(job.Snapshot, job.Completion.Task);
     }
 
-    /// <summary>Cancels the game's job for the player; an update past its uninstall still puts the previous release back.</summary>
-    /// <returns>False when the game has no job.</returns>
-    public bool Cancel(GameKey game)
+    /// <summary>Cancels a job for the player; an update past its uninstall still puts the previous release back.</summary>
+    /// <param name="jobId">The <see cref="JobSnapshot.Id"/> of the job.</param>
+    /// <returns>False when the job is not running, e.g. because it finished meanwhile.</returns>
+    public bool Cancel(Guid jobId)
     {
         JobContext? job;
         lock (_gate)
         {
-            _active.TryGetValue(game, out job);
+            job = _active.Values.FirstOrDefault(active => active.Snapshot.Id == jobId);
         }
 
         job?.Cancel(byPlayer: true);

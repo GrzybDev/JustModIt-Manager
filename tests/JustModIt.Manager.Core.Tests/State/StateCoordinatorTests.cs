@@ -60,7 +60,7 @@ public sealed class StateCoordinatorTests
         var done = await app.GameAsync(game => game.Job is null, "the job finished");
         var installed = done.Find(Game)!;
         installed.Status.State.Should().Be(MyGameState.Installed);
-        installed.Installed!.Source!.ReleaseId.Should().Be(ReleaseOne.ToString("D"));
+        installed.Installs.Single().Record.Source!.ReleaseId.Should().Be(ReleaseOne.ToString("D"));
         done.Jobs.Should().BeEmpty();
     }
 
@@ -75,8 +75,23 @@ public sealed class StateCoordinatorTests
 
         var result = await app.RunJobAsync(new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"), null));
 
-        await app.GameAsync(game => game.Installed == result.Installed && game.NewInstall?.Replaces == result.Installed,
+        await app.GameAsync(game => game.Installs is [{ Record: var only }] && only == result.Installed && game.NewInstall?.Replaces == only,
             "the other project is the one install on the game");
+    }
+
+    [Fact]
+    public async Task By_the_platforms_rule_another_project_joins_the_installed_one_and_each_is_removed_on_its_own()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        var record = app.Engine.Add(Record());
+        app.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
+        await app.StartAsync();
+
+        var joined = (await app.RunJobAsync(new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"), null))).Installed;
+        await app.GameAsync(game => game.Installs.Count == 2 && game.NewInstall == InstallAdmission.Alongside, "both projects are installed");
+        await app.RunJobAsync(new UninstallJobRequest(record));
+
+        await app.GameAsync(game => game.Installs is [{ Record: var left }] && left == joined, "the other project stays");
     }
 
     [Fact]
@@ -160,20 +175,21 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
-    public async Task Follows_a_game_the_store_moved_once_when_the_install_is_found_there()
+    public async Task Follows_a_game_the_store_moved_once_with_every_install_found_there()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();
-        var record = app.Engine.Add(Record());
+        var first = app.Engine.Add(Record());
+        var second = app.Engine.Add(Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject)));
         var moved = Installed(folder: Path.Join("Library B", "Example"));
         app.Library.Publish(moved);
 
         await app.StartAsync();
 
-        var state = await app.GameAsync(game => game.Installed?.InstallDirectory == moved.InstallDirectory && game.Job is null,
-            "the install follows the game");
-        state.Find(Game)!.Status.State.Should().Be(MyGameState.Installed);
-        state.Find(Game)!.Installed!.Id.Should().Be(record.Id);
-        app.Engine.Calls.Count(call => call == "adopt").Should().Be(1);
+        var state = await app.GameAsync(game => game.Job is null
+            && game.Installs.All(install => install.Record.InstallDirectory == moved.InstallDirectory), "every install follows the game");
+        state.Find(Game)!.Installs.Select(install => install.Record.Id).Should().BeEquivalentTo([first.Id, second.Id]);
+        await Eventually.SettleAsync();
+        app.Engine.Calls.Count(call => call == "adopt").Should().Be(2);
     }
 
     [Fact]
@@ -193,7 +209,7 @@ public sealed class StateCoordinatorTests
         app.Library.Probes.Clear();
         app.Library.Publish(moved);
 
-        await app.GameAsync(game => game.Installed?.InstallDirectory == moved.InstallDirectory && game.Job is null,
+        await app.GameAsync(game => game.Job is null && game.Installs.Any(install => install.Record.InstallDirectory == moved.InstallDirectory),
             "the install follows the game");
         app.Engine.Calls.Count(call => call == "adopt").Should().Be(1);
     }
@@ -247,13 +263,14 @@ public sealed class StateCoordinatorTests
         failure.Failure!.Reason.Should().Be(JobFailureReason.Offline);
         failure.PackageFileId.Should().Be(FileOne);
         failed.Find(Game)!.NeedsAttention.Should().BeTrue();
-        await Eventually.HoldsAsync(() => app.Failures.Stored?.Games.ContainsKey(Game) == true, "the failure is saved");
+        await Eventually.HoldsAsync(() => app.Failures.Stored?.Failures.ContainsKey(new FailureKey(Game, null)) == true,
+            "the failure is saved");
 
         app.Downloader.Failure = null;
         await app.RunJobAsync(JobsHarness.Install());
 
-        await app.GameAsync(game => game.LastFailure is null && game.Installed is not null, "the failure is cleared");
-        await Eventually.HoldsAsync(() => app.Failures.Stored?.Games.Count == 0, "the cleared failure is saved");
+        await app.GameAsync(game => game.LastFailure is null && game.Installs.Count > 0, "the failure is cleared");
+        await Eventually.HoldsAsync(() => app.Failures.Stored?.Failures.Count == 0, "the cleared failure is saved");
     }
 
     [Fact]
@@ -261,14 +278,31 @@ public sealed class StateCoordinatorTests
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();
         var failure = new FailedAttempt(JobKind.Update, JobOrigin.Automatic, Now.AddHours(-1), null) { LostPrevious = true };
-        await app.Failures.SaveAsync(new FailedAttempts(new ValueDictionary<GameKey, FailedAttempt>(
-            ImmutableDictionary<GameKey, FailedAttempt>.Empty.Add(Game, failure))), CoordinatorHarness.Token);
+        await app.Failures.SaveAsync(new FailedAttempts(new ValueDictionary<FailureKey, FailedAttempt>(
+            ImmutableDictionary<FailureKey, FailedAttempt>.Empty.Add(new FailureKey(Game, null), failure))), CoordinatorHarness.Token);
 
         var state = await app.StartAsync();
 
         state.Find(Game)!.LastFailure.Should().Be(failure);
-        app.Coordinator.DismissFailure(Game);
+        app.Coordinator.DismissFailure(Game, null);
         await app.GameAsync(game => game.LastFailure is null, "the failure is dismissed");
+    }
+
+    [Fact]
+    public async Task A_job_that_failed_on_one_install_shows_on_that_install_alone_until_the_player_dismisses_it()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        var kept = app.Engine.Add(Record());
+        var failing = app.Engine.Add(Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject)));
+        await app.StartAsync();
+
+        (await app.RunJobAsync(new RepairJobRequest(failing))).Failure!.Reason.Should().Be(JobFailureReason.ProjectNotFound);
+
+        var failed = (await app.GameAsync(game => game.FindInstall(failing.Id)?.LastFailure is not null, "the failure shows")).Find(Game)!;
+        failed.LastFailure.Should().BeNull();
+        failed.FindInstall(kept.Id)!.LastFailure.Should().BeNull();
+        app.Coordinator.DismissFailure(Game, failing.Id);
+        await app.GameAsync(game => !game.NeedsAttention, "the failure is dismissed");
     }
 
     [Fact]
@@ -352,11 +386,33 @@ public sealed class StateCoordinatorTests
         app.Engine.Forgetting = ForgetOutcome.ForgottenKeepingBackups;
         app.Library.Publish(Installed(OtherGame));
 
-        (await app.NoticeAsync()).Should().BeEquivalentTo(new { Kind = NoticeKind.Forgotten, Game = (GameKey?)Game, KeptBackups = true });
+        (await app.NoticeAsync()).Should().BeEquivalentTo(new
+        {
+            Kind = NoticeKind.Forgotten,
+            Game = (GameKey?)Game,
+            ProjectName = (string?)null,
+            KeptBackups = true,
+        });
         await app.StateAsync(state => state.Find(Game) is null, "the game leaves the list");
         app.Library.Publish(Installed(OtherGame));
         await Eventually.SettleAsync();
         app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Forgets_the_installs_of_a_gone_game_together_and_names_each_project()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Engine.Add(Record());
+        app.Engine.Add(Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject) with { ProjectName = "Other Project" }));
+        app.Engine.Forgetting = ForgetOutcome.Forgotten;
+        app.Library.Publish(Installed(OtherGame));
+
+        await app.StartAsync();
+
+        new[] { await app.NoticeAsync(), await app.NoticeAsync() }.Select(notice => (notice.Kind, notice.ProjectName))
+            .Should().BeEquivalentTo([(NoticeKind.Forgotten, "Example Project"), (NoticeKind.Forgotten, "Other Project")]);
+        await app.StateAsync(state => state.Find(Game) is null, "the game leaves the list");
     }
 
     [Fact]
@@ -438,7 +494,7 @@ public sealed class StateCoordinatorTests
         app.Library.Publish(Installed(folder: Path.Join("Library C", "Example")));
 
         (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.Forgotten);
-        await app.GameAsync(game => game.Installed is null && game.Status.State == MyGameState.NotInstalled, "the game is offered afresh");
+        await app.GameAsync(game => game.Installs.Count == 0 && game.Status.State == MyGameState.NotInstalled, "the game is offered afresh");
     }
 
     [Fact]
@@ -447,17 +503,16 @@ public sealed class StateCoordinatorTests
         await using var app = new CoordinatorHarness().WithGameAndProject();
         app.Library.Publish(Installed(), Installed(OtherGame));
         app.Engine.Add(Record());
+        app.Engine.Add(Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject)));
         app.Engine.Add(Record(OtherGame));
         await app.StartAsync();
-        await app.StateAsync(state => state.Games.Count(game => game.Installed is not null) == 2, "both installs are listed");
+        await app.StateAsync(state => state.Games.Sum(game => game.Installs.Count) == 3, "every install is listed");
 
-        var jobs = app.Coordinator.MoveBackups(new BackupChoice(BackupLocation.AppData));
+        app.Coordinator.MoveBackups(new BackupChoice(BackupLocation.AppData));
 
-        jobs.Should().HaveCount(2);
-        foreach (var job in jobs)
-        {
-            (await job.Completion).Installed!.Backup.Location.Should().Be(BackupLocation.AppData);
-        }
+        await app.StateAsync(state => state.Jobs.Count == 0
+            && state.Games.SelectMany(game => game.Installs).All(install => install.Record.Backup.Location == BackupLocation.AppData),
+            "every install's backups moved, one job at a time on each game");
     }
 
     [Fact]

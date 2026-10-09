@@ -1,6 +1,7 @@
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.State;
 
 namespace JustModIt.Manager.Core.Automation;
 
@@ -53,6 +54,12 @@ public sealed record AutomationNotice(NoticeKind Kind)
 
     public string? GameName { get; init; }
 
+    /// <summary>
+    /// The project of the install the notice is about, named only when the game holds other installs too, so the player
+    /// can tell which one; null otherwise.
+    /// </summary>
+    public string? ProjectName { get; init; }
+
     public string? TeamName { get; init; }
 
     /// <summary>The release's name as the site shows it.</summary>
@@ -79,4 +86,10 @@ public sealed record AutomationNotice(NoticeKind Kind)
 
     /// <summary>Those of <see cref="Games"/> whose install needs a repair.</summary>
     public ValueList<GameKey> Repairs { get; init; }
+
+    /// <summary>The <see cref="ProjectName"/> of a notice about one install on the game.</summary>
+    /// <param name="game">The game as the state shows it; null when it is gone.</param>
+    /// <param name="install">The install's record id.</param>
+    internal static string? ProjectNameFor(MyGame? game, Guid install) =>
+        game is { Installs.Count: > 1 } ? game.FindInstall(install)?.ProjectName : null;
 }

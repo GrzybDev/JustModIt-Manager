@@ -21,26 +21,28 @@ public sealed class FailedAttemptsFormatTests : IDisposable
     [Fact]
     public async Task Failures_survive_a_round_trip_with_every_detail()
     {
-        var failures = new FailedAttempts(new ValueDictionary<GameKey, FailedAttempt>(ImmutableDictionary<GameKey, FailedAttempt>.Empty
-            .Add(Game, new FailedAttempt(JobKind.Update, JobOrigin.Automatic, Now, new JobFailure(JobFailureReason.FilesLocked)
-            {
-                Files = ["data/strings.pak"],
-                Processes = ["Viewer"],
-                GameState = GameInstallState.Installed,
-                StateReason = GameStateReason.None,
-                Unavailability = SelectionUnavailability.OtherSystems,
-                CatalogueError = CatalogueErrorReason.Timeout,
-                RequiredBytes = 2048,
-                AvailableBytes = 1024,
-                Location = Path.Join("D:", "Games"),
-                OtherApp = "OtherApp",
-            })
+        var locked = new JobFailure(JobFailureReason.FilesLocked)
+        {
+            Files = ["data/strings.pak"],
+            Processes = ["Viewer"],
+            GameState = GameInstallState.Installed,
+            StateReason = GameStateReason.None,
+            Unavailability = SelectionUnavailability.OtherSystems,
+            CatalogueError = CatalogueErrorReason.Timeout,
+            RequiredBytes = 2048,
+            AvailableBytes = 1024,
+            Location = Path.Join("D:", "Games"),
+            OtherApp = "OtherApp",
+        };
+        var failures = new FailedAttempts(new ValueDictionary<FailureKey, FailedAttempt>(ImmutableDictionary<FailureKey, FailedAttempt>.Empty
+            .Add(new FailureKey(Game, Guid.NewGuid()), new FailedAttempt(JobKind.Update, JobOrigin.Automatic, Now, locked)
             {
                 LostPrevious = true,
                 ReleaseId = ReleaseTwo,
                 PackageFileId = FileTwo,
             })
-            .Add(OtherGame, new FailedAttempt(JobKind.Install, JobOrigin.User, Now.AddHours(-2), null))));
+            .Add(new FailureKey(Game, null), new FailedAttempt(JobKind.Install, JobOrigin.User, Now.AddHours(-1), null))
+            .Add(new FailureKey(OtherGame, null), new FailedAttempt(JobKind.Install, JobOrigin.User, Now.AddHours(-2), null))));
 
         await Store().SaveAsync(failures, TestContext.Current.CancellationToken);
 
@@ -64,7 +66,7 @@ public sealed class FailedAttemptsFormatTests : IDisposable
 
         var failures = FailedAttemptsFormat.Instance.Read(json.RootElement, 1);
 
-        failures.Games.Should().ContainSingle().Which.Value.Failure!.Reason.Should().Be(JobFailureReason.Offline);
+        failures.Failures.Should().ContainSingle().Which.Value.Failure!.Reason.Should().Be(JobFailureReason.Offline);
     }
 
     private JsonDocumentStore<FailedAttempts> Store() =>

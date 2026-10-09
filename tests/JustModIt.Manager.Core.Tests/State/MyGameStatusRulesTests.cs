@@ -13,10 +13,24 @@ public sealed class MyGameStatusRulesTests
     private static readonly ProjectOffer NewerRelease = Offer(Release(ReleaseTwo, 2, File(FileTwo)));
 
     [Fact]
-    public void A_detected_game_with_something_to_install_is_not_installed()
+    public void A_detected_game_without_an_install_is_not_installed_while_it_is_ready()
     {
-        Resolve(Installed(), null, CurrentRelease).State.Should().Be(MyGameState.NotInstalled);
-        Resolve(Installed(), null, null).State.Should().Be(MyGameState.NotInstalled, "several teams offer one and nobody chose");
+        MyGameStatusRules.Resolve(Installed(), hasJob: false, []).State.Should().Be(MyGameState.NotInstalled);
+        MyGameStatusRules.Resolve(Installed(state: GameInstallState.Updating), hasJob: false, []).State.Should().Be(MyGameState.GameNotReady);
+    }
+
+    [Fact]
+    public void A_game_tells_first_what_the_player_must_hear_first_of_its_installs()
+    {
+        var repair = new MyGameStatus(MyGameState.NeedsRepair) { Repair = RepairReason.FilesModified };
+        var update = new MyGameStatus(MyGameState.UpdateAvailable);
+        var test = new MyGameStatus(MyGameState.TestInstalled);
+        var moved = new MyGameStatus(MyGameState.Orphaned) { Orphan = OrphanReason.GameMoved };
+
+        MyGameStatusRules.Resolve(Installed(), hasJob: false, [test, update, repair]).Should().Be(repair);
+        MyGameStatusRules.Resolve(Installed(), hasJob: false, [new MyGameStatus(MyGameState.Installed), test]).Should().Be(test);
+        MyGameStatusRules.Resolve(Installed(), hasJob: false, [repair, moved]).Should().Be(moved, "an install lost its game");
+        MyGameStatusRules.Resolve(Installed(), hasJob: true, [repair]).State.Should().Be(MyGameState.Busy);
     }
 
     [Theory]
@@ -31,7 +45,7 @@ public sealed class MyGameStatusRulesTests
     {
         var game = Installed(state: state) with { Reason = GameStateReason.StoreBusy };
 
-        Resolve(game, installed ? Record() : null, CurrentRelease)
+        (installed ? Resolve(game, Record(), CurrentRelease) : MyGameStatusRules.Resolve(game, hasJob: false, []))
             .Should().Be(new MyGameStatus(MyGameState.GameNotReady) { GameState = state, StateReason = GameStateReason.StoreBusy });
     }
 
@@ -131,10 +145,10 @@ public sealed class MyGameStatusRulesTests
     public void A_job_comes_first()
     {
         Resolve(null, Record(), null, RepairReason.FilesMissing, hasJob: true).Should().Be(new MyGameStatus(MyGameState.Busy));
-        Resolve(Installed(state: GameInstallState.Updating), null, CurrentRelease, hasJob: true).State.Should().Be(MyGameState.Busy);
+        MyGameStatusRules.Resolve(Installed(state: GameInstallState.Updating), hasJob: true, []).State.Should().Be(MyGameState.Busy);
     }
 
-    private static MyGameStatus Resolve(InstalledGame? game, InstallRecord? record, ProjectOffer? project, RepairReason? repair = null,
+    private static MyGameStatus Resolve(InstalledGame? game, InstallRecord record, ProjectOffer? project, RepairReason? repair = null,
         bool hasJob = false, bool backupsUnavailable = false) =>
         MyGameStatusRules.Resolve(game, record, project, repair, hasJob, backupsUnavailable);
 

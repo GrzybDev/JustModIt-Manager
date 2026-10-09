@@ -99,6 +99,9 @@ public sealed record JobSnapshot
 
     public required JobOrigin Origin { get; init; }
 
+    /// <summary>The install the job works on; null for one that installs a project.</summary>
+    public Guid? InstallId { get; init; }
+
     public JobStage Stage { get; init; }
 
     /// <summary>Set exactly while <see cref="Stage"/> is <see cref="JobStage.Waiting"/>.</summary>

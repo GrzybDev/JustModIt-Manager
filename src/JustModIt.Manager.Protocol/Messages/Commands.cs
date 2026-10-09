@@ -5,39 +5,58 @@ using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Protocol.Messages;
 
-// A job's request is answered as soon as the job is queued, never when it ends: how it goes arrives with the state.
+// A job request is answered once the job is queued, never when it ends: how it goes arrives with the state. A project is
+// installed on a game; every other job works on one install, addressed by its id.
 
+/// <summary>
+/// Installs a project on a game as <see cref="Views.GameView.InstallReplaces"/> tells; a project the game has already
+/// takes the place of its install, e.g. to switch the variant.
+/// </summary>
 /// <param name="Game">A detected game.</param>
 /// <param name="ProjectId">One of the projects the game offers.</param>
 /// <param name="VariantName">The variant to install; null installs the one the release recommends.</param>
 public sealed record InstallProject(GameKey Game, Guid ProjectId, string? VariantName = null) : Message;
 
-public sealed record UpdateProject(GameKey Game) : Message;
+/// <summary>Installs the project's newer release in place of an install.</summary>
+/// <param name="Install">The install's record id.</param>
+public sealed record UpdateProject(Guid Install) : Message;
 
-public sealed record RepairProject(GameKey Game) : Message;
+/// <summary>Installs the project's current release again in place of an install whose files changed.</summary>
+/// <param name="Install">The install's record id.</param>
+public sealed record RepairProject(Guid Install) : Message;
 
-public sealed record UninstallProject(GameKey Game) : Message;
+/// <summary>Uninstalls an install, putting the game's originals back.</summary>
+/// <param name="Install">The install's record id.</param>
+public sealed record UninstallProject(Guid Install) : Message;
 
 /// <summary>Installs a package file the package creator built on a detected game, to try it out.</summary>
 /// <param name="Game">A detected game.</param>
 /// <param name="PackagePath">The package file's full path.</param>
 public sealed record TestInstallPackage(GameKey Game, string PackagePath) : Message;
 
-/// <summary>Moves every install's backups to where the settings now keep them, one job per install.</summary>
+/// <summary>
+/// Moves every install's backups to where the settings now keep them, one job per install, each once its game has no
+/// other job.
+/// </summary>
 public sealed record MoveBackups : Message;
 
 /// <summary>The answer to a job request, naming the queued job.</summary>
 /// <param name="JobId">The id that <see cref="JobView.Id"/> and <see cref="CancelJob"/> use.</param>
 public sealed record JobStarted(Guid JobId) : Message;
 
-public sealed record JobsStarted(IReadOnlyList<Guid> JobIds) : Message;
+/// <summary>Cancels a running job.</summary>
+/// <param name="Job">
+/// The job rather than its game, so a job that started on the game after the one the player meant has ended keeps
+/// running.
+/// </param>
+public sealed record CancelJob(Guid Job) : Message;
 
-public sealed record CancelJob(GameKey Game) : Message;
+/// <summary>Dismisses the last failure the player saw, of an install or, with none, of the game.</summary>
+/// <param name="Game">The game the failure shows on.</param>
+/// <param name="Install">The install that failed; null for a failure of the game itself.</param>
+public sealed record DismissFailure(GameKey Game, Guid? Install = null) : Message;
 
-/// <summary>The player saw the game's last failure and wants it gone.</summary>
-public sealed record DismissFailure(GameKey Game) : Message;
-
-/// <summary>The player opened the game's page, so its install is checked now.</summary>
+/// <summary>The player opened the game's page, so its installs are checked now.</summary>
 /// <param name="Game">The game whose page opened.</param>
 public sealed record OpenedGame(GameKey Game) : Message;
 
@@ -88,13 +107,17 @@ public enum AppFolder
     /// <summary>The folder of <see cref="OpenFolder.Game"/>.</summary>
     Game,
 
-    /// <summary>Where the install on <see cref="OpenFolder.Game"/> keeps the originals.</summary>
-    GameBackups,
+    /// <summary>Where <see cref="OpenFolder.Install"/> keeps the originals.</summary>
+    InstallBackups,
 
     Logs,
 }
 
-public sealed record OpenFolder(AppFolder Folder, GameKey? Game = null) : Message;
+/// <summary>Shows a folder in the file manager.</summary>
+/// <param name="Folder">Which folder to show.</param>
+/// <param name="Game">The game, for <see cref="AppFolder.Game"/>.</param>
+/// <param name="Install">The install's record id, for <see cref="AppFolder.InstallBackups"/>.</param>
+public sealed record OpenFolder(AppFolder Folder, GameKey? Game = null, Guid? Install = null) : Message;
 
 /// <summary>
 /// Adds a folder the player picked because detection did not find a game; answered with <see cref="LibraryFolderAdded"/>.

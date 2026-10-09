@@ -11,44 +11,65 @@ namespace JustModIt.Manager.Core.Automation;
 /// </summary>
 public static class AutomationPolicy
 {
-    public static AutomationDecision Decide(MyGame game, AppSettings settings, AutomationHistory history, DateTimeOffset now)
+    /// <summary>Decides what to do for a game and each install on it.</summary>
+    /// <param name="game">The game as the state shows it.</param>
+    /// <param name="settings">The app's settings, which the game's preferences override.</param>
+    /// <param name="history">What the automation did already.</param>
+    /// <param name="now">The current time, against which retries are held back.</param>
+    /// <returns>
+    /// One decision for a game with nothing installed, otherwise one per install, since only the player adds projects to
+    /// a game or swaps them.
+    /// </returns>
+    public static IReadOnlyList<AutomationDecision> Decide(MyGame game, AppSettings settings, AutomationHistory history, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(game);
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(history);
         if (!settings.OnboardingCompleted)
         {
-            return AutomationDecision.Skip(AutomationReason.OnboardingPending);
+            return [AutomationDecision.Skip(AutomationReason.OnboardingPending)];
         }
 
         // Hidden means left alone, updates and repairs of what is installed included.
         if (game.IsHidden)
         {
-            return AutomationDecision.Skip(AutomationReason.Hidden);
+            return [AutomationDecision.Skip(AutomationReason.Hidden)];
         }
 
-        return game.Status.State switch
+        if (game.Installs.Count == 0)
         {
-            MyGameState.NotInstalled => DecideInstall(game, settings.ResolveAutoInstall(game.Key), history, now),
-            MyGameState.UpdateAvailable when settings.ResolveAutoUpdate(game.Key) => AttemptUpdate(game, history, now),
-            MyGameState.UpdateAvailable => game.Project?.Selection.Release is { } release
-                ? Announce(game, release, AutomationReason.AutoUpdateOff, history)
-                : AutomationDecision.Skip(AutomationReason.AutoUpdateOff),
+            return [game.Status.State switch
+            {
+                MyGameState.NotInstalled => DecideInstall(game, settings.ResolveAutoInstall(game.Key), history, now),
+                MyGameState.Busy => AutomationDecision.Skip(AutomationReason.Busy),
+                _ => AutomationDecision.Skip(AutomationReason.GameNotReady),
+            }];
+        }
 
-            // A player who turned automatic updates off for a game is only told of its repairs too.
-            MyGameState.NeedsRepair when settings.ReapplyAfterGameUpdate && game.Preferences.AutoUpdate != false =>
-                AttemptRepair(game, history, now),
-            MyGameState.NeedsRepair => history.WasRepairAnnounced(game.Key, game.Game?.BuildId)
-                ? AutomationDecision.Skip(AutomationReason.AlreadyAnnounced)
-                : new AutomationDecision(AutomationAction.Announce, AutomationReason.ReapplyOff),
-            MyGameState.Busy => AutomationDecision.Skip(AutomationReason.Busy),
-            MyGameState.GameNotReady => AutomationDecision.Skip(AutomationReason.GameNotReady),
-            MyGameState.Orphaned => AutomationDecision.Skip(AutomationReason.Orphaned),
-            MyGameState.BackupsUnavailable => AutomationDecision.Skip(AutomationReason.BackupsUnavailable),
-            MyGameState.TestInstalled => AutomationDecision.Skip(AutomationReason.TestInstall),
-            _ => AutomationDecision.Skip(AutomationReason.UpToDate),
-        };
+        return [.. game.Installs.Select(install => Decide(game, install, settings, history, now) with { Install = install })];
     }
+
+    private static AutomationDecision Decide(MyGame game, MyInstall install, AppSettings settings, AutomationHistory history,
+        DateTimeOffset now) => install.Status.State switch
+    {
+        MyGameState.UpdateAvailable when settings.ResolveAutoUpdate(game.Key) => AttemptUpdate(game, install, history, now),
+        MyGameState.UpdateAvailable => install.Project?.Selection.Release is { } release
+            ? Announce(game, release, AutomationReason.AutoUpdateOff, history)
+            : AutomationDecision.Skip(AutomationReason.AutoUpdateOff),
+
+        // A player who turned automatic updates off for a game is only told of its repairs too.
+        MyGameState.NeedsRepair when settings.ReapplyAfterGameUpdate && game.Preferences.AutoUpdate != false =>
+            AttemptRepair(game, install, history, now),
+        MyGameState.NeedsRepair => history.WasRepairAnnounced(install.Record.Id, game.Game?.BuildId)
+            ? AutomationDecision.Skip(AutomationReason.AlreadyAnnounced)
+            : new AutomationDecision(AutomationAction.Announce, AutomationReason.ReapplyOff),
+        MyGameState.Busy => AutomationDecision.Skip(AutomationReason.Busy),
+        MyGameState.GameNotReady => AutomationDecision.Skip(AutomationReason.GameNotReady),
+        MyGameState.Orphaned => AutomationDecision.Skip(AutomationReason.Orphaned),
+        MyGameState.BackupsUnavailable => AutomationDecision.Skip(AutomationReason.BackupsUnavailable),
+        MyGameState.TestInstalled => AutomationDecision.Skip(AutomationReason.TestInstall),
+        _ => AutomationDecision.Skip(AutomationReason.UpToDate),
+    };
 
     private static AutomationDecision DecideInstall(MyGame game, bool autoInstall, AutomationHistory history, DateTimeOffset now)
     {
@@ -93,26 +114,26 @@ public static class AutomationPolicy
 
     // Updates and repairs keep the installed variant: another one would swap e.g. the player's voice-over for text only,
     // while the one installed may just not be ready yet in the new release.
-    private static AutomationDecision AttemptUpdate(MyGame game, AutomationHistory history, DateTimeOffset now) =>
-        game is { Status.Update: { VariantFellBack: false, Variant: { } variant }, Project.Selection.Release: { } release }
+    private static AutomationDecision AttemptUpdate(MyGame game, MyInstall install, AutomationHistory history, DateTimeOffset now) =>
+        install is { Status.Update: { VariantFellBack: false, Variant: { } variant }, Project.Selection.Release: { } release }
             ? Attempt(game, AutomationAction.Update, release, history, now) is { Action: AutomationAction.Update } update
                 ? update with { Variant = variant }
                 : AutomationDecision.Skip(AutomationReason.RecentlyTried)
             : AutomationDecision.Skip(AutomationReason.VariantUnavailable);
 
-    private static AutomationDecision AttemptRepair(MyGame game, AutomationHistory history, DateTimeOffset now)
+    private static AutomationDecision AttemptRepair(MyGame game, MyInstall install, AutomationHistory history, DateTimeOffset now)
     {
-        if (game.Project is { Selection: var selection } && game.Installed?.Source?.VariantName is { } installed
+        if (install.Project is { Selection: var selection } && install.Record.Source?.VariantName is { } installed
             && selection.FindInstallable(installed) is null)
         {
             return AutomationDecision.Skip(AutomationReason.VariantUnavailable);
         }
 
         // A repair installs the current release, so a newer one is a new try even when the installed one stopped fitting.
-        var target = game.Project?.Selection.Release?.Uuid
-            ?? (Guid.TryParse(game.Installed?.Source?.ReleaseId, out var installedRelease) ? installedRelease : Guid.Empty);
+        var target = install.Project?.Selection.Release?.Uuid
+            ?? (Guid.TryParse(install.Record.Source?.ReleaseId, out var installedRelease) ? installedRelease : Guid.Empty);
         return history.CanTry(game.Key, target, AutomationAction.Repair, game.Game?.BuildId, now)
-            ? new AutomationDecision(AutomationAction.Repair) { ReleaseId = target, Release = game.Project?.Selection.Release }
+            ? new AutomationDecision(AutomationAction.Repair) { ReleaseId = target, Release = install.Project?.Selection.Release }
             : AutomationDecision.Skip(AutomationReason.RecentlyTried);
     }
 

@@ -12,6 +12,9 @@ public sealed record NoticeView(NoticeKind Kind)
 
     public string? GameName { get; init; }
 
+    /// <inheritdoc cref="AutomationNotice.ProjectName"/>
+    public string? ProjectName { get; init; }
+
     public string? TeamName { get; init; }
 
     public string? ReleaseLabel { get; init; }
@@ -46,6 +49,7 @@ public sealed record NoticeView(NoticeKind Kind)
         {
             Game = notice.Game,
             GameName = notice.GameName,
+            ProjectName = notice.ProjectName,
             TeamName = notice.TeamName,
             ReleaseLabel = notice.ReleaseLabel,
             ReleaseVersion = notice.ReleaseVersion,

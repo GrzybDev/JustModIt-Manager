@@ -66,7 +66,7 @@ public enum OrphanReason
     NotInCatalog,
 }
 
-/// <summary>What a game in the player's list is, and why, so the app can say it in its own words.</summary>
+/// <summary>What a game in the player's list, or an install on it, is, and why, so the app can say it in its own words.</summary>
 /// <param name="State">What the game or install is, which tells which of the other properties are set.</param>
 public sealed record MyGameStatus(MyGameState State)
 {

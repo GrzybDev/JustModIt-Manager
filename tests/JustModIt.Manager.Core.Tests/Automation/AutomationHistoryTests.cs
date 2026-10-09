@@ -32,19 +32,21 @@ public sealed class AutomationHistoryTests : IDisposable
     [Fact]
     public void Forgetting_and_resetting_touch_only_what_they_name()
     {
+        var (kept, gone) = (Guid.NewGuid(), Guid.NewGuid());
         var history = AutomationHistory.Empty.RecordAttempt(Game, ReleaseOne, AutomationAction.Install, Now)
             .RecordAttempt(Game, ReleaseTwo, AutomationAction.Update, Now)
             .RecordAttempt(OtherGame, ReleaseOne, AutomationAction.Install, Now)
             .RecordAnnouncement(Game, ReleaseOne)
-            .RecordRepairAnnouncement(Game, "100")
-            .RecordRepairAnnouncement(OtherGame, null);
+            .RecordRepairAnnouncement(kept, "100")
+            .RecordRepairAnnouncement(gone, null);
 
         history.ForgetAttempt(Game, ReleaseOne, AutomationAction.Install).Attempts.Should().HaveCount(2);
         var reset = history.Reset(Game);
         reset.Attempts.Keys.Should().Equal(new AttemptKey(OtherGame, ReleaseOne, AutomationAction.Install));
         reset.WasAnnounced(Game, ReleaseOne).Should().BeTrue("a player's action does not bring an announcement back");
-        reset.WasRepairAnnounced(Game, "100").Should().BeTrue();
-        history.ForgetRepairAnnouncements(Game).RepairAnnouncements.Should().Equal(new RepairAnnouncement(OtherGame, null));
+        reset.WasRepairAnnounced(kept, "100").Should().BeTrue();
+        history.KeepRepairAnnouncementsOf(new HashSet<Guid> { kept }).RepairAnnouncements.Should().Equal(new RepairAnnouncement(kept, "100"));
+        history.KeepRepairAnnouncementsOf(new HashSet<Guid> { kept, gone }).Should().BeSameAs(history);
     }
 
     [Fact]
@@ -77,8 +79,8 @@ public sealed class AutomationHistoryTests : IDisposable
             .RecordFailure(Game, ReleaseOne, AutomationAction.Repair, JobFailureReason.UnsupportedGameVersion, "100", Now, out _)
             .RecordAttempt(OtherGame, ReleaseTwo, AutomationAction.Install, Now.AddHours(-1))
             .RecordAnnouncement(OtherGame, ReleaseOne)
-            .RecordRepairAnnouncement(Game, "100")
-            .RecordRepairAnnouncement(OtherGame, null)
+            .RecordRepairAnnouncement(Guid.NewGuid(), "100")
+            .RecordRepairAnnouncement(Guid.NewGuid(), null)
             .WithBaseline(Now.AddDays(-3));
 
         await Store().SaveAsync(history, TestContext.Current.CancellationToken);

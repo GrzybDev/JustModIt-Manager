@@ -93,13 +93,13 @@ public sealed class AgentIpcTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Commands_about_a_game_the_player_does_not_have_are_refused()
+    public async Task Commands_about_a_game_or_an_install_the_player_does_not_have_are_refused()
     {
         _agent.Start();
         var window = await _agent.ConnectWindowAsync();
 
-        foreach (var command in new Message[] { new UpdateProject(UnknownGame), new InstallProject(UnknownGame, Guid.NewGuid()),
-            new OpenFolder(AppFolder.Game, UnknownGame) })
+        foreach (var command in new Message[] { new UpdateProject(Guid.NewGuid()), new InstallProject(UnknownGame, Guid.NewGuid()),
+            new OpenFolder(AppFolder.Game, UnknownGame), new OpenFolder(AppFolder.InstallBackups, Install: Guid.NewGuid()) })
         {
             var send = () => window.RequestAsync(command);
             (await send.Should().ThrowAsync<RequestFailedException>()).Which.Code.Should().Be(ErrorCode.InvalidRequest);
