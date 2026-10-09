@@ -113,9 +113,8 @@ public sealed partial class CatalogueService(
                 }
 
                 Volatile.Write(ref _listing, new WeakReference<CatalogueListing>(listing));
-                await SaveQuietlyAsync(() => cache.SaveListingAsync(listing, cancellationToken)).ConfigureAwait(false);
-                await SaveQuietlyAsync(() => cache.SaveSiteAsync(listing.Reference.Site, listing.FetchedAt, cancellationToken))
-                    .ConfigureAwait(false);
+                await cache.SaveListingAsync(listing, cancellationToken).ConfigureAwait(false);
+                await cache.SaveSiteAsync(listing.Reference.Site, listing.FetchedAt, cancellationToken).ConfigureAwait(false);
                 return await BuildIndexAsync(before with { Site = listing.Reference.Site }, request, listing, readNow: true,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -186,7 +185,7 @@ public sealed partial class CatalogueService(
             return Failed(basis, exception);
         }
 
-        await SaveQuietlyAsync(() => cache.SaveIndexAsync(index, cancellationToken)).ConfigureAwait(false);
+        await cache.SaveIndexAsync(index, cancellationToken).ConfigureAwait(false);
         return Publish(readNow
             ? basis with { State = CatalogueState.Fresh, Index = index, FetchedAt = listing.FetchedAt, Failure = null, RetryAfter = null }
             // An index built offline from saved pages must not hide that the last refresh failed.
@@ -236,24 +235,8 @@ public sealed partial class CatalogueService(
         return await operation().ConfigureAwait(false);
     }
 
-    // The fresh data is already in hand; a full or read-only disk only costs the offline copy.
-    private async Task SaveQuietlyAsync(Func<Task> save)
-    {
-        try
-        {
-            await save().ConfigureAwait(false);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            LogCacheNotSaved(exception);
-        }
-    }
-
     [LoggerMessage(Level = LogLevel.Warning, Message = "The catalogue could not be refreshed ({Reason})")]
     private partial void LogRefreshFailed(CatalogueErrorReason reason, Exception exception);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The catalogue could not be saved for offline use")]
-    private partial void LogCacheNotSaved(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "A catalogue listener failed")]
     private partial void LogListenerFailed(Exception exception);

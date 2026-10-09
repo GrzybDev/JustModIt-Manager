@@ -1,4 +1,4 @@
-using System.Text;
+using System.Runtime.InteropServices;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -14,11 +14,12 @@ public sealed record CachedProjectPage(ProjectPageDocument Document, DateTimeOff
 
 /// <summary>
 /// The catalogue data last read from the site, each file with its format version and fetch time, kept so the app works
-/// offline; a file that is missing, damaged or of another format version reads as absent and is fetched again.
+/// offline: a file that is missing, damaged or of another format version reads as absent and is fetched again, and one
+/// that cannot be saved is only logged, since the data is in hand.
 /// </summary>
 /// <param name="directory">The catalogue's cache folder.</param>
 /// <param name="time">The clock for retrying a file the system holds briefly.</param>
-/// <param name="logger">Logs files that could not be read.</param>
+/// <param name="logger">Logs files that could not be read or saved.</param>
 public sealed partial class CatalogueCache(string directory, TimeProvider time, ILogger<CatalogueCache> logger)
 {
     public const int ListingVersion = 1;
@@ -107,7 +108,7 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
 
         try
         {
-            var page = ProjectPageDocument.Parse(Encoding.UTF8.GetBytes(data.GetRawText()));
+            var page = ProjectPageDocument.Parse(JsonMarshal.GetRawUtf8Value(data).ToArray());
             return page.Page.Uuid == projectUuid ? new CachedProjectPage(page, fetchedAt) : null;
         }
         catch (JsonException exception)
@@ -130,17 +131,27 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
 
     private string PageFile(Guid projectUuid) => Path.Combine(directory, "projects", $"{projectUuid:D}.json");
 
-    private Task WriteAsync(string path, int version, DateTimeOffset fetchedAt, Action<Utf8JsonWriter> writeData,
-        CancellationToken cancellationToken) =>
-        AtomicFile.WriteJsonAsync(path, WriteOptions, writer =>
+    private async Task WriteAsync(string path, int version, DateTimeOffset fetchedAt, Action<Utf8JsonWriter> writeData,
+        CancellationToken cancellationToken)
+    {
+        try
         {
-            writer.WriteStartObject();
-            writer.WriteNumber(VersionProperty, version);
-            writer.WriteString(FetchedAtProperty, fetchedAt);
-            writer.WritePropertyName(DataProperty);
-            writeData(writer);
-            writer.WriteEndObject();
-        }, cancellationToken, time);
+            await AtomicFile.WriteJsonAsync(path, WriteOptions, writer =>
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber(VersionProperty, version);
+                writer.WriteString(FetchedAtProperty, fetchedAt);
+                writer.WritePropertyName(DataProperty);
+                writeData(writer);
+                writer.WriteEndObject();
+            }, cancellationToken, time).ConfigureAwait(false);
+        }
+        // A full or read-only disk only costs the offline copy.
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            LogNotSaved(Path.GetFileName(path), exception);
+        }
+    }
 
     private async Task<(DateTimeOffset FetchedAt, T Data)?> ReadAsync<T>(string path, int version, JsonTypeInfo<T> type,
         CancellationToken cancellationToken)
@@ -165,10 +176,9 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
             using var document = JsonDocument.Parse(content);
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object
-                || !root.TryGetProperty(VersionProperty, out var stored) || stored.ValueKind != JsonValueKind.Number
+                || root.GetOrNull(VersionProperty, JsonValueKind.Number) is not { } stored
                 || !stored.TryGetInt32(out var storedVersion) || storedVersion != version
-                || !root.TryGetProperty(FetchedAtProperty, out var fetched) || fetched.ValueKind != JsonValueKind.String
-                || !fetched.TryGetDateTimeOffset(out var fetchedAt)
+                || root.GetDateTimeOffsetOrNull(FetchedAtProperty) is not { } fetchedAt
                 || !root.TryGetProperty(DataProperty, out var data))
             {
                 LogOutdated(Path.GetFileName(path));
@@ -189,6 +199,9 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Cached {File} has another format, so it is fetched again")]
     private partial void LogOutdated(string file);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{File} could not be saved for offline use")]
+    private partial void LogNotSaved(string file, Exception exception);
 }
 
 /// <summary>The data of <c>listing.json</c>.</summary>

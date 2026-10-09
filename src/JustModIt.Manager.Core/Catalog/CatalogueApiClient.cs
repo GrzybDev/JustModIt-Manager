@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Catalog;
 
@@ -217,25 +218,8 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
         }
     }
 
-    private static async Task<string?> ReadDetailAsync(HttpContent content, CancellationToken cancellationToken)
-    {
-        if (!CatalogueErrors.IsJson(content))
-        {
-            return null;
-        }
-
-        try
-        {
-            var body = JsonSerializer.Deserialize(await content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false),
-                Json.JsonElement);
-            return body.ValueKind == JsonValueKind.Object && body.TryGetProperty("detail", out var detail)
-                && detail.ValueKind == JsonValueKind.String
-                    ? detail.GetString()
-                    : body.GetRawText();
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
+    private static async Task<string?> ReadDetailAsync(HttpContent content, CancellationToken cancellationToken) =>
+        await CatalogueErrors.ReadJsonAsync(content, cancellationToken).ConfigureAwait(false) is { } body
+            ? (body.ValueKind == JsonValueKind.Object ? body.GetTextOrNull("detail") : null) ?? body.GetRawText()
+            : null;
 }

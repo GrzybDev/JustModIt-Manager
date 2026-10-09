@@ -38,21 +38,6 @@ public sealed record IndexEntry
     [JsonIgnore]
     public ProjectLocator Locator => new(Game.Slug, Team.Slug, ProjectUuid);
 
-    /// <summary>The project's links to the game in its store, in the order the team gave them.</summary>
-    /// <param name="game">The game's store and store id.</param>
-    public IReadOnlyList<StorefrontLink> LinksFor(GameKey game) =>
-        [.. StorefrontLinks.Where(link => link.GameKey == game).OrderBy(link => link.Position)];
-
-    /// <summary>What the download endpoint needs to name one of the project's release files.</summary>
-    /// <param name="release">A release of this project.</param>
-    /// <param name="file">One of the release's files.</param>
-    public ReleaseFileLocator LocateFile(Release release, ReleaseFile file)
-    {
-        ArgumentNullException.ThrowIfNull(release);
-        ArgumentNullException.ThrowIfNull(file);
-        return new ReleaseFileLocator(Team.Slug, ProjectSlug, release.Uuid, file.Uuid);
-    }
-
     /// <summary>The entry for a project page.</summary>
     /// <param name="page">The page as the site sent it.</param>
     public static IndexEntry From(ProjectPage page)
@@ -90,11 +75,7 @@ public sealed class InstallableIndex
         BuiltAt = builtAt;
         Entries = [.. entries.DistinctBy(entry => entry.ProjectUuid)];
         _byProject = Entries.ToFrozenDictionary(entry => entry.ProjectUuid);
-        _byGame = Entries
-            .SelectMany(entry => entry.StorefrontLinks.Select(link => link.GameKey).OfType<GameKey>().Distinct()
-                .Select(key => (Key: key, Entry: entry)))
-            .GroupBy(match => match.Key)
-            .ToFrozenDictionary(group => group.Key, group => group.Select(match => match.Entry).ToArray());
+        _byGame = StoreIdLookup.Build(Entries, entry => entry.StorefrontLinks);
     }
 
     public static InstallableIndex Empty { get; } = new(DateTimeOffset.MinValue, []);

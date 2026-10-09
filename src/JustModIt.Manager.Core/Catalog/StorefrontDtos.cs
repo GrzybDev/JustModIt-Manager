@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Catalog;
 
@@ -94,7 +95,7 @@ public sealed record StorefrontLink
     /// </summary>
     [JsonIgnore]
     public IReadOnlyList<string> Languages =>
-        TryGetData("languages", JsonValueKind.Array, out var languages)
+        Data("languages", JsonValueKind.Array) is { } languages
             ? [.. languages.EnumerateArray().Select(language => language.ValueKind switch
             {
                 JsonValueKind.String => language.GetString() ?? "",
@@ -106,9 +107,7 @@ public sealed record StorefrontLink
     /// <summary>The last store build the team confirmed the project works with; empty when unknown.</summary>
     [JsonIgnore]
     public string BuildId =>
-        TryGetData("buildid", JsonValueKind.String, out var build) ? build.GetString() ?? ""
-        : TryGetData("buildid", JsonValueKind.Number, out build) ? build.GetRawText()
-        : "";
+        Data("buildid", JsonValueKind.String)?.GetString() ?? Data("buildid", JsonValueKind.Number)?.GetRawText() ?? "";
 
     // Ids come as numbers or text; either way they stay text, since GOG ids exceed what a double holds.
     private string? ReadStoreId(string property) =>
@@ -122,15 +121,19 @@ public sealed record StorefrontLink
             }
             : null;
 
-    private bool TryGetData(string property, JsonValueKind kind, out JsonElement value)
-    {
-        if (AdditionalData.ValueKind == JsonValueKind.Object && AdditionalData.TryGetProperty(property, out value)
-            && value.ValueKind == kind)
-        {
-            return true;
-        }
+    private JsonElement? Data(string property, JsonValueKind kind) =>
+        AdditionalData.ValueKind == JsonValueKind.Object ? AdditionalData.GetOrNull(property, kind) : null;
+}
 
-        value = default;
-        return false;
-    }
+/// <summary>Looks catalogue items up by the store ids that their storefront links name.</summary>
+internal static class StoreIdLookup
+{
+    /// <summary>The items by each store id their links name, an item once per id, in the items' order.</summary>
+    /// <param name="items">The items to look up.</param>
+    /// <param name="links">The storefront links of an item.</param>
+    public static FrozenDictionary<GameKey, T[]> Build<T>(IEnumerable<T> items, Func<T, IEnumerable<StorefrontLink>> links) =>
+        items
+            .SelectMany(item => links(item).Select(link => link.GameKey).OfType<GameKey>().Distinct().Select(key => (Key: key, Item: item)))
+            .GroupBy(match => match.Key)
+            .ToFrozenDictionary(group => group.Key, group => group.Select(match => match.Item).ToArray());
 }

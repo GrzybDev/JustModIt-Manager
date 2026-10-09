@@ -42,17 +42,6 @@ public static class SearchText
         return folded.ToString();
     }
 
-    /// <summary>Whether every word of the folded query occurs in one of the folded texts.</summary>
-    /// <param name="query">The player's query, folded.</param>
-    /// <param name="foldedTexts">The folded names a game is found by.</param>
-    public static bool Matches(string query, IReadOnlyList<string> foldedTexts)
-    {
-        ArgumentNullException.ThrowIfNull(query);
-        ArgumentNullException.ThrowIfNull(foldedTexts);
-        return query.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .All(word => foldedTexts.Any(text => text.Contains(word, StringComparison.Ordinal)));
-    }
-
     // Letters with a stroke have no canonical decomposition, so stripping marks alone would keep them apart from their
     // base letter.
     private static char BaseLetter(char character) => character switch

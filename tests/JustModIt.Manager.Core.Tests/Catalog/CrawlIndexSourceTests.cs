@@ -50,8 +50,10 @@ public sealed class CrawlIndexSourceTests : IDisposable
         entry.Game.Cover.Should().Be("https://storage.example.com/games/covers/starlight-harbor.jpeg");
         entry.PublicRelease!.Version.Should().Be(2);
         entry.PublicRelease.Files.Should().HaveCount(5);
-        entry.LinksFor(StarlightOnGog).Should().ContainSingle().Which.Uuid.Should().Be(Guid.Parse("006bece2-0000-4000-8000-000000000032"));
-        entry.LocateFile(entry.PublicRelease, entry.PublicRelease.Files[0]).Should().Be(new ReleaseFileLocator(
+        entry.StorefrontLinks.Where(link => link.GameKey == StarlightOnGog).Should().ContainSingle()
+            .Which.Uuid.Should().Be(Guid.Parse("006bece2-0000-4000-8000-000000000032"));
+        new ReleaseFileLocator(entry.Team.Slug, entry.ProjectSlug, entry.PublicRelease.Uuid, entry.PublicRelease.Files[0].Uuid)
+            .Should().Be(new ReleaseFileLocator(
             "lantern-works", "starlight-harbor", Guid.Parse("f3713421-0000-4000-8000-000000000032"),
             Guid.Parse("a0000000-0000-4000-8000-000000000001")));
     }

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 
 namespace JustModIt.Manager.Core.Catalog;
 
@@ -54,6 +55,27 @@ internal static class CatalogueErrors
         var header = response.Headers.RetryAfter;
         var delay = header?.Delta ?? header?.Date - time.GetUtcNow();
         return delay is { } value ? TimeSpan.FromTicks(Math.Max(0, value.Ticks)) : null;
+    }
+
+    /// <summary>The JSON of an error's body; null when the body is not JSON.</summary>
+    /// <param name="content">The failed response's content.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    public static async Task<JsonElement?> ReadJsonAsync(HttpContent content, CancellationToken cancellationToken)
+    {
+        if (!IsJson(content))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var body = JsonDocument.Parse(await content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false));
+            return body.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Whether the content is JSON, judged by its media type.</summary>

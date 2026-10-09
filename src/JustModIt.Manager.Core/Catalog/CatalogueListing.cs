@@ -81,9 +81,9 @@ public sealed class CatalogueListing
 {
     private readonly FrozenDictionary<GameKey, ListedProject[]> _byGameKey;
     private readonly FrozenDictionary<Guid, ListedProject> _byProject;
-    private readonly string[][] _searchTexts;
+    private string[][]? _searchTexts;
 
-    /// <summary>Indexes the listed games by project, store id and search text.</summary>
+    /// <summary>Indexes the listed games by project and store id.</summary>
     /// <param name="fetchedAt">When the site was read.</param>
     /// <param name="games">The games as paged; a game or project that paging returned twice is kept once.</param>
     /// <param name="reference">The site's reference lists.</param>
@@ -102,20 +102,7 @@ public sealed class CatalogueListing
         ];
         var projects = Games.SelectMany(listed => listed.Projects.Select(project => new ListedProject(listed.Game, project))).ToList();
         _byProject = projects.ToFrozenDictionary(listed => listed.Project.Uuid);
-        _byGameKey = projects
-            .SelectMany(listed => listed.Project.StorefrontLinks
-                .Select(link => link.GameKey)
-                .OfType<GameKey>()
-                .Distinct()
-                .Select(key => (Key: key, Listed: listed)))
-            .GroupBy(match => match.Key)
-            .ToFrozenDictionary(group => group.Key, group => group.Select(match => match.Listed).ToArray());
-        _searchTexts =
-        [
-            .. Games.Select(listed => new[] { SearchText.Fold(listed.Game.Name) }
-                .Concat(listed.Projects.SelectMany(project => new[] { SearchText.Fold(project.Name), SearchText.Fold(project.Team.Name) }))
-                .ToArray()),
-        ];
+        _byGameKey = StoreIdLookup.Build(projects, listed => listed.Project.StorefrontLinks);
     }
 
     public DateTimeOffset FetchedAt { get; }
@@ -139,10 +126,18 @@ public sealed class CatalogueListing
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentNullException.ThrowIfNull(names);
-        var words = SearchText.Fold(query.Text);
+        var words = SearchText.Fold(query.Text).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        // Folded at the first search only, since the agent reads listings back to build the index, which never searches;
+        // two searches at once may both fold, which is harmless.
+        var texts = _searchTexts ??=
+        [
+            .. Games.Select(listed => new[] { SearchText.Fold(listed.Game.Name) }
+                .Concat(listed.Projects.SelectMany(project => new[] { SearchText.Fold(project.Name), SearchText.Fold(project.Team.Name) }))
+                .ToArray()),
+        ];
         var found = Games
-            .Select((listed, index) => (Listed: listed, Texts: _searchTexts[index]))
-            .Where(candidate => words.Length == 0 || SearchText.Matches(words, candidate.Texts))
+            .Select((listed, index) => (Listed: listed, Texts: texts[index]))
+            .Where(candidate => words.All(word => candidate.Texts.Any(text => text.Contains(word, StringComparison.Ordinal))))
             .Select(candidate => candidate.Listed)
             .Where(listed => Fits(listed, query));
         return query.Order switch

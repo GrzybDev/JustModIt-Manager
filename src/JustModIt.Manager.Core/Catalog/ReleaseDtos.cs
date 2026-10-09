@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Packages;
 
 namespace JustModIt.Manager.Core.Catalog;
 
@@ -105,12 +106,9 @@ public sealed record ReleaseFile
     /// </summary>
     [JsonIgnore]
     public PackageFormat? Format =>
-        (RequiresManager, Path.GetExtension(DownloadFilename).ToUpperInvariant()) switch
-        {
-            (true, _) => PackageFormat.Manifest,
-            (false, ".ZIP") => PackageFormat.Zip,
-            _ => null,
-        };
+        RequiresManager ? PackageFormat.Manifest
+        : Path.GetExtension(DownloadFilename).Equals(PackageLayout.ZipExtension, StringComparison.OrdinalIgnoreCase) ? PackageFormat.Zip
+        : null;
 }
 
 public sealed record ReleaseFileMirror

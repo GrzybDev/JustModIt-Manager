@@ -157,7 +157,8 @@ internal sealed partial class LiveEngine : IAsyncDisposable
         var offer = GameOffer.For(snapshot.Index, game.Key, game.Platform, LiveApp.Language).Projects.Should().ContainSingle().Subject;
         var release = offer.Selection.Release!;
         var file = offer.Selection.Default!.Package!;
-        return new OfferedRelease(offer.Project.Locator, offer.Project.LocateFile(release, file), file);
+        var locator = new ReleaseFileLocator(offer.Project.Team.Slug, offer.Project.ProjectSlug, release.Uuid, file.Uuid);
+        return new OfferedRelease(offer.Project.Locator, locator, file);
     }
 
     /// <summary>The release's package, from the kept downloads when an earlier run downloaded it.</summary>

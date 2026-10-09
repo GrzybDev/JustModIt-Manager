@@ -87,16 +87,7 @@ public sealed partial class ProjectPageCache(ICatalogueApi api, CatalogueCache c
         }
 
         var now = time.GetUtcNow();
-        try
-        {
-            await cache.SavePageAsync(fetched, now, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            // The fresh page is in hand; a full or read-only disk only costs the offline copy.
-            LogNotSaved(project.ProjectUuid, exception);
-        }
-
+        await cache.SavePageAsync(fetched, now, cancellationToken).ConfigureAwait(false);
         return new CataloguePage(fetched, now);
     }
 
@@ -116,7 +107,4 @@ public sealed partial class ProjectPageCache(ICatalogueApi api, CatalogueCache c
 
     [LoggerMessage(Level = LogLevel.Information, Message = "A project page is gone from the site: {Detail}")]
     private partial void LogGone(string detail);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Project page {Project} could not be saved for offline use")]
-    private partial void LogNotSaved(Guid project, Exception exception);
 }

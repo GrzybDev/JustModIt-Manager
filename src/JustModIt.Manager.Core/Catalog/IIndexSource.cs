@@ -37,21 +37,3 @@ public interface IProjectPageSource
     Task<ProjectPageDocument?> GetPageAsync(ProjectLocator project, DateTimeOffset? listedUpdatedAt,
         CancellationToken cancellationToken);
 }
-
-/// <summary>Project pages read straight from the site, with nothing reused.</summary>
-/// <param name="api">The site's API.</param>
-public sealed class ApiProjectPageSource(ICatalogueApi api) : IProjectPageSource
-{
-    public async Task<ProjectPageDocument?> GetPageAsync(ProjectLocator project, DateTimeOffset? listedUpdatedAt,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await api.GetProjectPageAsync(project.GameSlug, project.TeamSlug, cancellationToken).ConfigureAwait(false);
-        }
-        catch (CatalogueException exception) when (exception.Reason == CatalogueErrorReason.NotFound)
-        {
-            return null;
-        }
-    }
-}

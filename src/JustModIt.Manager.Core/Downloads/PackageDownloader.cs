@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Platform;
 using Microsoft.Extensions.Logging;
 
@@ -537,7 +538,7 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
         public static PackageFiles For(string directory, string packageExtension, PackageRequest request)
         {
             var stem = Path.Combine(directory, request.Locator.FileUuid.ToString("D"));
-            var extension = request.Format == PackageFormat.Manifest ? packageExtension : ".zip";
+            var extension = request.Format == PackageFormat.Manifest ? packageExtension : PackageLayout.ZipExtension;
             return new PackageFiles(stem + extension, stem + ".json", stem + PartialMarker, stem + PartialMarker + ".json");
         }
     }

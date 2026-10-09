@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Catalog;
 
@@ -48,24 +49,8 @@ internal sealed class ApiKeyHandler(string key, ApiKeyStatus status) : Delegatin
                 : null;
     }
 
-    private static async Task<string?> CodeOfAsync(HttpContent content, CancellationToken cancellationToken)
-    {
-        if (!CatalogueErrors.IsJson(content))
-        {
-            return null;
-        }
-
-        try
-        {
-            using var body = JsonDocument.Parse(await content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false));
-            return body.RootElement.ValueKind == JsonValueKind.Object && body.RootElement.TryGetProperty("code", out var code)
-                && code.ValueKind == JsonValueKind.String
-                    ? code.GetString()
-                    : null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
+    private static async Task<string?> CodeOfAsync(HttpContent content, CancellationToken cancellationToken) =>
+        await CatalogueErrors.ReadJsonAsync(content, cancellationToken).ConfigureAwait(false) is { ValueKind: JsonValueKind.Object } body
+            ? body.GetTextOrNull("code")
+            : null;
 }
