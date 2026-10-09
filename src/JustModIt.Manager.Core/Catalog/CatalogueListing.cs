@@ -36,10 +36,13 @@ public sealed record CatalogueReference
 
 public enum CatalogueOrder
 {
-    /// <summary>The site's own order, which is by name.</summary>
-    Name,
-    Newest,
-    Oldest,
+    /// <summary>The newest release players can download first, then the project that went public last.</summary>
+    Released,
+
+    /// <summary>The most downloaded first.</summary>
+    Popular,
+
+    Alphabetical,
 }
 
 /// <summary>What the player looks for in the catalogue. Project filters match a game when one of its projects fits them all.</summary>
@@ -123,9 +126,13 @@ public sealed class CatalogueListing
     /// <param name="projectUuid">The project's id.</param>
     public ListedProject? FindProject(Guid projectUuid) => _byProject.GetValueOrDefault(projectUuid);
 
-    public IReadOnlyList<ListedGame> Search(CatalogueQuery query)
+    /// <summary>The listed games that fit the query, in the order it asks for.</summary>
+    /// <param name="query">The text, filters and order the player chose.</param>
+    /// <param name="names">Orders game names, in the app's language.</param>
+    public IReadOnlyList<ListedGame> Search(CatalogueQuery query, IComparer<string> names)
     {
         ArgumentNullException.ThrowIfNull(query);
+        ArgumentNullException.ThrowIfNull(names);
         var words = SearchText.Fold(query.Text);
         var found = Games
             .Select((listed, index) => (Listed: listed, Texts: _searchTexts[index]))
@@ -134,11 +141,18 @@ public sealed class CatalogueListing
             .Where(listed => Fits(listed.Game, query) && listed.Projects.Any(project => Fits(project, query)));
         return query.Order switch
         {
-            CatalogueOrder.Newest => [.. found.OrderByDescending(listed => listed.Game.CreatedAt)],
-            CatalogueOrder.Oldest => [.. found.OrderBy(listed => listed.Game.CreatedAt)],
-            _ => [.. found],
+            CatalogueOrder.Popular => [.. found.OrderByDescending(listed => listed.Game.TotalDownloads ?? 0)
+                .ThenBy(listed => listed.Game.Name, names)],
+            CatalogueOrder.Alphabetical => [.. found.OrderBy(listed => listed.Game.Name, names)],
+            // Descending puts games without a date last.
+            _ => [.. found.OrderByDescending(listed => listed.Game.LatestReleaseAt)
+                .ThenByDescending(listed => listed.Projects.Where(IsListed).Max(project => project.FirstPublishedAt))
+                .ThenBy(listed => listed.Game.Name, names)],
         };
     }
+
+    // The catalogue's lists leave abandoned projects out, though a game's own project list keeps them.
+    private static bool IsListed(ProjectSummary project) => project.Status?.IsAbandoned != true;
 
     private static bool Fits(GameSummary game, CatalogueQuery query) =>
         (query.PlatformUuid is not { } platform || game.Platform?.Uuid == platform)

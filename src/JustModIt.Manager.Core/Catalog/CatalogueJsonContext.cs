@@ -9,6 +9,7 @@ namespace JustModIt.Manager.Core.Catalog;
     NumberHandling = JsonNumberHandling.AllowReadingFromString,
     Converters = [typeof(NullAsEmptyStringConverter), typeof(OperatingSystemKindConverter)])]
 [JsonSerializable(typeof(ApiPage<CatalogueGame>))]
+[JsonSerializable(typeof(ApiPage<GameDownloads>))]
 [JsonSerializable(typeof(ApiPage<Team>))]
 [JsonSerializable(typeof(IReadOnlyList<ProjectSummary>))]
 [JsonSerializable(typeof(ProjectPage))]

@@ -16,7 +16,8 @@ public sealed class CatalogueCrawlerTests : IDisposable
         var listing = await _site.CrawlAsync();
 
         _site.Handler.Paths.Should().Equal(
-            "/games/v1/?page=1&page_size=48", "/games/v1/clockwork-tides/projects/", "/games/v1/?page=2&page_size=48", "/teams/v1/?page=1&previews=0",
+            "/games/v1/?page=1&page_size=48&ordering=popular", "/games/v1/?page=1&page_size=48", "/games/v1/clockwork-tides/projects/",
+            "/games/v1/?page=2&page_size=48", "/teams/v1/?page=1&previews=0",
             "/projects/v1/statuses/", "/projects/v1/types/", "/games/v1/genres/", "/games/v1/platforms/",
             "/projects/v1/storefront-platforms/", "/system/v1/config");
         listing.FetchedAt.Should().Be(_site.Time.GetUtcNow());
@@ -28,6 +29,21 @@ public sealed class CatalogueCrawlerTests : IDisposable
         listing.Reference.Genres.Should().HaveCount(3);
         listing.Reference.StorefrontPlatforms.Should().HaveCount(3);
         listing.Reference.Site.Name.Should().Be("Example Mods");
+    }
+
+    [Fact]
+    public async Task Takes_the_games_from_the_stable_order_and_only_their_downloads_from_the_popular_one()
+    {
+        var popular = JsonNode.Parse(CatalogueFixtures.Read("games-downloads.json"))!;
+        var results = popular["results"]!.AsArray();
+        results.RemoveAt(2);
+        results.Add(JsonNode.Parse("""{"uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000099", "slug": "unlisted", "total_downloads": 9000}"""));
+        _site.Routes["/games/v1/?page=1&page_size=48&ordering=popular"] = () => FakeHttpHandler.Json(popular.ToJsonString());
+
+        var listing = await _site.CrawlAsync();
+
+        listing.Games.Select(listed => (listed.Game.Slug, listed.Game.TotalDownloads)).Should().Equal(
+            ("clockwork-tides", null), ("ember-road", 1200), ("silent-orchard", null), ("starlight-harbor", 1500));
     }
 
     [Fact]

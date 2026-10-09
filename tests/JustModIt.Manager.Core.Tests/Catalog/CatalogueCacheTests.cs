@@ -44,7 +44,7 @@ public sealed class CatalogueCacheTests : IDisposable
         loaded.Find(new GameKey(StoreId.Gog, "9007199254740993")).Should().ContainSingle();
         loaded.Reference.Should().BeEquivalentTo(listing.Reference, options => options.Excluding(reference => reference.Teams));
         loaded.Reference.Teams.Select(team => team.Slug).Should().Equal("lantern-works", "paper-moth");
-        loaded.Search(new CatalogueQuery { Text = "lantern tides" }).Should().ContainSingle();
+        loaded.Search(new CatalogueQuery { Text = "lantern tides" }, StringComparer.Ordinal).Should().ContainSingle();
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System.Globalization;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Tests.Catalog.TestSupport;
@@ -10,6 +11,8 @@ public sealed class CatalogueListingTests : IDisposable
     private static readonly Guid Testing = Guid.Parse("968ad28b-0000-4000-8000-000000000001");
     private static readonly Guid Voice = Guid.Parse("fae573dd-0000-4000-8000-000000000001");
     private static readonly Guid PaperMoth = Guid.Parse("53c4c7cd-0000-4000-8000-000000000002");
+
+    private static readonly StringComparer Names = StringComparer.Create(CultureInfo.GetCultureInfo("pl-PL"), ignoreCase: true);
 
     private readonly FakeSite _site = new();
 
@@ -61,7 +64,7 @@ public sealed class CatalogueListingTests : IDisposable
     {
         var listing = await _site.CrawlAsync();
 
-        var found = listing.Search(new CatalogueQuery { Text = text });
+        var found = listing.Search(new CatalogueQuery { Text = text, Order = CatalogueOrder.Alphabetical }, Names);
 
         string.Join(',', found.Select(listed => listed.Game.Slug)).Should().Be(expected);
     }
@@ -71,24 +74,42 @@ public sealed class CatalogueListingTests : IDisposable
     {
         var listing = await _site.CrawlAsync();
 
-        Slugs(listing.Search(new CatalogueQuery { GenreUuid = Adventure })).Should().Equal("clockwork-tides", "starlight-harbor");
-        Slugs(listing.Search(new CatalogueQuery { IsAdult = true })).Should().Equal("ember-road");
-        Slugs(listing.Search(new CatalogueQuery { StatusUuid = Testing })).Should().Equal("clockwork-tides");
-        Slugs(listing.Search(new CatalogueQuery { TypeUuid = Voice })).Should().Equal("starlight-harbor");
-        Slugs(listing.Search(new CatalogueQuery { TeamUuid = PaperMoth, GenreUuid = Adventure })).Should().Equal("clockwork-tides");
-        Slugs(listing.Search(new CatalogueQuery { StatusUuid = Testing, TeamUuid = PaperMoth })).Should().BeEmpty(
+        Slugs(listing.Search(new CatalogueQuery { GenreUuid = Adventure }, Names)).Should().Equal("clockwork-tides", "starlight-harbor");
+        Slugs(listing.Search(new CatalogueQuery { IsAdult = true }, Names)).Should().Equal("ember-road");
+        Slugs(listing.Search(new CatalogueQuery { StatusUuid = Testing }, Names)).Should().Equal("clockwork-tides");
+        Slugs(listing.Search(new CatalogueQuery { TypeUuid = Voice }, Names)).Should().Equal("starlight-harbor");
+        Slugs(listing.Search(new CatalogueQuery { TeamUuid = PaperMoth, GenreUuid = Adventure }, Names)).Should().Equal("clockwork-tides");
+        Slugs(listing.Search(new CatalogueQuery { StatusUuid = Testing, TeamUuid = PaperMoth }, Names)).Should().BeEmpty(
             "one project must fit every project filter");
     }
 
     [Fact]
-    public async Task Orders_by_when_games_were_added()
+    public async Task Orders_by_the_newest_release_by_downloads_or_by_name()
     {
         var listing = await _site.CrawlAsync();
 
-        Slugs(listing.Search(new CatalogueQuery { Order = CatalogueOrder.Newest }))
-            .Should().Equal("starlight-harbor", "silent-orchard", "ember-road", "clockwork-tides");
-        Slugs(listing.Search(new CatalogueQuery { Order = CatalogueOrder.Oldest }))
+        Slugs(listing.Search(new CatalogueQuery(), Names))
+            .Should().Equal("ember-road", "clockwork-tides", "starlight-harbor", "silent-orchard");
+        Slugs(listing.Search(new CatalogueQuery { Order = CatalogueOrder.Popular }, Names))
+            .Should().Equal("starlight-harbor", "ember-road", "clockwork-tides", "silent-orchard");
+        Slugs(listing.Search(new CatalogueQuery { Order = CatalogueOrder.Alphabetical }, Names))
             .Should().Equal("clockwork-tides", "ember-road", "silent-orchard", "starlight-harbor");
+    }
+
+    [Fact]
+    public void Orders_games_without_a_release_by_their_newest_listed_project_then_by_the_language_alphabet()
+    {
+        var abandoned = new ProjectStatus { Uuid = Guid.NewGuid(), Name = "Abandoned", IsAbandoned = true };
+        var listing = new CatalogueListing(DateTimeOffset.UnixEpoch,
+        [
+            Listed("Mgła", Project(new DateTimeOffset(2026, 8, 10, 0, 0, 0, TimeSpan.Zero))),
+            Listed("Lato", Project(null)),
+            Listed("Łąka", Project(new DateTimeOffset(2026, 8, 10, 0, 0, 0, TimeSpan.Zero)),
+                Project(new DateTimeOffset(2026, 8, 20, 0, 0, 0, TimeSpan.Zero)) with { Status = abandoned }),
+            Listed("Kra", Project(new DateTimeOffset(2026, 8, 12, 0, 0, 0, TimeSpan.Zero))),
+        ], new CatalogueReference());
+
+        listing.Search(new CatalogueQuery(), Names).Select(listed => listed.Game.Name).Should().Equal("Kra", "Łąka", "Mgła", "Lato");
     }
 
     [Theory]
@@ -101,4 +122,16 @@ public sealed class CatalogueListingTests : IDisposable
     public void Dispose() => _site.Dispose();
 
     private static IEnumerable<string> Slugs(IEnumerable<ListedGame> games) => games.Select(listed => listed.Game.Slug);
+
+    private static ListedGame Listed(string name, params ProjectSummary[] projects) =>
+        new(new GameSummary { Uuid = Guid.NewGuid(), Slug = name, Name = name }, projects);
+
+    private static ProjectSummary Project(DateTimeOffset? firstPublishedAt) => new()
+    {
+        Uuid = Guid.NewGuid(),
+        Slug = "example-project",
+        Name = "Example Project",
+        Team = new TeamReference { Uuid = Guid.NewGuid(), Slug = "example-team", Name = "Example Team" },
+        FirstPublishedAt = firstPublishedAt,
+    };
 }

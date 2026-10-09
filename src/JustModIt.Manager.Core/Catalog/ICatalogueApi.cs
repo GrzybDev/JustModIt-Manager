@@ -4,12 +4,20 @@ namespace JustModIt.Manager.Core.Catalog;
 public interface ICatalogueApi
 {
     /// <summary>
-    /// One page, counted from 1, of the games that have a listed project. Abandoned projects are not listed, so a game
-    /// whose only project is abandoned is missing here.
+    /// One page of the games that have a listed project, by name; a game whose only project is abandoned is missing, since
+    /// abandoned projects are not listed.
     /// </summary>
     /// <param name="page">The page number, counted from 1.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     Task<ApiPage<CatalogueGame>> GetGamesAsync(int page, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// One page of the same games with their downloads, the most downloaded first, in an order that changes with every
+    /// download, so a game can move to a page already read.
+    /// </summary>
+    /// <param name="page">The page number, counted from 1.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    Task<ApiPage<GameDownloads>> GetGameDownloadsAsync(int page, CancellationToken cancellationToken);
 
     /// <summary>Every visible project of the game, abandoned ones included.</summary>
     /// <param name="gameSlug">The game's slug as the catalogue lists it.</param>

@@ -2,6 +2,7 @@ using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
@@ -67,7 +68,7 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
             return new CataloguePageResult(0, []);
         }
 
-        var found = listing.Search(request.Query);
+        var found = listing.Search(request.Query, Text.Comparer);
         var slice = found.Skip(Math.Max(0, request.Offset)).Take(Math.Clamp(request.Count, 0, MaxCataloguePage));
         return new CataloguePageResult(found.Count, [.. slice.Select(CatalogueGameView.From)], listing.FetchedAt);
     }

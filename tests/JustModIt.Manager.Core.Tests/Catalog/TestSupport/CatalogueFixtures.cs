@@ -29,6 +29,7 @@ internal static class CatalogueFixtures
     {
         ["/games/v1/?page=1&page_size=48"] = () => FakeHttpHandler.Json(Read("games-page-1.json")),
         ["/games/v1/?page=2&page_size=48"] = () => FakeHttpHandler.Json(Read("games-page-2.json")),
+        ["/games/v1/?page=1&page_size=48&ordering=popular"] = () => FakeHttpHandler.Json(Read("games-downloads.json")),
         ["/games/v1/clockwork-tides/projects/"] = () => FakeHttpHandler.Json(Read("game-projects-clockwork-tides.json")),
         ["/games/v1/starlight-harbor/projects/lantern-works/"] = () => FakeHttpHandler.Json(Read("project-starlight-harbor.json")),
         ["/games/v1/ember-road/projects/paper-moth/"] = () => FakeHttpHandler.Json(Read("project-ember-road.json")),

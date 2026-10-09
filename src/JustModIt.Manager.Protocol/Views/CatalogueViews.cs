@@ -19,6 +19,12 @@ public sealed record CatalogueGameView(Guid Id, string Slug, string Name)
 
     public DateTimeOffset? CreatedAt { get; init; }
 
+    /// <inheritdoc cref="GameSummary.LatestReleaseAt"/>
+    public DateTimeOffset? LatestReleaseAt { get; init; }
+
+    /// <inheritdoc cref="GameSummary.LatestReleaseVersion"/>
+    public string LatestReleaseVersion { get; init; } = "";
+
     public IReadOnlyList<CatalogueProjectView> Projects { get; init; } = [];
 
     /// <summary>Maps a game of the catalogue's listing.</summary>
@@ -34,6 +40,8 @@ public sealed record CatalogueGameView(Guid Id, string Slug, string Name)
             Platform = game.Platform?.Name,
             Genres = [.. game.Genres.Select(genre => genre.Name)],
             CreatedAt = game.CreatedAt,
+            LatestReleaseAt = game.LatestReleaseAt,
+            LatestReleaseVersion = game.LatestReleaseVersion,
             Projects = [.. listed.Projects.Select(CatalogueProjectView.From)],
         };
     }

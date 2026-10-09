@@ -1,0 +1,10 @@
+{
+  "count": 3,
+  "next": null,
+  "previous": null,
+  "results": [
+    {"uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000003", "slug": "starlight-harbor", "name": "Starlight Harbor", "is_adult": false, "total_downloads": 1500},
+    {"uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000002", "slug": "ember-road", "name": "Ember Road", "is_adult": true, "total_downloads": 1200},
+    {"uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000001", "slug": "clockwork-tides", "name": "Clockwork Tides", "is_adult": false, "total_downloads": 40}
+  ]
+}

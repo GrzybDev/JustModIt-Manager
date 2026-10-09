@@ -76,7 +76,7 @@ public sealed class MessageTests
             Error = CatalogueErrorReason.Offline,
         },
         new ProjectPageResult { IsGone = true },
-        new GetCataloguePage(new CatalogueQuery { Text = "example", IsAdult = false, Order = CatalogueOrder.Newest }, 0, 50),
+        new GetCataloguePage(new CatalogueQuery { Text = "example", IsAdult = false, Order = CatalogueOrder.Popular }, 0, 50),
         new CataloguePageResult(1,
         [
             new CatalogueGameView(Guid.Parse("66666666-0000-4000-8000-000000000001"), "example-game", "Example Game")

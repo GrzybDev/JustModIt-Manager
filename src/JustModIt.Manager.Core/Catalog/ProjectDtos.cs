@@ -123,6 +123,9 @@ public sealed record ProjectSummary
     /// staff hiding a release, the site's background checks or changes to its team, game or status definitions.
     /// </summary>
     public DateTimeOffset? UpdatedAt { get; init; }
+
+    /// <summary>When the project first went public.</summary>
+    public DateTimeOffset? FirstPublishedAt { get; init; }
 }
 
 /// <summary>The public page of a project, as an anonymous visitor sees it.</summary>

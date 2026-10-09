@@ -34,6 +34,12 @@ public sealed class CatalogueApiClientTests
         solo.Team.Slug.Should().Be("paper-moth");
         solo.StorefrontLinks.Should().ContainSingle().Which.GameKey.Should().Be(new GameKey(StoreId.Steam, "1000020"));
         page.Results[1].IsAdult.Should().BeTrue();
+        page.Results[1].Should().BeEquivalentTo(new
+        {
+            LatestReleaseAt = new DateTimeOffset(2026, 8, 25, 18, 0, 0, TimeSpan.FromHours(2)),
+            LatestReleaseVersion = "Version 1.1",
+        });
+        solo.FirstPublishedAt.Should().Be(new DateTimeOffset(2026, 8, 2, 12, 0, 0, TimeSpan.FromHours(2)));
     }
 
     [Fact]

@@ -18,13 +18,22 @@ public sealed class CatalogueCrawler(ICatalogueApi api, TimeProvider time)
     /// <exception cref="CatalogueException">A page could not be read; nothing partial is returned.</exception>
     public async Task<CatalogueListing> CrawlAsync(CancellationToken cancellationToken)
     {
+        // The list counts downloads only when ordered by them, and that order changes with every download, so a game
+        // could slip past the pages; the games come from the stable order, and a second pass only adds the counts it sees.
+        var downloads = new Dictionary<Guid, long?>();
+        await foreach (var game in ReadAllAsync(api.GetGameDownloadsAsync, cancellationToken).ConfigureAwait(false))
+        {
+            downloads[game.Uuid] = game.TotalDownloads;
+        }
+
         var games = new List<ListedGame>();
         await foreach (var game in ReadAllAsync(api.GetGamesAsync, cancellationToken).ConfigureAwait(false))
         {
             var projects = await GetProjectsAsync(game, cancellationToken).ConfigureAwait(false);
             if (projects.Count > 0)
             {
-                games.Add(new ListedGame(game.ToSummary(), projects));
+                var summary = game.ToSummary() with { TotalDownloads = downloads.GetValueOrDefault(game.Uuid) ?? game.TotalDownloads };
+                games.Add(new ListedGame(summary, projects));
             }
         }
 

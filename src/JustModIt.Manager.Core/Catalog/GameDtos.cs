@@ -85,8 +85,25 @@ public record GameSummary
 
     public DateTimeOffset? CreatedAt { get; init; }
 
+    /// <summary>When the newest release that players can download came out; null when there is none.</summary>
+    public DateTimeOffset? LatestReleaseAt { get; init; }
+
+    /// <summary>That release's label, e.g. <c>v3</c>; empty when there is none.</summary>
+    public string LatestReleaseVersion { get; init => field = value ?? ""; } = "";
+
+    /// <summary>The downloads of every listed project; null when they were not read.</summary>
+    public long? TotalDownloads { get; init; }
+
     /// <summary>A plain copy, without what a derived row adds.</summary>
     public GameSummary ToSummary() => new(this);
+}
+
+/// <summary>A row of the games list ordered by popularity, of which only the downloads are read.</summary>
+public sealed record GameDownloads
+{
+    public required Guid Uuid { get; init; }
+
+    public long? TotalDownloads { get; init; }
 }
 
 /// <summary>A row of the games list.</summary>

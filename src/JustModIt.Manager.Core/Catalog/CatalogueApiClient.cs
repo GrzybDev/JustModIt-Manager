@@ -12,6 +12,9 @@ namespace JustModIt.Manager.Core.Catalog;
 /// </summary>
 public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
 {
+    // The largest page the site serves; a backend that does not know the parameter serves its own size.
+    private const string GamesPageSize = "&page_size=48";
+
     private static readonly MediaTypeWithQualityHeaderValue JsonMediaType = new("application/json");
     private static readonly string[] NeededScopes = ["catalog.read", "site.read", "releases.download"];
 
@@ -40,9 +43,11 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
 
     private static CatalogueJsonContext Json => CatalogueJsonContext.Default;
 
-    // The largest page the site serves; a backend that does not know the parameter serves its own size.
     public Task<ApiPage<CatalogueGame>> GetGamesAsync(int page, CancellationToken cancellationToken) =>
-        GetAsync("games/v1/" + PageQuery(page) + "&page_size=48", Json.ApiPageCatalogueGame, cancellationToken);
+        GetAsync("games/v1/" + PageQuery(page) + GamesPageSize, Json.ApiPageCatalogueGame, cancellationToken);
+
+    public Task<ApiPage<GameDownloads>> GetGameDownloadsAsync(int page, CancellationToken cancellationToken) =>
+        GetAsync("games/v1/" + PageQuery(page) + GamesPageSize + "&ordering=popular", Json.ApiPageGameDownloads, cancellationToken);
 
     public Task<IReadOnlyList<ProjectSummary>> GetGameProjectsAsync(string gameSlug, CancellationToken cancellationToken) =>
         GetAsync($"games/v1/{Segment(gameSlug)}/projects/", Json.IReadOnlyListProjectSummary, cancellationToken);
