@@ -60,10 +60,11 @@ public sealed class FolderComparerTests : IDisposable
     }
 
     [Fact]
-    public async Task Leaves_out_hidden_files_of_the_author_and_the_apps_folder_in_the_game()
+    public async Task Leaves_out_hidden_files_of_the_author_and_the_apps_and_stores_folders_in_the_game()
     {
         var original = Workspace.Bytes(4096, 1);
         _workspace.Game($"{Workspace.HiddenFolderName}/backups/data.bin", original);
+        _workspace.Game(".egstore/Pending/data.bin", original);
         _workspace.Author("data.bin", original);
         var hidden = _workspace.Author(".notes/todo.txt", "todo");
         File.SetAttributes(Path.GetDirectoryName(hidden)!, FileAttributes.Directory | FileAttributes.Hidden);

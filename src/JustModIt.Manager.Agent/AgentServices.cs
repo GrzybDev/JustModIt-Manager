@@ -13,6 +13,7 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Epic;
 using JustModIt.Manager.Core.Library.Gog;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Library.Watching;
@@ -99,6 +100,9 @@ public static class AgentServices
         services.AddSingleton<ILibraryProvider>(provider => GogLibraryProvider.Create(provider.GetRequiredService<IFileSystem>(),
             provider.GetRequiredService<IRegistry>(), provider.GetRequiredService<ISqliteReader>(),
             provider.GetRequiredService<LibraryEnvironment>(), provider.GetRequiredService<ILogger<GogLibraryProvider>>()));
+        services.AddSingleton<ILibraryProvider>(provider => EpicLibraryProvider.Create(provider.GetRequiredService<IFileSystem>(),
+            provider.GetRequiredService<IRegistry>(), provider.GetRequiredService<LibraryEnvironment>(),
+            provider.GetRequiredService<ILogger<EpicLibraryProvider>>()));
         services.AddSingleton<IRunningGameDetector, RunningGameDetector>();
         AddStore(services, LibrarySnapshotFormat.FileIn(locations), LibrarySnapshotFormat.Instance);
         AddStore(services, FailedAttemptsFormat.FileIn(locations), FailedAttemptsFormat.Instance);

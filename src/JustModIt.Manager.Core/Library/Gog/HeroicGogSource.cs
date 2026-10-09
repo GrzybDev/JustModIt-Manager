@@ -13,9 +13,6 @@ namespace JustModIt.Manager.Core.Library.Gog;
 /// <param name="configDirectory">Heroic's configuration folder (<see cref="HeroicLauncher.ConfigDirectories"/>).</param>
 public sealed class HeroicGogSource(IFileSystem fileSystem, string configDirectory) : IInstallSource<GogInstallRecord>
 {
-    /// <summary>The <see cref="LibraryLocation.Source"/> of Heroic's list of installs.</summary>
-    public const string LibrarySource = "heroic";
-
     private const string Runner = "gog";
 
     private string InstalledFile => Path.Join(configDirectory, "gog_store", "installed.json");
@@ -48,10 +45,10 @@ public sealed class HeroicGogSource(IFileSystem fileSystem, string configDirecto
         // Usually caught while Heroic rewrites a file; the games it listed are kept until it can be read again.
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            return new([new LibraryLocation(file, LibrarySource, file, LibraryState.Unreadable)], [], watch);
+            return new([new LibraryLocation(file, HeroicLauncher.LibrarySource, file, LibraryState.Unreadable)], [], watch);
         }
 
-        return new([new LibraryLocation(file, LibrarySource, file, LibraryState.Online)],
+        return new([new LibraryLocation(file, HeroicLauncher.LibrarySource, file, LibraryState.Online)],
             [.. installed.Select(game => ToRecord(game, file, queued)).OfType<GogInstallRecord>()], watch);
     }
 

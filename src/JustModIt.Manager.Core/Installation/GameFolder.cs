@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Platform;
 
@@ -39,14 +40,17 @@ internal sealed class GameFolder
         return Directory.Exists(root) ? new GameFolder(root, hiddenFolderName) : null;
     }
 
+    /// <summary>Resolves a package path to a full path that safely stays in the game folder.</summary>
+    /// <param name="relativePath">A game-relative package path.</param>
     /// <returns>
-    /// The canonical full path, or null when the path is invalid, leads into the app's own folder or any folder an app
-    /// marked as its own, would pass a folder off as an app's, or a link would take it out of the game folder.
+    /// The canonical full path; null when the path is invalid, a link takes it out of the game, it leads into an app's or
+    /// a store's folder (<see cref="StoreFolders"/>), or it would pass a folder off as an app's.
     /// </returns>
     public string? TryResolve(string relativePath)
     {
         if (!PackagePath.IsValid(relativePath)
-            || string.Equals(PackagePath.FirstSegment(relativePath), HiddenFolderName, StringComparison.OrdinalIgnoreCase))
+            || string.Equals(PackagePath.FirstSegment(relativePath), HiddenFolderName, StringComparison.OrdinalIgnoreCase)
+            || StoreFolders.Contains(PackagePath.FirstSegment(relativePath)))
         {
             return null;
         }
@@ -124,6 +128,7 @@ internal sealed class GameFolder
 
     private bool IsInside(string path) =>
         PathComparison.IsWithin(Root, path) && !PathComparison.AreSame(Root, path) && !PathComparison.IsWithin(HiddenDirectory, path)
+        && !StoreFolders.Names.Any(store => PathComparison.IsWithin(Path.Join(Root, store), path))
         && !IsInAppFolder(path);
 
     private bool IsInAppFolder(string path)

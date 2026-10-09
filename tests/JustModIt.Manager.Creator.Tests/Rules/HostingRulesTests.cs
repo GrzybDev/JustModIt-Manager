@@ -30,6 +30,7 @@ public sealed class HostingRulesTests : IDisposable
     [Theory]
     [InlineData("bin/steam_api64.dll")]
     [InlineData("Binaries/Win64/EOSSDK-Win64-Shipping.dll")]
+    [InlineData("EpicOnlineServices/EpicOnlineServicesInstaller.exe")]
     [InlineData("Galaxy64.dll")]
     [InlineData("bin/STEAMCLIENT.DLL")]
     public async Task Never_lets_a_package_touch_store_libraries(string library)
@@ -49,6 +50,7 @@ public sealed class HostingRulesTests : IDisposable
     [InlineData("steam_settings/force_language.txt")]
     [InlineData("bin/SmartSteamEmu.ini")]
     [InlineData("OnlineFix64.dll")]
+    [InlineData("Binaries/Win64/ScreamAPI.json")]
     public async Task Refuses_files_of_cracks_and_emulators(string path)
     {
         _workspace.Author(path, "data");

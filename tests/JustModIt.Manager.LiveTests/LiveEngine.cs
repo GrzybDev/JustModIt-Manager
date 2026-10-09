@@ -8,6 +8,7 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Epic;
 using JustModIt.Manager.Core.Library.Gog;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Library.Watching;
@@ -65,6 +66,8 @@ internal sealed partial class LiveEngine : IAsyncDisposable
                     _loggers.CreateLogger<SteamLibraryProvider>()),
                 GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, WindowsSqliteReader.Instance, environment,
                     _loggers.CreateLogger<GogLibraryProvider>()),
+                EpicLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment,
+                    _loggers.CreateLogger<EpicLibraryProvider>()),
             ],
             settings, _runningGames, PhysicalFileSystem.Instance, FileSystemFolderWatcher.Instance, WindowsRegistryWatcher.Instance,
             _systemEvents, Store("library.json", LibrarySnapshotFormat.Instance), _time, _loggers.CreateLogger<LibraryService>());

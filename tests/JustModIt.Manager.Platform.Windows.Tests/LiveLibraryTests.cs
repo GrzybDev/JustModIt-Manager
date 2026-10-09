@@ -2,6 +2,7 @@ using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Epic;
 using JustModIt.Manager.Core.Library.Gog;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Library.Watching;
@@ -17,6 +18,9 @@ public sealed class LiveLibraryTests
 {
     // Games installed on the owner's machine for live testing.
     private static readonly string[] OwnerSteamGames = ["2592160", "474960", "939850", "3994800"];
+
+    // Installed through Heroic's Legendary into a folder of a Steam library, without a Steam manifest.
+    private static readonly GameKey OwnerEpicGame = new(StoreId.Epic, "2e92a78949e2474aa89271b8b893f3b0");
 
     public LiveLibraryTests() =>
         Assert.SkipUnless(OperatingSystem.IsWindows() && Environment.GetEnvironmentVariable("MANAGER_LIVE_TESTS") == "1",
@@ -72,6 +76,8 @@ public sealed class LiveLibraryTests
                     NullLogger<SteamLibraryProvider>.Instance),
                 GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, WindowsSqliteReader.Instance, environment,
                     NullLogger<GogLibraryProvider>.Instance),
+                EpicLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment,
+                    NullLogger<EpicLibraryProvider>.Instance),
             ],
             settings,
             new RunningGameDetector(WindowsProcessSource.Instance, PhysicalFileSystem.Instance, time),
@@ -93,7 +99,8 @@ public sealed class LiveLibraryTests
             snapshot.IsCached.Should().BeFalse();
             snapshot.FindStore(StoreId.Steam)!.IsPresent.Should().BeTrue();
             service.ActiveWatchCount.Should().BeGreaterThan(0);
-            DetectionReport.From(snapshot).Stores.Should().Contain(store => store.Store == StoreId.Steam && store.GameCount > 0);
+            DetectionReport.From(snapshot).Stores.Should().Contain(store => store.Store == StoreId.Steam && store.GameCount > 0)
+                .And.Contain(store => store.Store == StoreId.Epic);
             var owned = snapshot.Games.Values.FirstOrDefault(game => game.Key.Store == StoreId.Steam && OwnerSteamGames.Contains(game.Key.StoreGameId));
             if (owned is not null)
             {
@@ -121,6 +128,8 @@ public sealed class LiveLibraryTests
                 NullLogger<SteamLibraryProvider>.Instance),
             GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, WindowsSqliteReader.Instance, environment,
                 NullLogger<GogLibraryProvider>.Instance),
+            EpicLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment,
+                NullLogger<EpicLibraryProvider>.Instance),
         ];
         var limited = LibraryScanContext.Empty with { Access = new LibraryAccess(TimeProvider.System) };
 
@@ -165,5 +174,34 @@ public sealed class LiveLibraryTests
             (game.Launch is LaunchLink link && link.Uri.StartsWith("goggalaxy:", StringComparison.Ordinal)).Should().Be(
                 galaxyInstalled && galaxy.Manages(game.Key.StoreGameId, game.InstallDirectory), "only Galaxy's own games open in Galaxy");
         }
+    }
+
+    [Fact]
+    public async Task The_real_epic_library_finds_the_owners_game_and_no_engine_content()
+    {
+        var environment = LibraryEnvironment.ForCurrentUser();
+        var provider = EpicLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment,
+            NullLogger<EpicLibraryProvider>.Instance);
+
+        var scan = await provider.ScanAsync(LibraryScanContext.Empty, Token);
+
+        Assert.SkipUnless(scan.IsPresent, "Neither the Epic Games Launcher nor Legendary is installed on this machine.");
+        scan.IsComplete.Should().BeTrue();
+        scan.Libraries.Should().OnlyContain(library => library.State == LibraryState.Online);
+        scan.Games.Select(game => game.Key).Should().OnlyHaveUniqueItems();
+        scan.Games.Should().NotContain(game => game.Key.StoreGameId == "ue" || game.Name.Contains("Unreal", StringComparison.Ordinal),
+            "the engine and its plugins are no games");
+        var owned = scan.Games.FirstOrDefault(game => game.Key == OwnerEpicGame);
+        Assert.SkipWhen(owned is null, "The owner's Epic test game is not installed on this machine.");
+        owned.Should().Match<InstalledGame>(game => game.IsReady && !string.IsNullOrEmpty(game.BuildId)
+            && game.Platform == OperatingSystemKind.Windows && Directory.Exists(game.InstallDirectory));
+        owned.Launch.Should().Be(LaunchLink.TryCreate("heroic://launch?appName=7315f614b0504081bcdceef138075c9c&runner=legendary"));
+        (await provider.ProbeAsync(owned, LibraryScanContext.Empty, Token)).Should().Be(owned);
+        (await provider.InspectFolderAsync(owned.InstallDirectory, Token)).Folder.Should().Be(owned.InstallDirectory);
+
+        var steam = await new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, TimeProvider.System,
+            NullLogger<SteamLibraryProvider>.Instance).ScanAsync(LibraryScanContext.Empty, Token);
+        steam.Games.Should().NotContain(game => PathComparison.AreSame(game.InstallDirectory, owned.InstallDirectory),
+            "Steam has no manifest for a game Legendary installed into its library");
     }
 }

@@ -178,12 +178,14 @@ public sealed class PreflightTests : IAsyncDisposable
         }
     }
 
-    [Fact]
-    public async Task Refuses_paths_inside_the_apps_own_folder()
+    [Theory]
+    [InlineData(".Example-App/backups/x")]
+    [InlineData(".egstore/example.manifest")]
+    public async Task Refuses_paths_inside_the_apps_own_folder_or_a_stores(string path)
     {
-        var blocked = await _harness.InstallBlockedAsync(_harness.ManifestPackage(new TestPackage().Copy(".Example-App/backups/x", "x")));
+        var blocked = await _harness.InstallBlockedAsync(_harness.ManifestPackage(new TestPackage().Copy(path, "x")));
 
-        blocked.Issues.Should().Equal(new UnsafePathIssue(".Example-App/backups/x"));
+        blocked.Issues.Should().Equal(new UnsafePathIssue(path));
     }
 
     [Fact]

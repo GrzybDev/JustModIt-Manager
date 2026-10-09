@@ -47,7 +47,10 @@ public sealed class GameFolderTests : IDisposable
     [InlineData("C:/outside.txt")]
     [InlineData(".example-app/lock")]
     [InlineData(".EXAMPLE-APP/backups/0")]
-    public void Refuses_paths_outside_the_game_or_inside_the_apps_folder(string path) => _game.TryResolve(path).Should().BeNull();
+    [InlineData(".egstore/Pending/data.pak")]
+    [InlineData(".EGStore/example.manifest")]
+    public void Refuses_paths_outside_the_game_or_inside_the_apps_or_a_stores_folder(string path) =>
+        _game.TryResolve(path).Should().BeNull();
 
     [Theory]
     [InlineData(".other-app/backups/0")]
@@ -125,11 +128,13 @@ public sealed class GameFolderTests : IDisposable
         _game.TryResolve("Dangling/evil.dll").Should().BeNull();
     }
 
-    [Fact]
-    public void Refuses_a_link_to_the_apps_own_folder()
+    [Theory]
+    [InlineData(".example-app/backups")]
+    [InlineData(".egstore/bps")]
+    public void Refuses_a_link_to_the_apps_own_folder_or_a_stores(string target)
     {
-        _temp.CreateDirectory("Game/.example-app/backups");
-        _temp.CreateDirectoryLink("Game/Sneaky", _temp.Combine("Game/.example-app/backups"));
+        _temp.CreateDirectory($"Game/{target}");
+        _temp.CreateDirectoryLink("Game/Sneaky", _temp.Combine($"Game/{target}"));
 
         _game.TryResolve("Sneaky/0").Should().BeNull();
     }

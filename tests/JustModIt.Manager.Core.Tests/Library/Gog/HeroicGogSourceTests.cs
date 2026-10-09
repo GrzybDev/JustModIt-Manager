@@ -47,7 +47,7 @@ public sealed class HeroicGogSourceTests
 
         var scan = await Scan();
 
-        scan.Libraries.Should().Equal(new LibraryLocation(Installed, HeroicGogSource.LibrarySource, Installed, LibraryState.Online));
+        scan.Libraries.Should().Equal(new LibraryLocation(Installed, HeroicLauncher.LibrarySource, Installed, LibraryState.Online));
         scan.Records.Should().Equal(
             new GogInstallRecord("1495134320", @"D:\Heroic\Example", Installed)
             {
@@ -142,7 +142,7 @@ public sealed class HeroicGogSourceTests
             ("1207658924", OperatingSystemKind.Windows),
             ("1001", OperatingSystemKind.Linux),
         ]);
-        scan.Libraries.Select(library => library.Source).Should().Equal(GogRegistrySource.LibrarySource, HeroicGogSource.LibrarySource);
+        scan.Libraries.Select(library => library.Source).Should().Equal(GogRegistrySource.LibrarySource, HeroicLauncher.LibrarySource);
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed class HeroicGogSourceTests
 
         scan.IsComplete.Should().BeTrue();
         scan.Games.Select(game => game.Key).Should().Equal(new GameKey(StoreId.Gog, "1207658924"));
-        scan.Libraries.Single(library => library.Source == HeroicGogSource.LibrarySource).State.Should().Be(LibraryState.Unreadable);
+        scan.Libraries.Single(library => library.Source == HeroicLauncher.LibrarySource).State.Should().Be(LibraryState.Unreadable);
     }
 
     private static LaunchLink? HeroicLink(string gameId) => LaunchLink.TryCreate($"heroic://launch?appName={gameId}&runner=gog");

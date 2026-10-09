@@ -25,6 +25,9 @@ public sealed record LibraryEnvironment
     /// <summary><c>SNAP_USER_DATA</c>, when it is set to an absolute path.</summary>
     public string? SnapUserData { get; init; }
 
+    /// <summary><c>LEGENDARY_CONFIG_PATH</c>, when it is set to an absolute path.</summary>
+    public string? LegendaryConfigPath { get; init; }
+
     /// <summary>Reads the current user's folders and environment variables.</summary>
     public static LibraryEnvironment ForCurrentUser() => new()
     {
@@ -41,6 +44,7 @@ public sealed record LibraryEnvironment
         XdgDataHome = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("XDG_DATA_HOME")),
         XdgConfigHome = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")),
         SnapUserData = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("SNAP_USER_DATA")),
+        LegendaryConfigPath = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("LEGENDARY_CONFIG_PATH")),
     };
 
     // The XDG specification says to ignore relative values, which would otherwise resolve against the current folder.

@@ -63,6 +63,7 @@ public sealed class AdvancedPlanTests : IDisposable
     [InlineData("data/CON", FindingKind.InvalidPath)]
     [InlineData("data/name.", FindingKind.InvalidPath)]
     [InlineData(".example-app/backup.bin", FindingKind.ReservedPath)]
+    [InlineData(".egstore/example.manifest", FindingKind.ReservedPath)]
     [InlineData("data/.cache/owner.json", FindingKind.ReservedPath)]
     [InlineData("data", FindingKind.PathConflict)]
     [InlineData("bin/engine.dll/inner.txt", FindingKind.PathConflict)]

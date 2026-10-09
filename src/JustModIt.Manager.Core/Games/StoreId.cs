@@ -24,6 +24,9 @@ public readonly record struct StoreId
 
     public static StoreId Gog { get; } = new("gog");
 
+    /// <summary>The Epic Games Store, whose games are known by the catalog namespace of the base game.</summary>
+    public static StoreId Epic { get; } = new("epic");
+
     public string Value => _value ?? string.Empty;
 
     /// <summary>Reads a store id; false when the text is none.</summary>

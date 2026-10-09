@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Platform;
 
@@ -53,7 +54,10 @@ public sealed class GameIndex
 
     public int FileCount => _files.Count;
 
-    /// <summary>Lists <paramref name="root"/> without the app's own folder, which holds backups rather than game files.</summary>
+    /// <summary>
+    /// Lists <paramref name="root"/> without the app's own folder, which holds backups, and without the stores' folders
+    /// (<see cref="StoreFolders"/>), which hold their downloads and records; neither holds game files.
+    /// </summary>
     /// <param name="fileSystem">Lists the folder.</param>
     /// <param name="root">The game folder, canonical.</param>
     /// <param name="hiddenFolderName">The app's own folder at the game's root.</param>
@@ -65,7 +69,8 @@ public sealed class GameIndex
         foreach (var entry in fileSystem.Enumerate(root, "*", TopLevel))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (entry.IsDirectory && entry.Name.Equals(hiddenFolderName, StringComparison.OrdinalIgnoreCase))
+            if (entry.IsDirectory
+                && (entry.Name.Equals(hiddenFolderName, StringComparison.OrdinalIgnoreCase) || StoreFolders.Contains(entry.Name)))
             {
                 continue;
             }

@@ -7,6 +7,7 @@
     "steamclient*.so",
     "EOSSDK*.dll",
     "libEOSSDK*",
+    "EpicOnlineServices*",
     "Galaxy.dll",
     "Galaxy64.dll",
     "GalaxyPeer*.dll",
@@ -26,11 +27,14 @@
     "OnlineFix*",
     "3dmgame*",
     "rld.ini",
-    "RUNE.ini"
+    "RUNE.ini",
+    "ScreamAPI*",
+    "NemirtingasEpicEmu*"
   ],
   "circumventionFolders": [
     "steam_settings",
-    "SmartSteamEmu"
+    "SmartSteamEmu",
+    "nepice_settings"
   ],
   "archiveExtensions": [
     ".arc", ".assets", ".ba2", ".big", ".bin", ".bsa", ".bundle", ".cpk", ".dat", ".forge", ".gpk", ".npk", ".pak",
