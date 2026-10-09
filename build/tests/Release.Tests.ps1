@@ -1,6 +1,14 @@
 BeforeAll {
     $build = Split-Path -Parent $PSScriptRoot
+    $shell = (Get-Process -Id $PID).Path
     Import-Module (Join-Path $build 'Release.psm1') -Force
+
+    # Runs in the $repository of the Describe that calls it.
+    function Invoke-Git {
+        & git -C $repository -c user.name=Tester -c user.email=tester@example.invalid -c commit.gpgsign=false `
+            -c tag.gpgsign=false -c core.autocrlf=false @args
+        if ($LASTEXITCODE -ne 0) { throw "git $args failed." }
+    }
 }
 
 Describe 'Compare-Version' {
@@ -66,18 +74,11 @@ Describe 'Get-NextVersion' {
 
 Describe 'Versions from tags' {
     BeforeAll {
-        $shell = (Get-Process -Id $PID).Path
         $repository = Join-Path $TestDrive 'repository'
         New-Item -ItemType Directory (Join-Path $repository 'build'), (Join-Path $repository 'src\SampleApp') | Out-Null
         Copy-Item (Join-Path $build 'Release.psm1'), (Join-Path $build 'version.ps1') (Join-Path $repository 'build')
         Set-Content (Join-Path $repository 'src\SampleApp\Product.props') `
             '<Project><PropertyGroup><ManagerAppSlug>sample-app</ManagerAppSlug></PropertyGroup></Project>'
-
-        function Invoke-Git {
-            & git -C $repository -c user.name=Tester -c user.email=tester@example.invalid -c commit.gpgsign=false `
-                -c tag.gpgsign=false @args
-            if ($LASTEXITCODE -ne 0) { throw "git $args failed." }
-        }
 
         function Invoke-Version([string[]]$Arguments, [string]$Outputs) {
             $workflowOutputs = $env:GITHUB_OUTPUT
@@ -139,12 +140,53 @@ Describe 'Versions from tags' {
 
     It 'releases the commit that a pushed tag marks, when the tag is spelt as the app''s tags are' {
         Invoke-Git tag sample-app/v0.2.0
-
-        $release = Invoke-Version @('-Tag', 'sample-app/v0.2.0')
-        $misspelt = Invoke-Version @('-Tag', 'SampleApp/v0.3.0')
+        try {
+            $release = Invoke-Version @('-Tag', 'sample-app/v0.2.0')
+            $misspelt = Invoke-Version @('-Tag', 'SampleApp/v0.3.0')
+        }
+        finally {
+            Invoke-Git tag -d sample-app/v0.2.0 | Out-Null
+        }
 
         $release.Output | Should -Be '0.2.0'
         $misspelt.ExitCode | Should -Not -Be 0
         $misspelt.Output | Should -Match 'SampleApp/v0\.3\.0 is not one of the app''s tags'
+    }
+}
+
+Describe 'Release notes' {
+    BeforeAll {
+        $repository = Join-Path $TestDrive 'notes'
+        New-Item -ItemType Directory (Join-Path $repository 'build') | Out-Null
+        Copy-Item (Join-Path $build 'Release.psm1') (Join-Path $repository 'build')
+
+        function Add-Commit([string]$Path, [string]$Subject) {
+            $file = Join-Path $repository $Path
+            New-Item -ItemType Directory -Force (Split-Path -Parent $file) | Out-Null
+            Set-Content $file $Subject
+            Invoke-Git add -A
+            Invoke-Git commit -q -m $Subject
+        }
+
+        Invoke-Git init -q -b main
+        Add-Commit 'src\SampleApp\Product.props' 'Add the sample app'
+        Add-Commit 'src\OtherApp\Product.props' 'Add the other app'
+        Invoke-Git tag sample-app/v0.1.0
+        Add-Commit 'src\SampleApp\App.cs' 'Change the sample app'
+        Add-Commit 'src\OtherApp\App.cs' 'Change the other app'
+        Invoke-Git tag other-app/v1.0.0
+        Add-Commit 'src\Shared\Engine.cs' 'Change shared code'
+    }
+
+    It "lists the app's and the shared commits since the app's previous tag and links to the source" {
+        $notes = Join-Path $TestDrive 'release-notes.md'
+
+        $written = & $shell -NoProfile -Command ("Import-Module '$repository\build\Release.psm1'; Write-ReleaseNotes " +
+            "-Target ([pscustomobject]@{ Slug = 'sample-app'; Folder = Get-Item '$repository\src\SampleApp' }) " +
+            "-Version 0.2.0 -Path '$notes' -SourceUrl https://example.invalid/sample-app/v0.2.0")
+
+        $written | Should -Be 'True'
+        Get-Content $notes | Should -Be @('- Change shared code', '- Change the sample app', '',
+            'Source code: https://example.invalid/sample-app/v0.2.0')
     }
 }

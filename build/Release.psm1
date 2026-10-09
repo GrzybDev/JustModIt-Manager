@@ -175,5 +175,46 @@ function Get-NextVersion {
     return $next
 }
 
+# Writes the subjects of the commits since the app's previous tag, leaving out those that touch only other apps; false
+# when there is nothing to write.
+function Write-ReleaseNotes {
+    param(
+        # The app, as Read-AppProject reads it.
+        [Parameter(Mandatory = $true)]
+        $Target,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Version,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        # Where the source code of this release can be browsed; the notes end with a link to it.
+        [string]$SourceUrl
+    )
+
+    $prefix = "$($Target.Slug)/v"
+    $previous = Get-NativeOutput 'git' @('-C', $root, 'describe', '--tags', '--abbrev=0', "--match=$prefix*",
+        "--exclude=$prefix$Version", 'HEAD')
+    $range = if ($previous.ExitCode -eq 0) { "$($previous.Lines[0])..HEAD" } else { 'HEAD' }
+    $otherApps = @(Get-AppProjects | Where-Object { $_.FullName -ne $Target.Folder.FullName } |
+        ForEach-Object { ":(exclude)src/$($_.Name)" })
+    # Written to a file, since Windows PowerShell would read git's UTF-8 in the console's code page.
+    $subjects = "$Path.commits"
+    $log = Get-NativeOutput 'git' (@('-C', $root, 'log', '--no-merges', '--format=%s', "--output=$subjects", $range, '--', '.') +
+        $otherApps)
+    if ($log.ExitCode -ne 0) {
+        Write-Warning 'The release has no notes: git could not list its commits.'
+        return $false
+    }
+
+    $lines = @([System.IO.File]::ReadAllLines($subjects) | Where-Object { $_ } | ForEach-Object { "- $_" })
+    Remove-Item $subjects
+    if ($SourceUrl) { $lines += @('', "Source code: $SourceUrl") }
+    if ($lines.Count -eq 0) { return $false }
+    [System.IO.File]::WriteAllText($Path, ($lines -join "`n") + "`n", (New-Object System.Text.UTF8Encoding $false))
+    return $true
+}
+
 Export-ModuleMember -Function Invoke-Native, Get-NativeOutput, Get-AppProjects, Get-AppSlug, Find-App, Read-AppProject,
-    Confirm-Version, Compare-Version, Get-AppTagVersions, Get-NextVersion
+    Confirm-Version, Compare-Version, Get-AppTagVersions, Get-NextVersion, Write-ReleaseNotes

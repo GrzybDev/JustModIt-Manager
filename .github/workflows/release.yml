@@ -1,8 +1,5 @@
 name: Release
 
-# Each app is released on its own: a tag <ManagerAppSlug>/v<version>, or a manual run naming the app and the version,
-# builds, tests and publishes that app alone to its update feed (ManagerUpdateUrl). A version with a "-" suffix is a
-# pre-release.
 on:
   push:
     tags: ['*/v*.*.*']
@@ -15,10 +12,37 @@ on:
         options:
           - justmodit-manager
           - menadzer-spolszczen
-      version:
-        description: The version, such as 1.2.3, or 1.2.3-alpha.1 for a pre-release
+      bump:
+        description: The part of the app's latest version to raise; release turns a pre-release into its stable version
         required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+          - release
+      prerelease:
+        description: The pre-release label of the new version, or none for a stable version
+        type: choice
+        default: none
+        options:
+          - none
+          - alpha
+          - beta
+          - rc
+      version:
+        description: An exact version instead, such as 1.2.3 or 1.2.3-alpha.1
         type: string
+      sign:
+        description: Sign the executables and the installer (run build\sign-pending.ps1 -Watch on the signing machine)
+        type: boolean
+        default: true
+      dry_run:
+        description: Build, test and sign without publishing or tagging
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -35,29 +59,34 @@ env:
 jobs:
   release:
     runs-on: windows-latest
+    # Besides the build, two signing rounds may each wait up to an hour for the signing machine. sign-pending.ps1 never
+    # signs a file uploaded longer ago, so the two change together.
+    timeout-minutes: 150
+    env:
+      SIGN: ${{ github.event_name == 'push' || inputs.sign }}
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: true
-          # The release notes list the commits since the app's previous tag.
+          # The version follows the app's tags, and the release notes list the commits since its previous tag.
           fetch-depth: 0
 
-      - name: Read the app and version
-        id: release
+      - name: Choose the version
+        id: version
         shell: pwsh
         env:
           TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
           APP: ${{ inputs.app }}
+          BUMP: ${{ inputs.bump }}
+          LABEL: ${{ inputs.prerelease }}
           VERSION: ${{ inputs.version }}
         run: |
-          if ($env:TAG) { $app, $version = $env:TAG -split '/v', 2 } else { $app, $version = $env:APP, $env:VERSION }
-          $tag = "$app/v$version"
-          if (-not $env:TAG -and (git tag --list $tag) -and (git rev-list -n 1 $tag) -ne $env:GITHUB_SHA) {
-            throw "$tag already marks another commit."
+          if ($env:TAG) {
+            ./build/version.ps1 -Tag $env:TAG
           }
-          @(
-            "app=$app", "version=$version", "tag=$tag", "prerelease=$($version.Contains('-').ToString().ToLowerInvariant())"
-          ) | Add-Content -Path $env:GITHUB_OUTPUT
+          else {
+            ./build/version.ps1 -App $env:APP -Bump $env:BUMP -PreRelease $env:LABEL -Version $env:VERSION
+          }
 
       - uses: ./.github/actions/build
 
@@ -65,23 +94,72 @@ jobs:
         id: package
         shell: pwsh
         env:
-          APP: ${{ steps.release.outputs.app }}
-          VERSION: ${{ steps.release.outputs.version }}
-          TAG: ${{ steps.release.outputs.tag }}
+          APP: ${{ steps.version.outputs.slug }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
           MANAGER_API_KEY: ${{ secrets.MANAGER_API_KEY }}
-        run: >
-          ./build/package.ps1 -App $env:APP -Version $env:VERSION -Token $env:GH_TOKEN
-          -SourceUrl "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/tree/$env:TAG"
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
+          SIGNING_STORE: ${{ vars.SIGNING_STORE || 's3://codesign' }}
+          SIGNING_REPOSITORY: ${{ github.event.repository.name }}
+          SIGNING_APP: ${{ steps.version.outputs.slug }}
+          SIGNING_VERSION: ${{ steps.version.outputs.version }}
+          SIGNING_SUBJECT: ${{ vars.SIGNING_SUBJECT }}
+        run: |
+          $arguments = @{
+            App = $env:APP; Version = $env:VERSION; Token = $env:GH_TOKEN
+            SourceUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/tree/$env:TAG"
+          }
+          if ($env:SIGN -eq 'true') {
+            if (-not $env:AWS_ACCESS_KEY_ID) {
+              throw 'Signing needs the secrets AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION and AWS_ENDPOINT_URL of the signing store.'
+            }
+            $arguments.SignTemplate = "pwsh -NoProfile -File $env:GITHUB_WORKSPACE/build/sign-remote.ps1 {{file...}}"
+            Write-Host "::notice title=Waiting for signatures::Sign the files on the signing machine with build\sign-pending.ps1 -Watch -Store $env:SIGNING_STORE"
+          }
+          ./build/package.ps1 @arguments
 
       - name: Keep the symbols
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.package.outputs.app-id }}-${{ steps.release.outputs.version }}-symbols
+          name: ${{ steps.package.outputs.app-id }}-${{ steps.version.outputs.version }}-symbols
           path: ${{ steps.package.outputs.symbols }}
           if-no-files-found: error
 
+      # A bucket of their own, since the signing store's files expire within a day.
+      - name: Keep the symbols in the symbols store
+        shell: pwsh
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
+          STORE: ${{ vars.SYMBOLS_STORE || 's3://symbols' }}
+          SYMBOLS: ${{ steps.package.outputs.symbols }}
+          FOLDER: ${{ github.event.repository.name }}/${{ steps.version.outputs.slug }}/v${{ steps.version.outputs.version }}/
+        run: |
+          if ($env:AWS_ACCESS_KEY_ID) {
+            aws s3 cp $env:SYMBOLS "$($env:STORE.TrimEnd('/'))/$env:FOLDER" --recursive --only-show-errors
+          }
+          else {
+            Write-Host 'No symbols store is set up, so the symbols are kept only as an artifact.'
+          }
+
+      - name: Keep the release
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.package.outputs.app-id }}-${{ steps.version.outputs.version }}
+          path: |
+            ${{ steps.package.outputs.releases }}
+            ${{ steps.package.outputs.checksums }}
+          if-no-files-found: error
+
       - name: Publish
+        id: publish
+        if: ${{ !inputs.dry_run }}
         shell: pwsh
         env:
           VPK: ${{ steps.package.outputs.vpk }}
@@ -89,9 +167,9 @@ jobs:
           UPDATE_URL: ${{ steps.package.outputs.update-url }}
           CHANNEL: ${{ steps.package.outputs.channel }}
           PRODUCT: ${{ steps.package.outputs.product }}
-          VERSION: ${{ steps.release.outputs.version }}
-          TAG: ${{ steps.release.outputs.tag }}
-          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
           GH_TOKEN: ${{ github.token }}
           RELEASE_REPOSITORY_TOKEN: ${{ secrets.RELEASE_REPOSITORY_TOKEN }}
         run: |
@@ -116,13 +194,63 @@ jobs:
           & $env:VPK @arguments
           exit $LASTEXITCODE
 
-      # A manual run tags the commit it released, so the next release's notes start there, and only once it is
-      # published, so a failed run leaves no tag behind. A tag pushed with the workflow's token starts no other run.
+      # A manual run tags the commit it released, so the next release's version and notes start there, and only once it
+      # is published, so a failed run leaves no tag behind. A tag pushed with the workflow's token starts no other run.
       - name: Tag the release
-        if: github.event_name == 'workflow_dispatch'
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.dry_run }}
         shell: pwsh
         env:
-          TAG: ${{ steps.release.outputs.tag }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
           if (-not (git tag --list $env:TAG)) { git tag $env:TAG $env:GITHUB_SHA }
           git push origin "refs/tags/$env:TAG"
+
+      - name: Summarize
+        if: ${{ always() && steps.version.outputs.version }}
+        shell: pwsh
+        env:
+          APP: ${{ steps.version.outputs.slug }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+          CHANNEL: ${{ steps.package.outputs.channel }}
+          CHECKSUMS: ${{ steps.package.outputs.checksums }}
+          PACKAGED: ${{ steps.package.outcome }}
+          PUBLISHED: ${{ steps.publish.outcome }}
+          UPDATE_URL: ${{ steps.package.outputs.update-url }}
+          STORE: ${{ vars.SIGNING_STORE || 's3://codesign' }}
+        run: |
+          $lines = @(
+            "### $env:APP $env:VERSION", '',
+            "- Pre-release: $(if ($env:PRERELEASE -eq 'true') { 'yes' } else { 'no' })",
+            "- Channel: $(if ($env:CHANNEL) { $env:CHANNEL } else { 'default' })",
+            "- Signed: $(if ($env:SIGN -eq 'true' -and $env:PACKAGED -eq 'success') { 'yes' } else { 'no' })",
+            "- Published: $(if ($env:PUBLISHED -eq 'success') { "yes, to $env:UPDATE_URL" } else { 'no' })"
+          )
+          if ($env:SIGN -eq 'true') {
+            $lines += '', "The signatures come from ``build\sign-pending.ps1 -Watch -Store $env:STORE`` on the signing machine."
+          }
+          if ($env:CHECKSUMS -and (Test-Path $env:CHECKSUMS)) {
+            $lines += @('', 'SHA-256:', '', '```text') + @(Get-Content $env:CHECKSUMS) + '```'
+          }
+          $lines | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+      - name: Clear the signing store
+        if: ${{ always() && steps.version.outputs.version && env.SIGN == 'true' }}
+        shell: pwsh
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
+          STORE: ${{ vars.SIGNING_STORE || 's3://codesign' }}
+          RELEASE: ${{ github.event.repository.name }}/${{ steps.version.outputs.slug }}/v${{ steps.version.outputs.version }}
+        run: |
+          Import-Module ./build/Signing.psm1
+          try {
+            foreach ($side in 'unsigned', 'signed') { Remove-StoreFolder $env:STORE "$side/$env:RELEASE" }
+          }
+          catch {
+            # What is left expires with the store's lifecycle rule; sign-pending.ps1 removes it once no run waits for it.
+            Write-Host "::warning title=Signing store not cleared::$($_.Exception.Message)"
+            exit 0
+          }

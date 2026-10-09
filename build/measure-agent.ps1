@@ -4,13 +4,12 @@
 Measures how much memory the agent keeps while it sits in the tray.
 
 .DESCRIPTION
-Publishes one app with NativeAOT as a development build, so its mutexes and pipe never meet an installed copy, with a
-vendor id of its own, so it starts from an empty data folder that is removed afterwards. It runs the build as the agent
-(no window) and reads the agent's memory three times: as soon as the first library scan and catalogue refresh have
-saved their results, a minute later and after it idled. Every process the script starts is stopped at the end.
+Publishes the app with NativeAOT as a development build with a vendor id of its own, so it never meets an installed copy
+and starts from an empty data folder, removed afterwards. It reads the agent's memory once the first library scan and
+catalogue refresh are saved, a minute later and after -IdleMinutes, and stops every process it started.
 
-The agent reads the real store libraries and the app's real site, with read-only requests only: with an empty data
-folder the first-run setup is not finished, so nothing is downloaded or installed.
+The agent reads the real store libraries and site, read-only: the first-run setup is not finished, so nothing is
+downloaded or installed.
 
 .EXAMPLE
 build\measure-agent.ps1 -App MenadzerSpolszczen -IdleMinutes 10
