@@ -126,8 +126,8 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
             return null;
         }
 
-        var buildId = GogJson.NullIfBlank(info.BuildId)
-            ?? GogJson.NullIfBlank((await TryParseAsync(Path.ChangeExtension(file.FullPath, ".id"), GogJsonContext.Default.GogIdFile,
+        var buildId = LauncherJson.NullIfBlank(info.BuildId)
+            ?? LauncherJson.NullIfBlank((await TryParseAsync(Path.ChangeExtension(file.FullPath, ".id"), GogJsonContext.Default.GogIdFile,
                 cancellationToken).ConfigureAwait(false))?.BuildId);
         List<string> languages = [.. (info.Languages ?? []).Select(LanguageNames.FromTag).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)];
         if (languages.Count == 0 && LanguageNames.FromName(info.Language) is { } language)
@@ -135,7 +135,7 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
             languages.Add(language);
         }
 
-        return new GogGameInfo(gameId, GogJson.NullIfBlank(info.RootGameId), GogJson.NullIfBlank(info.Name), buildId,
+        return new GogGameInfo(gameId, LauncherJson.NullIfBlank(info.RootGameId), LauncherJson.NullIfBlank(info.Name), buildId,
             info.PlayTasks is { Count: > 0 }, file.LastWriteTimeUtc, new ValueList<string>([.. languages]), PrimaryTask(info.PlayTasks));
     }
 
@@ -153,7 +153,9 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
     {
         try
         {
-            return fileSystem.FileExists(path) ? await GogJson.ReadAsync(fileSystem, path, typeInfo, cancellationToken).ConfigureAwait(false) : null;
+            return fileSystem.FileExists(path)
+                ? await LauncherJson.ReadAsync(fileSystem, path, typeInfo, cancellationToken).ConfigureAwait(false)
+                : null;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
         {

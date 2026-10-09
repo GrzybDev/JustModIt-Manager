@@ -146,7 +146,7 @@ public sealed class HeroicGogSourceTests
 
     private static LaunchLink? HeroicLink(string gameId) => LaunchLink.TryCreate($"heroic://launch?appName={gameId}&runner=gog");
 
-    private Task<GogSourceScan> Scan() => new HeroicGogSource(_files, Store).ScanAsync(LibraryScanContext.Empty, Token);
+    private Task<SourceScan<GogInstallRecord>> Scan() => new HeroicGogSource(_files, Store).ScanAsync(LibraryScanContext.Empty, Token);
 
     private GogLibraryProvider Provider(InMemoryRegistry registry) =>
         GogLibraryProvider.Create(_files, registry, new InMemorySqlite(), new LibraryEnvironment

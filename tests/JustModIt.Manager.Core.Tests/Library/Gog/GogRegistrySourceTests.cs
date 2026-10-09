@@ -114,7 +114,7 @@ public sealed class GogRegistrySourceTests
         (await Scan()).Libraries.Should().ContainSingle();
     }
 
-    private Task<GogSourceScan> Scan() => new GogRegistrySource(_registry).ScanAsync(LibraryScanContext.Empty, Token);
+    private Task<SourceScan<GogInstallRecord>> Scan() => new GogRegistrySource(_registry).ScanAsync(LibraryScanContext.Empty, Token);
 
     private void AddGame(RegistryView view, string id, string path) =>
         _registry.SetText(RegistryHive.LocalMachine, view, $@"{GamesKey}\{id}", "path", path);

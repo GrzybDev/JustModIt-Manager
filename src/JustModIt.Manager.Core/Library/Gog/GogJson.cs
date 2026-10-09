@@ -2,42 +2,15 @@ using System.Buffers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
-using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library.Gog;
 
 internal static class GogJson
 {
-    private const long MaxFileLength = 16 * 1024 * 1024;
-
-    /// <exception cref="InvalidDataException">The file is too large to be launcher metadata.</exception>
-    /// <exception cref="JsonException">The file is not the expected JSON.</exception>
-    public static async Task<T?> ReadAsync<T>(IFileSystem fileSystem, string path, JsonTypeInfo<T> typeInfo,
-        CancellationToken cancellationToken)
-    {
-        if (fileSystem.GetEntry(path) is { Length: > MaxFileLength })
-        {
-            throw new InvalidDataException("The file is too large to be launcher metadata.");
-        }
-
-        // GOG writes these files without a byte order mark, but hand-edited or third-party copies may have one.
-        var content = await fileSystem.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-        ReadOnlySpan<byte> json = content;
-        if (json.StartsWith(Encoding.UTF8.Preamble))
-        {
-            json = json[Encoding.UTF8.Preamble.Length..];
-        }
-
-        return JsonSerializer.Deserialize(json, typeInfo);
-    }
-
     /// <summary>Tells whether <paramref name="value"/> is a GOG product id, which is digits only.</summary>
     /// <param name="value">Text from a store's records; may be null.</param>
     public static bool IsId([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? value) =>
         !string.IsNullOrEmpty(value) && !value.AsSpan().ContainsAnyExceptInRange('0', '9');
-
-    public static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
 internal sealed class GogInfoFile

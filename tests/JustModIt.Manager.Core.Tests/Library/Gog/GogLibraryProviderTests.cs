@@ -386,9 +386,9 @@ public sealed class GogLibraryProviderTests
 
     private static LibraryScanContext Manual(params string[] folders) => new(new ValueList<string>([.. folders]));
 
-    private GogLibraryProvider CreateProvider(params IGogInstallSource[] extra) => CreateProvider(_files, extra);
+    private GogLibraryProvider CreateProvider(params IInstallSource<GogInstallRecord>[] extra) => CreateProvider(_files, extra);
 
-    private GogLibraryProvider CreateProvider(IFileSystem files, params IGogInstallSource[] extra) =>
+    private GogLibraryProvider CreateProvider(IFileSystem files, params IInstallSource<GogInstallRecord>[] extra) =>
         new(files, [new GogRegistrySource(_registry, new GalaxyDatabase(files, _sqlite, GalaxyStorage)), .. extra], AppPlatform.Windows,
             NullLogger<GogLibraryProvider>.Instance);
 
@@ -402,7 +402,7 @@ public sealed class GogLibraryProviderTests
     private Task<StoreScan> Scan() => CreateProvider().ScanAsync(LibraryScanContext.Empty, Token);
 
     private async Task<StoreScan> ScanRunningOutOfTimeAsync(HangingFileSystem files, LibraryScanContext context,
-        params IGogInstallSource[] extra)
+        params IInstallSource<GogInstallRecord>[] extra)
     {
         var time = new FakeTimeProvider();
         var scanning = CreateProvider(files, extra).ScanAsync(context with { Access = new LibraryAccess(time) }, Token);
@@ -431,9 +431,9 @@ public sealed class GogLibraryProviderTests
             .SetText(RegistryHive.LocalMachine, RegistryView.Registry32,
                 $@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{id}_is1", "InstallLocation", path);
 
-    private sealed class ThrowingSource : IGogInstallSource
+    private sealed class ThrowingSource : IInstallSource<GogInstallRecord>
     {
-        public Task<GogSourceScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken) =>
+        public Task<SourceScan<GogInstallRecord>> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("The launcher's data is unreadable.");
     }
 }

@@ -4,13 +4,12 @@ using JustModIt.Manager.Core.Platform;
 namespace JustModIt.Manager.Core.Library.Gog;
 
 /// <summary>
-/// Reads <c>SOFTWARE\GOG.com\Games</c>, which both GOG Galaxy and GOG's offline installers write, then the installers'
-/// Inno Setup uninstall entries for games whose GOG.com key is missing. Galaxy's own database tells which of them Galaxy
-/// manages and what it is doing with them.
+/// Reads <c>SOFTWARE\GOG.com\Games</c>, which GOG Galaxy and the offline installers write, and the installers' Inno Setup
+/// uninstall entries where that key is missing, and asks Galaxy's database which games it manages and what it does.
 /// </summary>
 /// <param name="registry">Reads the registry records.</param>
 /// <param name="galaxy">Null where Galaxy's database cannot be located.</param>
-public sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy = null) : IGogInstallSource
+public sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy = null) : IInstallSource<GogInstallRecord>
 {
     /// <summary>The <see cref="LibraryLocation.Id"/> and <see cref="LibraryLocation.Source"/> of the registry records.</summary>
     public const string LibrarySource = "gog-registry";
@@ -30,7 +29,7 @@ public sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy
         (RegistryHive.CurrentUser, RegistryView.Default),
     ];
 
-    public async Task<GogSourceScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
+    public async Task<SourceScan<GogInstallRecord>> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -39,7 +38,7 @@ public sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy
             [.. SearchOrder.Select(location => new WatchedRegistryKey(location.Hive, location.View, GamesKey, IncludeSubkeys: true))]);
         if (!SearchOrder.Any(location => registry.ReadKey(location.Hive, location.View, GogKey) is not null))
         {
-            return new GogSourceScan([], [], watch);
+            return new([], [], watch);
         }
 
         var records = new List<GogInstallRecord>();
@@ -67,7 +66,7 @@ public sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy
             // Usually caught while Galaxy writes it; the games it listed are kept until it can be read again.
             catch (IOException)
             {
-                return new GogSourceScan([Library(LibraryState.Unreadable)], [], watch);
+                return new([Library(LibraryState.Unreadable)], [], watch);
             }
 
             records = [.. records.Select(record => record with
@@ -79,7 +78,7 @@ public sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy
             })];
         }
 
-        return new GogSourceScan([Library(LibraryState.Online)], records, watch);
+        return new([Library(LibraryState.Online)], records, watch);
     }
 
     private static LibraryLocation Library(LibraryState state) => new(LibrarySource, LibrarySource, Path: null, state);
@@ -140,7 +139,7 @@ public sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy
     {
         foreach (var name in names)
         {
-            if (GogJson.NullIfBlank(key.GetText(name)) is { } text)
+            if (LauncherJson.NullIfBlank(key.GetText(name)) is { } text)
             {
                 return text;
             }
