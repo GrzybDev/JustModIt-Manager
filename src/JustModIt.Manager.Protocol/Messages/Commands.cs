@@ -72,6 +72,9 @@ public sealed record ChooseVariant(GameKey Game, string? VariantName = null) : M
 /// <param name="IsHidden">Whether the game is hidden from now on.</param>
 public sealed record HideGame(GameKey Game, bool IsHidden) : Message;
 
+/// <summary>The player confirmed being an adult, which lets the catalogue show adult games for a day.</summary>
+public sealed record ConfirmAdultContent : Message;
+
 /// <summary>
 /// Starts the game through its store, or opens its page in a store client that starts games only from there; refused as
 /// unsupported for a store the app has no link for.

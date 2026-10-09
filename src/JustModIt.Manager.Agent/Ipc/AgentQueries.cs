@@ -2,6 +2,7 @@ using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
@@ -10,7 +11,13 @@ using JustModIt.Manager.Protocol.Views;
 namespace JustModIt.Manager.Agent.Ipc;
 
 /// <summary>What the window reads beyond the state: project pages, the catalogue and detection details.</summary>
-public sealed class AgentQueries(CatalogueService catalogue, ILibraryService library, IInstallEngine engine)
+/// <param name="catalogue">Reads project pages and the catalogue's listing.</param>
+/// <param name="library">The snapshot the detection report comes from.</param>
+/// <param name="engine">Finds leftover backups.</param>
+/// <param name="settings">Tells whether the player confirmed being an adult.</param>
+/// <param name="time">Tells whether that confirmation still holds.</param>
+public sealed class AgentQueries(CatalogueService catalogue, ILibraryService library, IInstallEngine engine,
+    ISettingsService settings, TimeProvider time)
 {
     /// <summary>A slice larger than this is cut, so no answer comes near the frame limit.</summary>
     public const int MaxCataloguePage = 200;
@@ -68,7 +75,11 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
             return new CataloguePageResult(0, []);
         }
 
-        var found = listing.Search(request.Query, Text.Comparer);
+        var query = request.Query with
+        {
+            IncludeAdult = request.Query.IncludeAdult && settings.Current.IsAdultContentConfirmed(time.GetUtcNow()),
+        };
+        var found = listing.Search(query, Text.Comparer);
         var slice = found.Skip(Math.Max(0, request.Offset)).Take(Math.Clamp(request.Count, 0, MaxCataloguePage));
         return new CataloguePageResult(found.Count, [.. slice.Select(CatalogueGameView.From)], listing.FetchedAt);
     }

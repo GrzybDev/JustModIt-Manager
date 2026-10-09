@@ -44,6 +44,14 @@ internal static class LenientJson
             ? Enum.Parse<TEnum>(match)
             : null;
 
+    /// <summary>Reads the date and time property <paramref name="name"/>, written as ISO 8601 text.</summary>
+    /// <param name="element">The JSON object.</param>
+    /// <param name="name">The property's name.</param>
+    public static DateTimeOffset? GetDateTimeOffsetOrNull(this JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && value.TryGetDateTimeOffset(out var time)
+            ? time
+            : null;
+
     /// <summary>Reads the property <paramref name="name"/> when its value is of the given kind.</summary>
     /// <param name="element">The JSON object.</param>
     /// <param name="name">The property's name.</param>

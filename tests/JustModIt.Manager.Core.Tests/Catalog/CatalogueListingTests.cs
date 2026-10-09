@@ -64,7 +64,7 @@ public sealed class CatalogueListingTests : IDisposable
     {
         var listing = await _site.CrawlAsync();
 
-        var found = listing.Search(new CatalogueQuery { Text = text, Order = CatalogueOrder.Alphabetical }, Names);
+        var found = listing.Search(new CatalogueQuery { Text = text, IncludeAdult = true, Order = CatalogueOrder.Alphabetical }, Names);
 
         string.Join(',', found.Select(listed => listed.Game.Slug)).Should().Be(expected);
     }
@@ -75,7 +75,6 @@ public sealed class CatalogueListingTests : IDisposable
         var listing = await _site.CrawlAsync();
 
         Slugs(listing.Search(new CatalogueQuery { GenreUuid = Adventure }, Names)).Should().Equal("clockwork-tides", "starlight-harbor");
-        Slugs(listing.Search(new CatalogueQuery { IsAdult = true }, Names)).Should().Equal("ember-road");
         Slugs(listing.Search(new CatalogueQuery { StatusUuid = Testing }, Names)).Should().Equal("clockwork-tides");
         Slugs(listing.Search(new CatalogueQuery { TypeUuid = Voice }, Names)).Should().Equal("starlight-harbor");
         Slugs(listing.Search(new CatalogueQuery { TeamUuid = PaperMoth, GenreUuid = Adventure }, Names)).Should().Equal("clockwork-tides");
@@ -84,15 +83,24 @@ public sealed class CatalogueListingTests : IDisposable
     }
 
     [Fact]
+    public async Task Leaves_adult_games_out_unless_asked_for()
+    {
+        var listing = await _site.CrawlAsync();
+
+        Slugs(listing.Search(new CatalogueQuery(), Names)).Should().Equal("clockwork-tides", "starlight-harbor", "silent-orchard");
+        Slugs(listing.Search(new CatalogueQuery { IncludeAdult = true }, Names)).Should().Contain("ember-road");
+    }
+
+    [Fact]
     public async Task Orders_by_the_newest_release_by_downloads_or_by_name()
     {
         var listing = await _site.CrawlAsync();
 
-        Slugs(listing.Search(new CatalogueQuery(), Names))
+        Slugs(listing.Search(new CatalogueQuery { IncludeAdult = true }, Names))
             .Should().Equal("ember-road", "clockwork-tides", "starlight-harbor", "silent-orchard");
-        Slugs(listing.Search(new CatalogueQuery { Order = CatalogueOrder.Popular }, Names))
+        Slugs(listing.Search(new CatalogueQuery { IncludeAdult = true, Order = CatalogueOrder.Popular }, Names))
             .Should().Equal("starlight-harbor", "ember-road", "clockwork-tides", "silent-orchard");
-        Slugs(listing.Search(new CatalogueQuery { Order = CatalogueOrder.Alphabetical }, Names))
+        Slugs(listing.Search(new CatalogueQuery { IncludeAdult = true, Order = CatalogueOrder.Alphabetical }, Names))
             .Should().Equal("clockwork-tides", "ember-road", "silent-orchard", "starlight-harbor");
     }
 

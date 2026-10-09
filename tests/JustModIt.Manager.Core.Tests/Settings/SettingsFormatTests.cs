@@ -40,6 +40,7 @@ public sealed class SettingsFormatTests : IDisposable
             BackupLocation = BackupLocation.CustomFolder,
             CustomBackupFolder = Rooted("Backups"),
             PreferredTeams = [Guid.Parse("5a6b7c8d-0000-4000-8000-000000000002"), Guid.Parse("5a6b7c8d-0000-4000-8000-000000000001")],
+            AdultContentConfirmedUntil = new DateTimeOffset(2026, 9, 2, 18, 30, 0, TimeSpan.FromHours(2)),
         }
             .WithGame(Witcher, preferences => preferences with
             {

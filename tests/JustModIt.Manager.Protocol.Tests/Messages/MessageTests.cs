@@ -56,6 +56,7 @@ public sealed class MessageTests
         new ChooseProject(Game, Project),
         new ChooseVariant(Game, null),
         new HideGame(Game, IsHidden: true),
+        new ConfirmAdultContent(),
         new LaunchGame(Game),
         new OpenFolder(AppFolder.GameBackups, Game),
         new OpenFolder(AppFolder.Logs),
@@ -76,7 +77,7 @@ public sealed class MessageTests
             Error = CatalogueErrorReason.Offline,
         },
         new ProjectPageResult { IsGone = true },
-        new GetCataloguePage(new CatalogueQuery { Text = "example", IsAdult = false, Order = CatalogueOrder.Popular }, 0, 50),
+        new GetCataloguePage(new CatalogueQuery { Text = "example", IncludeAdult = true, Order = CatalogueOrder.Popular }, 0, 50),
         new CataloguePageResult(1,
         [
             new CatalogueGameView(Guid.Parse("66666666-0000-4000-8000-000000000001"), "example-game", "Example Game")

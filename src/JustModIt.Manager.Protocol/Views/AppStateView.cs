@@ -23,6 +23,11 @@ public sealed record AppStateView
 
     public SettingsView Settings { get; init; } = SettingsView.From(AppSettings.Default);
 
+    /// <summary>
+    /// Until when the player counts as an adult; adult games and their pages ask for the player's age again after it.
+    /// </summary>
+    public DateTimeOffset? AdultContentConfirmedUntil { get; init; }
+
     public LibraryView Library { get; init; } = new();
 
     public CatalogueView Catalogue { get; init; } = new();
@@ -56,6 +61,7 @@ public sealed record AppStateView
             Games = [.. state.Games.Select(GameView.From)],
             Jobs = [.. state.Jobs.Select(JobView.From)],
             Settings = SettingsView.From(settings),
+            AdultContentConfirmedUntil = settings.AdultContentConfirmedUntil,
             Library = LibraryView.From(state, settings),
             Catalogue = new CatalogueView
             {

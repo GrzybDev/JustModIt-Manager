@@ -29,6 +29,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string PreferredTeams = "preferredTeams";
     private const string Games = "games";
     private const string LibraryFolders = "libraryFolders";
+    private const string AdultContentConfirmedUntil = "adultContentConfirmedUntil";
 
     // Version 0 stored the inverse of BlurAdultContent and named the automation after the only kind of project it knew.
     private const string LegacyShowAdultContent = "showAdultContent";
@@ -50,8 +51,8 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     public IReadOnlySet<string> KnownProperties { get; } = FrozenSet.Create(StringComparer.Ordinal,
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
         AutoUpdateApp, ShowNotifications, BlurAdultContent, CreatorMode, OnboardingCompleted, TrayNoticeShown,
-        BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders, LegacyShowAdultContent, LegacyAutoInstallProjects,
-        LegacyAutoUpdateProjects);
+        BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders, AdultContentConfirmedUntil,
+        LegacyShowAdultContent, LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
 
     public AppSettings Read(JsonElement root, int version)
     {
@@ -85,6 +86,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             PreferredTeams = ReadTeams(root.GetOrNull(PreferredTeams, JsonValueKind.Array)),
             Games = ReadGames(root.GetOrNull(Games, JsonValueKind.Object)),
             LibraryFolders = ReadLibraryFolders(root.GetOrNull(LibraryFolders, JsonValueKind.Array)),
+            AdultContentConfirmedUntil = root.GetDateTimeOffsetOrNull(AdultContentConfirmedUntil),
         };
     }
 
@@ -142,6 +144,10 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         }
 
         writer.WriteEndArray();
+        if (document.AdultContentConfirmedUntil is { } confirmedUntil)
+        {
+            writer.WriteString(AdultContentConfirmedUntil, confirmedUntil);
+        }
     }
 
     private static ValueDictionary<GameKey, GamePreferences> ReadGames(JsonElement? games)

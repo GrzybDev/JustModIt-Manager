@@ -28,6 +28,7 @@ public sealed class AppSettingsTests
         settings.CustomBackupFolder.Should().BeNull();
         settings.Games.Should().BeEmpty();
         settings.LibraryFolders.Should().BeEmpty();
+        settings.AdultContentConfirmedUntil.Should().BeNull();
     }
 
     [Fact]
@@ -114,6 +115,18 @@ public sealed class AppSettingsTests
             .WithLibraryFolder(new LibraryFolder(StoreId.Steam, @"e:\steamlibrary"));
 
         settings.LibraryFolders.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void A_confirmed_age_lasts_a_day()
+    {
+        var now = new DateTimeOffset(2026, 9, 1, 22, 0, 0, TimeSpan.FromHours(2));
+
+        var settings = AppSettings.Default.ConfirmAdultContent(now);
+
+        AppSettings.Default.IsAdultContentConfirmed(now).Should().BeFalse();
+        settings.IsAdultContentConfirmed(now.AddHours(23).AddMinutes(59)).Should().BeTrue();
+        settings.IsAdultContentConfirmed(now.AddDays(1)).Should().BeFalse();
     }
 
     private static string Rooted(string name) => Path.Combine(OperatingSystem.IsWindows() ? @"E:\" : "/mnt", name);

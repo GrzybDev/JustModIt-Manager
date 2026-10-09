@@ -15,7 +15,23 @@ using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Agent.Ipc;
 
-/// <summary>The window's commands. Jobs are only started here; how they go reaches the window with the state.</summary>
+/// <summary>
+/// Carries out the window's commands; jobs are only started here, and how they go reaches the window with the state.
+/// </summary>
+/// <param name="coordinator">The engine's state, to find games and installs.</param>
+/// <param name="jobs">Starts and cancels jobs.</param>
+/// <param name="engine">Removes leftover backups.</param>
+/// <param name="settings">Takes the player's settings and choices.</param>
+/// <param name="library">The detected games and the library folders the player added.</param>
+/// <param name="volumes">Tells the drives apart, to check a backup folder.</param>
+/// <param name="fileSystem">Finds a game's program.</param>
+/// <param name="checks">Runs a check the player asks for.</param>
+/// <param name="updates">Restarts into a ready update.</param>
+/// <param name="status">Tells whether an update is ready.</param>
+/// <param name="lifetime">Exits the app.</param>
+/// <param name="shell">Opens folders and links and starts programs.</param>
+/// <param name="options">The app's folders and the folder it is installed in.</param>
+/// <param name="time">Dates the player's confirmation of being an adult.</param>
 public sealed class AgentCommands(
     StateCoordinator coordinator,
     JobRunner jobs,
@@ -29,7 +45,8 @@ public sealed class AgentCommands(
     AgentStatus status,
     AgentLifetime lifetime,
     IDesktopShell shell,
-    AgentOptions options)
+    AgentOptions options,
+    TimeProvider time)
 {
     /// <summary>Carries out one of the window's commands.</summary>
     /// <param name="request">A command, as opposed to a query.</param>
@@ -59,6 +76,7 @@ public sealed class AgentCommands(
             current.WithGame(choose.Game, preferences => preferences with { VariantName = choose.VariantName }))),
         HideGame hide => Done(() => settings.Update(current =>
             current.WithGame(hide.Game, preferences => preferences with { IsHidden = hide.IsHidden }))),
+        ConfirmAdultContent => Done(() => settings.Update(current => current.ConfirmAdultContent(time.GetUtcNow()))),
         LaunchGame launch => Launch(library.Snapshot.Find(launch.Game)),
         OpenFolder open => Open(FolderOf(open)),
         AddLibraryFolder add => await AddLibraryFolderAsync(add.Path, cancellationToken).ConfigureAwait(false),

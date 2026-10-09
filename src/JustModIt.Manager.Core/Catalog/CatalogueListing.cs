@@ -55,8 +55,8 @@ public sealed record CatalogueQuery
 
     public Guid? GenreUuid { get; init; }
 
-    /// <summary>Null finds games whether or not they are marked as adult content.</summary>
-    public bool? IsAdult { get; init; }
+    /// <summary>Also finds games marked as adult content, which only the player's confirmed age allows.</summary>
+    public bool IncludeAdult { get; init; }
 
     public Guid? StatusUuid { get; init; }
 
@@ -157,7 +157,7 @@ public sealed class CatalogueListing
     private static bool Fits(GameSummary game, CatalogueQuery query) =>
         (query.PlatformUuid is not { } platform || game.Platform?.Uuid == platform)
         && (query.GenreUuid is not { } genre || game.Genres.Any(candidate => candidate.Uuid == genre))
-        && (query.IsAdult is not { } adult || game.IsAdult == adult);
+        && (query.IncludeAdult || !game.IsAdult);
 
     private static bool Fits(ProjectSummary project, CatalogueQuery query) =>
         (query.StatusUuid is not { } status || project.Status?.Uuid == status)

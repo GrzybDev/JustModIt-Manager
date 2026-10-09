@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace JustModIt.Manager.Protocol.Messages;
 
-/// <summary>A request, response or event payload. The <c>type</c> discriminator names the concrete message.</summary>
+/// <summary>A request, response or event payload, whose <c>type</c> discriminator names the concrete message.</summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(Hello), "hello")]
 [JsonDerivedType(typeof(Ping), "ping")]
@@ -32,6 +32,7 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(ChooseProject), "chooseProject")]
 [JsonDerivedType(typeof(ChooseVariant), "chooseVariant")]
 [JsonDerivedType(typeof(HideGame), "hideGame")]
+[JsonDerivedType(typeof(ConfirmAdultContent), "confirmAdultContent")]
 [JsonDerivedType(typeof(LaunchGame), "launchGame")]
 [JsonDerivedType(typeof(OpenFolder), "openFolder")]
 [JsonDerivedType(typeof(AddLibraryFolder), "addLibraryFolder")]

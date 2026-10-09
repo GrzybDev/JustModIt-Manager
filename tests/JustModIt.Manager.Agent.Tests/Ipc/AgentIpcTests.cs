@@ -7,6 +7,7 @@ using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Agent.Tests.Ipc;
 
@@ -194,6 +195,26 @@ public sealed class AgentIpcTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Adult_games_reach_the_catalogue_once_the_player_confirmed_being_an_adult()
+    {
+        await new CatalogueCache(_agent.Options.Locations.CatalogueCacheDirectory, TimeProvider.System, NullLogger<CatalogueCache>.Instance)
+            .SaveListingAsync(new CatalogueListing(DateTimeOffset.UtcNow, [Listed("Example Game", isAdult: false), Listed("Adult Game", isAdult: true)],
+                new CatalogueReference()), AgentHarness.Token);
+        _agent.Start();
+        var window = await _agent.ConnectWindowAsync();
+        var page = new GetCataloguePage(new CatalogueQuery { IncludeAdult = true }, 0, 50);
+
+        var unconfirmed = (CataloguePageResult)(await window.RequestAsync(page))!;
+        await window.RequestAsync(new ConfirmAdultContent());
+        var confirmed = await window.StateAsync(state => state.AdultContentConfirmedUntil is not null);
+        var adult = (CataloguePageResult)(await window.RequestAsync(page))!;
+
+        unconfirmed.Games.Select(game => game.Name).Should().Equal("Example Game");
+        confirmed.AdultContentConfirmedUntil.Should().BeCloseTo(DateTimeOffset.UtcNow.AddDays(1), TimeSpan.FromMinutes(1));
+        adult.Games.Select(game => game.Name).Should().BeEquivalentTo("Example Game", "Adult Game");
+    }
+
+    [Fact]
     public async Task The_logs_folder_opens_in_the_system_shell()
     {
         _agent.Start();
@@ -232,4 +253,16 @@ public sealed class AgentIpcTests : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync() => await _agent.DisposeAsync();
+
+    private static ListedGame Listed(string name, bool isAdult) => new(
+        new GameSummary { Uuid = Guid.NewGuid(), Slug = name, Name = name, IsAdult = isAdult },
+        [
+            new ProjectSummary
+            {
+                Uuid = Guid.NewGuid(),
+                Slug = "example-project",
+                Name = "Example Project",
+                Team = new TeamReference { Uuid = Guid.NewGuid(), Slug = "example-team", Name = "Example Team" },
+            },
+        ]);
 }

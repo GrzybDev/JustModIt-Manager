@@ -80,6 +80,9 @@ public sealed record AppSettings
 
     public ValueList<LibraryFolder> LibraryFolders { get; init; }
 
+    /// <summary>Until when the player counts as an adult, which games marked as adult content and their pages need.</summary>
+    public DateTimeOffset? AdultContentConfirmedUntil { get; init; }
+
     /// <summary>The player's choices for a game, or the defaults.</summary>
     /// <param name="key">The game's store and store id.</param>
     public GamePreferences GetGame(GameKey key) => Games.TryGetValue(key, out var preferences) ? preferences : GamePreferences.Default;
@@ -93,6 +96,14 @@ public sealed record AppSettings
         var updated = change(GetGame(key));
         return this with { Games = updated == GamePreferences.Default ? Games.Remove(key) : Games.SetItem(key, updated) };
     }
+
+    /// <summary>The settings with the player's age confirmed for a day.</summary>
+    /// <param name="now">The current time.</param>
+    public AppSettings ConfirmAdultContent(DateTimeOffset now) => this with { AdultContentConfirmedUntil = now.AddDays(1) };
+
+    /// <summary>Whether the player's confirmed age still holds.</summary>
+    /// <param name="now">The current time.</param>
+    public bool IsAdultContentConfirmed(DateTimeOffset now) => AdultContentConfirmedUntil > now;
 
     /// <summary>Whether the automation installs projects for the game, by its own choice or else the global setting.</summary>
     /// <param name="key">The game's store and store id.</param>
