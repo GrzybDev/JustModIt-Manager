@@ -1,4 +1,3 @@
-using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Platform;
 
@@ -6,9 +5,12 @@ namespace JustModIt.Manager.Core.Library.Gog;
 
 /// <summary>
 /// Reads <c>SOFTWARE\GOG.com\Games</c>, which both GOG Galaxy and GOG's offline installers write, then the installers'
-/// Inno Setup uninstall entries for games whose GOG.com key is missing.
+/// Inno Setup uninstall entries for games whose GOG.com key is missing. Galaxy's own database tells which of them Galaxy
+/// manages and what it is doing with them.
 /// </summary>
-public sealed class GogRegistrySource(IRegistry registry) : IGogInstallSource
+/// <param name="registry">Reads the registry records.</param>
+/// <param name="galaxy">Null where Galaxy's database cannot be located.</param>
+public sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy = null) : IGogInstallSource
 {
     /// <summary>The <see cref="LibraryLocation.Id"/> and <see cref="LibraryLocation.Source"/> of the registry records.</summary>
     public const string LibrarySource = "gog-registry";
@@ -28,13 +30,16 @@ public sealed class GogRegistrySource(IRegistry registry) : IGogInstallSource
         (RegistryHive.CurrentUser, RegistryView.Default),
     ];
 
-    public Task<GogSourceScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
+    public async Task<GogSourceScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         // The uninstall entries are not watched: every program changes them, and they only back up a missing GOG.com key.
-        var watch = new WatchPlan([], [.. SearchOrder.Select(location => new WatchedRegistryKey(location.Hive, location.View, GamesKey, IncludeSubkeys: true))]);
+        var watch = new WatchPlan(galaxy?.Watch is { } database ? [database] : [],
+            [.. SearchOrder.Select(location => new WatchedRegistryKey(location.Hive, location.View, GamesKey, IncludeSubkeys: true))]);
         if (!SearchOrder.Any(location => registry.ReadKey(location.Hive, location.View, GogKey) is not null))
         {
-            return Task.FromResult(new GogSourceScan([], [], watch));
+            return new GogSourceScan([], [], watch);
         }
 
         var records = new List<GogInstallRecord>();
@@ -51,15 +56,33 @@ public sealed class GogRegistrySource(IRegistry registry) : IGogInstallSource
                 .Select(FromUninstallKey).OfType<GogInstallRecord>());
         }
 
-        // Galaxy installs games with the same records as GOG's offline installers, so only its presence tells them apart.
-        if (SearchOrder.Any(location => registry.ReadKey(location.Hive, location.View, GalaxyClientKey) is not null))
+        if (galaxy is not null && SearchOrder.Any(location => registry.ReadKey(location.Hive, location.View, GalaxyClientKey) is not null))
         {
-            records = [.. records.Select(record => record with { Launch = LaunchLink.TryCreate($"goggalaxy://openGameView/{record.GameId}") })];
+            GalaxyGames games;
+            try
+            {
+                games = await context.Access.ReadAsync(galaxy.StorageDirectory, _ => Task.FromResult(galaxy.Read()), cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            // Usually caught while Galaxy writes it; the games it listed are kept until it can be read again.
+            catch (IOException)
+            {
+                return new GogSourceScan([Library(LibraryState.Unreadable)], [], watch);
+            }
+
+            records = [.. records.Select(record => record with
+            {
+                Launch = games.Manages(record.GameId, record.InstallPath)
+                    ? LaunchLink.TryCreate($"goggalaxy://openGameView/{record.GameId}")
+                    : null,
+                Activity = games.Jobs.TryGetValue(record.GameId, out var job) ? job : null,
+            })];
         }
 
-        ValueList<LibraryLocation> libraries = [new LibraryLocation(LibrarySource, LibrarySource, Path: null, LibraryState.Online)];
-        return Task.FromResult(new GogSourceScan(libraries, records, watch));
+        return new GogSourceScan([Library(LibraryState.Online)], records, watch);
     }
+
+    private static LibraryLocation Library(LibraryState state) => new(LibrarySource, LibrarySource, Path: null, state);
 
     // Names are checked before a key is opened, so hundreds of unrelated uninstall entries cost only a comparison.
     private IEnumerable<RegistryKeySnapshot> ReadSubkeys(RegistryHive hive, RegistryView view, string path, Func<string, bool> includeName) =>

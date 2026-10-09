@@ -13,6 +13,9 @@ public sealed record LibraryEnvironment
     /// <summary>The roaming application data folder on Windows.</summary>
     public string? ApplicationData { get; init; }
 
+    /// <summary>The application data folder shared by every user on Windows (<c>%ProgramData%</c>).</summary>
+    public string? ProgramData { get; init; }
+
     /// <summary><c>XDG_DATA_HOME</c>, when it is set to an absolute path.</summary>
     public string? XdgDataHome { get; init; }
 
@@ -31,6 +34,10 @@ public sealed record LibraryEnvironment
             Environment.SpecialFolderOption.DoNotVerify)),
         ApplicationData = FullyQualifiedOrNull(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData,
             Environment.SpecialFolderOption.DoNotVerify)),
+        ProgramData = OperatingSystem.IsWindows()
+            ? FullyQualifiedOrNull(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData,
+                Environment.SpecialFolderOption.DoNotVerify))
+            : null,
         XdgDataHome = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("XDG_DATA_HOME")),
         XdgConfigHome = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")),
         SnapUserData = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("SNAP_USER_DATA")),

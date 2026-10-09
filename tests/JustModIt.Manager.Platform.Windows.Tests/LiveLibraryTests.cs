@@ -70,7 +70,8 @@ public sealed class LiveLibraryTests
             [
                 new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, time,
                     NullLogger<SteamLibraryProvider>.Instance),
-                GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<GogLibraryProvider>.Instance),
+                GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, WindowsSqliteReader.Instance, environment,
+                    NullLogger<GogLibraryProvider>.Instance),
             ],
             settings,
             new RunningGameDetector(WindowsProcessSource.Instance, PhysicalFileSystem.Instance, time),
@@ -118,7 +119,8 @@ public sealed class LiveLibraryTests
         [
             new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, TimeProvider.System,
                 NullLogger<SteamLibraryProvider>.Instance),
-            GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<GogLibraryProvider>.Instance),
+            GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, WindowsSqliteReader.Instance, environment,
+                NullLogger<GogLibraryProvider>.Instance),
         ];
         var limited = LibraryScanContext.Empty with { Access = new LibraryAccess(TimeProvider.System) };
 
@@ -137,8 +139,8 @@ public sealed class LiveLibraryTests
     [Fact]
     public async Task The_real_gog_library_scans_to_sane_results()
     {
-        var provider = GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, LibraryEnvironment.ForCurrentUser(),
-            NullLogger<GogLibraryProvider>.Instance);
+        var provider = GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, WindowsSqliteReader.Instance,
+            LibraryEnvironment.ForCurrentUser(), NullLogger<GogLibraryProvider>.Instance);
 
         var scan = await provider.ScanAsync(LibraryScanContext.Empty, Token);
 
@@ -152,6 +154,16 @@ public sealed class LiveLibraryTests
             Directory.Exists(game.InstallDirectory).Should().BeTrue();
             (await provider.InspectFolderAsync(game.InstallDirectory, Token)).IsAccepted.Should().BeTrue();
             (await provider.ProbeAsync(game, LibraryScanContext.Empty, Token))!.State.Should().Be(GameInstallState.Installed);
+        }
+
+        var galaxyInstalled = WindowsRegistry.Instance.ReadKey(RegistryHive.LocalMachine, RegistryView.Registry32,
+            @"SOFTWARE\GOG.com\GalaxyClient") is not null;
+        var galaxy = GalaxyDatabase.Locate(PhysicalFileSystem.Instance, WindowsSqliteReader.Instance, LibraryEnvironment.ForCurrentUser())!
+            .Read();
+        foreach (var game in scan.Games.Where(game => game.LibraryId == GogRegistrySource.LibrarySource))
+        {
+            (game.Launch is LaunchLink link && link.Uri.StartsWith("goggalaxy:", StringComparison.Ordinal)).Should().Be(
+                galaxyInstalled && galaxy.Manages(game.Key.StoreGameId, game.InstallDirectory), "only Galaxy's own games open in Galaxy");
         }
     }
 }

@@ -63,7 +63,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
             [
                 new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, _time,
                     _loggers.CreateLogger<SteamLibraryProvider>()),
-                GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment,
+                GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, WindowsSqliteReader.Instance, environment,
                     _loggers.CreateLogger<GogLibraryProvider>()),
             ],
             settings, _runningGames, PhysicalFileSystem.Instance, FileSystemFolderWatcher.Instance, WindowsRegistryWatcher.Instance,

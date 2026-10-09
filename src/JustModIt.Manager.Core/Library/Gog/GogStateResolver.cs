@@ -21,7 +21,7 @@ internal static class GogStateResolver
     /// <summary>heroic-gogdl keeps these in the game folder until a download or update completes.</summary>
     public static readonly string[] DownloadMarkers = [".gogdl-resume", ".gogdl-download-cache"];
 
-    public static GogState Resolve(IFileSystem fileSystem, string directory, string? recordedBuildId, GogGameInfo? info)
+    public static GogState Resolve(IFileSystem fileSystem, string directory, GogInstallRecord record, GogGameInfo? info)
     {
         if (!fileSystem.DirectoryExists(directory))
         {
@@ -29,6 +29,11 @@ internal static class GogStateResolver
             return Path.GetPathRoot(directory) is { Length: > 0 } root && fileSystem.DirectoryExists(root)
                 ? new(GameInstallState.Broken, GameStateReason.InstallDirectoryMissing)
                 : new(GameInstallState.Offline, GameStateReason.LibraryOffline);
+        }
+
+        if (record.Activity is { } activity)
+        {
+            return new(activity, GameStateReason.StoreBusy);
         }
 
         if (DownloadMarkers.Any(marker => fileSystem.GetEntry(Path.Join(directory, marker)) is not null))
@@ -43,7 +48,7 @@ internal static class GogStateResolver
         }
 
         // The launcher rewrites its record and the .info file at different moments of an update.
-        return recordedBuildId is not null && info.BuildId is not null && recordedBuildId != info.BuildId
+        return record.BuildId is not null && info.BuildId is not null && record.BuildId != info.BuildId
             ? new(GameInstallState.Updating, GameStateReason.BuildMismatch)
             : new(GameInstallState.Installed, GameStateReason.None);
     }

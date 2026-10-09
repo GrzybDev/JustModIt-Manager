@@ -77,6 +77,7 @@ public static class AgentServices
     {
         services.AddSingleton<IRegistry>(WindowsRegistry.Instance);
         services.AddSingleton<IRegistryWatcher>(WindowsRegistryWatcher.Instance);
+        services.AddSingleton<ISqliteReader>(WindowsSqliteReader.Instance);
         services.AddSingleton<ISystemEvents, WindowsSystemEvents>();
         services.AddSingleton<IProcessSource>(WindowsProcessSource.Instance);
         services.AddSingleton<ILockHolderSource>(RestartManagerLockHolders.Instance);
@@ -96,8 +97,8 @@ public static class AgentServices
         services.AddSingleton(LibraryEnvironment.ForCurrentUser());
         services.AddSingleton<ILibraryProvider, SteamLibraryProvider>();
         services.AddSingleton<ILibraryProvider>(provider => GogLibraryProvider.Create(provider.GetRequiredService<IFileSystem>(),
-            provider.GetRequiredService<IRegistry>(), provider.GetRequiredService<LibraryEnvironment>(),
-            provider.GetRequiredService<ILogger<GogLibraryProvider>>()));
+            provider.GetRequiredService<IRegistry>(), provider.GetRequiredService<ISqliteReader>(),
+            provider.GetRequiredService<LibraryEnvironment>(), provider.GetRequiredService<ILogger<GogLibraryProvider>>()));
         services.AddSingleton<IRunningGameDetector, RunningGameDetector>();
         AddStore(services, LibrarySnapshotFormat.FileIn(locations), LibrarySnapshotFormat.Instance);
         AddStore(services, FailedAttemptsFormat.FileIn(locations), FailedAttemptsFormat.Instance);

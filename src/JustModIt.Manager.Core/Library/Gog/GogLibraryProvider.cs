@@ -39,12 +39,22 @@ public sealed partial class GogLibraryProvider : ILibraryProvider
 
     public StoreId Store => StoreId.Gog;
 
-    /// <summary>The sources of this machine: the registry on Windows, then every Heroic installation.</summary>
-    public static GogLibraryProvider Create(IFileSystem fileSystem, IRegistry registry, LibraryEnvironment environment,
+    /// <summary>
+    /// Creates the provider for the sources of this machine: the registry and Galaxy's database on Windows, then every
+    /// Heroic installation.
+    /// </summary>
+    /// <param name="fileSystem">Reads the launchers' files and the games' folders.</param>
+    /// <param name="registry">Reads the installers' and Galaxy's registry records.</param>
+    /// <param name="sqlite">Reads Galaxy's databases.</param>
+    /// <param name="environment">The user's folders the launchers are found relative to.</param>
+    /// <param name="logger">Logs sources and records that were skipped.</param>
+    public static GogLibraryProvider Create(IFileSystem fileSystem, IRegistry registry, ISqliteReader sqlite, LibraryEnvironment environment,
         ILogger<GogLibraryProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(environment);
-        List<IGogInstallSource> sources = environment.Platform == AppPlatform.Windows ? [new GogRegistrySource(registry)] : [];
+        List<IGogInstallSource> sources = environment.Platform == AppPlatform.Windows
+            ? [new GogRegistrySource(registry, GalaxyDatabase.Locate(fileSystem, sqlite, environment))]
+            : [];
         sources.AddRange(HeroicGogSource.StoreDirectories(environment)
             .Select(directory => new HeroicGogSource(fileSystem, directory)));
         return new GogLibraryProvider(fileSystem, sources, environment.Platform, logger);
@@ -182,7 +192,7 @@ public sealed partial class GogLibraryProvider : ILibraryProvider
 
     private Finding Describe(GogInstallRecord record, string directory, GogGameInfo? info)
     {
-        var state = GogStateResolver.Resolve(_fileSystem, directory, record.BuildId, info);
+        var state = GogStateResolver.Resolve(_fileSystem, directory, record, info);
         var languages = new List<string>(info?.Languages ?? []);
         if (LanguageNames.FromTagOrName(record.Language) is { } recorded
             && !languages.Any(tag => tag.Split('-')[0].Equals(recorded.Split('-')[0], StringComparison.OrdinalIgnoreCase)))

@@ -149,7 +149,7 @@ public sealed class HeroicGogSourceTests
     private Task<GogSourceScan> Scan() => new HeroicGogSource(_files, Store).ScanAsync(LibraryScanContext.Empty, Token);
 
     private GogLibraryProvider Provider(InMemoryRegistry registry) =>
-        GogLibraryProvider.Create(_files, registry, new LibraryEnvironment
+        GogLibraryProvider.Create(_files, registry, new InMemorySqlite(), new LibraryEnvironment
         {
             Platform = AppPlatform.Windows,
             HomeDirectory = @"C:\Users\Player",

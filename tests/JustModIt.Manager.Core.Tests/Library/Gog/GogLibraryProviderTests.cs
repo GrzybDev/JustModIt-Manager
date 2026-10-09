@@ -13,11 +13,15 @@ public sealed class GogLibraryProviderTests
 {
     private const string GamesKey = @"SOFTWARE\GOG.com\Games";
     private const string Folder = @"D:\GOG Games\Example";
+    private const string GalaxyStorage = @"C:\ProgramData\GOG.com\Galaxy\storage";
+    private const string GalaxyLibrary = GalaxyStorage + @"\galaxy-2.0.db";
+    private const string GalaxyJobs = GalaxyStorage + @"\jobs.db";
 
     private static readonly GameKey Example = new(StoreId.Gog, "1207658924");
 
     private readonly InMemoryFileSystem _files = new();
     private readonly InMemoryRegistry _registry = new();
+    private readonly InMemorySqlite _sqlite = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -49,10 +53,12 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task Each_game_starts_through_what_installed_it()
     {
-        _registry.SetText(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\GOG.com\GalaxyClient", "clientExecutable",
-            "GalaxyClient.exe");
+        InstallGalaxy();
+        _sqlite.Add(GalaxyLibrary, ["1207658924", Folder], ["1003", @"D:\GOG Galaxy\Moved Since"]);
         _files.AddInfo(Folder, "1207658924", "Through Galaxy");
         AddRecord("1207658924", Folder);
+        _files.AddInfo(@"D:\GOG Games\Offline", "1003", "Through The Offline Installer");
+        AddRecord("1003", @"D:\GOG Games\Offline");
         _files.AddInfo(@"D:\Heroic\Another", "1001", "Through Heroic");
         _files.AddFile(@"R:\Roaming\heroic\gog_store\installed.json",
             """{ "installed": [ { "appName": "1001", "install_path": "D:\\Heroic\\Another", "platform": "windows" } ] }""");
@@ -64,9 +70,47 @@ public sealed class GogLibraryProviderTests
         scan.Games.ToDictionary(game => game.Name, game => game.Launch).Should().BeEquivalentTo(new Dictionary<string, GameLaunch?>
         {
             ["Through Galaxy"] = LaunchLink.TryCreate("goggalaxy://openGameView/1207658924"),
+            ["Through The Offline Installer"] = LaunchProgram.TryCreate("game.exe", null, null),
             ["Through Heroic"] = LaunchLink.TryCreate("heroic://launch?appName=1001&runner=gog"),
             ["From Its Folder"] = LaunchProgram.TryCreate("game.exe", null, null),
         });
+    }
+
+    [Theory]
+    [InlineData("install", GameInstallState.Installing)]
+    [InlineData("update", GameInstallState.Updating)]
+    [InlineData("verify", GameInstallState.Validating)]
+    public async Task A_game_galaxy_works_on_is_busy_until_its_job_is_gone(string job, GameInstallState state)
+    {
+        InstallGalaxy();
+        _sqlite.Add(GalaxyLibrary, ["1207658924", Folder]).Add(GalaxyJobs, ["1207658924", job]);
+        _files.AddInfo(Folder, "1207658924", "Example");
+        AddRecord("1207658924", Folder);
+        var provider = CreateProvider();
+
+        var scan = await provider.ScanAsync(LibraryScanContext.Empty, Token);
+        _sqlite.Add(GalaxyJobs);
+        var probed = await provider.ProbeAsync(scan.Games.Single(), LibraryScanContext.Empty, Token);
+
+        scan.Games.Single().Should().Match<InstalledGame>(game => game.State == state && game.Reason == GameStateReason.StoreBusy);
+        probed!.IsReady.Should().BeTrue();
+        scan.Watch.Folders.Should().Contain(new WatchedFolder(GalaxyStorage,
+            ["galaxy-2.0.db", "galaxy-2.0.db-wal", "galaxy-2.0.db-journal", "jobs.db", "jobs.db-wal", "jobs.db-journal"]));
+    }
+
+    [Fact]
+    public async Task A_busy_galaxy_database_leaves_the_registry_games_as_they_were_until_it_can_be_read()
+    {
+        InstallGalaxy();
+        _sqlite.Lock(GalaxyLibrary);
+        _files.AddInfo(Folder, "1207658924", "Example");
+        AddRecord("1207658924", Folder);
+
+        var scan = await Scan();
+
+        scan.Games.Should().BeEmpty();
+        scan.Libraries.Should().Equal(new LibraryLocation(GogRegistrySource.LibrarySource, GogRegistrySource.LibrarySource, null,
+            LibraryState.Unreadable));
     }
 
     [Fact]
@@ -345,7 +389,15 @@ public sealed class GogLibraryProviderTests
     private GogLibraryProvider CreateProvider(params IGogInstallSource[] extra) => CreateProvider(_files, extra);
 
     private GogLibraryProvider CreateProvider(IFileSystem files, params IGogInstallSource[] extra) =>
-        new(files, [new GogRegistrySource(_registry), .. extra], AppPlatform.Windows, NullLogger<GogLibraryProvider>.Instance);
+        new(files, [new GogRegistrySource(_registry, new GalaxyDatabase(files, _sqlite, GalaxyStorage)), .. extra], AppPlatform.Windows,
+            NullLogger<GogLibraryProvider>.Instance);
+
+    private void InstallGalaxy()
+    {
+        _registry.SetText(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\GOG.com\GalaxyClient", "clientExecutable",
+            "GalaxyClient.exe");
+        _files.AddDirectory(GalaxyStorage);
+    }
 
     private Task<StoreScan> Scan() => CreateProvider().ScanAsync(LibraryScanContext.Empty, Token);
 
