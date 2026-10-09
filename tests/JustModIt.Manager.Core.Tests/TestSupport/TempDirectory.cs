@@ -65,10 +65,21 @@ internal sealed class TempDirectory : IDisposable
                 Directory.Delete(link);
             }
 
+            if (!Directory.Exists(Path))
+            {
+                return;
+            }
+
+            foreach (var entry in Directory.EnumerateFileSystemEntries(Path, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(entry, File.GetAttributes(entry) & ~FileAttributes.ReadOnly);
+            }
+
             Directory.Delete(Path, recursive: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
+            TestContext.Current.AddWarning($"The temporary folder {Path} was left behind: {exception.Message}");
         }
     }
 

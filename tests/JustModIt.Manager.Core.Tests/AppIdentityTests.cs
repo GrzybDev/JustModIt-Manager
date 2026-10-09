@@ -2,27 +2,16 @@ namespace JustModIt.Manager.Core.Tests;
 
 public sealed class AppIdentityTests
 {
-    [Fact]
-    public void A_development_build_has_its_own_instance_name()
+    [Theory]
+    [InlineData(false, "ExampleApp", "example-app", ".example-app")]
+    [InlineData(true, "ExampleApp.Dev", "example-app-dev", ".example-app-dev")]
+    public void A_development_build_takes_names_of_its_own_so_it_never_touches_an_installed_copy(bool isDevelopmentBuild,
+        string instanceName, string slug, string hiddenFolderName)
     {
-        new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: false).InstanceName.Should().Be("ExampleApp");
-        new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: true).InstanceName.Should().Be("ExampleApp.Dev");
+        var identity = new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild);
+
+        (identity.InstanceName, identity.Slug, identity.HiddenFolderName).Should().Be((instanceName, slug, hiddenFolderName));
     }
-
-    [Fact]
-    public void The_hidden_folder_in_game_folders_is_named_after_the_slug() =>
-        new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: false).HiddenFolderName
-            .Should().Be(".example-app");
-
-    [Fact]
-    public void A_development_build_has_its_own_links_and_hidden_folder()
-    {
-        var development = new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: true);
-
-        development.Slug.Should().Be("example-app-dev");
-        development.HiddenFolderName.Should().Be(".example-app-dev");
-    }
-
     [Theory]
     [InlineData("", "ExampleVendor", "example-app")]
     [InlineData("ExampleApp", " ", "example-app")]

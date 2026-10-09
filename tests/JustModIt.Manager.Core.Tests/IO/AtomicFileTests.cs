@@ -13,52 +13,38 @@ public sealed class AtomicFileTests : IDisposable
     {
         var path = _directory.Write("data.json", "old");
 
+        var nested = _directory.Combine(Path.Combine("a", "b", "data.json"));
+
         await AtomicFile.WriteAllBytesAsync(path, "new"u8.ToArray(), TestContext.Current.CancellationToken);
+        await AtomicFile.WriteAllBytesAsync(nested, "content"u8.ToArray(), TestContext.Current.CancellationToken);
 
         File.ReadAllText(path).Should().Be("new");
-        _directory.Files().Should().Equal("data.json");
+        File.ReadAllText(nested).Should().Be("content", "missing folders are created");
+        _directory.Files().Should().BeEquivalentTo("data.json", Path.Combine("a", "b", "data.json"));
     }
 
-    [Fact]
-    public async Task Creates_missing_folders()
-    {
-        var path = _directory.Combine(Path.Combine("a", "b", "data.json"));
-
-        await AtomicFile.WriteAllBytesAsync(path, "content"u8.ToArray(), TestContext.Current.CancellationToken);
-
-        File.ReadAllText(path).Should().Be("content");
-    }
-
-    [Fact]
-    public async Task A_failed_write_keeps_the_previous_file()
-    {
-        var path = _directory.Write("data.json", "old");
-
-        var act = () => AtomicFile.WriteAsync(path, async (stream, token) =>
-        {
-            await stream.WriteAsync(Encoding.UTF8.GetBytes("partial"), token);
-            throw new InvalidOperationException("Serialization failed.");
-        }, TestContext.Current.CancellationToken);
-
-        await act.Should().ThrowAsync<InvalidOperationException>();
-        File.ReadAllText(path).Should().Be("old");
-        _directory.Files().Should().Equal("data.json");
-    }
-
-    [Fact]
-    public async Task A_cancelled_write_keeps_the_previous_file()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_write_that_fails_or_is_cancelled_keeps_the_previous_file(bool cancelled)
     {
         var path = _directory.Write("data.json", "old");
         using var cancellation = new CancellationTokenSource();
 
         var act = () => AtomicFile.WriteAsync(path, async (stream, token) =>
         {
-            await stream.WriteAsync("partial"u8.ToArray(), token);
+            await stream.WriteAsync(Encoding.UTF8.GetBytes("partial"), token);
+            if (!cancelled)
+            {
+                throw new InvalidOperationException("Serialization failed.");
+            }
+
             await cancellation.CancelAsync();
             token.ThrowIfCancellationRequested();
         }, cancellation.Token);
 
-        await act.Should().ThrowAsync<OperationCanceledException>();
+        (await act.Should().ThrowAsync<Exception>()).Which.Should()
+            .BeAssignableTo(cancelled ? typeof(OperationCanceledException) : typeof(InvalidOperationException));
         File.ReadAllText(path).Should().Be("old");
         _directory.Files().Should().Equal("data.json");
     }

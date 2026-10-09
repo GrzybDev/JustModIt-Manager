@@ -12,7 +12,6 @@ public sealed class LibraryAccessTests : IDisposable
     private readonly ManualResetEventSlim _drive = new(initialState: true);
     private readonly LibraryAccess _access;
     private int _reads;
-    private int _ended;
     private int _lateAnswers;
 
     public LibraryAccessTests() => _access = new LibraryAccess(_time, () => Interlocked.Increment(ref _lateAnswers));
@@ -24,21 +23,15 @@ public sealed class LibraryAccessTests : IDisposable
     private int LateAnswers => Volatile.Read(ref _lateAnswers);
 
     [Fact]
-    public async Task A_drive_that_answers_in_time_gives_the_result_or_the_error()
+    public async Task A_drive_is_given_up_on_only_once_it_runs_out_of_time()
     {
         (await _access.ReadAsync(Library, ReadAsync, Token)).Should().Be(42);
-
         await FluentActions.Awaiting(() => _access.ReadAsync<int>(Library, _ => throw new IOException("The folder is gone."), Token))
             .Should().ThrowAsync<IOException>();
-    }
-
-    [Fact]
-    public async Task A_drive_that_does_not_answer_in_time_is_given_up_on()
-    {
         _drive.Reset();
 
         var reading = _access.ReadAsync(Library, ReadAsync, Token);
-        await Eventually.HoldsAsync(() => Reads == 1, "the drive is being read");
+        await Eventually.HoldsAsync(() => Reads == 2, "the drive is being read");
         _time.Advance(LibraryAccess.TimeLimit - TimeSpan.FromTicks(1));
         await Eventually.SettleAsync();
         reading.IsCompleted.Should().BeFalse();
@@ -78,15 +71,13 @@ public sealed class LibraryAccessTests : IDisposable
     [Fact]
     public async Task A_late_answer_asks_for_another_read_once_until_the_drive_answers_in_time_again()
     {
-        await HangAndAnswerLateAsync();
-        LateAnswers.Should().Be(1);
+        await HangAndAnswerLateAsync(lateAnswers: 1);
+        await HangAndAnswerLateAsync(lateAnswers: 1);
 
-        await HangAndAnswerLateAsync();
+        (await await StartReadAsync()).Should().Be(42);
         LateAnswers.Should().Be(1, "a dead drive must not be read over and over");
 
-        (await _access.ReadAsync(Library, ReadAsync, Token)).Should().Be(42);
-        await HangAndAnswerLateAsync();
-        LateAnswers.Should().Be(2);
+        await HangAndAnswerLateAsync(lateAnswers: 2);
     }
 
     [Fact]
@@ -127,37 +118,38 @@ public sealed class LibraryAccessTests : IDisposable
         await Eventually.HoldsAsync(() => LateAnswers == 1, "the hung read ends");
     }
 
-    [Fact]
-    public async Task Unlimited_access_reads_on_the_callers_thread()
-    {
-        var thread = Environment.CurrentManagedThreadId;
-
-        var readOn = await LibraryAccess.Unlimited.ReadAsync(Library, _ => Task.FromResult(Environment.CurrentManagedThreadId), Token);
-
-        readOn.Should().Be(thread);
-    }
-
     // Blocked reads must not outlive the test.
     public void Dispose() => _drive.Set();
 
     // Leaves a read of Library blocked on the drive after giving up on it.
     private async Task HangAsync()
     {
-        var reads = Reads;
         _drive.Reset();
-        var reading = _access.ReadAsync(Library, ReadAsync, Token);
-        await Eventually.HoldsAsync(() => Reads > reads, "the drive is being read");
+        var reading = await StartReadAsync();
         _time.Advance(LibraryAccess.TimeLimit);
         await FluentActions.Awaiting(() => reading).Should().ThrowAsync<TimeoutException>();
     }
 
-    private async Task HangAndAnswerLateAsync()
+    private async Task HangAndAnswerLateAsync(int lateAnswers)
     {
-        var ended = Volatile.Read(ref _ended);
         await HangAsync();
         _drive.Set();
-        await Eventually.HoldsAsync(() => Volatile.Read(ref _ended) > ended, "the hung read ends");
-        await Eventually.SettleAsync();
+        await Eventually.HoldsAsync(() => LateAnswers == lateAnswers, $"the hung read ends with {lateAnswers} late answers in all");
+    }
+
+    // The drive is freed just after a hung read ends, so a read started right then may still be refused as hanging.
+    private async Task<Task<int>> StartReadAsync()
+    {
+        while (true)
+        {
+            var reads = Reads;
+            var reading = _access.ReadAsync(Library, ReadAsync, Token);
+            await Eventually.HoldsAsync(() => Reads > reads || reading.IsCompleted, "the drive is being read");
+            if (Reads > reads || reading.Exception?.InnerException is not TimeoutException)
+            {
+                return reading;
+            }
+        }
     }
 
     // Like a file system call, it ignores cancellation once it waits for the drive.
@@ -165,7 +157,6 @@ public sealed class LibraryAccessTests : IDisposable
     {
         Interlocked.Increment(ref _reads);
         _drive.Wait(TimeSpan.FromMinutes(1), CancellationToken.None);
-        Interlocked.Increment(ref _ended);
         return Task.FromResult(42);
     }
 }

@@ -8,8 +8,12 @@ public sealed class TransientFileRetryTests
 {
     private readonly FakeTimeProvider _time = new();
 
-    [Fact]
-    public async Task A_sharing_violation_twice_succeeds_on_the_third_try()
+    [Theory]
+    [InlineData("sharing violation")]
+    [InlineData("lock violation")]
+    [InlineData("access denied")]
+    [InlineData("unauthorized access")]
+    public async Task Retries_a_file_an_antivirus_or_indexer_holds_briefly(string error)
     {
         var attempts = 0;
 
@@ -17,7 +21,13 @@ public sealed class TransientFileRetryTests
         {
             if (++attempts < 3)
             {
-                throw SharingViolation();
+                throw error switch
+                {
+                    "sharing violation" => SharingViolation(),
+                    "lock violation" => new IOException("The file is locked.", unchecked((int)0x80070021)),
+                    "access denied" => new IOException("Access is denied.", unchecked((int)0x80070005)),
+                    _ => new UnauthorizedAccessException(),
+                };
             }
         }, _time, TestContext.Current.CancellationToken), TimeSpan.FromMilliseconds(10));
 
@@ -26,36 +36,21 @@ public sealed class TransientFileRetryTests
     }
 
     [Fact]
-    public async Task Six_retries_are_made_before_giving_up()
+    public async Task Gives_up_after_about_three_seconds()
     {
         var attempts = 0;
+        var start = _time.GetUtcNow();
 
         var act = () => _time.RunUntilCompletedAsync(TransientFileRetry.RunAsync(() =>
         {
             attempts++;
             throw SharingViolation();
-        }, _time, TestContext.Current.CancellationToken));
+        }, _time, TestContext.Current.CancellationToken), TimeSpan.FromMilliseconds(400));
 
         await act.Should().ThrowAsync<IOException>();
         attempts.Should().Be(7);
+        (_time.GetUtcNow() - start).Should().BeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(3150)).And.BeLessThanOrEqualTo(TimeSpan.FromSeconds(4));
     }
-
-    [Fact]
-    public async Task Access_denied_is_retried()
-    {
-        var attempts = 0;
-
-        await _time.RunUntilCompletedAsync(TransientFileRetry.RunAsync(() =>
-        {
-            if (++attempts == 1)
-            {
-                throw new UnauthorizedAccessException();
-            }
-        }, _time, TestContext.Current.CancellationToken));
-
-        attempts.Should().Be(2);
-    }
-
     [Fact]
     public async Task Other_errors_fail_at_once()
     {

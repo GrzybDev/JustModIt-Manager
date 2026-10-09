@@ -129,7 +129,7 @@ public sealed class CatalogueApiClientTests
     }
 
     [Fact]
-    public async Task Never_sends_the_key_to_the_storage()
+    public async Task Never_sends_the_key_to_the_storage_and_puts_no_total_time_limit_on_a_download()
     {
         var handler = new FakeHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
         using var storage = CatalogueHttp.CreateStorageClient(CatalogueFixtures.Options(apiKey: "example-key"), handler);
@@ -235,21 +235,21 @@ public sealed class CatalogueApiClientTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.NotFound, "application/json", """{"detail": "Not found."}""", CatalogueErrorReason.NotFound)]
-    [InlineData(HttpStatusCode.NotFound, "text/html", "<h1>Not Found</h1>", CatalogueErrorReason.NotFound)]
-    [InlineData(HttpStatusCode.Gone, "text/html", "", CatalogueErrorReason.NotFound)]
-    [InlineData(HttpStatusCode.Forbidden, "application/json", """{"detail": "Forbidden."}""", CatalogueErrorReason.Forbidden)]
-    [InlineData(HttpStatusCode.Unauthorized, "application/json", """{"detail": "No."}""", CatalogueErrorReason.Forbidden)]
-    [InlineData(HttpStatusCode.BadRequest, "application/json", """{"games": ["Required."]}""", CatalogueErrorReason.BadRequest)]
-    [InlineData(HttpStatusCode.ServiceUnavailable, "text/html", "<html>maintenance</html>", CatalogueErrorReason.Maintenance)]
-    [InlineData(HttpStatusCode.BadGateway, "text/html", "<html>cloudflare</html>", CatalogueErrorReason.ServerError)]
-    [InlineData(HttpStatusCode.GatewayTimeout, "text/html", "", CatalogueErrorReason.Timeout)]
-    [InlineData(HttpStatusCode.InternalServerError, "text/plain", "Server Error (500)", CatalogueErrorReason.ServerError)]
-    [InlineData(HttpStatusCode.OK, "text/html", "<title>Just a moment...</title>", CatalogueErrorReason.ServerError)]
-    [InlineData(HttpStatusCode.OK, "application/json", """{"count": 1, "results": [""", CatalogueErrorReason.InvalidResponse)]
-    [InlineData(HttpStatusCode.OK, "application/json", "null", CatalogueErrorReason.InvalidResponse)]
+    [InlineData(HttpStatusCode.NotFound, "application/json", """{"detail": "Not found."}""", CatalogueErrorReason.NotFound, "Not found.")]
+    [InlineData(HttpStatusCode.NotFound, "text/html", "<h1>Not Found</h1>", CatalogueErrorReason.NotFound, null)]
+    [InlineData(HttpStatusCode.Gone, "text/html", "", CatalogueErrorReason.NotFound, null)]
+    [InlineData(HttpStatusCode.Forbidden, "application/json", """{"detail": "Forbidden."}""", CatalogueErrorReason.Forbidden, "Forbidden.")]
+    [InlineData(HttpStatusCode.Unauthorized, "application/json", """{"detail": "No."}""", CatalogueErrorReason.Forbidden, "No.")]
+    [InlineData(HttpStatusCode.BadRequest, "application/json", """{"games": ["Required."]}""", CatalogueErrorReason.BadRequest, null)]
+    [InlineData(HttpStatusCode.ServiceUnavailable, "text/html", "<html>maintenance</html>", CatalogueErrorReason.Maintenance, null)]
+    [InlineData(HttpStatusCode.BadGateway, "text/html", "<html>cloudflare</html>", CatalogueErrorReason.ServerError, null)]
+    [InlineData(HttpStatusCode.GatewayTimeout, "text/html", "", CatalogueErrorReason.Timeout, null)]
+    [InlineData(HttpStatusCode.InternalServerError, "text/plain", "Server Error (500)", CatalogueErrorReason.ServerError, null)]
+    [InlineData(HttpStatusCode.OK, "text/html", "<title>Just a moment...</title>", CatalogueErrorReason.ServerError, null)]
+    [InlineData(HttpStatusCode.OK, "application/json", """{"count": 1, "results": [""", CatalogueErrorReason.InvalidResponse, null)]
+    [InlineData(HttpStatusCode.OK, "application/json", "null", CatalogueErrorReason.InvalidResponse, null)]
     public async Task Words_every_failure_as_a_typed_reason(HttpStatusCode status, string mediaType, string body,
-        CatalogueErrorReason reason)
+        CatalogueErrorReason reason, string? detail)
     {
         var handler = new FakeHttpHandler(_ => FakeHttpHandler.Text(status, body, mediaType));
         using var client = Client(handler);
@@ -258,19 +258,10 @@ public sealed class CatalogueApiClientTests
 
         error.Reason.Should().Be(reason);
         error.Message.Should().StartWith("GET games/v1/?page=1&page_size=48");
-    }
-
-    [Fact]
-    public async Task Keeps_the_server_explanation_for_the_log()
-    {
-        var handler = new FakeHttpHandler(_ => FakeHttpHandler.Json("""{"detail": "Invalid page."}""", HttpStatusCode.NotFound));
-        using var client = Client(handler);
-
-        var error = await Catching(client.GetGamesAsync(9, Token));
-
-        error.Message.Should().Be("GET games/v1/?page=9&page_size=48 failed with HTTP 404: Invalid page.");
-        error.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        error.IsTransient.Should().BeFalse();
+        if (detail is not null)
+        {
+            error.Message.Should().EndWith(": " + detail, "the log keeps the server's explanation");
+        }
     }
 
     [Fact]
@@ -381,57 +372,20 @@ public sealed class CatalogueApiClientTests
         using var client = Client(handler);
 
         var document = await client.GetProjectPageAsync("starlight-harbor", "lantern-works", Token);
+        var sparse = (await client.GetProjectPageAsync("clockwork-tides", "lantern-works", Token)).Page;
+        var official = (await client.GetStatusesAsync(Token))[0];
 
         var page = document.Page;
         page.Status!.ShowsProgress.Should().BeFalse("a completed status shows no progress when the backend does not say");
         page.Status.AllowsPublicReleases.Should().BeTrue("a backend without the flag never holds releases back");
-        page.Disclaimer.Should().BeEmpty();
-        page.CoverImage.Should().BeEmpty();
-        page.Credits.Should().ContainSingle().Which.User!.Avatar.Should().BeEmpty();
-        var release = page.PublicRelease!;
-        release.FirstPublishedAt.Should().BeNull();
-        release.Files[0].Mirrors.Should().BeEmpty();
-        release.Files[3].Size.Should().BeNull();
-        release.Files[4].OperatingSystems.Should().Equal(OperatingSystemKind.Unknown);
-        page.Game.Name.Should().Be("Starlight Harbor");
-        document.Json.Length.Should().Be(System.Text.Encoding.UTF8.GetByteCount(CatalogueFixtures.Read("project-starlight-harbor.json")));
-    }
-
-    [Fact]
-    public async Task Reads_missing_text_and_lists_as_empty()
-    {
-        var handler = FakeHttpHandler.Routes(CatalogueFixtures.Routes());
-        using var client = Client(handler);
-
-        var page = (await client.GetProjectPageAsync("clockwork-tides", "lantern-works", Token)).Page;
-
-        page.Summary.Should().BeEmpty();
-        page.Description.Should().BeEmpty();
-        page.Team.Avatar.Should().BeEmpty();
-        page.Game.Cover.Should().NotBeEmpty();
-        page.Game.Genres.Should().BeEmpty();
-        page.Credits.Should().BeEmpty();
-        page.StorefrontLinks[0].Url.Should().NotBeEmpty();
-        page.StorefrontLinks[0].OperatingSystems.Should().BeEmpty();
-        page.StorefrontLinks[0].Platform!.Color.Should().BeEmpty();
-        var file = page.PublicRelease!.Files[0];
-        file.Description.Should().BeEmpty();
-        file.Md5.Should().BeEmpty();
-        file.Mirrors.Should().BeEmpty();
-        page.PublicRelease.Changelog.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task Reads_the_flags_of_a_status_from_a_backend_that_sends_them()
-    {
-        var handler = FakeHttpHandler.Routes(CatalogueFixtures.Routes());
-        using var client = Client(handler);
-
-        var official = (await client.GetStatusesAsync(Token))[0];
-
-        official.AllowsPublicReleases.Should().BeFalse();
-        official.ShowsProgress.Should().BeFalse();
-        official.Description.Should().Be("The game ships this itself.");
+        (official.AllowsPublicReleases, official.ShowsProgress).Should().Be((false, false), "flags the backend sends are followed");
+        (sparse.Summary, sparse.Description).Should().Be(("", ""));
+        sparse.Credits.Should().BeEmpty();
+        sparse.PublicRelease!.Files[0].Mirrors.Should().BeEmpty();
+        sparse.PublicRelease.Changelog.Should().BeEmpty();
+        page.PublicRelease!.Files[3].Size.Should().BeNull();
+        page.PublicRelease.Files[4].OperatingSystems.Should().Equal(OperatingSystemKind.Unknown);
+        document.Json.ToArray().Should().Equal(System.Text.Encoding.UTF8.GetBytes(CatalogueFixtures.Read("project-starlight-harbor.json")));
     }
 
     private CatalogueApiClient Client(HttpMessageHandler handler) => new(CatalogueFixtures.Options(), _time, handler);

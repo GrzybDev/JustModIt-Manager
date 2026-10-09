@@ -15,58 +15,23 @@ public abstract class FileSystemContractTests
     protected abstract string Root { get; }
 
     [Fact]
-    public void Files_and_directories_exist_as_what_they_are()
+    public void An_entry_tells_a_file_from_a_folder_with_its_size_and_time_and_a_missing_path_has_none()
     {
-        var file = WriteFile("game.exe", "binary");
+        var file = WriteFile("game.exe", "12345");
         var directory = CreateDirectory("Data");
 
         FileSystem.FileExists(file).Should().BeTrue();
         FileSystem.DirectoryExists(file).Should().BeFalse();
         FileSystem.DirectoryExists(directory).Should().BeTrue();
         FileSystem.FileExists(directory).Should().BeFalse();
+        var entry = FileSystem.GetEntry(file)!.Value;
+        (entry.FullPath, entry.Name, entry.Length, entry.LastWriteTimeUtc, entry.IsDirectory, entry.IsLink)
+            .Should().Be((file, "game.exe", 5L, WrittenAt, false, false));
+        var folder = FileSystem.GetEntry(directory + Path.DirectorySeparatorChar)!.Value;
+        (folder.FullPath, folder.IsDirectory, folder.Length).Should().Be((directory, true, 0L));
         FileSystem.FileExists(Path.Combine(Root, "missing.exe")).Should().BeFalse();
         FileSystem.DirectoryExists(Path.Combine(Root, "Missing")).Should().BeFalse();
-    }
-
-    [Fact]
-    public void A_file_entry_carries_its_size_and_time()
-    {
-        var file = WriteFile("game.exe", "12345");
-
-        var entry = FileSystem.GetEntry(file);
-
-        entry.Should().NotBeNull();
-        entry!.Value.FullPath.Should().Be(file);
-        entry.Value.Name.Should().Be("game.exe");
-        entry.Value.Length.Should().Be(5);
-        entry.Value.LastWriteTimeUtc.Should().Be(WrittenAt);
-        entry.Value.IsDirectory.Should().BeFalse();
-        entry.Value.IsLink.Should().BeFalse();
-    }
-
-    [Fact]
-    public void A_directory_entry_has_no_size()
-    {
-        var directory = CreateDirectory("Data");
-
-        var entry = FileSystem.GetEntry(directory + Path.DirectorySeparatorChar);
-
-        entry!.Value.IsDirectory.Should().BeTrue();
-        entry.Value.Length.Should().Be(0);
-        entry.Value.FullPath.Should().Be(directory);
-    }
-
-    [Fact]
-    public void Nothing_at_a_path_has_no_entry() =>
         FileSystem.GetEntry(Path.Combine(Root, "missing.exe")).Should().BeNull();
-
-    [Fact]
-    public void Enumeration_lists_the_top_level_by_default()
-    {
-        WriteFile("game.exe", "x");
-        WriteFile(Path.Combine("Data", "pack.dat"), "x");
-
-        Names(FileSystem.Enumerate(Root, "*", new EnumerationOptions())).Should().BeEquivalentTo("game.exe", "Data");
     }
 
     [Fact]
@@ -83,12 +48,13 @@ public abstract class FileSystemContractTests
     }
 
     [Fact]
-    public void Recursion_stops_at_the_maximum_depth()
+    public void Enumeration_lists_the_top_level_unless_asked_to_recurse_and_stops_at_the_depth_asked()
     {
         WriteFile("top.txt", "x");
         WriteFile(Path.Combine("One", "one.txt"), "x");
         WriteFile(Path.Combine("One", "Two", "two.txt"), "x");
 
+        Names(FileSystem.Enumerate(Root, "*", new EnumerationOptions())).Should().BeEquivalentTo("top.txt", "One");
         var entries = FileSystem.Enumerate(Root, "*", new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 1 });
 
         Relative(entries).Should().BeEquivalentTo(
@@ -145,6 +111,10 @@ public abstract class FileSystemContractTests
         (await FileSystem.ReadAllTextAsync(file, MaxLength, TestContext.Current.CancellationToken))
             .Should().Be("{\"name\":\"Café Racer\"}");
         (await FileSystem.ReadAllBytesAsync(file, MaxLength, TestContext.Current.CancellationToken)).Should().Equal(content);
+        await using var stream = FileSystem.OpenRead(file, FileShare.ReadWrite);
+        using var copy = new MemoryStream();
+        await stream.CopyToAsync(copy, TestContext.Current.CancellationToken);
+        copy.ToArray().Should().Equal(content);
     }
 
     [Fact]
@@ -157,17 +127,6 @@ public abstract class FileSystemContractTests
 
         await bytes.Should().ThrowAsync<InvalidDataException>();
         await text.Should().ThrowAsync<InvalidDataException>();
-    }
-
-    [Fact]
-    public async Task A_stream_reads_the_content()
-    {
-        var file = WriteFile("manifest.acf", "\"AppState\" {}");
-
-        await using var stream = FileSystem.OpenRead(file, FileShare.ReadWrite);
-        using var reader = new StreamReader(stream);
-
-        (await reader.ReadToEndAsync(TestContext.Current.CancellationToken)).Should().Be("\"AppState\" {}");
     }
 
     [Fact]

@@ -1,6 +1,4 @@
 using System.Runtime.Versioning;
-using System.Security.AccessControl;
-using System.Security.Principal;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
@@ -84,7 +82,7 @@ public sealed class PreflightTests : IAsyncDisposable
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "The test denies access with a Windows ACL.");
         var data = new DirectoryInfo(_harness.GameFile("data"));
-        using (DenyCreatingFiles(data))
+        using (FolderAccess.DenyCreatingFiles(data))
         {
             var blocked = await _harness.InstallBlockedAsync(_harness.ManifestPackage(new TestPackage().Copy("data/new.txt", "new")));
 
@@ -319,28 +317,10 @@ public sealed class PreflightTests : IAsyncDisposable
             .Rename("bin/missing.dll", "bin/x.dll")
             .Copy("data", "conflict")));
 
-        blocked.Issues.Should().HaveCount(4);
-        _harness.AppFiles().Should().BeEmpty();
-    }
-
-    [SupportedOSPlatform("windows")]
-    private static Restore DenyCreatingFiles(DirectoryInfo directory)
-    {
-        var rule = new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!,
-            FileSystemRights.CreateFiles | FileSystemRights.CreateDirectories, AccessControlType.Deny);
-        var security = directory.GetAccessControl();
-        security.AddAccessRule(rule);
-        directory.SetAccessControl(security);
-        return new Restore(() =>
-        {
-            var restored = directory.GetAccessControl();
-            restored.RemoveAccessRule(rule);
-            directory.SetAccessControl(restored);
-        });
-    }
-
-    private sealed class Restore(Action restore) : IDisposable
-    {
-        public void Dispose() => restore();
+        blocked.Issues.Should().HaveCount(4).And.Contain([
+            new GameRunningIssue("Example.exe"),
+            new FileMismatchIssue("data/strings.pak", AlreadyPatched: false),
+            new MissingFileIssue("bin/missing.dll"),
+            new PathConflictIssue("data")]);
     }
 }

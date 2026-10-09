@@ -17,20 +17,15 @@ public sealed class SettingsServiceTests : IAsyncDisposable
     private SettingsService? _service;
 
     [Fact]
-    public async Task Starts_with_the_defaults_when_nothing_is_stored()
-    {
-        var service = await CreateAsync();
-
-        service.Current.Should().Be(AppSettings.Default);
-    }
-
-    [Fact]
-    public async Task Starts_with_the_stored_settings()
+    public async Task Starts_from_the_stored_settings_or_the_defaults_when_none_are_stored()
     {
         var stored = AppSettings.Default with { CreatorMode = true };
+        await using var fresh = await SettingsService.LoadAsync(_store, _time, NullLogger<SettingsService>.Instance,
+            TestContext.Current.CancellationToken);
 
         var service = await CreateAsync(new InMemoryDocumentStore<AppSettings>(stored));
 
+        fresh.Current.Should().Be(AppSettings.Default);
         service.Current.Should().Be(stored);
     }
 

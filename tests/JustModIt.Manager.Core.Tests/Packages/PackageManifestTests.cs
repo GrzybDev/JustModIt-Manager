@@ -1,5 +1,4 @@
 using System.Text.Json;
-using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
 
 namespace JustModIt.Manager.Core.Tests.Packages;
@@ -26,20 +25,6 @@ public sealed class PackageManifestTests
         """;
 
     [Fact]
-    public void Deserializes_every_operation_type()
-    {
-        var manifest = JsonSerializer.Deserialize(Example, PackageJsonContext.Default.PackageManifest)!;
-
-        manifest.Title.Should().Be("Example package");
-        manifest.Targets.Should().Equal(new PackageTarget(StoreId.Steam, "1000", "42"), new PackageTarget(StoreId.Gog, "18446744073709551615"));
-        manifest.Operations.Should().SatisfyRespectively(
-            operation => operation.Should().Be(new CopyOperation("data/lang/text.txt", "files/data/lang/text.txt", 18230, "aa")),
-            operation => operation.Should().BeOfType<PatchOperation>().Which.TargetSize.Should().Be(12),
-            operation => operation.Should().Be(new RenameOperation("bin/library.dll", "bin/library_original.dll")),
-            operation => operation.Should().Be(new DeleteOperation("movies/intro.bik")));
-    }
-
-    [Fact]
     public void Round_trips_through_json_with_the_type_first()
     {
         var manifest = JsonSerializer.Deserialize(Example, PackageJsonContext.Default.PackageManifest)!;
@@ -49,25 +34,14 @@ public sealed class PackageManifestTests
 
         again.Operations.Should().Equal(manifest.Operations);
         again.Requires.Should().Equal(manifest.Requires);
-        json.Should().Contain("{\n      \"type\": \"copy\",".ReplaceLineEndings());
-        json.Should().Contain("\"store\": \"steam\"");
-    }
+        using var document = JsonDocument.Parse(json);
+        document.RootElement.GetProperty("operations").EnumerateArray().Select(operation => operation.EnumerateObject().First().Name)
+            .Should().AllBe("type", "System.Text.Json readers look for the type first");
+        document.RootElement.GetProperty("targets")[0].GetProperty("store").GetString().Should().Be("steam");
 
-    [Fact]
-    public void Leaves_out_what_is_not_set()
-    {
-        var manifest = new PackageManifest { Id = Guid.Empty, Title = "T", Version = "1", Operations = [new DeleteOperation("a")] };
-
-        var json = JsonSerializer.Serialize(manifest, PackageJsonContext.Default.PackageManifest);
-
-        json.Should().NotContain("requires").And.NotContain("generator").And.NotContain("createdAt").And.NotContain("thirdPartyNotices");
-    }
-
-    [Fact]
-    public void Lists_the_capabilities_a_package_needs()
-    {
-        PackageCapabilities.Of([new DeleteOperation("a"), new RenameOperation("a", "b"), new DeleteOperation("b")])
-            .Should().Equal("op:delete", "op:rename");
-        PackageCapabilities.Supported.Should().BeEquivalentTo("op:copy", "op:patch", "op:rename", "op:delete");
+        var bare = new PackageManifest { Id = Guid.Empty, Title = "T", Version = "1", Operations = [new DeleteOperation("a")] };
+        using var unset = JsonDocument.Parse(JsonSerializer.Serialize(bare, PackageJsonContext.Default.PackageManifest));
+        unset.RootElement.EnumerateObject().Select(property => property.Name).Should()
+            .NotContain(["requires", "generator", "createdAt", "thirdPartyNotices"]);
     }
 }

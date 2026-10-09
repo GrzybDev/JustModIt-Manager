@@ -159,9 +159,10 @@ public sealed class OtherAppTests : IAsyncDisposable
         _harness.WriteGameFile(".config/owner.json", """{"app":"not an owner file without its version"}""");
         _harness.WriteGameFile(".cache/data.bin", "cache");
 
-        await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy(".config/settings.ini", "Changed")));
+        await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy(".config/settings.ini", "Changed").Copy("data/owner.json", "x")));
 
         _harness.ReadGameFile(".config/settings.ini").Should().Be("Changed");
+        _harness.ReadGameFile("data/owner.json").Should().Be("x");
     }
 
     [Fact]

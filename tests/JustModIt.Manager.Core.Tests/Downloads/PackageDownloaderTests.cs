@@ -20,7 +20,7 @@ public sealed class PackageDownloaderTests : IDisposable
         Guid.Parse("f3713421-0000-4000-8000-000000000032"), FileUuid);
 
     private readonly TempDirectory _directory = new();
-    private readonly FakeTimeProvider _time = new(DateTimeOffset.UtcNow);
+    private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero));
     private readonly FakeStorage _storage = new(FakeStorage.Bytes(Length));
     private readonly CountingApi _api;
     private readonly HttpClient _storageClient;
@@ -63,6 +63,8 @@ public sealed class PackageDownloaderTests : IDisposable
     [Fact]
     public async Task Reuses_a_verified_package_without_asking_the_site()
     {
+        (await Downloader.FindCachedAsync(Request(), Token)).Should().BeNull();
+        _storage.Requests.Should().BeEmpty();
         await Downloader.DownloadAsync(Request(), null, Token);
 
         var again = await Downloader.DownloadAsync(Request(), null, Token);
@@ -72,13 +74,6 @@ public sealed class PackageDownloaderTests : IDisposable
         found.Should().Be(again);
         _api.Resolved.Should().Be(1);
         _storage.Requests.Should().ContainSingle();
-    }
-
-    [Fact]
-    public async Task Finds_nothing_cached_before_a_download()
-    {
-        (await Downloader.FindCachedAsync(Request(), Token)).Should().BeNull();
-        _storage.Requests.Should().BeEmpty();
     }
 
     [Fact]
@@ -171,7 +166,8 @@ public sealed class PackageDownloaderTests : IDisposable
         var sha256 = Convert.ToHexStringLower(SHA256.HashData(_storage.Content));
         _storage.ETag = "\"0123456789abcdef0123456789abcdef-3\"";
 
-        var package = await Downloader.DownloadAsync(Request() with { Md5 = Md5(_storage.Content), Sha256 = sha256 }, null, Token);
+        var package = await Downloader.DownloadAsync(
+            Request() with { Md5 = Md5(_storage.Content).ToUpperInvariant(), Sha256 = sha256.ToUpperInvariant() }, null, Token);
         var wrongMd5 = await Catching(Downloader.DownloadAsync(Request(Guid.NewGuid()) with { Md5 = new string('0', 32) }, null, Token));
         var wrongSha = await Catching(Downloader.DownloadAsync(Request(Guid.NewGuid()) with { Sha256 = new string('0', 64) }, null, Token));
 
@@ -370,9 +366,15 @@ public sealed class PackageDownloaderTests : IDisposable
             _directory.Write(name, "x");
         }
 
+        var now = _time.GetUtcNow().UtcDateTime;
+        foreach (var name in new[] { $"{recentPartial:D}.part", $"{recentPartial:D}.part.json" })
+        {
+            File.SetLastWriteTimeUtc(_directory.Combine(name), now - TimeSpan.FromDays(1));
+        }
+
         foreach (var name in new[] { $"{oldPartial:D}.part", $"{oldPartial:D}.part.json" })
         {
-            File.SetLastWriteTimeUtc(_directory.Combine(name), _time.GetUtcNow().UtcDateTime - PackageDownloader.PartialLifetime - TimeSpan.FromHours(1));
+            File.SetLastWriteTimeUtc(_directory.Combine(name), now - PackageDownloader.PartialLifetime - TimeSpan.FromHours(1));
         }
 
         var deleted = await Downloader.PruneAsync(new HashSet<Guid> { kept }, Token);

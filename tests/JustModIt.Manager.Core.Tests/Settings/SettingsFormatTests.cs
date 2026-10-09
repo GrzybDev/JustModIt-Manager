@@ -18,10 +18,6 @@ public sealed class SettingsFormatTests : IDisposable
     public SettingsFormatTests() => _path = _directory.Combine("settings.json");
 
     [Fact]
-    public async Task No_file_means_no_stored_settings() =>
-        (await LoadAsync()).Should().BeNull();
-
-    [Fact]
     public async Task Every_setting_survives_a_round_trip()
     {
         var settings = new AppSettings
@@ -79,7 +75,7 @@ public sealed class SettingsFormatTests : IDisposable
     }
 
     [Fact]
-    public async Task A_file_written_by_the_prototype_loads_as_it_was()
+    public async Task A_file_written_by_the_prototype_loads_as_it_was_and_is_saved_in_the_current_format()
     {
         _directory.Write("settings.json", """
             {
@@ -106,8 +102,18 @@ public sealed class SettingsFormatTests : IDisposable
             }
             """);
 
-        var settings = await LoadAsync();
+        var store = CreateStore();
 
+        var settings = await store.LoadAsync(TestContext.Current.CancellationToken);
+        await store.SaveAsync(settings!, TestContext.Current.CancellationToken);
+
+        var stored = JsonNode.Parse(await File.ReadAllTextAsync(_path, TestContext.Current.CancellationToken))!.AsObject();
+        stored.Select(value => value.Key).Should().NotContain(["showAdultContent", "autoInstallTranslations", "autoUpdateTranslations"]);
+        stored["blurAdultContent"]!.GetValue<bool>().Should().BeFalse();
+        stored["autoInstallProjects"]!.GetValue<bool>().Should().BeTrue();
+        stored["autoUpdateProjects"]!.GetValue<bool>().Should().BeFalse();
+        stored["checkIntervalMinutes"]!.GetValue<int>().Should().Be(30, "a value this version does not know is kept");
+        (await LoadAsync()).Should().Be(settings);
         settings.Should().Be(new AppSettings
         {
             CloseBehavior = CloseBehavior.MinimizeToTray,
@@ -127,27 +133,6 @@ public sealed class SettingsFormatTests : IDisposable
             ProjectId = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920"),
             VariantName = "Café + voice-over",
         }));
-    }
-
-    [Fact]
-    public async Task The_legacy_settings_are_replaced_on_save()
-    {
-        _directory.Write("settings.json", """
-            { "showAdultContent": false, "autoInstallTranslations": true, "autoUpdateTranslations": false, "checkIntervalMinutes": 30 }
-            """);
-        var store = CreateStore();
-
-        var settings = await store.LoadAsync(TestContext.Current.CancellationToken);
-        await store.SaveAsync(settings!, TestContext.Current.CancellationToken);
-
-        var stored = JsonNode.Parse(await File.ReadAllTextAsync(_path, TestContext.Current.CancellationToken))!.AsObject();
-        stored.ContainsKey("showAdultContent").Should().BeFalse();
-        stored.ContainsKey("autoInstallTranslations").Should().BeFalse();
-        stored.ContainsKey("autoUpdateTranslations").Should().BeFalse();
-        stored["blurAdultContent"]!.GetValue<bool>().Should().BeTrue();
-        stored["autoInstallProjects"]!.GetValue<bool>().Should().BeTrue();
-        stored["autoUpdateProjects"]!.GetValue<bool>().Should().BeFalse();
-        stored["checkIntervalMinutes"]!.GetValue<int>().Should().Be(30);
     }
 
     [Fact]
@@ -252,22 +237,15 @@ public sealed class SettingsFormatTests : IDisposable
     }
 
     [Theory]
-    [InlineData("\"1\"")]
-    [InlineData("\"Ask, Exit\"")]
-    [InlineData("2")]
-    public async Task Close_behaviour_accepts_names_only(string value)
+    [InlineData("\"exit\"", CloseBehavior.Exit)]
+    [InlineData("\"1\"", CloseBehavior.Ask)]
+    [InlineData("\"Ask, Exit\"", CloseBehavior.Ask)]
+    [InlineData("2", CloseBehavior.Ask)]
+    public async Task Close_behaviour_is_read_by_name_in_any_letter_case_and_falls_back_to_ask(string value, CloseBehavior expected)
     {
         _directory.Write("settings.json", $$"""{ "closeBehavior": {{value}} }""");
 
-        (await LoadAsync())!.CloseBehavior.Should().Be(CloseBehavior.Ask);
-    }
-
-    [Fact]
-    public async Task Names_of_values_ignore_letter_case()
-    {
-        _directory.Write("settings.json", """{ "closeBehavior": "exit" }""");
-
-        (await LoadAsync())!.CloseBehavior.Should().Be(CloseBehavior.Exit);
+        (await LoadAsync())!.CloseBehavior.Should().Be(expected);
     }
 
     [Fact]

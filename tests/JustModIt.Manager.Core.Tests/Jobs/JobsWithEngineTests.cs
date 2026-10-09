@@ -1,12 +1,9 @@
-using System.Collections.Concurrent;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Tests.Installation;
 using JustModIt.Manager.Core.Tests.TestSupport;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Time.Testing;
 using static JustModIt.Manager.Core.Tests.TestSupport.TestProjects;
 
 namespace JustModIt.Manager.Core.Tests.Jobs;
@@ -26,14 +23,14 @@ public sealed class JobsWithEngineTests
         jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, requiresManager: true))));
         jobs.Downloader.Cached[FileOne] = true;
 
-        var installed = await RunAsync(jobs, new InstallJobRequest(InstallHarness.Key, "Example Game", Locator(), null));
+        var installed = await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator(), null));
 
         installed.Outcome.Should().Be(JobOutcome.Succeeded);
         game.ReadGameFile("readme.txt").Should().Be("Read me, translated");
         installed.Installed!.Source!.ReleaseId.Should().Be(ReleaseOne.ToString("D"));
         jobs.Stages(installed.Job.Id).Should().Equal(JobStage.Queued, JobStage.Preparing, JobStage.Checking, JobStage.Installing);
 
-        var uninstalled = await RunAsync(jobs, new UninstallJobRequest(installed.Installed));
+        var uninstalled = await jobs.RunAsync(new UninstallJobRequest(installed.Installed));
 
         uninstalled.Outcome.Should().Be(JobOutcome.Succeeded);
         jobs.Stages(uninstalled.Job.Id).Should().Equal(JobStage.Queued, JobStage.Checking, JobStage.Uninstalling);
@@ -52,10 +49,10 @@ public sealed class JobsWithEngineTests
         jobs.Downloader.Cached[FileOne] = true;
         jobs.Downloader.Cached[FileTwo] = true;
         jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, requiresManager: true))));
-        var installed = (await RunAsync(jobs, new InstallJobRequest(InstallHarness.Key, "Example Game", Locator(), null))).Installed!;
+        var installed = (await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator(), null))).Installed!;
         jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
 
-        var result = await RunAsync(jobs, new UpdateJobRequest(installed));
+        var result = await jobs.RunAsync(new UpdateJobRequest(installed));
 
         result.Failure!.Reason.Should().Be(JobFailureReason.InvalidPackage);
         result.RestoredPrevious.Should().BeTrue();
@@ -75,11 +72,11 @@ public sealed class JobsWithEngineTests
         jobs.Downloader.Cached[FileOne] = true;
         jobs.Downloader.Cached[FileTwo] = true;
         jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, requiresManager: true))));
-        var installed = (await RunAsync(jobs, new InstallJobRequest(InstallHarness.Key, "Example Game", Locator(), null))).Installed!;
+        var installed = (await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator(), null))).Installed!;
         jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
 
-        var update = await RunAsync(jobs, new UpdateJobRequest(installed));
-        var test = await RunAsync(jobs, new TestInstallJobRequest(InstallHarness.Key, "Example Game", otherGame));
+        var update = await jobs.RunAsync(new UpdateJobRequest(installed));
+        var test = await jobs.RunAsync(new TestInstallJobRequest(Game, "Example Game", otherGame));
 
         update.Failure!.Reason.Should().Be(JobFailureReason.OtherGame);
         update.RemovedPrevious.Should().BeFalse();
@@ -88,30 +85,12 @@ public sealed class JobsWithEngineTests
         (await game.Engine.LoadRecordsAsync(Token)).Should().Equal(installed);
     }
 
-    private static async Task<JobResult> RunAsync(JobsContext jobs, JobRequest request) =>
-        await jobs.Runner.Start(request).Completion.WaitAsync(TimeSpan.FromSeconds(30), Token);
-
-    private static async Task<JobsContext> JobsAsync(InstallHarness game)
+    private static async Task<JobsHarness> JobsAsync(InstallHarness game)
     {
-        var library = new FakeLibrary();
-        library.Publish(game.Game);
-        var downloader = new FakeDownloader { Folder = Path.Join(game.Packages, "downloads") };
-        Directory.CreateDirectory(downloader.Folder);
-        var catalogue = new FakeCatalogue();
-        var runner = new JobRunner(game.Engine, catalogue, downloader, library, new FakeRunningGames(), new FakeSettings(),
-            new FakeTimeProvider(InstallHarness.Now), NullLogger<JobRunner>.Instance);
-        await runner.RecoverAsync(Token);
-        var context = new JobsContext(runner, catalogue, downloader);
-        runner.Changed += (_, job) => context.Changes.Enqueue(job);
-        return context;
-    }
-
-    private sealed record JobsContext(JobRunner Runner, FakeCatalogue Catalogue, FakeDownloader Downloader) : IAsyncDisposable
-    {
-        public ConcurrentQueue<JobSnapshot> Changes { get; } = new();
-
-        public IReadOnlyList<JobStage> Stages(Guid job) => [.. Changes.Where(change => change.Id == job).Select(change => change.Stage)];
-
-        public ValueTask DisposeAsync() => Runner.DisposeAsync();
+        var jobs = await JobsHarness.CreateAsync(engine: game.Engine);
+        jobs.Library.Publish(game.Game);
+        jobs.Downloader.Folder = Path.Join(game.Packages, "downloads");
+        Directory.CreateDirectory(jobs.Downloader.Folder);
+        return jobs;
     }
 }

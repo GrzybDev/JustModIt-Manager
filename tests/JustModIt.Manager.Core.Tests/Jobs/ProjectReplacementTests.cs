@@ -57,38 +57,6 @@ public sealed class ProjectReplacementTests
     }
 
     [Fact]
-    public async Task A_failed_replacement_puts_the_previous_project_back()
-    {
-        await using var jobs = await JobsHarness.CreateAsync(policy: new OneProjectPolicy());
-        var record = jobs.Installed();
-        jobs.Catalogue.Add(OtherProjectPage());
-        jobs.Engine.NextInstalls.Enqueue((_, _, _) =>
-            throw new InstallFailedException(rolledBack: true, new IOException("Locked meanwhile.")));
-
-        var result = await jobs.RunAsync(InstallOtherProject());
-
-        result.Outcome.Should().Be(JobOutcome.Failed);
-        result.RestoredPrevious.Should().BeTrue();
-        result.RemovedRecord.Should().Be(record.Id);
-        result.Installed!.Source!.ProjectId.Should().Be(Project.ToString("D"));
-    }
-
-    [Fact]
-    public async Task A_new_release_that_does_not_fit_the_game_leaves_the_installed_project_alone()
-    {
-        await using var jobs = await JobsHarness.CreateAsync(policy: new OneProjectPolicy());
-        var record = jobs.Installed();
-        jobs.Catalogue.Add(OtherProjectPage());
-        jobs.Engine.Prediction = new PreflightReport([new MissingFileIssue("data/strings.pak")], []);
-
-        var result = await jobs.RunAsync(InstallOtherProject());
-
-        result.Failure!.Reason.Should().Be(JobFailureReason.NewReleaseIncompatible);
-        jobs.Engine.Calls.Should().NotContain("uninstall");
-        jobs.Engine.Records.Should().ContainKey(record.Id);
-    }
-
-    [Fact]
     public async Task Neither_an_automatic_install_nor_a_test_install_takes_the_installed_projects_place()
     {
         await using var jobs = await JobsHarness.CreateAsync(policy: new OneProjectPolicy());

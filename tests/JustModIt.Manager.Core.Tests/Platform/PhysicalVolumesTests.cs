@@ -11,7 +11,7 @@ public sealed class PhysicalVolumesTests : IDisposable
     public void Dispose() => _temp.Dispose();
 
     [Fact]
-    public void Gives_folders_of_one_drive_the_same_attached_volume()
+    public void A_backup_folder_not_created_yet_is_on_its_drives_attached_volume_with_its_free_space()
     {
         var first = _temp.CreateDirectory("first");
         var missing = _temp.Combine("second/not/yet/there");
@@ -23,12 +23,7 @@ public sealed class PhysicalVolumesTests : IDisposable
         _volumes.AreOnSameVolume(first, missing).Should().BeTrue();
         _volumes.IsAttached(id!).Should().BeTrue();
         _volumes.IsNetworkPath(first).Should().BeFalse();
-    }
-
-    [Fact]
-    public void Tells_the_free_space_of_a_folder()
-    {
-        _volumes.GetAvailableBytes(_temp.Path).Should().BeGreaterThan(0);
+        _volumes.GetAvailableBytes(missing).Should().BeGreaterThan(0);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using static JustModIt.Manager.Core.Tests.TestSupport.TestProjects;
 
 namespace JustModIt.Manager.Core.Tests.Jobs;
@@ -98,20 +99,23 @@ public sealed class ReinstallJobTests
         jobs.Engine.Records.Should().ContainKey(record.Id);
     }
 
-    [Fact]
-    public async Task A_new_release_made_for_another_game_version_removes_nothing()
+    [Theory]
+    [InlineData(JobKind.Update)]
+    [InlineData(JobKind.Install)]
+    public async Task A_new_release_made_for_another_game_version_removes_nothing(JobKind kind)
     {
-        await using var jobs = await JobsHarness.CreateAsync();
+        await using var jobs = await JobsHarness.CreateAsync(policy: kind == JobKind.Install ? new OneProjectPolicy() : null);
         var record = jobs.Installed();
-        jobs.PublishReleaseTwo();
+        var request = Replacement(jobs, record, kind);
         jobs.Engine.Prediction = new PreflightReport([new FileMismatchIssue("data/strings.pak", AlreadyPatched: false)], []);
 
-        var result = await jobs.RunAsync(new UpdateJobRequest(record));
+        var result = await jobs.RunAsync(request);
 
         result.Failure.Should().BeEquivalentTo(new JobFailure(JobFailureReason.NewReleaseIncompatible) { Files = ["data/strings.pak"] });
         result.RemovedPrevious.Should().BeFalse();
         result.RestoredPrevious.Should().BeFalse();
         jobs.Engine.Calls.Should().NotContain("uninstall");
+        jobs.Engine.Records.Should().ContainKey(record.Id);
     }
 
     [Fact]
@@ -130,14 +134,15 @@ public sealed class ReinstallJobTests
     [Theory]
     [InlineData(JobKind.Update)]
     [InlineData(JobKind.Repair)]
+    [InlineData(JobKind.Install)]
     public async Task A_failure_after_the_uninstall_puts_the_previous_release_back(JobKind kind)
     {
-        await using var jobs = await JobsHarness.CreateAsync();
+        await using var jobs = await JobsHarness.CreateAsync(policy: kind == JobKind.Install ? new OneProjectPolicy() : null);
         var record = jobs.Installed();
-        jobs.PublishReleaseTwo();
+        var request = Replacement(jobs, record, kind);
         jobs.Engine.NextInstalls.Enqueue((_, _, _) => throw new InstallFailedException(rolledBack: true, new IOException("Locked meanwhile.")));
 
-        var result = await jobs.RunAsync(kind == JobKind.Update ? new UpdateJobRequest(record) : new RepairJobRequest(record));
+        var result = await jobs.RunAsync(request);
 
         result.Outcome.Should().Be(JobOutcome.Failed);
         result.Failure!.Reason.Should().Be(JobFailureReason.DiskError);
@@ -229,5 +234,18 @@ public sealed class ReinstallJobTests
 
         result.Failure!.Reason.Should().Be(JobFailureReason.ProjectNotFound);
         jobs.Catalogue.PageRequests.Should().BeEmpty();
+    }
+
+    // An update, a repair, or another project taking the installed one's place in an app that keeps one project per game.
+    private static JobRequest Replacement(JobsHarness jobs, InstallRecord record, JobKind kind)
+    {
+        if (kind == JobKind.Install)
+        {
+            jobs.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
+            return new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"), null);
+        }
+
+        jobs.PublishReleaseTwo();
+        return kind == JobKind.Update ? new UpdateJobRequest(record) : new RepairJobRequest(record);
     }
 }

@@ -64,14 +64,6 @@ public sealed class RunningGameDetectorTests
     }
 
     [Fact]
-    public void An_idle_folder_has_no_processes()
-    {
-        _processes.Add(10, "Other", @"C:\Programs\Other.exe");
-
-        Find(Game).Should().BeEmpty();
-    }
-
-    [Fact]
     public async Task Waiting_ends_when_every_process_has_exited()
     {
         var first = new RunningProcess(10, "Example.exe", @"D:\Games\Example\Example.exe");

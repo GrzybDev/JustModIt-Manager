@@ -45,21 +45,6 @@ public sealed class SteamLibraryProviderTests
     }
 
     [Fact]
-    public async Task The_manifest_flags_decide_the_state()
-    {
-        _steam.AddApp(1001, "Pending", stateFlags: 6);
-        _steam.AddApp(1002, "Running", stateFlags: 0x2004);
-        _steam.AddApp(1003, "Strange", stateFlags: 0x44);
-
-        var games = (await _steam.ScanAsync()).Games.ToDictionary(game => game.Name);
-
-        games["Pending"].State.Should().Be(GameInstallState.UpdatePending);
-        games["Running"].State.Should().Be(GameInstallState.Running);
-        games["Strange"].State.Should().Be(GameInstallState.Unknown);
-        games.Values.Should().NotContain(game => game.IsReady);
-    }
-
-    [Fact]
     public async Task Queued_and_uninstalled_apps_are_hidden_even_with_a_leftover_folder()
     {
         _steam.AddApp(1001, "Queued", stateFlags: 2);

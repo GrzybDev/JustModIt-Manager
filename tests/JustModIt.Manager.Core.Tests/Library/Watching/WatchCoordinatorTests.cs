@@ -10,7 +10,7 @@ namespace JustModIt.Manager.Core.Tests.Library.Watching;
 public sealed class WatchCoordinatorTests : IDisposable
 {
     private static readonly WatchedFolder Library = new(@"D:\Library\steamapps", ["appmanifest_*.acf"]);
-    private static readonly WatchedFolder Other = new(@"E:\Other\steamapps", ["appmanifest_*.acf"]);
+    private static readonly WatchedFolder Other = new(@"E:\Other\steamapps", ["appmanifest_*.acf", "downloading"]);
     private static readonly WatchedFolder Third = new(@"F:\Third", []);
     private static readonly WatchedRegistryKey Key = new(RegistryHive.CurrentUser, RegistryView.Default, @"Software\Example", true);
 
@@ -26,8 +26,9 @@ public sealed class WatchCoordinatorTests : IDisposable
     {
         _coordinator.Apply(StoreId.Steam, new WatchPlan([Library, Other], [Key])).Should().BeTrue();
         _coordinator.Apply(StoreId.Steam, new WatchPlan([Other], [Key])).Should().BeFalse();
-        _coordinator.Apply(StoreId.Steam, new WatchPlan([new WatchedFolder(@"e:\other\STEAMAPPS", ["appmanifest_*.acf"])], [Key]))
-            .Should().BeFalse();
+        _coordinator.Apply(StoreId.Steam,
+                new WatchPlan([new WatchedFolder(@"e:\other\STEAMAPPS\", ["DOWNLOADING", "appmanifest_*.acf", "downloading"])], [Key]))
+            .Should().BeFalse("the same folder spelled differently is the same watch");
 
         _watcher.Started.Should().Be(3);
         _watcher.Active.Should().BeEquivalentTo(new object[] { Other, Key });
@@ -134,6 +135,7 @@ public sealed class WatchCoordinatorTests : IDisposable
         _coordinator.Rewatch();
 
         _watcher.Started.Should().Be(4);
+        _watcher.PeakActive.Should().Be(4, "no change goes unseen while the watches restart");
         _watcher.Active.Should().BeEquivalentTo(new object[] { Library, Key });
     }
 

@@ -33,64 +33,36 @@ public sealed class JsonDocumentStoreTests : IDisposable
         File.ReadAllText(_path).Should().Contain("naïve café, déjà vu");
     }
 
-    [Fact]
-    public async Task A_corrupt_file_is_kept_aside_and_treated_as_absent()
+    [Theory]
+    [InlineData("not JSON")]
+    [InlineData("an array")]
+    [InlineData("a string")]
+    [InlineData("empty")]
+    [InlineData("a value that is not UTF-8")]
+    [InlineData("a property name that is not UTF-8")]
+    [InlineData("too large")]
+    public async Task A_damaged_file_is_kept_aside_and_read_as_absent(string damage)
     {
-        _directory.Write("note.json", "{ \"title\": ");
+        byte[] content = damage switch
+        {
+            "not JSON" => "{ \"title\": "u8.ToArray(),
+            "an array" => "[1, 2]"u8.ToArray(),
+            "a string" => "\"text\""u8.ToArray(),
+            "empty" => [],
+            "a value that is not UTF-8" => [.. "{ \"title\": \"caf"u8, 0xE9, .. "\", \"count\": 1 }"u8],
+            "a property name that is not UTF-8" => [.. "{ \"title\": \"x\", \"caf"u8, 0xE9, .. "\": 1 }"u8],
+            _ => new byte[JsonDocumentStore<Note>.MaxLength + 1],
+        };
+        _directory.Write("note.json", content);
         var store = CreateStore();
 
         (await store.LoadAsync(TestContext.Current.CancellationToken)).Should().BeNull();
+
+        File.Exists(_path).Should().BeFalse();
+        _directory.Files().Should().Equal("note.json.bak-20260314-092653");
+        File.ReadAllBytes(_path + ".bak-20260314-092653").Should().Equal(content);
         await store.SaveAsync(new Note("fresh", 1), TestContext.Current.CancellationToken);
-
-        File.ReadAllText(_path + ".bak-20260314-092653").Should().Be("{ \"title\": ");
         (await CreateStore().LoadAsync(TestContext.Current.CancellationToken)).Should().Be(new Note("fresh", 1));
-    }
-
-    [Theory]
-    [InlineData("[1, 2]")]
-    [InlineData("\"text\"")]
-    [InlineData("")]
-    public async Task A_document_that_is_not_an_object_is_corrupt(string content)
-    {
-        _directory.Write("note.json", content);
-
-        (await CreateStore().LoadAsync(TestContext.Current.CancellationToken)).Should().BeNull();
-
-        File.Exists(_path).Should().BeFalse();
-        _directory.Files().Should().ContainSingle(file => file.StartsWith("note.json.bak-", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public async Task Text_that_is_not_utf8_is_corrupt()
-    {
-        _directory.Write("note.json", [.. "{ \"title\": \"caf"u8, 0xE9, .. "\", \"count\": 1 }"u8]);
-
-        (await CreateStore().LoadAsync(TestContext.Current.CancellationToken)).Should().BeNull();
-
-        File.Exists(_path).Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task An_unknown_property_name_that_is_not_utf8_is_corrupt()
-    {
-        _directory.Write("note.json", [.. "{ \"title\": \"x\", \"caf"u8, 0xE9, .. "\": 1 }"u8]);
-
-        (await CreateStore().LoadAsync(TestContext.Current.CancellationToken)).Should().BeNull();
-
-        File.Exists(_path).Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task An_oversized_file_is_corrupt()
-    {
-        using (var stream = File.Create(_path))
-        {
-            stream.SetLength(JsonDocumentStore<Note>.MaxLength + 1);
-        }
-
-        (await CreateStore().LoadAsync(TestContext.Current.CancellationToken)).Should().BeNull();
-
-        File.Exists(_path).Should().BeFalse();
     }
 
     [Fact]
@@ -139,16 +111,6 @@ public sealed class JsonDocumentStoreTests : IDisposable
         await store.SaveAsync(new Note("old", 0), TestContext.Current.CancellationToken);
 
         Stored().Select(property => property.Key).Should().BeEquivalentTo("version", "title", "count");
-    }
-
-    [Fact]
-    public async Task A_document_without_a_version_is_read_as_version_zero()
-    {
-        _directory.Write("note.json", """{ "title": "legacy" }""");
-
-        await CreateStore().LoadAsync(TestContext.Current.CancellationToken);
-
-        _format.LastReadVersion.Should().Be(0);
     }
 
     [Fact]

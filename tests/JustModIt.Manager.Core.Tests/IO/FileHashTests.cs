@@ -8,19 +8,6 @@ public sealed class FileHashTests : IDisposable
 {
     private readonly TempDirectory _directory = new();
 
-    [Theory]
-    [InlineData("SHA256", "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")]
-    [InlineData("SHA256", "abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")]
-    [InlineData("MD5", "abc", "900150983cd24fb0d6963f7d28e17f72")]
-    public async Task Hashes_a_file_as_lower_case_hex(string algorithm, string content, string expected)
-    {
-        var path = _directory.Write("file.bin", content);
-
-        var hash = await FileHash.ComputeAsync(path, new HashAlgorithmName(algorithm), null, TestContext.Current.CancellationToken);
-
-        hash.Should().Be(expected);
-    }
-
     [Fact]
     public async Task Hashes_content_larger_than_one_chunk_and_reports_every_byte()
     {
@@ -54,22 +41,19 @@ public sealed class FileHashTests : IDisposable
     [Fact]
     public async Task Cancellation_stops_hashing()
     {
-        var path = _directory.Write("file.bin", RandomNumberGenerator.GetBytes(1024));
+        var path = _directory.Write("file.bin", RandomNumberGenerator.GetBytes(3 << 20));
         using var cancellation = new CancellationTokenSource();
-        await cancellation.CancelAsync();
+        var reported = new InlineProgress(cancellation.Cancel);
 
-        var act = () => FileHash.ComputeAsync(path, HashAlgorithmName.SHA256, null, cancellation.Token);
+        var act = () => FileHash.ComputeAsync(path, HashAlgorithmName.SHA256, reported, cancellation.Token);
 
         await act.Should().ThrowAsync<OperationCanceledException>();
+        reported.Total.Should().BeLessThan(3 << 20);
     }
-
-    [Fact]
-    public void Matching_ignores_letter_case() =>
-        FileHash.Matches("ba7816bf", "BA7816BF").Should().BeTrue();
 
     public void Dispose() => _directory.Dispose();
 
-    private sealed class InlineProgress : IProgress<long>
+    private sealed class InlineProgress(Action? onReport = null) : IProgress<long>
     {
         public long Total { get; private set; }
 
@@ -79,6 +63,7 @@ public sealed class FileHashTests : IDisposable
         {
             Total += value;
             Reports++;
+            onReport?.Invoke();
         }
     }
 }

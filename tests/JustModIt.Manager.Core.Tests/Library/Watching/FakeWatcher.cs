@@ -14,6 +14,9 @@ internal sealed class FakeWatcher : IFolderWatcher, IRegistryWatcher, IDisposabl
 
     public int Started { get; private set; }
 
+    /// <summary>The most watches that were active at once.</summary>
+    public int PeakActive { get; private set; }
+
     /// <summary>Targets that fail to start, as a folder on some network drives does.</summary>
     public HashSet<object> Failing { get; } = [];
 
@@ -87,6 +90,7 @@ internal sealed class FakeWatcher : IFolderWatcher, IRegistryWatcher, IDisposabl
         {
             Started++;
             _active.Add(watch);
+            PeakActive = Math.Max(PeakActive, _active.Count);
         }
 
         return watch;

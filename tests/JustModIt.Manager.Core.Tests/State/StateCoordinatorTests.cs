@@ -112,32 +112,29 @@ public sealed class StateCoordinatorTests
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();
         app.Engine.Add(Record());
-        await app.StartAsync();
-        await Eventually.HoldsAsync(() => app.Engine.Verifications == 1, "the first check");
+        await app.Time.WakeAsync(() => _ = app.StartAsync(), "the first check is done");
+        app.Engine.Verifications.Should().Be(1);
 
-        app.Library.Publish(Installed());
-        await Eventually.SettleAsync();
+        await app.Time.WakeAsync(() => app.Library.Publish(Installed()), "the unchanged game is looked at");
         app.Engine.Verifications.Should().Be(1, "nothing changed");
 
-        app.Library.Publish(Installed(build: "101"));
-        await Eventually.HoldsAsync(() => app.Engine.Verifications == 2, "a new build is checked");
+        await app.Time.WakeAsync(() => app.Library.Publish(Installed(build: "101")), "the new build is checked");
+        app.Engine.Verifications.Should().Be(2);
 
         app.Library.Publish(Installed(state: GameInstallState.Validating, build: "101"));
+        // Nothing falls due while the store works on the game, so the loop starts no timer that would tell it went back to sleep.
         await Eventually.SettleAsync();
         app.Engine.Verifications.Should().Be(2, "nothing is checked while the store works on the game");
-        app.Library.Publish(Installed(build: "101"));
-        await Eventually.HoldsAsync(() => app.Engine.Verifications == 3, "the game is checked once the store is done");
+        await app.Time.WakeAsync(() => app.Library.Publish(Installed(build: "101")), "the game is checked once the store is done");
+        app.Engine.Verifications.Should().Be(3);
 
-        await Eventually.SettleAsync();
         app.Time.Advance(VerificationSchedule.Interval - TimeSpan.FromHours(1));
-        await Eventually.SettleAsync();
         app.Engine.Verifications.Should().Be(3, "a day has not passed yet");
-        await Eventually.HoldsAsync(() => app.Engine.Verifications >= 4, "a day later", () => app.Time.Advance(TimeSpan.FromMinutes(10)));
+        await app.Time.AdvanceAndWaitAsync(TimeSpan.FromHours(1));
+        app.Engine.Verifications.Should().Be(4, "a day later");
 
-        await Eventually.SettleAsync();
-        var checks = app.Engine.Verifications;
-        app.Coordinator.RequestVerification(Game);
-        await Eventually.HoldsAsync(() => app.Engine.Verifications == checks + 1, "the player opened the game");
+        await app.Time.WakeAsync(() => app.Coordinator.RequestVerification(Game), "the player opened the game");
+        app.Engine.Verifications.Should().Be(5);
     }
 
     [Fact]
@@ -146,12 +143,11 @@ public sealed class StateCoordinatorTests
         await using var app = new CoordinatorHarness().WithGameAndProject();
         app.Library.Publish(Installed() with { StoreActivityAt = Now.AddSeconds(-5) });
         app.Engine.Add(Record());
-        await app.StartAsync();
 
-        await Eventually.SettleAsync();
+        await app.Time.WakeAsync(() => _ = app.StartAsync(), "the check waits for the store's quiet period");
         app.Engine.Verifications.Should().Be(0);
-        app.Time.Advance(SafetyGate.QuietPeriod);
-        await Eventually.HoldsAsync(() => app.Engine.Verifications == 1, "the store left the game alone");
+        await app.Time.AdvanceAndWaitAsync(SafetyGate.QuietPeriod);
+        app.Engine.Verifications.Should().Be(1, "the store left the game alone");
     }
 
     [Fact]
@@ -250,7 +246,7 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
-    public async Task A_failed_job_needs_attention_across_restarts_until_a_job_succeeds()
+    public async Task A_failed_job_needs_attention_and_stays_saved_until_a_job_succeeds()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();
         await app.StartAsync();

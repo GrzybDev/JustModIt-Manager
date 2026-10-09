@@ -13,10 +13,10 @@ public sealed class PhysicalFileSystemTests : FileSystemContractTests, IDisposab
     protected override string Root => PathComparison.Normalize(_directory.Path);
 
     [Fact]
-    public async Task A_file_its_owner_is_writing_can_be_read()
+    public async Task A_file_a_store_holds_open_for_writing_can_be_read()
     {
         var path = _directory.Write("appmanifest_620.acf", "\"AppState\" {}");
-        await using var owner = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+        await using var owner = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
 
         (await FileSystem.ReadAllTextAsync(path, 1024, TestContext.Current.CancellationToken)).Should().Be("\"AppState\" {}");
     }

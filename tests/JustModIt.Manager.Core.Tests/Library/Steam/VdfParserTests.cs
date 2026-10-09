@@ -1,6 +1,4 @@
 using JustModIt.Manager.Core.Library.Steam;
-using JustModIt.Manager.Core.Platform;
-using JustModIt.Manager.Core.Tests.TestSupport;
 
 namespace JustModIt.Manager.Core.Tests.Library.Steam;
 
@@ -83,17 +81,5 @@ public sealed class VdfParserTests
         FluentActions.Invoking(() => VdfParser.Parse(text)).Should().Throw<VdfFormatException>();
         VdfParser.Parse(string.Concat(Enumerable.Repeat("\"k\" {", 32)) + string.Concat(Enumerable.Repeat("}", 32)))
             .Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task A_file_that_steam_holds_open_for_writing_can_be_parsed()
-    {
-        using var directory = new TempDirectory();
-        var path = directory.Write("libraryfolders.vdf", "\"libraryfolders\" { \"0\" { \"path\" \"C:\\\\Steam\" } }");
-        await using var writer = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
-
-        var document = await VdfParser.ParseFileAsync(PhysicalFileSystem.Instance, path, TestContext.Current.CancellationToken);
-
-        document["libraryfolders"]!["0"]!.GetString("path").Should().Be(@"C:\Steam");
     }
 }

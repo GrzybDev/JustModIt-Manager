@@ -23,8 +23,6 @@ internal sealed class InstallHarness : IAsyncDisposable
     public const string GameVolume = "VOLUME-GAMES";
     public const string OtherVolume = "VOLUME-OTHER";
 
-    public static readonly DateTimeOffset Now = new(2026, 9, 23, 12, 0, 0, TimeSpan.Zero);
-    public static readonly GameKey Key = new(StoreId.Steam, "1000");
     public static readonly byte[] OriginalPak = TestPatch.RandomBytes(256 << 10, seed: 1);
     public static readonly byte[] ChangedPak = Change(OriginalPak);
 
@@ -49,7 +47,9 @@ internal sealed class InstallHarness : IAsyncDisposable
     private readonly TempDirectory _temp = new();
     private readonly List<InstallEngine> _engines = [];
 
-    public InstallHarness(BackupChoice? backup = null)
+    /// <summary>Creates the folders, the game's files and an engine that keeps backups in the game folder.</summary>
+    /// <param name="slowBackupCopyBytes">From how many bytes copying originals to another drive is worth a warning.</param>
+    public InstallHarness(long slowBackupCopyBytes = 1L << 30)
     {
         var root = PathCanonicalizer.Canonicalize(_temp.Path);
         GameRoot = Directory.CreateDirectory(Path.Join(root, "Game")).FullName;
@@ -58,7 +58,7 @@ internal sealed class InstallHarness : IAsyncDisposable
         CustomFolder = Directory.CreateDirectory(Path.Join(root, "Backups")).FullName;
         Packages = Path.Join(root, "Packages");
         Crashes = Path.Join(root, "Crashes");
-        Backup = backup ?? BackupChoice.GameFolder;
+        SlowBackupCopyBytes = slowBackupCopyBytes;
         Volumes.Assign(root, GameVolume);
         Engine = CreateEngine();
 
@@ -82,11 +82,11 @@ internal sealed class InstallHarness : IAsyncDisposable
 
     public string Crashes { get; }
 
-    public BackupChoice Backup { get; set; }
+    public BackupChoice Backup { get; set; } = BackupChoice.GameFolder;
 
     public FakeVolumes Volumes { get; } = new();
 
-    public FakeTimeProvider Time { get; } = new(Now);
+    public FakeTimeProvider Time { get; } = new(TestProjects.Now);
 
     public FakeGameProbe Probe { get; } = new();
 
@@ -96,11 +96,11 @@ internal sealed class InstallHarness : IAsyncDisposable
 
     public Action<ChangeKind, string?>? BeforeChange { get; set; }
 
-    public long SlowBackupCopyBytes { get; set; } = 1L << 30;
+    public long SlowBackupCopyBytes { get; }
 
     public InstalledGame Game => new()
     {
-        Key = Key,
+        Key = TestProjects.Game,
         Name = "Example Game",
         InstallDirectory = GameRoot,
         LibraryId = "library-1",
@@ -119,6 +119,30 @@ internal sealed class InstallHarness : IAsyncDisposable
     public static BackupChoice InAppData => new(BackupLocation.AppData);
 
     public BackupChoice InCustomFolder => new(BackupLocation.CustomFolder, CustomFolder);
+
+    /// <summary>A harness that keeps backups where a test's location names them.</summary>
+    /// <param name="location">"game folder", "app data" or "custom folder", ending in "on another drive" off the game's drive.</param>
+    /// <param name="movingTo">Where the test moves the backups later, named the same way; null when it does not.</param>
+    public static InstallHarness At(string location, string? movingTo = null)
+    {
+        var harness = new InstallHarness();
+        if (location.EndsWith("another drive", StringComparison.Ordinal) || movingTo?.EndsWith("another drive", StringComparison.Ordinal) is true)
+        {
+            harness.PutBackupsOnAnotherVolume();
+        }
+
+        harness.Backup = harness.Choice(location);
+        return harness;
+    }
+
+    /// <summary>The backup choice a location named as in <see cref="At"/> stands for.</summary>
+    /// <param name="location">The location's name.</param>
+    public BackupChoice Choice(string location) => location switch
+    {
+        _ when location.StartsWith("app data", StringComparison.Ordinal) => InAppData,
+        _ when location.StartsWith("custom", StringComparison.Ordinal) => InCustomFolder,
+        _ => BackupChoice.GameFolder,
+    };
 
     /// <summary>A fresh engine over the same folders, as after a restart of the app.</summary>
     public InstallEngine CreateEngine()
@@ -345,7 +369,6 @@ internal sealed class InstallHarness : IAsyncDisposable
             await engine.DisposeAsync();
         }
 
-        TreeCopy.Delete(_temp.Path);
         _temp.Dispose();
     }
 

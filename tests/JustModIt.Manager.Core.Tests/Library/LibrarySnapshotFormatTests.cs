@@ -53,12 +53,13 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
             ],
             ScannedAt = new DateTimeOffset(2026, 3, 2, 8, 0, 0, TimeSpan.Zero),
         };
-        var store = Store();
+        var file = new AppDataLocations(_directory.Path, _directory.Combine("cache"), _directory.Combine("logs")).LibrarySnapshotFile;
 
-        await store.SaveAsync(snapshot, TestContext.Current.CancellationToken);
-        var loaded = await Store().LoadAsync(TestContext.Current.CancellationToken);
+        await Store(file).SaveAsync(snapshot, TestContext.Current.CancellationToken);
+        var loaded = await Store(file).LoadAsync(TestContext.Current.CancellationToken);
 
         loaded.Should().Be(snapshot with { Version = 0, IsCached = true });
+        File.Exists(Path.Join(_directory.Path, "state", "library.json")).Should().BeTrue("the snapshot lives with the other state");
     }
 
     [Fact]
@@ -87,17 +88,8 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
             game.State == GameInstallState.Unknown && game.Launch == null);
     }
 
-    [Fact]
-    public void The_file_lives_with_the_other_state()
-    {
-        var locations = new AppDataLocations(@"C:\Data", @"C:\Data\cache", @"C:\Data\logs");
-
-        locations.LibrarySnapshotFile.Should().Be(Path.Combine(locations.StateDirectory, "library.json"));
-    }
-
     public void Dispose() => _directory.Dispose();
 
-    private JsonDocumentStore<LibrarySnapshot> Store() =>
-        new(_directory.Combine("library.json"), LibrarySnapshotFormat.Instance, TimeProvider.System,
-            NullLogger<JsonDocumentStore<LibrarySnapshot>>.Instance);
+    private static JsonDocumentStore<LibrarySnapshot> Store(string file) =>
+        new(file, LibrarySnapshotFormat.Instance, TimeProvider.System, NullLogger<JsonDocumentStore<LibrarySnapshot>>.Instance);
 }

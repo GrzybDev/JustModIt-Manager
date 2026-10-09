@@ -42,17 +42,6 @@ public sealed class CatalogueListingTests : IDisposable
         projects.Should().OnlyContain(listed => listed.Game.Slug == "clockwork-tides");
     }
 
-    [Fact]
-    public async Task Never_matches_a_link_to_a_store_without_ids()
-    {
-        var listing = await _site.CrawlAsync();
-
-        var link = listing.FindProject(Guid.Parse("50d8a47a-0000-4000-8000-000000000003"))!.Project.StorefrontLinks[2];
-
-        link.Store.Should().BeNull();
-        link.GameKey.Should().BeNull();
-    }
-
     [Theory]
     [InlineData("starlight", "starlight-harbor")]
     [InlineData("HARBOR star", "starlight-harbor")]

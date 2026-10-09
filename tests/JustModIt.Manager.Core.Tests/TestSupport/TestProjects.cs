@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using JustModIt.Manager.Core.Catalog;
-using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
@@ -152,6 +151,4 @@ internal static class TestProjects
         FileCount = 3,
         IsTest = isTest,
     };
-
-    public static ValueList<T> List<T>(params T[] items) => [.. items];
 }

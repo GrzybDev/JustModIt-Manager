@@ -201,16 +201,18 @@ public sealed class AutomationPolicyTests
             .Should().Be(AutomationReason.RecentlyTried);
     }
 
-    [Fact]
-    public void A_package_made_for_another_version_is_tried_again_only_on_another_build()
+    [Theory]
+    [InlineData(JobFailureReason.UnsupportedGameVersion, AutomationAction.Repair)]
+    [InlineData(JobFailureReason.NewReleaseIncompatible, AutomationAction.Update)]
+    public void A_package_made_for_another_version_is_tried_again_only_on_another_build(JobFailureReason failure, AutomationAction action)
     {
-        var history = AutomationHistory.Empty.RecordAttempt(TestProjects.Game, ReleaseTwo, AutomationAction.Repair, Now)
-            .RecordFailure(TestProjects.Game, ReleaseTwo, AutomationAction.Repair, JobFailureReason.UnsupportedGameVersion, "100", Now, out _);
-        var game = Game(Two, Record(), repair: RepairReason.FilesModified);
+        var history = AutomationHistory.Empty.RecordAttempt(TestProjects.Game, ReleaseTwo, action, Now)
+            .RecordFailure(TestProjects.Game, ReleaseTwo, action, failure, "100", Now, out _);
+        var game = Game(Two, Record(), repair: action == AutomationAction.Repair ? RepairReason.FilesModified : null);
 
         Decide(game, history: history, now: Now.AddDays(3)).Reason.Should().Be(AutomationReason.RecentlyTried);
         Decide(game with { Game = game.Game! with { BuildId = "101" } }, history: history, now: Now.AddDays(3)).Action
-            .Should().Be(AutomationAction.Repair);
+            .Should().Be(action);
     }
 
     [Fact]

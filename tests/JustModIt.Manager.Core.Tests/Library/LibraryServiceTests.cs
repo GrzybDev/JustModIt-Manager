@@ -85,7 +85,6 @@ public sealed class LibraryServiceTests : IAsyncDisposable
 
         await _time.WakeAsync(() => _watcher.Report(WatchSignal.Changed, SteamFolder), "the change is noticed");
         _time.Advance(TimeSpan.FromSeconds(2));
-        await Eventually.SettleAsync();
         _watcher.Report(WatchSignal.Changed, SteamFolder);
         await _time.AdvanceAndWaitAsync(TimeSpan.FromSeconds(1));
         _steam.Scans.Should().Be(2, "changes kept coming");
@@ -116,17 +115,21 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     {
         await StartWatchedAsync();
         await _time.WakeAsync(() => _watcher.Report(WatchSignal.Changed, SteamFolder), "the change is noticed");
+        _time.Advance(TimeSpan.FromSeconds(2));
+        _watcher.Report(WatchSignal.Changed, SteamFolder);
 
-        for (var elapsed = TimeSpan.Zero; elapsed < LibraryService.MaxDebounce - TimeSpan.FromSeconds(2); elapsed += TimeSpan.FromSeconds(2))
+        // From here on every step passes the moment the loop expected the changes to settle, so it wakes and sleeps again.
+        for (var elapsed = TimeSpan.FromSeconds(4); elapsed < LibraryService.MaxDebounce; elapsed += TimeSpan.FromSeconds(2))
         {
-            _time.Advance(TimeSpan.FromSeconds(2));
+            await _time.AdvanceAndWaitAsync(TimeSpan.FromSeconds(2));
             _watcher.Report(WatchSignal.Changed, SteamFolder);
-            await Eventually.SettleAsync();
-            _steam.Scans.Should().Be(2);
         }
 
-        await Eventually.HoldsAsync(() => _steam.Scans == 3, "the busy store is rescanned",
-            () => _time.Advance(TimeSpan.FromSeconds(1)));
+        // Delays shorter than a millisecond end at once, so the last step before the deadline is a millisecond.
+        await _time.AdvanceAndWaitAsync(TimeSpan.FromSeconds(2) - TimeSpan.FromMilliseconds(1));
+        _steam.Scans.Should().Be(2, "changes kept coming");
+        await _time.AdvanceAndWaitAsync(TimeSpan.FromMilliseconds(1));
+        _steam.Scans.Should().Be(3, "the busy store is rescanned once the longest delay is up");
     }
 
     [Fact]
@@ -144,11 +147,14 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Every_store_is_rescanned_on_a_long_timer_as_a_safety_net()
+    public async Task Stores_are_read_again_only_on_the_six_hour_safety_net_while_nothing_changes()
     {
         await StartAsync();
 
-        await _time.AdvanceAndWaitAsync(LibraryService.RescanInterval);
+        _time.Advance(LibraryService.RescanInterval - TimeSpan.FromTicks(1));
+        await Eventually.SettleAsync();
+        (_steam.Scans, _gog.Scans).Should().Be((1, 1));
+        await _time.AdvanceAndWaitAsync(TimeSpan.FromTicks(1));
 
         (_steam.Scans, _gog.Scans).Should().Be((2, 2));
     }
@@ -440,33 +446,29 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         _gog.Evidence = LibraryFolderEvidence.Rejected(LibraryFolderRejection.DlcOnly);
         var dlcOnly = await Service.AddLibraryFolderAsync(@"E:\Expansion", Token);
 
+        _steam.Evidence = LibraryFolderEvidence.Accepted(LibraryPath);
+        var known = await Service.AddLibraryFolderAsync(LibraryPath, Token);
+
         noEvidence.Rejection.Should().Be(LibraryFolderRejection.NoEvidence);
         dlcOnly.Rejection.Should().Be(LibraryFolderRejection.DlcOnly);
+        known.Rejection.Should().Be(LibraryFolderRejection.AlreadyDetected);
         (await Service.AddLibraryFolderAsync(@"E:\Missing", Token)).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
         (await Service.AddLibraryFolderAsync(@"Relative\Folder", Token)).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
         _settings!.Current.LibraryFolders.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task A_library_the_store_already_reports_is_refused()
-    {
-        _steam.Evidence = LibraryFolderEvidence.Accepted(LibraryPath);
-        await StartAsync();
-
-        (await Service.AddLibraryFolderAsync(LibraryPath, Token)).Rejection.Should().Be(LibraryFolderRejection.AlreadyDetected);
-    }
-
-    [Fact]
     public async Task A_folder_that_does_not_answer_in_time_is_unreachable()
     {
         _files.AddDirectory(@"\\server\share");
-        _steam.InspectionDelay = TimeSpan.FromMinutes(5);
+        _steam.InspectionHangs = true;
         await StartAsync();
 
         var adding = Service.AddLibraryFolderAsync(@"\\server\share", Token);
-        await Eventually.HoldsAsync(() => adding.IsCompleted, "the check times out", () => _time.Advance(TimeSpan.FromSeconds(1)));
+        await Eventually.HoldsAsync(() => _steam.Inspections == 1, "the folder is looked into");
+        _time.Advance(LibraryAccess.TimeLimit);
 
-        (await adding).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
+        (await adding.WaitAsync(TimeSpan.FromSeconds(30), Token)).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
     }
 
     [Fact]
@@ -655,6 +657,8 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         }
 
         _watcher.Dispose();
+        _steam.Dispose();
+        _gog.Dispose();
         if (_settings is not null)
         {
             await _settings.DisposeAsync();

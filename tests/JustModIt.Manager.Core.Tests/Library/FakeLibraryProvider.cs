@@ -6,9 +6,11 @@ namespace JustModIt.Manager.Core.Tests.Library;
 
 /// <summary>A store whose scans return what the test sets, counting how often it is scanned.</summary>
 /// <param name="store">The store its scans report.</param>
-internal sealed class FakeLibraryProvider(StoreId store) : ILibraryProvider
+internal sealed class FakeLibraryProvider(StoreId store) : ILibraryProvider, IDisposable
 {
+    private readonly TaskCompletionSource _hang = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _scans;
+    private int _inspections;
 
     public StoreId Store { get; } = store;
 
@@ -26,7 +28,10 @@ internal sealed class FakeLibraryProvider(StoreId store) : ILibraryProvider
 
     public LibraryFolderEvidence Evidence { get; set; } = LibraryFolderEvidence.None;
 
-    public TimeSpan InspectionDelay { get; set; }
+    /// <summary>Whether looking into a folder hangs until disposal, as on a drive that does not answer.</summary>
+    public bool InspectionHangs { get; set; }
+
+    public int Inspections => Volatile.Read(ref _inspections);
 
     public Task<StoreScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
@@ -40,13 +45,16 @@ internal sealed class FakeLibraryProvider(StoreId store) : ILibraryProvider
 
     public async Task<LibraryFolderEvidence> InspectFolderAsync(string path, CancellationToken cancellationToken)
     {
-        if (InspectionDelay > TimeSpan.Zero)
+        Interlocked.Increment(ref _inspections);
+        if (InspectionHangs)
         {
-            await Task.Delay(InspectionDelay, cancellationToken);
+            await _hang.Task;
         }
 
         return Evidence;
     }
 
     public void Finds(params InstalledGame[] games) => Result = Result with { Games = [.. games] };
+
+    public void Dispose() => _hang.TrySetResult();
 }

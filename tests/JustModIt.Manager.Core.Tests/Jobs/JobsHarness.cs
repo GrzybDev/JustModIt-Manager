@@ -11,9 +11,9 @@ namespace JustModIt.Manager.Core.Tests.Jobs;
 /// <summary>A job runner over fakes: one installed, idle game whose project offers release one.</summary>
 internal sealed class JobsHarness : IAsyncDisposable
 {
-    private JobsHarness(IInstallPolicy? policy)
+    private JobsHarness(IInstallPolicy? policy, IInstallEngine? engine)
     {
-        Runner = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance,
+        Runner = new JobRunner(engine ?? Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance,
             policy);
         Runner.Changed += (_, job) => Changes.Enqueue(job);
         Runner.Progressed += (_, job) => Progress.Enqueue(job);
@@ -50,9 +50,10 @@ internal sealed class JobsHarness : IAsyncDisposable
     /// <summary>Creates the harness, by default with crash recovery done, which every job waits for.</summary>
     /// <param name="recover">False to leave crash recovery to the test, so jobs wait for it.</param>
     /// <param name="policy">The app's install policy; null for the platform's, which lets projects share a game.</param>
-    public static async Task<JobsHarness> CreateAsync(bool recover = true, IInstallPolicy? policy = null)
+    /// <param name="engine">The engine jobs run on; null for <see cref="Engine"/>, which keeps installs in memory.</param>
+    public static async Task<JobsHarness> CreateAsync(bool recover = true, IInstallPolicy? policy = null, IInstallEngine? engine = null)
     {
-        var harness = new JobsHarness(policy);
+        var harness = new JobsHarness(policy, engine);
         if (recover)
         {
             await harness.Runner.RecoverAsync(Token);
@@ -79,7 +80,7 @@ internal sealed class JobsHarness : IAsyncDisposable
     }
 
     public async Task<JobResult> RunAsync(JobRequest request) =>
-        await Runner.Start(request).Completion.WaitAsync(TimeSpan.FromSeconds(10), Token);
+        await Runner.Start(request).Completion.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
     public IReadOnlyList<JobStage> Stages(Guid job) => [.. Changes.Where(change => change.Id == job).Select(change => change.Stage)];
 

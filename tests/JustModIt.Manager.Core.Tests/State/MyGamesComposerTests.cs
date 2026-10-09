@@ -130,6 +130,8 @@ public sealed class MyGamesComposerTests
             .Should().BeTrue();
         Compose(Input([Installed() with { Languages = ["pl-PL"] }], [plain]) with { Language = TargetLanguage.FromCode("pl") }).Single()
             .OffersTargetLanguage.Should().BeTrue();
+        Compose(Input([Installed() with { Languages = ["pt-BR"] }], [plain]) with { Language = TargetLanguage.FromCode("pl") }).Single()
+            .OffersTargetLanguage.Should().BeFalse();
         Compose(Input([Installed() with { Languages = ["pl"] }], [polishLink])).Single().OffersTargetLanguage
             .Should().BeFalse("an app without a target language skips the rule");
     }

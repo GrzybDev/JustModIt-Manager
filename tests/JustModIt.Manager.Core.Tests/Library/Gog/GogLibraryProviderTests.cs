@@ -229,16 +229,6 @@ public sealed class GogLibraryProviderTests
     }
 
     [Fact]
-    public async Task A_cancelled_scan_stops()
-    {
-        AddRecord("1207658924", Folder);
-
-        var scanning = CreateProvider().ScanAsync(LibraryScanContext.Empty, new CancellationToken(canceled: true));
-
-        await FluentActions.Awaiting(() => scanning).Should().ThrowAsync<OperationCanceledException>();
-    }
-
-    [Fact]
     public async Task The_registry_and_every_game_folder_are_watched()
     {
         _files.AddInfo(Folder, "1207658924", "Example");

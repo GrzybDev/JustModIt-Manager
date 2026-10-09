@@ -22,15 +22,6 @@ public sealed class CatalogueCacheTests : IDisposable
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task Reads_nothing_before_anything_was_saved()
-    {
-        (await _cache.LoadListingAsync(Token)).Should().BeNull();
-        (await _cache.LoadIndexAsync(Token)).Should().BeNull();
-        (await _cache.LoadSiteAsync(Token)).Should().BeNull();
-        (await _cache.LoadPageAsync(Guid.NewGuid(), Token)).Should().BeNull();
-    }
-
-    [Fact]
     public async Task Round_trips_the_listing()
     {
         var listing = await _site.CrawlAsync();
@@ -92,18 +83,10 @@ public sealed class CatalogueCacheTests : IDisposable
         loaded.Document.Page.Name.Should().Be("Starlight Harbor");
         JsonNode.DeepEquals(JsonNode.Parse(loaded.Document.Json.Span), JsonNode.Parse(page.Json.Span)).Should().BeTrue();
         Encoding.UTF8.GetString(loaded.Document.Json.Span).Should().Contain("checksum_of_the_future");
-    }
-
-    [Fact]
-    public async Task Overwrites_an_earlier_copy()
-    {
-        var page = await _site.Api.GetProjectPageAsync("ember-road", "paper-moth", Token);
-        await _cache.SavePageAsync(page, FetchedAt, Token);
 
         await _cache.SavePageAsync(page, FetchedAt.AddHours(1), Token);
-
         (await _cache.LoadPageAsync(page.Page.Uuid, Token))!.FetchedAt.Should().Be(FetchedAt.AddHours(1));
-        _directory.Files().Should().ContainSingle();
+        _directory.Files().Should().ContainSingle("a later copy replaces the earlier one");
     }
 
     [Theory]

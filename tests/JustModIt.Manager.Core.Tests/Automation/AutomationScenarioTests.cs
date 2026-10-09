@@ -60,8 +60,7 @@ public sealed class AutomationScenarioTests
     [Fact]
     public async Task Tells_once_of_a_choice_between_teams_nobody_made_and_installs_nothing()
     {
-        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
-        await using var app = new CoordinatorHarness(AutoInstall, history: history);
+        await using var app = new CoordinatorHarness(AutoInstall, afterFirstLook: true);
         app.Library.Publish(Installed());
         app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseOne, 1, File(FileOne))),
             Entry(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
@@ -101,9 +100,10 @@ public sealed class AutomationScenarioTests
     [Fact]
     public async Task Announces_a_new_release_once_even_across_restarts()
     {
-        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
-        await using (var first = new CoordinatorHarness(AnnounceOnly, history: history).WithGameAndProject())
+        InMemoryDocumentStore<AutomationHistory> history;
+        await using (var first = new CoordinatorHarness(AnnounceOnly, afterFirstLook: true).WithGameAndProject())
         {
+            history = first.History;
             await first.StartAsync();
 
             (await first.NoticeAsync()).Should().BeEquivalentTo(new { Kind = NoticeKind.Available, ReleaseVersion = 1, OffersTargetLanguage = false });
@@ -119,8 +119,7 @@ public sealed class AutomationScenarioTests
     [Fact]
     public async Task Announces_an_update_once_instead_of_installing_it_while_automatic_updates_are_off()
     {
-        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
-        await using var app = new CoordinatorHarness(AnnounceOnly with { AutoUpdateProjects = false }, history: history).WithGameAndProject();
+        await using var app = new CoordinatorHarness(AnnounceOnly with { AutoUpdateProjects = false }, afterFirstLook: true).WithGameAndProject();
         app.Engine.Add(Record());
         app.PublishReleaseTwo();
 
@@ -136,8 +135,7 @@ public sealed class AutomationScenarioTests
     [Fact]
     public async Task Announces_a_repair_once_per_break_while_reapplying_is_off()
     {
-        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
-        await using var app = new CoordinatorHarness(AnnounceOnly with { ReapplyAfterGameUpdate = false }, history: history)
+        await using var app = new CoordinatorHarness(AnnounceOnly with { ReapplyAfterGameUpdate = false }, afterFirstLook: true)
             .WithGameAndProject();
         var record = app.Engine.Add(Record());
         app.Engine.OnVerify = _ => Modified;
@@ -158,8 +156,7 @@ public sealed class AutomationScenarioTests
     [Fact]
     public async Task Only_announces_a_project_for_a_game_its_store_offers_in_the_target_language()
     {
-        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
-        await using var app = new CoordinatorHarness(AutoInstall, TargetLanguage.FromCode("pl"), history);
+        await using var app = new CoordinatorHarness(AutoInstall, TargetLanguage.FromCode("pl"), afterFirstLook: true);
         app.Library.Publish(Installed());
         app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseOne, 1, File(FileOne)), languages: ["polish"]));
 
@@ -274,8 +271,7 @@ public sealed class AutomationScenarioTests
     [Fact]
     public async Task Announces_an_update_of_one_of_several_installs_by_its_project()
     {
-        var history = new InMemoryDocumentStore<AutomationHistory>(AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)));
-        await using var app = new CoordinatorHarness(AnnounceOnly with { AutoUpdateProjects = false }, history: history).WithGameAndProject();
+        await using var app = new CoordinatorHarness(AnnounceOnly with { AutoUpdateProjects = false }, afterFirstLook: true).WithGameAndProject();
         var paper = Release(Guid.NewGuid(), 1, File(VoiceFile));
         app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseTwo, 2, File(FileTwo))),
             Entry(OtherProject, paper, teamSlug: "paper-team") with { ProjectName = "Paper Project" });

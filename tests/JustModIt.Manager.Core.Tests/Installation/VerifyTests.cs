@@ -10,17 +10,6 @@ public sealed class VerifyTests : IAsyncDisposable
     public ValueTask DisposeAsync() => _harness.DisposeAsync();
 
     [Fact]
-    public async Task Finds_everything_intact_right_after_an_install()
-    {
-        var result = await InstallAsync();
-
-        var verification = await VerifyAsync(result);
-
-        verification.IsIntact.Should().BeTrue();
-        verification.Files.Should().HaveCount(4);
-    }
-
-    [Fact]
     public async Task Tells_modified_missing_and_restored_files_apart()
     {
         var result = await InstallAsync();
@@ -49,7 +38,7 @@ public sealed class VerifyTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Hashes_only_files_whose_size_or_time_changed()
+    public async Task Verifies_untouched_files_without_reading_them()
     {
         var result = await InstallAsync();
         var reports = new List<InstallProgress>();

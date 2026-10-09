@@ -122,17 +122,6 @@ public sealed class AdoptionTests : IAsyncDisposable
         (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle();
     }
 
-    [Fact]
-    public async Task Keeps_the_mark_of_a_test_install()
-    {
-        var package = _harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Test"));
-        var request = _harness.Request(package) with { IsTest = true, Source = null };
-
-        await _harness.Engine.InstallAsync(request, null, InstallHarness.Token);
-
-        (await _harness.CreateEngine().LoadRecordsAsync(InstallHarness.Token)).Single().IsTest.Should().BeTrue();
-    }
-
     private async Task<InstallRecord> InstallAsync() =>
         (await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Translated").Copy("new.txt", "New")))).Record;
 

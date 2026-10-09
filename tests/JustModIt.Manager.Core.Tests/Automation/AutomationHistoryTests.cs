@@ -17,8 +17,10 @@ public sealed class AutomationHistoryTests : IDisposable
     [Fact]
     public void Counts_failures_in_a_row_from_when_the_try_started_and_a_success_starts_over()
     {
-        var history = AutomationHistory.Empty.RecordAttempt(Game, ReleaseOne, AutomationAction.Update, Now)
-            .RecordFailure(Game, ReleaseOne, AutomationAction.Update, JobFailureReason.Offline, "100", Now.AddMinutes(5), out var first)
+        var failed = AutomationHistory.Empty.RecordAttempt(Game, ReleaseOne, AutomationAction.Update, Now)
+            .RecordFailure(Game, ReleaseOne, AutomationAction.Update, JobFailureReason.Offline, "100", Now.AddMinutes(5), out var first);
+        failed.Attempts[new AttemptKey(Game, ReleaseOne, AutomationAction.Update)].At.Should().Be(Now, "the retry waits from when the try started");
+        var history = failed
             .RecordAttempt(Game, ReleaseOne, AutomationAction.Update, Now.AddHours(7))
             .RecordFailure(Game, ReleaseOne, AutomationAction.Update, JobFailureReason.Offline, "100", Now.AddHours(7), out var second);
 
@@ -46,7 +48,6 @@ public sealed class AutomationHistoryTests : IDisposable
         reset.WasAnnounced(Game, ReleaseOne).Should().BeTrue("a player's action does not bring an announcement back");
         reset.WasRepairAnnounced(kept, "100").Should().BeTrue();
         history.KeepRepairAnnouncementsOf(new HashSet<Guid> { kept }).RepairAnnouncements.Should().Equal(new RepairAnnouncement(kept, "100"));
-        history.KeepRepairAnnouncementsOf(new HashSet<Guid> { kept, gone }).Should().BeSameAs(history);
     }
 
     [Fact]
@@ -64,12 +65,15 @@ public sealed class AutomationHistoryTests : IDisposable
     }
 
     [Fact]
-    public void An_unchanged_history_stays_the_same_object()
+    public void A_look_that_changes_nothing_leaves_the_history_unsaved()
     {
-        var history = AutomationHistory.Empty.RecordAnnouncement(Game, ReleaseOne);
+        var repair = Guid.NewGuid();
+        var history = AutomationHistory.Empty.RecordAnnouncement(Game, ReleaseOne).RecordRepairAnnouncement(repair, "100");
 
+        // The same object is what keeps an idle agent from writing the history at every state change.
         history.RecordAnnouncement(Game, ReleaseOne).Should().BeSameAs(history);
         history.ForgetAttempt(Game, ReleaseOne, AutomationAction.Install).Should().BeSameAs(history);
+        history.KeepRepairAnnouncementsOf(new HashSet<Guid> { repair, Guid.NewGuid() }).Should().BeSameAs(history);
     }
 
     [Fact]

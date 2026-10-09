@@ -6,7 +6,6 @@ using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Time.Testing;
 using static JustModIt.Manager.Core.Tests.TestSupport.TestProjects;
 
 namespace JustModIt.Manager.Core.Tests.State;
@@ -22,17 +21,20 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
     /// <param name="language">The app's target language; null for none, which skips the official-language rule.</param>
     /// <param name="history">The automation's history, shared by harnesses that stand for two runs of the app.</param>
     /// <param name="policy">The app's install policy; null for the platform's, which lets projects share a game.</param>
+    /// <param name="afterFirstLook">
+    /// Whether the automation already took its first look a day ago, so it tells of each find on its own instead of in a summary.
+    /// </param>
     public CoordinatorHarness(AppSettings? settings = null, TargetLanguage? language = null,
-        InMemoryDocumentStore<AutomationHistory>? history = null, IInstallPolicy? policy = null)
+        InMemoryDocumentStore<AutomationHistory>? history = null, IInstallPolicy? policy = null, bool afterFirstLook = false)
     {
         Settings = new FakeSettings(settings ?? AppSettings.Default);
-        History = history ?? new InMemoryDocumentStore<AutomationHistory>();
+        History = history ?? new InMemoryDocumentStore<AutomationHistory>(afterFirstLook ? AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)) : null);
         Jobs = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance, policy);
         Coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, RunningGames, Failures, History,
             new StateCoordinatorOptions { TargetLanguage = language ?? TargetLanguage.None }, Time, NullLogger<StateCoordinator>.Instance);
     }
 
-    public FakeTimeProvider Time { get; } = new(Now);
+    public CountingTimeProvider Time { get; } = new(Now);
 
     public FakeLibrary Library { get; } = new();
 

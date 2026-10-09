@@ -31,12 +31,16 @@ public sealed class PackageReaderTests : IDisposable
     public async Task Reads_every_operation_of_a_package_in_order()
     {
         var text = Encoding.UTF8.GetBytes("Ünïcödé text");
+        var patch = await TestPatch.CreateAsync(TestPatch.RandomBytes(1000, seed: 3), TestPatch.RandomBytes(1000, seed: 4));
+        PackageTarget[] targets = [new(StoreId.Steam, "1000", "42"), new(StoreId.Gog, "18446744073709551615")];
         new TestPackage()
             .Rename("bin/library.dll", "bin/library_original.dll")
             .Copy("bin/library.dll", "proxy")
             .Copy("data/lang/text.txt", text)
+            .Patch("data/strings.pak", patch)
             .Delete("movies/intro.bik")
-            .Targets(new PackageTarget(StoreId.Steam, "1000", "42"))
+            .Targets(targets)
+            .Requires("op:copy", "op:patch", "op:rename", "op:delete")
             .WriteManifestPackage(ManifestPackage);
 
         await using var package = await _reader.OpenAsync(ManifestPackage, TestContext.Current.CancellationToken);
@@ -44,11 +48,13 @@ public sealed class PackageReaderTests : IDisposable
         package.Kind.Should().Be(PackageKind.Manifest);
         package.FileName.Should().Be("example.examplemod");
         package.Manifest!.Id.Should().Be(TestPackage.Id);
-        package.Manifest.Targets.Should().Equal(new PackageTarget(StoreId.Steam, "1000", "42"));
+        package.Manifest.Targets.Should().Equal(targets);
         package.Steps.Should().Equal(
             new RenameStep("bin/library.dll", "bin/library_original.dll"),
             new CopyStep("bin/library.dll", "files/bin/library.dll", 5, TestPackage.Sha256("proxy"u8.ToArray())),
             new CopyStep("data/lang/text.txt", "files/data/lang/text.txt", text.Length, TestPackage.Sha256(text)),
+            new PatchStep("data/strings.pak", "patches/data/strings.pak.xdelta", patch.Info.SourceSize, patch.Info.SourceSha256,
+                patch.Info.TargetSize, patch.Info.TargetSha256),
             new DeleteStep("movies/intro.bik"));
     }
 
@@ -245,18 +251,12 @@ public sealed class PackageReaderTests : IDisposable
         (await ErrorAsync(Zip)).Should().Be(PackageError.DuplicateEntry);
     }
 
-    [Fact]
-    public async Task Rejects_package_entries_outside_the_known_folders()
+    [Theory]
+    [InlineData("run.bat")]
+    [InlineData("Files/text.txt")]
+    public async Task Rejects_package_entries_outside_the_known_folders(string stray)
     {
-        new TestPackage().Copy("text.txt", "text").Entry("run.bat", "format c:").WriteManifestPackage(ManifestPackage);
-
-        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.UnexpectedEntry);
-    }
-
-    [Fact]
-    public async Task Rejects_reserved_names_in_another_letter_case()
-    {
-        new TestPackage().Copy("text.txt", "text").Entry("Files/text.txt", "text").WriteManifestPackage(ManifestPackage);
+        new TestPackage().Copy("text.txt", "text").Entry(stray, "format c:").WriteManifestPackage(ManifestPackage);
 
         (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.UnexpectedEntry);
     }
@@ -341,46 +341,40 @@ public sealed class PackageReaderTests : IDisposable
     }
 
     [Fact]
-    public async Task Rejects_a_package_without_operations()
+    public async Task Rejects_a_package_with_nothing_to_install()
     {
+        new TestPackage().Entry("data/", "").WriteZip(Zip);
         new TestPackage().WriteManifestPackage(ManifestPackage);
 
+        (await ErrorAsync(Zip)).Should().Be(PackageError.Empty);
         (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.Empty);
     }
 
-    [Fact]
-    public async Task Rejects_an_empty_zip()
+    [Theory]
+    [InlineData("delete", "../evil.dll")]
+    [InlineData("delete", "C:/Windows/evil.dll")]
+    [InlineData("delete", @"bin\evil.dll")]
+    [InlineData("delete", "")]
+    [InlineData("delete", "bin/aux.dll")]
+    [InlineData("rename", "../library.dll")]
+    public async Task Rejects_unsafe_operation_paths(string operation, string path)
     {
-        new TestPackage().Entry("data/", "").WriteZip(Zip);
+        (operation == "rename" ? new TestPackage().Rename("bin/library.dll", path) : new TestPackage().Delete(path))
+            .WriteManifestPackage(ManifestPackage);
 
-        (await ErrorAsync(Zip)).Should().Be(PackageError.Empty);
+        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidPath);
     }
 
     [Theory]
-    [InlineData("../evil.dll")]
-    [InlineData("C:/Windows/evil.dll")]
-    [InlineData(@"bin\evil.dll")]
-    [InlineData("")]
-    [InlineData("bin/aux.dll")]
-    public async Task Rejects_unsafe_operation_paths(string path)
+    [InlineData("copy")]
+    [InlineData("patch")]
+    public async Task Rejects_an_operation_whose_payload_is_missing(string operation)
     {
-        new TestPackage().Delete(path).WriteManifestPackage(ManifestPackage);
-
-        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidPath);
-    }
-
-    [Fact]
-    public async Task Rejects_a_rename_that_leaves_the_game_folder()
-    {
-        new TestPackage().Rename("bin/library.dll", "../library.dll").WriteManifestPackage(ManifestPackage);
-
-        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidPath);
-    }
-
-    [Fact]
-    public async Task Rejects_a_copy_whose_source_is_missing()
-    {
-        new TestPackage().Operation(new CopyOperation("text.txt", "files/text.txt", 5, Hash)).WriteManifestPackage(ManifestPackage);
+        new TestPackage().Entry("files/unused.txt", "x")
+            .Operation(operation == "copy"
+                ? new CopyOperation("text.txt", "files/text.txt", 5, Hash)
+                : new PatchOperation("a.pak", "patches/a.pak.xdelta", 1, Hash, 1, Hash))
+            .WriteManifestPackage(ManifestPackage);
 
         (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.MissingPayload);
     }
@@ -393,16 +387,6 @@ public sealed class PackageReaderTests : IDisposable
             .WriteManifestPackage(ManifestPackage);
 
         (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidPath);
-    }
-
-    [Fact]
-    public async Task Rejects_a_patch_whose_payload_is_missing()
-    {
-        new TestPackage().Entry("files/unused.txt", "x")
-            .Operation(new PatchOperation("a.pak", "patches/a.pak.xdelta", 1, Hash, 1, Hash))
-            .WriteManifestPackage(ManifestPackage);
-
-        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.MissingPayload);
     }
 
     [Fact]
@@ -437,34 +421,23 @@ public sealed class PackageReaderTests : IDisposable
         (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidManifest);
     }
 
-    [Fact]
-    public async Task Rejects_too_many_entries()
+    [Theory]
+    [InlineData(nameof(PackageLimits.MaxEntries), PackageError.TooManyEntries)]
+    [InlineData(nameof(PackageLimits.MaxUncompressedBytes), PackageError.TooLarge)]
+    [InlineData(nameof(PackageLimits.MaxManifestBytes), PackageError.TooLarge)]
+    public async Task Rejects_a_package_past_any_of_its_limits(string limit, PackageError error)
     {
-        new TestPackage().Entry("a.txt", "a").Entry("b.txt", "b").Entry("c.txt", "c").WriteZip(Zip);
+        new TestPackage().Copy("a.txt", new string('a', 600)).Copy("b.txt", new string('b', 600)).WriteManifestPackage(ManifestPackage);
+        var limits = limit switch
+        {
+            nameof(PackageLimits.MaxEntries) => new PackageLimits { MaxEntries = 2 },
+            nameof(PackageLimits.MaxUncompressedBytes) => new PackageLimits { MaxUncompressedBytes = 1000 },
+            _ => new PackageLimits { MaxManifestBytes = 16 },
+        };
 
-        var open = () => new PackageReader(new PackageLimits { MaxEntries = 2 }).OpenAsync(Zip, CancellationToken.None);
+        var open = () => new PackageReader(limits).OpenAsync(ManifestPackage, TestContext.Current.CancellationToken);
 
-        (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.TooManyEntries);
-    }
-
-    [Fact]
-    public async Task Rejects_packages_that_unpack_too_large()
-    {
-        new TestPackage().Entry("a.txt", new string('a', 600)).Entry("b.txt", new string('b', 600)).WriteZip(Zip);
-
-        var open = () => new PackageReader(new PackageLimits { MaxUncompressedBytes = 1000 }).OpenAsync(Zip, CancellationToken.None);
-
-        (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.TooLarge);
-    }
-
-    [Fact]
-    public async Task Rejects_a_manifest_over_the_limit()
-    {
-        new TestPackage().Copy("text.txt", "text").WriteManifestPackage(ManifestPackage);
-
-        var open = () => new PackageReader(new PackageLimits { MaxManifestBytes = 16 }).OpenAsync(ManifestPackage, CancellationToken.None);
-
-        (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.TooLarge);
+        (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(error);
     }
 
     [Fact]

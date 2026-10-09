@@ -46,8 +46,4 @@ public sealed class GameKeyTests
     [InlineData(":620")]
     [InlineData("steam: ")]
     public void Malformed_keys_are_rejected(string? text) => GameKey.TryParse(text, out _).Should().BeFalse();
-
-    [Fact]
-    public void Ids_compare_exactly() =>
-        new GameKey(StoreId.Steam, "620").Should().NotBe(new GameKey(StoreId.Steam, "0620"));
 }

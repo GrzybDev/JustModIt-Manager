@@ -29,7 +29,7 @@ public sealed class InstallEngineOptionsTests : IDisposable
 
     private static string AppFolderIn(BackupChoice picked, string game, InstallEngineOptions options)
     {
-        var backup = BackupFolders.For(picked, game, InstallHarness.Key, Guid.NewGuid(), options)!;
+        var backup = BackupFolders.For(picked, game, TestProjects.Game, Guid.NewGuid(), options)!;
         return Path.GetRelativePath(picked.CustomFolder!, backup.Directory).Split(Path.DirectorySeparatorChar)[0];
     }
 }

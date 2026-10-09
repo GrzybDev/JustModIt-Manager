@@ -17,24 +17,25 @@ public sealed class TransactionJournalTests : IDisposable
     public void Dispose() => _temp.Dispose();
 
     [Fact]
-    public void Round_trips_every_entry_one_compact_line_each()
+    public void Reads_a_journal_the_previous_version_wrote_and_writes_one_compact_line_per_entry()
     {
+        var path = System.IO.Path.Join(AppContext.BaseDirectory, "Installation", "Fixtures", "journal-v1.jsonl");
         JournalEntry[] entries =
         [
+            Header with { GameVolume = null, TargetBackup = new BackupFolder(BackupLocation.AppData, @"C:\Data\backups\steam-1\1") },
             new DirectoryCreated("data/lang"),
             new FileBackedUp("bin/library.dll", "0", new FileSnapshot(16, new string('a', 64),
                 new DateTime(2026, 1, 2, 3, 4, 5, 678, DateTimeKind.Utc)), Moved: true, FileAttributes.ReadOnly | FileAttributes.Hidden),
-            new FileBackedUp("readme.txt", "1", new FileSnapshot(7, new string('b', 64)), Moved: false),
             new FileWasAbsent("data/lang/text.txt"),
             new FileWritten("data/lang/text.txt", new FileSnapshot(4, new string('c', 64))),
             new BackupRelocated("0", Moved: true),
         ];
-        using (var journal = TransactionJournal.Create(Path, Header with
-               {
-                   TargetBackup = new BackupFolder(BackupLocation.AppData, @"C:\Data\backups\steam-1\1"),
-               }))
+
+        TransactionJournal.Read(path).Should().Equal(entries);
+
+        using (var journal = TransactionJournal.Create(Path, (TransactionStarted)entries[0]))
         {
-            foreach (var entry in entries)
+            foreach (var entry in entries[1..])
             {
                 journal.Add(entry);
             }
@@ -42,36 +43,9 @@ public sealed class TransactionJournalTests : IDisposable
             journal.Commit();
         }
 
-        var read = TransactionJournal.Read(Path);
-
-        read.Should().Equal([Header with { TargetBackup = new BackupFolder(BackupLocation.AppData, @"C:\Data\backups\steam-1\1") },
-            .. entries]);
-        File.ReadAllLines(Path).Should().HaveCount(entries.Length + 1).And.OnlyContain(line => line.StartsWith("{\"type\":\"", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Leaves_out_what_is_not_set_and_still_reads_it_back()
-    {
-        using (TransactionJournal.Create(Path, Header with { GameVolume = null }))
-        {
-        }
-
-        File.ReadAllText(Path).Should().NotContain("gameVolume").And.NotContain("targetBackup");
-        TransactionJournal.ReadHeader(Path).Should().Be(Header with { GameVolume = null });
-    }
-
-    [Fact]
-    public void Ignores_a_line_cut_short()
-    {
-        using (var journal = TransactionJournal.Create(Path, Header))
-        {
-            journal.Add(new FileWasAbsent("a.txt"));
-            journal.Commit();
-        }
-
-        File.AppendAllText(Path, """{"type":"absent","pa""");
-
-        TransactionJournal.Read(Path).Should().Equal(Header, new FileWasAbsent("a.txt"));
+        TransactionJournal.Read(Path).Should().Equal(entries);
+        File.ReadAllLines(Path).Should().HaveCount(entries.Length).And.OnlyContain(line =>
+            line.StartsWith("{\"type\":\"", StringComparison.Ordinal) && !line.Contains(": ", StringComparison.Ordinal));
     }
 
     [Theory]

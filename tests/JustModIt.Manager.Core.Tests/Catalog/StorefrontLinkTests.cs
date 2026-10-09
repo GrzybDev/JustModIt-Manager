@@ -18,6 +18,7 @@ public sealed class StorefrontLinkTests
     [InlineData("steam", """{"gog_id": 620}""", null)]
     [InlineData("gog", """{"appid": 620}""", null)]
     [InlineData("", """{"appid": 620}""", null)]
+    [InlineData("", "{}", null)]
     [InlineData("future-store", """{"id": 620}""", null)]
     [InlineData("steam", "[]", null)]
     public void Reads_the_store_id_leniently(string provider, string data, string? expected)

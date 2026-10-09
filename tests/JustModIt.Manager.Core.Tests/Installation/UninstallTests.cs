@@ -17,22 +17,25 @@ public sealed class UninstallTests : IAsyncDisposable
     [Fact]
     public async Task Never_overwrites_a_file_the_game_changed_since()
     {
-        var result = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed").Copy("new.txt", "New"));
+        var result = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed").Copy("new.txt", "New").Delete("movies/intro.bik"));
         _harness.WriteGameFile("readme.txt", "Updated by the store");
         _harness.WriteGameFile("new.txt", "Also updated");
+        _harness.WriteGameFile("movies/intro.bik", "a new video");
 
         var uninstalled = await _harness.UninstallAsync(result.Record.Id);
 
         uninstalled.KeptFiles.Should().BeEquivalentTo([
             new KeptFile("readme.txt", KeptReason.ChangedSinceInstall),
-            new KeptFile("new.txt", KeptReason.ChangedSinceInstall)]);
+            new KeptFile("new.txt", KeptReason.ChangedSinceInstall),
+            new KeptFile("movies/intro.bik", KeptReason.ChangedSinceInstall)]);
         _harness.ReadGameFile("readme.txt").Should().Be("Updated by the store");
         _harness.ReadGameFile("new.txt").Should().Be("Also updated");
+        _harness.ReadGameFile("movies/intro.bik").Should().Be("a new video");
         _harness.AppFiles().Should().BeEmpty("the record and its now useless backups are gone");
     }
 
     [Fact]
-    public async Task Notices_a_change_that_keeps_the_size_and_time()
+    public async Task Notices_a_change_that_keeps_the_size()
     {
         var result = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed"));
         var path = _harness.GameFile("readme.txt");
@@ -43,18 +46,6 @@ public sealed class UninstallTests : IAsyncDisposable
         var uninstalled = await _harness.UninstallAsync(result.Record.Id);
 
         uninstalled.KeptFiles.Should().Equal(new KeptFile("readme.txt", KeptReason.ChangedSinceInstall));
-    }
-
-    [Fact]
-    public async Task Keeps_a_deleted_file_that_came_back_with_other_content()
-    {
-        var result = await InstallAsync(new TestPackage().Delete("movies/intro.bik"));
-        _harness.WriteGameFile("movies/intro.bik", "a new video");
-
-        var uninstalled = await _harness.UninstallAsync(result.Record.Id);
-
-        uninstalled.KeptFiles.Should().Equal(new KeptFile("movies/intro.bik", KeptReason.ChangedSinceInstall));
-        _harness.ReadGameFile("movies/intro.bik").Should().Be("a new video");
     }
 
     [Fact]

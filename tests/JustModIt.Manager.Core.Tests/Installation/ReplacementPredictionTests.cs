@@ -67,16 +67,6 @@ public sealed class ReplacementPredictionTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Does_not_count_the_replaced_install_as_another_owner()
-    {
-        var installed = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed"));
-
-        var report = await PredictAsync(installed, new TestPackage().Copy("readme.txt", "Newer"));
-
-        report.CanProceed.Should().BeTrue();
-    }
-
-    [Fact]
     public async Task Refuses_a_broken_package_before_anything_else()
     {
         var installed = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed"));

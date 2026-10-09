@@ -156,7 +156,7 @@ public sealed class CatalogueServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Tells_listeners_outside_the_queue_so_that_they_may_queue_more()
+    public async Task A_listener_may_start_more_catalogue_work_without_a_deadlock()
     {
         var service = Create();
         Task? queuedByListener = null;

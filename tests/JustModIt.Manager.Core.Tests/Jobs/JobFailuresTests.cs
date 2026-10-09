@@ -42,32 +42,6 @@ public sealed class JobFailuresTests
     }
 
     [Fact]
-    public void Keeps_the_catalogue_error()
-    {
-        JobFailures.From(new CatalogueException(CatalogueErrorReason.RateLimited, "Slow down.")).CatalogueError
-            .Should().Be(CatalogueErrorReason.RateLimited);
-    }
-
-    [Fact]
-    public void A_download_without_space_carries_the_sizes_and_the_place()
-    {
-        var full = new CatalogueException(CatalogueErrorReason.InsufficientSpace, "Full.")
-        {
-            RequiredBytes = 2048,
-            AvailableBytes = 1024,
-            Location = @"D:\Downloads",
-        };
-
-        JobFailures.From(full).Should().BeEquivalentTo(new JobFailure(JobFailureReason.NotEnoughSpace)
-        {
-            CatalogueError = CatalogueErrorReason.InsufficientSpace,
-            RequiredBytes = 2048,
-            AvailableBytes = 1024,
-            Location = @"D:\Downloads",
-        });
-    }
-
-    [Fact]
     public void A_running_game_comes_first_with_each_process_once()
     {
         var failure = JobFailures.FromIssues([
@@ -124,8 +98,22 @@ public sealed class JobFailuresTests
     }
 
     [Fact]
-    public void Missing_space_carries_the_sizes_and_the_place()
+    public void Missing_space_names_the_sizes_and_the_place_whether_the_download_or_the_install_found_it()
     {
+        var full = new CatalogueException(CatalogueErrorReason.InsufficientSpace, "Full.")
+        {
+            RequiredBytes = 2048,
+            AvailableBytes = 1024,
+            Location = @"D:\Downloads",
+        };
+
+        JobFailures.From(full).Should().BeEquivalentTo(new JobFailure(JobFailureReason.NotEnoughSpace)
+        {
+            CatalogueError = CatalogueErrorReason.InsufficientSpace,
+            RequiredBytes = 2048,
+            AvailableBytes = 1024,
+            Location = @"D:\Downloads",
+        });
         JobFailures.FromIssues([new NotEnoughSpaceIssue("D:\\Games", 2048, 1024)])
             .Should().BeEquivalentTo(new JobFailure(JobFailureReason.NotEnoughSpace)
             {

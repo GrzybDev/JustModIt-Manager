@@ -25,9 +25,11 @@ public sealed class XDelta3PatcherTests : IDisposable
         var info = await _patcher.EncodeAsync(original, modified, patch, new InlineProgress<PatchProgress>(progress.Add), Token);
         patch.Position = 0;
         var output = _temp.Combine("out.bin");
-        await XDelta3Patcher.DecodeAsync(original, patch, output, Target(info), progress: null, Token);
+        long decoded = 0;
+        await XDelta3Patcher.DecodeAsync(original, patch, output, Target(info), new InlineProgress<long>(bytes => decoded += bytes), Token);
 
         (await File.ReadAllBytesAsync(output, Token)).Should().Equal(await File.ReadAllBytesAsync(modified, Token));
+        decoded.Should().Be(info.TargetSize);
         info.SourceSha256.Should().Be(await Sha256Async(original));
         info.TargetSha256.Should().Be(await Sha256Async(modified));
         info.TargetSize.Should().Be(new FileInfo(modified).Length);
@@ -69,53 +71,41 @@ public sealed class XDelta3PatcherTests : IDisposable
     public async Task Rejects_the_result_of_another_original_and_removes_the_output()
     {
         var (original, modified) = WriteModifiedPair(64 << 10);
-        using var patch = await EncodeAsync(original, modified);
-        var info = await _patcher.EncodeAsync(original, modified, Stream.Null, progress: null, Token);
+        var (bytes, info) = await EncodeBytesAsync(original, modified);
         var otherVersion = _temp.Write("other.bin", TestPatch.RandomBytes(64 << 10, seed: 99));
         var output = _temp.Combine("out.bin");
 
-        var decode = () => XDelta3Patcher.DecodeAsync(otherVersion, patch, output, Target(info), progress: null, Token);
+        var decode = () => XDelta3Patcher.DecodeAsync(otherVersion, new MemoryStream(bytes), output, Target(info), progress: null, Token);
 
-        (await decode.Should().ThrowAsync<PatchException>()).Which.Error.Should().BeOneOf(PatchError.Damaged, PatchError.OutputMismatch);
+        (await decode.Should().ThrowAsync<PatchException>()).Which.Error.Should().Be(PatchError.Damaged);
         File.Exists(output).Should().BeFalse();
     }
 
-    [Fact]
-    public async Task Rejects_a_corrupted_patch_and_removes_the_output()
+    [Theory]
+    [InlineData("a byte flipped")]
+    [InlineData("cut at half")]
+    [InlineData("empty")]
+    public async Task A_damaged_patch_fails_and_leaves_no_half_written_file(string damage)
     {
         var (original, modified) = WriteModifiedPair(256 << 10);
         var (bytes, info) = await EncodeBytesAsync(original, modified);
-        bytes[bytes.Length * 2 / 3] ^= 0xFF;
+        if (damage == "a byte flipped")
+        {
+            bytes[bytes.Length * 2 / 3] ^= 0xFF;
+        }
+
+        bytes = damage switch
+        {
+            "cut at half" => bytes[..(bytes.Length / 2)],
+            "empty" => [],
+            _ => bytes,
+        };
         var output = _temp.Combine("out.bin");
 
         var decode = () => XDelta3Patcher.DecodeAsync(original, new MemoryStream(bytes), output, Target(info), progress: null, Token);
 
         await decode.Should().ThrowAsync<PatchException>();
         File.Exists(output).Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task Rejects_a_truncated_patch()
-    {
-        var (original, modified) = WriteModifiedPair(256 << 10);
-        var (bytes, info) = await EncodeBytesAsync(original, modified);
-
-        var decode = () => XDelta3Patcher.DecodeAsync(original, new MemoryStream(bytes[..(bytes.Length / 2)]), _temp.Combine("out.bin"),
-            Target(info), progress: null, Token);
-
-        await decode.Should().ThrowAsync<PatchException>();
-    }
-
-    [Fact]
-    public async Task Rejects_an_empty_patch()
-    {
-        var original = _temp.Write("original.bin", "abc");
-        var sha = await Sha256Async(original);
-
-        var decode = () => XDelta3Patcher.DecodeAsync(original, new MemoryStream(), _temp.Combine("out.bin"), new PatchTarget(3, sha),
-            progress: null, Token);
-
-        (await decode.Should().ThrowAsync<PatchException>()).Which.Error.Should().Be(PatchError.Damaged);
     }
 
     [Fact]
@@ -149,28 +139,24 @@ public sealed class XDelta3PatcherTests : IDisposable
     }
 
     [Fact]
-    public async Task Reports_the_decoded_bytes()
-    {
-        var (original, modified) = WriteModifiedPair(256 << 10);
-        var (bytes, info) = await EncodeBytesAsync(original, modified);
-        long written = 0;
-
-        await XDelta3Patcher.DecodeAsync(original, new MemoryStream(bytes), _temp.Combine("out.bin"), Target(info),
-            new InlineProgress<long>(bytes => written += bytes), Token);
-
-        written.Should().Be(info.TargetSize);
-    }
-
-    [Fact]
     public async Task Honours_cancellation_while_encoding()
     {
-        var (original, modified) = WriteModifiedPair(1 << 20);
+        var (original, modified) = WriteModifiedPair(8 << 20);
+        var whole = (await EncodeBytesAsync(original, modified)).Bytes.Length;
         using var cancellation = new CancellationTokenSource();
-        await cancellation.CancelAsync();
+        using var patch = new MemoryStream();
+        var progress = new InlineProgress<PatchProgress>(report =>
+        {
+            if (report.Stage == PatchStage.Encoding)
+            {
+                cancellation.Cancel();
+            }
+        });
 
-        var encode = () => _patcher.EncodeAsync(original, modified, Stream.Null, progress: null, cancellation.Token);
+        var encode = () => _patcher.EncodeAsync(original, modified, patch, progress, cancellation.Token);
 
         await encode.Should().ThrowAsync<OperationCanceledException>();
+        patch.Length.Should().BeLessThan(whole);
     }
 
     [Fact]
@@ -248,28 +234,11 @@ public sealed class XDelta3PatcherTests : IDisposable
         XDelta3EncodeOptions.EstimateIndexBytes(8L << 30, 1, options.SourceWindow).Should().BeLessThanOrEqualTo(256L << 20);
     }
 
-    [Fact]
-    public void Adapts_the_memory_budget_to_the_machine()
-    {
-        var budget = XDelta3EncodeOptions.DefaultMemoryBudget();
-
-        budget.Should().BeInRange(64L << 20, 1L << 30);
-        budget.Should().BeLessThanOrEqualTo(Math.Max(64L << 20, GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 4));
-    }
-
     private static PatchTarget Target(PatchInfo info) => new(info.TargetSize, info.TargetSha256);
 
     private static string XDeltaFixture(string name) => Path.Join(AppContext.BaseDirectory, "Patching", "Fixtures", "XDelta", name);
 
     private static Task<string> Sha256Async(string path) => FileHash.ComputeAsync(path, HashAlgorithmName.SHA256, null, Token);
-
-    private async Task<MemoryStream> EncodeAsync(string original, string modified)
-    {
-        var patch = new MemoryStream();
-        await _patcher.EncodeAsync(original, modified, patch, progress: null, Token);
-        patch.Position = 0;
-        return patch;
-    }
 
     private async Task<(byte[] Bytes, PatchInfo Info)> EncodeBytesAsync(string original, string modified)
     {

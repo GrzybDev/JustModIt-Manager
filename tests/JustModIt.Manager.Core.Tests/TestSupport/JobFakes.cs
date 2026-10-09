@@ -28,8 +28,6 @@ internal sealed class FakeLibrary : ILibraryService
 
     public int ProbeCount => Volatile.Read(ref _probes);
 
-    public int CheckRequests { get; private set; }
-
     /// <summary>Replaces the snapshot and raises <see cref="Changed"/>, as a scan does.</summary>
     /// <param name="games">The games the stores report.</param>
     public void Publish(params InstalledGame[] games) => Publish(games, cached: false);
@@ -72,13 +70,11 @@ internal sealed class FakeLibrary : ILibraryService
         return Task.FromResult(Probes.TryGetValue(key, out var probe) ? probe : new GameProbe(key, Snapshot.Find(key), []));
     }
 
-    public void RequestCheck() => CheckRequests++;
-
-    public Task CheckNowAsync(CancellationToken cancellationToken)
+    public void RequestCheck()
     {
-        CheckRequests++;
-        return Task.CompletedTask;
     }
+
+    public Task CheckNowAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     public Task<LibraryFolderResult> AddLibraryFolderAsync(string path, CancellationToken cancellationToken) =>
         Task.FromResult(LibraryFolderResult.Rejected(LibraryFolderRejection.Unreachable));

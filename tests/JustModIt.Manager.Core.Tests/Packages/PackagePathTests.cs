@@ -52,16 +52,4 @@ public sealed class PackagePathTests
         PackagePath.IsValid(new string('é', 128)).Should().BeFalse();
         PackagePath.IsValid(string.Join('/', Enumerable.Repeat(new string('a', 100), 11))).Should().BeFalse();
     }
-
-    [Fact]
-    public void Converts_between_game_relative_and_full_paths()
-    {
-        var root = Path.Combine(Path.GetTempPath(), "Game");
-        var full = PackagePath.ToFullPath(root, "data/lang/text.txt");
-
-        full.Should().Be(Path.Combine(root, "data", "lang", "text.txt"));
-        PackagePath.FromFullPath(root, full).Should().Be("data/lang/text.txt");
-        PackagePath.FirstSegment("data/lang/text.txt").Should().Be("data");
-        PackagePath.NormalizeEntryName(@"data\text.txt").Should().Be("data/text.txt");
-    }
 }

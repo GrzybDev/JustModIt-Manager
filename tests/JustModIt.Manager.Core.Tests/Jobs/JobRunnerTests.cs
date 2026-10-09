@@ -58,12 +58,14 @@ public sealed class JobRunnerTests
     {
         await using var jobs = await JobsHarness.CreateAsync();
         jobs.Catalogue.PageGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var starting = true;
+        // Marks the test's own thread only, so an event raised on the thread pool meanwhile is not taken for one raised by Start.
+        using var starting = new ThreadLocal<bool>();
         var announcedWhileStarting = false;
-        jobs.Runner.Changed += (_, _) => announcedWhileStarting |= Volatile.Read(ref starting);
+        jobs.Runner.Changed += (_, _) => announcedWhileStarting |= starting.Value;
 
+        starting.Value = true;
         var handle = jobs.Runner.Start(JobsHarness.Install());
-        Volatile.Write(ref starting, false);
+        starting.Value = false;
 
         handle.Completion.IsCompleted.Should().BeFalse();
         handle.Job.Stage.Should().Be(JobStage.Queued);
@@ -169,8 +171,10 @@ public sealed class JobRunnerTests
         await jobs.WaitsAsync(handle.Job.Id, JobWaitReason.StoreBusy);
         jobs.Library.Probes.Clear();
 
-        await jobs.Time.RunUntilCompletedAsync(handle.Completion, TimeSpan.FromSeconds(10));
+        var waited = await jobs.Time.RunUntilCompletedAsync(handle.Completion, TimeSpan.FromSeconds(10));
         (await handle.Completion).Outcome.Should().Be(JobOutcome.Succeeded);
+        waited.Should().BeLessThanOrEqualTo(JobPipeline.StoreBusyRecheck + TimeSpan.FromSeconds(10),
+            "the store is looked at again at least once a minute");
     }
 
     [Fact]
@@ -191,18 +195,6 @@ public sealed class JobRunnerTests
 
         await Eventually.HoldsAsync(() => handle.Completion.IsCompleted, "the store's last touch is 30 seconds ago");
         (await handle.Completion).Outcome.Should().Be(JobOutcome.Succeeded);
-    }
-
-    [Fact]
-    public async Task A_store_touch_far_in_the_future_does_not_hold_the_job()
-    {
-        await using var jobs = await JobsHarness.CreateAsync();
-        jobs.Library.Describe(Installed() with { StoreActivityAt = Now.AddDays(1) });
-
-        var result = await jobs.RunAsync(JobsHarness.Install());
-
-        result.Outcome.Should().Be(JobOutcome.Succeeded);
-        jobs.Stages(result.Job.Id).Should().NotContain(JobStage.Waiting);
     }
 
     [Fact]
@@ -347,7 +339,7 @@ public sealed class JobRunnerTests
     }
 
     [Fact]
-    public async Task Nothing_for_the_store_fails_before_any_download()
+    public async Task A_release_with_no_file_for_the_games_store_fails_before_any_download()
     {
         await using var jobs = await JobsHarness.CreateAsync();
         jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, onlyFor: OtherGame))));
@@ -496,46 +488,6 @@ public sealed class JobRunnerTests
         jobs.Engine.Installs.Single().IsTest.Should().BeTrue();
         jobs.Catalogue.PageRequests.Should().BeEmpty();
         jobs.Downloader.Downloads.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task Moves_the_backups_of_an_install()
-    {
-        await using var jobs = await JobsHarness.CreateAsync();
-        var record = jobs.Installed();
-
-        var result = await jobs.RunAsync(new MoveBackupsJobRequest(record, new BackupChoice(BackupLocation.AppData)));
-
-        result.Installed!.Backup.Location.Should().Be(BackupLocation.AppData);
-        result.Installed.Id.Should().Be(record.Id);
-        jobs.Stages(result.Job.Id).Should().Equal(JobStage.Queued, JobStage.MovingBackups);
-    }
-
-    [Fact]
-    public async Task Follows_a_game_the_store_moved_when_the_install_is_found_there()
-    {
-        await using var jobs = await JobsHarness.CreateAsync();
-        var record = jobs.Installed();
-        var moved = Installed(folder: Path.Join("elsewhere", "Example"));
-        jobs.Library.Publish(moved);
-
-        var result = await jobs.RunAsync(new FollowMoveJobRequest(record));
-
-        result.Installed!.InstallDirectory.Should().Be(moved.InstallDirectory);
-        result.Job.Origin.Should().Be(JobOrigin.Automatic);
-    }
-
-    [Fact]
-    public async Task Does_not_follow_a_moved_game_whose_folder_lacks_the_install()
-    {
-        await using var jobs = await JobsHarness.CreateAsync();
-        var record = jobs.Installed();
-        jobs.Engine.OnAdopt = (_, _) => null;
-
-        var result = await jobs.RunAsync(new FollowMoveJobRequest(record));
-
-        result.Outcome.Should().Be(JobOutcome.Succeeded);
-        result.Installed.Should().BeNull();
     }
 
     [Fact]

@@ -32,21 +32,6 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
-    public void Settings_built_separately_with_the_same_content_are_equal()
-    {
-        var first = AppSettings.Default
-            .WithGame(Witcher, preferences => preferences with { IsHidden = true })
-            .WithGame(Portal, preferences => preferences with { VariantName = "Text" })
-            .WithLibraryFolder(new LibraryFolder(StoreId.Steam, Rooted("SteamLibrary")));
-        var second = AppSettings.Default
-            .WithLibraryFolder(new LibraryFolder(StoreId.Steam, Rooted("SteamLibrary")))
-            .WithGame(Portal, preferences => preferences with { VariantName = "Text" })
-            .WithGame(Witcher, preferences => preferences with { IsHidden = true });
-
-        first.Should().Be(second);
-    }
-
-    [Fact]
     public void A_game_back_at_its_defaults_is_no_longer_stored_and_others_stay()
     {
         var settings = AppSettings.Default

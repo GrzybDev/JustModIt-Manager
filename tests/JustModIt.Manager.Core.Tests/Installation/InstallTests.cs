@@ -16,58 +16,42 @@ public sealed class InstallTests : IAsyncDisposable
 
     public ValueTask DisposeAsync() => _harness.DisposeAsync();
 
-    [Fact]
-    public async Task Adds_a_file_in_new_folders_and_removes_both_on_uninstall()
-    {
-        var before = _harness.Snapshot();
-
-        var result = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("data/lang/extra/text.txt", "Text")));
-
-        _harness.ReadGameFile("data/lang/extra/text.txt").Should().Be("Text");
-        var files = await _harness.Engine.LoadFilesAsync(result.Record.Id, InstallHarness.Token);
-        files.CreatedDirectories.Should().Equal("data/lang", "data/lang/extra");
-        files.Files.Should().ContainSingle().Which.Change.Should().Be(FileChange.Added);
-
-        (await _harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
-        _harness.Snapshot().Should().BeEquivalentTo(before);
-        _harness.AppFiles().Should().BeEmpty();
-    }
-
     [Theory]
     [MemberData(nameof(Locations))]
     public async Task Installs_and_uninstalls_every_kind_of_change_wherever_backups_live(string location)
     {
-        Use(location);
-        var before = _harness.Snapshot();
+        await using var harness = InstallHarness.At(location);
+        var before = harness.Snapshot();
         var patch = await TestPatch.CreateAsync(InstallHarness.OriginalPak, InstallHarness.ChangedPak);
-        var package = _harness.ManifestPackage(new TestPackage()
+        var package = harness.ManifestPackage(new TestPackage()
             .Rename("bin/library.dll", "bin/library_original.dll")
             .Copy("bin/library.dll", "proxy library")
             .Patch("data/strings.pak", patch)
             .Delete("movies/intro.bik")
-            .Copy("data/lang/text.txt", "Text"));
+            .Copy("data/lang/extra/text.txt", "Text"));
 
-        var result = await _harness.InstallAsync(package);
+        var result = await harness.InstallAsync(package);
 
-        _harness.ReadGameFile("bin/library.dll").Should().Be("proxy library");
-        _harness.ReadGameFile("bin/library_original.dll").Should().Be("original library");
-        (await File.ReadAllBytesAsync(_harness.GameFile("data/strings.pak"), InstallHarness.Token)).Should().Equal(InstallHarness.ChangedPak);
-        File.Exists(_harness.GameFile("movies/intro.bik")).Should().BeFalse();
-        var files = await _harness.Engine.LoadFilesAsync(result.Record.Id, InstallHarness.Token);
+        harness.ReadGameFile("bin/library.dll").Should().Be("proxy library");
+        harness.ReadGameFile("bin/library_original.dll").Should().Be("original library");
+        (await File.ReadAllBytesAsync(harness.GameFile("data/strings.pak"), InstallHarness.Token)).Should().Equal(InstallHarness.ChangedPak);
+        File.Exists(harness.GameFile("movies/intro.bik")).Should().BeFalse();
+        var files = await harness.Engine.LoadFilesAsync(result.Record.Id, InstallHarness.Token);
         files.Files.Select(file => (file.Path, file.Change)).Should().Equal(
             ("bin/library.dll", FileChange.Replaced),
             ("bin/library_original.dll", FileChange.Added),
             ("data/strings.pak", FileChange.Replaced),
             ("movies/intro.bik", FileChange.Deleted),
-            ("data/lang/text.txt", FileChange.Added));
-        Directory.Exists(Path.Join(_harness.HiddenDirectory, "staging")).Should().BeFalse();
-        File.Exists(Path.Join(_harness.InstallsDirectory, result.Record.Id.ToString("N"), "journal.jsonl")).Should().BeFalse();
-        (await _harness.Engine.VerifyAsync(result.Record.Id, null, InstallHarness.Token)).IsIntact.Should().BeTrue();
+            ("data/lang/extra/text.txt", FileChange.Added));
+        files.CreatedDirectories.Should().Equal("data/lang", "data/lang/extra");
+        Directory.Exists(Path.Join(harness.HiddenDirectory, "staging")).Should().BeFalse();
+        File.Exists(Path.Join(harness.InstallsDirectory, result.Record.Id.ToString("N"), "journal.jsonl")).Should().BeFalse();
+        (await harness.Engine.VerifyAsync(result.Record.Id, null, InstallHarness.Token)).IsIntact.Should().BeTrue();
 
-        (await _harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
+        (await harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
 
-        _harness.Snapshot().Should().BeEquivalentTo(before);
-        _harness.AppFiles().Should().BeEmpty();
+        harness.Snapshot().Should().BeEquivalentTo(before);
+        harness.AppFiles().Should().BeEmpty();
     }
 
     [Theory]
@@ -97,33 +81,24 @@ public sealed class InstallTests : IAsyncDisposable
         }
     }
 
-    [Fact]
-    public async Task Moves_originals_on_the_same_volume_instead_of_copying_them()
+    [Theory]
+    [InlineData("app data")]
+    [InlineData("app data on another drive")]
+    public async Task Moves_originals_on_their_drive_copies_them_to_another_and_restores_their_time(string location)
     {
-        var created = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        File.SetCreationTimeUtc(_harness.GameFile("readme.txt"), created);
-
-        var result = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed")));
-
-        // A move keeps the file itself, while a copy would be a new file.
-        File.GetCreationTimeUtc(Path.Join(result.Record.Backup.Directory, "0")).Should().Be(created);
-    }
-
-    [Fact]
-    public async Task Copies_originals_to_another_volume_and_restores_their_time()
-    {
-        _harness.PutBackupsOnAnotherVolume();
-        _harness.Backup = InstallHarness.InAppData;
+        await using var harness = InstallHarness.At(location);
         var written = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        File.SetLastWriteTimeUtc(_harness.GameFile("readme.txt"), written);
+        File.SetCreationTimeUtc(harness.GameFile("readme.txt"), written);
+        File.SetLastWriteTimeUtc(harness.GameFile("readme.txt"), written);
 
-        var result = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed")));
+        var result = await harness.InstallAsync(harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed")));
         var backup = Path.Join(result.Record.Backup.Directory, "0");
 
         File.ReadAllText(backup).Should().Be("Read me");
-        File.GetCreationTimeUtc(backup).Should().BeAfter(written);
-        await _harness.UninstallAsync(result.Record.Id);
-        File.GetLastWriteTimeUtc(_harness.GameFile("readme.txt")).Should().Be(written);
+        // A move keeps the file itself, while a copy is a new file.
+        (File.GetCreationTimeUtc(backup) == written).Should().Be(location == "app data");
+        await harness.UninstallAsync(result.Record.Id);
+        File.GetLastWriteTimeUtc(harness.GameFile("readme.txt")).Should().Be(written);
     }
 
     [Fact]
@@ -150,11 +125,11 @@ public sealed class InstallTests : IAsyncDisposable
 
         var record = (await _harness.CreateEngine().LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which;
         record.Should().BeEquivalentTo(result.Record);
-        record.Game.Should().Be(InstallHarness.Key);
+        record.Game.Should().Be(TestProjects.Game);
         record.GameName.Should().Be("Example Game");
         record.GameBuildId.Should().Be("42");
         record.GameVolume.Should().Be(InstallHarness.GameVolume);
-        record.InstalledAt.Should().Be(InstallHarness.Now);
+        record.InstalledAt.Should().Be(TestProjects.Now);
         record.Source.Should().Be(InstallHarness.Source);
         record.Package.Should().BeEquivalentTo(new InstalledPackage(PackageKind.Manifest, Path.GetFileName(package), TestPackage.Id,
             "Example package", "1.0", [notice]));
@@ -162,6 +137,17 @@ public sealed class InstallTests : IAsyncDisposable
         var file = (await _harness.Engine.LoadFilesAsync(record.Id, InstallHarness.Token)).Files.Should().ContainSingle().Which;
         file.Installed!.LastWriteTimeUtc.Should().Be(File.GetLastWriteTimeUtc(_harness.GameFile("readme.txt")));
         file.Original!.Sha256.Should().Be(TestPackage.Sha256("Read me"u8.ToArray()));
+    }
+
+    [Fact]
+    public async Task A_test_install_without_a_source_stays_marked_after_a_restart()
+    {
+        var package = _harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Test"));
+        var request = _harness.Request(package) with { IsTest = true, Source = null };
+
+        await _harness.Engine.InstallAsync(request, null, InstallHarness.Token);
+
+        (await _harness.CreateEngine().LoadRecordsAsync(InstallHarness.Token)).Single().IsTest.Should().BeTrue();
     }
 
     [Fact]
@@ -256,14 +242,13 @@ public sealed class InstallTests : IAsyncDisposable
     [Fact]
     public async Task Tells_that_copying_large_originals_to_another_drive_takes_a_while()
     {
-        _harness.PutBackupsOnAnotherVolume();
-        _harness.SlowBackupCopyBytes = 1000;
-        var engine = _harness.CreateEngine();
-        _harness.WriteGameFile("data/large.pak", new byte[1000]);
-        var package = _harness.ManifestPackage(new TestPackage().Copy("data/large.pak", "x").Copy("readme.txt", "y"));
+        await using var harness = new InstallHarness(slowBackupCopyBytes: 1000);
+        harness.PutBackupsOnAnotherVolume();
+        harness.WriteGameFile("data/large.pak", new byte[1000]);
+        var package = harness.ManifestPackage(new TestPackage().Copy("data/large.pak", "x").Copy("readme.txt", "y"));
 
-        var otherDrive = await engine.CheckInstallAsync(_harness.Request(package, InstallHarness.InAppData), null, InstallHarness.Token);
-        var sameDrive = await engine.CheckInstallAsync(_harness.Request(package), null, InstallHarness.Token);
+        var otherDrive = await harness.Engine.CheckInstallAsync(harness.Request(package, InstallHarness.InAppData), null, InstallHarness.Token);
+        var sameDrive = await harness.Engine.CheckInstallAsync(harness.Request(package), null, InstallHarness.Token);
 
         otherDrive.CanProceed.Should().BeTrue();
         otherDrive.Warnings.Should().Equal(new SlowBackupCopyWarning(1007));
@@ -283,20 +268,5 @@ public sealed class InstallTests : IAsyncDisposable
         File.Exists(_harness.GameFile("a.txt")).Should().BeFalse();
         _harness.ReadGameFile("b.txt").Should().Be("b");
         (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Id.Should().Be(second.Record.Id);
-    }
-
-    private void Use(string location)
-    {
-        if (location.EndsWith("another drive", StringComparison.Ordinal))
-        {
-            _harness.PutBackupsOnAnotherVolume();
-        }
-
-        _harness.Backup = location switch
-        {
-            _ when location.StartsWith("app data", StringComparison.Ordinal) => InstallHarness.InAppData,
-            _ when location.StartsWith("custom", StringComparison.Ordinal) => _harness.InCustomFolder,
-            _ => BackupChoice.GameFolder,
-        };
     }
 }

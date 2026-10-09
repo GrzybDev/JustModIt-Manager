@@ -1,7 +1,6 @@
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Interop;
-using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Tests.TestSupport;
 
 namespace JustModIt.Manager.Core.Tests.Installation;
@@ -29,16 +28,11 @@ public sealed class GameFolderTests : IDisposable
     }
 
     [Fact]
-    public void Resolves_new_files_below_existing_and_new_folders()
-    {
-        _game.TryResolve("Data/lang/text.txt").Should().Be(Path.Join(_game.Root, "Data", "lang", "text.txt"));
-    }
-
-    [Fact]
     public void Spells_the_existing_folders_above_a_new_file_as_they_are_on_disk()
     {
         var resolved = _game.TryResolve("data/lang/text.txt");
 
+        resolved.Should().Be(Path.Join(_game.Root, "Data", "lang", "text.txt"));
         _game.RelativePathOf(resolved!).Should().Be("Data/lang/text.txt");
     }
 
@@ -61,16 +55,6 @@ public sealed class GameFolderTests : IDisposable
         InstallHarness.WriteOwnerFile(_temp.Combine("Game/Data/Mods/.other-app"), "OtherApp");
 
         _game.TryResolve(path).Should().BeNull();
-    }
-
-    [Fact]
-    public void Refuses_a_link_into_another_apps_folder()
-    {
-        InstallHarness.WriteOwnerFile(_temp.Combine("Game/.other-app"), "OtherApp");
-        _temp.CreateDirectory("Game/.other-app/backups");
-        _temp.CreateDirectoryLink("Game/Sneaky", _temp.Combine("Game/.other-app/backups"));
-
-        _game.TryResolve("Sneaky/0").Should().BeNull();
     }
 
     [Fact]
@@ -98,15 +82,6 @@ public sealed class GameFolderTests : IDisposable
     }
 
     [Fact]
-    public void Resolves_paths_in_hidden_folders_of_the_game_itself()
-    {
-        _temp.Write("Game/.config/owner.json", """{"app":"not an owner file without its version"}""");
-
-        _game.TryResolve(".config/settings.ini").Should().Be(Path.Join(_game.Root, ".config", "settings.ini"));
-        _game.TryResolve("Data/owner.json").Should().Be(Path.Join(_game.Root, "Data", "owner.json"));
-    }
-
-    [Fact]
     public void Follows_links_that_stay_inside_the_game()
     {
         _temp.CreateDirectory("Game/Real");
@@ -131,8 +106,14 @@ public sealed class GameFolderTests : IDisposable
     [Theory]
     [InlineData(".example-app/backups")]
     [InlineData(".egstore/bps")]
-    public void Refuses_a_link_to_the_apps_own_folder_or_a_stores(string target)
+    [InlineData(".other-app/backups")]
+    public void Refuses_a_link_into_the_apps_another_apps_or_a_stores_folder(string target)
     {
+        if (target.StartsWith(".other-app", StringComparison.Ordinal))
+        {
+            InstallHarness.WriteOwnerFile(_temp.Combine("Game/.other-app"), "OtherApp");
+        }
+
         _temp.CreateDirectory($"Game/{target}");
         _temp.CreateDirectoryLink("Game/Sneaky", _temp.Combine($"Game/{target}"));
 
@@ -148,12 +129,5 @@ public sealed class GameFolderTests : IDisposable
 
         game.Root.Should().Be(_game.Root);
         game.TryResolve("Data/strings.pak").Should().Be(Path.Join(_game.Root, "Data", "strings.pak"));
-    }
-
-    [Fact]
-    public void Opens_nothing_for_a_missing_folder()
-    {
-        GameFolder.TryOpen(_temp.Combine("Missing"), ".example-app").Should().BeNull();
-        PathComparison.AreSame(_game.Root, PathCanonicalizer.Canonicalize(_temp.Combine("Game"))).Should().BeTrue();
     }
 }
