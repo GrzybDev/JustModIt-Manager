@@ -52,14 +52,10 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     // Only the loop touches these, so they need no lock.
     private readonly Dictionary<Guid, InstallRecord> _records = [];
     private readonly Dictionary<GameKey, JobSnapshot> _activeJobs = [];
-    private readonly Dictionary<Guid, Verification> _verifications = [];
-    private readonly HashSet<Guid> _verificationRequests = [];
+    private readonly InstallVerifications _verifications = new();
+    private readonly MovedInstalls _moved = new();
     private readonly Dictionary<Guid, bool> _hasBackups = [];
     private readonly Dictionary<GameKey, ValueList<RunningProcess>> _running = [];
-    private readonly HashSet<(Guid Record, string Folder)> _followAttempts = [];
-    private readonly HashSet<Guid> _deferredFollows = [];
-    private readonly HashSet<Guid> _followsInVain = [];
-    private readonly HashSet<Guid> _goneChecks = [];
     private readonly Dictionary<Guid, BackupChoice> _backupMoves = [];
     private LibrarySnapshot _snapshot = LibrarySnapshot.Empty;
     private CatalogueSnapshot _catalogueSnapshot = CatalogueSnapshot.Empty;
@@ -67,8 +63,6 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     private ImmutableHashSet<Guid> _unavailableBackups = [];
     private ImmutableDictionary<FailureKey, FailedAttempt> _failures = ImmutableDictionary<FailureKey, FailedAttempt>.Empty;
     private IReadOnlyList<RecoveredOperation> _recoveries = [];
-    private Guid? _verifying;
-    private GameKey? _forgetting;
     private bool _checkingBackups;
     private bool _backupsChanged = true;
     private bool _pruneWanted;
@@ -275,12 +269,11 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         switch (trigger)
         {
             case LibraryChanged changed when changed.Snapshot.Version >= _snapshot.Version:
-                RetryDeferredFollows();
+                _moved.OnLibraryChanged();
                 _snapshot = changed.Snapshot;
-                ForgetVerificationsOfBusyGames();
+                _verifications.OnLibraryChanged(_records.Values, _snapshot);
                 _automation.OnLibraryChanged();
                 _backupsChanged = true;
-                _goneChecks.Clear();
                 break;
             case CatalogueChanged changed:
                 _catalogueSnapshot = changed.Snapshot;
@@ -302,14 +295,16 @@ public sealed partial class StateCoordinator : IAsyncDisposable
                 ApplyResult(finished.Result);
                 break;
             case Verified verified:
-                ApplyVerification(verified);
+                _verifications.OnChecked(verified.RecordId, verified.BuildId, verified.Verification, _records.ContainsKey(verified.RecordId),
+                    _time.GetUtcNow());
                 break;
             // The player looking at a game is also when a drive holding its originals may have come back, or its old
             // folder may have gone.
             case VerificationRequested requested:
-                _verificationRequests.UnionWith(_records.Values.Where(record => record.Game == requested.Game).Select(record => record.Id));
+                List<Guid> installs = [.. _records.Values.Where(record => record.Game == requested.Game).Select(record => record.Id)];
+                _verifications.Request(installs);
+                _moved.Recheck(installs);
                 _backupsChanged = true;
-                _goneChecks.RemoveWhere(id => _records.TryGetValue(id, out var record) && record.Game == requested.Game);
                 break;
             case BackupsMoveRequested move:
                 _backupMoves.Clear();
@@ -337,7 +332,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
                 break;
             case GameExited exited:
                 _running.Remove(exited.Game);
-                RetryDeferredFollows();
+                _moved.RetryDeferred();
                 break;
         }
     }
@@ -360,13 +355,13 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         if (result.RemovedRecord is { } removed)
         {
             _records.Remove(removed);
-            _verifications.Remove(removed);
+            _verifications.Forget(removed);
         }
 
         if (result.Installed is { } installed)
         {
             _records[installed.Id] = installed;
-            _verifications.Remove(installed.Id);
+            _verifications.Forget(installed.Id);
         }
 
         // A job may also have failed on a backup folder that is gone.
@@ -375,14 +370,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         // Following a moved game is the app's own housekeeping, not something the player tried.
         if (result.Job is { Kind: JobKind.FollowMove, InstallId: { } followed })
         {
-            if (result.Outcome == JobOutcome.Deferred)
-            {
-                _deferredFollows.Add(followed);
-            }
-            else if (result is { IsSuccess: true, Installed: null })
-            {
-                _followsInVain.Add(followed);
-            }
+            _moved.OnFollowEnded(followed, result);
         }
         else if (FailedAttempt.From(result, _time.GetUtcNow()) is { } failed)
         {
@@ -407,27 +395,9 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         _pruneWanted = true;
     }
 
-    private void ApplyVerification(Verified verified)
-    {
-        if (_verifying == verified.RecordId)
-        {
-            _verifying = null;
-        }
-
-        if (!_records.ContainsKey(verified.RecordId))
-        {
-            return;
-        }
-
-        // A check that failed keeps what the last one found, and waits as long as a successful one would.
-        var now = _time.GetUtcNow();
-        _verifications[verified.RecordId] = verified.Verification
-            ?? (_verifications.TryGetValue(verified.RecordId, out var last) ? last with { At = now } : new Verification(now, verified.BuildId, null));
-    }
-
     private void ApplyGoneCheck(GoneChecked gone)
     {
-        _forgetting = null;
+        _moved.OnGoneChecked();
         var game = Current.Find(gone.Game);
         foreach (var (record, outcome) in gone.Outcomes)
         {
@@ -436,7 +406,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
                 continue;
             }
 
-            _verifications.Remove(record.Id);
+            _verifications.Forget(record.Id);
             _hasBackups.Remove(record.Id);
             // A hidden game is left alone; its leftover backups still show in the settings.
             if (!_current.GetGame(gone.Game).IsHidden)
@@ -448,25 +418,6 @@ public sealed partial class StateCoordinator : IAsyncDisposable
                     ProjectName = AutomationNotice.ProjectNameFor(game, record.Id),
                     KeptBackups = outcome == ForgetOutcome.ForgottenKeepingBackups,
                 });
-            }
-        }
-    }
-
-    // A move that found its game in use is followed once the game exits or the store has changed something.
-    private void RetryDeferredFollows()
-    {
-        _followAttempts.RemoveWhere(attempt => _deferredFollows.Contains(attempt.Record));
-        _deferredFollows.Clear();
-    }
-
-    // What the last check found says nothing once the store works on the game; it is checked again when the store is done.
-    private void ForgetVerificationsOfBusyGames()
-    {
-        foreach (var record in _records.Values)
-        {
-            if (_snapshot.Find(record.Game) is { IsReady: false } game && PathComparison.AreSame(game.InstallDirectory, record.InstallDirectory))
-            {
-                _verifications.Remove(record.Id);
             }
         }
     }
@@ -492,7 +443,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
             Language = _options.TargetLanguage,
             InstallPolicy = _jobs.InstallPolicy,
             Jobs = _activeJobs.ToImmutableDictionary(),
-            Repairs = _verifications.Where(pair => pair.Value.Repair is not null).ToImmutableDictionary(pair => pair.Key, pair => pair.Value.Repair!.Value),
+            Repairs = _verifications.Repairs(),
             UnavailableBackups = _unavailableBackups,
             Failures = _failures,
             Running = _running.ToImmutableDictionary(),
@@ -552,16 +503,14 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         return changed;
     }
 
-    // An install follows its game to the folder the store moved it to, once per folder, when its files are there; one job
-    // per game, so the next install on it follows once this one is done.
+    // An install follows its game to the folder the store moved it to when its files are there; one job per game, so the
+    // next install on it follows once this one is done.
     private bool FollowMovedGames()
     {
         var changed = false;
         foreach (var game in Current.Games)
         {
-            if (game.Game is not { IsReady: true } moved || _activeJobs.ContainsKey(game.Key) || _running.ContainsKey(game.Key)
-                || game.Installs.FirstOrDefault(install => install.Status.Orphan == OrphanReason.GameMoved
-                    && !_followAttempts.Contains((install.Record.Id, moved.InstallDirectory))) is not { Record: var record })
+            if (_activeJobs.ContainsKey(game.Key) || _running.ContainsKey(game.Key) || _moved.NextFollow(game) is not (var record, var folder))
             {
                 continue;
             }
@@ -569,8 +518,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
             var handle = _jobs.Start(new FollowMoveJobRequest(record));
             if (!IsRefusedAsBusy(handle))
             {
-                _followAttempts.Add((record.Id, moved.InstallDirectory));
-                _followsInVain.Remove(record.Id);
+                _moved.OnFollowStarted(record, folder);
                 changed |= Track(handle);
             }
         }
@@ -605,36 +553,16 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         return changed;
     }
 
-    // Only once the game is surely gone from the folder: a fresh scan that read the whole store reports it nowhere or
-    // elsewhere, nothing works on it, a moved game was looked for the install's files in vain, and the engine finds the
-    // folder gone from a drive that is there. A game's installs go together, so the notices name their projects alike, and
-    // each install is looked at once per library change.
+    // The engine forgets an install only when it also finds the folder gone from a drive that is there.
     private void ForgetGoneInstalls()
     {
-        if (_forgetting is not null)
+        if (_moved.NextGone(_records.Values, _snapshot, game => _activeJobs.ContainsKey(game) || _running.ContainsKey(game)) is { } gone)
         {
-            return;
+            _ = ForgetAsync(gone);
         }
-
-        var gone = _records.Values.Where(record => !_goneChecks.Contains(record.Id)
-            && !_activeJobs.ContainsKey(record.Game) && !_running.ContainsKey(record.Game)
-            && _snapshot.ConfirmsGone(record.Game, record.InstallDirectory)
-            && (_snapshot.Find(record.Game) is not { } moved
-                || (_followAttempts.Contains((record.Id, moved.InstallDirectory)) && _followsInVain.Contains(record.Id))))
-            .GroupBy(record => record.Game)
-            .FirstOrDefault();
-        if (gone is null)
-        {
-            return;
-        }
-
-        List<InstallRecord> records = [.. gone];
-        _goneChecks.UnionWith(records.Select(record => record.Id));
-        _forgetting = gone.Key;
-        _ = ForgetAsync(gone.Key, records);
     }
 
-    private async Task ForgetAsync(GameKey game, List<InstallRecord> records)
+    private async Task ForgetAsync(IReadOnlyList<InstallRecord> records)
     {
         var outcomes = new List<(InstallRecord, ForgetOutcome)>();
         foreach (var record in records)
@@ -656,7 +584,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
             outcomes.Add((record, outcome));
         }
 
-        Post(new GoneChecked(game, outcomes));
+        Post(new GoneChecked(records[0].Game, outcomes));
     }
 
     // Waits for the first-run setup and for a fresh scan, since the games saved at the last run may have changed while the
@@ -702,23 +630,9 @@ public sealed partial class StateCoordinator : IAsyncDisposable
 
     private void StartVerification()
     {
-        if (_verifying is not null)
+        if (_verifications.TryStart(_records.Values, _snapshot, _activeJobs.ContainsKey, _time.GetUtcNow()) is { } record)
         {
-            return;
-        }
-
-        var now = _time.GetUtcNow();
-        foreach (var record in _records.Values)
-        {
-            var game = _snapshot.Find(record.Game);
-            if (VerificationSchedule.DueAt(record, game, _activeJobs.ContainsKey(record.Game), _verifications.GetValueOrDefault(record.Id),
-                _verificationRequests.Contains(record.Id), now) is { } due && due <= now)
-            {
-                _verificationRequests.Remove(record.Id);
-                _verifying = record.Id;
-                _ = VerifyAsync(record.Id, game!.BuildId);
-                return;
-            }
+            _ = VerifyAsync(record.Id, _snapshot.Find(record.Game)?.BuildId);
         }
     }
 
@@ -726,10 +640,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     private DateTimeOffset? NextDue()
     {
         var now = _time.GetUtcNow();
-        var verification = _verifying is not null ? null : _records.Values
-            .Select(record => VerificationSchedule.DueAt(record, _snapshot.Find(record.Game), _activeJobs.ContainsKey(record.Game),
-                _verifications.GetValueOrDefault(record.Id), _verificationRequests.Contains(record.Id), now))
-            .Min();
+        var verification = _verifications.NextDueAt(_records.Values, _snapshot, _activeJobs.ContainsKey, now);
         var retry = _automation.NextRetryAt(now);
         return verification is null ? retry : retry is null || verification < retry ? verification : retry;
     }
