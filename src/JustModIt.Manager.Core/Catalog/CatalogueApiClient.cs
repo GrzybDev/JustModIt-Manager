@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -77,7 +78,16 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
     public async Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, CancellationToken cancellationToken)
     {
         var path = $"projects/v1/teams/{Segment(file.TeamSlug)}/{Segment(file.ProjectSlug)}/releases/{file.ReleaseUuid:D}/files/{file.FileUuid:D}/download/";
-        var json = await GetBytesAsync(path, counted: true, cancellationToken).ConfigureAwait(false);
+        byte[] json;
+        try
+        {
+            json = await GetBytesAsync(path, counted: true, cancellationToken).ConfigureAwait(false);
+        }
+        catch (CatalogueException exception) when (exception.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
+        {
+            throw new CatalogueException(CatalogueErrorReason.ReleaseUnavailable, exception.Message, exception, exception.StatusCode);
+        }
+
         var link = Parse(path, () => JsonSerializer.Deserialize(json, Json.DownloadLink));
         // The bytes are verified against a checksum that comes over the same connection, so only TLS protects them;
         // plain http is accepted only from a development backend that is itself plain http.

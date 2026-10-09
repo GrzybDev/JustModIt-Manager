@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Automation;
+using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Localization;
 
 namespace JustModIt.Manager.Agent.Notifications;
@@ -33,7 +34,8 @@ public static class NoticeTexts
             NoticeKind.PreviousReleaseLost => (Title(Strings.NoticePreviousReleaseLostTitle), Strings.NoticePreviousReleaseLost),
             NoticeKind.Forgotten => (Title(Strings.NoticeForgottenTitle),
                 notice.KeptBackups ? Strings.NoticeForgottenKeepingBackups : Strings.NoticeForgotten),
-            _ => (Text.Format(Strings.NoticeFailedTitle, ("job", notice.Job?.ToString() ?? ""), ("game", game)), Strings.NoticeFailed),
+            _ => (Text.Format(Strings.NoticeFailedTitle, ("job", notice.Job?.ToString() ?? ""), ("game", game)),
+                notice.Failure?.Reason == JobFailureReason.ReleaseUnavailable ? Strings.NoticeReleaseUnavailable : Strings.NoticeFailed),
         };
     }
 

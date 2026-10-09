@@ -161,6 +161,7 @@ public static class JobFailures
         return new JobFailure(exception switch
         {
             { Reason: CatalogueErrorReason.NotFound } => JobFailureReason.ProjectNotFound,
+            { Reason: CatalogueErrorReason.ReleaseUnavailable } => JobFailureReason.ReleaseUnavailable,
             { Reason: CatalogueErrorReason.CorruptDownload } => JobFailureReason.DownloadCorrupt,
             { Reason: CatalogueErrorReason.InsufficientSpace } => JobFailureReason.NotEnoughSpace,
             { IsTransient: true } => JobFailureReason.Offline,

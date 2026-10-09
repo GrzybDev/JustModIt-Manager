@@ -295,9 +295,14 @@ internal sealed partial class JobPipeline(
         }
 
         var selection = ReleaseSelector.Select(detail, game.Key, game.Platform);
+        if (selection.Release is null)
+        {
+            throw new JobFailedException(new JobFailure(JobFailureReason.ReleaseUnavailable));
+        }
+
         var variant = Choose(selection, variantName, fallBackToDefault)
             ?? throw new JobFailedException(new JobFailure(JobFailureReason.NoPackage) { Unavailability = UnavailabilityOf(selection, variantName) });
-        var release = selection.Release!;
+        var release = selection.Release;
         var file = variant.Package!;
         job.Protect(file.Uuid);
         job.PackageFileId = file.Uuid;

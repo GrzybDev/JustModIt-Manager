@@ -158,6 +158,21 @@ public sealed class CatalogueApiClientTests
         stalled.Requests.Should().ContainSingle();
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden, """{"detail": "You do not have permission to perform this action."}""")]
+    [InlineData(HttpStatusCode.NotFound, """{"detail": "Not found."}""")]
+    public async Task Reports_a_release_the_site_no_longer_lets_anyone_download(HttpStatusCode status, string body)
+    {
+        var handler = new FakeHttpHandler(_ => FakeHttpHandler.Json(body, status));
+        using var client = Client(handler);
+
+        var error = await Catching(client.ResolveDownloadAsync(File, Token));
+
+        error.Reason.Should().Be(CatalogueErrorReason.ReleaseUnavailable);
+        error.IsTransient.Should().BeFalse();
+        handler.Requests.Should().ContainSingle();
+    }
+
     [Fact]
     public async Task Repeats_a_download_request_that_never_left_the_machine()
     {

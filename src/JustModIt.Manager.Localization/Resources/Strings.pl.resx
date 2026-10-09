@@ -207,6 +207,9 @@
   <data name="NoticeFailed" xml:space="preserve">
     <value>Otwórz aplikację, aby zobaczyć, co poszło nie tak.</value>
   </data>
+  <data name="NoticeReleaseUnavailable" xml:space="preserve">
+    <value>Wydanie nie jest już dostępne do pobrania, więc nic nie zostało zmienione.</value>
+  </data>
   <data name="NoticePreviousReleaseLostTitle" xml:space="preserve">
     <value>Aktualizacja dla gry {game} nie powiodła się</value>
   </data>

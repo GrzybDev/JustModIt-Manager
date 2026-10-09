@@ -73,6 +73,9 @@ public enum JobFailureReason
     /// <summary>The project is not completed, so it is not installed anew; an install already there keeps its updates.</summary>
     ProjectNotCompleted,
 
+    /// <summary>The site no longer offers the release for download, e.g. because staff hid it.</summary>
+    ReleaseUnavailable,
+
     /// <summary>Nothing in the release fits the game's store and system; see <see cref="JobFailure.Unavailability"/>.</summary>
     NoPackage,
 

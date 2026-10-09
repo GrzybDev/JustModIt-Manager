@@ -23,6 +23,7 @@ public sealed class JobFailuresTests
         (new PatchException(PatchError.OutputMismatch, "size"), JobFailureReason.InvalidPackage),
         (new PatchException(PatchError.EngineUnavailable, "missing"), JobFailureReason.Unexpected),
         (new CatalogueException(CatalogueErrorReason.NotFound, "Gone."), JobFailureReason.ProjectNotFound),
+        (new CatalogueException(CatalogueErrorReason.ReleaseUnavailable, "Hidden."), JobFailureReason.ReleaseUnavailable),
         (new CatalogueException(CatalogueErrorReason.CorruptDownload, "Wrong bytes."), JobFailureReason.DownloadCorrupt),
         (new CatalogueException(CatalogueErrorReason.InsufficientSpace, "Full."), JobFailureReason.NotEnoughSpace),
         (new CatalogueException(CatalogueErrorReason.Maintenance, "Later."), JobFailureReason.Offline),

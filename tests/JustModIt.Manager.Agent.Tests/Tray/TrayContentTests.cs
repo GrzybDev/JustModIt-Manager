@@ -143,6 +143,20 @@ public sealed class TrayContentTests
             .Should().Be((title, "Open the app to see what went wrong."));
 
     [Fact]
+    public void A_failure_says_when_the_release_is_no_longer_available()
+    {
+        var notice = new AutomationNotice(NoticeKind.Failed)
+        {
+            Game = Game,
+            GameName = "Example Game",
+            Job = JobKind.Update,
+            Failure = new JobFailure(JobFailureReason.ReleaseUnavailable),
+        };
+
+        NoticeTexts.For(notice).Message.Should().Be("The release is no longer available for download, so nothing was changed.");
+    }
+
+    [Fact]
     public void An_update_names_the_release_when_the_team_named_it()
     {
         var notice = new AutomationNotice(NoticeKind.Updated) { Game = Game, GameName = "Example Game", ReleaseLabel = "v2" };

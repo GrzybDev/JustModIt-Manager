@@ -213,6 +213,9 @@
   <data name="NoticeFailed" xml:space="preserve">
     <value>Open the app to see what went wrong.</value>
   </data>
+  <data name="NoticeReleaseUnavailable" xml:space="preserve">
+    <value>The release is no longer available for download, so nothing was changed.</value>
+  </data>
   <data name="NoticePreviousReleaseLostTitle" xml:space="preserve">
     <value>The update for {game} failed</value>
   </data>

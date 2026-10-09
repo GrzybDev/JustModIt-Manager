@@ -16,6 +16,9 @@ public enum CatalogueErrorReason
     InvalidResponse,
     CorruptDownload,
     InsufficientSpace,
+
+    /// <summary>The site no longer lets the release be downloaded: staff hid it, or the team or its status holds it back.</summary>
+    ReleaseUnavailable,
 }
 
 /// <summary>A failed request to the site's API or storage, with an English message meant for the logs only.</summary>

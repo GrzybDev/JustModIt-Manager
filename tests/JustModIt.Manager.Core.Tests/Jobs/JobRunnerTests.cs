@@ -362,6 +362,18 @@ public sealed class JobRunnerTests
     }
 
     [Fact]
+    public async Task A_release_gone_from_the_fresh_page_fails_as_unavailable_before_any_download()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne)) with { IsHidden = true }));
+
+        var result = await jobs.RunAsync(JobsHarness.Install());
+
+        result.Failure!.Reason.Should().Be(JobFailureReason.ReleaseUnavailable);
+        jobs.Downloader.Downloads.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task A_page_that_cannot_be_read_fails_as_offline_with_the_catalogue_error()
     {
         await using var jobs = await JobsHarness.CreateAsync();
