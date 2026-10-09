@@ -27,8 +27,8 @@ internal static class CatalogueFixtures
     /// <summary>The routes of the whole invented site, keyed by path and query.</summary>
     public static Dictionary<string, Func<HttpResponseMessage>> Routes() => new()
     {
-        ["/games/v1/?page=1"] = () => FakeHttpHandler.Json(Read("games-page-1.json")),
-        ["/games/v1/?page=2"] = () => FakeHttpHandler.Json(Read("games-page-2.json")),
+        ["/games/v1/?page=1&page_size=48"] = () => FakeHttpHandler.Json(Read("games-page-1.json")),
+        ["/games/v1/?page=2&page_size=48"] = () => FakeHttpHandler.Json(Read("games-page-2.json")),
         ["/games/v1/clockwork-tides/projects/"] = () => FakeHttpHandler.Json(Read("game-projects-clockwork-tides.json")),
         ["/games/v1/starlight-harbor/projects/lantern-works/"] = () => FakeHttpHandler.Json(Read("project-starlight-harbor.json")),
         ["/games/v1/ember-road/projects/paper-moth/"] = () => FakeHttpHandler.Json(Read("project-ember-road.json")),
@@ -36,7 +36,7 @@ internal static class CatalogueFixtures
         ["/games/v1/clockwork-tides/projects/lantern-works/"] = () => FakeHttpHandler.Json(Read("project-clockwork-tides-lantern-works.json")),
         ["/games/v1/silent-orchard/projects/lantern-works/"] = () => FakeHttpHandler.Json(Read("project-silent-orchard.json")),
         ["/games/v1/hidden-grove/projects/lantern-works/"] = () => FakeHttpHandler.Json(Read("project-hidden-grove.json")),
-        ["/teams/v1/?page=1"] = () => FakeHttpHandler.Json(Reference("teams")),
+        ["/teams/v1/?page=1&previews=0"] = () => FakeHttpHandler.Json(Reference("teams")),
         ["/projects/v1/statuses/"] = () => FakeHttpHandler.Json(Reference("statuses")),
         ["/projects/v1/types/"] = () => FakeHttpHandler.Json(Reference("types")),
         ["/games/v1/genres/"] = () => FakeHttpHandler.Json(Reference("genres")),

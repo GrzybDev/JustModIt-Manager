@@ -16,7 +16,7 @@ public sealed class CatalogueCrawlerTests : IDisposable
         var listing = await _site.CrawlAsync();
 
         _site.Handler.Paths.Should().Equal(
-            "/games/v1/?page=1", "/games/v1/clockwork-tides/projects/", "/games/v1/?page=2", "/teams/v1/?page=1",
+            "/games/v1/?page=1&page_size=48", "/games/v1/clockwork-tides/projects/", "/games/v1/?page=2&page_size=48", "/teams/v1/?page=1&previews=0",
             "/projects/v1/statuses/", "/projects/v1/types/", "/games/v1/genres/", "/games/v1/platforms/",
             "/projects/v1/storefront-platforms/", "/system/v1/config");
         listing.FetchedAt.Should().Be(_site.Time.GetUtcNow());
@@ -33,7 +33,7 @@ public sealed class CatalogueCrawlerTests : IDisposable
     [Fact]
     public async Task Stops_when_a_later_page_has_disappeared()
     {
-        _site.Routes.Remove("/games/v1/?page=2");
+        _site.Routes.Remove("/games/v1/?page=2&page_size=48");
 
         var listing = await _site.CrawlAsync();
 
@@ -56,7 +56,7 @@ public sealed class CatalogueCrawlerTests : IDisposable
         var first = JsonNode.Parse(CatalogueFixtures.Read("games-page-1.json"))!;
         var second = JsonNode.Parse(CatalogueFixtures.Read("games-page-2.json"))!;
         second["results"]!.AsArray().Add(first["results"]![1]!.DeepClone());
-        _site.Routes["/games/v1/?page=2"] = () => FakeHttpHandler.Json(second.ToJsonString());
+        _site.Routes["/games/v1/?page=2&page_size=48"] = () => FakeHttpHandler.Json(second.ToJsonString());
 
         var listing = await _site.CrawlAsync();
 
@@ -70,7 +70,7 @@ public sealed class CatalogueCrawlerTests : IDisposable
         var first = JsonNode.Parse(CatalogueFixtures.Read("games-page-1.json"))!;
         first["results"]![0]!.AsObject().Remove("visible_project_count");
         first["results"]![0]!.AsObject().Remove("solo_project");
-        _site.Routes["/games/v1/?page=1"] = () => FakeHttpHandler.Json(first.ToJsonString());
+        _site.Routes["/games/v1/?page=1&page_size=48"] = () => FakeHttpHandler.Json(first.ToJsonString());
 
         var listing = await _site.CrawlAsync();
 
@@ -81,7 +81,7 @@ public sealed class CatalogueCrawlerTests : IDisposable
     public async Task Leaves_reference_lists_empty_that_the_backend_does_not_offer()
     {
         _site.Routes.Remove("/projects/v1/statuses/");
-        _site.Routes.Remove("/teams/v1/?page=1");
+        _site.Routes.Remove("/teams/v1/?page=1&previews=0");
         _site.Routes.Remove("/system/v1/config");
 
         var listing = await _site.CrawlAsync();
@@ -95,7 +95,7 @@ public sealed class CatalogueCrawlerTests : IDisposable
     [Fact]
     public async Task Fails_as_a_whole_when_a_page_cannot_be_read()
     {
-        _site.Routes["/games/v1/?page=2"] = () => FakeHttpHandler.Text(HttpStatusCode.BadGateway, "<html/>", "text/html");
+        _site.Routes["/games/v1/?page=2&page_size=48"] = () => FakeHttpHandler.Text(HttpStatusCode.BadGateway, "<html/>", "text/html");
 
         var crawl = _site.CrawlAsync();
         var act = async () => await _site.Time.RunUntilCompletedAsync(crawl, TimeSpan.FromSeconds(1));

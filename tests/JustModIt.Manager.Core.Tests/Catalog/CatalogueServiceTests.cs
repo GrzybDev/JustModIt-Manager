@@ -88,7 +88,7 @@ public sealed class CatalogueServiceTests : IDisposable
     [Fact]
     public async Task Fails_without_a_saved_copy_and_passes_on_how_long_the_site_asked_to_wait()
     {
-        _site.Routes["/games/v1/?page=1"] = () =>
+        _site.Routes["/games/v1/?page=1&page_size=48"] = () =>
         {
             var response = FakeHttpHandler.Json("""{"detail": "Slow down."}""", System.Net.HttpStatusCode.TooManyRequests);
             response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromHours(1));
@@ -126,11 +126,11 @@ public sealed class CatalogueServiceTests : IDisposable
     {
         var service = Create();
         await service.RefreshAsync(StarlightOnly, Token);
-        var crawls = _site.CountRequests("/games/v1/?page=1");
+        var crawls = _site.CountRequests("/games/v1/?page=1&page_size=48");
 
         var snapshot = await service.RebuildIndexAsync(new IndexRequest([Starlight, Clockwork], []), Token);
 
-        _site.CountRequests("/games/v1/?page=1").Should().Be(crawls);
+        _site.CountRequests("/games/v1/?page=1&page_size=48").Should().Be(crawls);
         _site.CountRequests("/games/v1/starlight-harbor/projects/lantern-works/").Should().Be(1, "its saved page is current");
         snapshot.Index.Find(Clockwork).Should().HaveCount(2);
         snapshot.State.Should().Be(CatalogueState.Fresh);
@@ -188,7 +188,7 @@ public sealed class CatalogueServiceTests : IDisposable
     {
         var service = Create();
         await service.RefreshAsync(StarlightOnly, Token);
-        _site.Routes["/games/v1/?page=1"] = () => throw new InvalidOperationException("A bug.");
+        _site.Routes["/games/v1/?page=1&page_size=48"] = () => throw new InvalidOperationException("A bug.");
 
         var refresh = async () => await service.RefreshAsync(StarlightOnly, Token);
 
@@ -229,7 +229,7 @@ public sealed class CatalogueServiceTests : IDisposable
     {
         var service = Create();
         await service.RefreshAsync(StarlightOnly, Token);
-        _site.Routes["/games/v1/?page=1"] = () => FakeHttpHandler.Stalled();
+        _site.Routes["/games/v1/?page=1&page_size=48"] = () => FakeHttpHandler.Stalled();
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Token);
 
         var refresh = service.RefreshAsync(StarlightOnly, cancellation.Token);

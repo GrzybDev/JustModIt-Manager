@@ -25,9 +25,9 @@ public sealed class CatalogueApiClientTests
 
         var page = await client.GetGamesAsync(1, Token);
 
-        handler.Paths.Should().Equal("/games/v1/?page=1");
+        handler.Paths.Should().Equal("/games/v1/?page=1&page_size=48");
         page.Count.Should().Be(4);
-        page.Next.Should().Be("https://api.example.com/games/v1/?page=2");
+        page.Next.Should().Be("https://api.example.com/games/v1/?page=2&page_size=48");
         page.Results.Select(game => game.Slug).Should().Equal("clockwork-tides", "ember-road");
         page.Results[0].SoloProject.Should().BeNull();
         var solo = page.Results[1].SoloProject!;
@@ -50,7 +50,7 @@ public sealed class CatalogueApiClientTests
         var stores = await client.GetStorefrontPlatformsAsync(Token);
         var site = await client.GetSiteConfigurationAsync(Token);
 
-        handler.Paths.Should().Equal("/teams/v1/?page=1", "/projects/v1/statuses/", "/projects/v1/types/", "/games/v1/genres/",
+        handler.Paths.Should().Equal("/teams/v1/?page=1&previews=0", "/projects/v1/statuses/", "/projects/v1/types/", "/games/v1/genres/",
             "/games/v1/platforms/", "/projects/v1/storefront-platforms/", "/system/v1/config");
         teams.Results.Select(team => team.Slug).Should().Equal("lantern-works", "paper-moth");
         statuses.Should().HaveCount(5);
@@ -239,7 +239,7 @@ public sealed class CatalogueApiClientTests
         var error = await Catching(CompleteAsync(client.GetGamesAsync(1, Token)));
 
         error.Reason.Should().Be(reason);
-        error.Message.Should().StartWith("GET games/v1/?page=1");
+        error.Message.Should().StartWith("GET games/v1/?page=1&page_size=48");
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public sealed class CatalogueApiClientTests
 
         var error = await Catching(client.GetGamesAsync(9, Token));
 
-        error.Message.Should().Be("GET games/v1/?page=9 failed with HTTP 404: Invalid page.");
+        error.Message.Should().Be("GET games/v1/?page=9&page_size=48 failed with HTTP 404: Invalid page.");
         error.StatusCode.Should().Be(HttpStatusCode.NotFound);
         error.IsTransient.Should().BeFalse();
     }

@@ -8,7 +8,7 @@ namespace JustModIt.Manager.Core.Tests.Catalog;
 
 public sealed class CatalogueRefreshLoopTests : IDisposable
 {
-    private const string FirstPage = "/games/v1/?page=1";
+    private const string FirstPage = "/games/v1/?page=1&page_size=48";
 
     private readonly TempDirectory _directory = new();
     private readonly FakeSite _site = new();

@@ -1,6 +1,6 @@
 {
   "count": 4,
-  "next": "https://api.example.com/games/v1/?page=2",
+  "next": "https://api.example.com/games/v1/?page=2&page_size=48",
   "previous": null,
   "results": [
     {

@@ -1,7 +1,7 @@
 {
   "count": 4,
   "next": null,
-  "previous": "https://api.example.com/games/v1/?page=1",
+  "previous": "https://api.example.com/games/v1/?page=1&page_size=48",
   "results": [
     {
       "uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000004",

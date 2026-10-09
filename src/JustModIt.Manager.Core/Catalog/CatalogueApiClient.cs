@@ -40,8 +40,9 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
 
     private static CatalogueJsonContext Json => CatalogueJsonContext.Default;
 
+    // The largest page the site serves; a backend that does not know the parameter serves its own size.
     public Task<ApiPage<CatalogueGame>> GetGamesAsync(int page, CancellationToken cancellationToken) =>
-        GetAsync("games/v1/" + PageQuery(page), Json.ApiPageCatalogueGame, cancellationToken);
+        GetAsync("games/v1/" + PageQuery(page) + "&page_size=48", Json.ApiPageCatalogueGame, cancellationToken);
 
     public Task<IReadOnlyList<ProjectSummary>> GetGameProjectsAsync(string gameSlug, CancellationToken cancellationToken) =>
         GetAsync($"games/v1/{Segment(gameSlug)}/projects/", Json.IReadOnlyListProjectSummary, cancellationToken);
@@ -54,8 +55,9 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
         return Parse(path, () => ProjectPageDocument.Parse(json));
     }
 
+    // Without the previews of each team's projects, which the app does not read.
     public Task<ApiPage<Team>> GetTeamsAsync(int page, CancellationToken cancellationToken) =>
-        GetAsync("teams/v1/" + PageQuery(page), Json.ApiPageTeam, cancellationToken);
+        GetAsync("teams/v1/" + PageQuery(page) + "&previews=0", Json.ApiPageTeam, cancellationToken);
 
     public Task<IReadOnlyList<ProjectStatus>> GetStatusesAsync(CancellationToken cancellationToken) =>
         GetAsync("projects/v1/statuses/", Json.IReadOnlyListProjectStatus, cancellationToken);
