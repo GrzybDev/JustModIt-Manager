@@ -46,10 +46,8 @@ public static class HeroicLauncher
         string runner, CancellationToken cancellationToken)
     {
         var file = QueueFile(configDirectory);
-        var queue = fileSystem.FileExists(file)
-            ? (await LauncherJson.ReadAsync(fileSystem, file, HeroicJsonContext.Default.HeroicDownloadManager, cancellationToken)
-                .ConfigureAwait(false))?.Queue ?? []
-            : [];
+        var queue = (await LauncherJson.ReadIfExistsAsync(fileSystem, file, LauncherJsonContext.Default.HeroicDownloadManager,
+            cancellationToken).ConfigureAwait(false))?.Queue ?? [];
         return queue
             .Where(element => element.Params?.Runner == runner && LauncherJson.NullIfBlank(element.Params.AppName) is not null)
             .DistinctBy(element => element.Params!.AppName)
@@ -89,7 +87,30 @@ internal sealed class HeroicQueueParams
     public string? Runner { get; init; }
 }
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true,
-    AllowTrailingCommas = true)]
-[JsonSerializable(typeof(HeroicDownloadManager))]
-internal sealed partial class HeroicJsonContext : JsonSerializerContext;
+/// <summary>Heroic's <c>gog_store\installed.json</c>.</summary>
+internal sealed class HeroicInstalledFile
+{
+    public IReadOnlyList<HeroicInstalledGame>? Installed { get; init; }
+}
+
+/// <summary>An entry of Heroic's <c>gog_store\installed.json</c>.</summary>
+internal sealed class HeroicInstalledGame
+{
+    [JsonConverter(typeof(IdStringConverter))]
+    public string? AppName { get; init; }
+
+    [JsonPropertyName("install_path")]
+    public string? InstallPath { get; init; }
+
+    [JsonPropertyName("is_dlc")]
+    public bool IsDlc { get; init; }
+
+    [JsonConverter(typeof(IdStringConverter))]
+    public string? BuildId { get; init; }
+
+    /// <summary><c>windows</c>, <c>linux</c> or <c>osx</c>: the build Heroic installed.</summary>
+    public string? Platform { get; init; }
+
+    /// <summary>The installed language as a tag, e.g. <c>pl-PL</c>.</summary>
+    public string? Language { get; init; }
+}

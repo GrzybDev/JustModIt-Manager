@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Security;
 using System.Text.RegularExpressions;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
@@ -17,21 +16,11 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
     /// <summary>The <see cref="LibraryLocation.Source"/> of a Steam library folder.</summary>
     public const string LibrarySource = "steam-library";
 
-    private const long MaxManifestLength = 16 * 1024 * 1024;
-
     // Manifests and the library list change with every install, update and library change; downloads show up in
     // "downloading" before the manifest says anything.
     private static readonly string[] SteamAppsEntries = [SteamPaths.ManifestPattern, SteamPaths.Downloading, SteamPaths.LibraryFoldersFile];
 
     private static readonly string[] SteamGameMarkers = ["steam_api.dll", "steam_api64.dll", "steam_appid.txt"];
-
-    private static readonly EnumerationOptions ManifestSearch = new()
-    {
-        AttributesToSkip = 0,
-        IgnoreInaccessible = true,
-        MatchCasing = MatchCasing.CaseInsensitive,
-        MatchType = MatchType.Simple,
-    };
 
     private readonly IFileSystem _fileSystem;
     private readonly IRegistry _registry;
@@ -237,7 +226,8 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
                     .ConfigureAwait(false)));
                 parsed++;
             }
-            catch (Exception exception) when (exception is FormatException or IOException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is FormatException or IOException or UnauthorizedAccessException
+                or InvalidDataException)
             {
                 _logger.LibraryListUnreadable(SteamLog.Describe(exception));
             }
@@ -272,11 +262,9 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
         List<FileEntry> files;
         try
         {
-            // Steam writes temporary siblings (such as *.acf.tmp) before renaming them, so only exact names count.
-            files = [.. _fileSystem.Enumerate(library.SteamAppsDirectory, SteamPaths.ManifestPattern, ManifestSearch)
-                .Where(file => !file.IsDirectory && ManifestFileName().IsMatch(file.Name))];
+            files = [.. Manifests(library.SteamAppsDirectory)];
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             _logger.LibraryUnreadable(SteamLog.Describe(exception));
             return null;
@@ -300,7 +288,8 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
             {
                 manifest = await ReadManifestAsync(file, appId, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception exception) when (exception is FormatException or IOException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is FormatException or IOException or UnauthorizedAccessException
+                or InvalidDataException)
             {
                 // Usually a manifest caught while Steam rewrites it, which means Steam is working on the app right now.
                 _logger.AppSkipped(appId, SteamLog.Describe(exception));
@@ -322,11 +311,6 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
 
     private async Task<SteamAppManifest> ReadManifestAsync(FileEntry file, uint appId, CancellationToken cancellationToken)
     {
-        if (file.Length > MaxManifestLength)
-        {
-            throw new FormatException($"The manifest of app {appId} is too large.");
-        }
-
         var manifest = SteamAppManifest.Parse(await VdfParser.ParseFileAsync(_fileSystem, file.FullPath, cancellationToken).ConfigureAwait(false));
 
         // A copied or renamed file would otherwise lend its content to another app.
@@ -422,14 +406,18 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
     {
         try
         {
-            return _fileSystem.Enumerate(steamApps, SteamPaths.ManifestPattern, ManifestSearch)
-                .Any(file => !file.IsDirectory && ManifestFileName().IsMatch(file.Name));
+            return Manifests(steamApps).Any();
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             return false;
         }
     }
+
+    // Steam writes temporary siblings (such as *.acf.tmp) before renaming them, so only exact names count.
+    private IEnumerable<FileEntry> Manifests(string steamApps) =>
+        _fileSystem.Enumerate(steamApps, SteamPaths.ManifestPattern, FileListing.AnyCase)
+            .Where(file => !file.IsDirectory && ManifestFileName().IsMatch(file.Name));
 
     private static GameKey KeyOf(uint appId) => new(StoreId.Steam, appId.ToString(CultureInfo.InvariantCulture));
 

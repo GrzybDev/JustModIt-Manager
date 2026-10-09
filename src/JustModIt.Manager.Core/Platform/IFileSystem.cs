@@ -31,13 +31,17 @@ public interface IFileSystem
 
     /// <summary>Reads a whole file even while its owner has it open for writing or replaces it.</summary>
     /// <param name="path">The file's path.</param>
+    /// <param name="maxLength">The longest file accepted, in bytes.</param>
     /// <param name="cancellationToken">Stops the read.</param>
-    Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken);
+    /// <exception cref="InvalidDataException">The file is longer than <paramref name="maxLength"/>.</exception>
+    Task<byte[]> ReadAllBytesAsync(string path, long maxLength, CancellationToken cancellationToken);
 
     /// <summary>Reads a whole file as UTF-8, or in the encoding its byte order mark names, which is not returned.</summary>
     /// <param name="path">The file's path.</param>
+    /// <param name="maxLength">The longest file accepted, in bytes.</param>
     /// <param name="cancellationToken">Stops the read.</param>
-    Task<string> ReadAllTextAsync(string path, CancellationToken cancellationToken);
+    /// <exception cref="InvalidDataException">The file is longer than <paramref name="maxLength"/>.</exception>
+    Task<string> ReadAllTextAsync(string path, long maxLength, CancellationToken cancellationToken);
 
     /// <summary>The path with links, junctions and short names resolved (see <see cref="IO.PathCanonicalizer"/>).</summary>
     /// <param name="path">A path whose tail may not exist yet.</param>

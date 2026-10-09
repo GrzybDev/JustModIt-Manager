@@ -18,7 +18,7 @@ public sealed class PhysicalFileSystemTests : FileSystemContractTests, IDisposab
         var path = _directory.Write("appmanifest_620.acf", "\"AppState\" {}");
         await using var owner = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
 
-        (await FileSystem.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).Should().Be("\"AppState\" {}");
+        (await FileSystem.ReadAllTextAsync(path, 1024, TestContext.Current.CancellationToken)).Should().Be("\"AppState\" {}");
     }
 
     public void Dispose() => _directory.Dispose();

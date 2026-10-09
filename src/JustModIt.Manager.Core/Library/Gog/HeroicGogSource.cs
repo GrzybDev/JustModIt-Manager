@@ -1,4 +1,3 @@
-using System.Text.Json;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library.Heroic;
 using JustModIt.Manager.Core.Platform;
@@ -38,12 +37,12 @@ public sealed class HeroicGogSource(IFileSystem fileSystem, string configDirecto
         IReadOnlyDictionary<string, GameInstallState> queued;
         try
         {
-            installed = (await LauncherJson.ReadAsync(fileSystem, file, GogJsonContext.Default.HeroicInstalledFile, cancellationToken)
+            installed = (await LauncherJson.ReadAsync(fileSystem, file, LauncherJsonContext.Default.HeroicInstalledFile, cancellationToken)
                 .ConfigureAwait(false))?.Installed ?? [];
             queued = await HeroicLauncher.ReadQueueAsync(fileSystem, configDirectory, Runner, cancellationToken).ConfigureAwait(false);
         }
         // Usually caught while Heroic rewrites a file; the games it listed are kept until it can be read again.
-        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or InvalidDataException)
+        catch (Exception exception) when (LauncherJson.IsUnreadable(exception))
         {
             return new([new LibraryLocation(file, HeroicLauncher.LibrarySource, file, LibraryState.Unreadable)], [], watch);
         }

@@ -1,4 +1,3 @@
-using System.Security;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 
@@ -13,15 +12,6 @@ internal static class SteamPaths
     public const string Config = "config";
     public const string LibraryFoldersFile = "libraryfolders.vdf";
     public const string ManifestPattern = "appmanifest_*.acf";
-
-    private static readonly EnumerationOptions ChildSearch = new()
-    {
-        // Linux reports dot folders as hidden, and the default options would skip them.
-        AttributesToSkip = 0,
-        IgnoreInaccessible = true,
-        MatchCasing = MatchCasing.CaseInsensitive,
-        MatchType = MatchType.Simple,
-    };
 
     /// <summary>
     /// Finds the <c>steamapps</c> folder in any letter case, since very old Linux clients created <c>SteamApps</c>; null
@@ -52,22 +42,10 @@ internal static class SteamPaths
             return null;
         }
 
-        try
-        {
-            // The name is also a search pattern, so wildcard characters in it are ruled out by the exact comparison.
-            foreach (var entry in fileSystem.Enumerate(directory, name, ChildSearch))
-            {
-                if (entry.IsDirectory && string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    return entry.FullPath;
-                }
-            }
-
-            return null;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
-        {
-            return null;
-        }
+        // The name is also a search pattern, so wildcard characters in it are ruled out by the exact comparison.
+        return fileSystem.TryList(directory, name, FileListing.AnyCase)
+            .Where(entry => entry.IsDirectory && string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase))
+            .Select(entry => entry.FullPath)
+            .FirstOrDefault();
     }
 }

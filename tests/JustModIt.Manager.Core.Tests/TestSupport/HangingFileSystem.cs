@@ -88,16 +88,16 @@ internal sealed class HangingFileSystem(IFileSystem inner) : IFileSystem, IDispo
         return inner.OpenRead(path, share);
     }
 
-    public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken)
+    public Task<byte[]> ReadAllBytesAsync(string path, long maxLength, CancellationToken cancellationToken)
     {
         WaitIfHanging(path);
-        return inner.ReadAllBytesAsync(path, cancellationToken);
+        return inner.ReadAllBytesAsync(path, maxLength, cancellationToken);
     }
 
-    public Task<string> ReadAllTextAsync(string path, CancellationToken cancellationToken)
+    public Task<string> ReadAllTextAsync(string path, long maxLength, CancellationToken cancellationToken)
     {
         WaitIfHanging(path);
-        return inner.ReadAllTextAsync(path, cancellationToken);
+        return inner.ReadAllTextAsync(path, maxLength, cancellationToken);
     }
 
     public string GetCanonicalPath(string path)

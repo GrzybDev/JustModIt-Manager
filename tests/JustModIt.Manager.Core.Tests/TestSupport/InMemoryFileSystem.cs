@@ -80,14 +80,18 @@ internal sealed class InMemoryFileSystem : IFileSystem
 
     public Stream OpenRead(string path, FileShare share) => new MemoryStream(ReadFile(path), writable: false);
 
-    public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken) =>
-        Task.FromResult(ReadFile(path).ToArray());
+    public Task<byte[]> ReadAllBytesAsync(string path, long maxLength, CancellationToken cancellationToken) =>
+        Task.FromResult(Bounded(ReadFile(path), maxLength).ToArray());
 
-    public async Task<string> ReadAllTextAsync(string path, CancellationToken cancellationToken)
+    public async Task<string> ReadAllTextAsync(string path, long maxLength, CancellationToken cancellationToken)
     {
-        using var reader = new StreamReader(OpenRead(path, FileShare.Read), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        using var reader = new StreamReader(new MemoryStream(Bounded(ReadFile(path), maxLength), writable: false), Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true);
         return await reader.ReadToEndAsync(cancellationToken);
     }
+
+    private static byte[] Bounded(byte[] content, long maxLength) =>
+        content.Length <= maxLength ? content : throw new InvalidDataException("The file is longer than allowed.");
 
     public string GetCanonicalPath(string path)
     {

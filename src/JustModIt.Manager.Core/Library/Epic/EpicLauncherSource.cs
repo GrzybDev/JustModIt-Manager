@@ -1,5 +1,3 @@
-using System.Security;
-using System.Text.Json;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Platform;
 
@@ -18,14 +16,6 @@ public sealed class EpicLauncherSource(IFileSystem fileSystem, IRegistry registr
     public const string LibrarySource = "epic-launcher";
 
     internal const string LauncherKey = @"SOFTWARE\Epic Games\EpicGamesLauncher";
-
-    private static readonly EnumerationOptions TopLevelOnly = new()
-    {
-        AttributesToSkip = 0,
-        IgnoreInaccessible = true,
-        MatchCasing = MatchCasing.CaseInsensitive,
-        MatchType = MatchType.Simple,
-    };
 
     private string InstalledFile => Path.Join(programData, "Epic", "UnrealEngineLauncher", "LauncherInstalled.dat");
 
@@ -66,7 +56,7 @@ public sealed class EpicLauncherSource(IFileSystem fileSystem, IRegistry registr
             var versions = await ReadVersionsAsync(cancellationToken).ConfigureAwait(false);
             foreach (var file in ListItems(manifests))
             {
-                var item = await LauncherJson.ReadAsync(fileSystem, file.FullPath, EpicJsonContext.Default.EpicItem, cancellationToken)
+                var item = await LauncherJson.ReadAsync(fileSystem, file.FullPath, LauncherJsonContext.Default.EpicItem, cancellationToken)
                     .ConfigureAwait(false);
                 if (item is not null && ToRecord(item, file, library, pendingItems, versions) is { } record)
                 {
@@ -75,8 +65,7 @@ public sealed class EpicLauncherSource(IFileSystem fileSystem, IRegistry registr
             }
         }
         // Usually caught while the launcher rewrites a manifest; the games it listed are kept until it can be read again.
-        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or SecurityException
-            or InvalidDataException)
+        catch (Exception exception) when (LauncherJson.IsUnreadable(exception))
         {
             return new([new LibraryLocation(library, LibrarySource, library, LibraryState.Unreadable)], [], watch);
         }
@@ -87,10 +76,8 @@ public sealed class EpicLauncherSource(IFileSystem fileSystem, IRegistry registr
     // The version of each app that the last complete install or update left.
     private async Task<Dictionary<string, string>> ReadVersionsAsync(CancellationToken cancellationToken)
     {
-        var installed = fileSystem.FileExists(InstalledFile)
-            ? await LauncherJson.ReadAsync(fileSystem, InstalledFile, EpicJsonContext.Default.LauncherInstalledFile, cancellationToken)
-                .ConfigureAwait(false)
-            : null;
+        var installed = await LauncherJson.ReadIfExistsAsync(fileSystem, InstalledFile, LauncherJsonContext.Default.LauncherInstalledFile,
+            cancellationToken).ConfigureAwait(false);
         return (installed?.InstallationList ?? [])
             .Where(installation => installation.AppName is not null && installation.AppVersion is not null)
             .DistinctBy(installation => installation.AppName)
@@ -99,7 +86,7 @@ public sealed class EpicLauncherSource(IFileSystem fileSystem, IRegistry registr
 
     private List<FileEntry> ListItems(string folder) =>
         fileSystem.DirectoryExists(folder)
-            ? [.. fileSystem.Enumerate(folder, "*.item", TopLevelOnly).Where(entry => !entry.IsDirectory)]
+            ? [.. fileSystem.Enumerate(folder, "*.item", FileListing.AnyCase).Where(entry => !entry.IsDirectory)]
             : [];
 
     private static EpicInstallRecord? ToRecord(EpicItem item, FileEntry file, string libraryId,

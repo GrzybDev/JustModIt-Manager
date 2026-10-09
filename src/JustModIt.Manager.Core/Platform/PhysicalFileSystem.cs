@@ -43,14 +43,16 @@ public sealed class PhysicalFileSystem : IFileSystem
 
     public Stream OpenRead(string path, FileShare share) => SharedFileRead.Open(path, share);
 
-    public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken) =>
-        SharedFileRead.ReadAllBytesAsync(path, Array.MaxLength, cancellationToken);
+    public Task<byte[]> ReadAllBytesAsync(string path, long maxLength, CancellationToken cancellationToken) =>
+        SharedFileRead.ReadAllBytesAsync(path, maxLength, cancellationToken);
 
-    public async Task<string> ReadAllTextAsync(string path, CancellationToken cancellationToken)
+    public async Task<string> ReadAllTextAsync(string path, long maxLength, CancellationToken cancellationToken)
     {
-        using var reader = new StreamReader(SharedFileRead.Open(path, SharedFileRead.Sharing), Encoding.UTF8,
-            detectEncodingFromByteOrderMarks: true);
-        return await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        var stream = SharedFileRead.Open(path, SharedFileRead.Sharing);
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        return stream.Length <= maxLength
+            ? await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false)
+            : throw new InvalidDataException($"The file is {stream.Length} bytes long, more than the {maxLength} allowed.");
     }
 
     public string GetCanonicalPath(string path) => PathCanonicalizer.Canonicalize(path);

@@ -56,7 +56,7 @@ public sealed record SteamAppManifest
         return new SteamAppManifest
         {
             AppId = appId,
-            Name = NonEmpty(state.GetString("name")) ?? NonEmpty(state["UserConfig"]?.GetString("name")),
+            Name = LauncherJson.NullIfBlank(state.GetString("name")) ?? LauncherJson.NullIfBlank(state["UserConfig"]?.GetString("name")),
             InstallDir = installDir,
             StateFlags = (SteamAppStates)ParseUInt64(state.GetString("StateFlags")),
             BuildId = NonZero(state.GetString("buildid")),
@@ -67,7 +67,8 @@ public sealed record SteamAppManifest
                 : null,
             BytesDownloaded = ParseUInt64(state.GetString("BytesDownloaded")),
             ScheduledAutoUpdate = ParseUnixTime(state.GetString("ScheduledAutoUpdate")),
-            Language = NonEmpty(state["UserConfig"]?.GetString("language")) ?? NonEmpty(state["MountedConfig"]?.GetString("language")),
+            Language = LauncherJson.NullIfBlank(state["UserConfig"]?.GetString("language"))
+                ?? LauncherJson.NullIfBlank(state["MountedConfig"]?.GetString("language")),
         };
     }
 
@@ -94,7 +95,6 @@ public sealed record SteamAppManifest
             ? DateTimeOffset.FromUnixTimeSeconds(seconds)
             : null;
 
-    private static string? NonZero(string? text) => NonEmpty(text) is { } value && value != "0" ? value : null;
+    private static string? NonZero(string? text) => LauncherJson.NullIfBlank(text) is { } value && value != "0" ? value : null;
 
-    private static string? NonEmpty(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 }

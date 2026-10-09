@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Security;
 using System.Text.RegularExpressions;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Platform;
@@ -35,29 +34,21 @@ internal static partial class SteamDownloads
     /// </summary>
     public static readonly TimeSpan ActiveWindow = TimeSpan.FromMinutes(2);
 
-    private static readonly EnumerationOptions Everything = new() { AttributesToSkip = 0, IgnoreInaccessible = true };
-
     /// <summary>Tells when the entries of each app in <c>steamapps/downloading</c> last changed, by app id.</summary>
     /// <param name="fileSystem">Reads the folder.</param>
     /// <param name="steamAppsDirectory">The library's <c>steamapps</c> folder.</param>
     public static Dictionary<uint, DateTimeOffset> LastChanges(IFileSystem fileSystem, string steamAppsDirectory)
     {
         var changes = new Dictionary<uint, DateTimeOffset>();
-        try
+        // Without a downloading folder there are no jobs.
+        foreach (var entry in fileSystem.TryList(Path.Join(steamAppsDirectory, SteamPaths.Downloading), "*", FileListing.Everything))
         {
-            foreach (var entry in fileSystem.Enumerate(Path.Join(steamAppsDirectory, SteamPaths.Downloading), "*", Everything))
+            var id = entry.IsDirectory ? entry.Name : StatePatchPattern().Match(entry.Name).Groups[1].Value;
+            if (uint.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var appId) && appId > 0
+                && !(changes.TryGetValue(appId, out var later) && later >= entry.LastWriteTimeUtc))
             {
-                var id = entry.IsDirectory ? entry.Name : StatePatchPattern().Match(entry.Name).Groups[1].Value;
-                if (uint.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var appId) && appId > 0
-                    && !(changes.TryGetValue(appId, out var later) && later >= entry.LastWriteTimeUtc))
-                {
-                    changes[appId] = entry.LastWriteTimeUtc;
-                }
+                changes[appId] = entry.LastWriteTimeUtc;
             }
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
-        {
-            // Without a downloading folder there are no jobs.
         }
 
         return changes;

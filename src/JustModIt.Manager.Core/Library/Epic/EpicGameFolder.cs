@@ -1,4 +1,3 @@
-using System.Security;
 using System.Text.Json;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Platform;
@@ -13,14 +12,6 @@ public static class EpicGameFolder
 {
     /// <summary>The launchers' own folder at a game's root, which only they may write.</summary>
     public const string StoreFolderName = ".egstore";
-
-    private static readonly EnumerationOptions TopLevelOnly = new()
-    {
-        AttributesToSkip = 0,
-        IgnoreInaccessible = true,
-        MatchCasing = MatchCasing.CaseInsensitive,
-        MatchType = MatchType.Simple,
-    };
 
     /// <summary>
     /// Tells what the folder says the launcher is doing with the game: downloading an update while its data is there;
@@ -73,24 +64,15 @@ public static class EpicGameFolder
     {
         try
         {
-            return await LauncherJson.ReadAsync(fileSystem, path, EpicJsonContext.Default.EpicFolderManifest, cancellationToken)
+            return await LauncherJson.ReadAsync(fileSystem, path, LauncherJsonContext.Default.EpicFolderManifest, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or InvalidDataException)
+        catch (Exception exception) when (LauncherJson.IsUnreadable(exception))
         {
             return null;
         }
     }
 
-    private static List<FileEntry> List(IFileSystem fileSystem, string folder, string pattern)
-    {
-        try
-        {
-            return [.. fileSystem.Enumerate(folder, pattern, TopLevelOnly).OrderBy(entry => entry.Name, StringComparer.Ordinal)];
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
-        {
-            return [];
-        }
-    }
+    private static List<FileEntry> List(IFileSystem fileSystem, string folder, string pattern) =>
+        [.. fileSystem.TryList(folder, pattern, FileListing.AnyCase).OrderBy(entry => entry.Name, StringComparer.Ordinal)];
 }

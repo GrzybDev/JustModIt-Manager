@@ -25,8 +25,6 @@ public static class AppFolders
     private const string VersionProperty = "version";
     private const string AppProperty = "app";
 
-    private static readonly EnumerationOptions TopLevel = new() { AttributesToSkip = 0, IgnoreInaccessible = true };
-
     /// <summary>Reads which copy of an app a folder belongs to.</summary>
     /// <param name="fileSystem">Reads the owner file.</param>
     /// <param name="directory">A folder in or around a game.</param>
@@ -159,21 +157,10 @@ public static class AppFolders
         FileOperations.DeleteDirectoryIfEmpty(hiddenDirectory);
     }
 
-    private static IEnumerable<OtherAppFolder> OthersIn(IFileSystem fileSystem, string directory, string app)
-    {
-        List<FileEntry> folders;
-        try
-        {
-            folders = [.. fileSystem.Enumerate(directory, ".*", TopLevel).Where(entry => entry.IsDirectory)];
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return [];
-        }
-
-        return folders
+    private static IEnumerable<OtherAppFolder> OthersIn(IFileSystem fileSystem, string directory, string app) =>
+        fileSystem.TryList(directory, ".*", FileListing.Everything)
+            .Where(entry => entry.IsDirectory)
             .Select(folder => (Folder: folder, Owner: OwnerOf(fileSystem, folder.FullPath)))
             .Where(found => found.Owner is { } owner && !string.Equals(owner, app, StringComparison.OrdinalIgnoreCase))
             .Select(found => new OtherAppFolder(found.Owner!, found.Folder.FullPath));
-    }
 }

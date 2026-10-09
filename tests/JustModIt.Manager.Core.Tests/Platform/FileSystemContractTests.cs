@@ -6,6 +6,8 @@ namespace JustModIt.Manager.Core.Tests.Platform;
 // Behaviour every IFileSystem shares, so the in-memory one stands in for the disk faithfully.
 public abstract class FileSystemContractTests
 {
+    private const long MaxLength = 1024;
+
     private static readonly DateTimeOffset WrittenAt = new(2026, 2, 3, 4, 5, 6, TimeSpan.Zero);
 
     protected abstract IFileSystem FileSystem { get; }
@@ -140,8 +142,21 @@ public abstract class FileSystemContractTests
         byte[] content = [0xEF, 0xBB, 0xBF, .. "{\"name\":\"Café Racer\"}"u8];
         var file = WriteFile("goggame-1.info", content);
 
-        (await FileSystem.ReadAllTextAsync(file, TestContext.Current.CancellationToken)).Should().Be("{\"name\":\"Café Racer\"}");
-        (await FileSystem.ReadAllBytesAsync(file, TestContext.Current.CancellationToken)).Should().Equal(content);
+        (await FileSystem.ReadAllTextAsync(file, MaxLength, TestContext.Current.CancellationToken))
+            .Should().Be("{\"name\":\"Café Racer\"}");
+        (await FileSystem.ReadAllBytesAsync(file, MaxLength, TestContext.Current.CancellationToken)).Should().Equal(content);
+    }
+
+    [Fact]
+    public async Task A_file_longer_than_the_limit_is_refused()
+    {
+        var file = WriteFile("appmanifest_620.acf", "\"AppState\" {}");
+
+        var bytes = () => FileSystem.ReadAllBytesAsync(file, 4, TestContext.Current.CancellationToken);
+        var text = () => FileSystem.ReadAllTextAsync(file, 4, TestContext.Current.CancellationToken);
+
+        await bytes.Should().ThrowAsync<InvalidDataException>();
+        await text.Should().ThrowAsync<InvalidDataException>();
     }
 
     [Fact]
@@ -158,8 +173,9 @@ public abstract class FileSystemContractTests
     [Fact]
     public async Task Reading_a_missing_file_fails_like_the_disk()
     {
-        var missingFile = () => FileSystem.ReadAllBytesAsync(Path.Combine(Root, "missing.acf"), TestContext.Current.CancellationToken);
-        var missingFolder = () => FileSystem.ReadAllTextAsync(Path.Combine(Root, "Missing", "missing.acf"),
+        var missingFile = () => FileSystem.ReadAllBytesAsync(Path.Combine(Root, "missing.acf"), MaxLength,
+            TestContext.Current.CancellationToken);
+        var missingFolder = () => FileSystem.ReadAllTextAsync(Path.Combine(Root, "Missing", "missing.acf"), MaxLength,
             TestContext.Current.CancellationToken);
 
         await missingFile.Should().ThrowAsync<FileNotFoundException>();

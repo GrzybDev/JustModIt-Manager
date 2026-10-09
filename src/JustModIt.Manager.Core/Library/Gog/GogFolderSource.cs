@@ -1,4 +1,3 @@
-using System.Security;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library.Gog;
@@ -14,8 +13,6 @@ public sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platform
 {
     /// <summary>The <see cref="LibraryLocation.Source"/> of a folder the player added.</summary>
     public const string LibrarySource = "gog-folder";
-
-    private static readonly EnumerationOptions Subfolders = new() { AttributesToSkip = 0, IgnoreInaccessible = true };
 
     private readonly GogInfoReader _infos = new(fileSystem);
 
@@ -51,17 +48,8 @@ public sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platform
         return records;
     }
 
-    private List<string> ListSubfolders(string folder)
-    {
-        try
-        {
-            // Links are not followed: they may lead to games that are not in the folder the player picked.
-            return [.. FileSystem.Enumerate(folder, "*", Subfolders).Where(entry => entry.IsDirectory && !entry.IsLink)
-                .Select(entry => entry.FullPath).Order(StringComparer.Ordinal)];
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
-        {
-            return [];
-        }
-    }
+    // Links are not followed: they may lead to games that are not in the folder the player picked.
+    private List<string> ListSubfolders(string folder) =>
+        [.. FileSystem.TryList(folder, "*", FileListing.Everything).Where(entry => entry.IsDirectory && !entry.IsLink)
+            .Select(entry => entry.FullPath).Order(StringComparer.Ordinal)];
 }

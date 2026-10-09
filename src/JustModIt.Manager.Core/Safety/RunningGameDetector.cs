@@ -35,8 +35,6 @@ public sealed class RunningGameDetector : IRunningGameDetector
     private const int ExecutableSearchMaxEntries = 10_000;
     private const string ExecutableExtension = ".exe";
 
-    private static readonly EnumerationOptions Listing = new() { AttributesToSkip = 0, IgnoreInaccessible = true };
-
     private readonly IProcessSource _processes;
     private readonly IFileSystem _fileSystem;
     private readonly TimeProvider _time;
@@ -173,15 +171,6 @@ public sealed class RunningGameDetector : IRunningGameDetector
     private static string ProcessName(string fileName) =>
         fileName.EndsWith(ExecutableExtension, StringComparison.OrdinalIgnoreCase) ? fileName[..^ExecutableExtension.Length] : fileName;
 
-    private List<FileEntry> List(string directory, int maxEntries)
-    {
-        try
-        {
-            return [.. _fileSystem.Enumerate(directory, "*", Listing).Take(maxEntries)];
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return [];
-        }
-    }
+    private List<FileEntry> List(string directory, int maxEntries) =>
+        _fileSystem.TryList(directory, "*", FileListing.Everything, maxEntries);
 }

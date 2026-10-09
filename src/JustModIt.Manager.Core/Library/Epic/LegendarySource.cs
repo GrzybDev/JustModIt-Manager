@@ -1,4 +1,3 @@
-using System.Text.Json;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library.Heroic;
 using JustModIt.Manager.Core.Platform;
@@ -67,8 +66,9 @@ public sealed class LegendarySource(IFileSystem fileSystem, string legendaryDire
         var records = new List<EpicInstallRecord>();
         try
         {
-            var installed = (await LauncherJson.ReadAsync(fileSystem, file, EpicJsonContext.Default.DictionaryStringLegendaryInstalledGame,
-                cancellationToken).ConfigureAwait(false))?.Values.ToList() ?? [];
+            var installed = (await LauncherJson.ReadAsync(fileSystem, file,
+                LauncherJsonContext.Default.DictionaryStringLegendaryInstalledGame, cancellationToken).ConfigureAwait(false))?.Values.ToList()
+                ?? [];
             if (installed.Count > 0 && fileSystem.DirectoryExists(MetadataDirectory))
             {
                 var metadata = new WatchedFolder(MetadataDirectory, [.. installed.Select(game => $"{game.AppName}.json")]);
@@ -87,7 +87,7 @@ public sealed class LegendarySource(IFileSystem fileSystem, string legendaryDire
             }
         }
         // Legendary rewrites its files in place, so one caught mid-write keeps the games it listed until it can be read again.
-        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or InvalidDataException)
+        catch (Exception exception) when (LauncherJson.IsUnreadable(exception))
         {
             return new([new LibraryLocation(file, source, file, LibraryState.Unreadable)], [], watch);
         }
@@ -100,10 +100,8 @@ public sealed class LegendarySource(IFileSystem fileSystem, string legendaryDire
         string temporary, IReadOnlyDictionary<string, GameInstallState> queued, CancellationToken cancellationToken)
     {
         var metadataFile = Path.Join(MetadataDirectory, $"{appName}.json");
-        var metadata = fileSystem.FileExists(metadataFile)
-            ? (await LauncherJson.ReadAsync(fileSystem, metadataFile, EpicJsonContext.Default.LegendaryMetadataFile, cancellationToken)
-                .ConfigureAwait(false))?.Metadata
-            : null;
+        var metadata = (await LauncherJson.ReadIfExistsAsync(fileSystem, metadataFile, LauncherJsonContext.Default.LegendaryMetadataFile,
+            cancellationToken).ConfigureAwait(false))?.Metadata;
         if (metadata is null || LauncherJson.NullIfBlank(metadata.Namespace) is not { } catalogNamespace)
         {
             throw new InvalidDataException("An installed app has no catalog namespace.");

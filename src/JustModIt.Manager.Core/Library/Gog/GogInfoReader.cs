@@ -1,4 +1,3 @@
-using System.Security;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using JustModIt.Manager.Core.Collections;
@@ -61,14 +60,6 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
 {
     public const string InfoPattern = "goggame-*.info";
 
-    private static readonly EnumerationOptions TopLevelOnly = new()
-    {
-        AttributesToSkip = 0,
-        IgnoreInaccessible = true,
-        MatchCasing = MatchCasing.CaseInsensitive,
-        MatchType = MatchType.Simple,
-    };
-
     /// <summary>Reads the <c>.info</c> files of a folder; damaged or mismatched files are left out.</summary>
     /// <param name="directory">The install folder, or a macOS app bundle.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
@@ -94,20 +85,9 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
     // On macOS the files live inside the app bundle, and launchers record the bundle itself as the install folder.
     private static string[] CandidateFolders(string directory) => [directory, Path.Join(directory, "Contents", "Resources")];
 
-    private List<FileEntry> ListInfoFiles(string folder)
-    {
-        try
-        {
-            return fileSystem.DirectoryExists(folder)
-                ? [.. fileSystem.Enumerate(folder, InfoPattern, TopLevelOnly).Where(file => !file.IsDirectory)
-                    .OrderBy(file => file.Name, StringComparer.Ordinal)]
-                : [];
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
-        {
-            return [];
-        }
-    }
+    private List<FileEntry> ListInfoFiles(string folder) =>
+        [.. fileSystem.TryList(folder, InfoPattern, FileListing.AnyCase).Where(file => !file.IsDirectory)
+            .OrderBy(file => file.Name, StringComparer.Ordinal)];
 
     private async Task<GogGameInfo?> TryReadAsync(FileEntry file, CancellationToken cancellationToken)
     {
@@ -118,7 +98,7 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
         }
 
         var gameId = match.Groups[1].Value;
-        var info = await TryParseAsync(file.FullPath, GogJsonContext.Default.GogInfoFile, cancellationToken).ConfigureAwait(false);
+        var info = await TryParseAsync(file.FullPath, LauncherJsonContext.Default.GogInfoFile, cancellationToken).ConfigureAwait(false);
 
         // A copied or renamed file would otherwise lend its content to another product.
         if (info is null || info.GameId != gameId)
@@ -127,8 +107,8 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
         }
 
         var buildId = LauncherJson.NullIfBlank(info.BuildId)
-            ?? LauncherJson.NullIfBlank((await TryParseAsync(Path.ChangeExtension(file.FullPath, ".id"), GogJsonContext.Default.GogIdFile,
-                cancellationToken).ConfigureAwait(false))?.BuildId);
+            ?? LauncherJson.NullIfBlank((await TryParseAsync(Path.ChangeExtension(file.FullPath, ".id"),
+                LauncherJsonContext.Default.GogIdFile, cancellationToken).ConfigureAwait(false))?.BuildId);
         List<string> languages = [.. (info.Languages ?? []).Select(LanguageNames.FromTag).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)];
         if (languages.Count == 0 && LanguageNames.FromName(info.Language) is { } language)
         {
@@ -153,11 +133,9 @@ public sealed partial class GogInfoReader(IFileSystem fileSystem)
     {
         try
         {
-            return fileSystem.FileExists(path)
-                ? await LauncherJson.ReadAsync(fileSystem, path, typeInfo, cancellationToken).ConfigureAwait(false)
-                : null;
+            return await LauncherJson.ReadAsync(fileSystem, path, typeInfo, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
+        catch (Exception exception) when (LauncherJson.IsUnreadable(exception))
         {
             return null;
         }

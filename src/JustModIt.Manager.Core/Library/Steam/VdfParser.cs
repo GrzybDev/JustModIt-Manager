@@ -28,10 +28,11 @@ public static class VdfParser
     /// <param name="path">The file.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
     /// <exception cref="VdfFormatException">The text is not well-formed KeyValues.</exception>
+    /// <exception cref="InvalidDataException">The file is too large to be Steam's.</exception>
     public static async Task<VdfNode> ParseFileAsync(IFileSystem fileSystem, string path, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(fileSystem);
-        return Parse(await fileSystem.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false));
+        return Parse(await fileSystem.ReadAllTextAsync(path, LauncherJson.MaxFileLength, cancellationToken).ConfigureAwait(false));
     }
 
     private static void ParseObjectBody(ref Reader reader, VdfNode target, int depth)

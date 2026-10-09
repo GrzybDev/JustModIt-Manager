@@ -95,11 +95,3 @@ internal sealed class EpicFolderManifest
 
     public string? AppName { get; init; }
 }
-
-[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, AllowTrailingCommas = true)]
-[JsonSerializable(typeof(EpicItem))]
-[JsonSerializable(typeof(LauncherInstalledFile))]
-[JsonSerializable(typeof(Dictionary<string, LegendaryInstalledGame>))]
-[JsonSerializable(typeof(LegendaryMetadataFile))]
-[JsonSerializable(typeof(EpicFolderManifest))]
-internal sealed partial class EpicJsonContext : JsonSerializerContext;
