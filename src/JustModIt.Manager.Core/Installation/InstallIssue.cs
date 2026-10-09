@@ -65,6 +65,10 @@ public sealed record UnsafePathIssue(string Path) : InstallIssue;
 /// <param name="Path">Where the package needs the file or folder.</param>
 public sealed record PathConflictIssue(string Path) : InstallIssue;
 
+/// <summary>The package names the games it was made for in the game's own store, and this one is not among them.</summary>
+/// <param name="Targets">The games the package names.</param>
+public sealed record OtherGameIssue(ValueList<PackageTarget> Targets) : InstallIssue;
+
 /// <summary>A file the package patches or renames does not exist.</summary>
 /// <param name="Path">The missing file.</param>
 public sealed record MissingFileIssue(string Path) : InstallIssue;
@@ -106,8 +110,9 @@ public sealed record SlowBackupCopyWarning(long Bytes) : InstallWarning;
 /// </summary>
 public sealed record UnfinishedStoreDownloadWarning : InstallWarning;
 
-/// <summary>The package names other games than this one.</summary>
-public sealed record OtherGameWarning(ValueList<PackageTarget> Targets) : InstallWarning;
+/// <summary>The package names the game only in other stores, so it was made with another store's version of it.</summary>
+/// <param name="Targets">The games the package names.</param>
+public sealed record OtherStoreWarning(ValueList<PackageTarget> Targets) : InstallWarning;
 
 /// <summary>The package was made and tested with another build of the game.</summary>
 /// <param name="PackageBuildId">The build the package was made with.</param>

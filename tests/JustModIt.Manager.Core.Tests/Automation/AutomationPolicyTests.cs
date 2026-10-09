@@ -181,6 +181,17 @@ public sealed class AutomationPolicyTests
     }
 
     [Fact]
+    public void A_release_made_for_another_game_is_not_tried_again_even_on_another_build()
+    {
+        var history = AutomationHistory.Empty.RecordAttempt(TestProjects.Game, ReleaseTwo, AutomationAction.Repair, Now)
+            .RecordFailure(TestProjects.Game, ReleaseTwo, AutomationAction.Repair, JobFailureReason.OtherGame, "100", Now, out _);
+        var game = Game(Two, Record(), repair: RepairReason.FilesModified);
+
+        Decide(game with { Game = game.Game! with { BuildId = "101" } }, history: history, now: Now.AddDays(3)).Reason
+            .Should().Be(AutomationReason.RecentlyTried);
+    }
+
+    [Fact]
     public void A_player_action_lifts_the_wait()
     {
         var history = AutomationHistory.Empty.RecordAttempt(TestProjects.Game, ReleaseOne, AutomationAction.Install, Now).Reset(TestProjects.Game);

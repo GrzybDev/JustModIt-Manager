@@ -153,6 +153,16 @@ public sealed class JobFailuresTests
     }
 
     [Fact]
+    public void A_package_for_another_game_comes_before_the_files_it_does_not_fit()
+    {
+        JobFailures.FromIssues([
+            new MissingFileIssue("data/fonts.pak"),
+            new FileOwnedByOtherInstallIssue("readme.txt", Guid.NewGuid()),
+            new OtherGameIssue([new PackageTarget(StoreId.Steam, "3000")]),
+        ]).Reason.Should().Be(JobFailureReason.OtherGame);
+    }
+
+    [Fact]
     public void Every_kind_of_install_issue_has_a_reason_of_its_own()
     {
         var issues = typeof(InstallIssue).Assembly.GetTypes()
@@ -182,6 +192,7 @@ public sealed class JobFailuresTests
         nameof(PathConflictIssue) => new PathConflictIssue("a"),
         nameof(MissingFileIssue) => new MissingFileIssue("a"),
         nameof(FileMismatchIssue) => new FileMismatchIssue("a", AlreadyPatched: false),
+        nameof(OtherGameIssue) => new OtherGameIssue([new PackageTarget(StoreId.Steam, "3000")]),
         nameof(FileLockedIssue) => new FileLockedIssue("a", []),
         nameof(PermissionRequiredIssue) => new PermissionRequiredIssue("a"),
         nameof(NotEnoughSpaceIssue) => new NotEnoughSpaceIssue("folder", 2, 1),

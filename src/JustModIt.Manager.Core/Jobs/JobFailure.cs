@@ -29,6 +29,9 @@ public enum JobFailureReason
 
     NotEnoughSpace,
 
+    /// <summary>The package names the games it was made for in the game's own store, and this one is not among them.</summary>
+    OtherGame,
+
     /// <summary>The game's files are not the version the package was made for.</summary>
     UnsupportedGameVersion,
 

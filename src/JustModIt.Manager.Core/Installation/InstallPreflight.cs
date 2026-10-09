@@ -71,7 +71,7 @@ internal sealed class InstallPreflight(IFileLockProbe locks, IVolumes volumes, l
             }
         }
 
-        warnings.AddRange(TargetWarnings(package.Manifest, installation));
+        CheckTargets(package.Manifest, installation, issues, warnings);
         // Moved originals are hashed unless the check already did, and renamed ones are copied to their new name;
         // copied originals are written and read back. New content is written once.
         var hashed = simulation.Originals.Where(original => simulation.Hashes.ContainsKey(original.Key))
@@ -83,21 +83,28 @@ internal sealed class InstallPreflight(IFileLockProbe locks, IVolumes volumes, l
             new InstallPlan(simulation.Paths, simulation.Hashes, movesOriginals, bytesTotal));
     }
 
-    public static IEnumerable<InstallWarning> TargetWarnings(PackageManifest? manifest, InstalledGame game)
+    // Only another id in the game's own store is certainly another game; another store's version or another build only
+    // warns, since patches check every file they change anyway.
+    private static void CheckTargets(PackageManifest? manifest, InstalledGame game, List<InstallIssue> issues,
+        List<InstallWarning> warnings)
     {
         if (manifest is null || manifest.Targets.Count == 0)
         {
-            yield break;
+            return;
         }
 
-        var target = manifest.Targets.FirstOrDefault(target => target.Store == game.Key.Store && target.Id == game.Key.StoreGameId);
-        if (target is null)
+        var sameStore = manifest.Targets.Where(target => target.Store == game.Key.Store).ToList();
+        if (sameStore.Count == 0)
         {
-            yield return new OtherGameWarning([.. manifest.Targets]);
+            warnings.Add(new OtherStoreWarning([.. manifest.Targets]));
+        }
+        else if (sameStore.FirstOrDefault(target => target.Id == game.Key.StoreGameId) is not { } target)
+        {
+            issues.Add(new OtherGameIssue([.. manifest.Targets]));
         }
         else if (target.BuildId is { } build && build != game.BuildId)
         {
-            yield return new OtherGameBuildWarning(build, game.BuildId);
+            warnings.Add(new OtherGameBuildWarning(build, game.BuildId));
         }
     }
 

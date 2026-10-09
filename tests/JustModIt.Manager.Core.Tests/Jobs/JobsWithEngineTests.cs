@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Tests.Installation;
@@ -61,6 +62,30 @@ public sealed class JobsWithEngineTests
         game.ReadGameFile("readme.txt").Should().Be("Release one");
         (await game.Engine.LoadRecordsAsync(Token)).Should().ContainSingle()
             .Which.Source!.ReleaseId.Should().Be(ReleaseOne.ToString("D"));
+    }
+
+    [Fact]
+    public async Task An_update_and_a_test_install_refuse_a_package_made_for_another_game_and_keep_the_installed_release()
+    {
+        await using var game = new InstallHarness();
+        await using var jobs = await JobsAsync(game);
+        new TestPackage().Copy("readme.txt", "Release one").WriteManifestPackage(jobs.Downloader.PathOf(FileOne, PackageFormat.Manifest));
+        var otherGame = new TestPackage().Copy("readme.txt", "Release two").Targets(new PackageTarget(StoreId.Steam, "3000"))
+            .WriteManifestPackage(jobs.Downloader.PathOf(FileTwo, PackageFormat.Manifest));
+        jobs.Downloader.Cached[FileOne] = true;
+        jobs.Downloader.Cached[FileTwo] = true;
+        jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, requiresManager: true))));
+        var installed = (await RunAsync(jobs, new InstallJobRequest(InstallHarness.Key, "Example Game", Locator(), null))).Installed!;
+        jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
+
+        var update = await RunAsync(jobs, new UpdateJobRequest(installed));
+        var test = await RunAsync(jobs, new TestInstallJobRequest(InstallHarness.Key, "Example Game", otherGame));
+
+        update.Failure!.Reason.Should().Be(JobFailureReason.OtherGame);
+        update.RemovedPrevious.Should().BeFalse();
+        test.Failure!.Reason.Should().Be(JobFailureReason.OtherGame);
+        game.ReadGameFile("readme.txt").Should().Be("Release one");
+        (await game.Engine.LoadRecordsAsync(Token)).Should().Equal(installed);
     }
 
     private static async Task<JobResult> RunAsync(JobsContext jobs, JobRequest request) =>

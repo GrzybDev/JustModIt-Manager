@@ -104,6 +104,11 @@ public static class JobFailures
             return new JobFailure(reason);
         }
 
+        if (issues.OfType<OtherGameIssue>().Any())
+        {
+            return new JobFailure(JobFailureReason.OtherGame);
+        }
+
         if (issues.OfType<FileOwnedByOtherInstallIssue>().ToList() is { Count: > 0 } owned)
         {
             return new JobFailure(JobFailureReason.ConflictingInstall) { Files = Distinct(owned.Select(issue => issue.Path)) };

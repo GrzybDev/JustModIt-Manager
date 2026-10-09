@@ -224,18 +224,22 @@ public sealed class InstallTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Tells_about_a_package_made_for_another_game_or_build()
+    public async Task Refuses_a_package_made_for_another_game_of_the_store_and_only_warns_about_another_version()
     {
-        var otherGame = _harness.ManifestPackage(new TestPackage().Copy("a.txt", "a")
-            .Targets(new PackageTarget(StoreId.Gog, "2000")));
-        var otherBuild = _harness.ManifestPackage(new TestPackage().Copy("b.txt", "b")
-            .Targets(new PackageTarget(StoreId.Steam, "1000", "41")));
+        PackageTarget[] otherGame = [new(StoreId.Gog, "2000"), new(StoreId.Steam, "3000")];
+        PackageTarget[] otherStore = [new(StoreId.Gog, "2000")];
 
-        var report = await _harness.Engine.CheckInstallAsync(_harness.Request(otherGame), null, InstallHarness.Token);
-        var result = await _harness.InstallAsync(otherBuild);
+        var blocked = await _harness.InstallBlockedAsync(
+            _harness.ManifestPackage(new TestPackage().Copy("a.txt", "a").Targets(otherGame)));
+        var fromOtherStore = await _harness.InstallAsync(
+            _harness.ManifestPackage(new TestPackage().Copy("b.txt", "b").Targets(otherStore)));
+        var fromOtherBuild = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("c.txt", "c")
+            .Targets(new PackageTarget(StoreId.Gog, "2000"), new PackageTarget(StoreId.Steam, "1000", "41"))));
 
-        report.Warnings.Should().ContainSingle().Which.Should().BeOfType<OtherGameWarning>();
-        result.Warnings.Should().Equal(new OtherGameBuildWarning("41", "42"));
+        blocked.Issues.Should().ContainSingle().Which.Should().BeOfType<OtherGameIssue>().Which.Targets.Should().Equal(otherGame);
+        fromOtherStore.Warnings.Should().ContainSingle().Which.Should().BeOfType<OtherStoreWarning>()
+            .Which.Targets.Should().Equal(otherStore);
+        fromOtherBuild.Warnings.Should().Equal(new OtherGameBuildWarning("41", "42"));
     }
 
     [Fact]

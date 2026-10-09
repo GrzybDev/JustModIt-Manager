@@ -17,8 +17,9 @@ public readonly record struct Announcement(GameKey Game, Guid Release);
 
 /// <summary>
 /// What the automation already did, so it never loops: an action on a release is tried at most once per
-/// <see cref="RetryAfter"/>, and not at all while the game's build is the one its package did not fit; a failure is
-/// reported once, and a release is announced once. Immutable: every change returns a new history.
+/// <see cref="RetryAfter"/>, not at all while the game's build is the one its package did not fit, and never again once
+/// its package turned out to be made for another game; a failure is reported once, and a release is announced once.
+/// Immutable: every change returns a new history.
 /// </summary>
 public sealed class AutomationHistory
 {
@@ -81,7 +82,8 @@ public sealed class AutomationHistory
 
         // Each try would download the whole package again only to find it still does not fit the same game files.
         var madeForAnotherBuild = attempt.Reason is JobFailureReason.UnsupportedGameVersion or JobFailureReason.NewReleaseIncompatible;
-        return !(madeForAnotherBuild && attempt.Build == build) && now - attempt.At >= RetryAfter;
+        return attempt.Reason != JobFailureReason.OtherGame && !(madeForAnotherBuild && attempt.Build == build)
+            && now - attempt.At >= RetryAfter;
     }
 
     /// <summary>Records that the action started, keeping the count of failures in a row.</summary>
