@@ -234,8 +234,9 @@ internal sealed partial class JobPipeline(
             {
                 JobWaitReason.GameRunning when verdict.Processes.Count > 0 =>
                     runningGames.WaitForExitAsync(verdict.Processes, cancellationToken),
-                JobWaitReason.QuietPeriod => WaitAnyAsync(changed.Task, verdict.WaitUntil!.Value - time.GetUtcNow(), cancellationToken),
-                _ => WaitAnyAsync(changed.Task, StoreBusyRecheck, cancellationToken),
+                JobWaitReason.QuietPeriod =>
+                    time.WaitForSignalAsync(_ => changed.Task, verdict.WaitUntil!.Value - time.GetUtcNow(), cancellationToken),
+                _ => time.WaitForSignalAsync(_ => changed.Task, StoreBusyRecheck, cancellationToken),
             }).ConfigureAwait(false);
         }
     }
@@ -451,15 +452,6 @@ internal sealed partial class JobPipeline(
             ? cover
             : null;
 
-    private async Task WaitAnyAsync(Task signal, TimeSpan timeout, CancellationToken cancellationToken)
-    {
-        using var waiting = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var elapsed = Task.Delay(timeout > TimeSpan.Zero ? timeout : TimeSpan.Zero, time, waiting.Token);
-        await Task.WhenAny(signal, elapsed).ConfigureAwait(false);
-        await waiting.CancelAsync().ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-    }
-
     [LoggerMessage(Level = LogLevel.Information, Message = "The folder of an install on {Game} is gone for good, so the install was forgotten")]
     private partial void LogForgotten(GameKey game);
 
@@ -497,5 +489,5 @@ internal sealed class LibraryChangeSignal : IDisposable
 
     public void Dispose() => _library.Changed -= OnChanged;
 
-    private void OnChanged(object? sender, LibraryChangedEventArgs e) => _changed.TrySetResult();
+    private void OnChanged(object? sender, LibrarySnapshot snapshot) => _changed.TrySetResult();
 }

@@ -214,18 +214,7 @@ public sealed partial class CatalogueService(
     private CatalogueSnapshot Publish(CatalogueSnapshot snapshot)
     {
         Volatile.Write(ref _current, snapshot);
-        foreach (var handler in Changed?.GetInvocationList() ?? [])
-        {
-            try
-            {
-                ((EventHandler<CatalogueSnapshot>)handler)(this, snapshot);
-            }
-            catch (Exception exception)
-            {
-                LogListenerFailed(exception);
-            }
-        }
-
+        EventRaising.RaiseEach(Changed, this, snapshot, LogListenerFailed);
         return snapshot;
     }
 

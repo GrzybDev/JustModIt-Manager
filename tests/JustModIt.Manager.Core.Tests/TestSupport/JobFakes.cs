@@ -19,7 +19,7 @@ internal sealed class FakeLibrary : ILibraryService
     private LibrarySnapshot _snapshot = LibrarySnapshot.Empty;
     private int _probes;
 
-    public event EventHandler<LibraryChangedEventArgs>? Changed;
+    public event EventHandler<LibrarySnapshot>? Changed;
 
     public LibrarySnapshot Snapshot => Volatile.Read(ref _snapshot);
 
@@ -50,10 +50,10 @@ internal sealed class FakeLibrary : ILibraryService
             IsCached = cached,
         };
         Volatile.Write(ref _snapshot, snapshot);
-        Changed?.Invoke(this, new LibraryChangedEventArgs(snapshot));
+        Changed?.Invoke(this, snapshot);
     }
 
-    public void RaiseChanged() => Changed?.Invoke(this, new LibraryChangedEventArgs(Snapshot));
+    public void RaiseChanged() => Changed?.Invoke(this, Snapshot);
 
     public void Runs(GameKey game, params string[] processes)
     {

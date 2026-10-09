@@ -325,28 +325,13 @@ public sealed partial class JobRunner : IAsyncDisposable
         }
 
         LogFinished(job.Kind, job.Game, result.Outcome, result.Failure?.Reason);
-        Raise(Finished, result);
+        EventRaising.RaiseEach(Finished, this, result, LogListenerFailed);
         job.Completion.TrySetResult(result);
         idle?.TrySetResult();
     }
 
-    private void Publish(JobSnapshot snapshot, bool stepChanged) => Raise(stepChanged ? Changed : Progressed, snapshot);
-
-    private void Raise<T>(EventHandler<T>? handlers, T args)
-    {
-        foreach (var handler in handlers?.GetInvocationList() ?? [])
-        {
-            try
-            {
-                ((EventHandler<T>)handler)(this, args);
-            }
-            // A broken listener must not break a job.
-            catch (Exception exception)
-            {
-                LogListenerFailed(exception);
-            }
-        }
-    }
+    private void Publish(JobSnapshot snapshot, bool stepChanged) =>
+        EventRaising.RaiseEach(stepChanged ? Changed : Progressed, this, snapshot, LogListenerFailed);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Kind} of {Game} started ({Origin})")]
     private partial void LogStarted(JobKind kind, GameKey game, JobOrigin origin);

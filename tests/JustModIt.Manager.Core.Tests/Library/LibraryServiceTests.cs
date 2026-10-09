@@ -672,7 +672,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
             NullLogger<SettingsService>.Instance, Token);
         _service = new LibraryService([steam ?? _steam, _gog], _settings, _running, _files, _watcher, _watcher, _events, _snapshots, _time,
             NullLogger<LibraryService>.Instance);
-        _service.Changed += (_, changed) => _published.Enqueue(changed.Snapshot);
+        _service.Changed += (_, snapshot) => _published.Enqueue(snapshot);
     }
 
     private async Task StartAsync(ILibraryProvider? steam = null)

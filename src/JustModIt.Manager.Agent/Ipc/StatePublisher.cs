@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
@@ -78,7 +79,7 @@ public sealed partial class StatePublisher
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         _settings.Changed += OnChanged;
-        _catalogue.Changed += OnCatalogueChanged;
+        _catalogue.Changed += OnChanged;
         _status.Changed += OnChanged;
         _jobs.Progressed += OnProgressed;
         try
@@ -89,7 +90,7 @@ public sealed partial class StatePublisher
         finally
         {
             _settings.Changed -= OnChanged;
-            _catalogue.Changed -= OnCatalogueChanged;
+            _catalogue.Changed -= OnChanged;
             _status.Changed -= OnChanged;
             _jobs.Progressed -= OnProgressed;
         }
@@ -114,7 +115,7 @@ public sealed partial class StatePublisher
             var state = AppStateView.From(++version, _coordinator.Current, _settings.Current, _catalogue.Current.Site, _status.Activity,
                 _status.Update);
             Volatile.Write(ref _latest, state);
-            Raise(Published, state);
+            EventRaising.RaiseEach(Published, this, state, LogListenerFailed);
         }
     }
 
@@ -130,30 +131,12 @@ public sealed partial class StatePublisher
                 _progress.Clear();
             }
 
-            Raise<IReadOnlyList<JobView>>(JobsProgressed, jobs);
+            EventRaising.RaiseEach<IReadOnlyList<JobView>>(JobsProgressed, this, jobs, LogListenerFailed);
             await Task.Delay(ProgressInterval, _time, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private void Raise<T>(EventHandler<T>? handlers, T args)
-    {
-        foreach (var handler in handlers?.GetInvocationList() ?? [])
-        {
-            try
-            {
-                ((EventHandler<T>)handler)(this, args);
-            }
-            // One broken listener must not stop the others from hearing of changes.
-            catch (Exception exception)
-            {
-                LogListenerFailed(exception);
-            }
-        }
-    }
-
-    private void OnChanged(object? sender, EventArgs e) => _changes.Writer.TryWrite(true);
-
-    private void OnCatalogueChanged(object? sender, CatalogueSnapshot snapshot) => _changes.Writer.TryWrite(true);
+    private void OnChanged<T>(object? sender, T change) => _changes.Writer.TryWrite(true);
 
     private void OnProgressed(object? sender, JobSnapshot job)
     {

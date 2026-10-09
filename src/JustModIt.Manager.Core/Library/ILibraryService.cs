@@ -9,7 +9,7 @@ public interface ILibraryService : IGameProbe
     LibrarySnapshot Snapshot { get; }
 
     /// <summary>Raised on the library's background loop after a scan changed the snapshot; handlers must return quickly.</summary>
-    event EventHandler<LibraryChangedEventArgs>? Changed;
+    event EventHandler<LibrarySnapshot>? Changed;
 
     /// <summary>Asks for a scan of every store as soon as the current one, if any, is done.</summary>
     void RequestCheck();

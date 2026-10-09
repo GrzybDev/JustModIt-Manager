@@ -96,27 +96,12 @@ public sealed partial class SettingsService : ISettingsService, IAsyncDisposable
             {
                 while (_undelivered.TryDequeue(out var change))
                 {
-                    Notify(Changed, handler => ((EventHandler<SettingsChangedEventArgs>)handler)(this, change));
+                    EventRaising.RaiseEach(Changed, this, change, LogListenerFailed);
                 }
             }
             finally
             {
                 Volatile.Write(ref _delivering, 0);
-            }
-        }
-    }
-
-    private void Notify(Delegate? handlers, Action<Delegate> invoke)
-    {
-        foreach (var handler in handlers?.GetInvocationList() ?? [])
-        {
-            try
-            {
-                invoke(handler);
-            }
-            catch (Exception exception)
-            {
-                LogListenerFailed(exception);
             }
         }
     }

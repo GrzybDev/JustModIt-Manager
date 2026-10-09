@@ -88,7 +88,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         _folderChecks = new LibraryAccess(time);
     }
 
-    public event EventHandler<LibraryChangedEventArgs>? Changed;
+    public event EventHandler<LibrarySnapshot>? Changed;
 
     public LibrarySnapshot Snapshot => Volatile.Read(ref _snapshot);
 
@@ -122,7 +122,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
                 }
                 else
                 {
-                    await SleepAsync(wait, wake, cancellationToken).ConfigureAwait(false);
+                    await _time.WaitForSignalAsync(_ => wake, wait, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -309,14 +309,6 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
             wait = pending.Select(burst => burst.SettlesAt).Concat(_rechecks.Values).Append(nextFullScan).Min() - now;
             return null;
         }
-    }
-
-    private async Task SleepAsync(TimeSpan wait, Task wake, CancellationToken cancellationToken)
-    {
-        using var sleeping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var timer = Task.Delay(wait > TimeSpan.Zero ? wait : TimeSpan.Zero, _time, sleeping.Token);
-        await Task.WhenAny(timer, wake).ConfigureAwait(false);
-        await sleeping.CancelAsync().ConfigureAwait(false);
     }
 
     private async Task CheckAsync(Work work, CancellationToken cancellationToken)
@@ -539,18 +531,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         var removed = previous.Games.Keys.Count(key => !snapshot.Games.ContainsKey(key));
         var updated = snapshot.Games.Count(pair => previous.Games.TryGetValue(pair.Key, out var before) && before != pair.Value);
         LogChanged(snapshot.Games.Count, added, removed, updated);
-        foreach (var handler in Changed?.GetInvocationList() ?? [])
-        {
-            try
-            {
-                ((EventHandler<LibraryChangedEventArgs>)handler)(this, new LibraryChangedEventArgs(snapshot));
-            }
-            catch (Exception exception)
-            {
-                LogListenerFailed(exception);
-            }
-        }
-
+        EventRaising.RaiseEach(Changed, this, snapshot, LogListenerFailed);
         return true;
     }
 

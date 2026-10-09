@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using JustModIt.Manager.Agent.Ipc;
 using JustModIt.Manager.Agent.Ui;
+using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Protocol.Activation;
 using Microsoft.Extensions.Logging;
@@ -134,11 +135,8 @@ public sealed partial class MemoryTrimmer(
     // False as soon as work comes, or when a window is open at the end.
     private async Task<bool> StaysQuietAsync(TimeSpan period, CancellationToken cancellationToken)
     {
-        using var waiting = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        await Task.WhenAny(Task.Delay(period, time, waiting.Token), _activity.Reader.WaitToReadAsync(waiting.Token).AsTask())
+        await time.WaitForSignalAsync(token => _activity.Reader.WaitToReadAsync(token).AsTask(), period, cancellationToken)
             .ConfigureAwait(false);
-        await waiting.CancelAsync().ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
         return !_activity.Reader.TryRead(out _) && !ui.IsOpenOrStarting;
     }
 

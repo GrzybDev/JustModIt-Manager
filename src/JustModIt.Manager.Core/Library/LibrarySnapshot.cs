@@ -66,10 +66,3 @@ public sealed record LibrarySnapshot
         return Games == other.Games && Stores == other.Stores && IsCached == other.IsCached;
     }
 }
-
-/// <summary>Carries the snapshot of <see cref="ILibraryService.Changed"/>.</summary>
-/// <param name="snapshot">The snapshot the scan published.</param>
-public sealed class LibraryChangedEventArgs(LibrarySnapshot snapshot) : EventArgs
-{
-    public LibrarySnapshot Snapshot { get; } = snapshot;
-}

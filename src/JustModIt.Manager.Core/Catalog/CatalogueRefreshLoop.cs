@@ -70,12 +70,8 @@ public sealed partial class CatalogueRefreshLoop(
 
     private async Task WaitAsync(TimeSpan delay, CancellationToken cancellationToken)
     {
-        using var waiting = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var elapsed = Task.Delay(delay, time, waiting.Token);
-        var asked = _requests.Reader.WaitToReadAsync(waiting.Token).AsTask();
-        await Task.WhenAny(elapsed, asked).ConfigureAwait(false);
-        await waiting.CancelAsync().ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
+        await time.WaitForSignalAsync(token => _requests.Reader.WaitToReadAsync(token).AsTask(), delay, cancellationToken)
+            .ConfigureAwait(false);
         while (_requests.Reader.TryRead(out _))
         {
         }

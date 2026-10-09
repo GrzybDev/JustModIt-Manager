@@ -251,14 +251,8 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         var reader = _triggers.Reader;
         if (!reader.TryRead(out var first))
         {
-            using var waiting = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            Task arrived = reader.WaitToReadAsync(waiting.Token).AsTask();
-            var due = NextDue();
-            await (due is { } at
-                ? Task.WhenAny(arrived, Task.Delay(Max(at - _time.GetUtcNow(), TimeSpan.Zero), _time, waiting.Token))
-                : Task.WhenAny(arrived)).ConfigureAwait(false);
-            await waiting.CancelAsync().ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
+            await _time.WaitForSignalAsync(token => reader.WaitToReadAsync(token).AsTask(), NextDue() - _time.GetUtcNow(),
+                cancellationToken).ConfigureAwait(false);
             if (!reader.TryRead(out first))
             {
                 first = new Tick();
@@ -273,8 +267,6 @@ public sealed partial class StateCoordinator : IAsyncDisposable
 
         return batch;
     }
-
-    private static TimeSpan Max(TimeSpan first, TimeSpan second) => first > second ? first : second;
 
     private void Apply(Trigger trigger)
     {
@@ -901,7 +893,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         _jobs.Finished -= OnJobFinished;
     }
 
-    private void OnLibraryChanged(object? sender, LibraryChangedEventArgs e) => Post(new LibraryChanged(e.Snapshot));
+    private void OnLibraryChanged(object? sender, LibrarySnapshot snapshot) => Post(new LibraryChanged(snapshot));
 
     private void OnCatalogueChanged(object? sender, CatalogueSnapshot snapshot) => Post(new CatalogueChanged(snapshot));
 
