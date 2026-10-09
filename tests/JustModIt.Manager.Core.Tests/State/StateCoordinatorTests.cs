@@ -287,6 +287,18 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
+    public async Task Asks_the_next_refresh_for_an_installed_project_where_the_site_last_showed_it()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Engine.Add(Record());
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseOne, 1, File(FileOne)), teamSlug: "renamed-team"));
+
+        await app.StartAsync();
+
+        app.Coordinator.IndexRequestForRefresh().InstalledProjects.Should().Equal(Locator(teamSlug: "renamed-team"));
+    }
+
+    [Fact]
     public async Task Indexes_games_found_after_the_catalogue_refresh_from_the_saved_catalogue()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();

@@ -125,8 +125,8 @@ internal sealed partial class JobPipeline(
 
     private async Task<JobResult> ReinstallAsync(JobContext job, InstallRecord record)
     {
-        var project = InstallSources.ProjectOf(record.Source)
-            ?? throw new JobFailedException(new JobFailure(JobFailureReason.ProjectNotFound));
+        var project = catalogue.Current.Index.Locate(InstallSources.ProjectOf(record.Source)
+            ?? throw new JobFailedException(new JobFailure(JobFailureReason.ProjectNotFound)));
         var game = await WaitUntilSafeAsync(job, job.Origin == JobOrigin.Automatic, job.Token).ConfigureAwait(false);
         await EnsureNoOtherAppAsync(game, job.Token).ConfigureAwait(false);
         // Only the player may end up with another variant, e.g. text only for a voice-over the new release does not have yet.
@@ -397,10 +397,11 @@ internal sealed partial class JobPipeline(
         }
 
         job.Enter(JobStage.RestoringPrevious);
+        var listed = Guid.TryParse(source.ProjectId, out var projectId) ? catalogue.Current.Index.FindProject(projectId) : null;
         try
         {
-            var path = await FindPreviousPackageAsync(new ReleaseFileLocator(team, project, release, file), record.Package.Kind)
-                .ConfigureAwait(false);
+            var path = await FindPreviousPackageAsync(new ReleaseFileLocator(listed?.Team.Slug ?? team, listed?.ProjectSlug ?? project,
+                release, file), record.Package.Kind).ConfigureAwait(false);
             var restored = await InstallPackageAsync(job, path, source, isTest: false, canDefer: false, halting).ConfigureAwait(false);
             LogRestored(record.Game);
             return restored.Record;

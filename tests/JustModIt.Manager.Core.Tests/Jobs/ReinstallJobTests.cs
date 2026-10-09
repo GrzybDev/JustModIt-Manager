@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Tests.TestSupport;
@@ -24,6 +25,39 @@ public sealed class ReinstallJobTests
         jobs.Engine.Calls.Should().Equal("recover", "predict", "uninstall", "install " + FileTwo.ToString("D") + ".zip");
         jobs.Stages(result.Job.Id).Should().ContainInOrder(JobStage.Preparing, JobStage.Downloading, JobStage.Checking,
             JobStage.Uninstalling, JobStage.Installing);
+    }
+
+    [Fact]
+    public async Task An_update_asks_for_the_project_where_the_site_last_showed_it()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var record = jobs.Installed();
+        var release = Release(ReleaseTwo, 2, File(FileTwo));
+        jobs.Catalogue.Add(Page(release: release, teamSlug: "renamed-team"));
+        jobs.Catalogue.Publish(CatalogueState.Fresh, Entry(release: release, teamSlug: "renamed-team"));
+
+        var result = await jobs.RunAsync(new UpdateJobRequest(record));
+
+        jobs.Catalogue.PageRequests.Should().Equal(Locator(teamSlug: "renamed-team"));
+        result.Installed!.Source!.TeamSlug.Should().Be("renamed-team");
+    }
+
+    [Fact]
+    public async Task A_previous_release_downloaded_again_comes_from_where_the_site_last_showed_the_project()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var record = jobs.Installed();
+        jobs.Downloader.Cached.Clear();
+        var release = Release(ReleaseTwo, 2, File(FileTwo));
+        jobs.Catalogue.Add(Page(release: release, teamSlug: "renamed-team"));
+        jobs.Catalogue.Publish(CatalogueState.Fresh, Entry(release: release, teamSlug: "renamed-team"));
+        jobs.Engine.NextInstalls.Enqueue((_, _, _) => throw new InstallFailedException(rolledBack: true, new IOException("Locked meanwhile.")));
+
+        var result = await jobs.RunAsync(new UpdateJobRequest(record));
+
+        result.RestoredPrevious.Should().BeTrue();
+        jobs.Downloader.DownloadedFrom.Select(locator => (locator.TeamSlug, locator.FileUuid))
+            .Should().Equal(("renamed-team", FileTwo), ("renamed-team", FileOne));
     }
 
     [Fact]

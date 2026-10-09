@@ -110,4 +110,11 @@ public sealed class InstallableIndex
     /// <summary>A project's entry; null when the index does not have it.</summary>
     /// <param name="projectUuid">The project's id.</param>
     public IndexEntry? FindProject(Guid projectUuid) => _byProject.GetValueOrDefault(projectUuid);
+
+    /// <summary>
+    /// Where the site last showed the project, so an install keeps working after its game, team or project was renamed;
+    /// old slugs lead there only until another project takes them.
+    /// </summary>
+    /// <param name="project">The project as its install recorded it.</param>
+    public ProjectLocator Locate(ProjectLocator project) => FindProject(project.ProjectUuid)?.Locator ?? project;
 }

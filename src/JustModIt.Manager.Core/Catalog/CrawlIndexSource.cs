@@ -23,7 +23,7 @@ public sealed class CrawlIndexSource(IProjectPageSource pages, TimeProvider time
         foreach (var installed in scope.InstalledProjects)
         {
             // The listing knows the current slugs; the games list leaves abandoned projects out, so those are asked for
-            // where they were installed from.
+            // where the site last showed them.
             wanted.TryAdd(installed.ProjectUuid, scope.Listing.FindProject(installed.ProjectUuid) is { } listed
                 ? (listed.Locator, listed.Project.UpdatedAt)
                 : (installed, null));

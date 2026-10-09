@@ -519,7 +519,8 @@ public sealed partial class StateCoordinator : IAsyncDisposable
 
         Volatile.Write(ref _indexRequest, new IndexRequest(
             [.. _snapshot.Games.Keys],
-            [.. _records.Values.Select(record => InstallSources.ProjectOf(record.Source)).OfType<ProjectLocator>().Distinct()]));
+            [.. _records.Values.Select(record => InstallSources.ProjectOf(record.Source)).OfType<ProjectLocator>()
+                .Select(_catalogueSnapshot.Index.Locate).Distinct()]));
         next.TrySetResult(state);
     }
 

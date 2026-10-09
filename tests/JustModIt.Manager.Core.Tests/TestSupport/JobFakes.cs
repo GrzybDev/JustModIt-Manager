@@ -190,6 +190,8 @@ internal sealed class FakeDownloader : IPackageDownloader
 {
     public ConcurrentQueue<Guid> Downloads { get; } = new();
 
+    public ConcurrentQueue<ReleaseFileLocator> DownloadedFrom { get; } = new();
+
     public ConcurrentDictionary<Guid, bool> Cached { get; } = new();
 
     public ConcurrentQueue<IReadOnlySet<Guid>> Prunes { get; } = new();
@@ -212,6 +214,7 @@ internal sealed class FakeDownloader : IPackageDownloader
         }
 
         Downloads.Enqueue(request.Locator.FileUuid);
+        DownloadedFrom.Enqueue(request.Locator);
         progress?.Report(new DownloadProgress(0, 1024));
         if (Gates.TryGetValue(request.Locator.FileUuid, out var gate))
         {
