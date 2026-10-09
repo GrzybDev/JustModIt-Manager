@@ -4,6 +4,7 @@ using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Protocol.Activation;
+using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using Microsoft.Extensions.Logging;
 
@@ -108,7 +109,10 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
                 Run(() => _ = _updates.RestartToUpdateAsync());
                 break;
             case TrayCommands.Exit:
-                Run(_lifetime.ExitFromTray);
+                Run(() => _ = _lifetime.RequestExitAsync(ExitMode.AfterJobs));
+                break;
+            case TrayCommands.ExitNow:
+                Run(() => _ = _lifetime.RequestExitAsync(ExitMode.Now));
                 break;
         }
     }

@@ -51,7 +51,7 @@ public sealed partial class UiLauncher : IDisposable
 
     // Taking the window and sending to it share this lock, so a new window gets every snapshot from the newest on.
     private readonly Lock _gate = new();
-    private readonly List<Message> _pending = [];
+    private NavigationTarget? _pendingTarget;
     private PipeConnection? _window;
     private PipeConnection? _closing;
     private DateTimeOffset? _startedAt;
@@ -119,12 +119,10 @@ public sealed partial class UiLauncher : IDisposable
         }
     }
 
-    /// <summary>Shows the window, starting it when none runs, and then sends it <paramref name="messages"/>.</summary>
+    /// <summary>Shows the window, starting it when none runs.</summary>
     /// <param name="target">Where the window should go; null keeps the page it shows.</param>
-    /// <param name="messages">Messages for the window once it is connected.</param>
-    public void Show(NavigationTarget? target = null, params IReadOnlyList<Message> messages)
+    public void Show(NavigationTarget? target = null)
     {
-        ArgumentNullException.ThrowIfNull(messages);
         PipeConnection? window;
         var start = false;
         lock (_gate)
@@ -132,13 +130,7 @@ public sealed partial class UiLauncher : IDisposable
             window = _window;
             if (window is null)
             {
-                if (target is not null)
-                {
-                    _pending.RemoveAll(message => message is Navigate);
-                    _pending.Add(new Navigate(target));
-                }
-
-                _pending.AddRange(messages);
+                _pendingTarget = target ?? _pendingTarget;
                 var now = _time.GetUtcNow();
                 start = _startedAt is not { } started || now - started > StartGrace;
                 if (start)
@@ -156,7 +148,7 @@ public sealed partial class UiLauncher : IDisposable
                 window.Post(new Navigate(target));
             }
 
-            Send(window, [.. messages, new BringToFront()]);
+            window.Post(new BringToFront());
         }
         else if (start)
         {
@@ -225,8 +217,11 @@ public sealed partial class UiLauncher : IDisposable
             _startedAt = null;
             _isActive = false;
             window.Post(new StateChanged(_publisher.Latest));
-            Send(window, _pending);
-            _pending.Clear();
+            if (_pendingTarget is { } target)
+            {
+                window.Post(new Navigate(target));
+                _pendingTarget = null;
+            }
         }
     }
 
@@ -285,14 +280,6 @@ public sealed partial class UiLauncher : IDisposable
             }
 
             LogStartFailed(exception);
-        }
-    }
-
-    private static void Send(PipeConnection window, IEnumerable<Message> messages)
-    {
-        foreach (var message in messages)
-        {
-            window.Post(message);
         }
     }
 

@@ -88,6 +88,13 @@
   <data name="TrayExit" xml:space="preserve">
     <value>Exit</value>
   </data>
+  <data name="TrayExitAfterJobs" xml:space="preserve">
+    <value>Exit after the jobs finish</value>
+  </data>
+  <data name="TrayExitNow" xml:space="preserve">
+    <value>Exit now</value>
+    <comment>Offered while jobs run: they are cancelled and undo their changes first.</comment>
+  </data>
   <data name="StatusStarting" xml:space="preserve">
     <value>Starting…</value>
   </data>

@@ -14,12 +14,6 @@ public sealed record JobProgress(IReadOnlyList<JobView> Jobs) : Message;
 /// <param name="Notice">What the automation did or found.</param>
 public sealed record Notify(NoticeView Notice) : Message;
 
-/// <summary>
-/// The player asked to exit while jobs run; the window asks whether to wait for them and answers with
-/// <see cref="ExitApp"/>, or does nothing when the player changes their mind.
-/// </summary>
-public sealed record ExitConfirmationRequested(int RunningJobs) : Message;
-
 /// <summary>The window came to the front or left it, which decides where notices are shown.</summary>
 /// <param name="IsActive">Whether the window is now in front.</param>
 public sealed record WindowActivity(bool IsActive) : Message;

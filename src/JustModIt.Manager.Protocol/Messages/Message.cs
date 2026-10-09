@@ -14,7 +14,6 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(StateChanged), "stateChanged")]
 [JsonDerivedType(typeof(JobProgress), "jobProgress")]
 [JsonDerivedType(typeof(Notify), "notify")]
-[JsonDerivedType(typeof(ExitConfirmationRequested), "exitConfirmationRequested")]
 [JsonDerivedType(typeof(WindowActivity), "windowActivity")]
 [JsonDerivedType(typeof(InstallProject), "installProject")]
 [JsonDerivedType(typeof(UpdateProject), "updateProject")]

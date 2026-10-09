@@ -84,6 +84,12 @@
   <data name="TrayExit" xml:space="preserve">
     <value>Zamknij</value>
   </data>
+  <data name="TrayExitAfterJobs" xml:space="preserve">
+    <value>Zamknij po zakończeniu zadań</value>
+  </data>
+  <data name="TrayExitNow" xml:space="preserve">
+    <value>Zamknij teraz</value>
+  </data>
   <data name="StatusStarting" xml:space="preserve">
     <value>Uruchamianie…</value>
   </data>

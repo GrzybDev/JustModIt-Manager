@@ -49,20 +49,6 @@ public sealed partial class AgentLifetime : IDisposable
     /// </summary>
     public bool IsLeaving => Volatile.Read(ref _leaving) != 0;
 
-    /// <summary>Exits from the tray: at once when nothing runs, otherwise the window asks the player how.</summary>
-    public void ExitFromTray()
-    {
-        var running = _jobs.Active.Count;
-        if (running == 0)
-        {
-            _ = RequestExitAsync(ExitMode.Now);
-        }
-        else
-        {
-            _ui.Show(null, new ExitConfirmationRequested(running));
-        }
-    }
-
     /// <summary>Exits once the window agrees to close.</summary>
     /// <param name="mode">
     /// Whether running jobs are cancelled or waited for; <see cref="ExitMode.Now"/> also cuts short an exit that waits.

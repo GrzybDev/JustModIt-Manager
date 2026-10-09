@@ -38,7 +38,6 @@ public sealed class MessageTests
             Failure = new JobFailure(JobFailureReason.NotEnoughSpace) { RequiredBytes = 2048, AvailableBytes = 1024 },
         })),
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.AvailableSummary) { Games = [Game, FailedGame], Updates = [FailedGame] })),
-        new ExitConfirmationRequested(2),
         new WindowActivity(IsActive: true),
         new InstallProject(Game, Project, "Text only"),
         new UpdateProject(Game),

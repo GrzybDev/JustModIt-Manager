@@ -12,7 +12,11 @@ public static class TrayCommands
     public const string Status = "status";
     public const string CheckNow = "check";
     public const string RestartToUpdate = "restart";
+
+    /// <summary>Exits once the player's jobs are done, which is at once when nothing runs.</summary>
     public const string Exit = "exit";
+
+    public const string ExitNow = "exit-now";
 }
 
 /// <summary>What the tray shows for a state: a tooltip and a menu, both led by what the agent does right now.</summary>
@@ -42,7 +46,17 @@ public static class TrayContent
             menu.Add(new TrayMenuItem(TrayCommands.RestartToUpdate, Strings.TrayRestartToUpdate));
         }
 
-        menu.AddRange([TrayMenuItem.Separator, new TrayMenuItem(TrayCommands.Exit, Strings.TrayExit)]);
+        menu.Add(TrayMenuItem.Separator);
+        if (!state.Activity.IsExitPending)
+        {
+            menu.Add(new TrayMenuItem(TrayCommands.Exit, state.Jobs.Count > 0 ? Strings.TrayExitAfterJobs : Strings.TrayExit));
+        }
+
+        if (state.Jobs.Count > 0 || state.Activity.IsExitPending)
+        {
+            menu.Add(new TrayMenuItem(TrayCommands.ExitNow, Strings.TrayExitNow));
+        }
+
         return menu;
     }
 

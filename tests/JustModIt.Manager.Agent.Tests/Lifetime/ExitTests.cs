@@ -1,5 +1,6 @@
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Tests.TestSupport;
+using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Protocol.Messages;
@@ -57,7 +58,28 @@ public sealed class ExitTests : IAsyncDisposable
         await _agent.Run.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token);
     }
 
+    [Fact]
+    public async Task The_tray_exits_after_the_jobs_and_its_exit_now_cuts_the_wait_short()
+    {
+        _agent.Start();
+        var job = await HeldRecoveryEngine.StartJobAsync(_agent);
+
+        _agent.Tray.Pick(TrayCommands.Exit);
+
+        await Eventually.HoldsAsync(() => TrayExits().SequenceEqual([TrayCommands.ExitNow]));
+        job.Completion.IsCompleted.Should().BeFalse();
+        _agent.Run.IsCompleted.Should().BeFalse();
+
+        _agent.Tray.Pick(TrayCommands.ExitNow);
+
+        (await job.Completion.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token)).Outcome.Should().Be(JobOutcome.Cancelled);
+        await _agent.Run.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token);
+    }
+
     public async ValueTask DisposeAsync() => await _agent.DisposeAsync();
+
+    private IEnumerable<string> TrayExits() =>
+        _agent.Tray.Menu.Select(item => item.Command).Where(command => command is TrayCommands.Exit or TrayCommands.ExitNow);
 
     private async Task ExitAfterJobsAsync(FakeWindow window)
     {

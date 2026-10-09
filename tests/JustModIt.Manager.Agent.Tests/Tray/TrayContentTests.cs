@@ -76,6 +76,15 @@ public sealed class TrayContentTests
             (TrayCommands.Exit, "Exit", true, false));
     }
 
+    [Fact]
+    public void While_jobs_run_the_menu_offers_to_exit_after_them_or_now_and_a_waiting_exit_can_only_be_cut_short()
+    {
+        var busy = Loaded with { Jobs = [Job(JobKind.Install)] };
+
+        Exits(busy).Should().Equal((TrayCommands.Exit, "Exit after the jobs finish"), (TrayCommands.ExitNow, "Exit now"));
+        Exits(busy with { Activity = new ActivityView { IsExitPending = true } }).Should().Equal((TrayCommands.ExitNow, "Exit now"));
+    }
+
     [Theory]
     [InlineData(NoticeKind.Installed, "Installed for Example Game", "The project is ready. Have fun!")]
     [InlineData(NoticeKind.Repaired, "Installed again for Example Game", "The store changed the game's files, so the project was installed again.")]
@@ -143,6 +152,10 @@ public sealed class TrayContentTests
         NoticeTexts.For(notice with { Kind = NoticeKind.UpdateAvailable, ReleaseLabel = null }).Message
             .Should().Be("A new release is ready to install.");
     }
+
+    private static IEnumerable<(string Command, string Text)> Exits(AppStateView state) =>
+        TrayContent.Menu(state, "Example App").Where(item => item.Command is TrayCommands.Exit or TrayCommands.ExitNow)
+            .Select(item => (item.Command, item.Text));
 
     private static GameView Attention(bool hidden = false) => new()
     {
