@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Library.Heroic;
 using JustModIt.Manager.Core.Platform;
 using Microsoft.Extensions.Logging;
 
@@ -52,8 +53,7 @@ public sealed class GogLibraryProvider : ILibraryProvider
         List<IInstallSource<GogInstallRecord>> sources = environment.Platform == AppPlatform.Windows
             ? [new GogRegistrySource(registry, GalaxyDatabase.Locate(fileSystem, sqlite, environment))]
             : [];
-        sources.AddRange(HeroicGogSource.StoreDirectories(environment)
-            .Select(directory => new HeroicGogSource(fileSystem, directory)));
+        sources.AddRange(HeroicLauncher.ConfigDirectories(environment).Select(directory => new HeroicGogSource(fileSystem, directory)));
         return new GogLibraryProvider(fileSystem, sources, environment.Platform, logger);
     }
 

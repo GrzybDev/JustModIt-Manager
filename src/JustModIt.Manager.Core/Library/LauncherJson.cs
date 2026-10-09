@@ -1,5 +1,7 @@
+using System.Buffers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using JustModIt.Manager.Core.Platform;
 
@@ -39,4 +41,22 @@ internal static class LauncherJson
     /// <summary>Gives the trimmed text, or null when it is empty or only white space.</summary>
     /// <param name="value">A value from a launcher's file; may be null.</param>
     public static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+/// <summary>
+/// Accepts ids written as JSON numbers too, keeping the number's own text, since build ids exceed 2^53 and a double
+/// would round them.
+/// </summary>
+internal sealed class IdStringConverter : JsonConverter<string>
+{
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        reader.TokenType switch
+        {
+            JsonTokenType.String => reader.GetString(),
+            JsonTokenType.Number => Encoding.UTF8.GetString(reader.HasValueSequence ? reader.ValueSequence.ToArray() : reader.ValueSpan),
+            _ => throw new JsonException("Expected an id as a string or a number."),
+        };
+
+    public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options) =>
+        writer.WriteStringValue(value);
 }

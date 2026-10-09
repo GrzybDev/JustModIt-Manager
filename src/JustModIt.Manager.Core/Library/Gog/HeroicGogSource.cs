@@ -1,37 +1,24 @@
 using System.Text.Json;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Library.Heroic;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library.Gog;
 
 /// <summary>
-/// Reads the <c>installed.json</c> of one Heroic Games Launcher <c>gog_store</c> folder. Heroic writes it only after an
-/// install finishes, so downloads in progress are recognised by gogdl's markers in the game folder instead.
+/// Reads the GOG games of one Heroic installation from <c>gog_store\installed.json</c>, written only once an install
+/// finishes, so a download in progress is told by gogdl's markers in the game folder and a waiting one by Heroic's queue.
 /// </summary>
-public sealed class HeroicGogSource(IFileSystem fileSystem, string storeDirectory) : IInstallSource<GogInstallRecord>
+/// <param name="fileSystem">Reads Heroic's files.</param>
+/// <param name="configDirectory">Heroic's configuration folder (<see cref="HeroicLauncher.ConfigDirectories"/>).</param>
+public sealed class HeroicGogSource(IFileSystem fileSystem, string configDirectory) : IInstallSource<GogInstallRecord>
 {
-    /// <summary>The <see cref="LibraryLocation.Source"/> of Heroic's list of GOG installs.</summary>
+    /// <summary>The <see cref="LibraryLocation.Source"/> of Heroic's list of installs.</summary>
     public const string LibrarySource = "heroic";
 
-    private string InstalledFile => Path.Join(storeDirectory, "installed.json");
+    private const string Runner = "gog";
 
-    /// <summary>Heroic's <c>gog_store</c> folders on this platform, one per way Heroic can be installed.</summary>
-    public static IReadOnlyList<string> StoreDirectories(LibraryEnvironment environment)
-    {
-        ArgumentNullException.ThrowIfNull(environment);
-        string GogStore(string configRoot) => Path.Join(configRoot, "heroic", "gog_store");
-        var home = environment.HomeDirectory;
-        return environment.Platform switch
-        {
-            AppPlatform.Windows => environment.ApplicationData is { } appData ? [GogStore(appData)] : [],
-            AppPlatform.MacOS => [GogStore(Path.Join(home, "Library", "Application Support"))],
-            _ =>
-            [
-                GogStore(environment.XdgConfigHome ?? Path.Join(home, ".config")),
-                GogStore(Path.Join(home, ".var", "app", "com.heroicgameslauncher.hgl", "config")),
-            ],
-        };
-    }
+    private string InstalledFile => Path.Join(configDirectory, "gog_store", "installed.json");
 
     public Task<SourceScan<GogInstallRecord>> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
@@ -42,7 +29,8 @@ public sealed class HeroicGogSource(IFileSystem fileSystem, string storeDirector
     private async Task<SourceScan<GogInstallRecord>> ReadInstalledAsync(CancellationToken cancellationToken)
     {
         // Heroic may be installed, or signed in to GOG, only later; each scan watches one folder closer to the file.
-        var watch = new WatchPlan(WatchedFolder.Toward(fileSystem, InstalledFile) is { } toward ? [toward] : [], []);
+        var watch = new WatchPlan([.. new[] { InstalledFile, HeroicLauncher.QueueFile(configDirectory) }
+            .Select(file => WatchedFolder.Toward(fileSystem, file)).OfType<WatchedFolder>().Distinct()], []);
         if (!fileSystem.FileExists(InstalledFile))
         {
             return new([], [], watch);
@@ -50,22 +38,25 @@ public sealed class HeroicGogSource(IFileSystem fileSystem, string storeDirector
 
         var file = fileSystem.GetCanonicalPath(InstalledFile);
         IReadOnlyList<HeroicInstalledGame> installed;
+        IReadOnlyDictionary<string, GameInstallState> queued;
         try
         {
             installed = (await LauncherJson.ReadAsync(fileSystem, file, GogJsonContext.Default.HeroicInstalledFile, cancellationToken)
                 .ConfigureAwait(false))?.Installed ?? [];
+            queued = await HeroicLauncher.ReadQueueAsync(fileSystem, configDirectory, Runner, cancellationToken).ConfigureAwait(false);
         }
-        // Usually caught while Heroic rewrites it; the games it listed are kept until it can be read again.
+        // Usually caught while Heroic rewrites a file; the games it listed are kept until it can be read again.
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or InvalidDataException)
         {
             return new([new LibraryLocation(file, LibrarySource, file, LibraryState.Unreadable)], [], watch);
         }
 
         return new([new LibraryLocation(file, LibrarySource, file, LibraryState.Online)],
-            [.. installed.Select(game => ToRecord(game, file)).OfType<GogInstallRecord>()], watch);
+            [.. installed.Select(game => ToRecord(game, file, queued)).OfType<GogInstallRecord>()], watch);
     }
 
-    private static GogInstallRecord? ToRecord(HeroicInstalledGame game, string libraryId) =>
+    private static GogInstallRecord? ToRecord(HeroicInstalledGame game, string libraryId,
+        IReadOnlyDictionary<string, GameInstallState> queued) =>
         GogJson.IsId(game.AppName) && LauncherJson.NullIfBlank(game.InstallPath) is { } path
             ? new GogInstallRecord(game.AppName, path, libraryId)
             {
@@ -79,7 +70,8 @@ public sealed class HeroicGogSource(IFileSystem fileSystem, string storeDirector
                     "OSX" or "MAC" => OperatingSystemKind.MacOS,
                     _ => OperatingSystemKind.Unknown,
                 },
-                Launch = LaunchLink.TryCreate($"heroic://launch?appName={game.AppName}&runner=gog"),
+                Launch = HeroicLauncher.Launch(game.AppName, Runner),
+                Activity = queued.TryGetValue(game.AppName, out var activity) ? activity : null,
             }
             : null;
 }

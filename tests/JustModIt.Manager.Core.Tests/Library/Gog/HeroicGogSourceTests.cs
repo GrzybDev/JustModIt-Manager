@@ -1,6 +1,7 @@
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Gog;
+using JustModIt.Manager.Core.Library.Heroic;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -9,8 +10,10 @@ namespace JustModIt.Manager.Core.Tests.Library.Gog;
 
 public sealed class HeroicGogSourceTests
 {
-    private const string Store = @"C:\Users\Player\AppData\Roaming\heroic\gog_store";
+    private const string Heroic = @"C:\Users\Player\AppData\Roaming\heroic";
+    private const string Store = Heroic + @"\gog_store";
     private const string Installed = Store + @"\installed.json";
+    private const string Queue = Heroic + @"\store\download-manager.json";
 
     private readonly InMemoryFileSystem _files = new();
 
@@ -32,6 +35,15 @@ public sealed class HeroicGogSourceTests
               ]
             }
             """);
+        _files.AddFile(Queue, """
+            {
+              "finished": [ { "params": { "appName": "1003", "runner": "gog" }, "type": "update", "status": "done" } ],
+              "queue": [
+                { "params": { "appName": "1495134320", "runner": "gog" }, "type": "update" },
+                { "params": { "appName": "1207658924", "runner": "legendary" }, "type": "install" }
+              ]
+            }
+            """);
 
         var scan = await Scan();
 
@@ -43,6 +55,7 @@ public sealed class HeroicGogSourceTests
                 Language = "pl-PL",
                 Platform = OperatingSystemKind.Windows,
                 Launch = HeroicLink("1495134320"),
+                Activity = GameInstallState.Updating,
             },
             new GogInstallRecord("1207658924", "/Applications/Example.app", Installed)
             {
@@ -69,13 +82,16 @@ public sealed class HeroicGogSourceTests
 
         missing.Libraries.Should().BeEmpty();
         missing.Watch.Folders.Should().Equal(new WatchedFolder(@"C:\Users\Player\AppData\Roaming", ["heroic"]));
-        closer.Watch.Folders.Should().Equal(new WatchedFolder(Store, ["installed.json"]));
+        closer.Watch.Folders.Should().Equal(new WatchedFolder(Store, ["installed.json"]), new WatchedFolder(Heroic, ["store"]));
     }
 
-    [Fact]
-    public async Task A_damaged_file_marks_the_library_unreadable()
+    [Theory]
+    [InlineData(Installed)]
+    [InlineData(Queue)]
+    public async Task A_damaged_file_marks_the_library_unreadable(string damaged)
     {
-        _files.AddFile(Installed, """{ "installed": [ { "appName": """);
+        _files.AddFile(Installed, """{ "installed": [ { "appName": "1001", "install_path": "D:\\Heroic\\Example" } ] }""");
+        _files.AddFile(damaged, """{ "installed": [ { "appName": """);
 
         var scan = await Scan();
 
@@ -95,14 +111,14 @@ public sealed class HeroicGogSourceTests
             XdgConfigHome = xdgConfig,
         };
 
-        HeroicGogSource.StoreDirectories(Environment(AppPlatform.Windows)).Should().Equal(Store);
-        HeroicGogSource.StoreDirectories(Environment(AppPlatform.MacOS))
-            .Should().Equal(Path.Join(home, "Library", "Application Support", "heroic", "gog_store"));
-        HeroicGogSource.StoreDirectories(Environment(AppPlatform.Linux)).Should().Equal(
-            Path.Join(home, ".config", "heroic", "gog_store"),
-            Path.Join(home, ".var", "app", "com.heroicgameslauncher.hgl", "config", "heroic", "gog_store"));
-        HeroicGogSource.StoreDirectories(Environment(AppPlatform.Linux, xdgConfig: @"C:\xdg"))[0]
-            .Should().Be(Path.Join(@"C:\xdg", "heroic", "gog_store"));
+        HeroicLauncher.ConfigDirectories(Environment(AppPlatform.Windows)).Should().Equal(Heroic);
+        HeroicLauncher.ConfigDirectories(Environment(AppPlatform.MacOS))
+            .Should().Equal(Path.Join(home, "Library", "Application Support", "heroic"));
+        HeroicLauncher.ConfigDirectories(Environment(AppPlatform.Linux)).Should().Equal(
+            Path.Join(home, ".config", "heroic"),
+            Path.Join(home, ".var", "app", "com.heroicgameslauncher.hgl", "config", "heroic"));
+        HeroicLauncher.ConfigDirectories(Environment(AppPlatform.Linux, xdgConfig: @"C:\xdg"))[0]
+            .Should().Be(Path.Join(@"C:\xdg", "heroic"));
     }
 
     [Fact]
@@ -146,7 +162,7 @@ public sealed class HeroicGogSourceTests
 
     private static LaunchLink? HeroicLink(string gameId) => LaunchLink.TryCreate($"heroic://launch?appName={gameId}&runner=gog");
 
-    private Task<SourceScan<GogInstallRecord>> Scan() => new HeroicGogSource(_files, Store).ScanAsync(LibraryScanContext.Empty, Token);
+    private Task<SourceScan<GogInstallRecord>> Scan() => new HeroicGogSource(_files, Heroic).ScanAsync(LibraryScanContext.Empty, Token);
 
     private GogLibraryProvider Provider(InMemoryRegistry registry) =>
         GogLibraryProvider.Create(_files, registry, new InMemorySqlite(), new LibraryEnvironment

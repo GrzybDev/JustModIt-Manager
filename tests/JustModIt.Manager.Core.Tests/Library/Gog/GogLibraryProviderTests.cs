@@ -64,7 +64,7 @@ public sealed class GogLibraryProviderTests
             """{ "installed": [ { "appName": "1001", "install_path": "D:\\Heroic\\Another", "platform": "windows" } ] }""");
         _files.AddInfo(@"E:\Offline Installs\Third", "1002", "From Its Folder");
 
-        var scan = await CreateProvider(new HeroicGogSource(_files, @"R:\Roaming\heroic\gog_store"))
+        var scan = await CreateProvider(new HeroicGogSource(_files, @"R:\Roaming\heroic"))
             .ScanAsync(Manual(@"E:\Offline Installs"), Token);
 
         scan.Games.ToDictionary(game => game.Name, game => game.Launch).Should().BeEquivalentTo(new Dictionary<string, GameLaunch?>
@@ -331,7 +331,7 @@ public sealed class GogLibraryProviderTests
         using var files = new HangingFileSystem(_files);
         files.Hang(@"R:\Roaming");
 
-        var scan = await ScanRunningOutOfTimeAsync(files, LibraryScanContext.Empty, new HeroicGogSource(files, @"R:\Roaming\heroic\gog_store"));
+        var scan = await ScanRunningOutOfTimeAsync(files, LibraryScanContext.Empty, new HeroicGogSource(files, @"R:\Roaming\heroic"));
 
         scan.IsComplete.Should().BeFalse();
         scan.Games.Select(game => game.Key).Should().Equal(Example);

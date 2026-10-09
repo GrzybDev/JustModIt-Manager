@@ -1,5 +1,3 @@
-using System.Buffers;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -68,24 +66,6 @@ internal sealed class HeroicInstalledGame
 
     /// <summary>The installed language as a tag, e.g. <c>pl-PL</c>.</summary>
     public string? Language { get; init; }
-}
-
-/// <summary>
-/// Accepts ids written as JSON numbers too. Build ids exceed 2^53, so the number's own text is kept instead of going
-/// through a double.
-/// </summary>
-internal sealed class IdStringConverter : JsonConverter<string>
-{
-    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        reader.TokenType switch
-        {
-            JsonTokenType.String => reader.GetString(),
-            JsonTokenType.Number => Encoding.UTF8.GetString(reader.HasValueSequence ? reader.ValueSequence.ToArray() : reader.ValueSpan),
-            _ => throw new JsonException("Expected an id as a string or a number."),
-        };
-
-    public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options) =>
-        writer.WriteStringValue(value);
 }
 
 [JsonSourceGenerationOptions(
