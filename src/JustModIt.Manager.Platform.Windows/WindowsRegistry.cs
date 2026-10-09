@@ -46,12 +46,9 @@ public sealed class WindowsRegistry : IRegistry
             var data = key.GetValue(name);
             return (key.GetValueKind(name), data) switch
             {
-                (Win32.RegistryValueKind.String, string text) => RegistryValue.FromText(text),
-                (Win32.RegistryValueKind.ExpandString, string text) => RegistryValue.FromExpandedText(text),
-                (Win32.RegistryValueKind.MultiString, string[] lines) => RegistryValue.FromMultiText(lines),
+                (Win32.RegistryValueKind.String or Win32.RegistryValueKind.ExpandString, string text) => RegistryValue.FromText(text),
                 (Win32.RegistryValueKind.DWord, int number) => RegistryValue.FromDWord(unchecked((uint)number)),
                 (Win32.RegistryValueKind.QWord, long number) => RegistryValue.FromQWord(unchecked((ulong)number)),
-                (Win32.RegistryValueKind.Binary, byte[] bytes) => RegistryValue.FromBinary(bytes),
                 _ => null,
             };
         }
@@ -62,7 +59,9 @@ public sealed class WindowsRegistry : IRegistry
         }
     }
 
-    private static bool IsUnreadable(Exception exception) =>
+    /// <summary>Whether a registry call failed because the key or value cannot be read, rather than through a bug.</summary>
+    /// <param name="exception">The exception the call threw.</param>
+    internal static bool IsUnreadable(Exception exception) =>
         exception is SecurityException or UnauthorizedAccessException or IOException;
 
     /// <summary>The Win32 counterpart of a hive.</summary>

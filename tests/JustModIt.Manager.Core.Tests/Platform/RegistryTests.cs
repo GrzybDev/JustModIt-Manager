@@ -16,12 +16,9 @@ public sealed class RegistryTests
     }
 
     [Fact]
-    public void Only_numbers_have_a_number_and_only_text_and_numbers_have_a_string()
+    public void A_string_that_looks_like_a_number_has_no_number()
     {
         RegistryValue.FromText("12").AsNumber().Should().BeNull();
-        RegistryValue.FromMultiText(["a", "b"]).AsText().Should().BeNull();
-        RegistryValue.FromBinary([1, 2]).AsText().Should().BeNull();
-        RegistryValue.FromText("text").Lines.Should().BeEmpty();
     }
 
     [Fact]

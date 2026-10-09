@@ -1,5 +1,3 @@
-using System.Collections.Frozen;
-
 namespace JustModIt.Manager.Core.Platform;
 
 /// <summary>A registry key as it was when it was read, whose names ignore letter case as the registry's do.</summary>
@@ -16,7 +14,7 @@ public sealed class RegistryKeySnapshot
         ArgumentNullException.ThrowIfNull(values);
         Path = path;
         SubKeyNames = [.. subKeyNames];
-        Values = values.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+        Values = values.ToDictionary(StringComparer.OrdinalIgnoreCase);
     }
 
     public string Path { get; }

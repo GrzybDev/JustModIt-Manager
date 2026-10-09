@@ -15,7 +15,7 @@ public sealed class WindowsRegistryTests : IDisposable
     public WindowsRegistryTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The registry exists only on Windows.");
 
     [Fact]
-    public void Values_of_every_common_type_are_read()
+    public void Text_and_number_values_are_read_and_other_types_skipped()
     {
         using (var key = Win32.Registry.CurrentUser.CreateSubKey(_path))
         {
@@ -31,10 +31,10 @@ public sealed class WindowsRegistryTests : IDisposable
 
         snapshot.GetText("path").Should().Be(@"D:\Games\Witcher");
         snapshot.GetText("expanded").Should().Be(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "system32"));
-        snapshot.GetValue("languages")!.Lines.Should().Equal("pl-PL", "en-US");
+        snapshot.GetValue("languages").Should().BeNull();
         snapshot.GetValue("updating")!.AsNumber().Should().Be(uint.MaxValue);
         snapshot.GetText("buildId").Should().Be("59534219748634025");
-        snapshot.GetValue("blob")!.Bytes.Should().Equal(1, 2, 3);
+        snapshot.GetValue("blob").Should().BeNull();
     }
 
     [Fact]

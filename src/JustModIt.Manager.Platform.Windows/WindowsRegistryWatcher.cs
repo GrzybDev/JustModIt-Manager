@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using System.Security;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Watching;
 using Microsoft.Win32.SafeHandles;
@@ -161,7 +160,7 @@ public sealed partial class WindowsRegistryWatcher : IRegistryWatcher
             {
                 root = Win32.RegistryKey.OpenBaseKey(WindowsRegistry.ToWin32(_target.Hive), WindowsRegistry.ToWin32(_target.View));
             }
-            catch (Exception exception) when (exception is SecurityException or UnauthorizedAccessException or IOException)
+            catch (Exception exception) when (WindowsRegistry.IsUnreadable(exception))
             {
                 return false;
             }
@@ -201,7 +200,7 @@ public sealed partial class WindowsRegistryWatcher : IRegistryWatcher
             {
                 return parent.OpenSubKey(path);
             }
-            catch (Exception exception) when (exception is SecurityException or UnauthorizedAccessException or IOException)
+            catch (Exception exception) when (WindowsRegistry.IsUnreadable(exception))
             {
                 return null;
             }
