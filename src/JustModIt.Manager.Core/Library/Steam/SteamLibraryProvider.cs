@@ -141,12 +141,18 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
     private Task<RootCandidate> FindRootAsync(string candidate, LibraryAccess access, CancellationToken cancellationToken) =>
         ReadAsync(access, candidate, _ =>
             {
+                // Steam on a drive that is not attached is no more uninstalled than a library on an unplugged one.
+                if (Path.GetPathRoot(candidate) is { Length: > 0 } drive && !_fileSystem.DirectoryExists(drive))
+                {
+                    return Task.FromResult(RootCandidate.Unanswered);
+                }
+
                 var root = _roots.Probe(candidate);
                 return Task.FromResult(new RootCandidate(root, IsAnswered: true,
                     WatchedFolder.Toward(_fileSystem, Path.Join(candidate, SteamPaths.SteamApps)),
                     root is null ? null : WatchedFolder.Toward(_fileSystem, Path.Join(root, SteamPaths.Config, SteamPaths.LibraryFoldersFile))));
             },
-            () => new RootCandidate(Root: null, IsAnswered: false, Watch: null, ListWatch: null), cancellationToken);
+            () => RootCandidate.Unanswered, cancellationToken);
 
     private async Task<(IReadOnlyList<SteamLibrary> Libraries, bool IsComplete)> LocateLibrariesAsync(IReadOnlyList<string> roots,
         IReadOnlyList<string> manualFolders, LibraryAccess access, CancellationToken cancellationToken)
@@ -464,10 +470,13 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
 
     /// <summary>A place Steam may be installed to.</summary>
     /// <param name="Root">The canonical root at the candidate, when it holds a <c>steamapps</c> folder.</param>
-    /// <param name="IsAnswered">False when the candidate's drive did not answer in time.</param>
+    /// <param name="IsAnswered">False when the candidate's drive is not attached or did not answer in time.</param>
     /// <param name="Watch">The way toward the candidate's <c>steamapps</c>, watched while Steam is nowhere to be found.</param>
     /// <param name="ListWatch">The way toward the root's second copy of its library list.</param>
-    private sealed record RootCandidate(string? Root, bool IsAnswered, WatchedFolder? Watch, WatchedFolder? ListWatch);
+    private sealed record RootCandidate(string? Root, bool IsAnswered, WatchedFolder? Watch, WatchedFolder? ListWatch)
+    {
+        public static readonly RootCandidate Unanswered = new(Root: null, IsAnswered: false, Watch: null, ListWatch: null);
+    }
 
     private sealed record LibraryCandidate(string Path, bool? IsMounted, bool IsManual);
 

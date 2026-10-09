@@ -313,12 +313,36 @@ public sealed class SteamLibraryProviderTests
     public async Task Candidates_without_steamapps_are_not_roots()
     {
         var steam = new SteamTree(@"D:\Steam", registered: false);
+        steam.Files.AddDirectory(@"C:\Program Files (x86)");
         steam.Registry.SetText(RegistryHive.CurrentUser, RegistryView.Default, SteamTree.SteamKey, "SteamPath", "c:/nothing");
 
         var scan = await steam.ScanAsync();
 
         scan.IsPresent.Should().BeFalse();
         scan.Libraries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_steam_whose_own_drive_is_gone_is_not_taken_for_uninstalled()
+    {
+        var steam = new SteamTree(@"E:\Steam");
+        steam.Files.AddDirectory(@"C:\Program Files (x86)");
+        var library = steam.AddLibrary(@"D:\Library");
+        steam.AddApp(1001, "Example Quest", library: library);
+        steam.AddApp(1002, "Root Game");
+        var games = (await steam.ScanAsync()).Games;
+
+        steam.Files.Remove(@"E:\");
+        var unplugged = await steam.ScanAsync();
+        steam.Files.AddDirectory(@"E:\");
+        var uninstalled = await steam.ScanAsync();
+
+        games.Should().HaveCount(2);
+        unplugged.IsPresent.Should().BeTrue();
+        unplugged.IsComplete.Should().BeFalse();
+        games.Should().OnlyContain(game => unplugged.Describe(game) != null, "a game kept from an incomplete scan is not gone");
+        uninstalled.IsPresent.Should().BeFalse();
+        games.Should().OnlyContain(game => uninstalled.Describe(game) == null);
     }
 
     [Fact]
