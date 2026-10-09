@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
@@ -314,6 +315,22 @@ public sealed class LibraryServiceTests : IAsyncDisposable
 
         (_steam.Scans, _gog.Scans).Should().Be((1, 2));
         _gog.Contexts.Last().ManualFolders.Should().Equal(@"E:\GOG");
+    }
+
+    [Fact]
+    public async Task A_download_that_stops_changing_is_read_again_and_counts_as_left_over()
+    {
+        var steam = new SteamTree();
+        steam.AddApp(1001, "Example Quest");
+        steam.AddDownload(1001, changedAt: _time.GetUtcNow());
+        await StartAsync(steam.CreateProvider(time: _time));
+        await _time.AdvanceAndWaitAsync(LibraryService.Debounce);
+        Service.Snapshot.Find(Key("1001"))!.State.Should().Be(GameInstallState.Updating);
+
+        await _time.AdvanceAndWaitAsync(SteamDownloads.ActiveWindow);
+
+        Service.Snapshot.Find(Key("1001")).Should().Match<InstalledGame>(game =>
+            game.IsReady && game.Reason == GameStateReason.UnfinishedDownload);
     }
 
     [Fact]

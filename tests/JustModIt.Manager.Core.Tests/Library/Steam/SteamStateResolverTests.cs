@@ -61,11 +61,11 @@ public sealed class SteamStateResolverTests
             .Should().Be(SteamAppStatus.Queued);
 
     [Fact]
-    public void Downloaded_bytes_or_an_active_download_turn_a_queued_install_into_an_install()
+    public void Downloaded_bytes_or_any_download_data_turn_a_queued_install_into_an_install()
     {
         SteamStateResolver.Resolve(Manifest(SteamAppStates.UpdateRequired) with { BytesDownloaded = 1 }, false).Status
             .Should().Be(SteamAppStatus.Installing);
-        SteamStateResolver.Resolve(Manifest(SteamAppStates.UpdateRequired), false, new SteamLiveSignals(IsDownloadActive: true)).Status
+        SteamStateResolver.Resolve(Manifest(SteamAppStates.UpdateRequired), false, new SteamLiveSignals(SteamDownload.Leftover)).Status
             .Should().Be(SteamAppStatus.Installing);
         SteamStateResolver.Resolve(Manifest(SteamAppStates.UpdateRequired), false, new SteamLiveSignals(IsRegistryUpdating: true)).Status
             .Should().Be(SteamAppStatus.Installing);
@@ -87,23 +87,23 @@ public sealed class SteamStateResolverTests
         resolved.GameState.Should().Be((GameInstallState.UpdatePending, GameStateReason.UpdateRequired));
     }
 
+    [Theory]
+    [InlineData(0x4UL, null, SteamDownload.Leftover, GameInstallState.Installed, GameStateReason.UnfinishedDownload)]
+    [InlineData(0x14UL, null, SteamDownload.Leftover, GameInstallState.Installed, GameStateReason.UnfinishedDownload)]
+    [InlineData(0x4UL, null, SteamDownload.Active, GameInstallState.Updating, GameStateReason.DownloadInProgress)]
+    [InlineData(0x6UL, null, SteamDownload.Leftover, GameInstallState.UpdatePending, GameStateReason.DownloadInProgress)]
+    [InlineData(0x4UL, "200", SteamDownload.Leftover, GameInstallState.UpdatePending, GameStateReason.DownloadInProgress)]
+    [InlineData(0x606UL, null, SteamDownload.Leftover, GameInstallState.Updating, GameStateReason.UpdatePaused)]
+    [InlineData(0x2004UL, null, SteamDownload.Leftover, GameInstallState.Running, GameStateReason.GameRunning)]
+    public void Download_data_blocks_only_when_a_job_may_use_it(ulong flags, string? targetBuild, SteamDownload download,
+        GameInstallState state, GameStateReason reason) =>
+        SteamStateResolver.Resolve(Manifest((SteamAppStates)flags) with { TargetBuildId = targetBuild }, true, new SteamLiveSignals(download))
+            .GameState.Should().Be((state, reason));
+
     [Fact]
-    public void A_leftover_download_means_a_partly_downloaded_update_is_pending()
-    {
-        var scheduled = DateTimeOffset.FromUnixTimeSeconds(1790000000);
-
-        var resolved = SteamStateResolver.Resolve(Manifest(SteamAppStates.FullyInstalled) with { ScheduledAutoUpdate = scheduled }, true,
-            new SteamLiveSignals(IsDownloadActive: true));
-
-        resolved.Status.Should().Be(SteamAppStatus.UpdatePending);
-        resolved.IsPartiallyDownloaded.Should().BeTrue();
-        resolved.ScheduledUpdate.Should().Be(scheduled);
-        resolved.GameState.Should().Be((GameInstallState.UpdatePending, GameStateReason.DownloadInProgress));
-    }
-
-    [Fact]
-    public void The_registry_updating_value_means_steam_is_updating() =>
-        SteamStateResolver.Resolve(Manifest(SteamAppStates.FullyInstalled), true, new SteamLiveSignals(IsRegistryUpdating: true))
+    public void The_registry_updating_value_means_steam_is_updating_even_with_left_over_data() =>
+        SteamStateResolver.Resolve(Manifest(SteamAppStates.FullyInstalled), true,
+                new SteamLiveSignals(SteamDownload.Leftover, IsRegistryUpdating: true))
             .GameState.Should().Be((GameInstallState.Updating, GameStateReason.StoreBusy));
 
     [Fact]

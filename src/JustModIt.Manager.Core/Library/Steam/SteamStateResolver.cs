@@ -23,10 +23,11 @@ public enum SteamAppStatus
 }
 
 /// <summary>Signals that show what Steam is doing right now, which the manifest on disk does not.</summary>
-/// <param name="IsDownloadActive">A <c>steamapps/downloading</c> entry exists for the app.</param>
+/// <param name="Download">What <c>steamapps/downloading</c> holds for the app.</param>
 /// <param name="IsRegistryUpdating">The client's per-app <c>Updating</c> registry value is set.</param>
-public readonly record struct SteamLiveSignals(bool IsDownloadActive = false, bool IsRegistryUpdating = false);
+public readonly record struct SteamLiveSignals(SteamDownload Download = SteamDownload.None, bool IsRegistryUpdating = false);
 
+/// <summary>What Steam is doing with an app, as its manifest and the live signals tell.</summary>
 /// <param name="Status">The app's state, such as installed, updating or in use.</param>
 /// <param name="Flags">The manifest's state bits.</param>
 /// <param name="IsPaused">Its install or update is paused.</param>
@@ -48,11 +49,14 @@ public sealed record SteamInstallStatus(
     {
         // Steam writes a manifest for every queued install, so the queue would otherwise flood the library.
         SteamAppStatus.NotInstalled or SteamAppStatus.Queued => null,
-        SteamAppStatus.Installed => (GameInstallState.Installed, GameStateReason.None),
+        SteamAppStatus.Installed => (GameInstallState.Installed,
+            IsPartiallyDownloaded ? GameStateReason.UnfinishedDownload : GameStateReason.None),
         SteamAppStatus.Installing => (GameInstallState.Installing, IsPaused ? GameStateReason.UpdatePaused : GameStateReason.None),
         SteamAppStatus.UpdatePending => (GameInstallState.UpdatePending,
             IsPartiallyDownloaded ? GameStateReason.DownloadInProgress : GameStateReason.UpdateRequired),
-        SteamAppStatus.Updating => (GameInstallState.Updating, IsPaused ? GameStateReason.UpdatePaused : GameStateReason.StoreBusy),
+        SteamAppStatus.Updating => (GameInstallState.Updating, IsPaused ? GameStateReason.UpdatePaused
+            : IsPartiallyDownloaded ? GameStateReason.DownloadInProgress
+            : GameStateReason.StoreBusy),
         SteamAppStatus.Validating => (GameInstallState.Validating, GameStateReason.None),
         SteamAppStatus.Uninstalling => (GameInstallState.Updating, GameStateReason.Uninstalling),
         SteamAppStatus.MovingFolder => (GameInstallState.Updating, GameStateReason.MovingFolder),
@@ -105,8 +109,8 @@ public sealed record SteamInstallStatus(
 }
 
 /// <summary>
-/// Works out what Steam is doing with an app. The rules fail safe: anything but the neutral bits of an installed app
-/// counts as work in progress or as unknown, and both block writing.
+/// Works out what Steam is doing with an app, failing safe: any bit but those of an idle installed app blocks writing,
+/// while download data no job claims only warns, since a cancelled or abandoned job leaves it behind for good.
 /// </summary>
 public static class SteamStateResolver
 {
@@ -167,14 +171,15 @@ public static class SteamStateResolver
             return status with { Status = SteamAppStatus.Updating, IsPaused = paused };
         }
 
-        if (flags.HasFlag(SteamAppStates.UpdateRequired) || manifest.HasPendingTargetBuild || live.IsDownloadActive)
+        status = status with { IsPartiallyDownloaded = live.Download != SteamDownload.None };
+        if (flags.HasFlag(SteamAppStates.UpdateRequired) || manifest.HasPendingTargetBuild)
         {
-            return status with
-            {
-                Status = SteamAppStatus.UpdatePending,
-                IsPartiallyDownloaded = live.IsDownloadActive,
-                ScheduledUpdate = manifest.ScheduledAutoUpdate,
-            };
+            return status with { Status = SteamAppStatus.UpdatePending, ScheduledUpdate = manifest.ScheduledAutoUpdate };
+        }
+
+        if (live.Download == SteamDownload.Active)
+        {
+            return status with { Status = SteamAppStatus.Updating };
         }
 
         var unexpected = flags & ~SteamAppStateGroups.Neutral;
@@ -197,7 +202,7 @@ public static class SteamStateResolver
 
         var started = flags.HasFlag(SteamAppStates.UpdateStarted)
             || manifest.BytesDownloaded > 0
-            || live.IsDownloadActive
+            || live.Download != SteamDownload.None
             || live.IsRegistryUpdating;
         return started ? SteamAppStatus.Installing : SteamAppStatus.Queued;
     }

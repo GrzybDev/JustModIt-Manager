@@ -37,19 +37,28 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
     private readonly IRegistry _registry;
     private readonly LibraryEnvironment _environment;
     private readonly SteamRootLocator _roots;
+    private readonly TimeProvider _time;
     private readonly ILogger _logger;
 
-    public SteamLibraryProvider(IFileSystem fileSystem, IRegistry registry, LibraryEnvironment environment,
+    /// <summary>Creates a provider that finds Steam wherever the client may be installed.</summary>
+    /// <param name="fileSystem">Reads the client's files and the games' folders.</param>
+    /// <param name="registry">Reads where Steam is and which apps it updates, on Windows.</param>
+    /// <param name="environment">The user's folders Steam is found relative to.</param>
+    /// <param name="time">Tells which downloads still count as active.</param>
+    /// <param name="logger">Logs what could not be read.</param>
+    public SteamLibraryProvider(IFileSystem fileSystem, IRegistry registry, LibraryEnvironment environment, TimeProvider time,
         ILogger<SteamLibraryProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(fileSystem);
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(environment);
+        ArgumentNullException.ThrowIfNull(time);
         ArgumentNullException.ThrowIfNull(logger);
         _fileSystem = fileSystem;
         _registry = registry;
         _environment = environment;
         _roots = new SteamRootLocator(fileSystem, registry, environment);
+        _time = time;
         _logger = logger;
     }
 
@@ -248,6 +257,7 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
         ],
         Games = [.. OnePerInstallDirectory(reads.SelectMany(read => read.Scan?.Installations ?? []))],
         UnreadableGames = [.. reads.SelectMany(read => read.Scan?.Unreadable ?? [])],
+        RecheckAt = reads.Select(read => read.Scan?.RecheckAt).Min(),
     };
 
     // Null when the library cannot be listed, which is treated as offline.
@@ -266,7 +276,8 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
             return null;
         }
 
-        var downloads = SteamDownloads.ActiveAppIds(_fileSystem, library.SteamAppsDirectory);
+        var downloads = SteamDownloads.LastChanges(_fileSystem, library.SteamAppsDirectory);
+        var now = _time.GetUtcNow();
         var installations = new List<SteamInstallation>();
         var unreadable = new List<UnreadableGame>();
         foreach (var file in files)
@@ -291,13 +302,16 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
                 continue;
             }
 
-            if (Evaluate(library, manifest, file.LastWriteTimeUtc, downloads) is { } installation)
+            var download = SteamDownloads.Classify(downloads.TryGetValue(appId, out var changed) ? changed : null, now);
+            if (Evaluate(library, manifest, file.LastWriteTimeUtc, download) is { } installation)
             {
                 installations.Add(installation);
             }
         }
 
-        return new LibraryScan(installations, unreadable);
+        var recheckAt = downloads.Values.Where(changed => SteamDownloads.Classify(changed, now) == SteamDownload.Active)
+            .Select(changed => (DateTimeOffset?)(changed + SteamDownloads.ActiveWindow)).Min();
+        return new LibraryScan(installations, unreadable, recheckAt);
     }
 
     private async Task<SteamAppManifest> ReadManifestAsync(FileEntry file, uint appId, CancellationToken cancellationToken)
@@ -316,7 +330,7 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
     }
 
     private SteamInstallation? Evaluate(SteamLibrary library, SteamAppManifest manifest, DateTimeOffset lastWriteTime,
-        IReadOnlySet<uint> downloads)
+        SteamDownload download)
     {
         if (SteamToolFilter.IsTool(manifest))
         {
@@ -334,13 +348,13 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
         }
 
         var status = SteamStateResolver.Resolve(manifest, folder is not null,
-            new SteamLiveSignals(downloads.Contains(manifest.AppId), IsRegistryUpdating(manifest.AppId)));
+            new SteamLiveSignals(download, IsRegistryUpdating(manifest.AppId)));
         if (status.GameState is not { } resolved)
         {
             return null;
         }
 
-        if (status.Status != SteamAppStatus.Installed)
+        if (resolved != (GameInstallState.Installed, GameStateReason.None))
         {
             _logger.AppStatus(manifest.AppId, status.Describe());
         }
@@ -475,5 +489,9 @@ public sealed partial class SteamLibraryProvider : ILibraryProvider
 
     private sealed record SteamInstallation(InstalledGame Game, SteamAppManifest Manifest);
 
-    private sealed record LibraryScan(List<SteamInstallation> Installations, List<UnreadableGame> Unreadable);
+    /// <summary>What a library that could be listed holds.</summary>
+    /// <param name="Installations">The apps found installed, each with its manifest.</param>
+    /// <param name="Unreadable">The apps whose manifests could not be read.</param>
+    /// <param name="RecheckAt">When the first download that counts as active turns into a leftover.</param>
+    private sealed record LibraryScan(List<SteamInstallation> Installations, List<UnreadableGame> Unreadable, DateTimeOffset? RecheckAt);
 }

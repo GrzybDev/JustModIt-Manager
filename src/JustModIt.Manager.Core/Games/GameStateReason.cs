@@ -31,6 +31,12 @@ public enum GameStateReason
     /// <summary>The game is treated as installed although its folder lacks the store's description of the game.</summary>
     InfoFileMissing,
 
+    /// <summary>
+    /// The game is installed and idle, but the store keeps an unfinished download of it that no job claims, which it may
+    /// still apply later.
+    /// </summary>
+    UnfinishedDownload,
+
     FilesMissing,
 
     FilesCorrupt,

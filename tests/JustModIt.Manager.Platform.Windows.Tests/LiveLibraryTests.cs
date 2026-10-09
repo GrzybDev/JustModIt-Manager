@@ -28,7 +28,7 @@ public sealed class LiveLibraryTests
     public async Task The_real_steam_library_scans_to_sane_results()
     {
         var provider = new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance,
-            LibraryEnvironment.ForCurrentUser(), NullLogger<SteamLibraryProvider>.Instance);
+            LibraryEnvironment.ForCurrentUser(), TimeProvider.System, NullLogger<SteamLibraryProvider>.Instance);
 
         var scan = await provider.ScanAsync(LibraryScanContext.Empty, Token);
 
@@ -68,7 +68,8 @@ public sealed class LiveLibraryTests
         using var systemEvents = new WindowsSystemEvents();
         using var service = new LibraryService(
             [
-                new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<SteamLibraryProvider>.Instance),
+                new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, time,
+                    NullLogger<SteamLibraryProvider>.Instance),
                 GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<GogLibraryProvider>.Instance),
             ],
             settings,
@@ -115,7 +116,8 @@ public sealed class LiveLibraryTests
         var environment = LibraryEnvironment.ForCurrentUser();
         ILibraryProvider[] providers =
         [
-            new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<SteamLibraryProvider>.Instance),
+            new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, TimeProvider.System,
+                NullLogger<SteamLibraryProvider>.Instance),
             GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, NullLogger<GogLibraryProvider>.Instance),
         ];
         var limited = LibraryScanContext.Empty with { Access = new LibraryAccess(TimeProvider.System) };

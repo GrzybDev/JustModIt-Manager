@@ -5,6 +5,7 @@ using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Core.Tests.Library.Steam;
 
@@ -45,9 +46,15 @@ internal sealed class SteamTree
 
     public InMemoryRegistry Registry { get; } = new();
 
-    /// <param name="files">What the provider reads through, such as a file system wrapped around <see cref="Files"/>.</param>
-    public SteamLibraryProvider CreateProvider(LibraryEnvironment? environment = null, IFileSystem? files = null) =>
-        new(files ?? Files, Registry, environment ?? Windows, NullLogger<SteamLibraryProvider>.Instance);
+    /// <summary>The provider's clock, a day after the manifests were written.</summary>
+    public FakeTimeProvider Time { get; } = new(WrittenAt.AddDays(1));
+
+    /// <summary>Creates a Steam provider over this installation.</summary>
+    /// <param name="environment">The system the provider runs on; <see cref="Windows"/> when null.</param>
+    /// <param name="files">What the provider reads through, such as a wrapper around <see cref="Files"/>; <see cref="Files"/> when null.</param>
+    /// <param name="time">The provider's clock; <see cref="Time"/> when null.</param>
+    public SteamLibraryProvider CreateProvider(LibraryEnvironment? environment = null, IFileSystem? files = null, TimeProvider? time = null) =>
+        new(files ?? Files, Registry, environment ?? Windows, time ?? Time, NullLogger<SteamLibraryProvider>.Instance);
 
     public Task<StoreScan> ScanAsync(params string[] manualFolders) =>
         CreateProvider().ScanAsync(new LibraryScanContext([.. manualFolders]), TestContext.Current.CancellationToken);
@@ -112,8 +119,12 @@ internal sealed class SteamTree
 
     public string GameFolder(string installDir, string? library = null) => Path.Join(library ?? Root, "steamapps", "common", installDir);
 
-    public void AddDownload(uint appId, string? library = null) =>
-        Files.AddDirectory(Path.Join(library ?? Root, "steamapps", "downloading", appId.ToString(CultureInfo.InvariantCulture)));
+    /// <summary>Creates the app's folder under <c>steamapps\downloading</c>, as Steam does while it downloads.</summary>
+    /// <param name="appId">The app being downloaded.</param>
+    /// <param name="changedAt">When Steam last changed the download; long before <see cref="Time"/> unless given.</param>
+    public void AddDownload(uint appId, DateTimeOffset? changedAt = null) =>
+        Files.AddDirectory(Path.Join(Root, "steamapps", "downloading", appId.ToString(CultureInfo.InvariantCulture)),
+            lastWriteTimeUtc: changedAt ?? WrittenAt);
 
     public void SetUpdating(uint appId) =>
         Registry.SetValue(RegistryHive.CurrentUser, RegistryView.Default, $@"{SteamKey}\Apps\{appId}", "Updating", RegistryValue.FromDWord(1));

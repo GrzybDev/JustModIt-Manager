@@ -34,6 +34,9 @@ public sealed record StoreScan
     /// <summary>What to watch so that changes to these records trigger the next scan.</summary>
     public WatchPlan Watch { get; init; } = WatchPlan.Empty;
 
+    /// <summary>When this scan goes out of date although no record changes, so the store is read again then.</summary>
+    public DateTimeOffset? RecheckAt { get; init; }
+
     /// <summary>
     /// Describes <paramref name="known"/> as this scan sees it: found anywhere in the store, or in a blocking state when
     /// its library or its records could not be read; null when the store no longer lists it.

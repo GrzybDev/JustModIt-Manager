@@ -239,6 +239,17 @@ public sealed class InstallTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Installs_but_tells_that_the_store_keeps_an_unfinished_download_of_the_game()
+    {
+        _harness.Probe.Reason = GameStateReason.UnfinishedDownload;
+
+        var result = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("a.txt", "a")));
+
+        result.Warnings.Should().Equal(new UnfinishedStoreDownloadWarning());
+        _harness.ReadGameFile("a.txt").Should().Be("a");
+    }
+
+    [Fact]
     public async Task Tells_that_copying_large_originals_to_another_drive_takes_a_while()
     {
         _harness.PutBackupsOnAnotherVolume();

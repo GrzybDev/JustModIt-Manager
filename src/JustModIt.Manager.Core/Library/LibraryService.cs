@@ -11,11 +11,9 @@ using Microsoft.Extensions.Logging;
 namespace JustModIt.Manager.Core.Library;
 
 /// <summary>
-/// The background loop that keeps the library up to date: it rescans a store once its watched records stop changing,
-/// every store after a lost watch, a resume from sleep or a new volume, and every store on a long timer as a safety net.
-/// There is no other polling. What a scan could not read keeps its last good data, marked offline or stale, so a hiccup
-/// never looks like an uninstall. Each store reads its libraries through a <see cref="LibraryAccess"/> of its own, so a
-/// drive that does not answer holds up only its libraries, and nothing that may hang runs on the loop itself.
+/// Keeps the library up to date without polling, rescanning a store once its watched records stop changing or its last
+/// scan goes out of date, and every store after a lost watch, a resume from sleep, a new volume or
+/// <see cref="RescanInterval"/>.
 /// </summary>
 public sealed partial class LibraryService : ILibraryService, IDisposable
 {
@@ -41,6 +39,7 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
     private readonly WatchCoordinator _watches;
     private readonly Lock _gate = new();
     private readonly Dictionary<StoreId, Burst> _changedStores = [];
+    private readonly Dictionary<StoreId, DateTimeOffset> _rechecks = [];
     private readonly List<TaskCompletionSource> _waiters = [];
     private TaskCompletionSource _wake = NewSignal();
     private Burst? _lost;
@@ -283,25 +282,31 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
                 }
 
                 _changedStores.Clear();
+                _rechecks.Clear();
                 _lost = null;
                 _systemChange = null;
                 return work;
             }
 
-            List<StoreId> stores = [.. _changedStores.Where(change => change.Value.SettlesAt <= now).Select(change => change.Key)];
+            List<StoreId> stores =
+            [
+                .. _changedStores.Where(change => change.Value.SettlesAt <= now).Select(change => change.Key)
+                    .Union(_rechecks.Where(recheck => recheck.Value <= now).Select(recheck => recheck.Key)),
+            ];
             if (stores.Count > 0)
             {
                 wait = TimeSpan.Zero;
                 foreach (var store in stores)
                 {
                     _changedStores.Remove(store);
+                    _rechecks.Remove(store);
                 }
 
                 return new Work(FullScan: false, stores, Rewatch: false, []);
             }
 
             IEnumerable<Burst> pending = [.. _changedStores.Values, .. new[] { _lost, _systemChange }.OfType<Burst>()];
-            wait = pending.Select(burst => burst.SettlesAt).Append(nextFullScan).Min() - now;
+            wait = pending.Select(burst => burst.SettlesAt).Concat(_rechecks.Values).Append(nextFullScan).Min() - now;
             return null;
         }
     }
@@ -364,6 +369,21 @@ public sealed partial class LibraryService : ILibraryService, IDisposable
         var settings = _settings.Current;
         var scans = (await Task.WhenAll(providers.Select(provider => ScanStoreAsync(provider, ContextFor(settings, provider.Store),
             cancellationToken))).ConfigureAwait(false)).ToDictionary(result => result.Store, result => result.Scan);
+        lock (_gate)
+        {
+            foreach (var (store, scan) in scans)
+            {
+                if (scan?.RecheckAt is { } recheckAt)
+                {
+                    _rechecks[store] = recheckAt;
+                }
+                else
+                {
+                    _rechecks.Remove(store);
+                }
+            }
+        }
+
         var previous = Snapshot;
         var now = _time.GetUtcNow();
         var stores = new List<StoreStatus>();

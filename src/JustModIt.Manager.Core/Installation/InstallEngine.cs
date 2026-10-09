@@ -307,9 +307,14 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             cancellationToken, baseline).ConfigureAwait(false);
         var others = _ownership.OtherApps(game.Root, plan.Paths.Values);
         // Asked last, because hashing the files of a large package takes long enough for the store to start an update.
-        var readiness = ReadinessIssues(await _games.ProbeAsync(installation.Key, cancellationToken).ConfigureAwait(false),
-            forUninstall: false);
-        return (report with { Issues = [.. report.Issues, .. others, .. readiness] }, plan, backup);
+        var probe = await _games.ProbeAsync(installation.Key, cancellationToken).ConfigureAwait(false);
+        List<InstallWarning> storeWarnings =
+            probe.Game?.Reason == GameStateReason.UnfinishedDownload ? [new UnfinishedStoreDownloadWarning()] : [];
+        return (report with
+        {
+            Issues = [.. report.Issues, .. others, .. ReadinessIssues(probe, forUninstall: false)],
+            Warnings = [.. report.Warnings, .. storeWarnings],
+        }, plan, backup);
     }
 
     /// <summary>

@@ -100,6 +100,12 @@ public abstract record InstallWarning;
 /// <param name="Bytes">The bytes of originals to copy.</param>
 public sealed record SlowBackupCopyWarning(long Bytes) : InstallWarning;
 
+/// <summary>
+/// The store keeps an unfinished download of the game that no job claims (<see cref="GameStateReason.UnfinishedDownload"/>);
+/// if it applies it later, the installed files may change.
+/// </summary>
+public sealed record UnfinishedStoreDownloadWarning : InstallWarning;
+
 /// <summary>The package names other games than this one.</summary>
 public sealed record OtherGameWarning(ValueList<PackageTarget> Targets) : InstallWarning;
 

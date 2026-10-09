@@ -26,13 +26,13 @@ internal sealed class InMemoryFileSystem : IFileSystem
         return full;
     }
 
-    public string AddDirectory(string path, FileAttributes attributes = FileAttributes.Directory)
+    public string AddDirectory(string path, FileAttributes attributes = FileAttributes.Directory, DateTimeOffset? lastWriteTimeUtc = null)
     {
         var full = PathComparison.Normalize(path);
         for (var current = full; current is not null && !_nodes.ContainsKey(current); current = Path.GetDirectoryName(current))
         {
             _nodes[current] = new Node(current == full ? attributes | FileAttributes.Directory : FileAttributes.Directory, null,
-                DefaultTime);
+                current == full ? lastWriteTimeUtc ?? DefaultTime : DefaultTime);
         }
 
         return full;

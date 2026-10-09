@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Platform;
@@ -123,21 +124,28 @@ public sealed class SteamLibraryProviderTests
     }
 
     [Fact]
-    public async Task A_download_or_the_registry_shows_work_the_manifest_does_not()
+    public async Task Downloads_and_the_registry_show_work_the_manifest_does_not_and_left_over_data_only_warns()
     {
-        _steam.AddApp(1001, "Downloading");
+        var touched = _steam.Time.GetUtcNow() - TimeSpan.FromSeconds(20);
+        _steam.AddApp(1001, "Left Over");
         _steam.AddDownload(1001);
-        _steam.AddApp(1002, "Starting", stateFlags: 2);
-        _steam.Files.AddFile(Path.Join(_steam.Root, "steamapps", "downloading", "state_1002_1003.patch"), "");
-        _steam.AddApp(1003, "Updating");
-        _steam.SetUpdating(1003);
+        _steam.AddApp(1002, "Starting");
+        _steam.AddDownload(1002, changedAt: touched);
+        _steam.AddApp(1003, "First Install", stateFlags: 2);
+        _steam.Files.AddFile(Path.Join(_steam.Root, "steamapps", "downloading", "state_1003_1004.patch"), "");
+        _steam.AddApp(1004, "Updating");
+        _steam.SetUpdating(1004);
 
-        var games = (await _steam.ScanAsync()).Games.ToDictionary(game => game.Name);
+        var scan = await _steam.ScanAsync();
 
-        games["Downloading"].Should().Match<InstalledGame>(game =>
-            game.State == GameInstallState.UpdatePending && game.Reason == GameStateReason.DownloadInProgress);
-        games["Starting"].State.Should().Be(GameInstallState.Installing);
+        var games = scan.Games.ToDictionary(game => game.Name);
+        games["Left Over"].Should().Match<InstalledGame>(game => game.IsReady && game.Reason == GameStateReason.UnfinishedDownload);
+        games["Starting"].Should().Match<InstalledGame>(game =>
+            game.State == GameInstallState.Updating && game.Reason == GameStateReason.DownloadInProgress);
+        games["First Install"].State.Should().Be(GameInstallState.Installing);
         games["Updating"].State.Should().Be(GameInstallState.Updating);
+        scan.RecheckAt.Should().Be(touched + SteamDownloads.ActiveWindow,
+            "the starting game is read again once its data counts as left over");
     }
 
     [Fact]
@@ -150,6 +158,23 @@ public sealed class SteamLibraryProviderTests
 
         game.Key.Should().Be(Quest);
         game.State.Should().Be(GameInstallState.Installed);
+    }
+
+    [Fact]
+    public async Task A_download_dated_far_ahead_by_a_wrong_clock_is_left_over_and_not_waited_for()
+    {
+        var now = _steam.Time.GetUtcNow();
+        _steam.AddApp(1001, "Slightly Ahead");
+        _steam.AddDownload(1001, changedAt: now + SafetyGate.ClockSkewTolerance);
+        _steam.AddApp(1002, "Far Ahead");
+        _steam.AddDownload(1002, changedAt: now + TimeSpan.FromDays(2));
+
+        var scan = await _steam.ScanAsync();
+
+        var games = scan.Games.ToDictionary(game => game.Name);
+        games["Slightly Ahead"].State.Should().Be(GameInstallState.Updating);
+        games["Far Ahead"].Should().Match<InstalledGame>(game => game.IsReady && game.Reason == GameStateReason.UnfinishedDownload);
+        scan.RecheckAt.Should().Be(now + SafetyGate.ClockSkewTolerance + SteamDownloads.ActiveWindow);
     }
 
     [Fact]
@@ -456,6 +481,23 @@ public sealed class SteamLibraryProviderTests
         var probed = await provider.ProbeAsync(known, LibraryScanContext.Empty, Token);
 
         probed!.State.Should().Be(GameInstallState.Updating);
+    }
+
+    [Fact]
+    public async Task A_probe_tells_a_download_steam_just_started_from_one_it_left_behind()
+    {
+        _steam.AddApp(1001, "Example Quest");
+        var provider = _steam.CreateProvider();
+        var known = (await provider.ScanAsync(LibraryScanContext.Empty, Token)).Games.Single();
+        _steam.AddDownload(1001, changedAt: _steam.Time.GetUtcNow());
+
+        var starting = await provider.ProbeAsync(known, LibraryScanContext.Empty, Token);
+        _steam.Time.Advance(SteamDownloads.ActiveWindow);
+        var leftOver = await provider.ProbeAsync(known, LibraryScanContext.Empty, Token);
+
+        starting!.State.Should().Be(GameInstallState.Updating);
+        leftOver!.IsReady.Should().BeTrue();
+        leftOver.Reason.Should().Be(GameStateReason.UnfinishedDownload);
     }
 
     [Fact]
