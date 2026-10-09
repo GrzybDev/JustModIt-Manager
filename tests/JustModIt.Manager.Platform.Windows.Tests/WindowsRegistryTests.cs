@@ -15,7 +15,7 @@ public sealed class WindowsRegistryTests : IDisposable
     public WindowsRegistryTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The registry exists only on Windows.");
 
     [Fact]
-    public void Text_and_number_values_are_read_and_other_types_skipped()
+    public void A_key_reads_back_with_every_value_type_its_subkeys_and_names_in_any_case()
     {
         using (var key = Win32.Registry.CurrentUser.CreateSubKey(_path))
         {
@@ -25,40 +25,19 @@ public sealed class WindowsRegistryTests : IDisposable
             key.SetValue("updating", unchecked((int)0xFFFFFFFF), Win32.RegistryValueKind.DWord);
             key.SetValue("buildId", 59534219748634025L, Win32.RegistryValueKind.QWord);
             key.SetValue("blob", new byte[] { 1, 2, 3 }, Win32.RegistryValueKind.Binary);
+            key.CreateSubKey("1207658924").Dispose();
+            key.CreateSubKey("Settings").Dispose();
         }
 
         var snapshot = _registry.ReadKey(RegistryHive.CurrentUser, RegistryView.Default, _path)!;
 
-        snapshot.GetText("path").Should().Be(@"D:\Games\Witcher");
+        snapshot.SubKeyNames.Should().BeEquivalentTo("1207658924", "Settings");
+        snapshot.GetText("PATH").Should().Be(@"D:\Games\Witcher");
         snapshot.GetText("expanded").Should().Be(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "system32"));
         snapshot.GetValue("languages").Should().BeNull();
         snapshot.GetValue("updating")!.AsNumber().Should().Be(uint.MaxValue);
         snapshot.GetText("buildId").Should().Be("59534219748634025");
         snapshot.GetValue("blob").Should().BeNull();
-    }
-
-    [Fact]
-    public void Value_names_ignore_letter_case()
-    {
-        using (var key = Win32.Registry.CurrentUser.CreateSubKey(_path))
-        {
-            key.SetValue("GAMENAME", "Café Racer");
-        }
-
-        _registry.ReadKey(RegistryHive.CurrentUser, RegistryView.Default, _path)!.GetText("gameName").Should().Be("Café Racer");
-    }
-
-    [Fact]
-    public void Subkeys_are_listed()
-    {
-        using (var key = Win32.Registry.CurrentUser.CreateSubKey(_path))
-        {
-            key.CreateSubKey("1207658924").Dispose();
-            key.CreateSubKey("Settings").Dispose();
-        }
-
-        _registry.ReadKey(RegistryHive.CurrentUser, RegistryView.Default, _path)!.SubKeyNames
-            .Should().BeEquivalentTo("1207658924", "Settings");
     }
 
     [Fact]

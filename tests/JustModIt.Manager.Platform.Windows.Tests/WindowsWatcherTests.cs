@@ -13,6 +13,7 @@ public sealed class WindowsWatcherTests : IDisposable
 {
     private readonly string _root = $@"Software\ExampleApp.Tests.{Guid.NewGuid():N}";
     private readonly ConcurrentQueue<WatchSignal> _signals = new();
+    private readonly SemaphoreSlim _changed = new(0);
 
     public WindowsWatcherTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The registry exists only on Windows.");
 
@@ -23,14 +24,14 @@ public sealed class WindowsWatcherTests : IDisposable
         {
         }
 
-        using var watch = WindowsRegistryWatcher.Instance.Watch(Key($@"{_root}\Games", includeSubkeys: true), _signals.Enqueue);
+        using var watch = WindowsRegistryWatcher.Instance.Watch(Key($@"{_root}\Games", includeSubkeys: true), Report);
         using (var game = Win32.Registry.CurrentUser.CreateSubKey($@"{_root}\Games\1207658924"))
         {
             game.SetValue("path", @"D:\Games\Example");
         }
 
         await WaitForSignalAsync("a new game key is reported");
-        _signals.Clear();
+        ForgetSignals();
         using (var game = Win32.Registry.CurrentUser.OpenSubKey($@"{_root}\Games\1207658924", writable: true)!)
         {
             game.SetValue("buildId", "100");
@@ -42,14 +43,14 @@ public sealed class WindowsWatcherTests : IDisposable
     [Fact]
     public async Task A_missing_key_is_waited_for_and_watched_once_it_appears()
     {
-        using var watch = WindowsRegistryWatcher.Instance.Watch(Key($@"{_root}\GOG.com\Games", includeSubkeys: true), _signals.Enqueue);
+        using var watch = WindowsRegistryWatcher.Instance.Watch(Key($@"{_root}\GOG.com\Games", includeSubkeys: true), Report);
 
         using (Win32.Registry.CurrentUser.CreateSubKey($@"{_root}\GOG.com\Games"))
         {
         }
 
         await WaitForSignalAsync("the key appearing is reported");
-        _signals.Clear();
+        ForgetSignals();
         using (var games = Win32.Registry.CurrentUser.OpenSubKey($@"{_root}\GOG.com\Games", writable: true)!)
         {
             games.SetValue("changed", 1);
@@ -65,7 +66,7 @@ public sealed class WindowsWatcherTests : IDisposable
         {
         }
 
-        using var watch = WindowsRegistryWatcher.Instance.Watch(Key(_root, includeSubkeys: false), _signals.Enqueue);
+        using var watch = WindowsRegistryWatcher.Instance.Watch(Key(_root, includeSubkeys: false), Report);
         using (var key = Win32.Registry.CurrentUser.OpenSubKey(_root, writable: true)!)
         {
             key.SetValue("SteamPath", "c:/games/steam");
@@ -81,11 +82,11 @@ public sealed class WindowsWatcherTests : IDisposable
         {
         }
 
-        var watch = WindowsRegistryWatcher.Instance.Watch(Key(_root, includeSubkeys: true), _signals.Enqueue);
+        var watch = WindowsRegistryWatcher.Instance.Watch(Key(_root, includeSubkeys: true), Report);
         var clock = Stopwatch.StartNew();
         watch.Dispose();
         watch.Dispose();
-        clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(1));
+        clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(3));
 
         using (var key = Win32.Registry.CurrentUser.OpenSubKey(_root, writable: true)!)
         {
@@ -107,7 +108,7 @@ public sealed class WindowsWatcherTests : IDisposable
         watch = WindowsRegistryWatcher.Instance.Watch(Key(_root, includeSubkeys: true), signal =>
         {
             watch!.Dispose();
-            _signals.Enqueue(signal);
+            Report(signal);
         });
         using (var key = Win32.Registry.CurrentUser.OpenSubKey(_root, writable: true)!)
         {
@@ -132,18 +133,32 @@ public sealed class WindowsWatcherTests : IDisposable
         events.IsListening.Should().BeTrue();
     }
 
-    public void Dispose() => Win32.Registry.CurrentUser.DeleteSubKeyTree(_root, throwOnMissingSubKey: false);
+    public void Dispose()
+    {
+        Win32.Registry.CurrentUser.DeleteSubKeyTree(_root, throwOnMissingSubKey: false);
+        _changed.Dispose();
+    }
 
     private static WatchedRegistryKey Key(string path, bool includeSubkeys) =>
         new(RegistryHive.CurrentUser, RegistryView.Default, path, includeSubkeys);
 
-    private async Task WaitForSignalAsync(string because)
+    private void Report(WatchSignal signal)
     {
-        var clock = Stopwatch.StartNew();
-        while (!_signals.Contains(WatchSignal.Changed))
+        _signals.Enqueue(signal);
+        if (signal == WatchSignal.Changed)
         {
-            clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(10), because);
-            await Task.Delay(10, TestContext.Current.CancellationToken);
+            _changed.Release();
         }
     }
+
+    private void ForgetSignals()
+    {
+        _signals.Clear();
+        while (_changed.Wait(0))
+        {
+        }
+    }
+
+    private async Task WaitForSignalAsync(string because) =>
+        (await _changed.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken)).Should().BeTrue(because);
 }

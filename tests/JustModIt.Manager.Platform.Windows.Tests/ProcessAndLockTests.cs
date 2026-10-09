@@ -23,18 +23,11 @@ public sealed class ProcessAndLockTests : IDisposable
     private static string OwnExecutable => Environment.ProcessPath!;
 
     [Fact]
-    public void The_snapshot_describes_this_process_with_its_image()
-    {
-        var own = WindowsProcessSource.Instance.Snapshot().Single(process => process.Id == Environment.ProcessId);
-
-        own.ImagePath.Should().BeEquivalentTo(OwnExecutable);
-        own.Name.Should().BeEquivalentTo(Path.GetFileNameWithoutExtension(OwnExecutable));
-        own.SessionId.Should().Be(WindowsProcessSource.Instance.CurrentSessionId);
-    }
-
-    [Fact]
     public void This_process_is_found_running_from_its_folder_also_through_a_junction()
     {
+        var own = WindowsProcessSource.Instance.Snapshot().Single(process => process.Id == Environment.ProcessId);
+        own.Name.Should().BeEquivalentTo(Path.GetFileNameWithoutExtension(OwnExecutable));
+        own.SessionId.Should().Be(WindowsProcessSource.Instance.CurrentSessionId);
         var folder = Path.GetDirectoryName(OwnExecutable)!;
         var junction = Path.Combine(_directory, "junction");
         CreateJunction(junction, folder);

@@ -9,7 +9,7 @@ public sealed class WindowsTrayHostTests
     public WindowsTrayHostTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The tray host is a Win32 window.");
 
     [Fact]
-    public void Starts_its_window_thread_and_stops_it_on_dispose()
+    public void Closes_promptly_and_only_once_while_a_notification_waits_for_the_icon()
     {
         var host = new WindowsTrayHost(Environment.ProcessPath!, NullLogger<WindowsTrayHost>.Instance);
 

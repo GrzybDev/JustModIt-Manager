@@ -22,12 +22,28 @@ public sealed class ShellRegistrationTests : IDisposable
     private string ApprovedKey => $@"{_root}\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
 
     [Fact]
-    public void Autostart_is_off_until_enabled()
+    public void Autostart_turns_off_cleanly_and_leaves_other_startup_entries_alone()
     {
-        var autostart = new WindowsAutostart(Name, _root);
+        using (var run = Win32.Registry.CurrentUser.CreateSubKey(RunKey))
+        {
+            run.SetValue("OtherApp", "other.exe");
+        }
 
+        var autostart = new WindowsAutostart(Name, _root);
         autostart.GetState().Should().Be(AutostartState.Disabled);
         autostart.Invoking(start => start.Disable()).Should().NotThrow();
+        autostart.Enable(Command);
+        using (var approved = Win32.Registry.CurrentUser.CreateSubKey(ApprovedKey))
+        {
+            approved.SetValue(Name, new byte[] { 3, 0, 0, 0 }, Win32.RegistryValueKind.Binary);
+        }
+
+        autostart.Disable();
+
+        autostart.GetState().Should().Be(AutostartState.Disabled);
+        Read(RunKey, Name).Should().BeNull();
+        Read(ApprovedKey, Name).Should().BeNull();
+        Read(RunKey, "OtherApp").Should().Be("other.exe");
     }
 
     [Fact]
@@ -71,38 +87,6 @@ public sealed class ShellRegistrationTests : IDisposable
 
         autostart.GetState().Should().Be(AutostartState.Enabled);
         Read(ApprovedKey, Name).Should().BeNull();
-    }
-
-    [Fact]
-    public void Disabling_removes_the_entry_and_the_systems_switch()
-    {
-        var autostart = new WindowsAutostart(Name, _root);
-        autostart.Enable(Command);
-        using (var approved = Win32.Registry.CurrentUser.CreateSubKey(ApprovedKey))
-        {
-            approved.SetValue(Name, new byte[] { 3, 0, 0, 0 }, Win32.RegistryValueKind.Binary);
-        }
-
-        autostart.Disable();
-
-        autostart.GetState().Should().Be(AutostartState.Disabled);
-        Read(RunKey, Name).Should().BeNull();
-        Read(ApprovedKey, Name).Should().BeNull();
-    }
-
-    [Fact]
-    public void Other_startup_entries_stay()
-    {
-        using (var run = Win32.Registry.CurrentUser.CreateSubKey(RunKey))
-        {
-            run.SetValue("OtherApp", "other.exe");
-        }
-
-        var autostart = new WindowsAutostart(Name, _root);
-        autostart.Enable(Command);
-        autostart.Disable();
-
-        Read(RunKey, "OtherApp").Should().Be("other.exe");
     }
 
     [Fact]

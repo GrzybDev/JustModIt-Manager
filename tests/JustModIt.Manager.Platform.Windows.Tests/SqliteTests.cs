@@ -66,12 +66,13 @@ public sealed class SqliteTests : IDisposable
     {
         var path = Path.Join(_directory, "launcher.db");
         using var writer = TestDatabase.Create(path, "CREATE TABLE games(id INTEGER); BEGIN EXCLUSIVE; INSERT INTO games VALUES (1);");
+        var reader = new WindowsSqliteReader(busyTimeoutMilliseconds: 50);
 
-        WindowsSqliteReader.Instance.Query(Path.Join(_directory, "missing.db"), "SELECT 1").Should().BeNull();
-        FluentActions.Invoking(() => WindowsSqliteReader.Instance.Query(path, "SELECT id FROM games")).Should().Throw<IOException>();
+        reader.Query(Path.Join(_directory, "missing.db"), "SELECT 1").Should().BeNull();
+        FluentActions.Invoking(() => reader.Query(path, "SELECT id FROM games")).Should().Throw<IOException>();
         writer.Execute("COMMIT");
-        FluentActions.Invoking(() => WindowsSqliteReader.Instance.Query(path, "SELECT id FROM other")).Should().Throw<IOException>();
-        WindowsSqliteReader.Instance.Query(path, "SELECT id FROM games").Should().ContainSingle();
+        FluentActions.Invoking(() => reader.Query(path, "SELECT id FROM other")).Should().Throw<IOException>();
+        reader.Query(path, "SELECT id FROM games").Should().ContainSingle();
     }
 
     [Fact]

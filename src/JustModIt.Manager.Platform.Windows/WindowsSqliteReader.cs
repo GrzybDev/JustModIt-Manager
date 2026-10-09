@@ -18,7 +18,13 @@ public sealed partial class WindowsSqliteReader : ISqliteReader
     // Owners write in short transactions; a database still locked after this is read again at the next scan.
     private const int BusyTimeoutMilliseconds = 2000;
 
-    public static WindowsSqliteReader Instance { get; } = new();
+    private readonly int _busyTimeoutMilliseconds;
+
+    /// <summary>Creates a reader that waits the given time for a writer to release a locked database.</summary>
+    /// <param name="busyTimeoutMilliseconds">How long a locked database is waited for, in milliseconds.</param>
+    internal WindowsSqliteReader(int busyTimeoutMilliseconds) => _busyTimeoutMilliseconds = busyTimeoutMilliseconds;
+
+    public static WindowsSqliteReader Instance { get; } = new(BusyTimeoutMilliseconds);
 
     public IReadOnlyList<string?[]>? Query(string path, string sql)
     {
@@ -43,7 +49,7 @@ public sealed partial class WindowsSqliteReader : ISqliteReader
         try
         {
             Check(opened);
-            Check(BusyTimeout(database, BusyTimeoutMilliseconds));
+            Check(BusyTimeout(database, _busyTimeoutMilliseconds));
             Check(Prepare(database, sql, -1, out var statement, 0));
             try
             {
