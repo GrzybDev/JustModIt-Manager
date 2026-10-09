@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Platform;
+using Microsoft.Extensions.Logging.Abstractions;
 using Win32 = Microsoft.Win32;
 
 namespace JustModIt.Manager.Platform.Windows.Tests;
@@ -126,7 +127,7 @@ public sealed class WindowsWatcherTests : IDisposable
     [Fact]
     public void System_events_are_registered_without_a_window()
     {
-        using var events = new WindowsSystemEvents();
+        using var events = new WindowsSystemEvents(NullLogger<WindowsSystemEvents>.Instance);
 
         events.IsListening.Should().BeTrue();
     }

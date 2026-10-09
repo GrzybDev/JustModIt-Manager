@@ -13,9 +13,9 @@ namespace JustModIt.Manager.Platform.Windows;
 [SupportedOSPlatform("windows")]
 public sealed unsafe partial class WindowsTrayHost : ITrayHost
 {
-    internal const int MaxTooltipLength = 127;
-    internal const int MaxTitleLength = 63;
-    internal const int MaxMessageLength = 255;
+    private const int MaxTooltipLength = 127;
+    private const int MaxTitleLength = 63;
+    private const int MaxMessageLength = 255;
 
     private const uint IconId = 1;
     private const uint CallbackMessage = 0x8000 + 1;
@@ -50,6 +50,9 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
     private const int SmMenuDropAlignment = 40;
     private const int GwlpUserData = -21;
     private const nint IdiApplication = 32512;
+
+    // The thread only removes the icon on its way out; one that hangs in a shell call must not hold up the agent's exit.
+    private static readonly TimeSpan ThreadExitTimeout = TimeSpan.FromSeconds(5);
 
     private static int _classCount;
 
@@ -137,7 +140,7 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
             PostMessageW(window, WmClose, 0, 0);
         }
 
-        _thread.Join(TimeSpan.FromSeconds(5));
+        _thread.Join(ThreadExitTimeout);
     }
 
     /// <summary>Cuts a text to what the system shows, ending it with an ellipsis.</summary>
@@ -510,12 +513,12 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
         public uint Flags;
         public uint CallbackMessage;
         public nint Icon;
-        public fixed char Tip[128];
+        public fixed char Tip[MaxTooltipLength + 1];
         public uint State;
         public uint StateMask;
-        public fixed char Info[256];
+        public fixed char Info[MaxMessageLength + 1];
         public uint TimeoutOrVersion;
-        public fixed char InfoTitle[64];
+        public fixed char InfoTitle[MaxTitleLength + 1];
         public uint InfoFlags;
         public Guid Item;
         public nint BalloonIcon;

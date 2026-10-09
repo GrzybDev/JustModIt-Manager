@@ -69,7 +69,7 @@ public sealed class LiveLibraryTests
             new JsonDocumentStore<AppSettings>(Path.Combine(directory, "settings.json"), SettingsFormat.Instance, time,
                 NullLogger<JsonDocumentStore<AppSettings>>.Instance),
             time, NullLogger<SettingsService>.Instance, Token);
-        using var systemEvents = new WindowsSystemEvents();
+        using var systemEvents = new WindowsSystemEvents(NullLogger<WindowsSystemEvents>.Instance);
         using var service = new LibraryService(
             [
                 new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, time,

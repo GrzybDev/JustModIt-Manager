@@ -45,7 +45,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
     private readonly TimeProvider _time = TimeProvider.System;
     private readonly ILoggerFactory _loggers;
     private readonly RunningGameDetector _runningGames;
-    private readonly WindowsSystemEvents _systemEvents = new();
+    private readonly WindowsSystemEvents _systemEvents;
     private readonly CatalogueApiClient _api;
     private readonly HttpClient _storage;
     private readonly PackageDownloader _downloader;
@@ -57,6 +57,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
     {
         Locations = locations;
         _loggers = loggers;
+        _systemEvents = new WindowsSystemEvents(loggers.CreateLogger<WindowsSystemEvents>());
         Settings = settings;
         var environment = LibraryEnvironment.ForCurrentUser();
         _runningGames = new RunningGameDetector(WindowsProcessSource.Instance, PhysicalFileSystem.Instance, _time);

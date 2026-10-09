@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Library.Watching;
+using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Platform.Windows;
 
@@ -22,21 +23,26 @@ public sealed unsafe partial class WindowsSystemEvents : ISystemEvents, IDisposa
     private static readonly Guid VolumeInterface = new("53f5630d-b6bf-11d0-94f2-00a0c91efb8b");
 
     private readonly Lock _gate = new();
+    private readonly ILogger _logger;
     private GCHandle _self;
     private DeviceNotifySubscribeParameters* _parameters;
     private nint _power;
     private nint _volumes;
 
     /// <summary>Registers for both events; <see cref="IsListening"/> tells whether the system accepted them.</summary>
-    public WindowsSystemEvents()
+    /// <param name="logger">Logs a registration the system refused and a listener that failed.</param>
+    public WindowsSystemEvents(ILogger<WindowsSystemEvents> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
         _self = GCHandle.Alloc(this);
         _parameters = (DeviceNotifySubscribeParameters*)NativeMemory.Alloc((nuint)sizeof(DeviceNotifySubscribeParameters));
         _parameters->Callback = &OnPowerEvent;
         _parameters->Context = GCHandle.ToIntPtr(_self);
-        if (PowerRegisterSuspendResumeNotification(DeviceNotifyCallback, (nint)_parameters, out _power) != 0)
+        if (PowerRegisterSuspendResumeNotification(DeviceNotifyCallback, (nint)_parameters, out _power) is var powerError and not 0)
         {
             _power = 0;
+            LogNotRegistered("resume from sleep", powerError);
         }
 
         var filter = new CmNotifyFilter
@@ -45,9 +51,11 @@ public sealed unsafe partial class WindowsSystemEvents : ISystemEvents, IDisposa
             FilterType = DeviceInterfaceFilter,
             ClassGuid = VolumeInterface,
         };
-        if (CM_Register_Notification(&filter, GCHandle.ToIntPtr(_self), &OnDeviceEvent, out _volumes) != ConfigurationSuccess)
+        if (CM_Register_Notification(&filter, GCHandle.ToIntPtr(_self), &OnDeviceEvent, out _volumes) is var volumeError
+            and not ConfigurationSuccess)
         {
             _volumes = 0;
+            LogNotRegistered("volume arrival", unchecked((uint)volumeError));
         }
     }
 
@@ -110,19 +118,29 @@ public sealed unsafe partial class WindowsSystemEvents : ISystemEvents, IDisposa
 
     private static void Raise(nint context, Func<WindowsSystemEvents, EventHandler?> pick)
     {
+        if (GCHandle.FromIntPtr(context).Target is not WindowsSystemEvents events)
+        {
+            return;
+        }
+
         try
         {
-            if (GCHandle.FromIntPtr(context).Target is WindowsSystemEvents events)
-            {
-                pick(events)?.Invoke(events, EventArgs.Empty);
-            }
+            pick(events)?.Invoke(events, EventArgs.Empty);
         }
         // An exception unwinding into the system's callback would end the process; a missed event only delays a rescan
         // until the next trigger.
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            events.LogListenerFailed(exception);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "The system refused to report {SystemEvent} (error {Error}); only other triggers rescan the library meanwhile")]
+    private partial void LogNotRegistered(string systemEvent, uint error);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "A listener of a system event failed")]
+    private partial void LogListenerFailed(Exception exception);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct DeviceNotifySubscribeParameters
