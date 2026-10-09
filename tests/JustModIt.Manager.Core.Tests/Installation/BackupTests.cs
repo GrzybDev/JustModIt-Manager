@@ -105,6 +105,20 @@ public sealed class BackupTests
     }
 
     [Fact]
+    public async Task Refuses_to_move_backups_to_a_drive_without_room_for_them_and_the_margin()
+    {
+        await using var harness = Harness("game folder", "custom folder on another drive");
+        var result = await harness.InstallAsync(harness.ManifestPackage(Package()));
+        harness.Volumes.Available[InstallHarness.OtherVolume] = InstallPreflight.SpaceMargin;
+
+        var move = () => harness.Engine.MoveBackupsAsync(result.Record.Id, harness.InCustomFolder, null, InstallHarness.Token);
+
+        (await move.Should().ThrowAsync<InstallBlockedException>()).Which.Issues.Should().ContainSingle()
+            .Which.Should().BeOfType<NotEnoughSpaceIssue>();
+        (await harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().Be(result.Record);
+    }
+
+    [Fact]
     public async Task Keeps_the_originals_of_an_install_forgotten_with_its_game_until_the_player_removes_them()
     {
         await using var harness = Harness("app data on another drive", "game folder");

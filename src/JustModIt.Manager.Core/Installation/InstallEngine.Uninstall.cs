@@ -102,7 +102,7 @@ public sealed partial class InstallEngine
 
         _hook.Before(ChangeKind.Record);
         await _ownership.ReleaseAsync(record.InstallDirectory, recordId).ConfigureAwait(false);
-        if (keepBackups && record.Backup.Location != BackupLocation.GameFolder && files.Files.Any(file => file.Backup is not null))
+        if (keepBackups && record.Backup.Location != BackupLocation.GameFolder && BackupFolders.KeepsOriginals(files))
         {
             Directory.CreateDirectory(_options.LeftoversDirectory);
             Directory.Move(folder.Root, _leftovers.FolderOf(recordId).Root);

@@ -242,16 +242,14 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             issues.Add(unavailable);
         }
 
-        ThrowIfAny(issues);
-        var moves = _volumes.AreOnSameVolume(record.Backup.Directory, target!.Directory);
-        if (!moves)
+        var moves = target is not null && _volumes.AreOnSameVolume(record.Backup.Directory, target.Directory);
+        if (target is not null && !moves && InstallPreflight.SpaceIssue(_volumes, target.Directory,
+                files.Files.Sum(file => file.Backup is null ? 0 : file.Original?.Size ?? 0)) is { } space)
         {
-            var bytes = files.Files.Sum(file => file.Backup is null ? 0 : file.Original?.Size ?? 0);
-            if (_volumes.GetAvailableBytes(target.Directory) is { } available && available < bytes)
-            {
-                throw new InstallBlockedException([new NotEnoughSpaceIssue(target.Directory, bytes, available)]);
-            }
+            issues.Add(space);
         }
+
+        ThrowIfAny(issues);
 
         using var gameLock = game is null ? null : Lock(game);
         if (game is not null)
@@ -259,7 +257,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             await _ownership.ClaimAsync(game.Root, cancellationToken).ConfigureAwait(false);
         }
 
-        return await BackupRelocation.RunAsync(record, files, target, folder, _store, moves,
+        return await BackupRelocation.RunAsync(record, files, target!, folder, _store, moves,
             game?.StagingDirectory(recordId) ?? string.Empty, _hook, progress, _logger, cancellationToken).ConfigureAwait(false);
     }
 
@@ -380,7 +378,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
 
     // A record that keeps backups needs its backup folder; one on a disconnected drive is never recreated empty.
     private static BackupFolderUnavailableIssue? BackupsUnavailable(InstallRecord record, InstalledFiles files) =>
-        files.Files.Any(file => file.Backup is not null) && !BackupFolders.IsAvailable(record.Backup.Directory)
+        BackupFolders.KeepsOriginals(files) && !BackupFolders.IsAvailable(record.Backup.Directory)
             ? new BackupFolderUnavailableIssue(record.Backup.Directory)
             : null;
 

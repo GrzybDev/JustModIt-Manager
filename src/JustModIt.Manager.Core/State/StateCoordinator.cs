@@ -785,7 +785,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
                 // An install that only added files keeps no originals, and its empty backup folder was removed.
                 if (!known.TryGetValue(record.Id, out var has))
                 {
-                    has = (await _engine.LoadFilesAsync(record.Id, _stopping).ConfigureAwait(false)).Files.Any(file => file.Backup is not null);
+                    has = BackupFolders.KeepsOriginals(await _engine.LoadFilesAsync(record.Id, _stopping).ConfigureAwait(false));
                 }
 
                 hasBackups[record.Id] = has;

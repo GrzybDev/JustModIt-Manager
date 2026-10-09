@@ -78,6 +78,10 @@ internal static class BackupFolders
     /// <param name="backupDirectory">The record's backup folder.</param>
     public static bool IsAvailable(string backupDirectory) => Directory.Exists(backupDirectory);
 
+    /// <summary>Whether an install keeps any originals in its backup folder.</summary>
+    /// <param name="files">The install's files.</param>
+    public static bool KeepsOriginals(InstalledFiles files) => files.Files.Any(file => file.Backup is not null);
+
     private static string GameFolderName(GameKey key)
     {
         var name = $"{key.Store}-{key.StoreGameId}".ToCharArray();
