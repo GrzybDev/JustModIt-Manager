@@ -343,8 +343,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         _running.Processes = [new RunningProcess(42, "Example.exe", @"D:\Library\steamapps\common\1001\Example.exe")];
         var running = await Service.ProbeAsync(Key("1001"), Token);
 
-        idle.CanWrite.Should().BeTrue();
-        running.CanWrite.Should().BeFalse();
+        (idle.AllowsChange(forUninstall: false) && idle.RunningProcesses.Count == 0).Should().BeTrue();
         running.Game!.State.Should().Be(GameInstallState.Running);
         running.RunningProcesses.Should().ContainSingle();
         _running.Directories.Should().Equal(Game("1001").InstallDirectory, Game("1001").InstallDirectory);
@@ -391,7 +390,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         var probe = await Service.ProbeAsync(Key("1002"), Token);
 
         probe.Game.Should().Be(Game("1002"));
-        probe.CanWrite.Should().BeTrue();
+        (probe.AllowsChange(forUninstall: false) && probe.RunningProcesses.Count == 0).Should().BeTrue();
         _steam.Scans.Should().Be(2);
         _running.Directories.Should().Equal(Game("1002").InstallDirectory);
     }
@@ -403,8 +402,8 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         await StartAsync();
         _steam.Probe = _ => null;
 
-        (await Service.ProbeAsync(Key("9999"), Token)).IsGone.Should().BeTrue();
-        (await Service.ProbeAsync(Key("1001"), Token)).IsGone.Should().BeTrue();
+        (await Service.ProbeAsync(Key("9999"), Token)).Game.Should().BeNull();
+        (await Service.ProbeAsync(Key("1001"), Token)).Game.Should().BeNull();
     }
 
     [Fact]
@@ -562,7 +561,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         await Service.CheckNowAsync(Token);
 
         Service.Snapshot.Find(game.Key).Should().Be(game with { State = GameInstallState.Offline, Reason = GameStateReason.LibraryOffline });
-        (await Service.ProbeAsync(game.Key, Token)).CanWrite.Should().BeFalse();
+        (await Service.ProbeAsync(game.Key, Token)).AllowsChange(forUninstall: true).Should().BeFalse();
     }
 
     [Fact]

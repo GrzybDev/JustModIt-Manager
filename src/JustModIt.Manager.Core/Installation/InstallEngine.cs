@@ -354,8 +354,6 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         }
     }
 
-    // Only a game its store reports installed and idle, with nothing running from its folder, may change. Putting originals
-    // back is also what a waiting update or a repair of broken files needs, so an uninstall may run then.
     private static IEnumerable<InstallIssue> ReadinessIssues(GameProbe probe, bool forUninstall)
     {
         foreach (var process in probe.RunningProcesses)
@@ -373,12 +371,9 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             yield break;
         }
 
-        var (state, reason) = game.IsStale ? (GameInstallState.Unknown, GameStateReason.UnreadableStoreData) : (game.State, game.Reason);
-        var ready = state == GameInstallState.Installed
-            || (state == GameInstallState.Running && probe.RunningProcesses.Count > 0)
-            || (forUninstall && state is GameInstallState.UpdatePending or GameInstallState.Broken);
-        if (!ready)
+        if (!probe.AllowsChange(forUninstall))
         {
+            var (state, reason) = game.TrustedState();
             yield return new GameNotReadyIssue(state, reason);
         }
     }

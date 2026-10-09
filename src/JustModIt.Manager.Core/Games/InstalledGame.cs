@@ -45,6 +45,13 @@ public sealed record InstalledGame
 
     public bool IsReady => State == GameInstallState.Installed && !IsStale;
 
+    /// <summary>
+    /// The state and reason to act on: unknown for a stale record, since one kept from an earlier scan is no ground for
+    /// changing anything.
+    /// </summary>
+    public (GameInstallState State, GameStateReason Reason) TrustedState() =>
+        IsStale ? (GameInstallState.Unknown, GameStateReason.UnreadableStoreData) : (State, Reason);
+
     /// <summary>This game as it is kept while its library is offline, such as on an unplugged drive.</summary>
     public InstalledGame AsOffline() =>
         this with { State = GameInstallState.Offline, Reason = GameStateReason.LibraryOffline, IsStale = false };

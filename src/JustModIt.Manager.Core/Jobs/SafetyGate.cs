@@ -70,13 +70,8 @@ public static class SafetyGate
             return GateVerdict.Waiting(JobWaitReason.StoreBusy);
         }
 
-        // Putting the originals back is just what a pending update or the store's repair needs, and the uninstall leaves
-        // alone whatever the store changed meanwhile. A pending update may otherwise wait for days, and a broken or
-        // unplugged game needs the player, so waiting for the game to exit would not help.
-        var allowed = game.State == GameInstallState.Installed
-            || (game.State == GameInstallState.Running && probe.RunningProcesses.Count > 0)
-            || (kind == JobKind.Uninstall && game.State is GameInstallState.UpdatePending or GameInstallState.Broken);
-        if (!allowed)
+        // A pending update may wait for days, and a broken or unplugged game needs the player, so waiting would not help.
+        if (!probe.AllowsChange(forUninstall: kind == JobKind.Uninstall))
         {
             return GateVerdict.Failing(new JobFailure(JobFailureReason.GameNotReady) { GameState = game.State, StateReason = game.Reason });
         }
@@ -86,22 +81,22 @@ public static class SafetyGate
             return GateVerdict.Waiting(JobWaitReason.GameRunning) with { Processes = probe.RunningProcesses };
         }
 
-        if (game.StoreActivityAt is { } touched)
+        if (QuietUntil(game.StoreActivityAt, now) is { } until)
         {
-            var age = now - touched;
-            if (age < -ClockSkewTolerance)
-            {
-                return GateVerdict.Ready with { ClockSkewIgnored = true };
-            }
-
-            if (age < QuietPeriod)
-            {
-                return GateVerdict.Waiting(JobWaitReason.QuietPeriod) with { WaitUntil = touched + QuietPeriod };
-            }
+            return GateVerdict.Waiting(JobWaitReason.QuietPeriod) with { WaitUntil = until };
         }
 
-        return GateVerdict.Ready;
+        return game.StoreActivityAt - now > ClockSkewTolerance ? GateVerdict.Ready with { ClockSkewIgnored = true } : GateVerdict.Ready;
     }
+
+    /// <summary>When the quiet period after the store's last touch of a game ends.</summary>
+    /// <param name="storeActivityAt">When the store last touched the game; null when it is not known.</param>
+    /// <param name="now">The current time.</param>
+    /// <returns>Null when the period is over or the touch comes from a wrong clock.</returns>
+    internal static DateTimeOffset? QuietUntil(DateTimeOffset? storeActivityAt, DateTimeOffset now) =>
+        storeActivityAt is { } touched && touched - now <= ClockSkewTolerance && now - touched < QuietPeriod
+            ? touched + QuietPeriod
+            : null;
 
     /// <summary>
     /// Whether the engine refused only because the game started, or the store began working on it, after the job's own

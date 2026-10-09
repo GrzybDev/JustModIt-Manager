@@ -143,7 +143,8 @@ internal sealed partial class LiveEngine : IAsyncDisposable
         var probe = await Library.ProbeAsync(key, cancellationToken);
         Assert.SkipWhen(probe.Game is null, $"{key} is not installed on this machine.");
         var running = string.Join(", ", probe.RunningProcesses.Select(process => process.Name));
-        Assert.SkipUnless(probe.CanWrite, $"{probe.Game!.Name} is not idle: {probe.Game.State} ({probe.Game.Reason}), running [{running}].");
+        Assert.SkipUnless(probe.AllowsChange(forUninstall: false) && probe.RunningProcesses.Count == 0,
+            $"{probe.Game!.Name} is not idle: {probe.Game.State} ({probe.Game.Reason}), running [{running}].");
         return probe.Game;
     }
 

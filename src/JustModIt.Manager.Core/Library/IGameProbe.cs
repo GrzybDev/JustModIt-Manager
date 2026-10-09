@@ -24,8 +24,17 @@ public interface IGameProbe
 /// </param>
 public sealed record GameProbe(GameKey Key, InstalledGame? Game, ValueList<RunningProcess> RunningProcesses)
 {
-    public bool IsGone => Game is null;
-
-    /// <summary>The store reports the game installed and idle, and nothing runs from its folder.</summary>
-    public bool CanWrite => Game is { IsReady: true } && RunningProcesses.Count == 0;
+    /// <summary>
+    /// Whether the store's state lets the game's files change, once nothing runs from its folder any more: the game is
+    /// installed, or it runs and its processes were found.
+    /// </summary>
+    /// <param name="forUninstall">
+    /// An uninstall, which may also run while the store waits to update or repair the game: putting the originals back is
+    /// just what either needs, and the uninstall leaves alone whatever the store changed meanwhile.
+    /// </param>
+    public bool AllowsChange(bool forUninstall) =>
+        Game is { IsStale: false } game
+        && (game.State == GameInstallState.Installed
+            || (game.State == GameInstallState.Running && RunningProcesses.Count > 0)
+            || (forUninstall && game.State is GameInstallState.UpdatePending or GameInstallState.Broken));
 }

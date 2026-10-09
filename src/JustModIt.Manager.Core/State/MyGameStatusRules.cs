@@ -112,10 +112,9 @@ public static class MyGameStatusRules
 
     private static MyGameStatus Orphaned(OrphanReason reason) => new(MyGameState.Orphaned) { Orphan = reason };
 
-    // Records kept from an earlier scan because the store's could not be read are no ground for changing anything.
-    private static MyGameStatus NotReady(InstalledGame? game) => new(MyGameState.GameNotReady)
+    private static MyGameStatus NotReady(InstalledGame? game)
     {
-        GameState = game is { IsStale: true } ? GameInstallState.Unknown : game?.State,
-        StateReason = game is { IsStale: true } ? GameStateReason.UnreadableStoreData : game?.Reason,
-    };
+        var trusted = game?.TrustedState();
+        return new(MyGameState.GameNotReady) { GameState = trusted?.State, StateReason = trusted?.Reason };
+    }
 }

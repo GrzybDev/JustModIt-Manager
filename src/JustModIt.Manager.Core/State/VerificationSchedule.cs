@@ -51,9 +51,7 @@ public static class VerificationSchedule
             return null;
         }
 
-        var quiet = game.StoreActivityAt is { } touched && touched - now <= SafetyGate.ClockSkewTolerance && now - touched < SafetyGate.QuietPeriod
-            ? touched + SafetyGate.QuietPeriod
-            : now;
+        var quiet = SafetyGate.QuietUntil(game.StoreActivityAt, now) ?? now;
         if (requested || last is null || last.BuildId != game.BuildId || last.At - now > ClockSkewTolerance)
         {
             return quiet;
