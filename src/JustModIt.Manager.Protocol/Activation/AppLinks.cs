@@ -66,7 +66,7 @@ public sealed class AppLinks
             "GAME" => segments.Length == 2 && Decode(segments[0]) is { } store && Decode(segments[1]) is { } gameId
                 ? new GameTarget(store, gameId)
                 : new LibraryTarget(),
-            "CATALOGUE" => new CatalogueTarget(segments.Length == 1 ? Decode(segments[0]) : null),
+            "CATALOGUE" => Catalogue(segments),
             "SETTINGS" => new SettingsTarget(),
             "CREATOR" => new CreatorTarget(),
             _ => null,
@@ -79,12 +79,27 @@ public sealed class AppLinks
     {
         LibraryTarget => $"{Scheme}://library",
         GameTarget game => $"{Scheme}://game/{Uri.EscapeDataString(game.Store)}/{Uri.EscapeDataString(game.GameId)}",
+        CatalogueTarget { GameSlug: { } slug, TeamSlug: { } team, ProjectSlug: { } project } =>
+            $"{Scheme}://catalogue/{Uri.EscapeDataString(slug)}/{Uri.EscapeDataString(team)}/{Uri.EscapeDataString(project)}",
         CatalogueTarget { GameSlug: { } slug } => $"{Scheme}://catalogue/{Uri.EscapeDataString(slug)}",
         CatalogueTarget => $"{Scheme}://catalogue",
         SettingsTarget => $"{Scheme}://settings",
         CreatorTarget => $"{Scheme}://creator",
         _ => throw new ArgumentOutOfRangeException(nameof(target), target, "Unknown navigation target."),
     };
+
+    // A broken project link still opens its game, and a broken game link the catalogue.
+    private static CatalogueTarget Catalogue(string[] segments)
+    {
+        if (segments.Length == 0 || Decode(segments[0]) is not { } game)
+        {
+            return new CatalogueTarget();
+        }
+
+        return segments.Length == 3 && Decode(segments[1]) is { } team && Decode(segments[2]) is { } project
+            ? new CatalogueTarget(game, team, project)
+            : new CatalogueTarget(game);
+    }
 
     private static string? Decode(string segment)
     {

@@ -19,8 +19,11 @@ public sealed record LibraryTarget : NavigationTarget;
 /// <param name="GameId">The game's id in that store.</param>
 public sealed record GameTarget(string Store, string GameId) : NavigationTarget;
 
-/// <summary>The catalogue, or one game in it when <paramref name="GameSlug"/> is set.</summary>
-public sealed record CatalogueTarget(string? GameSlug = null) : NavigationTarget;
+/// <summary>The catalogue, or one game or project in it.</summary>
+/// <param name="GameSlug">The game to open; null for the whole catalogue.</param>
+/// <param name="TeamSlug">With <paramref name="ProjectSlug"/>, the team whose project of the game to open.</param>
+/// <param name="ProjectSlug">The project to open; used only with a game and a team.</param>
+public sealed record CatalogueTarget(string? GameSlug = null, string? TeamSlug = null, string? ProjectSlug = null) : NavigationTarget;
 
 public sealed record SettingsTarget : NavigationTarget;
 

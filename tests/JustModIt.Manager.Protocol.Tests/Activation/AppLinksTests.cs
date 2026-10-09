@@ -18,6 +18,8 @@ public sealed class AppLinksTests
         { "example-app://catalogue/example-game", new CatalogueTarget("example-game") },
         { "example-app://catalogue/example-%C4%85%C4%87%C5%BA", new CatalogueTarget("example-ąćź") },
         { "example-app://catalogue/example-ąćź", new CatalogueTarget("example-ąćź") },
+        { "example-app://catalogue/example-game/example-team/example-project", new CatalogueTarget("example-game", "example-team", "example-project") },
+        { "example-app://catalogue/example-game/example-team/example-project/", new CatalogueTarget("example-game", "example-team", "example-project") },
         { "example-app://settings", new SettingsTarget() },
         { "example-app://creator", new CreatorTarget() },
     };
@@ -45,12 +47,22 @@ public sealed class AppLinksTests
     }
 
     [Theory]
-    [InlineData("example-app://catalogue/one/two")]
     [InlineData("example-app://catalogue/%2E%2E")]
     [InlineData("example-app://catalogue/a%2Fb")]
+    [InlineData("example-app://catalogue/%20%20/example-team/example-project")]
     public void Broken_catalogue_link_opens_the_catalogue(string link)
     {
         _links.Parse(link).Should().Be(new CatalogueTarget());
+    }
+
+    [Theory]
+    [InlineData("example-app://catalogue/example-game/example-team")]
+    [InlineData("example-app://catalogue/example-game/example-team/example-project/extra")]
+    [InlineData("example-app://catalogue/example-game/a%00b/example-project")]
+    [InlineData("example-app://catalogue/example-game/example-team/a%5Cb")]
+    public void Broken_project_link_opens_its_game(string link)
+    {
+        _links.Parse(link).Should().Be(new CatalogueTarget("example-game"));
     }
 
     [Fact]
@@ -107,6 +119,7 @@ public sealed class AppLinksTests
         new GameTarget("example store", "id=7&x?#"),
         new CatalogueTarget(),
         new CatalogueTarget("example-ąćź"),
+        new CatalogueTarget("example game", "team & co", "project?"),
         new SettingsTarget(),
         new CreatorTarget(),
     ];
