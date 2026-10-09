@@ -1,5 +1,4 @@
 using JustModIt.Manager.Core.Catalog;
-using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Tests.Catalog.TestSupport;
 
 namespace JustModIt.Manager.Core.Tests.Catalog;

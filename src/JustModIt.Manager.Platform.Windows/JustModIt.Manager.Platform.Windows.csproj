@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <IsAotCompatible>true</IsAotCompatible>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
@@ -10,8 +9,5 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JustModIt.Manager.Core\JustModIt.Manager.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <InternalsVisibleTo Include="JustModIt.Manager.Platform.Windows.Tests" />
   </ItemGroup>
 </Project>

@@ -9,8 +9,4 @@
   <ItemGroup>
     <ProjectReference Include="..\JustModIt.Manager.Host\JustModIt.Manager.Host.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="MenadzerSpolszczen.Tests" />
-  </ItemGroup>
 </Project>

@@ -1,5 +1,4 @@
 using JustModIt.Manager.Core.Catalog;
-using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Downloads;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;

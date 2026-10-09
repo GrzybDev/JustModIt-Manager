@@ -71,26 +71,6 @@ public sealed class VdfNode
 /// <summary>Text that is not well-formed KeyValues.</summary>
 public sealed class VdfFormatException : FormatException
 {
-    /// <summary>Creates the exception with a general message.</summary>
-    public VdfFormatException()
-    {
-    }
-
-    /// <summary>Creates the exception with a message.</summary>
-    /// <param name="message">What is wrong.</param>
-    public VdfFormatException(string message)
-        : base(message)
-    {
-    }
-
-    /// <summary>Creates the exception with a message and its cause.</summary>
-    /// <param name="message">What is wrong.</param>
-    /// <param name="innerException">The cause.</param>
-    public VdfFormatException(string message, Exception innerException)
-        : base(message, innerException)
-    {
-    }
-
     /// <summary>Creates the exception for a problem on <paramref name="line"/>, which the message names too.</summary>
     /// <param name="message">What is wrong, without the line.</param>
     /// <param name="line">The 1-based line of the problem.</param>
@@ -100,6 +80,6 @@ public sealed class VdfFormatException : FormatException
         Line = line;
     }
 
-    /// <summary>The 1-based line of the problem; 0 when unknown.</summary>
+    /// <summary>The 1-based line of the problem.</summary>
     public int Line { get; }
 }

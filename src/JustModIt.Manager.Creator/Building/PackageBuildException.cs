@@ -45,27 +45,6 @@ public sealed class PackageBuildException : Exception
         Findings = [.. findings ?? []];
     }
 
-    /// <summary>Creates the exception for <see cref="BuildFailure.FilesChanged"/>.</summary>
-    public PackageBuildException()
-        : this(BuildFailure.FilesChanged)
-    {
-    }
-
-    /// <summary>Creates the exception with a message for logs.</summary>
-    /// <param name="message">Meant for logs, not for users.</param>
-    public PackageBuildException(string message)
-        : this(message, null!)
-    {
-    }
-
-    /// <summary>Creates the exception with a message for logs and the error behind it.</summary>
-    /// <param name="message">Meant for logs, not for users.</param>
-    /// <param name="innerException">The error that stopped the build.</param>
-    public PackageBuildException(string message, Exception innerException)
-        : base(message, innerException)
-    {
-    }
-
     public BuildFailure Failure { get; }
 
     public ValueList<string> Paths { get; }

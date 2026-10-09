@@ -1,8 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <IsAotCompatible>true</IsAotCompatible>
-  </PropertyGroup>
-
   <!-- Only the English base is embedded here, as the fallback; the translations reach an app through Texts.targets. -->
   <ItemGroup>
     <EmbeddedResource Remove="Resources\Strings.*.resx" />
@@ -11,10 +7,6 @@
 
   <ItemGroup>
     <PackageReference Include="MessageFormat" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="JustModIt.Manager.Localization.Tests" />
   </ItemGroup>
 
   <!-- The resource generator would read the texts of this assembly only; Strings reads the app's through Text. -->

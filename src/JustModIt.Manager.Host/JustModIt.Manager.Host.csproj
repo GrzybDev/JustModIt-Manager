@@ -1,8 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <IsAotCompatible>true</IsAotCompatible>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Velopack" />
   </ItemGroup>
@@ -10,9 +6,5 @@
   <ItemGroup>
     <ProjectReference Include="..\JustModIt.Manager.Agent\JustModIt.Manager.Agent.csproj" />
     <ProjectReference Include="..\JustModIt.Manager.Ui\JustModIt.Manager.Ui.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="JustModIt.Manager.Host.Tests" />
   </ItemGroup>
 </Project>

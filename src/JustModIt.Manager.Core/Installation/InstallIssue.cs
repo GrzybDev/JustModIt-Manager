@@ -134,29 +134,8 @@ public sealed class InstallBlockedException : Exception
     /// <param name="issues">Every reason it was refused.</param>
     /// <param name="innerException">The exception behind the refusal, if any.</param>
     public InstallBlockedException(IReadOnlyList<InstallIssue> issues, Exception? innerException = null)
-        : base($"The operation was refused before any change: {string.Join(", ", issues ?? [])}.", innerException) =>
-        Issues = [.. issues ?? []];
-
-    /// <summary>Creates the exception without issues.</summary>
-    public InstallBlockedException()
-        : this([])
-    {
-    }
-
-    /// <summary>Creates the exception without issues.</summary>
-    /// <param name="message">The description for logs.</param>
-    public InstallBlockedException(string message)
-        : this(message, null!)
-    {
-    }
-
-    /// <summary>Creates the exception without issues, caused by another exception.</summary>
-    /// <param name="message">The description for logs.</param>
-    /// <param name="innerException">The exception behind the refusal.</param>
-    public InstallBlockedException(string message, Exception innerException)
-        : base(message, innerException)
-    {
-    }
+        : base($"The operation was refused before any change: {string.Join(", ", issues)}.", innerException) =>
+        Issues = [.. issues];
 
     public ValueList<InstallIssue> Issues { get; }
 }
@@ -173,27 +152,6 @@ public sealed class InstallFailedException : Exception
         : base(rolledBack ? "The operation failed and was rolled back." : "The operation failed and could not be fully rolled back.",
             innerException) =>
         RolledBack = rolledBack;
-
-    /// <summary>Creates the exception for an operation that was not rolled back.</summary>
-    public InstallFailedException()
-        : this("The operation failed.")
-    {
-    }
-
-    /// <summary>Creates the exception for an operation that was not rolled back.</summary>
-    /// <param name="message">The description for logs.</param>
-    public InstallFailedException(string message)
-        : this(message, null!)
-    {
-    }
-
-    /// <summary>Creates the exception for an operation that was not rolled back, caused by another exception.</summary>
-    /// <param name="message">The description for logs.</param>
-    /// <param name="innerException">What failed.</param>
-    public InstallFailedException(string message, Exception innerException)
-        : base(message, innerException)
-    {
-    }
 
     public bool RolledBack { get; }
 }

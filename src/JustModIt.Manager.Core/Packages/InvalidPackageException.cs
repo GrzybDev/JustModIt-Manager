@@ -46,26 +46,6 @@ public sealed class InvalidPackageException : Exception
         Detail = detail;
     }
 
-    /// <summary>Creates the error for an invalid manifest.</summary>
-    public InvalidPackageException()
-        : this(PackageError.InvalidManifest)
-    {
-    }
-
-    /// <summary>Creates the error for an invalid manifest with a message of its own.</summary>
-    /// <param name="message">The English message for the logs.</param>
-    public InvalidPackageException(string message)
-        : this(message, null!)
-    {
-    }
-
-    /// <summary>Creates the error for an invalid manifest caused by another error.</summary>
-    /// <param name="message">The English message for the logs.</param>
-    /// <param name="innerException">The error that caused it.</param>
-    public InvalidPackageException(string message, Exception innerException)
-        : base(message, innerException) =>
-        Error = PackageError.InvalidManifest;
-
     public PackageError Error { get; }
 
     public string? Detail { get; }

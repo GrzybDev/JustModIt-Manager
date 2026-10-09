@@ -1,5 +1,4 @@
 using JustModIt.Manager.Core.Installation;
-using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.Tests.TestSupport;
 
 namespace JustModIt.Manager.Core.Tests.Installation;

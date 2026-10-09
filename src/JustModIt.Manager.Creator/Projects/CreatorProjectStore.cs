@@ -29,26 +29,6 @@ public sealed class ProjectLoadException : Exception
         : base($"The project cannot be opened: {error}.", innerException) =>
         Error = error;
 
-    /// <summary>Creates the exception for a damaged project.</summary>
-    public ProjectLoadException()
-        : this(ProjectLoadError.Damaged)
-    {
-    }
-
-    /// <summary>Creates the exception for a damaged project with a message for logs.</summary>
-    /// <param name="message">Meant for logs, not for users.</param>
-    public ProjectLoadException(string message)
-        : this(message, null!)
-    {
-    }
-
-    /// <summary>Creates the exception for a damaged project with a message for logs and the error behind it.</summary>
-    /// <param name="message">Meant for logs, not for users.</param>
-    /// <param name="innerException">The error behind it.</param>
-    public ProjectLoadException(string message, Exception innerException)
-        : base(message, innerException) =>
-        Error = ProjectLoadError.Damaged;
-
     public ProjectLoadError Error { get; }
 }
 

@@ -24,27 +24,6 @@ public enum CatalogueErrorReason
 /// <summary>A failed request to the site's API or storage, with an English message meant for the logs only.</summary>
 public sealed class CatalogueException : Exception
 {
-    /// <summary>Creates a server error with a general message.</summary>
-    public CatalogueException()
-        : this(CatalogueErrorReason.ServerError, "The request failed.")
-    {
-    }
-
-    /// <summary>Creates a server error with a message of its own.</summary>
-    /// <param name="message">The English message for the logs.</param>
-    public CatalogueException(string message)
-        : this(CatalogueErrorReason.ServerError, message)
-    {
-    }
-
-    /// <summary>Creates a server error caused by another error.</summary>
-    /// <param name="message">The English message for the logs.</param>
-    /// <param name="innerException">The error that caused it.</param>
-    public CatalogueException(string message, Exception innerException)
-        : this(CatalogueErrorReason.ServerError, message, innerException)
-    {
-    }
-
     /// <summary>Creates the error for a failed request.</summary>
     /// <param name="reason">What went wrong, which the UI words.</param>
     /// <param name="message">The English message for the logs.</param>

@@ -5,7 +5,6 @@
     <AssemblyName>$(ManagerAppId)</AssemblyName>
     <ApplicationManifest>$(MSBuildThisFileDirectory)app.manifest</ApplicationManifest>
     <ApplicationIcon>Branding\app.ico</ApplicationIcon>
-    <IsAotCompatible>true</IsAotCompatible>
     <PublishAot>true</PublishAot>
     <ManagerAppProject>true</ManagerAppProject>
   </PropertyGroup>

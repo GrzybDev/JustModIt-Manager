@@ -6,7 +6,6 @@ using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
-using JustModIt.Manager.Protocol.Views;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Agent.Tests.Ipc;

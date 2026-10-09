@@ -1,7 +1,6 @@
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
-using JustModIt.Manager.Core.Tests.TestSupport;
 using static JustModIt.Manager.Core.Tests.TestSupport.TestProjects;
 
 namespace JustModIt.Manager.Core.Tests.Jobs;

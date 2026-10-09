@@ -25,25 +25,5 @@ public sealed class PatchException : Exception
         : base($"Patching failed: {error} ({detail}).", innerException) =>
         Error = error;
 
-    /// <summary>Creates a <see cref="PatchError.Damaged"/> failure.</summary>
-    public PatchException()
-        : this(PatchError.Damaged, "unknown")
-    {
-    }
-
-    /// <summary>Creates a <see cref="PatchError.Damaged"/> failure.</summary>
-    /// <param name="message">The description for logs.</param>
-    public PatchException(string message)
-        : this(message, null!)
-    {
-    }
-
-    /// <summary>Creates a <see cref="PatchError.Damaged"/> failure caused by another exception.</summary>
-    /// <param name="message">The description for logs.</param>
-    /// <param name="innerException">The exception behind the failure.</param>
-    public PatchException(string message, Exception innerException)
-        : base(message, innerException) =>
-        Error = PatchError.Damaged;
-
     public PatchError Error { get; }
 }

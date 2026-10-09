@@ -44,29 +44,8 @@ public sealed class CreatorBlockedException : Exception
     /// <summary>Creates the exception for the reasons the creator refused.</summary>
     /// <param name="blocks">Every reason found, so the author can fix them in one go.</param>
     public CreatorBlockedException(IReadOnlyList<CreatorBlock> blocks)
-        : base($"The creator cannot go on: {string.Join(", ", blocks ?? [])}.") =>
-        Blocks = [.. blocks ?? []];
-
-    /// <summary>Creates the exception without a reason.</summary>
-    public CreatorBlockedException()
-        : this([])
-    {
-    }
-
-    /// <summary>Creates the exception with a message for logs.</summary>
-    /// <param name="message">Meant for logs, not for users.</param>
-    public CreatorBlockedException(string message)
-        : this(message, null!)
-    {
-    }
-
-    /// <summary>Creates the exception with a message for logs and the error behind it.</summary>
-    /// <param name="message">Meant for logs, not for users.</param>
-    /// <param name="innerException">The error behind the refusal.</param>
-    public CreatorBlockedException(string message, Exception innerException)
-        : base(message, innerException)
-    {
-    }
+        : base($"The creator cannot go on: {string.Join(", ", blocks)}.") =>
+        Blocks = [.. blocks];
 
     public ValueList<CreatorBlock> Blocks { get; }
 
