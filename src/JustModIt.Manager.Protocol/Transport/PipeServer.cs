@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.IO.Pipes;
 using JustModIt.Manager.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -20,7 +19,6 @@ public sealed partial class PipeServer : IAsyncDisposable
     private readonly ILogger _logger;
     private readonly SemaphoreSlim _slots;
     private readonly CancellationTokenSource _stopping = new();
-    private readonly ConcurrentDictionary<PipeConnection, byte> _connections = new();
     private Task _acceptLoop = Task.CompletedTask;
     private int _state;
 
@@ -45,8 +43,6 @@ public sealed partial class PipeServer : IAsyncDisposable
         _slots = new SemaphoreSlim(_options.MaxConnections, _options.MaxConnections);
     }
 
-    public IReadOnlyCollection<PipeConnection> Connections => [.. _connections.Keys];
-
     /// <summary>Starts accepting connections in the background; a server starts only once.</summary>
     public void Start()
     {
@@ -56,27 +52,6 @@ public sealed partial class PipeServer : IAsyncDisposable
         }
 
         _acceptLoop = Task.Run(AcceptLoopAsync);
-    }
-
-    /// <summary>
-    /// Sends an event to every matching connection without waiting for any of them, serializing it once and not at all
-    /// while nobody is connected.
-    /// </summary>
-    /// <param name="message">The event's payload.</param>
-    /// <param name="filter">Picks the connections to send to; null sends to all.</param>
-    public void Broadcast(Message message, Func<PipeConnection, bool>? filter = null)
-    {
-        ArgumentNullException.ThrowIfNull(message);
-
-        byte[]? payload = null;
-        foreach (var connection in _connections.Keys)
-        {
-            if (filter is null || filter(connection))
-            {
-                payload ??= FrameCodec.Serialize(new EventFrame(message), _options.MaxFrameLength);
-                connection.Post(payload);
-            }
-        }
     }
 
     public async ValueTask DisposeAsync()
@@ -183,7 +158,6 @@ public sealed partial class PipeServer : IAsyncDisposable
             connection = await PipeConnection
                 .HandshakeAsync(stream, _hello, _handler, _options, _logger, _stopping.Token)
                 .ConfigureAwait(false);
-            _connections.TryAdd(connection, 0);
             LogConnected(connection.Peer.Role, connection.Peer.ProcessId, connection.Peer.AppVersion);
             connection.Start();
             await connection.Completion.WaitAsync(_stopping.Token).ConfigureAwait(false);
@@ -211,7 +185,6 @@ public sealed partial class PipeServer : IAsyncDisposable
             }
             else
             {
-                _connections.TryRemove(connection, out _);
                 await connection.DisposeAsync().ConfigureAwait(false);
             }
 

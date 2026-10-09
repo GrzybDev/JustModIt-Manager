@@ -35,14 +35,23 @@ internal static class TestPipes
         return server;
     }
 
-    public static Task<PipeConnection> ConnectAsync(string name, Hello? hello = null, TestHandler? handler = null) =>
-        PipeClient.ConnectAsync(
-            name,
-            hello ?? UiHello,
-            ConnectTimeout,
-            handler,
-            Options,
-            cancellationToken: TestContext.Current.CancellationToken);
+    public static async Task<PipeConnection> ConnectAsync(string name, Hello? hello = null, TestHandler? handler = null)
+    {
+        // A server listens a moment after it starts, and a client connects only to a pipe that listens.
+        var deadline = DateTime.UtcNow + ConnectTimeout;
+        while (true)
+        {
+            try
+            {
+                return await PipeClient.ConnectAsync(name, hello ?? UiHello, handler, Options,
+                    cancellationToken: TestContext.Current.CancellationToken);
+            }
+            catch (TimeoutException) when (DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(Options.RetryDelay, TestContext.Current.CancellationToken);
+            }
+        }
+    }
 }
 
 internal sealed class TestHandler : IConnectionHandler

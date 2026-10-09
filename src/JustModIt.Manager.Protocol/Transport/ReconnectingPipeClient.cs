@@ -184,7 +184,7 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
     private async Task StayConnectedAsync(Backoff backoff, CancellationToken stopping)
     {
         var connection = await PipeClient
-            .ConnectAsync(_pipeName, _hello, TimeSpan.Zero, this, _options, _logger, stopping)
+            .ConnectAsync(_pipeName, _hello, this, _options, _logger, stopping)
             .ConfigureAwait(false);
         try
         {

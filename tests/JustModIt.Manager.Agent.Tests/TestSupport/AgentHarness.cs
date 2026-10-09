@@ -144,10 +144,21 @@ internal sealed class AgentHarness : IAsyncDisposable
 
     private async Task<PipeConnection> Connect(ProcessRole role, IConnectionHandler? handler)
     {
-        var connection = await PipeClient.ConnectAsync(Options.Names.PipeName,
-            new Hello(Hello.CurrentProtocolVersion, "1.0.0", role, Environment.ProcessId), TimeSpan.FromSeconds(10), handler,
-            cancellationToken: Token);
-        _connections.Add(connection);
-        return connection;
+        var hello = new Hello(Hello.CurrentProtocolVersion, "1.0.0", role, Environment.ProcessId);
+        // The agent listens a moment after it starts, and a client connects only to a pipe that listens.
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (true)
+        {
+            try
+            {
+                var connection = await PipeClient.ConnectAsync(Options.Names.PipeName, hello, handler, cancellationToken: Token);
+                _connections.Add(connection);
+                return connection;
+            }
+            catch (TimeoutException) when (DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(20), Token);
+            }
+        }
     }
 }

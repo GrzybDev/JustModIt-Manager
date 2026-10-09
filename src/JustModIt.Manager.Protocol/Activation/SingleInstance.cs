@@ -72,7 +72,7 @@ public static partial class SingleInstance
             try
             {
                 var connection = await PipeClient
-                    .ConnectAsync(pipeName, hello, TimeSpan.Zero, options: options, logger: logger, cancellationToken: cancellationToken)
+                    .ConnectAsync(pipeName, hello, options: options, logger: logger, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
                 await using (connection.ConfigureAwait(false))
                 {

@@ -33,8 +33,8 @@ public sealed class ReconnectingPipeClientTests
         var firstHandler = new TestHandler();
         var first = TestPipes.StartServer(_name, firstHandler);
         await _states.ExpectAsync(ConnectionState.Connecting, ConnectionState.Connected);
-        await firstHandler.Connected.NextAsync();
-        first.Broadcast(new Navigate(new SettingsTarget()));
+        var firstConnection = await firstHandler.Connected.NextAsync();
+        firstConnection.Post(new Navigate(new SettingsTarget()));
         (await received.NextAsync()).Should().Be(new Navigate(new SettingsTarget()));
 
         await first.DisposeAsync();
@@ -45,8 +45,8 @@ public sealed class ReconnectingPipeClientTests
         var secondHandler = new TestHandler();
         await using var second = TestPipes.StartServer(_name, secondHandler);
         await _states.ExpectAsync(ConnectionState.Connected);
-        await secondHandler.Connected.NextAsync();
-        second.Broadcast(new Navigate(new LibraryTarget()));
+        var secondConnection = await secondHandler.Connected.NextAsync();
+        secondConnection.Post(new Navigate(new LibraryTarget()));
         (await received.NextAsync()).Should().Be(new Navigate(new LibraryTarget()));
     }
 
@@ -60,16 +60,16 @@ public sealed class ReconnectingPipeClientTests
         await using var client = StartClient();
         var navigateSubscription = client.Subscribe<Navigate>(message => navigations.Writer.TryWrite(message));
         using var frontSubscription = client.Subscribe<BringToFront>(message => fronts.Writer.TryWrite(message));
-        await handler.Connected.NextAsync();
+        var accepted = await handler.Connected.NextAsync();
 
-        server.Broadcast(new Navigate(new CreatorTarget()));
-        server.Broadcast(new BringToFront());
+        accepted.Post(new Navigate(new CreatorTarget()));
+        accepted.Post(new BringToFront());
         (await navigations.NextAsync()).Should().Be(new Navigate(new CreatorTarget()));
         (await fronts.NextAsync()).Should().Be(new BringToFront());
 
         navigateSubscription.Dispose();
-        server.Broadcast(new Navigate(new SettingsTarget()));
-        server.Broadcast(new BringToFront());
+        accepted.Post(new Navigate(new SettingsTarget()));
+        accepted.Post(new BringToFront());
         (await fronts.NextAsync()).Should().Be(new BringToFront());
         navigations.Reader.TryRead(out _).Should().BeFalse();
     }
@@ -83,10 +83,10 @@ public sealed class ReconnectingPipeClientTests
         await using var client = StartClient();
         using var failing = client.Subscribe<BringToFront>(_ => throw new InvalidOperationException("subscriber bug"));
         using var working = client.Subscribe<BringToFront>(message => received.Writer.TryWrite(message));
-        await handler.Connected.NextAsync();
+        var accepted = await handler.Connected.NextAsync();
 
-        server.Broadcast(new BringToFront());
-        server.Broadcast(new BringToFront());
+        accepted.Post(new BringToFront());
+        accepted.Post(new BringToFront());
 
         (await received.NextAsync()).Should().Be(new BringToFront());
         (await received.NextAsync()).Should().Be(new BringToFront());

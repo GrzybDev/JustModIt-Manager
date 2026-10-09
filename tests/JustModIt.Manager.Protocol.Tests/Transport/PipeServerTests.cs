@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
@@ -52,7 +51,7 @@ public sealed class PipeServerTests
         var options = TestPipes.Options with { HandshakeTimeout = TimeSpan.FromMinutes(1) };
 
         var connect = () => PipeClient
-            .ConnectAsync(_name, TestPipes.UiHello, TestPipes.ConnectTimeout, options: options, cancellationToken: TestContext.Current.CancellationToken)
+            .ConnectAsync(_name, TestPipes.UiHello, options: options, cancellationToken: TestContext.Current.CancellationToken)
             .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         await connect.Should().ThrowAsync<InvalidDataException>();
@@ -114,19 +113,19 @@ public sealed class PipeServerTests
         await new FrameWriter(stuck).WriteAsync(
             FrameCodec.Serialize(new EventFrame(TestPipes.UiHello), options.MaxFrameLength),
             TestContext.Current.CancellationToken);
-        await handler.Connected.NextAsync();
+        var accepted = await handler.Connected.NextAsync();
         var bulky = new Activate([new string('x', 64 * 1024)]);
 
         for (var i = 0; i < 64; i++)
         {
-            server.Broadcast(bulky);
+            accepted.Post(bulky);
         }
 
         (await handler.Disconnected.NextAsync()).Peer.Should().Be(TestPipes.UiHello);
     }
 
     [Fact]
-    public async Task Broadcast_while_a_connection_closes_leaves_its_queued_frames_to_drain()
+    public async Task Posting_while_a_connection_closes_leaves_its_queued_frames_to_drain()
     {
         var logger = new ListLogger();
         var handler = new TestHandler();
@@ -141,11 +140,11 @@ public sealed class PipeServerTests
         var bulky = new Activate([new string('x', 64 * 1024)]);
         for (var i = 0; i < 4; i++)
         {
-            server.Broadcast(bulky);
+            accepted.Post(bulky);
         }
 
         var closing = accepted.DisposeAsync();
-        server.Broadcast(new BringToFront());
+        accepted.Post(new BringToFront());
 
         for (var i = 0; i < 4; i++)
         {
@@ -199,34 +198,6 @@ public sealed class PipeServerTests
         await using var client = await TestPipes.ConnectAsync(_name);
 
         (await client.RequestAsync(new Ping(), cancellationToken: TestContext.Current.CancellationToken)).Should().BeNull();
-    }
-
-    [Fact]
-    public async Task Connecting_without_a_server_gives_up_after_the_timeout()
-    {
-        var stopwatch = Stopwatch.StartNew();
-
-        var connect = () => PipeClient.ConnectAsync(
-            _name,
-            TestPipes.UiHello,
-            TimeSpan.FromMilliseconds(300),
-            options: TestPipes.Options,
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        await connect.Should().ThrowAsync<TimeoutException>();
-        stopwatch.Elapsed.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(250)).And.BeLessThan(TimeSpan.FromSeconds(5));
-    }
-
-    [Fact]
-    public async Task Server_started_after_the_client_is_found_within_the_timeout()
-    {
-        var connect = TestPipes.ConnectAsync(_name);
-        await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
-
-        await using var server = TestPipes.StartServer(_name, new TestHandler());
-
-        await using var client = await connect;
-        client.Peer.Should().Be(TestPipes.AgentHello);
     }
 
     private async Task<NamedPipeClientStream> ConnectRawAsync()

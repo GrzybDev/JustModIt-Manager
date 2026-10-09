@@ -148,7 +148,6 @@ public sealed class PipeConnectionTests
                 await handler.Connected.NextAsync();
             }
 
-            server.Connections.Should().HaveCount(5);
             release.SetResult();
             (await Task.WhenAll(requests)).Should().AllSatisfy(answer => answer.Should().BeNull());
         }
@@ -215,11 +214,11 @@ public sealed class PipeConnectionTests
         var clientHandler = new TestHandler();
         await using var server = TestPipes.StartServer(_name, serverHandler);
         await using var client = await TestPipes.ConnectAsync(_name, handler: clientHandler);
-        await serverHandler.Connected.NextAsync();
+        var accepted = await serverHandler.Connected.NextAsync();
 
         for (var i = 0; i < 50; i++)
         {
-            server.Broadcast(new Navigate(new CatalogueTarget($"game-{i}")));
+            accepted.Post(new Navigate(new CatalogueTarget($"game-{i}")));
             await client.SendEventAsync(new Navigate(new CatalogueTarget($"game-{i}")), TestContext.Current.CancellationToken);
         }
 
@@ -228,26 +227,6 @@ public sealed class PipeConnectionTests
             (await clientHandler.Events.NextAsync()).Should().Be(new Navigate(new CatalogueTarget($"game-{i}")));
             (await serverHandler.Events.NextAsync()).Should().Be(new Navigate(new CatalogueTarget($"game-{i}")));
         }
-    }
-
-    [Fact]
-    public async Task Broadcast_reaches_only_the_connections_the_filter_selects()
-    {
-        var serverHandler = new TestHandler();
-        var uiHandler = new TestHandler();
-        var launcherHandler = new TestHandler();
-        await using var server = TestPipes.StartServer(_name, serverHandler);
-        await using var ui = await TestPipes.ConnectAsync(_name, TestPipes.UiHello, uiHandler);
-        await using var launcher = await TestPipes.ConnectAsync(_name, TestPipes.LauncherHello, launcherHandler);
-        await serverHandler.Connected.NextAsync();
-        await serverHandler.Connected.NextAsync();
-
-        server.Broadcast(new BringToFront(), connection => connection.Peer.Role == ProcessRole.Ui);
-        server.Broadcast(new ShutdownRequested(ShutdownReason.Exit));
-
-        (await uiHandler.Events.NextAsync()).Should().Be(new BringToFront());
-        (await uiHandler.Events.NextAsync()).Should().Be(new ShutdownRequested(ShutdownReason.Exit));
-        (await launcherHandler.Events.NextAsync()).Should().Be(new ShutdownRequested(ShutdownReason.Exit));
     }
 
     [Fact]

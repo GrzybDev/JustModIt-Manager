@@ -204,14 +204,7 @@ public sealed partial class PipeConnection : IAsyncDisposable
     public void Post(Message message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        Post(FrameCodec.Serialize(new EventFrame(message), _options.MaxFrameLength));
-    }
-
-    /// <summary>Queues an already serialized event without waiting; a peer that is not reading is disconnected.</summary>
-    /// <param name="eventPayload">A serialized event frame, shared by every connection it goes to.</param>
-    internal void Post(byte[] eventPayload)
-    {
-        if (!_outgoing.Writer.TryWrite(eventPayload) && !_sendingCompleted)
+        if (!_outgoing.Writer.TryWrite(FrameCodec.Serialize(new EventFrame(message), _options.MaxFrameLength)) && !_sendingCompleted)
         {
             LogPeerNotReading(Peer.Role, Peer.ProcessId);
             Close();
