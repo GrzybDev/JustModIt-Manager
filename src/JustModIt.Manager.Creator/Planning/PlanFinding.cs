@@ -62,26 +62,32 @@ public enum FindingKind
     /// <summary>The package carries a whole game executable, which may only change through a patch.</summary>
     WholeGameExecutable,
 
-    /// <summary>The package carries a whole file in place of a game file. Needs an acknowledgement.</summary>
+    /// <summary>The package carries a whole file in place of a game file; needs an acknowledgement.</summary>
     WholeGameFile,
 
     /// <summary>
     /// Like <see cref="WholeGameFile"/>, for a game archive or a large file, which carries a large share of the game's
-    /// assets. Needs an acknowledgement.
+    /// assets; needs an acknowledgement.
     /// </summary>
     WholeGameArchive,
 
     /// <summary>
     /// A patch is almost as large as its file, so it carries most of the file, e.g. of an encrypted or recompressed
-    /// archive. Only a build finds it; needs an acknowledgement.
+    /// archive; only a build finds it, and it needs an acknowledgement.
     /// </summary>
     LargePatch,
 
     /// <summary>
-    /// The package carries a third-party tool, e.g. a mod loader. Needs the tool's licence and the address of its source
-    /// code (<see cref="ToolNotice"/>), which the package's manifest carries.
+    /// The package carries a third-party tool, e.g. a mod loader, and needs the tool's licence and the address of its
+    /// source code (<see cref="ToolNotice"/>) for the package's manifest.
     /// </summary>
     ThirdPartyTool,
+
+    /// <summary>The built package is larger than the site takes as a release file.</summary>
+    LargerThanSiteTakes,
+
+    /// <summary>The site takes no files of the package's extension, or none that install through the app.</summary>
+    FormatNotOnSite,
 }
 
 public enum FindingSeverity
@@ -97,13 +103,14 @@ public sealed record PlanFinding(FindingKind Kind, string? Path = null)
 {
     public FindingSeverity Severity => Kind is FindingKind.RenameOverwritesFile or FindingKind.RenamedFileNotReplaced
         or FindingKind.WholeGameFile or FindingKind.WholeGameArchive or FindingKind.LargePatch or FindingKind.ThirdPartyTool
+        or FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite
         ? FindingSeverity.Warning
         : FindingSeverity.Error;
 
     /// <summary>A second path the finding is about, e.g. the game file a rename takes.</summary>
     public string? RelatedPath { get; init; }
 
-    /// <summary>The size of the file the finding is about, e.g. of a whole game file or of a patch.</summary>
+    /// <summary>The size of the file the finding is about, e.g. of a whole game file, a patch or the package.</summary>
     public long? Size { get; init; }
 
     /// <summary>The third-party tool (<see cref="Rules.ThirdPartyTool.Id"/>).</summary>

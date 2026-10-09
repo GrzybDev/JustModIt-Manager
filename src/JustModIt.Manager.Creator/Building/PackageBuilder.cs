@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using JustModIt.Manager.Core;
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
@@ -67,7 +68,9 @@ public sealed class PackageBuilder(IPatchEncoder encoder, CreatorOptions options
                 .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(archive, output, overwrite: true);
-            return new PackageBuildResult(output, plan.Format.Kind, manifest, operations, new FileInfo(output).Length, findings);
+            var size = new FileInfo(output).Length;
+            return new PackageBuildResult(output, plan.Format.Kind, manifest, operations, size,
+                [.. findings, .. SiteFindings(plan.Format.Kind, size, request.Site)]);
         }
         finally
         {
@@ -166,6 +169,22 @@ public sealed class PackageBuilder(IPatchEncoder encoder, CreatorOptions options
             // Without this the rename can reach the disk before the data and leave a broken package after a power cut.
             stream.Flush(flushToDisk: true);
             return (manifest, [.. operations], [.. run.Findings]);
+        }
+    }
+
+    // Warnings, not refusals: the app installs the package either way, and the site may change what it takes.
+    private IEnumerable<PlanFinding> SiteFindings(PackageKind kind, long size, ReleaseFileRules site)
+    {
+        if (size > site.MaxBytes)
+        {
+            yield return new PlanFinding(FindingKind.LargerThanSiteTakes) { Size = size };
+        }
+
+        var extension = options.ExtensionFor(kind);
+        if (site.Formats.Count > 0 && !site.Formats.Any(format => format.Extension.Equals(extension, StringComparison.OrdinalIgnoreCase)
+            && (kind == PackageKind.Zip || format.RequiresManager)))
+        {
+            yield return new PlanFinding(FindingKind.FormatNotOnSite);
         }
     }
 

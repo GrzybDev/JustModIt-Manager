@@ -52,7 +52,17 @@ public sealed class CatalogueCacheTests : IDisposable
     {
         var index = new InstallableIndex(FetchedAt,
             [IndexEntry.From(CatalogueFixtures.Project("starlight-harbor")), IndexEntry.From(CatalogueFixtures.Project("silent-orchard"))]);
-        var site = new SiteConfiguration { Name = "Example Mods", Language = "en", IsUnderMaintenance = true };
+        var site = new SiteConfiguration
+        {
+            Name = "Example Mods",
+            Language = "en",
+            IsUnderMaintenance = true,
+            ReleaseFiles = new ReleaseFileRules
+            {
+                MaxBytes = 1024,
+                Formats = [new ReleaseFileFormat { Extension = ".examplemod", RequiresManager = true }],
+            },
+        };
 
         await _cache.SaveIndexAsync(index, Token);
         await _cache.SaveSiteAsync(site, FetchedAt, Token);
@@ -67,7 +77,7 @@ public sealed class CatalogueCacheTests : IDisposable
         entry.Status!.AllowsPublicReleasesFlag.Should().BeNull("a flag the backend did not send stays unknown");
         ReleaseSelector.Select(entry, new GameKey(StoreId.Steam, "1000010"), OperatingSystemKind.Windows).Default!.Package!.Uuid
             .Should().Be(Guid.Parse("a0000000-0000-4000-8000-000000000002"));
-        (await _cache.LoadSiteAsync(Token)).Should().Be(site);
+        (await _cache.LoadSiteAsync(Token)).Should().BeEquivalentTo(site);
     }
 
     [Fact]

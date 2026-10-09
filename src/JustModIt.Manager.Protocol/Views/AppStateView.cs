@@ -70,6 +70,7 @@ public sealed record AppStateView
                 Failure = state.CatalogueFailure,
                 SiteName = site.Name,
                 IsUnderMaintenance = site.IsUnderMaintenance,
+                ReleaseFiles = site.ReleaseFiles,
             },
             Activity = activity,
             Update = update,
@@ -93,6 +94,9 @@ public sealed record CatalogueView
     public string SiteName { get; init; } = "";
 
     public bool IsUnderMaintenance { get; init; }
+
+    /// <summary>What the site takes as release files, which the package creator checks a package against.</summary>
+    public ReleaseFileRules ReleaseFiles { get; init; } = new();
 }
 
 /// <summary>What the agent is busy with beyond the jobs.</summary>

@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using JustModIt.Manager.Core;
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
@@ -108,6 +109,27 @@ public sealed class PackageBuilderTests : IDisposable
         package.Steps.Select(Describe).Should().Equal("copy dinput8.dll", "copy scripts/example-mod.asi");
         package.Manifest!.ThirdPartyNotices.Should().BeEquivalentTo(
             [new ThirdPartyNotice { Name = "Ultimate ASI Loader", License = "MIT", SourceUrl = "https://example.com/loader/source" }]);
+    }
+
+    [Fact]
+    public async Task Warns_after_the_build_when_the_site_would_not_take_the_package()
+    {
+        _workspace.Author("files/extra.txt", "text");
+        var plan = await PlanAsync(Project);
+        var zip = new ReleaseFileFormat { Extension = ".zip" };
+        var manager = new ReleaseFileFormat { Extension = ".EXAMPLEMOD", RequiresManager = true };
+
+        var taken = await BuildAsync(plan, "taken.examplemod", site: new ReleaseFileRules { MaxBytes = 5L << 30, Formats = [zip, manager] });
+        var unknown = await BuildAsync(plan, "unknown.examplemod", site: new ReleaseFileRules());
+        var refused = await BuildAsync(plan, "refused.examplemod",
+            site: new ReleaseFileRules { MaxBytes = 100, Formats = [zip, manager with { RequiresManager = false }] });
+
+        taken.Findings.Should().BeEmpty();
+        unknown.Findings.Should().BeEmpty();
+        refused.Findings.Should().Equal(
+            new PlanFinding(FindingKind.LargerThanSiteTakes) { Size = refused.PackageSize },
+            new PlanFinding(FindingKind.FormatNotOnSite));
+        File.Exists(refused.OutputPath).Should().BeTrue();
     }
 
     [Fact]
@@ -418,8 +440,9 @@ public sealed class PackageBuilderTests : IDisposable
     }
 
     private Task<PackageBuildResult> BuildAsync(PackagePlan plan, string output, InstalledGame? game = null,
-        IProgress<BuildProgress>? progress = null, CancellationToken? cancellationToken = null, CreatorOptions? options = null) =>
+        IProgress<BuildProgress>? progress = null, CancellationToken? cancellationToken = null, CreatorOptions? options = null,
+        ReleaseFileRules? site = null) =>
         new PackageBuilder(new XDelta3Patcher(memoryBudget: 64 << 20), options ?? Workspace.Options).BuildAsync(plan.Confirm(),
-            new BuildRequest { OutputPath = _workspace.Output(output), Game = game }, progress,
+            new BuildRequest { OutputPath = _workspace.Output(output), Game = game, Site = site ?? new() }, progress,
             cancellationToken ?? TestContext.Current.CancellationToken);
 }

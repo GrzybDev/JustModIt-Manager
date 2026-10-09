@@ -35,6 +35,13 @@
   "config": {
     "contact": {"email": "contact@example.com"},
     "maintenance": {"active": false},
+    "limits": {"team_deletion_grace_days": 30, "release_file_max_bytes": 5368709120},
+    "release_file_formats": [
+      {"extension": ".zip", "name": "ZIP archive", "description": "Files laid out like the game.", "requires_manager": false},
+      {"extension": ".examplemod", "name": "Manager package", "description": "", "requires_manager": true},
+      {"name": "No extension"}
+    ],
+    "storefront_providers": [{"value": "steam", "label": "Steam"}, {"value": "gog", "label": "GOG"}],
     "site": {"background_color": "#123456", "description": "An invented site.", "lang": "en", "locale": "en_US", "name": "Example Mods", "socials": [], "tagline": "Invented projects for invented games", "theme_color": "#E9E8E7"}
   }
 }

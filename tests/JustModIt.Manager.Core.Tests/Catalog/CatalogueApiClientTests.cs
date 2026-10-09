@@ -67,7 +67,7 @@ public sealed class CatalogueApiClientTests
         stores.Select(store => store.Launcher).Should().Equal("Steam", "GOG Galaxy", "Other Store");
         stores[0].InstallHint.Should().StartWith("Right-click the game");
         stores[0].GamePlatform.Should().Be(Guid.Parse("8e224cea-0000-4000-8000-000000000001"));
-        site.Should().Be(new SiteConfiguration
+        site.Should().BeEquivalentTo(new SiteConfiguration
         {
             Name = "Example Mods",
             Language = "en",
@@ -76,6 +76,15 @@ public sealed class CatalogueApiClientTests
             Description = "An invented site.",
             BackgroundColor = "#123456",
             ThemeColor = "#E9E8E7",
+            ReleaseFiles = new ReleaseFileRules
+            {
+                MaxBytes = 5L << 30,
+                Formats =
+                [
+                    new ReleaseFileFormat { Extension = ".zip", Name = "ZIP archive", Description = "Files laid out like the game." },
+                    new ReleaseFileFormat { Extension = ".examplemod", Name = "Manager package", RequiresManager = true },
+                ],
+            },
         });
     }
 
