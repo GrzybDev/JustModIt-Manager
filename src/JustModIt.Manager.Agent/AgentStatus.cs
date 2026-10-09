@@ -2,20 +2,16 @@ using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Agent;
 
-/// <summary>What the agent itself is busy with, beyond the engine's state: checks, a pending exit and its own updates.</summary>
-public sealed class AgentStatus
+/// <summary>
+/// What the agent itself is busy with, beyond the engine's state: checks, a pending exit and its own updates; it starts with
+/// nothing going on and no update found.
+/// </summary>
+/// <param name="options">The app's options, for its current version.</param>
+public sealed class AgentStatus(AgentOptions options)
 {
     private readonly Lock _gate = new();
     private ActivityView _activity = new();
-    private AppUpdateView _update;
-
-    /// <summary>Starts with nothing going on and no update found.</summary>
-    /// <param name="options">The app's options, for its current version.</param>
-    public AgentStatus(AgentOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        _update = new AppUpdateView { CurrentVersion = options.Version };
-    }
+    private AppUpdateView _update = new() { CurrentVersion = options.Version };
 
     /// <summary>Raised after every change, outside the lock; handlers must return quickly.</summary>
     public event EventHandler? Changed;

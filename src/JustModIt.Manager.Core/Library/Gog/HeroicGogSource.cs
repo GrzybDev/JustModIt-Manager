@@ -10,7 +10,7 @@ namespace JustModIt.Manager.Core.Library.Gog;
 /// </summary>
 /// <param name="fileSystem">Reads Heroic's files.</param>
 /// <param name="configDirectory">Heroic's configuration folder (<see cref="HeroicLauncher.ConfigDirectories"/>).</param>
-public sealed class HeroicGogSource(IFileSystem fileSystem, string configDirectory) : IInstallSource<GogInstallRecord>
+internal sealed class HeroicGogSource(IFileSystem fileSystem, string configDirectory) : IInstallSource<GogInstallRecord>
 {
     private const string Runner = "gog";
 

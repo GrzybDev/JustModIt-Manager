@@ -8,7 +8,7 @@ namespace JustModIt.Manager.Core.Library.Gog;
 /// </summary>
 /// <param name="fileSystem">Reads the folders.</param>
 /// <param name="platform">The system the app runs on, taken as the system the games are built for.</param>
-public sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platform)
+internal sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platform)
     : ManualFolderSource<GogInstallRecord>(fileSystem, LibrarySource)
 {
     /// <summary>The <see cref="LibraryLocation.Source"/> of a folder the player added.</summary>

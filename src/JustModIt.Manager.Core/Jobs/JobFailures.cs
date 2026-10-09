@@ -27,7 +27,7 @@ internal sealed class JobDeferredException(JobWaitReason reason, ValueList<Runni
 }
 
 /// <summary>Turns what stopped a job into a typed reason the app words in its own language.</summary>
-public static class JobFailures
+internal static class JobFailures
 {
     /// <summary>The typed failure for what stopped a job.</summary>
     /// <param name="exception">What stopped the job.</param>

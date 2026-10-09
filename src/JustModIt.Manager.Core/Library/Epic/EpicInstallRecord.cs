@@ -7,7 +7,7 @@ namespace JustModIt.Manager.Core.Library.Epic;
 /// <param name="GameId">The base game's catalog namespace, which DLC shares and which keys the game.</param>
 /// <param name="InstallPath">The folder the launcher installed into, as it recorded it.</param>
 /// <param name="LibraryId">The <see cref="LibraryLocation.Id"/> of the source that holds the record.</param>
-public sealed record EpicInstallRecord(string GameId, string InstallPath, string LibraryId) : IInstallRecord
+internal sealed record EpicInstallRecord(string GameId, string InstallPath, string LibraryId) : IInstallRecord
 {
     /// <summary>The launcher's id of the installed app, which starts it.</summary>
     public required string AppName { get; init; }

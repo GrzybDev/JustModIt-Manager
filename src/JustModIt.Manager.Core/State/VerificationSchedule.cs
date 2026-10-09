@@ -9,7 +9,7 @@ namespace JustModIt.Manager.Core.State;
 /// <param name="At">When the files were checked.</param>
 /// <param name="BuildId">The game's build when it was checked; a new build is checked again.</param>
 /// <param name="Repair">Null when the files were as the install left them.</param>
-public sealed record Verification(DateTimeOffset At, string? BuildId, RepairReason? Repair)
+internal sealed record Verification(DateTimeOffset At, string? BuildId, RepairReason? Repair)
 {
     /// <summary>The most urgent thing wrong with the files; null when they are intact.</summary>
     /// <param name="result">What the check found for each file.</param>
@@ -27,7 +27,7 @@ public sealed record Verification(DateTimeOffset At, string? BuildId, RepairReas
 /// When an install's files are checked: on first sight, after the store changed the game's build or worked on it, once
 /// a day and when the player opens the game, never while the store or a job works on the game.
 /// </summary>
-public static class VerificationSchedule
+internal static class VerificationSchedule
 {
     public static readonly TimeSpan Interval = TimeSpan.FromDays(1);
 

@@ -4,7 +4,7 @@ namespace JustModIt.Manager.Core.IO;
 /// Windows extended-length paths, which native calls need to reach paths over 260 characters whatever the manifest and
 /// the system's long path policy say, while the managed file APIs add the prefix themselves.
 /// </summary>
-public static class LongPath
+internal static class LongPath
 {
     private const string DevicePrefix = @"\\?\";
     private const string DeviceNamespacePrefix = @"\\.\";

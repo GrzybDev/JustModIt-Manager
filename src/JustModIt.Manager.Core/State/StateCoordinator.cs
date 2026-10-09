@@ -23,31 +23,34 @@ public sealed record StateCoordinatorOptions
 /// <summary>
 /// The single owner of what the app knows, whose one loop applies changes in batches, publishes an immutable
 /// <see cref="AppState"/> after each and lets the automation act on it, so no handler runs under a lock and no caller
-/// waits for I/O.
+/// waits for I/O. It reads nothing before <see cref="RunAsync"/>.
 /// </summary>
-public sealed partial class StateCoordinator : IAsyncDisposable
+/// <param name="library">The detected games.</param>
+/// <param name="catalogue">The site's catalogue and the index of the player's games.</param>
+/// <param name="settings">The player's settings.</param>
+/// <param name="engine">Reads, checks and forgets install records.</param>
+/// <param name="jobs">Runs the jobs and recovers what a crash interrupted.</param>
+/// <param name="runningGames">Tells when a game that held a job back exits.</param>
+/// <param name="failureStore">Where failed jobs are kept across restarts.</param>
+/// <param name="historyStore">Where the automation's history is kept.</param>
+/// <param name="options">The app's target language.</param>
+/// <param name="time">The clock for checks and retries.</param>
+/// <param name="logger">Logs background work that failed.</param>
+public sealed partial class StateCoordinator(ILibraryService library, ICatalogue catalogue, ISettingsService settings,
+    IInstallEngine engine, JobRunner jobs, IRunningGameDetector runningGames, IDocumentStore<FailedAttempts> failureStore,
+    IDocumentStore<AutomationHistory> historyStore, StateCoordinatorOptions options, TimeProvider time,
+    ILogger<StateCoordinator> logger) : IAsyncDisposable
 {
-    private readonly ILibraryService _library;
-    private readonly ICatalogue _catalogue;
-    private readonly ISettingsService _settings;
-    private readonly IInstallEngine _engine;
-    private readonly JobRunner _jobs;
-    private readonly IRunningGameDetector _runningGames;
-    private readonly IDocumentStore<FailedAttempts> _failureStore;
-    private readonly LatestDocumentWriter<FailedAttempts> _failureWriter;
-    private readonly IDocumentStore<AutomationHistory> _historyStore;
-    private readonly AutomationDriver _automation;
+    private readonly LatestDocumentWriter<FailedAttempts> _failureWriter = new(failureStore, "list of failed jobs", logger);
+    private readonly AutomationDriver _automation = new(jobs, settings, historyStore, time, logger);
     private readonly Channel<AutomationNotice> _notices = Channel.CreateUnbounded<AutomationNotice>(new UnboundedChannelOptions
     {
         SingleWriter = true,
     });
 
-    private readonly StateCoordinatorOptions _options;
-    private readonly TimeProvider _time;
-    private readonly ILogger<StateCoordinator> _logger;
     private readonly Channel<Trigger> _triggers = Channel.CreateUnbounded<Trigger>(new UnboundedChannelOptions { SingleReader = true });
     private readonly Lock _publishGate = new();
-    private readonly LibraryAccess _backupChecks;
+    private readonly LibraryAccess _backupChecks = new(time);
 
     // Only the loop touches these, so they need no lock.
     private readonly Dictionary<Guid, InstallRecord> _records = [];
@@ -72,50 +75,6 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     private TaskCompletionSource<AppState> _next = NewSignal();
     private IndexRequest _indexRequest = new([], []);
     private IndexRequest? _indexed;
-
-    /// <summary>Creates the coordinator, which reads nothing before <see cref="RunAsync"/>.</summary>
-    /// <param name="library">The detected games.</param>
-    /// <param name="catalogue">The site's catalogue and the index of the player's games.</param>
-    /// <param name="settings">The player's settings.</param>
-    /// <param name="engine">Reads, checks and forgets install records.</param>
-    /// <param name="jobs">Runs the jobs and recovers what a crash interrupted.</param>
-    /// <param name="runningGames">Tells when a game that held a job back exits.</param>
-    /// <param name="failures">Where failed jobs are kept across restarts.</param>
-    /// <param name="automationHistory">Where the automation's history is kept.</param>
-    /// <param name="options">The app's target language.</param>
-    /// <param name="time">The clock for checks and retries.</param>
-    /// <param name="logger">Logs background work that failed.</param>
-    public StateCoordinator(ILibraryService library, ICatalogue catalogue, ISettingsService settings, IInstallEngine engine,
-        JobRunner jobs, IRunningGameDetector runningGames, IDocumentStore<FailedAttempts> failures,
-        IDocumentStore<AutomationHistory> automationHistory, StateCoordinatorOptions options, TimeProvider time,
-        ILogger<StateCoordinator> logger)
-    {
-        ArgumentNullException.ThrowIfNull(library);
-        ArgumentNullException.ThrowIfNull(catalogue);
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(engine);
-        ArgumentNullException.ThrowIfNull(jobs);
-        ArgumentNullException.ThrowIfNull(runningGames);
-        ArgumentNullException.ThrowIfNull(failures);
-        ArgumentNullException.ThrowIfNull(automationHistory);
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(time);
-        ArgumentNullException.ThrowIfNull(logger);
-        _library = library;
-        _catalogue = catalogue;
-        _settings = settings;
-        _engine = engine;
-        _jobs = jobs;
-        _runningGames = runningGames;
-        _failureStore = failures;
-        _failureWriter = new LatestDocumentWriter<FailedAttempts>(failures, "list of failed jobs", logger);
-        _historyStore = automationHistory;
-        _automation = new AutomationDriver(jobs, settings, automationHistory, time, logger);
-        _options = options;
-        _time = time;
-        _logger = logger;
-        _backupChecks = new LibraryAccess(time);
-    }
 
     public AppState Current
     {
@@ -227,19 +186,19 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     // Everything read here is local: no network and no hashing stand before the first state.
     private async Task LoadAsync(CancellationToken cancellationToken)
     {
-        _current = _settings.Current;
-        _snapshot = _library.Snapshot;
-        _catalogueSnapshot = await _catalogue.LoadCachedAsync(cancellationToken).ConfigureAwait(false);
+        _current = settings.Current;
+        _snapshot = library.Snapshot;
+        _catalogueSnapshot = await catalogue.LoadCachedAsync(cancellationToken).ConfigureAwait(false);
         // The records are trusted only once what a crash interrupted has been finished or undone.
-        _recoveries = await _jobs.RecoverAsync(cancellationToken).ConfigureAwait(false);
-        foreach (var record in await _engine.LoadRecordsAsync(cancellationToken).ConfigureAwait(false))
+        _recoveries = await jobs.RecoverAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var record in await engine.LoadRecordsAsync(cancellationToken).ConfigureAwait(false))
         {
             _records[record.Id] = record;
         }
 
-        _failures = (await _failureStore.LoadAsync(cancellationToken).ConfigureAwait(false))?.Failures.ToImmutableDictionary()
+        _failures = (await failureStore.LoadAsync(cancellationToken).ConfigureAwait(false))?.Failures.ToImmutableDictionary()
             ?? ImmutableDictionary<FailureKey, FailedAttempt>.Empty;
-        _automation.Load(await _historyStore.LoadAsync(cancellationToken).ConfigureAwait(false));
+        _automation.Load(await historyStore.LoadAsync(cancellationToken).ConfigureAwait(false));
     }
 
     private async Task<List<Trigger>> NextBatchAsync(CancellationToken cancellationToken)
@@ -247,7 +206,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         var reader = _triggers.Reader;
         if (!reader.TryRead(out var first))
         {
-            await _time.WaitForSignalAsync(token => reader.WaitToReadAsync(token).AsTask(), NextDue() - _time.GetUtcNow(),
+            await time.WaitForSignalAsync(token => reader.WaitToReadAsync(token).AsTask(), NextDue() - time.GetUtcNow(),
                 cancellationToken).ConfigureAwait(false);
             if (!reader.TryRead(out first))
             {
@@ -281,7 +240,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
             // The service's own settings are never older than a change reported to the loop; one the loop made itself may
             // be newer than a report still queued.
             case SettingsChanged:
-                _current = _settings.Current;
+                _current = settings.Current;
                 break;
             case JobChanged changed:
                 if (!_activeJobs.TryGetValue(changed.Job.Game, out var known) || known.Id != changed.Job.Id
@@ -296,7 +255,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
                 break;
             case Verified verified:
                 _verifications.OnChecked(verified.RecordId, verified.BuildId, verified.Verification, _records.ContainsKey(verified.RecordId),
-                    _time.GetUtcNow());
+                    time.GetUtcNow());
                 break;
             // The player looking at a game is also when a drive holding its originals may have come back, or its old
             // folder may have gone.
@@ -346,7 +305,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         }
 
         // What the automation learned from the player applies to its very next look.
-        _current = _settings.Current;
+        _current = settings.Current;
         if (_activeJobs.TryGetValue(game, out var job) && job.Id == result.Job.Id)
         {
             _activeJobs.Remove(game);
@@ -372,7 +331,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         {
             _moved.OnFollowEnded(followed, result);
         }
-        else if (FailedAttempt.From(result, _time.GetUtcNow()) is { } failed)
+        else if (FailedAttempt.From(result, time.GetUtcNow()) is { } failed)
         {
             SetFailure(FailedAttempt.KeyOf(result), failed);
         }
@@ -440,8 +399,8 @@ public sealed partial class StateCoordinator : IAsyncDisposable
             Records = [.. _records.Values],
             Index = _catalogueSnapshot.Index,
             Settings = _current,
-            Language = _options.TargetLanguage,
-            InstallPolicy = _jobs.InstallPolicy,
+            Language = options.TargetLanguage,
+            InstallPolicy = jobs.InstallPolicy,
             Jobs = _activeJobs.ToImmutableDictionary(),
             Repairs = _verifications.Repairs(),
             UnavailableBackups = _unavailableBackups,
@@ -515,7 +474,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
                 continue;
             }
 
-            var handle = _jobs.Start(new FollowMoveJobRequest(record));
+            var handle = jobs.Start(new FollowMoveJobRequest(record));
             if (!IsRefusedAsBusy(handle))
             {
                 _moved.OnFollowStarted(record, folder);
@@ -542,7 +501,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
                 continue;
             }
 
-            var handle = _jobs.Start(new MoveBackupsJobRequest(record, destination));
+            var handle = jobs.Start(new MoveBackupsJobRequest(record, destination));
             if (!IsRefusedAsBusy(handle))
             {
                 _backupMoves.Remove(id);
@@ -570,7 +529,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
             var outcome = ForgetOutcome.Kept;
             try
             {
-                outcome = await _engine.ForgetIfGoneAsync(record.Id, keepBackups: true, _stopping).ConfigureAwait(false);
+                outcome = await engine.ForgetIfGoneAsync(record.Id, keepBackups: true, _stopping).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
             {
@@ -630,7 +589,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
 
     private void StartVerification()
     {
-        if (_verifications.TryStart(_records.Values, _snapshot, _activeJobs.ContainsKey, _time.GetUtcNow()) is { } record)
+        if (_verifications.TryStart(_records.Values, _snapshot, _activeJobs.ContainsKey, time.GetUtcNow()) is { } record)
         {
             _ = VerifyAsync(record.Id, _snapshot.Find(record.Game)?.BuildId);
         }
@@ -639,7 +598,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     // Null when no check or automatic retry falls due without some other change.
     private DateTimeOffset? NextDue()
     {
-        var now = _time.GetUtcNow();
+        var now = time.GetUtcNow();
         var verification = _verifications.NextDueAt(_records.Values, _snapshot, _activeJobs.ContainsKey, now);
         var retry = _automation.NextRetryAt(now);
         return verification is null ? retry : retry is null || verification < retry ? verification : retry;
@@ -650,8 +609,8 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         Verification? verification = null;
         try
         {
-            var result = await _engine.VerifyAsync(recordId, null, _stopping).ConfigureAwait(false);
-            verification = new Verification(_time.GetUtcNow(), buildId, Verification.RepairOf(result));
+            var result = await engine.VerifyAsync(recordId, null, _stopping).ConfigureAwait(false);
+            verification = new Verification(time.GetUtcNow(), buildId, Verification.RepairOf(result));
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
         {
@@ -699,7 +658,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
         try
         {
             // An install that only added files keeps no originals, and its empty backup folder was removed.
-            has ??= BackupFolders.KeepsOriginals(await _engine.LoadFilesAsync(record.Id, _stopping).ConfigureAwait(false));
+            has ??= BackupFolders.KeepsOriginals(await engine.LoadFilesAsync(record.Id, _stopping).ConfigureAwait(false));
             var directory = record.Backup.Directory;
             return (record.Id, has, has.Value && !await _backupChecks.ReadAsync(directory,
                 _ => Task.FromResult(BackupFolders.IsAvailable(directory)), _stopping).ConfigureAwait(false));
@@ -737,7 +696,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     {
         try
         {
-            await _catalogue.RebuildIndexAsync(request, _stopping).ConfigureAwait(false);
+            await catalogue.RebuildIndexAsync(request, _stopping).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
         {
@@ -769,7 +728,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     {
         try
         {
-            await _jobs.PruneDownloadsAsync(keep, _stopping).ConfigureAwait(false);
+            await jobs.PruneDownloadsAsync(keep, _stopping).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
         {
@@ -784,7 +743,7 @@ public sealed partial class StateCoordinator : IAsyncDisposable
     {
         try
         {
-            await _runningGames.WaitForExitAsync(processes, _stopping).ConfigureAwait(false);
+            await runningGames.WaitForExitAsync(processes, _stopping).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
         {
@@ -798,20 +757,20 @@ public sealed partial class StateCoordinator : IAsyncDisposable
 
     private void Subscribe()
     {
-        _library.Changed += OnLibraryChanged;
-        _catalogue.Changed += OnCatalogueChanged;
-        _settings.Changed += OnSettingsChanged;
-        _jobs.Changed += OnJobChanged;
-        _jobs.Finished += OnJobFinished;
+        library.Changed += OnLibraryChanged;
+        catalogue.Changed += OnCatalogueChanged;
+        settings.Changed += OnSettingsChanged;
+        jobs.Changed += OnJobChanged;
+        jobs.Finished += OnJobFinished;
     }
 
     private void Unsubscribe()
     {
-        _library.Changed -= OnLibraryChanged;
-        _catalogue.Changed -= OnCatalogueChanged;
-        _settings.Changed -= OnSettingsChanged;
-        _jobs.Changed -= OnJobChanged;
-        _jobs.Finished -= OnJobFinished;
+        library.Changed -= OnLibraryChanged;
+        catalogue.Changed -= OnCatalogueChanged;
+        settings.Changed -= OnSettingsChanged;
+        jobs.Changed -= OnJobChanged;
+        jobs.Finished -= OnJobFinished;
     }
 
     private void OnLibraryChanged(object? sender, LibrarySnapshot snapshot) => Post(new LibraryChanged(snapshot));

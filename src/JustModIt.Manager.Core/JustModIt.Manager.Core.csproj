@@ -8,4 +8,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="JustModIt.Manager.Platform.Windows.Tests" />
+  </ItemGroup>
 </Project>

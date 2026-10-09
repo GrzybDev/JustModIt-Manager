@@ -6,7 +6,7 @@ using JustModIt.Manager.Core.Platform;
 namespace JustModIt.Manager.Core.Library.Heroic;
 
 /// <summary>Heroic Games Launcher, which installs games of several stores through a runner per store.</summary>
-public static class HeroicLauncher
+internal static class HeroicLauncher
 {
     /// <summary>The <see cref="LibraryLocation.Source"/> of Heroic's list of a store's installs.</summary>
     public const string LibrarySource = "heroic";

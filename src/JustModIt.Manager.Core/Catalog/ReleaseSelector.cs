@@ -34,7 +34,7 @@ public static class ReleaseSelector
     /// <param name="release">The public release; null when there is none.</param>
     /// <param name="game">The game's store and store id.</param>
     /// <param name="gameSystem">The system of the installed build, which Proton for one makes differ from the host's.</param>
-    public static ReleaseSelection Select(IReadOnlyList<StorefrontLink> projectLinks, ProjectStatus? status, Release? release,
+    private static ReleaseSelection Select(IReadOnlyList<StorefrontLink> projectLinks, ProjectStatus? status, Release? release,
         GameKey game, OperatingSystemKind gameSystem)
     {
         ArgumentNullException.ThrowIfNull(projectLinks);

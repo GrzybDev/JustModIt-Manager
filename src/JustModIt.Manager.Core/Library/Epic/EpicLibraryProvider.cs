@@ -19,7 +19,7 @@ public sealed class EpicLibraryProvider : ILibraryProvider
     /// <param name="sources">Launchers, in order of precedence; folders the player added are always read.</param>
     /// <param name="platform">The system the app runs on, taken as the system of games in folders the player added.</param>
     /// <param name="logger">Logs sources and records that were skipped.</param>
-    public EpicLibraryProvider(IFileSystem fileSystem, IEnumerable<IInstallSource<EpicInstallRecord>> sources, AppPlatform platform,
+    internal EpicLibraryProvider(IFileSystem fileSystem, IEnumerable<IInstallSource<EpicInstallRecord>> sources, AppPlatform platform,
         ILogger<EpicLibraryProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(fileSystem);

@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace JustModIt.Manager.Core.Library.Steam;
 
 /// <summary>Recognises redistributables, runtimes and compatibility tools that Steam installs like games.</summary>
-public static partial class SteamToolFilter
+internal static partial class SteamToolFilter
 {
     private static readonly FrozenSet<uint> ToolAppIds = new uint[]
     {

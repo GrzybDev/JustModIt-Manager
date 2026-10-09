@@ -63,7 +63,7 @@ internal static class FileInspector
     /// <param name="path">Its resolved full path; null when it no longer resolves safely, which counts as modified.</param>
     /// <param name="progress">Receives the hashed bytes.</param>
     /// <param name="cancellationToken">Stops the hashing.</param>
-    public static async Task<FileIntegrity> InspectAsync(InstalledFile file, string? path, IProgress<long>? progress,
+    private static async Task<FileIntegrity> InspectAsync(InstalledFile file, string? path, IProgress<long>? progress,
         CancellationToken cancellationToken)
     {
         if (path is null || Directory.Exists(path))

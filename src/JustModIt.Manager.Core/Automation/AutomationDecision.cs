@@ -15,7 +15,7 @@ public enum AutomationAction
     Announce,
 }
 
-public enum AutomationReason
+internal enum AutomationReason
 {
     OnboardingPending,
     Hidden,
@@ -52,7 +52,7 @@ public enum AutomationReason
 /// <summary>What the automation does about a game, or about one install on it.</summary>
 /// <param name="Action">What to do; <see cref="AutomationAction.None"/> to leave it.</param>
 /// <param name="Reason">Why nothing is done, or why a project is only announced.</param>
-public sealed record AutomationDecision(AutomationAction Action, AutomationReason? Reason = null)
+internal sealed record AutomationDecision(AutomationAction Action, AutomationReason? Reason = null)
 {
     /// <summary>The install an update or a repair, or the announcement of one, is about; null for a new install.</summary>
     public MyInstall? Install { get; init; }

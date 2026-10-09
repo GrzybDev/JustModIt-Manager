@@ -6,7 +6,7 @@ namespace JustModIt.Manager.Core.Library.Steam;
 /// The parts of <c>appmanifest_&lt;appid&gt;.acf</c> the app uses, from a file that lags behind Steam: transient states
 /// are not written and the byte counters go stale during a download.
 /// </summary>
-public sealed record SteamAppManifest
+internal sealed record SteamAppManifest
 {
     public required uint AppId { get; init; }
 

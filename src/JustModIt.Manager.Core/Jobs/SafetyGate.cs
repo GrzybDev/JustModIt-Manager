@@ -6,7 +6,7 @@ using JustModIt.Manager.Core.Safety;
 
 namespace JustModIt.Manager.Core.Jobs;
 
-public enum GateStatus
+internal enum GateStatus
 {
     Ready,
     Wait,
@@ -19,7 +19,7 @@ public enum GateStatus
 /// <param name="Failure">Why the job fails, when it must.</param>
 /// <param name="WaitUntil">For <see cref="JobWaitReason.QuietPeriod"/>: when the store's last touch is long enough ago.</param>
 /// <param name="ClockSkewIgnored">The store's last touch lies far in the future, so the quiet period was skipped.</param>
-public sealed record GateVerdict(GateStatus Status, JobWaitReason? WaitReason = null, JobFailure? Failure = null,
+internal sealed record GateVerdict(GateStatus Status, JobWaitReason? WaitReason = null, JobFailure? Failure = null,
     DateTimeOffset? WaitUntil = null, bool ClockSkewIgnored = false)
 {
     public static GateVerdict Ready { get; } = new(GateStatus.Ready);
@@ -39,7 +39,7 @@ public sealed record GateVerdict(GateStatus Status, JobWaitReason? WaitReason = 
 /// Whether a job may change a game right now, from a fresh look at it: anything that is not clearly "installed and idle"
 /// either waits for the store or the game to finish or fails when only the player can help.
 /// </summary>
-public static class SafetyGate
+internal static class SafetyGate
 {
     /// <summary>
     /// Stores rewrite their records throughout a job and may still be finishing one that looks done, so a game the store

@@ -9,7 +9,7 @@ namespace JustModIt.Manager.Core.Library.Gog;
 /// </summary>
 /// <param name="registry">Reads the registry records.</param>
 /// <param name="galaxy">Null where Galaxy's database cannot be located.</param>
-public sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy = null) : IInstallSource<GogInstallRecord>
+internal sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy = null) : IInstallSource<GogInstallRecord>
 {
     /// <summary>The <see cref="LibraryLocation.Id"/> and <see cref="LibraryLocation.Source"/> of the registry records.</summary>
     public const string LibrarySource = "gog-registry";

@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace JustModIt.Manager.Core.Patching;
 
-public sealed record XDelta3EncodeOptions
+internal sealed record XDelta3EncodeOptions
 {
     public const int MinWindowSize = 16 << 10;
 

@@ -9,7 +9,7 @@ namespace JustModIt.Manager.Core.Library;
 /// </summary>
 /// <param name="fileSystem">Reads the folders.</param>
 /// <param name="librarySource">The <see cref="LibraryLocation.Source"/> of a folder the player added.</param>
-public abstract class ManualFolderSource<TRecord>(IFileSystem fileSystem, string librarySource) : IInstallSource<TRecord>
+internal abstract class ManualFolderSource<TRecord>(IFileSystem fileSystem, string librarySource) : IInstallSource<TRecord>
     where TRecord : IInstallRecord
 {
     protected IFileSystem FileSystem { get; } = fileSystem;

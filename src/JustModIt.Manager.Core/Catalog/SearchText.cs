@@ -7,7 +7,7 @@ namespace JustModIt.Manager.Core.Catalog;
 /// Folds text for searching (lower case, no diacritics, words separated by single spaces), so the catalogue is searched
 /// here, since the site's own search folds nothing.
 /// </summary>
-public static class SearchText
+internal static class SearchText
 {
     /// <summary>The folded form of a text.</summary>
     /// <param name="text">A name or the player's query.</param>

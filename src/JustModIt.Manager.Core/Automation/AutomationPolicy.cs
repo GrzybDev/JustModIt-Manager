@@ -9,7 +9,7 @@ namespace JustModIt.Manager.Core.Automation;
 /// Decides what the app does on its own for one game, the game's own choices overriding the app's settings; pure, since
 /// the history says what was done already and nothing here starts anything.
 /// </summary>
-public static class AutomationPolicy
+internal static class AutomationPolicy
 {
     /// <summary>Decides what to do for a game and each install on it.</summary>
     /// <param name="game">The game as the state shows it.</param>

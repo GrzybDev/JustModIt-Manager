@@ -9,7 +9,7 @@ namespace JustModIt.Manager.Core.State;
 /// What a game in the player's list and each install on it are, in the order the player must be told: work in progress,
 /// then whether the game can be touched at all, then what there is to do.
 /// </summary>
-public static class MyGameStatusRules
+internal static class MyGameStatusRules
 {
     /// <summary>What one install on a game is.</summary>
     /// <param name="game">What its store reports, running when it is known to run; null when no store lists it.</param>

@@ -6,7 +6,7 @@ namespace JustModIt.Manager.Core.Library.Gog;
 /// <param name="GameId">A GOG product id, kept as text because GOG ids exceed 2^53.</param>
 /// <param name="InstallPath">The folder the launcher or installer installed into, as it recorded it.</param>
 /// <param name="LibraryId">The <see cref="LibraryLocation.Id"/> of the source that holds the record.</param>
-public sealed record GogInstallRecord(string GameId, string InstallPath, string LibraryId) : IInstallRecord
+internal sealed record GogInstallRecord(string GameId, string InstallPath, string LibraryId) : IInstallRecord
 {
     public string? Name { get; init; }
 

@@ -11,7 +11,7 @@ namespace JustModIt.Manager.Core.Library.Epic;
 /// <param name="fileSystem">Reads Legendary's and Heroic's files.</param>
 /// <param name="legendaryDirectory">Legendary's configuration folder.</param>
 /// <param name="heroicDirectory">Heroic's configuration folder when this Legendary is Heroic's, which then starts its games.</param>
-public sealed class LegendarySource(IFileSystem fileSystem, string legendaryDirectory, string? heroicDirectory = null)
+internal sealed class LegendarySource(IFileSystem fileSystem, string legendaryDirectory, string? heroicDirectory = null)
     : IInstallSource<EpicInstallRecord>
 {
     /// <summary>The <see cref="LibraryLocation.Source"/> of Legendary's list of installs when it runs on its own.</summary>

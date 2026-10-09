@@ -7,35 +7,20 @@ namespace JustModIt.Manager.Agent.Lifetime;
 
 /// <summary>
 /// Decides when the agent exits: the window is asked first, since it may keep the player's unsaved work, then running
-/// jobs are either cancelled, which undoes what they changed, or waited for while no new ones start.
+/// jobs are either cancelled, which undoes what they changed, or waited for while no new ones start; the agent runs until
+/// <see cref="Exited"/> completes.
 /// </summary>
-public sealed partial class AgentLifetime : IDisposable
+/// <param name="ui">Asks the window to close.</param>
+/// <param name="jobs">The running jobs, cancelled or waited for.</param>
+/// <param name="status">Shows that an exit waits for the jobs.</param>
+/// <param name="logger">Receives the exit.</param>
+public sealed partial class AgentLifetime(UiLauncher ui, JobRunner jobs, AgentStatus status, ILogger<AgentLifetime> logger)
+    : IDisposable
 {
-    private readonly UiLauncher _ui;
-    private readonly JobRunner _jobs;
-    private readonly AgentStatus _status;
-    private readonly ILogger<AgentLifetime> _logger;
     private readonly TaskCompletionSource _exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationTokenSource _stopping = new();
     private int _exiting;
     private int _leaving;
-
-    /// <summary>Creates the lifetime; the agent runs until <see cref="Exited"/> completes.</summary>
-    /// <param name="ui">Asks the window to close.</param>
-    /// <param name="jobs">The running jobs, cancelled or waited for.</param>
-    /// <param name="status">Shows that an exit waits for the jobs.</param>
-    /// <param name="logger">Receives the exit.</param>
-    public AgentLifetime(UiLauncher ui, JobRunner jobs, AgentStatus status, ILogger<AgentLifetime> logger)
-    {
-        ArgumentNullException.ThrowIfNull(ui);
-        ArgumentNullException.ThrowIfNull(jobs);
-        ArgumentNullException.ThrowIfNull(status);
-        ArgumentNullException.ThrowIfNull(logger);
-        _ui = ui;
-        _jobs = jobs;
-        _status = status;
-        _logger = logger;
-    }
 
     /// <summary>Completes once the agent should stop.</summary>
     public Task Exited => _exited.Task;
@@ -56,7 +41,7 @@ public sealed partial class AgentLifetime : IDisposable
     /// <returns>False when the window refused to close, and the agent keeps running, or an exit was decided already.</returns>
     public async Task<bool> RequestExitAsync(ExitMode mode)
     {
-        if (!IsExiting && !await _ui.CloseAsync(ShutdownReason.Exit, _stopping.Token).ConfigureAwait(false))
+        if (!IsExiting && !await ui.CloseAsync(ShutdownReason.Exit, _stopping.Token).ConfigureAwait(false))
         {
             return false;
         }
@@ -65,27 +50,27 @@ public sealed partial class AgentLifetime : IDisposable
         {
             if (mode == ExitMode.Now)
             {
-                _jobs.Shutdown(cancelPlayerJobs: true);
+                jobs.Shutdown(cancelPlayerJobs: true);
             }
 
             return false;
         }
 
-        LogExiting(mode, _jobs.Active.Count);
-        if (mode == ExitMode.AfterJobs && _jobs.IsBusy)
+        LogExiting(mode, jobs.Active.Count);
+        if (mode == ExitMode.AfterJobs && jobs.IsBusy)
         {
-            _status.ChangeActivity(activity => activity with { IsExitPending = true });
-            _jobs.Shutdown(cancelPlayerJobs: false);
-            await _jobs.WhenIdleAsync(_stopping.Token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            status.ChangeActivity(activity => activity with { IsExitPending = true });
+            jobs.Shutdown(cancelPlayerJobs: false);
+            await jobs.WhenIdleAsync(_stopping.Token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             Volatile.Write(ref _leaving, 1);
             // The player may have opened the window meanwhile; one that refuses now keeps running on its own, and with it
             // the player's unsaved work.
-            await ((Task)_ui.CloseAsync(ShutdownReason.Exit, _stopping.Token)).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await ((Task)ui.CloseAsync(ShutdownReason.Exit, _stopping.Token)).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
         else
         {
             Volatile.Write(ref _leaving, 1);
-            _jobs.Shutdown(cancelPlayerJobs: true);
+            jobs.Shutdown(cancelPlayerJobs: true);
         }
 
         _exited.TrySetResult();
@@ -98,7 +83,7 @@ public sealed partial class AgentLifetime : IDisposable
         Interlocked.Exchange(ref _exiting, 1);
         Volatile.Write(ref _leaving, 1);
         LogExitingForUpdate();
-        _jobs.Shutdown(cancelPlayerJobs: true);
+        jobs.Shutdown(cancelPlayerJobs: true);
         _exited.TrySetResult();
     }
 

@@ -25,7 +25,10 @@ public interface IRunningGameDetector
 }
 
 /// <summary>Finds running processes whose executable lives inside a game's folder.</summary>
-public sealed class RunningGameDetector : IRunningGameDetector
+/// <param name="processSource">Lists the running processes and waits for them to exit.</param>
+/// <param name="fileSystem">Canonicalises paths and lists the executables in a game's folder.</param>
+/// <param name="time">Paces the checks for processes that cannot be waited on.</param>
+public sealed class RunningGameDetector(IProcessSource processSource, IFileSystem fileSystem, TimeProvider time) : IRunningGameDetector
 {
     /// <summary>How often a process that cannot be waited on is looked for again; nothing reports its exit.</summary>
     public static readonly TimeSpan RecheckInterval = TimeSpan.FromSeconds(30);
@@ -35,35 +38,17 @@ public sealed class RunningGameDetector : IRunningGameDetector
     private const int ExecutableSearchMaxEntries = 10_000;
     private const string ExecutableExtension = ".exe";
 
-    private readonly IProcessSource _processes;
-    private readonly IFileSystem _fileSystem;
-    private readonly TimeProvider _time;
-
     // Canonicalising an image costs a file open per process; images rarely move, so the result is reused.
     private readonly ConcurrentDictionary<string, string> _canonicalImages = new(PathComparison.Comparer);
-
-    /// <summary>Creates a detector over the platform's processes.</summary>
-    /// <param name="processes">Lists the running processes and waits for them to exit.</param>
-    /// <param name="fileSystem">Canonicalises paths and lists the executables in a game's folder.</param>
-    /// <param name="time">Paces the checks for processes that cannot be waited on.</param>
-    public RunningGameDetector(IProcessSource processes, IFileSystem fileSystem, TimeProvider time)
-    {
-        ArgumentNullException.ThrowIfNull(processes);
-        ArgumentNullException.ThrowIfNull(fileSystem);
-        ArgumentNullException.ThrowIfNull(time);
-        _processes = processes;
-        _fileSystem = fileSystem;
-        _time = time;
-    }
 
     public ValueList<RunningProcess> FindProcessesIn(string directory, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         var requested = PathComparison.Normalize(directory);
-        var canonical = _fileSystem.GetCanonicalPath(directory);
+        var canonical = fileSystem.GetCanonicalPath(directory);
         Dictionary<string, string>? executables = null;
         var found = new List<RunningProcess>();
-        foreach (var process in _processes.Snapshot())
+        foreach (var process in processSource.Snapshot())
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (process.ImagePath is { } image)
@@ -78,7 +63,7 @@ public sealed class RunningGameDetector : IRunningGameDetector
 
             // The system hides the image of some processes, such as protected ones. A game can only run in the user's
             // own session, so a same-named executable in the folder is reported, without a path, to err on the safe side.
-            if (process.SessionId == _processes.CurrentSessionId
+            if (process.SessionId == processSource.CurrentSessionId
                 && (executables ??= FindExecutables(canonical, cancellationToken)).TryGetValue(process.Name, out var fileName))
             {
                 found.Add(new RunningProcess(process.Id, fileName, ExecutablePath: null));
@@ -94,15 +79,15 @@ public sealed class RunningGameDetector : IRunningGameDetector
         foreach (var process in processes)
         {
             var name = ProcessName(process.Name);
-            if (await _processes.WaitForExitAsync(process.ProcessId, name, cancellationToken).ConfigureAwait(false))
+            if (await processSource.WaitForExitAsync(process.ProcessId, name, cancellationToken).ConfigureAwait(false))
             {
                 continue;
             }
 
             // The name guards against another program that got the id after the game exited.
-            while (_processes.Snapshot().Any(entry => entry.Id == process.ProcessId && entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            while (processSource.Snapshot().Any(entry => entry.Id == process.ProcessId && entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
             {
-                await Task.Delay(RecheckInterval, _time, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(RecheckInterval, time, cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -134,7 +119,7 @@ public sealed class RunningGameDetector : IRunningGameDetector
             _canonicalImages.Clear();
         }
 
-        return _canonicalImages[image] = _fileSystem.GetCanonicalPath(image);
+        return _canonicalImages[image] = fileSystem.GetCanonicalPath(image);
     }
 
     // Executables by process name, searched a few levels deep and up to a limit of entries, so a huge folder cannot stall
@@ -172,5 +157,5 @@ public sealed class RunningGameDetector : IRunningGameDetector
         fileName.EndsWith(ExecutableExtension, StringComparison.OrdinalIgnoreCase) ? fileName[..^ExecutableExtension.Length] : fileName;
 
     private List<FileEntry> List(string directory, int maxEntries) =>
-        _fileSystem.TryList(directory, "*", FileListing.Everything, maxEntries);
+        fileSystem.TryList(directory, "*", FileListing.Everything, maxEntries);
 }

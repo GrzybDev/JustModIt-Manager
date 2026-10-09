@@ -10,7 +10,7 @@ namespace JustModIt.Manager.Core.Library.Epic;
 /// <param name="fileSystem">Reads the launcher's files.</param>
 /// <param name="registry">Tells where the launcher keeps its data when it was moved.</param>
 /// <param name="programData">The system's shared application data folder, where the launcher keeps its data.</param>
-public sealed class EpicLauncherSource(IFileSystem fileSystem, IRegistry registry, string programData) : IInstallSource<EpicInstallRecord>
+internal sealed class EpicLauncherSource(IFileSystem fileSystem, IRegistry registry, string programData) : IInstallSource<EpicInstallRecord>
 {
     /// <summary>The <see cref="LibraryLocation.Source"/> of the launcher's manifests.</summary>
     public const string LibrarySource = "epic-launcher";

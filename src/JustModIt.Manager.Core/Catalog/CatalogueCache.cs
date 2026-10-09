@@ -22,10 +22,10 @@ public sealed record CachedProjectPage(ProjectPageDocument Document, DateTimeOff
 /// <param name="logger">Logs files that could not be read or saved.</param>
 public sealed partial class CatalogueCache(string directory, TimeProvider time, ILogger<CatalogueCache> logger)
 {
-    public const int ListingVersion = 1;
-    public const int IndexVersion = 1;
-    public const int SiteVersion = 1;
-    public const int PageVersion = 1;
+    private const int ListingVersion = 1;
+    private const int IndexVersion = 1;
+    private const int SiteVersion = 1;
+    private const int PageVersion = 1;
 
     private const string VersionProperty = "version";
     private const string FetchedAtProperty = "fetched_at";

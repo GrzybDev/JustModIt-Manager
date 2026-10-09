@@ -16,7 +16,7 @@ namespace JustModIt.Manager.Core.Library.Gog;
 /// <param name="LastWriteTime">When GOG last wrote the file.</param>
 /// <param name="Languages">The installed languages as BCP 47 tags.</param>
 /// <param name="PlayTask">The primary play task that starts a program; null when there is none.</param>
-public sealed record GogGameInfo(
+internal sealed record GogGameInfo(
     string GameId,
     string? RootGameId,
     string? Name,
@@ -34,7 +34,7 @@ public sealed record GogGameInfo(
 /// </summary>
 /// <param name="Base">The game's own file; null when the folder holds only DLC or none.</param>
 /// <param name="Entries">Every valid file of the folder, one per product.</param>
-public sealed record GogInfoSet(GogGameInfo? Base, IReadOnlyList<GogGameInfo> Entries)
+internal sealed record GogInfoSet(GogGameInfo? Base, IReadOnlyList<GogGameInfo> Entries)
 {
     public static GogInfoSet Empty { get; } = new(null, []);
 
@@ -56,7 +56,7 @@ public sealed record GogInfoSet(GogGameInfo? Base, IReadOnlyList<GogGameInfo> En
 
 /// <summary>Reads the <c>goggame-&lt;id&gt;.info</c> files of install folders.</summary>
 /// <param name="fileSystem">Reads the files.</param>
-public sealed partial class GogInfoReader(IFileSystem fileSystem)
+internal sealed partial class GogInfoReader(IFileSystem fileSystem)
 {
     public const string InfoPattern = "goggame-*.info";
 

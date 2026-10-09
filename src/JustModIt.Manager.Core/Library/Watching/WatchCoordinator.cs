@@ -5,35 +5,21 @@ namespace JustModIt.Manager.Core.Library.Watching;
 
 /// <summary>
 /// Owns every system watcher of every store and keeps them in line with the stores' latest watch plans, so a library
-/// added, removed or moved to another drive is followed after the scan that found it.
+/// added, removed or moved to another drive is followed after the scan that found it; it watches nothing until a plan is
+/// applied.
 /// </summary>
-public sealed partial class WatchCoordinator : IDisposable
+/// <param name="folders">Watches folders.</param>
+/// <param name="registryKeys">Null on platforms without a registry.</param>
+/// <param name="onSignal">Called on any thread with the store whose records changed.</param>
+/// <param name="logger">Logs what could not be watched.</param>
+internal sealed partial class WatchCoordinator(IFolderWatcher folders, IRegistryWatcher? registryKeys,
+    Action<StoreId, WatchSignal> onSignal, ILogger logger) : IDisposable
 {
-    private readonly IFolderWatcher _folders;
-    private readonly IRegistryWatcher? _registryKeys;
-    private readonly Action<StoreId, WatchSignal> _onSignal;
-    private readonly ILogger _logger;
     private readonly Lock _gate = new();
     private readonly Dictionary<StoreId, WatchPlan> _plans = [];
     private readonly Dictionary<(StoreId Store, object Target), IDisposable> _active = [];
     private readonly HashSet<(StoreId Store, object Target)> _starting = [];
     private bool _disposed;
-
-    /// <summary>Creates a coordinator that watches nothing until a plan is applied.</summary>
-    /// <param name="folders">Watches folders.</param>
-    /// <param name="registryKeys">Null on platforms without a registry.</param>
-    /// <param name="onSignal">Called on any thread with the store whose records changed.</param>
-    /// <param name="logger">Logs what could not be watched.</param>
-    public WatchCoordinator(IFolderWatcher folders, IRegistryWatcher? registryKeys, Action<StoreId, WatchSignal> onSignal, ILogger logger)
-    {
-        ArgumentNullException.ThrowIfNull(folders);
-        ArgumentNullException.ThrowIfNull(onSignal);
-        ArgumentNullException.ThrowIfNull(logger);
-        _folders = folders;
-        _registryKeys = registryKeys;
-        _onSignal = onSignal;
-        _logger = logger;
-    }
 
     /// <summary>The number of system watchers running.</summary>
     public int ActiveCount
@@ -158,7 +144,7 @@ public sealed partial class WatchCoordinator : IDisposable
     }
 
     private IEnumerable<object> Targets(WatchPlan plan) =>
-        _registryKeys is null ? plan.Folders : plan.Folders.Cast<object>().Concat(plan.RegistryKeys);
+        registryKeys is null ? plan.Folders : plan.Folders.Cast<object>().Concat(plan.RegistryKeys);
 
     private List<(object Target, IDisposable Watch)> Start(StoreId store, List<object> targets)
     {
@@ -167,8 +153,8 @@ public sealed partial class WatchCoordinator : IDisposable
         {
             try
             {
-                void Report(WatchSignal signal) => _onSignal(store, signal);
-                started.Add((target, target is WatchedFolder folder ? _folders.Watch(folder, Report) : _registryKeys!.Watch((WatchedRegistryKey)target, Report)));
+                void Report(WatchSignal signal) => onSignal(store, signal);
+                started.Add((target, target is WatchedFolder folder ? folders.Watch(folder, Report) : registryKeys!.Watch((WatchedRegistryKey)target, Report)));
             }
             // The periodic rescan covers what cannot be watched, e.g. a folder on some network drives, and the next plan
             // tries again.

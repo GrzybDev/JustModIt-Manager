@@ -3,13 +3,13 @@ namespace JustModIt.Manager.Core.Library.Steam;
 /// <summary>One library listed in <c>libraryfolders.vdf</c>.</summary>
 /// <param name="Path">The library's folder as Steam wrote it.</param>
 /// <param name="IsMounted">Null unless a transitional client wrote a <c>mounted</c> flag.</param>
-public sealed record SteamLibraryFolder(string Path, bool? IsMounted = null);
+internal sealed record SteamLibraryFolder(string Path, bool? IsMounted = null);
 
 /// <summary>
 /// Reads <c>libraryfolders.vdf</c> in the current format (an object per library) and the pre-2021 one (a plain path per
 /// library, with the Steam root left implicit).
 /// </summary>
-public static class SteamLibraryFolders
+internal static class SteamLibraryFolders
 {
     /// <summary>Reads the libraries listed in a parsed <c>libraryfolders.vdf</c>.</summary>
     /// <param name="document">The parsed file.</param>

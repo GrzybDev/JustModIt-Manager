@@ -6,7 +6,7 @@ namespace JustModIt.Manager.Core.Library.Steam;
 /// A node of Valve's text KeyValues, a string value or an object, whose keys are looked up ignoring letter case as
 /// Valve's KeyValues does: the first of duplicate keys wins, while all are kept in <see cref="Children"/>.
 /// </summary>
-public sealed class VdfNode
+internal sealed class VdfNode
 {
     private readonly List<KeyValuePair<string, VdfNode>>? _children;
 
@@ -69,7 +69,7 @@ public sealed class VdfNode
 }
 
 /// <summary>Text that is not well-formed KeyValues.</summary>
-public sealed class VdfFormatException : FormatException
+internal sealed class VdfFormatException : FormatException
 {
     /// <summary>Creates the exception for a problem on <paramref name="line"/>, which the message names too.</summary>
     /// <param name="message">What is wrong, without the line.</param>

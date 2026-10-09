@@ -5,7 +5,7 @@ namespace JustModIt.Manager.Core.Library.Steam;
 /// use is out of date from 0x8 upwards (it puts AppRunning at 0x40), so do not "fix" these values against it.
 /// </summary>
 [Flags]
-public enum SteamAppStates : ulong
+internal enum SteamAppStates : ulong
 {
     None = 0,
     Uninstalled = 0x1,
@@ -60,7 +60,7 @@ internal static class SteamAppStateGroups
 }
 
 /// <summary>The client's EAppUpdateError, stored as <c>UpdateResult</c> in an app manifest.</summary>
-public enum SteamUpdateResult
+internal enum SteamUpdateResult
 {
     NoError = 0,
     Unspecified = 1,

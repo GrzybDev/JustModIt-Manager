@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace JustModIt.Manager.Core.Library;
 
 /// <summary>What one launcher or installer recorded about an install; the folder itself is checked afterwards.</summary>
-public interface IInstallRecord
+internal interface IInstallRecord
 {
     /// <summary>The store's id of what the record is for: a game, or DLC or a pack installed into a game's folder.</summary>
     string GameId { get; }
@@ -26,10 +26,10 @@ public interface IInstallRecord
 /// <param name="Libraries">The source's own library, none when the source does not exist on this machine.</param>
 /// <param name="Records">The installs it records.</param>
 /// <param name="Watch">What to watch so that changes to its records trigger the next scan.</param>
-public sealed record SourceScan<TRecord>(ValueList<LibraryLocation> Libraries, IReadOnlyList<TRecord> Records, WatchPlan Watch);
+internal sealed record SourceScan<TRecord>(ValueList<LibraryLocation> Libraries, IReadOnlyList<TRecord> Records, WatchPlan Watch);
 
 /// <summary>A launcher or installer that records a store's installs; supporting another one is one more source.</summary>
-public interface IInstallSource<TRecord>
+internal interface IInstallSource<TRecord>
     where TRecord : IInstallRecord
 {
     /// <summary>
@@ -45,7 +45,7 @@ public interface IInstallSource<TRecord>
 /// <param name="GameId">The store's id from the record.</param>
 /// <param name="Game">Null for DLC.</param>
 /// <param name="Watch">The game's folder, while it exists.</param>
-public sealed record RecordFinding(string GameId, InstalledGame? Game, WatchedFolder? Watch = null)
+internal sealed record RecordFinding(string GameId, InstalledGame? Game, WatchedFolder? Watch = null)
 {
     public bool IsDlc => Game is null;
 

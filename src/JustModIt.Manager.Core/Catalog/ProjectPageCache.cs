@@ -39,7 +39,7 @@ public sealed partial class ProjectPageCache(ICatalogueApi api, CatalogueCache c
     /// How long a saved page serves at most, short since staff hiding a release and other changes leave the project's
     /// change time alone, so that only a burst of checks the player asks for reuses a page.
     /// </summary>
-    public static readonly TimeSpan MaxAge = TimeSpan.FromHours(1);
+    private static readonly TimeSpan MaxAge = TimeSpan.FromHours(1);
 
     public async Task<ProjectPageDocument?> GetPageAsync(ProjectLocator project, DateTimeOffset? listedUpdatedAt,
         CancellationToken cancellationToken)

@@ -18,10 +18,10 @@ namespace JustModIt.Manager.Core.Downloads;
 public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
 {
     /// <summary>How long a download may go without receiving a byte; it has no total timeout, since lines differ.</summary>
-    public static readonly TimeSpan StallTimeout = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan StallTimeout = TimeSpan.FromMinutes(1);
 
     /// <summary>How long a partial download is kept for a later attempt to resume.</summary>
-    public static readonly TimeSpan PartialLifetime = TimeSpan.FromDays(7);
+    internal static readonly TimeSpan PartialLifetime = TimeSpan.FromDays(7);
 
     private const int BufferSize = 128 * 1024;
     private const long MaxRecordLength = 64 * 1024;

@@ -7,7 +7,7 @@ namespace JustModIt.Manager.Core.IO;
 /// Saves a document on a background writer, one save at a time and only the latest version, so its owner never waits
 /// for the disk and two saves never race each other; disposing it saves what is still queued at once.
 /// </summary>
-public sealed partial class LatestDocumentWriter<T> : IAsyncDisposable
+internal sealed partial class LatestDocumentWriter<T> : IAsyncDisposable
     where T : class
 {
     private readonly IDocumentStore<T> _store;

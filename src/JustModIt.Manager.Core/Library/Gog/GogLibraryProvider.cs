@@ -23,7 +23,7 @@ public sealed class GogLibraryProvider : ILibraryProvider
     /// <param name="sources">Launchers and installers, in order of precedence; folders the player added are always read.</param>
     /// <param name="platform">The system the app runs on, taken as the system of games in folders the player added.</param>
     /// <param name="logger">Logs sources and records that were skipped.</param>
-    public GogLibraryProvider(IFileSystem fileSystem, IEnumerable<IInstallSource<GogInstallRecord>> sources, AppPlatform platform,
+    internal GogLibraryProvider(IFileSystem fileSystem, IEnumerable<IInstallSource<GogInstallRecord>> sources, AppPlatform platform,
         ILogger<GogLibraryProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(fileSystem);

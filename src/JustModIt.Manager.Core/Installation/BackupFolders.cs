@@ -43,7 +43,7 @@ internal static class BackupFolders
 
     /// <summary>The top folder the app owns above a record's backup folder, which may go once it is empty.</summary>
     /// <param name="backupDirectory">The record's backup folder.</param>
-    public static string OwnedRootOf(string backupDirectory) =>
+    private static string OwnedRootOf(string backupDirectory) =>
         Path.GetDirectoryName(Path.GetDirectoryName(backupDirectory)!)!;
 
     /// <summary>Removes the record's backup folder and the app's folders above it while they are empty.</summary>

@@ -54,9 +54,7 @@ internal sealed class ProgressTracker(IProgress<InstallProgress>? sink, InstallS
         Report();
     }
 
-    /// <summary>Counts bytes as done.</summary>
-    /// <param name="bytes">The bytes done since the last report.</param>
-    public void AddBytes(long bytes)
+    private void AddBytes(long bytes)
     {
         _bytesDone += bytes;
         Report();

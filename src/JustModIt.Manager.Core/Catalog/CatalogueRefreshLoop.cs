@@ -19,7 +19,7 @@ public sealed partial class CatalogueRefreshLoop(
     ILogger<CatalogueRefreshLoop> logger)
 {
     public static readonly TimeSpan Interval = TimeSpan.FromHours(6);
-    public static readonly TimeSpan RetryDelay = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromMinutes(15);
 
     // Requests made while a refresh runs fold into one refresh after it.
     private readonly Channel<bool> _requests = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)

@@ -8,7 +8,7 @@ namespace JustModIt.Manager.Core.Library.Epic;
 /// </summary>
 /// <param name="fileSystem">Reads the folders.</param>
 /// <param name="platform">The system the app runs on, taken as the system the games are built for.</param>
-public sealed class EpicFolderSource(IFileSystem fileSystem, AppPlatform platform)
+internal sealed class EpicFolderSource(IFileSystem fileSystem, AppPlatform platform)
     : ManualFolderSource<EpicInstallRecord>(fileSystem, LibrarySource)
 {
     /// <summary>The <see cref="LibraryLocation.Source"/> of a folder the player added.</summary>

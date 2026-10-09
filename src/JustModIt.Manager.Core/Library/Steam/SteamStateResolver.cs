@@ -25,7 +25,7 @@ public enum SteamAppStatus
 /// <summary>Signals that show what Steam is doing right now, which the manifest on disk does not.</summary>
 /// <param name="Download">What <c>steamapps/downloading</c> holds for the app.</param>
 /// <param name="IsRegistryUpdating">The client's per-app <c>Updating</c> registry value is set.</param>
-public readonly record struct SteamLiveSignals(SteamDownload Download = SteamDownload.None, bool IsRegistryUpdating = false);
+internal readonly record struct SteamLiveSignals(SteamDownload Download = SteamDownload.None, bool IsRegistryUpdating = false);
 
 /// <summary>What Steam is doing with an app, as its manifest and the live signals tell.</summary>
 /// <param name="Status">The app's state, such as installed, updating or in use.</param>
@@ -35,7 +35,7 @@ public readonly record struct SteamLiveSignals(SteamDownload Download = SteamDow
 /// <param name="HasOptionalUpdate">Steam offers an update the app does not need.</param>
 /// <param name="ScheduledUpdate">When Steam plans to apply a pending update; null when it plans none.</param>
 /// <param name="UpdateResult">How the last update job ended, when the manifest says.</param>
-public sealed record SteamInstallStatus(
+internal sealed record SteamInstallStatus(
     SteamAppStatus Status,
     SteamAppStates Flags,
     bool IsPaused = false,
@@ -112,7 +112,7 @@ public sealed record SteamInstallStatus(
 /// Works out what Steam is doing with an app, failing safe: any bit but those of an idle installed app blocks writing,
 /// while download data no job claims only warns, since a cancelled or abandoned job leaves it behind for good.
 /// </summary>
-public static class SteamStateResolver
+internal static class SteamStateResolver
 {
     /// <summary>Works out what Steam is doing with the app of <paramref name="manifest"/>.</summary>
     /// <param name="manifest">The app's manifest.</param>
