@@ -24,8 +24,24 @@ public sealed record StorefrontPlatform
 
     public int Position { get; init; }
 
+    /// <summary>The address the site expects, in words; empty when it gives none.</summary>
+    public string UrlPatternHint { get; init => field = value ?? ""; } = "";
+
+    /// <summary>What players call the app they start this store's games from; empty means the store's name.</summary>
+    public string LauncherName { get; init => field = value ?? ""; } = "";
+
+    /// <summary>Markdown in the site's language: how players find the folder of a game they have from this store.</summary>
+    public string InstallHint { get; init => field = value ?? ""; } = "";
+
+    /// <summary>The game platform the site suggests for a new project whose game comes from this store.</summary>
+    public Guid? GamePlatform { get; init; }
+
     [JsonIgnore]
     public StoreId? Store => StoreId.TryParse(Provider, out var store) ? store : null;
+
+    /// <summary>The name to put into a sentence about the app this store's games start from.</summary>
+    [JsonIgnore]
+    public string Launcher => LauncherName.Length > 0 ? LauncherName : Name;
 }
 
 /// <summary>A project's link to the game in one store: the store version of the game the project is made for.</summary>

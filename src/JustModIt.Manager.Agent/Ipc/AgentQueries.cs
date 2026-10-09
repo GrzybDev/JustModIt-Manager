@@ -33,7 +33,8 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
             await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false) is { } listing
                 ? CatalogueFiltersView.From(listing.Reference)
                 : new CatalogueFiltersView()),
-        GetDetectionReport => new DetectionReportResult(DetectionReportView.From(DetectionReport.From(library.Snapshot))),
+        GetDetectionReport => new DetectionReportResult(DetectionReportView.From(DetectionReport.From(library.Snapshot),
+            (await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false))?.Reference.StorefrontPlatforms ?? [])),
         GetLeftoverBackups => new LeftoverBackups(
             [.. (await engine.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false)).Select(LeftoverBackupView.From)]),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),

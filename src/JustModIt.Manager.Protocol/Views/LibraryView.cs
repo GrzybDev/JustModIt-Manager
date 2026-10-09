@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
@@ -72,36 +73,33 @@ public sealed record LibraryFolderView(string Store, string Path);
 /// <param name="ScannedAt">When the stores were last scanned; null before the first scan.</param>
 public sealed record DetectionReportView(IReadOnlyList<StoreDetectionView> Stores, DateTimeOffset? ScannedAt = null)
 {
-    public static DetectionReportView From(DetectionReport report)
+    /// <summary>Maps the library's detection report, with the site's names and tips for its stores.</summary>
+    /// <param name="report">The report of the last scan.</param>
+    /// <param name="storefronts">The site's stores in its order; each of the app's stores takes the first of its kind.</param>
+    public static DetectionReportView From(DetectionReport report, IReadOnlyList<StorefrontPlatform> storefronts)
     {
         ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(storefronts);
         return new DetectionReportView(
-            [
-                .. report.Stores.Select(store => new StoreDetectionView(store.Store.Value)
-                {
-                    IsFound = store.IsFound,
-                    ScanFailed = store.ScanFailed,
-                    IsComplete = store.IsComplete,
-                    GameCount = store.GameCount,
-                    Libraries =
-                    [
-                        .. store.Libraries.Select(library => new LibraryDetectionView(library.Library.Id, library.Library.Source)
-                        {
-                            Path = library.Library.Path,
-                            State = library.Library.State,
-                            IsAdded = library.Library.IsManual,
-                            UnreadableEntries = library.Library.UnreadableEntries,
-                            GameCount = library.GameCount,
-                        }),
-                    ],
-                }),
-            ],
+            [.. report.Stores.Select(store => StoreDetectionView.From(store, storefronts.FirstOrDefault(site => site.Store == store.Store)))],
             report.ScannedAt);
     }
 }
 
 public sealed record StoreDetectionView(string Store)
 {
+    /// <summary>The store's name on the site; empty when the site lists no store of this kind.</summary>
+    public string Name { get; init; } = "";
+
+    /// <inheritdoc cref="StorefrontPlatform.Launcher"/>
+    public string Launcher { get; init; } = "";
+
+    /// <summary>
+    /// Markdown in the site's language: how players find the folder of a game they have from this store; empty when the
+    /// site gives no tip.
+    /// </summary>
+    public string InstallHint { get; init; } = "";
+
     public bool IsFound { get; init; }
 
     public bool ScanFailed { get; init; }
@@ -111,6 +109,35 @@ public sealed record StoreDetectionView(string Store)
     public int GameCount { get; init; }
 
     public IReadOnlyList<LibraryDetectionView> Libraries { get; init; } = [];
+
+    /// <summary>Maps what detection found for one store.</summary>
+    /// <param name="store">The store's part of the report.</param>
+    /// <param name="site">The site's store of the same kind, if it has one.</param>
+    public static StoreDetectionView From(StoreDetection store, StorefrontPlatform? site)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        return new StoreDetectionView(store.Store.Value)
+        {
+            Name = site?.Name ?? "",
+            Launcher = site?.Launcher ?? "",
+            InstallHint = site?.InstallHint ?? "",
+            IsFound = store.IsFound,
+            ScanFailed = store.ScanFailed,
+            IsComplete = store.IsComplete,
+            GameCount = store.GameCount,
+            Libraries =
+            [
+                .. store.Libraries.Select(library => new LibraryDetectionView(library.Library.Id, library.Library.Source)
+                {
+                    Path = library.Library.Path,
+                    State = library.Library.State,
+                    IsAdded = library.Library.IsManual,
+                    UnreadableEntries = library.Library.UnreadableEntries,
+                    GameCount = library.GameCount,
+                }),
+            ],
+        };
+    }
 }
 
 /// <summary>A library a store integration found.</summary>

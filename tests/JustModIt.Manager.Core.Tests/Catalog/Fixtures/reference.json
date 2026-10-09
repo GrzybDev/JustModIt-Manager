@@ -28,8 +28,8 @@
     {"uuid": "8e224cea-0000-4000-8000-000000000001", "name": "PC", "slug": "pc", "icon": "FaComputer", "position": 0, "has_operating_systems": true}
   ],
   "storefront_platforms": [
-    {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "^https://store\\.example\\.com/app/", "url_pattern_hint": "", "provider": "steam", "position": 2},
-    {"uuid": "bad65a0d-0000-4000-8000-000000000001", "name": "GOG", "icon": "SiGogdotcom", "color": "#6239ff", "url_pattern": "^https://shop\\.example\\.com/game/", "url_pattern_hint": "", "provider": "gog", "position": 1},
+    {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "^https://store\\.example\\.com/app/", "url_pattern_hint": "", "provider": "steam", "launcher_name": "", "install_hint": "Right-click the game, then **Manage** and **Browse local files**.", "game_platform": "8e224cea-0000-4000-8000-000000000001", "position": 2},
+    {"uuid": "bad65a0d-0000-4000-8000-000000000001", "name": "GOG", "icon": "SiGogdotcom", "color": "#6239ff", "url_pattern": "^https://shop\\.example\\.com/game/", "url_pattern_hint": "", "provider": "gog", "launcher_name": "GOG Galaxy", "install_hint": "", "game_platform": null, "position": 1},
     {"uuid": "f45fb021-0000-4000-8000-000000000001", "name": "Other Store", "icon": "", "color": "#f97316", "url_pattern": "^https://other\\.example\\.com/", "url_pattern_hint": "", "provider": "", "position": 3}
   ],
   "config": {

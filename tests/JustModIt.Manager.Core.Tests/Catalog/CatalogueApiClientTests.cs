@@ -64,6 +64,9 @@ public sealed class CatalogueApiClientTests
         genres.Should().HaveCount(3);
         platforms.Should().ContainSingle().Which.HasOperatingSystems.Should().BeTrue();
         stores.Select(store => store.Store).Should().Equal(StoreId.Steam, StoreId.Gog, null);
+        stores.Select(store => store.Launcher).Should().Equal("Steam", "GOG Galaxy", "Other Store");
+        stores[0].InstallHint.Should().StartWith("Right-click the game");
+        stores[0].GamePlatform.Should().Be(Guid.Parse("8e224cea-0000-4000-8000-000000000001"));
         site.Should().Be(new SiteConfiguration
         {
             Name = "Example Mods",

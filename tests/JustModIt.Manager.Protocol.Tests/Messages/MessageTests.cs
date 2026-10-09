@@ -93,7 +93,7 @@ public sealed class MessageTests
         {
             Stores = State.Stores,
             ScannedAt = Now,
-        }))),
+        }), [new StorefrontPlatform { Uuid = Guid.Empty, Name = "Steam", Provider = "steam", InstallHint = "Open **Properties**." }])),
         new GetLeftoverBackups(),
         new LeftoverBackups([new LeftoverBackupView(RecordId, FailedGame, "Other Game", @"E:\Backups\ExampleApp\gog-1", 4096)]),
     ];
