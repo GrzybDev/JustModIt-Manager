@@ -24,8 +24,14 @@ public sealed record ProjectOfferView
 
     public IReadOnlyList<string> Types { get; init; } = [];
 
-    /// <summary>The site marks the project as made for an older version of the game.</summary>
+    /// <summary>The game's store version has a build the team has not confirmed the project with.</summary>
     public bool IsOutdated { get; init; }
+
+    /// <summary>When that build appeared, when the site says.</summary>
+    public DateTimeOffset? OutdatedSince { get; init; }
+
+    /// <summary>That build's id in the store's terms; empty when the site does not say.</summary>
+    public string LatestBuild { get; init; } = "";
 
     public DateTimeOffset? UpdatedAt { get; init; }
 
@@ -58,7 +64,9 @@ public sealed record ProjectOfferView
             Team = TeamView.From(project.Team),
             Status = project.Status is { } status ? ProjectStatusView.From(status) : null,
             Types = [.. project.Types.Select(type => type.Name)],
-            IsOutdated = project.IsOutdated,
+            IsOutdated = offer.IsOutdated,
+            OutdatedSince = offer.OutdatedLink?.OutdatedSince,
+            LatestBuild = offer.OutdatedLink?.LatestBuild ?? "",
             UpdatedAt = project.UpdatedAt,
             Release = selection.Release is { } release ? ReleaseView.From(release) : null,
             Variants = [.. selection.Variants.Select(VariantView.From)],

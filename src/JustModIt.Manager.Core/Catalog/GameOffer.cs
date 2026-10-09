@@ -3,7 +3,20 @@ using JustModIt.Manager.Core.Games;
 namespace JustModIt.Manager.Core.Catalog;
 
 /// <summary>A project made for a game, with what it offers that game.</summary>
-public sealed record ProjectOffer(IndexEntry Project, ReleaseSelection Selection);
+/// <param name="Project">The project as the index has it.</param>
+/// <param name="Selection">What its public release offers the game.</param>
+public sealed record ProjectOffer(IndexEntry Project, ReleaseSelection Selection)
+{
+    /// <summary>The link to the game's store version whose newest build the team has not confirmed yet.</summary>
+    public StorefrontLink? OutdatedLink => Selection.Links.FirstOrDefault(link => link.IsOutdated == true);
+
+    /// <summary>
+    /// Whether the game's store version has a build the team has not confirmed the project with, judged for the whole
+    /// project when the backend does not say it per link.
+    /// </summary>
+    public bool IsOutdated =>
+        Project.StorefrontLinks.Any(link => link.IsOutdated is not null) ? OutdatedLink is not null : Project.IsOutdated;
+}
 
 /// <summary>What the catalogue offers one detected game.</summary>
 /// <param name="Game">The game's store and store id.</param>

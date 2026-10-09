@@ -53,6 +53,15 @@ public sealed record StorefrontLink
 
     public int Position { get; init; }
 
+    /// <summary>The store has a build the team has not confirmed the project with; null from a backend that does not say.</summary>
+    public bool? IsOutdated { get; init; }
+
+    /// <summary>When the store's unconfirmed build appeared; null unless <see cref="IsOutdated"/>.</summary>
+    public DateTimeOffset? OutdatedSince { get; init; }
+
+    /// <summary>The store's newest build known, confirmed or not; empty when unknown.</summary>
+    public string LatestBuild { get; init => field = value ?? ""; } = "";
+
     [JsonIgnore]
     public StoreId? Store => Platform?.Store;
 
@@ -78,7 +87,7 @@ public sealed record StorefrontLink
             }).Where(language => language.Length > 0)]
             : [];
 
-    /// <summary>The store build the link was saved against, a hint for telling a game updated since; empty when unknown.</summary>
+    /// <summary>The last store build the team confirmed the project works with; empty when unknown.</summary>
     [JsonIgnore]
     public string BuildId =>
         TryGetData("buildid", JsonValueKind.String, out var build) ? build.GetString() ?? ""

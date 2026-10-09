@@ -40,6 +40,36 @@ public sealed class GameOfferTests
     }
 
     [Fact]
+    public void Warns_of_an_unconfirmed_build_only_for_the_players_own_store_version()
+    {
+        var page = CatalogueFixtures.Project("starlight-harbor");
+        var gogUpdated = new DateTimeOffset(2026, 9, 30, 8, 0, 0, TimeSpan.Zero);
+        var perLink = page with
+        {
+            IsOutdated = true,
+            StorefrontLinks =
+            [
+                page.StorefrontLinks[0] with { IsOutdated = false, LatestBuild = "7770001" },
+                page.StorefrontLinks[1] with { IsOutdated = true, OutdatedSince = gogUpdated, LatestBuild = "48210" },
+                page.StorefrontLinks[2] with { IsOutdated = false },
+            ],
+        };
+        var index = new InstallableIndex(DateTimeOffset.UnixEpoch, [IndexEntry.From(perLink)]);
+        var projectWide = new InstallableIndex(DateTimeOffset.UnixEpoch, [IndexEntry.From(page with { IsOutdated = true })]);
+
+        var steam = GameOffer.For(index, Starlight, OperatingSystemKind.Windows, TargetLanguage.None).Projects.Single();
+        var gog = GameOffer.For(index, new GameKey(StoreId.Gog, "9007199254740993"), OperatingSystemKind.Windows, TargetLanguage.None)
+            .Projects.Single();
+
+        steam.IsOutdated.Should().BeFalse();
+        gog.IsOutdated.Should().BeTrue();
+        gog.OutdatedLink!.OutdatedSince.Should().Be(gogUpdated);
+        gog.OutdatedLink.LatestBuild.Should().Be("48210");
+        GameOffer.For(projectWide, Starlight, OperatingSystemKind.Windows, TargetLanguage.None).Projects.Single().IsOutdated
+            .Should().BeTrue("a backend without per-link flags says it for the whole project");
+    }
+
+    [Fact]
     public void Offers_nothing_for_a_game_no_project_is_made_for()
     {
         var offer = GameOffer.For(_index, new GameKey(StoreId.Steam, "42"), OperatingSystemKind.Windows, TargetLanguage.FromCode("pl"));
