@@ -1,0 +1,127 @@
+[
+  {
+    "name": "same-named files built for different stores fold into one variant",
+    "files": [
+      { "id": "steam", "name": "Text only", "stores": ["steam"] },
+      { "id": "gog", "name": "Text only", "stores": ["gog"] },
+      { "id": "audio", "name": "Text + audio" }
+    ],
+    "game": { "store": "gog", "system": "Windows" },
+    "variants": [["steam", "gog"], ["audio"]],
+    "recommended": "steam",
+    "package": "gog"
+  },
+  {
+    "name": "a universal archive sits next to a store's own one in the same variant",
+    "files": [
+      { "id": "universal", "name": "Text only" },
+      { "id": "steam", "name": "Text only", "stores": ["steam"] }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["universal", "steam"]],
+    "recommended": "universal",
+    "package": "steam"
+  },
+  {
+    "name": "the universal archive serves every other store",
+    "files": [
+      { "id": "universal", "name": "Text only" },
+      { "id": "steam", "name": "Text only", "stores": ["steam"] }
+    ],
+    "game": { "store": "gog", "system": "Windows" },
+    "variants": [["universal", "steam"]],
+    "recommended": "universal",
+    "package": "universal"
+  },
+  {
+    "name": "two same-named files that fit the same version stay apart",
+    "files": [
+      { "id": "first", "name": "Translation" },
+      { "id": "second", "name": "Translation" }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["first"], ["second"]],
+    "recommended": "first",
+    "package": "first"
+  },
+  {
+    "name": "a file for one store and a same-named one for it and another stay apart",
+    "files": [
+      { "id": "steam", "name": "X", "stores": ["steam"] },
+      { "id": "both", "name": "X", "stores": ["steam", "gog"] }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["steam"], ["both"]],
+    "recommended": "steam",
+    "package": "steam"
+  },
+  {
+    "name": "builds for different systems share a variant",
+    "files": [
+      { "id": "windows", "name": "Text only", "systems": ["Windows"] },
+      { "id": "linux", "name": "Text only", "systems": ["Linux"] }
+    ],
+    "game": { "store": "steam", "system": "Linux" },
+    "variants": [["windows", "linux"]],
+    "recommended": "windows",
+    "package": "linux"
+  },
+  {
+    "name": "a store's own file beats one for the system, which beats a universal one",
+    "files": [
+      { "id": "universal", "name": "Text only" },
+      { "id": "windows", "name": "Text only", "systems": ["Windows"] },
+      { "id": "steam", "name": "Text only", "stores": ["steam"] }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["universal", "windows", "steam"]],
+    "recommended": "universal",
+    "package": "steam"
+  },
+  {
+    "name": "a file for the system beats a universal one on another store",
+    "files": [
+      { "id": "universal", "name": "Text only" },
+      { "id": "windows", "name": "Text only", "systems": ["Windows"] },
+      { "id": "steam", "name": "Text only", "stores": ["steam"] }
+    ],
+    "game": { "store": "gog", "system": "Windows" },
+    "variants": [["universal", "windows", "steam"]],
+    "recommended": "universal",
+    "package": "windows"
+  },
+  {
+    "name": "the variant of the release's default file is recommended",
+    "files": [
+      { "id": "text", "name": "Text only" },
+      { "id": "audio", "name": "Text + audio" }
+    ],
+    "defaultFile": "audio",
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["text"], ["audio"]],
+    "recommended": "audio",
+    "package": "audio"
+  },
+  {
+    "name": "without a default file a variant with a direct download is recommended",
+    "files": [
+      { "id": "managed", "name": "Text + audio", "requiresManager": true },
+      { "id": "zip", "name": "Text only" }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["managed"], ["zip"]],
+    "recommended": "zip",
+    "package": "zip"
+  },
+  {
+    "name": "files that are not ready are left out",
+    "files": [
+      { "id": "ready", "name": "Text only" },
+      { "id": "uploading", "name": "Text only", "status": "pending" }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["ready"]],
+    "recommended": "ready",
+    "package": "ready"
+  }
+]

@@ -53,6 +53,26 @@ public sealed class XDelta3PatcherTests : IDisposable
     }
 
     [Fact]
+    public async Task Decodes_a_patch_to_a_file_larger_than_the_decoders_source_cache()
+    {
+        // The halves swap places, so the decoder reads the original's blocks out of order, across more than it caches.
+        var first = TestPatch.RandomBytes(20 << 20, seed: 11);
+        var second = TestPatch.RandomBytes(20 << 20, seed: 12);
+        var insert = "Save the game and return to the main menu"u8.ToArray();
+        byte[] modified = [.. second[..(5 << 20)], .. insert, .. second[(5 << 20)..(15 << 20)], .. insert, .. second[(15 << 20)..], .. first];
+        var original = _temp.Write("original.bin", [.. first, .. second]);
+        using var patch = new MemoryStream();
+        var info = await _patcher.EncodeAsync(original, _temp.Write("modified.bin", modified), patch, progress: null, Token);
+        patch.Position = 0;
+        var output = _temp.Combine("out.bin");
+
+        await XDelta3Patcher.DecodeAsync(original, patch, output, Target(info), progress: null, Token);
+
+        (await Sha256Async(output)).Should().Be(info.TargetSha256);
+        (await File.ReadAllBytesAsync(output, Token)).AsSpan().SequenceEqual(modified).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Handles_an_empty_original()
     {
         var original = _temp.Write("empty.bin", []);

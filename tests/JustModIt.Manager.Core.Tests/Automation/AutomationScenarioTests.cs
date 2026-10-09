@@ -232,6 +232,60 @@ public sealed class AutomationScenarioTests
     }
 
     [Fact]
+    public async Task A_player_who_cancels_an_automatic_update_gets_the_game_left_alone()
+    {
+        await using var app = new CoordinatorHarness(AutoInstall).WithGameAndProject();
+        app.Engine.Add(Record());
+        app.PublishReleaseTwo();
+        app.Catalogue.PageGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await app.StartAsync();
+        var running = await app.GameAsync(game => game.Job is { Kind: JobKind.Update }, "the automatic update runs");
+
+        app.Jobs.Cancel(running.Find(Game)!.Job!.Id);
+
+        await app.GameAsync(game => game.Job is null, "the update is cancelled");
+        app.Settings.Current.GetGame(Game).AutoUpdate.Should().Be(false);
+        app.Catalogue.PageGate.SetResult();
+        app.Library.Publish(Installed());
+        await Eventually.SettleAsync();
+        app.Jobs.IsBusy.Should().BeFalse();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse("the player saw the update start");
+    }
+
+    [Fact]
+    public async Task Acts_only_on_a_fresh_look_at_the_library()
+    {
+        await using var app = new CoordinatorHarness(AutoInstall).WithGameAndProject();
+        app.Library.Publish([Installed()], cached: true);
+
+        await app.StartAsync();
+        await Eventually.SettleAsync();
+
+        app.Catalogue.PageRequests.Should().BeEmpty("the games saved by the last run may be gone");
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+        app.Jobs.IsBusy.Should().BeFalse();
+        app.Library.Publish(Installed());
+        (await app.NoticeAsync()).Kind.Should().Be(NoticeKind.Installed);
+    }
+
+    [Fact]
+    public async Task Tells_of_several_new_projects_found_in_one_look_in_one_notice()
+    {
+        await using var app = new CoordinatorHarness(AnnounceOnly, afterFirstLook: true);
+        app.Library.Publish(Installed(), Installed(OtherGame));
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseOne, 1, File(FileOne))),
+            Entry(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), OtherGame));
+
+        await app.StartAsync();
+
+        var notice = await app.NoticeAsync();
+        notice.Kind.Should().Be(NoticeKind.AvailableSummary);
+        notice.Games.Should().BeEquivalentTo([Game, OtherGame]);
+        await Eventually.SettleAsync();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse("what one look finds is one notice");
+    }
+
+    [Fact]
     public async Task An_install_the_app_exit_cancelled_is_tried_again_at_the_next_start()
     {
         await using var app = new CoordinatorHarness(AutoInstall).WithGameAndProject();

@@ -10,6 +10,9 @@ internal enum ChangeKind
     /// <summary>An original is about to be moved into the backup folder.</summary>
     Backup,
 
+    /// <summary>An original copied to a backup folder on another volume is about to be read back.</summary>
+    ReadBack,
+
     /// <summary>New content is about to be renamed into place.</summary>
     Write,
 

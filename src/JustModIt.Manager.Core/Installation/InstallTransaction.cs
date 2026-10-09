@@ -333,7 +333,7 @@ internal sealed class InstallTransaction : IDisposable
             }
             else
             {
-                original = await CopyOriginalAsync(path, backup, progress, cancellationToken).ConfigureAwait(false);
+                original = await CopyOriginalAsync(path, backup, relative, progress, cancellationToken).ConfigureAwait(false);
             }
 
             original = original with { LastWriteTimeUtc = lastWrite };
@@ -357,10 +357,11 @@ internal sealed class InstallTransaction : IDisposable
     }
 
     // A copy on another volume is read back before the original may be replaced.
-    private static async Task<FileSnapshot> CopyOriginalAsync(string path, string backup, ProgressTracker progress,
+    private async Task<FileSnapshot> CopyOriginalAsync(string path, string backup, string relative, ProgressTracker progress,
         CancellationToken cancellationToken)
     {
         var original = await FileOperations.CopyNewFileAsync(path, backup, progress.Bytes, cancellationToken).ConfigureAwait(false);
+        _hook.Before(ChangeKind.ReadBack, relative);
         var copy = await FileOperations.HashAsync(backup, progress.Bytes, cancellationToken).ConfigureAwait(false);
         return copy.HasSameContent(original)
             ? original

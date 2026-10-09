@@ -1,3 +1,4 @@
+using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Tests.Catalog.TestSupport;
@@ -258,6 +259,43 @@ public sealed class ReleaseSelectorTests
         fromEntry.Default!.Package!.Uuid.Should().Be(ReleaseSelector.Select(page, OnSteam, OperatingSystemKind.Windows).Default!.Package!.Uuid);
     }
 
+    public static TheoryData<string> SiteCases => [.. SiteCase.All().Select(item => item.GetProperty("name").GetString()!)];
+
+    [Theory]
+    [MemberData(nameof(SiteCases))]
+    public void Matches_the_sites_grouping_for_every_shared_case(string name)
+    {
+        var shared = SiteCase.All().Single(item => item.GetProperty("name").GetString() == name);
+        var ids = new Dictionary<Guid, string>();
+        var files = shared.GetProperty("files").EnumerateArray().Select(file =>
+        {
+            var package = Package(file.GetProperty("name").GetString()!,
+                [.. SiteCase.Strings(file, "stores").Select(store => store == "steam" ? SteamLink : GogLink)],
+                [.. SiteCase.Strings(file, "systems").Select(Enum.Parse<OperatingSystemKind>)],
+                file.TryGetProperty("requiresManager", out var requiresManager) && requiresManager.GetBoolean(),
+                file.TryGetProperty("status", out var status) ? status.GetString()! : "ready");
+            ids[package.Uuid] = file.GetProperty("id").GetString()!;
+            return package;
+        }).ToArray();
+        var project = WithFiles(files);
+        if (shared.TryGetProperty("defaultFile", out var defaultFile))
+        {
+            project = project with
+            {
+                Releases = [project.Releases[0] with { DefaultFile = files.Single(file => ids[file.Uuid] == defaultFile.GetString()) }],
+            };
+        }
+
+        var game = shared.GetProperty("game");
+        var selection = ReleaseSelector.Select(project, game.GetProperty("store").GetString() == "gog" ? OnGog : OnSteam,
+            Enum.Parse<OperatingSystemKind>(game.GetProperty("system").GetString()!));
+
+        selection.Variants.Select(variant => string.Join(",", variant.Files.Select(file => ids[file.Uuid]))).Should().Equal(
+            shared.GetProperty("variants").EnumerateArray().Select(variant => string.Join(",", variant.EnumerateArray().Select(id => id.GetString()))));
+        ids[selection.Default!.Files[0].Uuid].Should().Be(shared.GetProperty("recommended").GetString());
+        ids[selection.Default.Package!.Uuid].Should().Be(shared.GetProperty("package").GetString());
+    }
+
     private static Guid File(int number) => Guid.Parse($"a0000000-0000-4000-8000-00000000000{number}");
 
     private static ReleaseFile? Chosen(ProjectPage project, GameKey game, OperatingSystemKind system) =>
@@ -280,4 +318,13 @@ public sealed class ReleaseSelectorTests
         StorefrontLinkUuids = links ?? [],
         OperatingSystems = systems ?? [],
     };
+
+    // The cases the site's own tests of its variant grouping walk through, in the site's terms.
+    private static class SiteCase
+    {
+        public static JsonElement[] All() => [.. JsonDocument.Parse(CatalogueFixtures.Read("site-variants.json")).RootElement.EnumerateArray()];
+
+        public static IEnumerable<string> Strings(JsonElement file, string name) =>
+            file.TryGetProperty(name, out var values) ? values.EnumerateArray().Select(value => value.GetString()!) : [];
+    }
 }

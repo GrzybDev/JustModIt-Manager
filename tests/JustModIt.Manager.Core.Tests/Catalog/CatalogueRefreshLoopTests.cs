@@ -81,6 +81,30 @@ public sealed class CatalogueRefreshLoopTests : IDisposable
         await stopped.Should().ThrowAsync<OperationCanceledException>();
     }
 
+    [Fact]
+    public async Task Keeps_refreshing_after_a_refresh_crashes()
+    {
+        var loopTime = new CountingTimeProvider(_site.Time.GetUtcNow());
+        var (service, loop) = Create(loopTime);
+        var firstPage = _site.Routes[FirstPage];
+        _site.Routes[FirstPage] = () =>
+        {
+            _site.Routes[FirstPage] = firstPage;
+            throw new InvalidOperationException("A bug in one refresh.");
+        };
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var running = Task.CompletedTask;
+
+        await loopTime.WakeAsync(() => running = loop.RunAsync(TimeSpan.Zero, stop.Token), "the loop waits after the crash");
+        service.Current.State.Should().NotBe(CatalogueState.Fresh);
+        await loopTime.AdvanceAndWaitAsync(TimeSpan.FromMinutes(15) * 1.1);
+
+        service.Current.State.Should().Be(CatalogueState.Fresh);
+        await stop.CancelAsync();
+        var stopped = async () => await running;
+        await stopped.Should().ThrowAsync<OperationCanceledException>();
+    }
+
     public void Dispose()
     {
         _site.Dispose();

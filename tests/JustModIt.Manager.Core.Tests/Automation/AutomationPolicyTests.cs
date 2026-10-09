@@ -47,11 +47,14 @@ public sealed class AutomationPolicyTests
     }
 
     [Fact]
-    public void Never_installs_on_its_own_on_a_game_its_store_offers_in_the_target_language()
+    public void Treats_a_game_its_store_offers_in_the_target_language_as_the_owner_decided()
     {
-        var game = Game(One) with { OffersTargetLanguage = true };
-
-        Decide(game).Should().BeEquivalentTo(new { Action = AutomationAction.Announce, Reason = AutomationReason.TargetLanguageOffered });
+        Decide(Game(One) with { OffersTargetLanguage = true })
+            .Should().BeEquivalentTo(new { Action = AutomationAction.Announce, Reason = AutomationReason.TargetLanguageOffered });
+        Decide(Game(Two, Record()) with { OffersTargetLanguage = true }).Action
+            .Should().Be(AutomationAction.Update, "a project the player installed there by hand keeps its updates");
+        Decide(Game(One, Record(), repair: RepairReason.FilesModified) with { OffersTargetLanguage = true }).Action
+            .Should().Be(AutomationAction.Repair, "and its repairs");
     }
 
     [Theory]

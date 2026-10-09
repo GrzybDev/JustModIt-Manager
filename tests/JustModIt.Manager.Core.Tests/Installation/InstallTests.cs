@@ -101,6 +101,57 @@ public sealed class InstallTests : IAsyncDisposable
         File.GetLastWriteTimeUtc(harness.GameFile("readme.txt")).Should().Be(written);
     }
 
+    [Theory]
+    [InlineData("game folder")]
+    [InlineData("custom folder on another drive")]
+    public async Task Installs_and_uninstalls_files_past_260_characters(string location)
+    {
+        await using var harness = InstallHarness.At(location);
+        var folder = "data";
+        while (harness.GameFile(folder + "/strings.pak").Length <= 280)
+        {
+            folder += "/a-folder-nested-deep-in-the-game";
+        }
+
+        harness.WriteGameFile(folder + "/strings.pak", InstallHarness.OriginalPak);
+        var before = harness.Snapshot();
+        var patch = await TestPatch.CreateAsync(InstallHarness.OriginalPak, InstallHarness.ChangedPak);
+
+        var result = await harness.InstallAsync(harness.ManifestPackage(new TestPackage()
+            .Patch(folder + "/strings.pak", patch)
+            .Copy(folder + "/text.txt", "Text")));
+
+        (await File.ReadAllBytesAsync(harness.GameFile(folder + "/strings.pak"), InstallHarness.Token))
+            .Should().Equal(InstallHarness.ChangedPak);
+        (await harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
+        harness.Snapshot().Should().BeEquivalentTo(before);
+        harness.AppFiles().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_backup_copy_that_does_not_read_back_fails_the_install_untouched()
+    {
+        _harness.PutBackupsOnAnotherVolume();
+        _harness.Backup = InstallHarness.InAppData;
+        var before = _harness.Snapshot();
+        _harness.BeforeChange = (kind, _) =>
+        {
+            if (kind == ChangeKind.ReadBack)
+            {
+                var backup = Directory.EnumerateFiles(Path.Join(_harness.AppData, "backups"), "*", SearchOption.AllDirectories).Single();
+                var bytes = File.ReadAllBytes(backup);
+                bytes[0] ^= 0xFF;
+                File.WriteAllBytes(backup, bytes);
+            }
+        };
+
+        var install = () => _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed")));
+
+        (await install.Should().ThrowAsync<InstallFailedException>()).Which.RolledBack.Should().BeTrue();
+        _harness.Snapshot().Should().BeEquivalentTo(before);
+        _harness.AppFiles().Should().BeEmpty();
+    }
+
     [Fact]
     public async Task Installs_a_plain_zip_over_the_game_folder()
     {

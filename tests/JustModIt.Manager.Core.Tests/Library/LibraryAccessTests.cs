@@ -69,6 +69,38 @@ public sealed class LibraryAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task A_read_that_waited_for_its_drives_turn_gets_the_whole_time_limit()
+    {
+        using var first = new ManualResetEventSlim();
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _drive.Reset();
+        var reading = _access.ReadAsync(Library, _ =>
+        {
+            firstStarted.TrySetResult();
+            first.Wait(TimeSpan.FromMinutes(1), CancellationToken.None);
+            return Task.FromResult(1);
+        }, Token);
+        await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
+        var waiting = _access.ReadAsync(@"D:\Other", _ =>
+        {
+            secondStarted.TrySetResult();
+            return ReadAsync(CancellationToken.None);
+        }, Token);
+
+        _time.Advance(TimeSpan.FromSeconds(10));
+        first.Set();
+        (await reading).Should().Be(1);
+        await secondStarted.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
+        _time.Advance(TimeSpan.FromSeconds(10));
+        await Eventually.SettleAsync();
+        waiting.IsCompleted.Should().BeFalse("the time limit counts from when the drive is asked");
+        _time.Advance(TimeSpan.FromSeconds(5));
+
+        await FluentActions.Awaiting(() => waiting).Should().ThrowAsync<TimeoutException>();
+    }
+
+    [Fact]
     public async Task A_late_answer_asks_for_another_read_once_until_the_drive_answers_in_time_again()
     {
         await HangAndAnswerLateAsync(lateAnswers: 1);

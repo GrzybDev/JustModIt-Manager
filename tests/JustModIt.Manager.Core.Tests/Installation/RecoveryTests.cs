@@ -1,3 +1,4 @@
+using System.Text.Json;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Tests.TestSupport;
 
@@ -5,6 +6,33 @@ namespace JustModIt.Manager.Core.Tests.Installation;
 
 public sealed class RecoveryTests
 {
+    [Fact]
+    public async Task Undoes_an_install_and_an_unfinished_journal_written_by_the_previous_version()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The saved files hold Windows paths.");
+        await using var harness = new InstallHarness();
+        var before = harness.Snapshot();
+        var saved = Path.Join(AppContext.BaseDirectory, "Installation", "Fixtures", "v1");
+        TreeCopy.Copy(Path.Join(saved, "Game"), harness.GameRoot);
+        TreeCopy.Copy(Path.Join(saved, "AppData"), harness.AppData);
+        var root = JsonEncodedText.Encode(Path.GetDirectoryName(harness.GameRoot)!).ToString();
+        foreach (var file in Directory.EnumerateFiles(harness.InstallsDirectory, "*", SearchOption.AllDirectories))
+        {
+            await File.WriteAllTextAsync(file, (await File.ReadAllTextAsync(file, InstallHarness.Token)).Replace("{root}", root,
+                StringComparison.Ordinal), InstallHarness.Token);
+        }
+
+        var engine = harness.CreateEngine();
+        var recovered = await engine.RecoverAsync(InstallHarness.Token);
+        var record = (await engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which;
+        var uninstalled = await engine.UninstallAsync(record.Id, null, InstallHarness.Token);
+
+        recovered.Should().ContainSingle().Which.Outcome.Should().Be(RecoveryOutcome.RolledBack);
+        uninstalled.KeptFiles.Should().BeEmpty();
+        harness.Snapshot().Should().BeEquivalentTo(before);
+        harness.AppFiles().Should().BeEmpty();
+    }
+
     [Fact]
     public async Task Leaves_an_original_the_store_put_back_while_an_uninstall_was_cut_short()
     {

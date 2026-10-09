@@ -28,7 +28,8 @@ public sealed class OtherAppTests : IAsyncDisposable
 
         var first = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed")));
         var second = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("data/extra.txt", "Extra")));
-        OwnerOf(_harness.HiddenDirectory).Should().Be("ExampleApp");
+        File.ReadAllText(Path.Join(_harness.HiddenDirectory, AppFolders.OwnerFileName))
+            .Should().Be("""{"version":1,"app":"ExampleApp"}""", "other apps and other versions read exactly this");
 
         await _harness.UninstallAsync(first.Record.Id);
         OwnerOf(_harness.HiddenDirectory).Should().Be("ExampleApp", "another install is still on the game");

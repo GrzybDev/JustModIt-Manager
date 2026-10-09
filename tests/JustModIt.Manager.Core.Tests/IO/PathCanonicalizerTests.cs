@@ -93,5 +93,28 @@ public sealed class PathCanonicalizerTests : IDisposable
         PathCanonicalizer.Canonicalize(root).Should().Be(root);
     }
 
+    [Fact]
+    public async Task A_junction_cycle_ends()
+    {
+        var first = _directory.Combine("First");
+        var second = _directory.Combine("Second");
+        _directory.CreateDirectoryLink("First", second);
+        _directory.CreateDirectoryLink("Second", first);
+
+        var canonicalize = Task.Run(() =>
+        {
+            try
+            {
+                return PathCanonicalizer.Canonicalize(Path.Join(first, "game.exe"));
+            }
+            catch (IOException)
+            {
+                return null;
+            }
+        }, TestContext.Current.CancellationToken);
+
+        await canonicalize.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+    }
+
     public void Dispose() => _directory.Dispose();
 }

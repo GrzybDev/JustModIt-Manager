@@ -145,7 +145,8 @@ internal sealed class InMemoryFileSystem : IFileSystem
         };
     }
 
-    private Node? Find(string path) => _nodes.GetValueOrDefault(PathComparison.Normalize(path));
+    // Like the disk, a path through a link reaches what the link points to.
+    private Node? Find(string path) => _nodes.GetValueOrDefault(GetCanonicalPath(path));
 
     private sealed record Node(FileAttributes Attributes, byte[]? Content, DateTimeOffset LastWriteTimeUtc)
     {

@@ -90,15 +90,19 @@ internal sealed class FakeRunningGames : IRunningGameDetector
 
     public ConcurrentDictionary<string, ValueList<RunningProcess>> Running { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-    public int Waits { get; private set; }
+    private int _waits;
+
+    public int Waits => Volatile.Read(ref _waits);
 
     public ValueList<RunningProcess> FindProcessesIn(string directory, CancellationToken cancellationToken) =>
         Running.TryGetValue(directory, out var processes) ? processes : [];
 
     public Task WaitForExitAsync(IEnumerable<RunningProcess> processes, CancellationToken cancellationToken)
     {
-        Waits++;
-        return _exit.Task.WaitAsync(cancellationToken);
+        // Taken before the wait is counted, so an exit a test makes once it sees the wait cannot be missed.
+        var exit = Volatile.Read(ref _exit).Task;
+        Interlocked.Increment(ref _waits);
+        return exit.WaitAsync(cancellationToken);
     }
 
     /// <summary>Everything waited on exits.</summary>

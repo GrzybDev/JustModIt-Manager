@@ -31,6 +31,9 @@ internal sealed class FakeStorage : HttpMessageHandler
     /// <summary>Makes the next response stop sending after this many bytes of its body, without closing.</summary>
     public int? StallAfter { get; set; }
 
+    /// <summary>Runs before each chunk of a body is sent, e.g. to let time pass on a slow line.</summary>
+    public Action? BeforeChunk { get; set; }
+
     /// <summary>Holds every response until released, to see what waits for a running download.</summary>
     public TaskCompletionSource? Gate { get; set; }
 
@@ -104,7 +107,7 @@ internal sealed class FakeStorage : HttpMessageHandler
             partial = true;
         }
 
-        var body = new BodyStream(Content, (int)from, DropAfter, StallAfter);
+        var body = new BodyStream(Content, (int)from, DropAfter, StallAfter, BeforeChunk);
         DropAfter = null;
         StallAfter = null;
         var response = new HttpResponseMessage(partial ? HttpStatusCode.PartialContent : HttpStatusCode.OK)
@@ -123,7 +126,7 @@ internal sealed class FakeStorage : HttpMessageHandler
         return response;
     }
 
-    private sealed class BodyStream(byte[] content, int start, int? dropAfter, int? stallAfter) : Stream
+    private sealed class BodyStream(byte[] content, int start, int? dropAfter, int? stallAfter, Action? beforeChunk) : Stream
     {
         private int _sent;
 
@@ -161,6 +164,7 @@ internal sealed class FakeStorage : HttpMessageHandler
                 return 0;
             }
 
+            beforeChunk?.Invoke();
             content.AsMemory(start + _sent, count).CopyTo(buffer);
             _sent += count;
             return count;

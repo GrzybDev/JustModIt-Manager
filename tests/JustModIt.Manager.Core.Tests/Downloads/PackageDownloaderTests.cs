@@ -111,6 +111,43 @@ public sealed class PackageDownloaderTests : IDisposable
     }
 
     [Fact]
+    public async Task A_cancelled_download_resumes_later_without_counting_again()
+    {
+        _storage.StallAfter = 100 * 1024;
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        var cancelAt100KiB = new SynchronousProgress<DownloadProgress>(report =>
+        {
+            if (report.BytesReceived >= 100 * 1024)
+            {
+                cancellation.Cancel();
+            }
+        });
+
+        var cancelled = () => Downloader.DownloadAsync(Request(), cancelAt100KiB, cancellation.Token);
+        await cancelled.Should().ThrowAsync<OperationCanceledException>();
+        var package = await Downloader.DownloadAsync(Request(), null, Token);
+
+        _api.Resolved.Should().Be(1, "a player's cancel keeps the bytes and the saved address");
+        var resumed = _storage.Requests[1];
+        resumed.Range!.Ranges.Single().From.Should().Be(100 * 1024);
+        resumed.IfRange!.EntityTag!.Tag.Should().Be(_storage.ETag);
+        (await File.ReadAllBytesAsync(package.Path, Token)).Should().Equal(_storage.Content);
+    }
+
+    [Fact]
+    public async Task Never_cuts_off_a_slow_download_that_keeps_receiving_bytes()
+    {
+        var started = _time.GetUtcNow();
+        _storage.BeforeChunk = () => _time.Advance(TimeSpan.FromSeconds(50));
+
+        var package = await Downloader.DownloadAsync(Request(), null, Token);
+
+        (_time.GetUtcNow() - started).Should().BeGreaterThan(TimeSpan.FromMinutes(4));
+        package.Md5.Should().Be(Md5(_storage.Content));
+        _api.Resolved.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Resumes_even_when_the_first_attempt_ended_before_any_byte_arrived()
     {
         _storage.Next(() => throw new HttpRequestException("The connection was reset."));

@@ -248,6 +248,25 @@ public sealed class JobRunnerTests
     }
 
     [Fact]
+    public async Task An_automatic_job_that_has_its_package_waits_for_the_game_instead_of_deferring()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var download = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        jobs.Downloader.Gates[FileOne] = download;
+
+        var handle = jobs.Runner.Start(JobsHarness.Install(origin: JobOrigin.Automatic));
+        await Eventually.HoldsAsync(() => jobs.Downloader.Downloads.Contains(FileOne), "the package is being downloaded");
+        jobs.Library.Runs(Game, "ExampleGame");
+        download.SetResult();
+        await jobs.WaitsAsync(handle.Job.Id, JobWaitReason.GameRunning);
+        await Eventually.HoldsAsync(() => jobs.RunningGames.Waits == 1, "the job waits for the game to exit");
+        jobs.Library.Probes.Clear();
+        jobs.RunningGames.ExitAll();
+
+        (await handle.Completion.WaitAsync(TimeSpan.FromSeconds(30), Token)).Outcome.Should().Be(JobOutcome.Succeeded);
+        jobs.Downloader.Downloads.Should().Equal([FileOne], "a downloaded package is not downloaded, and counted, again");
+    }
+    [Fact]
     public async Task An_automatic_job_is_deferred_while_the_game_runs()
     {
         await using var jobs = await JobsHarness.CreateAsync();

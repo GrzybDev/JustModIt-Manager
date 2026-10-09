@@ -151,6 +151,58 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
+    public async Task A_check_that_fails_lets_the_others_run_and_waits_a_day()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Library.Publish(Installed(), Installed(OtherGame));
+        var failing = app.Engine.Add(Record());
+        app.Engine.Add(Record(OtherGame));
+        app.Engine.OnVerify = id => id == failing.Id ? throw new IOException("The drive went to sleep.") : new VerificationResult([]);
+
+        await app.Time.WakeAsync(() => _ = app.StartAsync(), "both installs are checked");
+        app.Engine.Verifications.Should().Be(2);
+        app.Time.Advance(TimeSpan.FromHours(1));
+        await Eventually.SettleAsync();
+
+        app.Engine.Verifications.Should().Be(2, "a check that failed waits as long as one that worked");
+        app.Coordinator.Current.Games.Should().HaveCount(2).And.NotContain(game => game.Status.State == MyGameState.NeedsRepair);
+    }
+
+    [Fact]
+    public async Task Shows_what_recovery_could_not_finish()
+    {
+        await using var app = new CoordinatorHarness();
+        var failed = new RecoveredOperation(Guid.NewGuid(), GameFolder(Game), RecoveryOutcome.Failed);
+        var waiting = new RecoveredOperation(Guid.NewGuid(), GameFolder(OtherGame), RecoveryOutcome.Unavailable);
+        app.Engine.Recovery = new TaskCompletionSource<IReadOnlyList<RecoveredOperation>>();
+        app.Engine.Recovery.SetResult([failed, new RecoveredOperation(Guid.NewGuid(), GameFolder(Game), RecoveryOutcome.RolledBack), waiting]);
+
+        var state = await app.StartAsync();
+
+        state.PendingRecoveries.Should().Equal(failed, waiting);
+    }
+
+    [Fact]
+    public async Task Follows_a_moved_game_once_the_player_stops_playing()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Engine.Add(Record());
+        var moved = Installed(folder: Path.Join("Library B", "Example"));
+        app.Library.Publish(moved);
+        app.Library.Runs(Game, "ExampleGame");
+
+        await app.StartAsync();
+        await Eventually.HoldsAsync(() => app.RunningGames.Waits == 1, "the move waits for the game to exit");
+        app.Library.Probes.Clear();
+        app.RunningGames.ExitAll();
+
+        await app.GameAsync(game => game.Job is null && game.Installs.Any(install => install.Record.InstallDirectory == moved.InstallDirectory),
+            "the install follows the game");
+        await Eventually.SettleAsync();
+        app.Engine.Calls.Count(call => call == "adopt").Should().Be(1);
+    }
+
+    [Fact]
     public async Task Never_checks_a_game_a_job_works_on()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();

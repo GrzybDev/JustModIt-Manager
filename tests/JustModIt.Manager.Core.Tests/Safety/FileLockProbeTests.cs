@@ -45,6 +45,25 @@ public sealed class FileLockProbeTests : IDisposable
     }
 
     [Fact]
+    public void Every_file_in_use_is_named_in_one_holder_lookup()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows enforces sharing modes.");
+        var first = _directory.Write("first.pak", "data");
+        var second = _directory.Write("second.pak", "data");
+        var free = _directory.Write("free.pak", "data");
+
+        FileLockReport report;
+        using (new FileStream(first, FileMode.Open, FileAccess.Read, FileShare.Read))
+        using (new FileStream(second, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            report = Probe(first, free, second);
+        }
+
+        report.InUse.Should().Equal(first, second);
+        _holders.Calls.Should().ContainSingle("the system allows only so many lookups at once").Which.Should().Equal(first, second);
+    }
+
+    [Fact]
     public void A_read_only_file_can_still_be_written_unless_it_is_held()
     {
         var readOnly = _directory.Write("read-only.pak", "data");

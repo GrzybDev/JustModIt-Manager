@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Tests.Catalog.TestSupport;
@@ -52,6 +53,25 @@ public sealed class CatalogueServiceTests : IDisposable
         snapshot.FetchedAt.Should().Be(_site.Time.GetUtcNow());
         (await service.GetListingAsync(Token))!.Games.Should().HaveCount(4);
         _site.Handler.Requests.Should().HaveCount(requests);
+    }
+
+    [Fact]
+    public async Task Lets_go_of_the_listing_and_reads_it_back_from_disk()
+    {
+        var service = Create();
+        await service.RefreshAsync(StarlightOnly, Token);
+
+        var listing = await WeakListingAsync(service);
+
+        // The refresh's own frames may still be on the stack this test continues on, so the collection is tried again.
+        await Eventually.HoldsAsync(() =>
+        {
+            GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+            GC.WaitForPendingFinalizers();
+            return !listing.TryGetTarget(out _);
+        }, "the agent keeps only the index in the tray");
+        File.Delete(_directory.Combine("listing.json"));
+        (await service.GetListingAsync(Token)).Should().BeNull("the whole catalogue is read from disk when asked for");
     }
 
     [Fact]
@@ -273,4 +293,9 @@ public sealed class CatalogueServiceTests : IDisposable
         await _site.Time.RunUntilCompletedAsync(task, TimeSpan.FromSeconds(1));
         return await task;
     }
+
+    // Not inlined, so no local of the test keeps the listing alive.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static async Task<WeakReference<CatalogueListing>> WeakListingAsync(CatalogueService service) =>
+        new((await service.GetListingAsync(Token))!);
 }

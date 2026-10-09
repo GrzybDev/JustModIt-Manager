@@ -5,6 +5,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Library.Watching;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.Tests.Library.Steam;
@@ -458,6 +459,22 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_folder_picked_through_a_link_is_stored_as_its_target_and_not_added_twice()
+    {
+        var steam = new SteamTree();
+        steam.AddApp(1001, "Example Quest", library: @"D:\SteamLibrary");
+        steam.Files.AddDirectoryLink(@"E:\Linked", @"D:\SteamLibrary");
+        await StartAsync(steam.CreateProvider(time: _time), steam.Files);
+
+        var added = await Service.AddLibraryFolderAsync(@"E:\Linked\steamapps\common\Example Quest", Token);
+        var again = await Service.AddLibraryFolderAsync(@"d:\steamlibrary\", Token);
+
+        added.Folder.Should().Be(new LibraryFolder(StoreId.Steam, @"D:\SteamLibrary"));
+        _settings!.Current.LibraryFolders.Should().Equal(new LibraryFolder(StoreId.Steam, @"D:\SteamLibrary"));
+        again.Rejection.Should().Be(LibraryFolderRejection.AlreadyAdded);
+    }
+
+    [Fact]
     public async Task A_folder_that_does_not_answer_in_time_is_unreachable()
     {
         _files.AddDirectory(@"\\server\share");
@@ -597,6 +614,10 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         await StartAsync();
 
         Service.Snapshot.ConfirmsGone(Key("1001"), Game("1001").InstallDirectory).Should().BeTrue();
+        _steam.Failure = new IOException("The library list is being written.");
+        await Service.CheckNowAsync(Token);
+        Service.Snapshot.ConfirmsGone(Key("1001"), Game("1001").InstallDirectory).Should().BeFalse("a store that could not be read confirms nothing");
+        _steam.Failure = null;
         _steam.Result = _steam.Result with
         {
             Libraries = [SteamLibrary with { UnreadableEntries = 1 }],
@@ -681,18 +702,18 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     private static ValueDictionary<GameKey, InstalledGame> Games(params InstalledGame[] games) =>
         new(games.ToDictionary(game => game.Key).ToImmutableDictionary());
 
-    private async Task CreateAsync(ILibraryProvider? steam = null)
+    private async Task CreateAsync(ILibraryProvider? steam = null, IFileSystem? files = null)
     {
         _settings = await SettingsService.LoadAsync(new InMemoryDocumentStore<AppSettings>(), new FakeTimeProvider(),
             NullLogger<SettingsService>.Instance, Token);
-        _service = new LibraryService([steam ?? _steam, _gog], _settings, _running, _files, _watcher, _watcher, _events, _snapshots, _time,
-            NullLogger<LibraryService>.Instance);
+        _service = new LibraryService([steam ?? _steam, _gog], _settings, _running, files ?? _files, _watcher, _watcher, _events, _snapshots,
+            _time, NullLogger<LibraryService>.Instance);
         _service.Changed += (_, snapshot) => _published.Enqueue(snapshot);
     }
 
-    private async Task StartAsync(ILibraryProvider? steam = null)
+    private async Task StartAsync(ILibraryProvider? steam = null, IFileSystem? files = null)
     {
-        await CreateAsync(steam);
+        await CreateAsync(steam, files);
         await _time.WakeAsync(() => _run = Service.RunAsync(_stop.Token), "the first scan is done");
     }
 
