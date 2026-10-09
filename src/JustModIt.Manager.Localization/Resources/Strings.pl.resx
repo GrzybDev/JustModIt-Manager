@@ -151,13 +151,13 @@
     <value>Nowość dla gry {game}</value>
   </data>
   <data name="NoticeAvailable" xml:space="preserve">
-    <value>{team} ma dla niej projekt, który możesz zainstalować.</value>
+    <value>{team} ma dla niej projekt do zainstalowania.</value>
   </data>
   <data name="NoticeAvailableAnyTeam" xml:space="preserve">
-    <value>Jest dla niej projekt, który możesz zainstalować.</value>
+    <value>Jest dla niej projekt do zainstalowania.</value>
   </data>
   <data name="NoticeAvailableOfficial" xml:space="preserve">
-    <value>Gra jest już dostępna w Twoim języku, ale możesz też zainstalować dla niej projekt.</value>
+    <value>Gra jest już dostępna w Twoim języku, ale jest też dla niej projekt do zainstalowania.</value>
   </data>
   <data name="NoticeChoiceNeededTitle" xml:space="preserve">
     <value>Kilka projektów dla gry {game}</value>
@@ -226,7 +226,7 @@
     <value>Aktualizacja dla gry {game} nie powiodła się</value>
   </data>
   <data name="NoticePreviousReleaseLost" xml:space="preserve">
-    <value>Poprzedniego wydania nie udało się przywrócić, więc gra ma teraz oryginalne pliki. Możesz ponownie zainstalować projekt.</value>
+    <value>Poprzedniego wydania nie udało się przywrócić, więc gra ma teraz oryginalne pliki. Projekt można zainstalować ponownie.</value>
   </data>
   <data name="NoticeForgottenTitle" xml:space="preserve">
     <value>Gra {game} nie jest już zainstalowana</value>
@@ -256,7 +256,7 @@
     <value>Aktualizacja projektu „{project}” ({game}) nie powiodła się</value>
   </data>
   <data name="NoticePreviousReleaseLostProject" xml:space="preserve">
-    <value>Poprzedniego wydania nie udało się przywrócić, więc zmienione przez nie pliki są znów oryginalne. Możesz ponownie zainstalować projekt.</value>
+    <value>Poprzedniego wydania nie udało się przywrócić, więc zmienione przez nie pliki są znów oryginalne. Projekt można zainstalować ponownie.</value>
   </data>
   <data name="NoticeForgottenProjectTitle" xml:space="preserve">
     <value>Projekt „{project}” ({game}) nie jest już zainstalowany</value>
@@ -271,6 +271,6 @@
     <value>Dokończ konfigurację aplikacji {product}</value>
   </data>
   <data name="SetupPending" xml:space="preserve">
-    <value>Dopóki tego nie zrobisz, aplikacja nie zmieni żadnej z Twoich gier. Kliknij, aby do niej wrócić.</value>
+    <value>Do tego czasu aplikacja nie zmieni żadnej gry. Kliknij, aby do niej wrócić.</value>
   </data>
 </root>

@@ -34,13 +34,13 @@
     <value>Dostępne spolszczenie gry {game}</value>
   </data>
   <data name="NoticeAvailable" xml:space="preserve">
-    <value>Grupa {team} przygotowała spolszczenie, które możesz zainstalować.</value>
+    <value>Grupa {team} przygotowała spolszczenie do zainstalowania.</value>
   </data>
   <data name="NoticeAvailableAnyTeam" xml:space="preserve">
-    <value>Jest spolszczenie, które możesz zainstalować.</value>
+    <value>Jest spolszczenie do zainstalowania.</value>
   </data>
   <data name="NoticeAvailableOfficial" xml:space="preserve">
-    <value>Gra ma oficjalną polską wersję, ale jest też spolszczenie, które możesz zainstalować.</value>
+    <value>Gra ma oficjalną polską wersję, ale jest też spolszczenie do zainstalowania.</value>
   </data>
   <data name="NoticeChoiceNeededTitle" xml:space="preserve">
     <value>Kilka spolszczeń gry {game}</value>
@@ -94,7 +94,7 @@
     <value>Aktualizacja spolszczenia gry {game} nie powiodła się</value>
   </data>
   <data name="NoticePreviousReleaseLost" xml:space="preserve">
-    <value>Poprzedniej wersji spolszczenia nie udało się przywrócić, więc gra ma teraz oryginalne pliki. Możesz zainstalować spolszczenie ponownie.</value>
+    <value>Poprzedniej wersji spolszczenia nie udało się przywrócić, więc gra ma teraz oryginalne pliki. Spolszczenie można zainstalować ponownie.</value>
   </data>
   <data name="NoticeForgotten" xml:space="preserve">
     <value>Folderu gry już nie ma, więc zainstalowane w nim spolszczenie usunięto z listy.</value>
@@ -121,7 +121,7 @@
     <value>Aktualizacja spolszczenia „{project}” ({game}) nie powiodła się</value>
   </data>
   <data name="NoticePreviousReleaseLostProject" xml:space="preserve">
-    <value>Poprzedniej wersji spolszczenia nie udało się przywrócić, więc zmienione przez nią pliki są znów oryginalne. Możesz zainstalować spolszczenie ponownie.</value>
+    <value>Poprzedniej wersji spolszczenia nie udało się przywrócić, więc zmienione przez nią pliki są znów oryginalne. Spolszczenie można zainstalować ponownie.</value>
   </data>
   <data name="NoticeForgottenProjectTitle" xml:space="preserve">
     <value>Spolszczenie „{project}” ({game}) nie jest już zainstalowane</value>
@@ -130,6 +130,6 @@
     <value>Aplikacja nadal dba o Twoje spolszczenia. Kliknij ikonę w zasobniku systemowym, aby ją otworzyć.</value>
   </data>
   <data name="SetupPending" xml:space="preserve">
-    <value>Dopóki jej nie skończysz, aplikacja nie zajmie się Twoimi spolszczeniami. Kliknij, aby do niej wrócić.</value>
+    <value>Do tego czasu aplikacja nie zajmie się spolszczeniami. Kliknij, aby do niej wrócić.</value>
   </data>
 </root>
