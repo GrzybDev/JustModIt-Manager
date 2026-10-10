@@ -88,18 +88,28 @@ public sealed class HostEnvironmentTests
     }
 
     [Fact]
-    public void The_window_gets_the_apps_accent_its_names_the_systems_motion_setting_and_its_own_composition()
+    public void The_window_gets_the_apps_accent_its_names_its_site_without_the_key_the_systems_decoders_and_motion_setting_and_its_own_composition()
     {
         Action<UiComposition> compose = _ => { };
         var options = new AppOptions { Product = Product, App = typeof(HostEnvironmentTests).Assembly, ConfigureUi = compose };
+        var environment = HostEnvironment.Create(Product with
+        {
+            AccentColor = "#3B82F6",
+            ImageHosts = "images.example.com; posters.example.net/vi/",
+        }, Build);
 
-        var context = HostEnvironment.Create(Product with { AccentColor = "#3B82F6" }, Build)
-            .WindowContext(options, new LaunchArguments(ProcessRole.Ui, Background: false, Target: null), NullLoggerFactory.Instance);
+        var context = environment.WindowContext(options, new LaunchArguments(ProcessRole.Ui, Background: false, Target: null),
+            NullLoggerFactory.Instance);
 
         context.AccentColor.Should().Be("#3B82F6");
         context.Compose.Should().BeSameAs(compose);
         context.ProductName.Should().Be(ProductConfiguration.ProductName);
         context.PipeName.Should().Be(InstanceNames.ForCurrentUser("ExampleApp.Dev").PipeName);
+        context.Site.SiteAddress.Should().Be(new Uri("https://example.com/"));
+        context.Site.ApiKey.Should().BeNull("only the agent talks to the API");
+        context.ImageHosts.Should().Equal("images.example.com", "posters.example.net/vi/");
+        context.ImageCacheDirectory.Should().Be(Path.Combine(environment.Locations.CacheDirectory, "images"));
+        context.Codecs.Should().Match(codecs => !OperatingSystem.IsWindows() || codecs is WindowsMediaCodecs, "the site's AVIF stills need them");
         context.SystemMotion.Should().Match(motion => !OperatingSystem.IsWindows() || motion is WindowsSystemMotion);
     }
 

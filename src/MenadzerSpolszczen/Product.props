@@ -9,6 +9,7 @@
     <ManagerCreatorProjectExtension>.plproj</ManagerCreatorProjectExtension>
     <ManagerApiUrl>https://api.bazaspolszczen.pl/</ManagerApiUrl>
     <ManagerSiteUrl>https://bazaspolszczen.pl/</ManagerSiteUrl>
+    <ManagerImageHosts>storage.bazaspolszczen.pl</ManagerImageHosts>
     <ManagerUpdateUrl>https://github.com/GrzybDev/MenadzerSpolszczen</ManagerUpdateUrl>
     <ManagerLanguage>pl</ManagerLanguage>
     <ManagerTargetLanguage>pl</ManagerTargetLanguage>

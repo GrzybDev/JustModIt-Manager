@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
+using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Shell;
@@ -40,6 +41,7 @@ public sealed partial class MainWindow : Window
         DataTemplates.Add(views);
         Icon = icon;
         DataContext = shell;
+        RemoteImage.SetLoader(this, shell.Images);
         shell.Agent.BringToFrontRequested += OnBringToFront;
         shell.Agent.ShutdownHandler = CloseForAgentAsync;
         Motion.ReducedChanged += OnReducedChanged;

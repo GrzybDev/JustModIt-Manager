@@ -57,6 +57,17 @@ UNICODE_STRING_MAX_CHARS
 // Registry
 RegNotifyChangeKeyValue
 
+// Pictures (WIC)
+CLSID_WICImagingFactory
+CoCreateInstance
+CoIncrementMTAUsage
+E_INVALIDARG
+E_OUTOFMEMORY
+GUID_WICPixelFormat32bppPBGRA
+IWICImagingFactory
+SHCreateMemStream
+WINCODEC_ERR_COMPONENTNOTFOUND
+
 // Anything else
 AllowSetForegroundWindow
 SystemParametersInfo

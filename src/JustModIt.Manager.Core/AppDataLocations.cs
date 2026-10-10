@@ -33,6 +33,9 @@ public sealed class AppDataLocations
     /// </summary>
     public string DownloadsDirectory => Path.Combine(CacheDirectory, "downloads");
 
+    /// <summary>The images the window downloaded from the site, such as covers, shown again without the network.</summary>
+    public string ImageCacheDirectory => Path.Combine(CacheDirectory, "images");
+
     public string SettingsFile => Path.Combine(DataDirectory, "settings.json");
 
     /// <summary>Automation history and the last library snapshot.</summary>

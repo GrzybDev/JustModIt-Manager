@@ -1,4 +1,14 @@
 {
   "$schema": "https://aka.ms/CsWin32.schema.json",
-  "public": false
+  "public": false,
+  "comInterop": {
+    "useIntPtrForComOutPointers": true,
+    "preserveSigMethods": [
+      "IWICBitmapDecoder",
+      "IWICBitmapScaler",
+      "IWICBitmapSource",
+      "IWICFormatConverter",
+      "IWICImagingFactory"
+    ]
+  }
 }

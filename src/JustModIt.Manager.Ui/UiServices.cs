@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Styling;
 using JustModIt.Manager.Ui.Connection;
+using JustModIt.Manager.Ui.Images;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 
@@ -19,6 +20,9 @@ public sealed class UiServices
 
     /// <summary>Shows notifications in the window's corner.</summary>
     public required ToastHost Toasts { get; init; }
+
+    /// <summary>Loads the site's images, which <see cref="Controls.RemoteImage"/> shows.</summary>
+    public required IImageLoader Images { get; init; }
 
     /// <summary>The app's names, links and options.</summary>
     public required UiContext Context { get; init; }

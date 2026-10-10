@@ -35,6 +35,7 @@
         Language = Language,
         TargetLanguage = TargetLanguage,
         AccentColor = AccentColor,
+        ImageHosts = ImageHosts,
         IsDevelopmentBuild = IsDevelopmentBuild,
         DevelopmentShellIntegration = DevelopmentShellIntegration,
     }%3B]]></_ProductSettingsMember>
@@ -85,6 +86,9 @@ internal static class ProductConfiguration
     public const string TargetLanguage = @"$([MSBuild]::Escape($(ManagerTargetLanguage.Replace('"', '""'))))"%3B
 
     public const string AccentColor = @"$([MSBuild]::Escape($(ManagerAccentColor.Replace('"', '""'))))"%3B
+
+    /// <summary>The hosts, separated by semicolons, that the window loads images from, each alone or with the path its images are under.</summary>
+    public const string ImageHosts = @"$([MSBuild]::Escape($(ManagerImageHosts.Replace('"', '""'))))"%3B
 
     public const bool IsDevelopmentBuild = $(_DevelopmentBuildLiteral)%3B
 

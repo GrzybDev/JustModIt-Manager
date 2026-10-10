@@ -8,6 +8,7 @@ using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Ui.Connection;
+using JustModIt.Manager.Ui.Images;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Protocol.Views;
@@ -92,6 +93,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public DialogHost Dialogs => _services.Dialogs;
 
     public ToastHost Toasts => _services.Toasts;
+
+    public IImageLoader Images => _services.Images;
 
     /// <summary>What closing the window means, by the player's setting.</summary>
     public CloseFlow CloseFlow { get; }

@@ -40,6 +40,12 @@ public sealed record ProductSettings
 
     public string AccentColor { get; init; } = "";
 
+    /// <summary>
+    /// The hosts, separated by semicolons, that the window loads images from, each alone or with the path its images are
+    /// under, as the site loads them; empty loads none.
+    /// </summary>
+    public string ImageHosts { get; init; } = "";
+
     public bool IsDevelopmentBuild { get; init; }
 
     /// <summary>A development build registers autostart and the link scheme, which otherwise only an installed copy does.</summary>

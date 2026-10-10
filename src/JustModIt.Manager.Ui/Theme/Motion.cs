@@ -119,6 +119,24 @@ public static class Motion
         _ = animation.RunAsync(control);
     }
 
+    /// <summary>Fades a control in from nothing, as an image that has arrived.</summary>
+    /// <param name="control">The control that appears.</param>
+    public static void FadeIn(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        var animation = new Animation
+        {
+            Duration = TimeSpan.FromMilliseconds(IsReduced ? 120 : 260),
+            Easing = new CubicEaseOut(),
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(Visual.OpacityProperty, 0d) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(Visual.OpacityProperty, 1d) } },
+            },
+        };
+        _ = animation.RunAsync(control);
+    }
+
     /// <summary>Fades a control in anew, as when what it shows has changed.</summary>
     /// <param name="control">The control whose content changed.</param>
     public static void Refresh(Control control)

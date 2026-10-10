@@ -37,7 +37,8 @@ public sealed class MotionTests
     public void The_window_follows_the_systems_motion_setting_each_time_it_comes_to_the_front()
     {
         var system = new SystemMotionSetting { Reduced = true };
-        using var session = UiSession.Create(Application.Current!, UiHarness.Context() with { SystemMotion = system }, new FakeAgent());
+        using var session = UiSession.Create(Application.Current!, UiHarness.Context() with { SystemMotion = system }, new FakeAgent(),
+            new FakeImages());
         var window = session.CreateWindow();
         var other = new Window();
         try

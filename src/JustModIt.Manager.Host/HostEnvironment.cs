@@ -78,8 +78,7 @@ internal sealed record HostEnvironment
         Version = Version,
         Locations = Locations,
         Names = Names,
-        Api = new CatalogueApiOptions(new Uri(Product.ApiUrl), Product.SiteUrl.Length > 0 ? new Uri(Product.SiteUrl) : null, Identity.AppId,
-            Version, Product.ApiKey),
+        Api = Site(Product.ApiKey),
         PackageExtension = Product.PackageExtension,
         TargetLanguage = TargetLanguage.FromCode(Product.TargetLanguage),
         ExecutablePath = Install.ExecutablePath,
@@ -110,10 +109,17 @@ internal sealed record HostEnvironment
             Notices = new LegalNotices(options.App),
             Branding = new AppBranding(options.App),
             AccentColor = Product.AccentColor,
+            Site = Site(apiKey: null),
+            ImageCacheDirectory = Locations.ImageCacheDirectory,
+            ImageHosts = Product.ImageHosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            Codecs = OperatingSystem.IsWindows() ? new WindowsMediaCodecs() : null,
             SystemMotion = OperatingSystem.IsWindows() ? new WindowsSystemMotion() : null,
             Compose = options.ConfigureUi,
         };
     }
+
+    private CatalogueApiOptions Site(string? apiKey) =>
+        new(new Uri(Product.ApiUrl), Product.SiteUrl.Length > 0 ? new Uri(Product.SiteUrl) : null, Identity.AppId, Version, apiKey);
 
     /// <summary>The package creator's options for this app.</summary>
     public CreatorOptions CreatorOptions() => Creator.CreatorOptions.For(Identity, $"{Product.ProductName} {Version}",

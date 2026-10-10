@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -29,7 +30,7 @@ public sealed class UiHarness : IDisposable
             Agent.Push(state);
         }
 
-        Session = UiSession.Create(Application.Current!, Context(compose, launch), Agent);
+        Session = UiSession.Create(Application.Current!, Context(compose, launch), Agent, Images);
         Window = Session.CreateWindow();
         // A click here moves, presses and releases, each after running the dispatcher and a frame; under load that takes
         // longer than a tooltip's delay, and the tooltip, which opens inside the window here, can slide over the pointer
@@ -42,6 +43,8 @@ public sealed class UiHarness : IDisposable
     }
 
     public FakeAgent Agent { get; } = new();
+
+    public FakeImages Images { get; } = new();
 
     public UiSession Session { get; }
 
@@ -68,6 +71,9 @@ public sealed class UiHarness : IDisposable
             Loggers = NullLoggerFactory.Instance,
             Notices = new LegalNotices(typeof(UiHarness).Assembly),
             Branding = new AppBranding(typeof(UiHarness).Assembly),
+            Site = new CatalogueApiOptions(new Uri("https://api.example.com/"), new Uri("https://example.com/"), "ExampleApp", "0.1.0"),
+            ImageCacheDirectory = Path.Combine(AppContext.BaseDirectory, "image-cache"),
+            ImageHosts = ["images.example.com"],
             Compose = compose,
         };
     }

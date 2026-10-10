@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Protocol.Activation;
@@ -33,6 +34,24 @@ public sealed record UiContext
 
     /// <summary>The app's accent colour as <c>#rrggbb</c>; empty keeps the theme's own.</summary>
     public string AccentColor { get; init; } = "";
+
+    /// <summary>
+    /// The site's addresses and the name the app gives itself there, which the window's image requests carry; it never
+    /// holds the API key, which only the agent sends.
+    /// </summary>
+    public required CatalogueApiOptions Site { get; init; }
+
+    /// <summary>Where the window keeps the images it downloaded, so they show again without the network.</summary>
+    public required string ImageCacheDirectory { get; init; }
+
+    /// <summary>
+    /// The only hosts the window loads images from, the ones the site loads them from: each alone or with the path its
+    /// images are under, e.g. <c>images.example.com/vi/</c>.
+    /// </summary>
+    public IReadOnlyList<string> ImageHosts { get; init; } = [];
+
+    /// <summary>The system's decoders for the pictures the window's own decoder does not read, such as AVIF; null for none.</summary>
+    public IMediaCodecs? Codecs { get; init; }
 
     /// <summary>The system's wish for reduced motion, which the window follows; null where the system has none.</summary>
     public ISystemMotion? SystemMotion { get; init; }
