@@ -47,6 +47,17 @@ internal static class ImageBaking
         return bitmap;
     }
 
+    /// <summary>Spreads a tiny image over a box and softens it, so an adult cover shows as a blur of its colours.</summary>
+    /// <param name="tiny">The image decoded a few pixels wide.</param>
+    /// <param name="size">The box in physical pixels.</param>
+    public static Bitmap Blur(Bitmap tiny, PixelSize size) => Bake(size, canvas =>
+    {
+        using var image = ToSkia(tiny);
+        var box = new SKRect(0, 0, size.Width, size.Height);
+        using var paint = new SKPaint { ImageFilter = SKImageFilter.CreateBlur(size.Width / 18f, size.Width / 18f, SKShaderTileMode.Clamp) };
+        canvas.DrawImage(image, CoverRect(image.Width, image.Height, box), new SKSamplingOptions(SKFilterMode.Linear), paint);
+    });
+
     private static WriteableBitmap Bake(PixelSize size, Action<SKCanvas> draw)
     {
         var bitmap = new WriteableBitmap(size, new Vector(96, 96), PixelFormats.Bgra8888, AlphaFormat.Premul);
@@ -60,6 +71,41 @@ internal static class ImageBaking
         }
 
         return bitmap;
+    }
+
+    private static SKImage ToSkia(Bitmap bitmap)
+    {
+        var (pixels, stride) = Pixels(bitmap);
+        var type = bitmap.Format == PixelFormats.Rgba8888 ? SKColorType.Rgba8888 : SKColorType.Bgra8888;
+        var alpha = bitmap.AlphaFormat == AlphaFormat.Unpremul ? SKAlphaType.Unpremul : SKAlphaType.Premul;
+        var info = new SKImageInfo(bitmap.PixelSize.Width, bitmap.PixelSize.Height, type, alpha);
+        var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+        try
+        {
+            return SKImage.FromPixelCopy(info, handle.AddrOfPinnedObject(), stride)
+                ?? throw new InvalidOperationException("The image could not be read.");
+        }
+        finally
+        {
+            handle.Free();
+        }
+    }
+
+    private static (byte[] Pixels, int Stride) Pixels(Bitmap bitmap)
+    {
+        var stride = bitmap.PixelSize.Width * 4;
+        var pixels = new byte[stride * bitmap.PixelSize.Height];
+        var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+        try
+        {
+            bitmap.CopyPixels(new PixelRect(bitmap.PixelSize), handle.AddrOfPinnedObject(), pixels.Length, stride);
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        return (pixels, stride);
     }
 
     // Fills the box, cropping what does not fit, centred.

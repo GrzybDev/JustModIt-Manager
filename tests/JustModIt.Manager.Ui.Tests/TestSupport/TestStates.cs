@@ -10,6 +10,9 @@ public static class TestStates
 {
     public static readonly GameKey Ember = new(StoreId.Steam, "4100");
 
+    /// <summary>The moment the tests' clock stands at, a day after the invented projects' newest releases.</summary>
+    public static readonly DateTimeOffset Now = new(2026, 9, 29, 14, 58, 0, TimeSpan.Zero);
+
     /// <summary>An agent that has read everything and has nothing to do, its setup done and its version current.</summary>
     public static AppStateView Idle(bool creatorMode = false) => new()
     {

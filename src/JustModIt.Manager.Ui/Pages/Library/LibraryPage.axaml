@@ -1,0 +1,521 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lib="using:JustModIt.Manager.Ui.Pages.Library"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Library.LibraryPage"
+             x:DataType="lib:LibraryPageViewModel">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="F5" Command="{Binding CheckNowCommand}" />
+  </UserControl.KeyBindings>
+
+  <UserControl.Styles>
+    <!-- The to-do panel: a raised surface whose rows are split by faint lines. -->
+    <Style Selector="Border.todo">
+      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+      <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="ItemsControl.todoRows > ContentPresenter">
+      <Setter Property="BorderBrush" Value="{StaticResource FillBrush}" />
+    </Style>
+    <Style Selector="ItemsControl.todoRows > ContentPresenter:not(:nth-child(1))">
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="Button.rowName">
+      <Setter Property="Height" Value="NaN" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Button.rowName:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+    </Style>
+    <Style Selector="Button.rowName:pointerover TextBlock">
+      <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
+    <Style Selector="Button.rowAction">
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Padding" Value="14,0" />
+    </Style>
+    <Style Selector="Border.countBadge">
+      <Setter Property="MinWidth" Value="22" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="Padding" Value="7,0" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Background" Value="#4D030712" />
+    </Style>
+    <Style Selector="Border.countBadge > TextBlock">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.rowCover">
+      <Setter Property="Width" Value="40" />
+      <Setter Property="Height" Value="60" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+      <Setter Property="BoxShadow" Value="0 0 0 1 #1AFFFFFF" />
+    </Style>
+
+    <!-- A game's card: one link that rises under the pointer, its cover zooming a little within its frame. -->
+    <Style Selector="Button.gameCard">
+      <Setter Property="Height" Value="NaN" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+      <Setter Property="RenderTransform" Value="translateY(0px)" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.gameCard /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
+          <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.3" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.gameCard:pointerover">
+      <Setter Property="RenderTransform" Value="translateY(-4px)" />
+    </Style>
+    <Style Selector="Button.gameCard:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.gameCard:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource ElevLift}" />
+    </Style>
+    <Style Selector=":is(Window).reducedMotion Button.gameCard:pointerover">
+      <Setter Property="RenderTransform" Value="translateY(0px)" />
+    </Style>
+    <Style Selector="Button.gameCard ui|RemoteImage.cover">
+      <Setter Property="RenderTransform" Value="scale(1)" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.gameCard:pointerover ui|RemoteImage.cover">
+      <Setter Property="RenderTransform" Value="scale(1.05)" />
+    </Style>
+    <Style Selector=":is(Window).reducedMotion Button.gameCard:pointerover ui|RemoteImage.cover">
+      <Setter Property="RenderTransform" Value="scale(1)" />
+    </Style>
+    <Style Selector="Button.gameCard:pointerover TextBlock.cardName">
+      <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
+    <Style Selector="TextBlock.cardName">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="LineHeight" Value="21" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="MaxLines" Value="3" />
+    </Style>
+    <Style Selector="Border.adultMark">
+      <Setter Property="Height" Value="16" />
+      <Setter Property="Padding" Value="5,0" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Background" Value="{StaticResource DangerChipBrush}" />
+    </Style>
+    <Style Selector="Border.adultMark > TextBlock">
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{StaticResource DangerTextStrongBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- No cover: the game's controller in a soft glow, so the grid keeps its rhythm. -->
+    <Style Selector="Panel.coverPlaceholder">
+      <Setter Property="Background">
+        <RadialGradientBrush Center="50%,45%" GradientOrigin="50%,45%" RadiusX="60%" RadiusY="40%">
+          <GradientStop Color="#2E6D5BD0" Offset="0" />
+          <GradientStop Color="#006D5BD0" Offset="1" />
+        </RadialGradientBrush>
+      </Setter>
+    </Style>
+
+    <Style Selector="Button.helpTile">
+      <Setter Property="Height" Value="NaN" />
+      <Setter Property="Padding" Value="16,24" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.helpTile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+      <Setter Property="BorderBrush" Value="#38FFFFFF" />
+    </Style>
+    <Style Selector="Border.roundChip">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    </Style>
+    <Style Selector="Border.roundChip > ui|Icon">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.helpTile:pointerover Border.roundChip, Button.helpRow:pointerover Border.roundChip">
+      <Setter Property="Background" Value="{StaticResource FillStrongerBrush}" />
+    </Style>
+    <Style Selector="Button.helpRow">
+      <Setter Property="Height" Value="NaN" />
+      <Setter Property="Padding" Value="24,16,20,16" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Border.calm">
+      <Setter Property="Padding" Value="18,12" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="#05FFFFFF" />
+    </Style>
+    <Style Selector="TextBlock.pillCount">
+      <Setter Property="FontWeight" Value="Normal" />
+      <Setter Property="Opacity" Value="0.85" />
+    </Style>
+    <Style Selector="RadioButton.all TextBlock.pillCount">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+    <Style Selector="RadioButton.all:checked TextBlock.pillCount">
+      <Setter Property="Foreground" Value="#52525B" />
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer x:Name="Scroller" Classes="page">
+    <StackPanel x:Name="PageContent" Classes="page" MaxWidth="{StaticResource PageMaxWidth}">
+      <ui:PageHeader Title="{Binding Title}" Subtitle="{x:Static loc:Strings.Library_Subtitle}">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <TextBox x:Name="SearchBox" Classes="search" Width="280" Text="{Binding Query}" IsVisible="{Binding ShowsSearch}"
+                   PlaceholderText="{x:Static loc:Strings.Library_SearchPlaceholder}"
+                   AutomationProperties.Name="{x:Static loc:Strings.Library_Search}" />
+          <Button x:Name="CheckNowButton" Classes="outline" Content="{x:Static loc:Strings.Library_CheckNow}"
+                  ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CheckNowCommand}"
+                  IsEnabled="{Binding !IsChecking}" ToolTip.Tip="{x:Static loc:Strings.Library_CheckNowTip}" />
+        </StackPanel>
+      </ui:PageHeader>
+
+      <ui:Callout Classes="warning" Icon="{x:Static theme:Icons.WifiOff}" Title="{Binding OfflineTitle}" Message="{Binding OfflineMessage}"
+                  IsVisible="{Binding IsOffline}" MaxWidth="Infinity" HorizontalAlignment="Stretch" theme:Motion.Enter="True" />
+
+      <!-- What needs the player, most pressing first; the one red button acts on everything that can run now. -->
+      <Border x:Name="TodoPanel" Classes="todo" IsVisible="{Binding ShowsTodo}">
+        <StackPanel>
+          <Grid ColumnDefinitions="*,Auto" MinHeight="64" Margin="20,12,16,12">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+              <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource FillBrush}">
+                <ui:Icon Data="{x:Static theme:Icons.ListChecks}" Foreground="{StaticResource TextEmphasisBrush}" />
+              </Border>
+              <TextBlock Classes="h3" Text="{x:Static loc:Strings.Library_Todo}" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button x:Name="BatchButton" Grid.Column="1" Classes="primary compact" Padding="16,0,10,0" IsVisible="{Binding ShowsBatch}"
+                    Command="{Binding RunBatchCommand}" ToolTip.Tip="{Binding BatchTip}" AutomationProperties.Name="{Binding BatchName}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ui:Icon Data="{Binding BatchIcon}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding BatchText}" VerticalAlignment="Center" />
+                <Border Classes="countBadge">
+                  <TextBlock Text="{Binding BatchCount}" />
+                </Border>
+              </StackPanel>
+            </Button>
+          </Grid>
+          <Border Classes="divider" Background="{StaticResource HairlineBrush}" />
+          <ItemsControl x:Name="TodoList" Classes="todoRows" ItemsSource="{Binding TodoRows}" theme:Motion.Stagger="True">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="lib:TodoRowViewModel">
+                <Grid ColumnDefinitions="40,*,Auto" ColumnSpacing="16" Margin="20,10,16,10">
+                  <Border Classes="rowCover" VerticalAlignment="Center">
+                    <ui:RemoteImage Source="{Binding Cover}" IsBlurred="{Binding IsCoverBlurred}" />
+                  </Border>
+                  <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Classes="rowName" Command="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).OpenGameCommand}"
+                              CommandParameter="{Binding Game}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}">
+                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                      </Button>
+                      <ui:StoreIcon Store="{Binding Store}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}"
+                                    VerticalAlignment="Center" ToolTip.Tip="{Binding StoreTip}" IsHitTestVisible="True"
+                                    AutomationProperties.Name="{Binding StoreTip}" />
+                    </StackPanel>
+                    <WrapPanel ItemSpacing="14" LineSpacing="4">
+                      <ui:StatusLine FontSize="13" LineHeight="20" Foreground="{StaticResource TextSecondaryBrush}" Icon="{Binding Line.Icon}"
+                                     Tone="{Binding Line.Tone}" Label="{Binding Line.Label}" LabelExtra="{Binding Line.LabelExtra}"
+                                     Detail="{Binding Line.Detail}" Warning="{Binding Line.Warning}" />
+                      <ItemsControl ItemsSource="{Binding Teams}" IsVisible="{Binding HasTeams}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <WrapPanel ItemSpacing="14" LineSpacing="4" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="lib:TeamOffer">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <ui:TeamBadge NameText="{Binding Name}" Avatar="{Binding Avatar}" VerticalAlignment="Center" />
+                              <TextBlock Text="{Binding Name}" FontSize="13" Foreground="{StaticResource TextBodyBrush}" VerticalAlignment="Center" />
+                              <ui:StatusPill Text="{Binding Status}" Hex="{Binding StatusColor}" Height="22" IsVisible="{Binding HasStatus}" />
+                            </StackPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </WrapPanel>
+                  </StackPanel>
+                  <Panel Grid.Column="2" VerticalAlignment="Center">
+                    <Button Classes="outline rowAction" Content="{Binding ActionText}" ui:ButtonAssist.Icon="{Binding ActionIcon}"
+                            IsVisible="{Binding !IsDanger}" AutomationProperties.Name="{Binding ActionName}"
+                            Command="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).ActCommand}" CommandParameter="{Binding}" />
+                    <Button Classes="danger rowAction" Content="{Binding ActionText}" ui:ButtonAssist.Icon="{Binding ActionIcon}"
+                            IsVisible="{Binding IsDanger}" AutomationProperties.Name="{Binding ActionName}"
+                            Command="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).ActCommand}" CommandParameter="{Binding}" />
+                  </Panel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel IsVisible="{Binding ShowsTodoToggle}">
+            <Border Classes="divider" Background="{StaticResource FillBrush}" />
+            <Button x:Name="TodoToggle" Classes="quiet small" HorizontalAlignment="Center" Margin="0,6" Content="{Binding TodoToggleText}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.ChevronDown}" ui:ButtonAssist.IconAfter="True"
+                    Classes.expanded="{Binding IsTodoExpanded}" Command="{Binding ToggleTodoCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border x:Name="AllCurrent" Classes="calm" IsVisible="{Binding ShowsAllCurrent}">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Foreground="{StaticResource SuccessTextBrush}" VerticalAlignment="Center" />
+          <TextBlock VerticalAlignment="Center" FontSize="14">
+            <Run Text="{x:Static loc:Strings.Library_AllCurrent}" FontWeight="SemiBold" Foreground="{StaticResource TextStrongBrush}" />
+            <Run Text=" · " Foreground="{StaticResource TextMutedBrush}" />
+            <Run Text="{x:Static loc:Strings.Library_AllCurrentDetail}" Foreground="{StaticResource TextSecondaryBrush}" />
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <StackPanel Spacing="20" Margin="0,8,0,0">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" IsVisible="{Binding ShowsFilterBar}">
+          <WrapPanel ItemSpacing="8" LineSpacing="12">
+            <TextBlock Classes="h3" Text="{x:Static loc:Strings.Library_Others}" Margin="0,0,8,0" VerticalAlignment="Center"
+                       IsVisible="{Binding ShowsTodo}" />
+            <StackPanel Orientation="Horizontal" Spacing="8" AutomationProperties.Name="{x:Static loc:Strings.Library_Filters}">
+              <RadioButton x:Name="FilterAll" Theme="{StaticResource FilterPill}" Classes="all" GroupName="filter" IsChecked="{Binding ShowsAll}"
+                           AutomationProperties.Name="{x:Static loc:Strings.Library_FilterAll}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <TextBlock Text="{x:Static loc:Strings.Library_FilterAll}" />
+                  <TextBlock Classes="pillCount" Text="{Binding AllCount}" />
+                </StackPanel>
+              </RadioButton>
+              <RadioButton x:Name="FilterInstalled" Theme="{StaticResource FilterPill}" Classes="success" GroupName="filter"
+                           IsChecked="{Binding ShowsInstalled}" AutomationProperties.Name="{x:Static loc:Strings.Library_FilterInstalled}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Ellipse Classes="dot" />
+                  <TextBlock Text="{x:Static loc:Strings.Library_FilterInstalled}" />
+                  <TextBlock Classes="pillCount" Text="{Binding InstalledCount}" />
+                </StackPanel>
+              </RadioButton>
+              <RadioButton x:Name="FilterAvailable" Theme="{StaticResource FilterPill}" GroupName="filter" IsChecked="{Binding ShowsAvailable}"
+                           AutomationProperties.Name="{x:Static loc:Strings.Library_FilterAvailable}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Ellipse Classes="dot" />
+                  <TextBlock Text="{x:Static loc:Strings.Library_FilterAvailable}" />
+                  <TextBlock Classes="pillCount" Text="{Binding AvailableCount}" />
+                </StackPanel>
+              </RadioButton>
+              <RadioButton x:Name="FilterHidden" Theme="{StaticResource FilterPill}" Classes="neutral" GroupName="filter"
+                           IsChecked="{Binding ShowsHidden}" IsVisible="{Binding ShowsHiddenFilter}"
+                           AutomationProperties.Name="{x:Static loc:Strings.Library_FilterHidden}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ui:Icon Data="{x:Static theme:Icons.EyeOff}" Width="12" Height="12" VerticalAlignment="Center" />
+                  <TextBlock Text="{x:Static loc:Strings.Library_FilterHidden}" />
+                  <TextBlock Classes="pillCount" Text="{Binding HiddenCount}" />
+                </StackPanel>
+              </RadioButton>
+            </StackPanel>
+          </WrapPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top"
+                      AutomationProperties.Name="{x:Static loc:Strings.Library_Order}">
+            <ui:Icon Data="{x:Static theme:Icons.ArrowDownWideNarrow}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
+                     Margin="0,0,2,0" />
+            <RadioButton Theme="{StaticResource SortPill}" GroupName="sort" Content="{x:Static loc:Strings.Library_SortName}"
+                         IsChecked="{Binding SortsByName}" />
+            <RadioButton Theme="{StaticResource SortPill}" GroupName="sort" Content="{x:Static loc:Strings.Library_SortRecent}"
+                         IsChecked="{Binding SortsByRecent}" />
+          </StackPanel>
+        </Grid>
+
+        <!-- While the page cannot tell yet which games have projects, cards stand in; it never claims there are none. -->
+        <ItemsControl x:Name="Skeletons" ItemsSource="{Binding Skeletons}" IsVisible="{Binding IsLoading}"
+                      AutomationProperties.Name="{x:Static loc:Strings.Library_Loading}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).Columns}" ColumnSpacing="24"
+                           RowSpacing="24" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:Int32">
+              <Border Classes="card" BoxShadow="{StaticResource ElevNone}">
+                <StackPanel>
+                  <ui:AspectBox>
+                    <ui:Skeleton CornerRadius="0" />
+                  </ui:AspectBox>
+                  <StackPanel Spacing="10" Margin="14,20,14,16">
+                    <ui:Skeleton Height="12" Width="96" HorizontalAlignment="Left" />
+                    <ui:Skeleton Height="10" Width="64" HorizontalAlignment="Left" />
+                    <ui:Skeleton Height="10" Width="80" HorizontalAlignment="Left" Margin="0,12,0,0" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- The grid lies out in rows, so the list virtualises; cards of a row enter one after another. -->
+        <ItemsControl x:Name="GameGrid" ItemsSource="{Binding Rows}" IsVisible="{Binding ShowsGames}"
+                      KeyDown="OnGridKeyDown" theme:Motion.Stagger="True">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <VirtualizingStackPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="lib:CardRow">
+              <ItemsControl ItemsSource="{Binding Items}" Margin="0,0,0,24" theme:Motion.Stagger="True">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid x:DataType="lib:CardRow" Columns="{Binding Columns}" ColumnSpacing="24" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.DataTemplates>
+                  <DataTemplate x:DataType="lib:GameCardViewModel">
+                    <Button Classes="gameCard" AutomationProperties.Name="{Binding AccessibleName}"
+                            Command="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).OpenGameCommand}"
+                            CommandParameter="{Binding Key}">
+                      <Border CornerRadius="11" ClipToBounds="True">
+                        <Grid RowDefinitions="Auto,*">
+                          <ui:AspectBox>
+                            <Panel Background="{StaticResource SurfaceSunkenBrush}">
+                              <Panel Classes="coverPlaceholder" IsVisible="{Binding !HasCover}">
+                                <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="40" Height="40" StrokeThickness="1.5"
+                                         Foreground="#B3C4B5FD" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              </Panel>
+                              <ui:RemoteImage Classes="cover" Source="{Binding Cover}" IsBlurred="{Binding IsCoverBlurred}" />
+                            </Panel>
+                          </ui:AspectBox>
+                          <Border Grid.Row="1" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="14,22,14,14">
+                            <Grid RowDefinitions="Auto,Auto,*,Auto">
+                              <TextBlock Classes="cardName" Text="{Binding Name}" />
+                              <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6" Margin="0,6,0,0">
+                                <Panel VerticalAlignment="Center">
+                                  <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" IsVisible="{Binding !HasManyTeams}" />
+                                  <StackPanel Orientation="Horizontal" Spacing="-4" IsVisible="{Binding HasManyTeams}">
+                                    <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" />
+                                    <ui:TeamBadge NameText="{Binding OtherBadgeName}" Avatar="{Binding OtherBadgeAvatar}" />
+                                  </StackPanel>
+                                </Panel>
+                                <TextBlock Grid.Column="1" Text="{Binding TeamName}" FontSize="13" LineHeight="18"
+                                           Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <Border Grid.Column="2" Classes="adultMark" IsVisible="{Binding IsAdult}" VerticalAlignment="Center"
+                                        ToolTip.Tip="{x:Static loc:Strings.Library_AdultTip}">
+                                  <TextBlock Text="{x:Static loc:Strings.Library_Adult}" />
+                                </Border>
+                                <ui:StoreIcon Grid.Column="3" Store="{Binding Store}" Width="14" Height="14"
+                                              Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
+                                              ToolTip.Tip="{Binding StoreTip}" IsHitTestVisible="True" />
+                              </Grid>
+                              <StackPanel Grid.Row="3" Spacing="8" Margin="0,12,0,0">
+                                <ProgressBar Classes="thin" Value="{Binding Progress}" IsIndeterminate="{Binding IsIndeterminate}"
+                                             IsVisible="{Binding ShowsProgress}" />
+                                <ui:StatusLine FontSize="13" LineHeight="18" StacksDetail="True" Icon="{Binding Line.Icon}" Tone="{Binding Line.Tone}"
+                                               Label="{Binding Line.Label}" LabelExtra="{Binding Line.LabelExtra}" Detail="{Binding Line.Detail}"
+                                               IsBusy="{Binding Line.IsBusy}" />
+                              </StackPanel>
+                            </Grid>
+                          </Border>
+                          <ui:StatusPill Classes="seam" Text="{Binding Status}" Hex="{Binding StatusColor}" IsVisible="{Binding HasStatus}"
+                                         VerticalAlignment="Bottom" Margin="14,0,0,-12" />
+                        </Grid>
+                      </Border>
+                    </Button>
+                  </DataTemplate>
+                  <DataTemplate x:DataType="lib:HelpTileViewModel">
+                    <Button x:Name="HelpTile" Classes="helpTile" AutomationProperties.Name="{x:Static loc:Strings.Shell_PageUndetected}"
+                            Command="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).OpenUndetectedCommand}">
+                      <StackPanel Spacing="14">
+                        <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource FillBrush}" HorizontalAlignment="Center">
+                          <ui:Icon Data="{x:Static theme:Icons.CircleHelp}" Width="20" Height="20" Foreground="{StaticResource TextEmphasisBrush}" />
+                        </Border>
+                        <StackPanel Spacing="6">
+                          <TextBlock Text="{x:Static loc:Strings.Shell_PageUndetected}" FontSize="15" LineHeight="21" FontWeight="SemiBold"
+                                     TextAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" />
+                          <TextBlock Text="{x:Static loc:Strings.Library_HelpText}" FontSize="13" LineHeight="18" TextAlignment="Center"
+                                     TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
+                        <Border Classes="roundChip" HorizontalAlignment="Center">
+                          <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" />
+                        </Border>
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.DataTemplates>
+              </ItemsControl>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <ui:EmptyState x:Name="EmptyPanel" Icon="{Binding EmptyIcon}" Title="{Binding EmptyTitle}" Message="{Binding EmptyMessage}"
+                       IsVisible="{Binding ShowsEmptyState}" theme:Motion.Enter="True">
+          <Button x:Name="EmptyAction" Classes="outline" Content="{Binding EmptyAction}" IsVisible="{Binding EmptyAction, Converter={x:Static ObjectConverters.IsNotNull}}"
+                  Command="{Binding RunEmptyActionCommand}" />
+        </ui:EmptyState>
+
+        <Button x:Name="HelpRow" Classes="helpRow" IsVisible="{Binding ShowsHelpRow}" Command="{Binding OpenUndetectedCommand}"
+                AutomationProperties.Name="{x:Static loc:Strings.Shell_PageUndetected}">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+            <Border Width="36" Height="36" CornerRadius="10" Background="{StaticResource FillBrush}">
+              <ui:Icon Data="{x:Static theme:Icons.CircleHelp}" Width="18" Height="18" Foreground="{StaticResource TextEmphasisBrush}" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Text="{x:Static loc:Strings.Shell_PageUndetected}" FontSize="15" LineHeight="22" FontWeight="SemiBold"
+                         Foreground="{StaticResource TextBrush}" />
+              <TextBlock Text="{x:Static loc:Strings.Library_HelpText}" FontSize="13" LineHeight="18" FontWeight="Normal"
+                         Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+            <Border Grid.Column="2" Classes="roundChip" VerticalAlignment="Center">
+              <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" />
+            </Border>
+          </Grid>
+        </Button>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -777,4 +777,328 @@
   <data name="Onboarding_ChangeLater" xml:space="preserve">
     <value>Każde z tych ustawień można później zmienić w Ustawieniach.</value>
   </data>
+  <data name="Library_Subtitle" xml:space="preserve">
+    <value>Gry wykryte na tym komputerze i pasujące do nich projekty.</value>
+  </data>
+  <data name="Library_Search" xml:space="preserve">
+    <value>Szukaj gry lub grupy</value>
+  </data>
+  <data name="Library_SearchPlaceholder" xml:space="preserve">
+    <value>Szukaj gry lub grupy…</value>
+  </data>
+  <data name="Library_CheckNow" xml:space="preserve">
+    <value>Sprawdź teraz</value>
+  </data>
+  <data name="Library_CheckNowTip" xml:space="preserve">
+    <value>Wyszukaj gry i nowe wersje teraz (F5)</value>
+  </data>
+  <data name="Library_OfflineTitle" xml:space="preserve">
+    <value>Brak połączenia z serwerem</value>
+  </data>
+  <data name="Library_MaintenanceTitle" xml:space="preserve">
+    <value>Trwa przerwa techniczna serwisu</value>
+  </data>
+  <data name="Library_OfflineMessage" xml:space="preserve">
+    <value>Widoczne są dane z ostatniego sprawdzenia ({time}).</value>
+  </data>
+  <data name="Library_OfflineNever" xml:space="preserve">
+    <value>Nie udało się jeszcze połączyć z serwerem.</value>
+  </data>
+  <data name="Library_Todo" xml:space="preserve">
+    <value>Do zrobienia</value>
+  </data>
+  <data name="Library_Others" xml:space="preserve">
+    <value>Pozostałe gry</value>
+  </data>
+  <data name="Library_AllCurrent" xml:space="preserve">
+    <value>Wszystko aktualne</value>
+  </data>
+  <data name="Library_AllCurrentDetail" xml:space="preserve">
+    <value>Żadna gra nie wymaga działania.</value>
+  </data>
+  <data name="Library_Filters" xml:space="preserve">
+    <value>Filtr gier</value>
+  </data>
+  <data name="Library_FilterAll" xml:space="preserve">
+    <value>Wszystkie</value>
+  </data>
+  <data name="Library_FilterInstalled" xml:space="preserve">
+    <value>Zainstalowane</value>
+  </data>
+  <data name="Library_FilterAvailable" xml:space="preserve">
+    <value>Dostępne</value>
+  </data>
+  <data name="Library_FilterHidden" xml:space="preserve">
+    <value>Ukryte</value>
+  </data>
+  <data name="Library_Order" xml:space="preserve">
+    <value>Kolejność gier</value>
+  </data>
+  <data name="Library_SortName" xml:space="preserve">
+    <value>A–Z</value>
+  </data>
+  <data name="Library_SortRecent" xml:space="preserve">
+    <value>Ostatnio wydane</value>
+  </data>
+  <data name="Library_HelpText" xml:space="preserve">
+    <value>Zobacz, co wykryto na tym komputerze.</value>
+  </data>
+  <data name="Library_Loading" xml:space="preserve">
+    <value>Wyszukiwanie gier i pasujących projektów…</value>
+  </data>
+  <data name="Library_EmptyTitle" xml:space="preserve">
+    <value>Nie znaleziono jeszcze gier z projektami</value>
+  </data>
+  <data name="Library_EmptyMessage" xml:space="preserve">
+    <value>Gra pojawi się tutaj, gdy zostanie wykryta na tym komputerze, a w serwisie będzie do niej projekt.</value>
+  </data>
+  <data name="Library_FoundOfflineTitle" xml:space="preserve">
+    <value>Gry są już wykryte</value>
+  </data>
+  <data name="Library_FoundOfflineMessage" xml:space="preserve">
+    <value>To, które z nich mają projekty, okaże się po powrocie połączenia.</value>
+  </data>
+  <data name="Library_AllHiddenTitle" xml:space="preserve">
+    <value>Wszystkie gry są ukryte</value>
+  </data>
+  <data name="Library_AllHiddenMessage" xml:space="preserve">
+    <value>Ukryte gry nie pojawiają się na liście. Widać je pod pigułką „Ukryte”.</value>
+  </data>
+  <data name="Library_NoResultsTitle" xml:space="preserve">
+    <value>Brak wyników</value>
+  </data>
+  <data name="Library_NoResults" xml:space="preserve">
+    <value>Żadna gra nie pasuje do „{query}”.</value>
+  </data>
+  <data name="Library_ClearSearch" xml:space="preserve">
+    <value>Wyczyść wyszukiwanie</value>
+  </data>
+  <data name="Library_FilteredOutTitle" xml:space="preserve">
+    <value>Pusto tu</value>
+  </data>
+  <data name="Library_FilteredOut" xml:space="preserve">
+    <value>{filter, select, Installed {{hasQuery, select, true {Wśród gier pasujących do „{query}” nie ma zainstalowanych projektów.} other {Żadna gra nie ma jeszcze zainstalowanego projektu.}}} Available {{hasQuery, select, true {Wśród gier pasujących do „{query}” nie ma projektów do zainstalowania.} other {Wszystkie gry mają już zainstalowane projekty.}}} Hidden {{hasQuery, select, true {Żadna ukryta gra nie pasuje do „{query}”.} other {Żadna gra nie jest ukryta.}}} other {{hasQuery, select, true {Żadna inna gra nie pasuje do „{query}”.} other {Nie ma innych gier.}}}}</value>
+  </data>
+  <data name="Library_ShowAll" xml:space="preserve">
+    <value>Pokaż wszystkie</value>
+  </data>
+  <data name="Library_ShowAllCount" xml:space="preserve">
+    <value>Pokaż wszystkie ({count})</value>
+  </data>
+  <data name="Library_ShowLess" xml:space="preserve">
+    <value>Pokaż mniej</value>
+  </data>
+  <data name="Library_ShortVersion" xml:space="preserve">
+    <value>v{version}</value>
+  </data>
+  <data name="Library_UpdateVersions" xml:space="preserve">
+    <value>{from} → {to}</value>
+  </data>
+  <data name="Library_DetectedIn" xml:space="preserve">
+    <value>Wykryto w: {store}</value>
+  </data>
+  <data name="Library_StoreSteam" xml:space="preserve">
+    <value>Steam</value>
+  </data>
+  <data name="Library_StoreGog" xml:space="preserve">
+    <value>GOG</value>
+  </data>
+  <data name="Library_StoreEpic" xml:space="preserve">
+    <value>Epic Games Store</value>
+  </data>
+  <data name="Library_Released" xml:space="preserve">
+    <value>Wydano {age} ({date})</value>
+  </data>
+  <data name="Library_ReleaseChanged" xml:space="preserve">
+    <value>Zmieniono {age} ({date})</value>
+  </data>
+  <data name="Library_BatchRepairUpdate" xml:space="preserve">
+    <value>Napraw i zaktualizuj</value>
+  </data>
+  <data name="Library_BatchRepair" xml:space="preserve">
+    <value>Napraw</value>
+  </data>
+  <data name="Library_BatchUpdate" xml:space="preserve">
+    <value>Zaktualizuj</value>
+  </data>
+  <data name="Library_BatchName" xml:space="preserve">
+    <value>{action}: {games}</value>
+  </data>
+  <data name="Library_BatchTipRepair" xml:space="preserve">
+    <value>{game}: naprawa</value>
+  </data>
+  <data name="Library_BatchTipUpdate" xml:space="preserve">
+    <value>{game}: aktualizacja do {version}</value>
+  </data>
+  <data name="Library_BatchTipWaiting" xml:space="preserve">
+    <value>Po połączeniu: {game}, aktualizacja do {version}</value>
+  </data>
+  <data name="Library_StateFailed" xml:space="preserve">
+    <value>{kind, select, Install {Nieudana instalacja} Update {Nieudana aktualizacja} Repair {Nieudana naprawa} Uninstall {Nieudane odinstalowanie} FollowMove {Nieudane przeniesienie} MoveBackups {Nieudane przeniesienie kopii} other {Nieudane zadanie}}</value>
+  </data>
+  <data name="Library_PreviousLost" xml:space="preserve">
+    <value>Poprzedniej wersji nie udało się przywrócić, więc zmienione przez nią pliki są znów oryginalne.</value>
+  </data>
+  <data name="Library_Retry" xml:space="preserve">
+    <value>Spróbuj ponownie</value>
+  </data>
+  <data name="Library_RetryName" xml:space="preserve">
+    <value>Spróbuj ponownie: {game}</value>
+  </data>
+  <data name="Library_StateRepair" xml:space="preserve">
+    <value>Wymaga naprawy</value>
+  </data>
+  <data name="Library_RepairReason" xml:space="preserve">
+    <value>{reason, select, OriginalsRestored {{store} przywrócił oryginalne pliki gry po sprawdzeniu ich spójności.} FilesMissing {Brakuje części plików projektu.} other {Część plików projektu się zmieniła, np. po aktualizacji gry.}}</value>
+  </data>
+  <data name="Library_Repair" xml:space="preserve">
+    <value>Napraw</value>
+  </data>
+  <data name="Library_RepairName" xml:space="preserve">
+    <value>Napraw projekt gry {game}</value>
+  </data>
+  <data name="Library_StateUpdate" xml:space="preserve">
+    <value>Aktualizacja</value>
+  </data>
+  <data name="Library_UpdateWaits" xml:space="preserve">
+    <value>Ruszy po połączeniu</value>
+  </data>
+  <data name="Library_Update" xml:space="preserve">
+    <value>Zaktualizuj</value>
+  </data>
+  <data name="Library_UpdateName" xml:space="preserve">
+    <value>Zaktualizuj projekt gry {game}</value>
+  </data>
+  <data name="Library_StateChoice" xml:space="preserve">
+    <value>{count, plural, one {# projekt do wyboru} few {# projekty do wyboru} many {# projektów do wyboru} other {# projektu do wyboru}}</value>
+  </data>
+  <data name="Library_Compare" xml:space="preserve">
+    <value>Porównaj</value>
+  </data>
+  <data name="Library_CompareName" xml:space="preserve">
+    <value>Porównaj projekty gry {game}</value>
+  </data>
+  <data name="Library_StateGone" xml:space="preserve">
+    <value>Nie wykryto gry</value>
+  </data>
+  <data name="Library_GoneDetail" xml:space="preserve">
+    <value>{store} nie zgłasza już tej gry. Odinstalowanie usunie ją z listy.</value>
+  </data>
+  <data name="Library_StateMoved" xml:space="preserve">
+    <value>Gra zmieniła folder</value>
+  </data>
+  <data name="Library_MovedDetail" xml:space="preserve">
+    <value>{store} zgłasza grę w innym folderze, a projekt został w poprzednim.</value>
+  </data>
+  <data name="Library_Uninstall" xml:space="preserve">
+    <value>Odinstaluj</value>
+  </data>
+  <data name="Library_UninstallName" xml:space="preserve">
+    <value>Odinstaluj projekt gry {game}</value>
+  </data>
+  <data name="Library_StateBackups" xml:space="preserve">
+    <value>Kopia oryginałów niedostępna</value>
+  </data>
+  <data name="Library_BackupsDetail" xml:space="preserve">
+    <value>Folder {folder} z kopią oryginalnych plików jest niedostępny.</value>
+  </data>
+  <data name="Library_Open" xml:space="preserve">
+    <value>Otwórz</value>
+  </data>
+  <data name="Library_OpenName" xml:space="preserve">
+    <value>Otwórz grę {game}</value>
+  </data>
+  <data name="Library_StateNotInCatalogue" xml:space="preserve">
+    <value>Nie ma już w serwisie</value>
+  </data>
+  <data name="Library_CardInstalled" xml:space="preserve">
+    <value>Zainstalowany</value>
+  </data>
+  <data name="Library_CardInstalledVersion" xml:space="preserve">
+    <value>Zainstalowany · {version}</value>
+  </data>
+  <data name="Library_CardReady" xml:space="preserve">
+    <value>Gotowy do instalacji</value>
+  </data>
+  <data name="Library_CardNotReady" xml:space="preserve">
+    <value>Gra nie jest gotowa</value>
+  </data>
+  <data name="Library_CardHidden" xml:space="preserve">
+    <value>Ukryta</value>
+  </data>
+  <data name="Library_CardTest" xml:space="preserve">
+    <value>Instalacja testowa</value>
+  </data>
+  <data name="Library_CardTeams" xml:space="preserve">
+    <value>{count, plural, one {# grupa} few {# grupy} many {# grup} other {# grupy}}</value>
+  </data>
+  <data name="Library_CardName" xml:space="preserve">
+    <value>{game} – {state}</value>
+  </data>
+  <data name="Library_Adult" xml:space="preserve">
+    <value>18+</value>
+  </data>
+  <data name="Library_AdultTip" xml:space="preserve">
+    <value>Gra dla dorosłych</value>
+  </data>
+  <data name="Library_JobQueued" xml:space="preserve">
+    <value>W kolejce</value>
+  </data>
+  <data name="Library_JobWaitingForGame" xml:space="preserve">
+    <value>Czeka na zamknięcie gry</value>
+  </data>
+  <data name="Library_JobWaitingForStore" xml:space="preserve">
+    <value>Czeka na {store}</value>
+  </data>
+  <data name="Library_JobWaitingForRecovery" xml:space="preserve">
+    <value>Kończy wcześniejszą operację</value>
+  </data>
+  <data name="Library_JobThen" xml:space="preserve">
+    <value>{kind, select, Install {Potem instalacja projektu} Update {Potem aktualizacja projektu} Repair {Potem naprawa projektu} Uninstall {Potem odinstalowanie projektu} other {Potem dalsza praca}}</value>
+  </data>
+  <data name="Library_JobProgress" xml:space="preserve">
+    <value>{stage} · {percent}</value>
+  </data>
+  <data name="Library_JobUnknownProgress" xml:space="preserve">
+    <value>{stage}…</value>
+  </data>
+  <data name="Library_JobStage" xml:space="preserve">
+    <value>{stage, select, Preparing {Przygotowanie} Downloading {Pobieranie} Checking {Sprawdzanie} Uninstalling {Odinstalowywanie} Installing {{kind, select, Uninstall {Odinstalowywanie} other {Instalowanie}}} RollingBack {Cofanie zmian} RestoringPrevious {Przywracanie poprzedniej wersji} Verifying {Sprawdzanie plików} MovingBackups {Przenoszenie kopii} other {Praca}}</value>
+  </data>
+  <data name="Library_GameState" xml:space="preserve">
+    <value>{reason, select, UpdatePaused {Aktualizacja w {store} jest wstrzymana} DownloadInProgress {{store} pobiera grę} Uninstalling {{store} odinstalowuje grę} MovingFolder {{store} przenosi grę} SharedFolderBusy {{store} pracuje nad inną aplikacją w folderze gry} BuildMismatch {{store} aktualizuje grę} FilesMissing {Brakuje części plików gry} FilesCorrupt {Część plików gry jest uszkodzona} InstallDirectoryMissing {Brakuje folderu gry} LibraryOffline {Dysk z grą jest niedostępny} GameRunning {Gra jest uruchomiona} UnreadableStoreData {Nie udało się odczytać danych gry z {store}} other {{state, select, UpdatePending {{store} czeka z aktualizacją gry} Updating {{store} aktualizuje grę} Validating {{store} sprawdza pliki gry} Installing {{store} instaluje grę} Broken {Pliki gry są uszkodzone} Offline {Dysk z grą jest niedostępny} Running {Gra jest uruchomiona} Installed {Gra jest gotowa} other {{store} nie podaje, co robi z grą}}}}</value>
+  </data>
+  <data name="Library_RequestFailedTitle" xml:space="preserve">
+    <value>Nie udało się rozpocząć zadania</value>
+  </data>
+  <data name="Library_RequestBusy" xml:space="preserve">
+    <value>Dla tej gry trwa już inne zadanie.</value>
+  </data>
+  <data name="Library_RequestShuttingDown" xml:space="preserve">
+    <value>Aplikacja kończy pracę.</value>
+  </data>
+  <data name="Library_RequestRefused" xml:space="preserve">
+    <value>Aplikacja działająca w tle nie przyjęła polecenia.</value>
+  </data>
+  <data name="Library_RequestNoAgent" xml:space="preserve">
+    <value>Okno straciło połączenie z aplikacją działającą w tle i łączy się ponownie.</value>
+  </data>
+  <data name="GamePage_Uninstall" xml:space="preserve">
+    <value>Odinstaluj</value>
+  </data>
+  <data name="GamePage_UninstallTitle" xml:space="preserve">
+    <value>Odinstalować projekt?</value>
+  </data>
+  <data name="GamePage_UninstallMessage" xml:space="preserve">
+    <value>Oryginalne pliki gry {game} zostaną przywrócone, a projekt nie będzie już instalowany automatycznie. Można go zainstalować ponownie w każdej chwili.</value>
+  </data>
+  <data name="GamePage_FailureCancelled" xml:space="preserve">
+    <value>Zadanie zostało anulowane.</value>
+  </data>
+  <data name="GamePage_FailureReason" xml:space="preserve">
+    <value>{reason, select, AlreadyRunning {Dla tej gry trwa już inne zadanie.} GameNotDetected {{store} nie zgłasza już tej gry.} GameNotReady {Gra nie była gotowa: {state}.} GameRunning {Gra była uruchomiona ({processes}).} GameFolderMissing {Brakuje folderu gry.} GameBusy {Inna instalacja zmieniała w tym czasie pliki gry.} FilesLocked {Pliki gry są używane przez: {processes}.} PermissionRequired {Brak uprawnień do zmiany plików gry ({file}).} NotEnoughSpace {Za mało miejsca na dysku {drive} (potrzeba {required}, wolne {available}).} OtherGame {Paczka jest przeznaczona dla innej gry.} UnsupportedGameVersion {Pliki gry są w innej wersji niż ta, dla której przygotowano paczkę.} NewReleaseIncompatible {Nowa wersja pasuje do innej wersji gry, więc zainstalowana została bez zmian.} AlreadyApplied {Pliki gry mają już zawartość paczki.} ConflictingInstall {Inny zainstalowany projekt zmienia te same pliki.} OtherProjectInstalled {Do tej gry zainstalowany jest już inny projekt.} ManagedByOtherApp {Plikami gry zarządza inna aplikacja ({app}).} RecoveryPending {Wcześniejsza operacja na tej grze czeka na dokończenie.} InstallNotFound {Ta instalacja już nie istnieje.} UnreadableInstall {Nie udało się odczytać zapisu instalacji; mogła go utworzyć nowsza wersja aplikacji.} BackupFolderUnavailable {Folder z oryginalnymi plikami jest niedostępny ({location}).} ProjectNotFound {Projektu nie ma już w serwisie.} ProjectNotCompleted {Projekt nie jest jeszcze ukończony.} ReleaseUnavailable {Tej wersji nie można już pobrać.} NoPackage {Ta wersja nie ma paczki dla tej gry.} Offline {Brak połączenia z internetem.} ServerError {Serwer nie odpowiedział poprawnie.} DownloadCorrupt {Pobrany plik był uszkodzony.} InvalidPackage {Paczka jest uszkodzona.} AppUpdateRequired {Paczka wymaga nowszej wersji aplikacji.} InstallFailed {Coś poszło nie tak, więc wszystkie zmiany zostały cofnięte.} RollbackIncomplete {Nie wszystkie zmiany udało się już cofnąć; aplikacja spróbuje ponownie przy następnym uruchomieniu.} AccessDenied {Nie udało się uzyskać dostępu do pliku.} DiskError {Zapis na dysku się nie powiódł.} other {Wystąpił nieoczekiwany błąd.}}</value>
+  </data>
+  <data name="Library_Joined" xml:space="preserve">
+    <value>{first} · {second}</value>
+  </data>
 </root>

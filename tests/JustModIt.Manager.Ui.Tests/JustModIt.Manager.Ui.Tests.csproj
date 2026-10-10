@@ -2,6 +2,7 @@
   <ItemGroup>
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
   <!-- The generic app's logo, which is licensed like the code, stands in for an app's branding. -->

@@ -16,25 +16,51 @@ public static class TestImages
         return stream.ToArray();
     }
 
-    public static WriteableBitmap Bitmap(int width, int height)
+    public static WriteableBitmap Bitmap(int width, int height) => Bitmap(width, height, 0xD4, 0x7C, 0x4A);
+
+    /// <summary>A picture that stands in for an address's cover in renders: a diagonal glow in a colour the address picks.</summary>
+    public static WriteableBitmap Cover(string address, int width, int height)
+    {
+        var hue = (uint)address.Aggregate(17, (hash, character) => (hash * 31) + character) % 360;
+        var (r, g, b) = FromHue(hue);
+        return Bitmap(width, height, r, g, b, shaded: true);
+    }
+
+    private static WriteableBitmap Bitmap(int width, int height, byte red, byte green, byte blue, bool shaded = false)
     {
         var bitmap = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
         using var pixels = bitmap.Lock();
         var row = new byte[pixels.RowBytes];
-        for (var x = 0; x < width; x++)
-        {
-            row[x * 4] = 0x4A;
-            row[(x * 4) + 1] = 0x7C;
-            row[(x * 4) + 2] = 0xD4;
-            row[(x * 4) + 3] = 0xFF;
-        }
-
         for (var y = 0; y < height; y++)
         {
+            for (var x = 0; x < width; x++)
+            {
+                var light = shaded ? 0.25 + (0.75 * (1 - (((double)x / width) + ((double)y / height)) / 2)) : 1;
+                row[x * 4] = (byte)(blue * light);
+                row[(x * 4) + 1] = (byte)(green * light);
+                row[(x * 4) + 2] = (byte)(red * light);
+                row[(x * 4) + 3] = 0xFF;
+            }
+
             System.Runtime.InteropServices.Marshal.Copy(row, 0, pixels.Address + (y * pixels.RowBytes), row.Length);
         }
 
         return bitmap;
+    }
+
+    private static (byte R, byte G, byte B) FromHue(uint hue)
+    {
+        var x = 1 - Math.Abs((hue / 60.0 % 2) - 1);
+        (double R, double G, double B) channels = (hue / 60) switch
+        {
+            0 => (1, x, 0),
+            1 => (x, 1, 0),
+            2 => (0, 1, x),
+            3 => (0, x, 1),
+            4 => (x, 0, 1),
+            _ => (1, 0, x),
+        };
+        return ((byte)(70 + (channels.R * 140)), (byte)(70 + (channels.G * 140)), (byte)(70 + (channels.B * 140)));
     }
 }
 
@@ -79,9 +105,17 @@ public sealed class FakeImages : IImageLoader
 {
     public List<(string Address, PixelSize Size)> Requests { get; } = [];
 
+    public List<string> Blurred { get; } = [];
+
     public Task<Bitmap?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken)
     {
         Requests.Add((address, size));
-        return Task.FromResult<Bitmap?>(TestImages.Bitmap(size.Width, size.Height));
+        return Task.FromResult<Bitmap?>(TestImages.Cover(address, size.Width, size.Height));
+    }
+
+    public Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken)
+    {
+        Blurred.Add(address);
+        return Task.FromResult<Bitmap?>(ImageBaking.Blur(TestImages.Cover(address, 8, 12), size));
     }
 }

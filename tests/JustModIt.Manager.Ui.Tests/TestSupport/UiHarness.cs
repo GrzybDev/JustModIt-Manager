@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
@@ -13,6 +14,7 @@ using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Shell;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Ui.Tests.TestSupport;
 
@@ -30,7 +32,7 @@ public sealed class UiHarness : IDisposable
             Agent.Push(state);
         }
 
-        Session = UiSession.Create(Application.Current!, Context(compose, launch), Agent, Images);
+        Session = UiSession.Create(Application.Current!, Context(compose, launch), Agent, Images, Clock);
         Window = Session.CreateWindow();
         // A click here moves, presses and releases, each after running the dispatcher and a frame; under load that takes
         // longer than a tooltip's delay, and the tooltip, which opens inside the window here, can slide over the pointer
@@ -45,6 +47,9 @@ public sealed class UiHarness : IDisposable
     public FakeAgent Agent { get; } = new();
 
     public FakeImages Images { get; } = new();
+
+    /// <summary>A clock standing at <see cref="TestStates.Now"/>, in UTC.</summary>
+    public FakeTimeProvider Clock { get; } = new(TestStates.Now);
 
     public UiSession Session { get; }
 
@@ -126,9 +131,16 @@ public sealed class UiHarness : IDisposable
         where T : Control =>
         Window.GetVisualDescendants().OfType<T>().Single(control => control.Name == name);
 
-    /// <summary>A real click in the middle of a control, so hit testing and click handlers run.</summary>
+    /// <summary>The controls a player can reach that a screen reader would read out without a name.</summary>
+    public IEnumerable<Control> Unnamed() =>
+        Find<Control>().Where(control => control is Button or ToggleButton or ToggleSwitch or TextBox && control.IsEffectivelyVisible
+            && string.IsNullOrWhiteSpace(Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(control).GetName()));
+
+    /// <summary>A real click in the middle of a control, scrolled into view first, so hit testing and click handlers run.</summary>
     public void Click(Control control)
     {
+        control.BringIntoView();
+        Settle();
         ClickAt(control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), Window)
             ?? throw new InvalidOperationException("The control is not in the window."));
     }
@@ -150,10 +162,30 @@ public sealed class UiHarness : IDisposable
     }
 
     /// <summary>Saves what the window shows as a PNG and returns its path.</summary>
-    public string Render(string name)
+    /// <param name="name">The file's name without its extension.</param>
+    /// <param name="height">A height to render a taller window at, as the boards show a whole scrolled page; null keeps it.</param>
+    public string Render(string name, double? height = null)
+    {
+        var kept = Window.Height;
+        if (height is { } taller)
+        {
+            Window.Height = taller;
+        }
+
+        var path = Render(Window, name);
+        Window.Height = kept;
+        Settle();
+        return path;
+    }
+
+    /// <summary>Saves what a window shows as a PNG and returns its path.</summary>
+    /// <param name="window">A window of the test's own.</param>
+    /// <param name="name">The file's name without its extension.</param>
+    public static string Render(Window window, string name)
     {
         Settle();
-        using var frame = Window.CaptureRenderedFrame() ?? throw new InvalidOperationException("Nothing was rendered.");
+        Settle();
+        using var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("Nothing was rendered.");
         Directory.CreateDirectory(RendersDirectory);
         var path = Path.Combine(RendersDirectory, name + ".png");
         frame.Save(path, new PngBitmapEncoderOptions());

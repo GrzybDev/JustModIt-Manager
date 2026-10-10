@@ -18,6 +18,13 @@ public interface IImageLoader
     /// <param name="cancellationToken">Stops waiting once the image is no longer needed.</param>
     /// <returns>The image; null when it is not allowed, cannot be downloaded or is not an image.</returns>
     Task<Bitmap?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken);
+
+    /// <summary>Loads an image as a soft blur of its colours, as an adult game's cover shows while the player has it veiled.</summary>
+    /// <param name="address">The image's absolute address.</param>
+    /// <param name="size">The box it fills, in physical pixels.</param>
+    /// <param name="cancellationToken">Stops waiting once the image is no longer needed.</param>
+    /// <returns>The blur; null when the image is not allowed, cannot be downloaded or is not an image.</returns>
+    Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -42,6 +49,9 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
 
     // A format that cannot decode to a smaller size, such as PNG, decodes whole first; a small file can hold a huge picture.
     private const long MaxDecodedPixels = 64L << 20;
+
+    // How small an image is decoded before it is spread into a blur.
+    private const int BlurSource = 24;
     private const string Extension = ".img";
     private const string PartialExtension = ".part";
 
@@ -130,6 +140,39 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         }
 
         return bitmap;
+    }
+
+    public async Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || !IsAllowed(uri) || size.Width <= 0 || size.Height <= 0)
+        {
+            return null;
+        }
+
+        var key = FormattableString.Invariant($"blur {size.Width}x{size.Height} {uri.AbsoluteUri}");
+        if (Recall(key) is { } kept)
+        {
+            return kept;
+        }
+
+        var file = await FileAsync(uri).WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (file is null)
+        {
+            return null;
+        }
+
+        var blurred = await Task.Run(() =>
+        {
+            // Decoding to a few pixels throws away the detail, so the blur needs no large kernel.
+            using var tiny = Decode(uri, file, new PixelSize(BlurSource, BlurSource));
+            return tiny is null ? null : ImageBaking.Blur(tiny, size);
+        }, cancellationToken).ConfigureAwait(false);
+        if (blurred is not null)
+        {
+            Remember(key, blurred);
+        }
+
+        return blurred;
     }
 
     public void Dispose()

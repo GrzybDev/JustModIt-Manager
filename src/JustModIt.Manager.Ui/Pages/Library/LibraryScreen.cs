@@ -1,6 +1,4 @@
-using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Navigation;
-using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Library;
 
@@ -12,6 +10,7 @@ internal static class LibraryScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
-        ui.Pages.Register<LibraryRoute>((_, _) => new PlaceholderPageViewModel(Strings.Shell_Library, Icons.Gamepad));
+        ui.Pages.Register<LibraryRoute>((_, services) => new LibraryPageViewModel(services));
+        ui.Views.Register<LibraryPageViewModel>(() => new LibraryPage());
     }
 }

@@ -222,4 +222,76 @@
   <data name="Onboarding_SiteUnavailable" xml:space="preserve">
     <value>Nie udało się połączyć z Bazą Spolszczeń; pasujące spolszczenia pojawią się w Moich grach później.</value>
   </data>
+  <data name="Library_Subtitle" xml:space="preserve">
+    <value>Gry wykryte na tym komputerze i pasujące do nich spolszczenia.</value>
+  </data>
+  <data name="Library_OfflineTitle" xml:space="preserve">
+    <value>Brak połączenia z Bazą Spolszczeń</value>
+  </data>
+  <data name="Library_MaintenanceTitle" xml:space="preserve">
+    <value>Trwa przerwa techniczna Bazy Spolszczeń</value>
+  </data>
+  <data name="Library_OfflineNever" xml:space="preserve">
+    <value>Nie udało się jeszcze połączyć z Bazą Spolszczeń.</value>
+  </data>
+  <data name="Library_Loading" xml:space="preserve">
+    <value>Wyszukiwanie gier i pasujących spolszczeń…</value>
+  </data>
+  <data name="Library_EmptyTitle" xml:space="preserve">
+    <value>Nie znaleziono jeszcze gier ze spolszczeniami</value>
+  </data>
+  <data name="Library_EmptyMessage" xml:space="preserve">
+    <value>Gra pojawi się tutaj, gdy zostanie wykryta na tym komputerze, a w Bazie Spolszczeń będzie do niej spolszczenie.</value>
+  </data>
+  <data name="Library_FoundOfflineMessage" xml:space="preserve">
+    <value>To, które z nich mają spolszczenia, okaże się po powrocie połączenia.</value>
+  </data>
+  <data name="Library_FilteredOut" xml:space="preserve">
+    <value>{filter, select, Installed {{hasQuery, select, true {Wśród gier pasujących do „{query}” nie ma zainstalowanych spolszczeń.} other {Żadna gra nie ma jeszcze zainstalowanego spolszczenia.}}} Available {{hasQuery, select, true {Wśród gier pasujących do „{query}” nie ma spolszczeń do zainstalowania.} other {Wszystkie gry mają już zainstalowane spolszczenia.}}} Hidden {{hasQuery, select, true {Żadna ukryta gra nie pasuje do „{query}”.} other {Żadna gra nie jest ukryta.}}} other {{hasQuery, select, true {Żadna inna gra nie pasuje do „{query}”.} other {Nie ma innych gier.}}}}</value>
+  </data>
+  <data name="Library_RepairReason" xml:space="preserve">
+    <value>{reason, select, OriginalsRestored {{store} przywrócił oryginalne pliki gry po sprawdzeniu ich spójności.} FilesMissing {Brakuje części plików spolszczenia.} other {Część plików spolszczenia się zmieniła, np. po aktualizacji gry.}}</value>
+  </data>
+  <data name="Library_RepairName" xml:space="preserve">
+    <value>Napraw spolszczenie gry {game}</value>
+  </data>
+  <data name="Library_UpdateName" xml:space="preserve">
+    <value>Zaktualizuj spolszczenie gry {game}</value>
+  </data>
+  <data name="Library_StateChoice" xml:space="preserve">
+    <value>{count, plural, one {# spolszczenie do wyboru} few {# spolszczenia do wyboru} many {# spolszczeń do wyboru} other {# spolszczenia do wyboru}}</value>
+  </data>
+  <data name="Library_CompareName" xml:space="preserve">
+    <value>Porównaj spolszczenia gry {game}</value>
+  </data>
+  <data name="Library_MovedDetail" xml:space="preserve">
+    <value>{store} zgłasza grę w innym folderze, a spolszczenie zostało w poprzednim.</value>
+  </data>
+  <data name="Library_UninstallName" xml:space="preserve">
+    <value>Odinstaluj spolszczenie gry {game}</value>
+  </data>
+  <data name="Library_StateNotInCatalogue" xml:space="preserve">
+    <value>Nie ma już w Bazie Spolszczeń</value>
+  </data>
+  <data name="Library_CardInstalled" xml:space="preserve">
+    <value>Zainstalowane</value>
+  </data>
+  <data name="Library_CardInstalledVersion" xml:space="preserve">
+    <value>Zainstalowane · {version}</value>
+  </data>
+  <data name="Library_CardReady" xml:space="preserve">
+    <value>Gotowe do instalacji</value>
+  </data>
+  <data name="Library_JobThen" xml:space="preserve">
+    <value>{kind, select, Install {Potem instalacja spolszczenia} Update {Potem aktualizacja spolszczenia} Repair {Potem naprawa spolszczenia} Uninstall {Potem odinstalowanie spolszczenia} other {Potem dalsza praca}}</value>
+  </data>
+  <data name="GamePage_UninstallTitle" xml:space="preserve">
+    <value>Odinstalować spolszczenie?</value>
+  </data>
+  <data name="GamePage_UninstallMessage" xml:space="preserve">
+    <value>Oryginalne pliki gry {game} zostaną przywrócone, a spolszczenie nie będzie już instalowane automatycznie. Można je zainstalować ponownie w każdej chwili.</value>
+  </data>
+  <data name="GamePage_FailureReason" xml:space="preserve">
+    <value>{reason, select, AlreadyRunning {Dla tej gry trwa już inne zadanie.} GameNotDetected {{store} nie zgłasza już tej gry.} GameNotReady {Gra nie była gotowa: {state}.} GameRunning {Gra była uruchomiona ({processes}).} GameFolderMissing {Brakuje folderu gry.} GameBusy {Inna instalacja zmieniała w tym czasie pliki gry.} FilesLocked {Pliki gry są używane przez: {processes}.} PermissionRequired {Brak uprawnień do zmiany plików gry ({file}).} NotEnoughSpace {Za mało miejsca na dysku {drive} (potrzeba {required}, wolne {available}).} OtherGame {Paczka jest przeznaczona dla innej gry.} UnsupportedGameVersion {Pliki gry są w innej wersji niż ta, dla której przygotowano paczkę.} NewReleaseIncompatible {Nowa wersja pasuje do innej wersji gry, więc zainstalowana została bez zmian.} AlreadyApplied {Pliki gry mają już zawartość paczki.} ConflictingInstall {Inne zainstalowane spolszczenie zmienia te same pliki.} OtherProjectInstalled {Do tej gry zainstalowane jest już inne spolszczenie.} ManagedByOtherApp {Plikami gry zarządza inna aplikacja ({app}).} RecoveryPending {Wcześniejsza operacja na tej grze czeka na dokończenie.} InstallNotFound {Ta instalacja już nie istnieje.} UnreadableInstall {Nie udało się odczytać zapisu instalacji; mogła go utworzyć nowsza wersja aplikacji.} BackupFolderUnavailable {Folder z oryginalnymi plikami jest niedostępny ({location}).} ProjectNotFound {Spolszczenia nie ma już w Bazie Spolszczeń.} ProjectNotCompleted {Spolszczenie nie jest jeszcze ukończone.} ReleaseUnavailable {Tej wersji nie można już pobrać.} NoPackage {Ta wersja nie ma paczki dla tej gry.} Offline {Brak połączenia z internetem.} ServerError {Serwer nie odpowiedział poprawnie.} DownloadCorrupt {Pobrany plik był uszkodzony.} InvalidPackage {Paczka jest uszkodzona.} AppUpdateRequired {Paczka wymaga nowszej wersji aplikacji.} InstallFailed {Coś poszło nie tak, więc wszystkie zmiany zostały cofnięte.} RollbackIncomplete {Nie wszystkie zmiany udało się już cofnąć; aplikacja spróbuje ponownie przy następnym uruchomieniu.} AccessDenied {Nie udało się uzyskać dostępu do pliku.} DiskError {Zapis na dysku się nie powiódł.} other {Wystąpił nieoczekiwany błąd.}}</value>
+  </data>
 </root>

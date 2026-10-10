@@ -20,6 +20,9 @@ public sealed class RemoteImage : Control
     public static readonly StyledProperty<Stretch> StretchProperty =
         AvaloniaProperty.Register<RemoteImage, Stretch>(nameof(Stretch), Stretch.UniformToFill);
 
+    /// <summary>The image shows as a soft blur of its colours, baked when it is decoded, as an adult game's cover is veiled.</summary>
+    public static readonly StyledProperty<bool> IsBlurredProperty = AvaloniaProperty.Register<RemoteImage, bool>(nameof(IsBlurred));
+
     /// <summary>The service images load through, set once on the window and inherited by every image in it.</summary>
     public static readonly AttachedProperty<IImageLoader?> LoaderProperty =
         AvaloniaProperty.RegisterAttached<RemoteImage, Control, IImageLoader?>("Loader", inherits: true);
@@ -49,6 +52,12 @@ public sealed class RemoteImage : Control
     {
         get => GetValue(StretchProperty);
         set => SetValue(StretchProperty, value);
+    }
+
+    public bool IsBlurred
+    {
+        get => GetValue(IsBlurredProperty);
+        set => SetValue(IsBlurredProperty, value);
     }
 
     /// <summary>The image shown; null until one has loaded.</summary>
@@ -90,7 +99,7 @@ public sealed class RemoteImage : Control
     {
         ArgumentNullException.ThrowIfNull(change);
         base.OnPropertyChanged(change);
-        if (change.Property == SourceProperty || change.Property == LoaderProperty)
+        if (change.Property == SourceProperty || change.Property == LoaderProperty || change.Property == IsBlurredProperty)
         {
             Reset();
             Load();
@@ -160,7 +169,7 @@ public sealed class RemoteImage : Control
         }
 
         Bitmap? bitmap;
-        var task = loader.LoadAsync(source, size, loading.Token);
+        var task = IsBlurred ? loader.LoadBlurredAsync(source, size, loading.Token) : loader.LoadAsync(source, size, loading.Token);
         var arrivedAtOnce = task.IsCompleted;
         try
         {

@@ -7,6 +7,7 @@ using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Shell;
 using JustModIt.Manager.Ui.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -76,29 +77,36 @@ public sealed class ConnectionTests
             NullLogger.Instance, FastRetries);
         server.Start();
         await using var connection = new AgentConnection(name, "0.1.0", NullLoggerFactory.Instance, FastRetries);
-        using var session = UiSession.Create(Application.Current!, UiHarness.Context(), connection);
+        using var session = UiSession.Create(Application.Current!, UiHarness.Context(), connection, new FakeImages());
         var window = session.CreateWindow();
+        window.Width = 1280;
+        window.Height = 800;
         window.Show();
         var pipe = await agent.Connected.Reader.ReadAsync(TestContext.Current.CancellationToken);
 
-        var download = TestStates.Job(stage: JobStage.Downloading, fraction: null, sequence: 4);
-        var downloading = TestStates.Idle() with { Jobs = [download] };
+        var game = TestGames.Available("Ember Hollow", "4100");
+        var download = TestGames.Job(game, JobKind.Install, JobStage.Downloading, fraction: null) with { Sequence = 4 };
+        var downloading = TestGames.State(TestGames.Busy(game, download));
         pipe.Post(new StateChanged(downloading));
         await UiHarness.WaitUntilAsync(() => session.Shell.ShowsPages);
-        var status = session.Shell.Status;
+        var library = (LibraryPageViewModel)session.Shell.Navigator.Current!;
+        var card = library.GridItems.OfType<GameCardViewModel>().Single();
         var states = 0;
         connection.PropertyChanged += (_, e) => states += e.PropertyName == nameof(IAgent.State) ? 1 : 0;
 
         pipe.Post(new JobProgress([download with { Fraction = 0.3, BytesDone = 56_623_104, Sequence = 5 }]));
-        await UiHarness.WaitUntilAsync(() => status.Progress > 0);
-        (status.Progress, status.IsIndeterminate, states).Should().Be((30.0, false, 0));
+        await UiHarness.WaitUntilAsync(() => card.Progress > 0);
+        library.Query = "ember";
+        (card.Progress, card.IsIndeterminate, states).Should().Be((30.0, false, 0));
         // A state made before the report, e.g. when the store's library was read again, shows the download as it began.
         pipe.Post(new StateChanged(downloading with { Version = 2 }));
         await UiHarness.WaitUntilAsync(() => connection.State.Version == 2);
-        connection.State.Jobs.Single().Fraction.Should().Be(0.3);
-        (status.Progress, status.IsIndeterminate).Should().Be((30.0, false));
+        connection.State.Games.Single().Job!.Fraction.Should().Be(0.3);
+        (card.Progress, card.IsIndeterminate, session.Shell.Status.Progress).Should().Be((30.0, false, 30.0));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        UiHarness.Render(window, "library-downloading");
 
-        pipe.Post(new StateChanged(TestStates.Idle() with { Version = 3 }));
+        pipe.Post(new StateChanged(TestGames.State(TestGames.Installed("Ember Hollow", "4100", offer: game.Project)) with { Version = 3 }));
         await UiHarness.WaitUntilAsync(() => connection.State.Version == 3);
         pipe.Post(new JobProgress([download with { Stage = JobStage.Installing, Fraction = 1, Sequence = 9 }]));
         // The window answers a ping as it reads it, so the report before it has been read by then.
@@ -106,7 +114,7 @@ public sealed class ConnectionTests
         UiHarness.Settle();
 
         connection.State.Jobs.Should().BeEmpty();
-        status.ShowsProgress.Should().BeFalse();
+        (card.ShowsProgress, session.Shell.Status.ShowsProgress).Should().Be((false, false));
 
         await pipe.RequestAsync(new ShutdownRequested(ShutdownReason.Exit), cancellationToken: TestContext.Current.CancellationToken);
         await UiHarness.WaitUntilAsync(() => !window.IsVisible);
