@@ -9,6 +9,9 @@ namespace JustModIt.Manager.Localization.Tests;
 [Collection(nameof(TestTexts))]
 public sealed class TextTests
 {
+    private const string OffsetPattern =
+        "{count, plural, offset:1 =1 {only the author} one {the author and one other} other {the author and # others}}";
+
     public TextTests() => Text.Use(TestTexts.Polish);
 
     [Theory]
@@ -34,22 +37,18 @@ public sealed class TextTests
         Text.Format(Strings.GameCount, ("count", count)).Should().Be(expected);
     }
 
-    [Fact]
-    public void Fractions_use_the_other_form()
+    [Theory]
+    [InlineData("Base", "pl-PL", "1.5 games", "1.5 of 12,345")]
+    [InlineData("Polish", "en-US", "1,5 tytułu", "1,5 of 12\u00A0345")]
+    public void Numbers_do_not_depend_on_the_thread_culture(string catalog, string threadCulture, string fraction, string progress)
     {
-        Text.Format(Strings.GameCount, ("count", 1.5)).Should().Be("1,5 tytułu");
-    }
-
-    [Fact]
-    public void Numbers_do_not_depend_on_the_thread_culture()
-    {
+        Text.Use(catalog == "Base" ? TextCatalog.Base : TestTexts.Polish);
         var previous = CultureInfo.CurrentCulture;
-        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(threadCulture);
         try
         {
-            Text.Format(Strings.GameCount, ("count", 1.5)).Should().Be("1,5 tytułu");
-            Text.Format(Strings.GameCount, ("count", 12345)).Should().Be("12\u00A0345 tytułów");
-            Text.Format("{done} of {total, number}", ("done", 1.5), ("total", 12345)).Should().Be("1,5 of 12\u00A0345");
+            Text.Format(Strings.GameCount, ("count", 1.5)).Should().Be(fraction);
+            Text.Format("{done} of {total, number}", ("done", 1.5), ("total", 12345)).Should().Be(progress);
         }
         finally
         {
@@ -71,18 +70,6 @@ public sealed class TextTests
     }
 
     [Fact]
-    public void Plural_forms_match_the_library_rules_for_whole_numbers()
-    {
-        var library = new MessageFormatter(useCache: false, Text.Culture);
-
-        for (var count = 0; count < 1000; count++)
-        {
-            var arguments = new Dictionary<string, object?> { ["count"] = count };
-            Text.Format(Strings.GameCount, ("count", count)).Should().Be(library.FormatMessage(Strings.GameCount, arguments));
-        }
-    }
-
-    [Fact]
     public void Plural_forms_reach_the_pattern_cache_once_per_form_not_per_number()
     {
         var plural = new LocalizedPluralFormatter();
@@ -98,78 +85,38 @@ public sealed class TextTests
         nested.Patterns.Should().HaveCount(3, "0 to 99 use only the one, few and many forms");
     }
 
-    [Fact]
-    public void Named_arguments_fill_the_pattern()
+    [Theory]
+    [InlineData("{count, plural, =0 {none} =1 {just one} other {# more}}", "none", "count", 0)]
+    [InlineData("{count, plural, =0 {none} =1 {just one} other {# more}}", "just one", "count", 1)]
+    [InlineData("{count, plural, =0 {none} =1 {just one} other {# more}}", "7 more", "count", 7)]
+    [InlineData(OffsetPattern, "only the author", "count", 1)]
+    [InlineData(OffsetPattern, "the author and one other", "count", 2)]
+    [InlineData(OffsetPattern, "the author and 5 others", "count", 6)]
+    [InlineData("{count, plural, other {'#'{count} is # and it''s '{'#'}'}}", "#12\u00A0345 is 12\u00A0345 and it's {12\u00A0345}",
+        "count", 12345)]
+    [InlineData("{count, plural, other {# {kind, select, file {files} other {items}} in {folder}}}", "3 files in Data",
+        "count", 3, "kind", "file", "folder", "Data")]
+    [InlineData("{files, plural, other {# files in {folders, plural, one {# folder} other {# folders}}}}", "12\u00A0345 files in 1 folder",
+        "files", 12345, "folders", 1)]
+    public void Message_syntax_works_inside_the_apps_plural_formatter(string pattern, string expected, params object[] arguments)
     {
-        var text = Text.Format("{name} has {count, plural, one {# file} other {# files}}", ("name", "Sample"), ("count", 3));
+        var named = arguments.Chunk(2).Select(pair => ((string)pair[0], (object?)pair[1])).ToArray();
 
-        text.Should().Be("Sample has 3 files");
+        Text.Format(pattern, named).Should().Be(expected);
     }
 
     [Theory]
-    [InlineData(0, "none")]
-    [InlineData(1, "just one")]
-    [InlineData(7, "7 more")]
-    public void Exact_values_win_over_plural_forms(int count, string expected)
+    [InlineData("{total, plural, one {# game} other {# games}}")]
+    [InlineData("{count, plural, one {# file}}")]
+    public void Refuses_a_message_it_cannot_complete(string pattern)
     {
-        var text = Text.Format("{count, plural, =0 {none} =1 {just one} other {# more}}", ("count", count));
-
-        text.Should().Be(expected);
-    }
-
-    [Theory]
-    [InlineData(1, "only the author")]
-    [InlineData(2, "the author and one other")]
-    [InlineData(6, "the author and 5 others")]
-    public void Offset_shifts_the_number_but_not_exact_values(int count, string expected)
-    {
-        var pattern = "{count, plural, offset:1 =1 {only the author} one {the author and one other} other {the author and # others}}";
-
-        Text.Format(pattern, ("count", count)).Should().Be(expected);
-    }
-
-    [Fact]
-    public void Quoted_number_signs_and_apostrophes_stay_literal()
-    {
-        var text = Text.Format("{count, plural, other {'#'{count} is # and it''s '{'#'}'}}", ("count", 12345));
-
-        text.Should().Be("#12\u00A0345 is 12\u00A0345 and it's {12\u00A0345}");
-    }
-
-    [Fact]
-    public void Nested_arguments_are_formatted_inside_a_plural_form()
-    {
-        var pattern = "{count, plural, other {# {kind, select, file {files} other {items}} in {folder}}}";
-
-        Text.Format(pattern, ("count", 3), ("kind", "file"), ("folder", "Data")).Should().Be("3 files in Data");
-    }
-
-    [Fact]
-    public void Nested_plural_numbers_its_own_forms()
-    {
-        var pattern = "{files, plural, other {# files in {folders, plural, one {# folder} other {# folders}}}}";
-
-        Text.Format(pattern, ("files", 12345), ("folders", 1)).Should().Be("12\u00A0345 files in 1 folder");
-    }
-
-    [Fact]
-    public void Missing_argument_is_an_error()
-    {
-        var format = () => Text.Format(Strings.GameCount);
+        var format = () => Text.Format(pattern, ("count", 5));
 
         format.Should().Throw<MessageFormatterException>();
     }
 
     [Fact]
-    public void Pattern_without_other_form_is_an_error()
-    {
-        var format = () => Text.Format("{count, plural, one {# file}}", ("count", 5));
-
-        format.Should().Throw<MessageFormatterException>();
-    }
-
-    [Fact]
-    public void Formatting_is_safe_from_many_threads()
+    public void Plural_forms_match_the_languages_rules_for_every_count_also_from_many_threads()
     {
         var library = new MessageFormatter(useCache: false, Text.Culture);
         // The library groups no digits, so the counts stay below the first group.

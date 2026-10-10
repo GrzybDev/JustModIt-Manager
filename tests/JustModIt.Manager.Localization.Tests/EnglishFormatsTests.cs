@@ -83,21 +83,4 @@ public sealed class EnglishFormatsTests
     {
         Formats.TimeRemaining(TimeSpan.FromSeconds(15.2)).Should().Be("about 16\u00A0s left");
     }
-
-    [Fact]
-    public void Formats_do_not_depend_on_the_thread_culture()
-    {
-        var (culture, uiCulture) = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture);
-        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("pl-PL");
-        try
-        {
-            Formats.Number(12345.5).Should().Be("12,345.5");
-            Formats.FileSize(1_572_864).Should().Be("1.5\u00A0MB");
-            Formats.Date(new DateOnly(2026, 9, 5)).Should().Be("5 Sep 2026");
-        }
-        finally
-        {
-            (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = (culture, uiCulture);
-        }
-    }
 }

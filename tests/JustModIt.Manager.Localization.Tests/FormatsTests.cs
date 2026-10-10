@@ -212,16 +212,19 @@ public sealed class FormatsTests
         format.Should().NotThrow();
     }
 
-    [Fact]
-    public void Formats_do_not_depend_on_the_thread_culture()
+    [Theory]
+    [InlineData("Base", "pl-PL", "1.5\u00A0MB", "5 Sep 2026, 14:00", "about 16\u00A0s left")]
+    [InlineData("Polish", "en-US", "1,5\u00A0MB", "5.09.2026, 14:00", "zostało ok. 16\u00A0s")]
+    public void Formats_do_not_depend_on_the_thread_culture(string catalog, string threadCulture, string size, string date, string timeLeft)
     {
+        Text.Use(catalog == "Base" ? TextCatalog.Base : TestTexts.Polish);
         var (culture, uiCulture) = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture);
-        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(threadCulture);
         try
         {
-            Formats.FileSize(1_572_864).Should().Be("1,5\u00A0MB");
-            Formats.DateAndTime(new DateTimeOffset(2026, 9, 5, 12, 0, 0, TimeSpan.Zero), Zone).Should().Be("5.09.2026, 14:00");
-            Formats.TimeRemaining(TimeSpan.FromSeconds(15.2)).Should().Be("zostało ok. 16\u00A0s");
+            Formats.FileSize(1_572_864).Should().Be(size);
+            Formats.DateAndTime(new DateTimeOffset(2026, 9, 5, 12, 0, 0, TimeSpan.Zero), Zone).Should().Be(date);
+            Formats.TimeRemaining(TimeSpan.FromSeconds(15.2)).Should().Be(timeLeft);
         }
         finally
         {

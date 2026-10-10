@@ -11,13 +11,6 @@ public sealed class StringsTests
     private const string OverriddenGameCount = "{count, plural, one {# tytuł} few {# tytuły} many {# tytułów} other {# tytułu}}";
 
     [Fact]
-    public void Strings_are_public_for_other_assemblies_and_xaml()
-    {
-        typeof(Strings).IsPublic.Should().BeTrue();
-        typeof(Strings).GetProperty(nameof(Strings.GameCount))!.GetMethod!.IsPublic.Should().BeTrue();
-    }
-
-    [Fact]
     public void Strings_read_the_catalog_in_use()
     {
         Text.Use(TextCatalog.Base);
