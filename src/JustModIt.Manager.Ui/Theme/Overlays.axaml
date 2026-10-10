@@ -1,0 +1,167 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls">
+  <!-- Dialogs and notifications, drawn inside the window (the Okna board): a 60% scrim under the title bar, a 460 px
+       dialog with radius 16 and no red fill, and 360 px notifications in the bottom right corner. -->
+
+  <Style Selector="Border.scrim">
+    <Setter Property="Background" Value="{StaticResource ScrimBrush}" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+    <Style.Animations>
+      <Animation Duration="0:0:0.15" FillMode="Backward">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="0" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <Style Selector="Border.dialog">
+    <Setter Property="Width" Value="460" />
+    <Setter Property="Margin" Value="24" />
+    <Setter Property="Padding" Value="24" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevFloating}" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector=":is(Window):not(.reducedMotion) Border.dialog">
+    <Style.Animations>
+      <Animation Duration="0:0:0.22" Easing="CubicEaseOut" FillMode="Backward">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="0" />
+          <Setter Property="RenderTransform" Value="translateY(8px) scale(0.96)" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+          <Setter Property="RenderTransform" Value="translateY(0px) scale(1)" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+  <Style Selector=":is(Window).reducedMotion Border.dialog">
+    <Style.Animations>
+      <Animation Duration="0:0:0.12" FillMode="Backward">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="0" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+  <Style Selector="Panel.dialogLayer.closing Border.scrim, Panel.dialogLayer.closing Border.dialog">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="TextBlock.dialogTitle">
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="LineHeight" Value="24" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+  <Style Selector="TextBlock.switchLabel">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="20" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+
+  <!-- Notifications: the tone tints the edge and the icon; they slide in from the side and fade out. -->
+  <Style Selector="Border.toast">
+    <Setter Property="Width" Value="360" />
+    <Setter Property="Padding" Value="14,14,12,14" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+    <Setter Property="BorderBrush" Value="#663B82F6" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevToast}" />
+    <Setter Property="RenderTransform" Value="translateX(0px)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseIn" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector=":is(Window):not(.reducedMotion) Border.toast">
+    <Style.Animations>
+      <Animation Duration="0:0:0.28" Easing="CubicEaseOut" FillMode="Backward">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="0" />
+          <Setter Property="RenderTransform" Value="translateX(32px)" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+          <Setter Property="RenderTransform" Value="translateX(0px)" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+  <Style Selector="Border.toast.closing">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="RenderTransform" Value="translateX(16px)" />
+  </Style>
+  <Style Selector=":is(Window).reducedMotion Border.toast.closing">
+    <Setter Property="RenderTransform" Value="translateX(0px)" />
+  </Style>
+  <Style Selector="Border.toast ui|Icon.toastIcon">
+    <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}" />
+  </Style>
+  <Style Selector="Border.toast.success">
+    <Setter Property="BorderBrush" Value="#6622C55E" />
+  </Style>
+  <Style Selector="Border.toast.success ui|Icon.toastIcon">
+    <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+  </Style>
+  <Style Selector="Border.toast.warning">
+    <Setter Property="BorderBrush" Value="#66F59E0B" />
+  </Style>
+  <Style Selector="Border.toast.warning ui|Icon.toastIcon">
+    <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="Border.toast.danger">
+    <Setter Property="BorderBrush" Value="#80EF4444" />
+  </Style>
+  <Style Selector="Border.toast.danger ui|Icon.toastIcon">
+    <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.toastTitle">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="Button.toastAction">
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="Margin" Value="-8,6,0,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="Button.toastClose">
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+</Styles>

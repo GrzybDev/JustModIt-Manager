@@ -429,4 +429,133 @@
   <data name="Shell_PageLicenses" xml:space="preserve">
     <value>Licencje</value>
   </data>
+  <data name="Dialog_Cancel" xml:space="preserve">
+    <value>Anuluj</value>
+  </data>
+  <data name="Shell_CloseTitle" xml:space="preserve">
+    <value>Zamykanie aplikacji</value>
+  </data>
+  <data name="Shell_CloseMessage" xml:space="preserve">
+    <value>Wybierz, co aplikacja ma zrobić.</value>
+  </data>
+  <data name="Shell_CloseToTray" xml:space="preserve">
+    <value>Zostaw w zasobniku</value>
+  </data>
+  <data name="Shell_CloseToTrayDescription" xml:space="preserve">
+    <value>Okno zniknie, a aplikacja nadal będzie dbać w tle o zainstalowane projekty.</value>
+  </data>
+  <data name="Shell_CloseExit" xml:space="preserve">
+    <value>Zamknij aplikację</value>
+  </data>
+  <data name="Shell_CloseExitDescription" xml:space="preserve">
+    <value>Zamknięcie okna zakończy działanie aplikacji.</value>
+  </data>
+  <data name="Shell_CloseRemember" xml:space="preserve">
+    <value>Zapamiętaj mój wybór</value>
+  </data>
+  <data name="Shell_CloseRememberHint" xml:space="preserve">
+    <value>Można to zmienić w ustawieniach.</value>
+  </data>
+  <data name="Shell_ExitAfterJobsTitle" xml:space="preserve">
+    <value>Zamknąć po zakończeniu pracy?</value>
+  </data>
+  <data name="Shell_ExitAfterJobsMessage" xml:space="preserve">
+    <value>Trwa jeszcze praca nad grą. Przerwanie jej w połowie zostawiłoby grę zmienioną tylko częściowo, więc aplikacja zamknie się zaraz po zakończeniu trwających zadań i nie zacznie już nowych.</value>
+  </data>
+  <data name="Shell_ExitAfterJobs" xml:space="preserve">
+    <value>Zamknij po zakończeniu</value>
+  </data>
+  <data name="Toast_Notifications" xml:space="preserve">
+    <value>Powiadomienia</value>
+  </data>
+  <data name="Toast_Dismiss" xml:space="preserve">
+    <value>Zamknij powiadomienie</value>
+  </data>
+  <data name="Toast_ShowGame" xml:space="preserve">
+    <value>Pokaż grę</value>
+  </data>
+  <data name="Toast_ProjectOfGame" xml:space="preserve">
+    <value>{project} ({game})</value>
+  </data>
+  <data name="Toast_InstalledTitle" xml:space="preserve">
+    <value>Zainstalowano</value>
+  </data>
+  <data name="Toast_Installed" xml:space="preserve">
+    <value>{game} – projekt grupy {team} jest gotowy. Miłej gry!</value>
+  </data>
+  <data name="Toast_InstalledAnyTeam" xml:space="preserve">
+    <value>{game} – projekt jest gotowy. Miłej gry!</value>
+  </data>
+  <data name="Toast_UpdatedTitle" xml:space="preserve">
+    <value>Zaktualizowano</value>
+  </data>
+  <data name="Toast_Updated" xml:space="preserve">
+    <value>{game} – zainstalowano wersję {version}.</value>
+  </data>
+  <data name="Toast_UpdatedLatest" xml:space="preserve">
+    <value>{game} – zainstalowano najnowsze wydanie.</value>
+  </data>
+  <data name="Toast_RepairedTitle" xml:space="preserve">
+    <value>Naprawiono</value>
+  </data>
+  <data name="Toast_Repaired" xml:space="preserve">
+    <value>{game} – sklep zmienił pliki gry, więc projekt został zainstalowany ponownie.</value>
+  </data>
+  <data name="Toast_AvailableTitle" xml:space="preserve">
+    <value>Gotowe do instalacji</value>
+  </data>
+  <data name="Toast_Available" xml:space="preserve">
+    <value>{game} – projekt grupy {team} można zainstalować.</value>
+  </data>
+  <data name="Toast_AvailableAnyTeam" xml:space="preserve">
+    <value>{game} – projekt można zainstalować.</value>
+  </data>
+  <data name="Toast_AvailableOfficial" xml:space="preserve">
+    <value>{game} – gra jest oficjalnie dostępna w tym języku, ale można też zainstalować projekt.</value>
+  </data>
+  <data name="Toast_ChoiceNeededTitle" xml:space="preserve">
+    <value>Kilka projektów do wyboru</value>
+  </data>
+  <data name="Toast_ChoiceNeeded" xml:space="preserve">
+    <value>{game} – przygotowały je różne grupy, więc do instalacji trzeba wybrać jeden.</value>
+  </data>
+  <data name="Toast_UpdateAvailableTitle" xml:space="preserve">
+    <value>Dostępna aktualizacja</value>
+  </data>
+  <data name="Toast_UpdateAvailable" xml:space="preserve">
+    <value>{game} – wersja {version} jest gotowa do instalacji.</value>
+  </data>
+  <data name="Toast_UpdateAvailableLatest" xml:space="preserve">
+    <value>{game} – nowe wydanie jest gotowe do instalacji.</value>
+  </data>
+  <data name="Toast_RepairNeededTitle" xml:space="preserve">
+    <value>Wymaga naprawy</value>
+  </data>
+  <data name="Toast_RepairNeeded" xml:space="preserve">
+    <value>{game} – sklep zmienił pliki gry, więc projekt trzeba zainstalować ponownie.</value>
+  </data>
+  <data name="Toast_ForgottenTitle" xml:space="preserve">
+    <value>Usunięto z listy</value>
+  </data>
+  <data name="Toast_Forgotten" xml:space="preserve">
+    <value>{game} – folderu gry już nie ma, więc instalacja zniknęła z listy.</value>
+  </data>
+  <data name="Toast_ForgottenKeepingBackups" xml:space="preserve">
+    <value>{game} – folderu gry już nie ma; kopie zapasowe zostały i można je usunąć w ustawieniach.</value>
+  </data>
+  <data name="Toast_PreviousReleaseLostTitle" xml:space="preserve">
+    <value>Aktualizacja się nie powiodła</value>
+  </data>
+  <data name="Toast_PreviousReleaseLost" xml:space="preserve">
+    <value>{game} – nie udało się przywrócić poprzedniego wydania; można je zainstalować ponownie na stronie gry.</value>
+  </data>
+  <data name="Toast_FailedTitle" xml:space="preserve">
+    <value>{job, select, Install {Nie udało się zainstalować} Update {Nie udało się zaktualizować} Repair {Nie udało się naprawić} Uninstall {Nie udało się odinstalować} other {Coś poszło nie tak}}</value>
+  </data>
+  <data name="Toast_Failed" xml:space="preserve">
+    <value>{game} – szczegóły są na stronie gry.</value>
+  </data>
+  <data name="Toast_ReleaseUnavailable" xml:space="preserve">
+    <value>{game} – to wydanie nie jest już dostępne na stronie.</value>
+  </data>
 </root>

@@ -20,6 +20,7 @@ public sealed partial class MainWindow : Window
 {
     private readonly ShellViewModel? _shell;
     private readonly ISystemMotion? _systemMotion;
+    private bool _closeDecided;
 
     /// <summary>Creates the window without a shell, as the XAML designer does.</summary>
     public MainWindow() => InitializeComponent();
@@ -58,8 +59,35 @@ public sealed partial class MainWindow : Window
         }
 
         // The answer goes out first; closing ends the process, which the agent then waits for.
-        Dispatcher.UIThread.Post(Close, DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(() =>
+        {
+            _closeDecided = true;
+            Close();
+        }, DispatcherPriority.Background);
         return true;
+    }
+
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        base.OnClosing(e);
+        // Signing out or shutting down the system does not wait for an answer.
+        if (_shell is null || _closeDecided || e.CloseReason is WindowCloseReason.OSShutdown or WindowCloseReason.ApplicationShutdown)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        _ = DecideCloseAsync(_shell);
+    }
+
+    private async Task DecideCloseAsync(ShellViewModel shell)
+    {
+        if (await shell.CloseFlow.DecideAsync().ConfigureAwait(true))
+        {
+            _closeDecided = true;
+            Close();
+        }
     }
 
     protected override void OnOpened(EventArgs e)

@@ -138,4 +138,46 @@
   <data name="Shell_StatusCheckingDetail" xml:space="preserve">
     <value>i pasujących spolszczeń</value>
   </data>
+  <data name="Shell_CloseToTrayDescription" xml:space="preserve">
+    <value>Okno zniknie, a aplikacja nadal będzie dbać w tle o zainstalowane spolszczenia.</value>
+  </data>
+  <data name="Toast_InstalledTitle" xml:space="preserve">
+    <value>Zainstalowano spolszczenie</value>
+  </data>
+  <data name="Toast_Installed" xml:space="preserve">
+    <value>{game} – spolszczenie grupy {team} jest gotowe. Miłej gry!</value>
+  </data>
+  <data name="Toast_InstalledAnyTeam" xml:space="preserve">
+    <value>{game} – spolszczenie jest gotowe. Miłej gry!</value>
+  </data>
+  <data name="Toast_UpdatedTitle" xml:space="preserve">
+    <value>Zaktualizowano spolszczenie</value>
+  </data>
+  <data name="Toast_RepairedTitle" xml:space="preserve">
+    <value>Naprawiono spolszczenie</value>
+  </data>
+  <data name="Toast_Repaired" xml:space="preserve">
+    <value>{game} – sklep zmienił pliki gry, więc spolszczenie zostało zainstalowane ponownie.</value>
+  </data>
+  <data name="Toast_Available" xml:space="preserve">
+    <value>{game} – spolszczenie grupy {team} można zainstalować.</value>
+  </data>
+  <data name="Toast_AvailableAnyTeam" xml:space="preserve">
+    <value>{game} – spolszczenie można zainstalować.</value>
+  </data>
+  <data name="Toast_AvailableOfficial" xml:space="preserve">
+    <value>{game} – gra ma oficjalną polską wersję, ale można też zainstalować spolszczenie.</value>
+  </data>
+  <data name="Toast_ChoiceNeededTitle" xml:space="preserve">
+    <value>Kilka spolszczeń do wyboru</value>
+  </data>
+  <data name="Toast_ChoiceNeeded" xml:space="preserve">
+    <value>{game} – przygotowały je różne grupy, więc do instalacji trzeba wybrać jedno.</value>
+  </data>
+  <data name="Toast_RepairNeeded" xml:space="preserve">
+    <value>{game} – sklep zmienił pliki gry, więc spolszczenie trzeba zainstalować ponownie.</value>
+  </data>
+  <data name="Toast_FailedTitle" xml:space="preserve">
+    <value>{job, select, Install {Nie udało się zainstalować spolszczenia} Update {Nie udało się zaktualizować spolszczenia} Repair {Nie udało się naprawić spolszczenia} Uninstall {Nie udało się odinstalować spolszczenia} other {Coś poszło nie tak}}</value>
+  </data>
 </root>

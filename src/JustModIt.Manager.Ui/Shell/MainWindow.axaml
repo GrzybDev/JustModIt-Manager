@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="using:JustModIt.Manager.Ui.Shell"
+        xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
         xmlns:ui="using:JustModIt.Manager.Ui.Controls"
         xmlns:theme="using:JustModIt.Manager.Ui.Theme"
         xmlns:loc="using:JustModIt.Manager.Localization"
@@ -16,6 +17,7 @@
 
   <Window.KeyBindings>
     <KeyBinding Gesture="Alt+Left" Command="{Binding Navigator.GoBackCommand}" />
+    <KeyBinding Gesture="Escape" Command="{Binding Dialogs.CancelCurrentCommand}" />
   </Window.KeyBindings>
 
   <Window.DataTemplates>
@@ -99,6 +101,10 @@
       </TransitioningContentControl>
 
       <shell:ConnectingView Grid.Row="1" Grid.ColumnSpan="2" />
+
+      <overlays:ToastLayer Grid.Row="1" Grid.ColumnSpan="2" DataContext="{Binding Toasts}" />
+      <!-- Over the sidebar and the pages, under the title bar, whose buttons keep working. -->
+      <overlays:DialogLayer Grid.Row="1" Grid.ColumnSpan="2" DataContext="{Binding Dialogs}" />
     </Grid>
   </Panel>
 </Window>

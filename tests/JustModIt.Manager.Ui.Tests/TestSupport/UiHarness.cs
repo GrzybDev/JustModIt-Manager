@@ -9,6 +9,7 @@ using JustModIt.Manager.Creator;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Shell;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -122,11 +123,16 @@ public sealed class UiHarness : IDisposable
     /// <summary>A real click in the middle of a control, so hit testing and click handlers run.</summary>
     public void Click(Control control)
     {
-        var center = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), Window)
-            ?? throw new InvalidOperationException("The control is not in the window.");
-        Window.MouseMove(center);
-        Window.MouseDown(center, MouseButton.Left);
-        Window.MouseUp(center, MouseButton.Left);
+        ClickAt(control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), Window)
+            ?? throw new InvalidOperationException("The control is not in the window."));
+    }
+
+    /// <summary>A real click at a point of the window.</summary>
+    public void ClickAt(Point point)
+    {
+        Window.MouseMove(point);
+        Window.MouseDown(point, MouseButton.Left);
+        Window.MouseUp(point, MouseButton.Left);
         Settle();
     }
 
@@ -150,6 +156,8 @@ public sealed class UiHarness : IDisposable
 
     public void Dispose()
     {
+        // Without an agent the window closes without asking what closing it means.
+        Agent.Link = AgentLink.Connecting;
         Window.Close();
         Session.Dispose();
         Settle();

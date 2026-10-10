@@ -9,6 +9,8 @@ using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
+using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Shell;
@@ -76,6 +78,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Navigator.Navigated += (_, _) => SyncNavigation();
         Agent.PropertyChanged += OnAgentChanged;
         Agent.NavigationRequested += OnNavigationRequested;
+        Agent.Noticed += OnNoticed;
+        CloseFlow = new CloseFlow(services.Agent, services.Navigator, services.Dialogs);
         Navigator.Open(services.Context.Launch.Target is { } target ? AgentLinks.RoutesFor(target, creatorMode: false) : [new LibraryRoute()]);
         ApplyLink();
         ApplyState();
@@ -84,6 +88,13 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public Navigator Navigator => _services.Navigator;
 
     public IAgent Agent => _services.Agent;
+
+    public DialogHost Dialogs => _services.Dialogs;
+
+    public ToastHost Toasts => _services.Toasts;
+
+    /// <summary>What closing the window means, by the player's setting.</summary>
+    public CloseFlow CloseFlow { get; }
 
     public StatusCardViewModel Status { get; }
 
@@ -129,6 +140,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _slowConnection.Stop();
         Agent.PropertyChanged -= OnAgentChanged;
         Agent.NavigationRequested -= OnNavigationRequested;
+        Agent.Noticed -= OnNoticed;
         Status.Dispose();
         (FirstRun as IDisposable)?.Dispose();
     }
@@ -166,6 +178,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     private void OnNavigationRequested(object? sender, NavigationTarget target) =>
         Navigator.Open(AgentLinks.RoutesFor(target, Agent.State.Settings.CreatorMode));
+
+    private void OnNoticed(object? sender, NoticeView notice) => Toasts.Show(NoticeToasts.Create(notice, about =>
+        Navigator.Open(AgentLinks.RoutesFor(new GameTarget(about.Game!.Value.Store.Value, about.Game.Value.StoreGameId),
+            Agent.State.Settings.CreatorMode))));
 
     private void ApplyLink()
     {

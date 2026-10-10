@@ -225,8 +225,10 @@
     <Setter Property="Height" Value="40" />
   </Style>
 
-  <!-- An action tile: a choice tile that acts at once, as in the close-the-window dialog. -->
+  <!-- An action tile: a choice tile that acts at once, as in the close-the-window dialog. Its accent edge marks the
+       focused tile, also when a dialog put the focus there, so it needs no ring around it. -->
   <Style Selector="Button.tile">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
     <Setter Property="Height" Value="NaN" />
     <Setter Property="Padding" Value="16,18,16,16" />
     <Setter Property="CornerRadius" Value="12" />
@@ -237,15 +239,15 @@
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="VerticalContentAlignment" Value="Top" />
   </Style>
-  <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.tile:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.tile:focus /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{StaticResource FillBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
   </Style>
-  <Style Selector="RadioButton:checked ui|TileContent /template/ Border#Chip, Button.tile:pointerover ui|TileContent /template/ Border#Chip, Button.tile:focus-visible ui|TileContent /template/ Border#Chip">
+  <Style Selector="RadioButton:checked ui|TileContent /template/ Border#Chip, Button.tile:pointerover ui|TileContent /template/ Border#Chip, Button.tile:focus ui|TileContent /template/ Border#Chip">
     <Setter Property="Background" Value="{DynamicResource AccentSoftStrongBrush}" />
     <Setter Property="RenderTransform" Value="scale(1.08)" />
   </Style>
-  <Style Selector="RadioButton:checked ui|TileContent /template/ ui|Icon#Glyph, Button.tile:pointerover ui|TileContent /template/ ui|Icon#Glyph, Button.tile:focus-visible ui|TileContent /template/ ui|Icon#Glyph">
+  <Style Selector="RadioButton:checked ui|TileContent /template/ ui|Icon#Glyph, Button.tile:pointerover ui|TileContent /template/ ui|Icon#Glyph, Button.tile:focus ui|TileContent /template/ ui|Icon#Glyph">
     <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
   </Style>
   <Style Selector="RadioButton:checked ui|TileContent /template/ TextBlock#TileTitle">

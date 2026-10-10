@@ -1,0 +1,13 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
+             x:Class="JustModIt.Manager.Ui.Overlays.DialogLayer"
+             x:DataType="overlays:DialogHost"
+             IsVisible="{Binding IsOpen}">
+  <Panel Classes="dialogLayer" Classes.closing="{Binding Current.IsClosing, FallbackValue=False}">
+    <Border x:Name="Scrim" Classes="scrim" PointerPressed="OnScrimPressed" />
+    <!-- Tab stays inside the dialog while it is open. -->
+    <ContentControl x:Name="Host" Content="{Binding Current}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    KeyboardNavigation.TabNavigation="Cycle" />
+  </Panel>
+</UserControl>

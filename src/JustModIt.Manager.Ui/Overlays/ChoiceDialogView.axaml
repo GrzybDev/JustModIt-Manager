@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             x:Class="JustModIt.Manager.Ui.Overlays.ChoiceDialogView"
+             x:DataType="overlays:ChoiceDialogViewModel">
+  <Border Classes="dialog" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Message}">
+    <StackPanel Spacing="18">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="dialogTitle" Text="{Binding Title}" />
+        <TextBlock Classes="bodyText" Text="{Binding Message}" />
+      </StackPanel>
+      <!-- Item margins space the tiles; the negative margin lines the outer ones up with the dialog's content. -->
+      <ItemsControl x:Name="Choices" ItemsSource="{Binding Choices}" Margin="-6">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Rows="1" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="overlays:DialogChoice">
+            <Button Classes="tile" Margin="6" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}"
+                    Command="{Binding $parent[ItemsControl].((overlays:ChoiceDialogViewModel)DataContext).ChooseCommand}"
+                    CommandParameter="{Binding}">
+              <ui:TileContent Icon="{Binding Icon}" Title="{Binding Title}" Description="{Binding Description}"
+                              Classes.danger="{Binding IsDanger}" />
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+        <ToggleSwitch IsChecked="{Binding Remember}" IsVisible="{Binding CanRemember}" AutomationProperties.Name="{Binding RememberText}" />
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" IsVisible="{Binding CanRemember}">
+          <TextBlock Classes="switchLabel" Text="{Binding RememberText}" />
+          <TextBlock Classes="small" Text="{Binding RememberHint}" />
+        </StackPanel>
+        <Button Grid.Column="2" Classes="quiet" Content="{Binding CancelText}" Command="{Binding DismissCommand}" />
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>

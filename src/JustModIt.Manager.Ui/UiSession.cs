@@ -1,6 +1,7 @@
 using Avalonia;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages;
 using JustModIt.Manager.Ui.Shell;
 using JustModIt.Manager.Ui.Theme;
@@ -33,12 +34,21 @@ public sealed class UiSession : IDisposable
         ArgumentNullException.ThrowIfNull(context);
         AccentPalette.From(context.AccentColor).Apply(application.Resources);
         var composition = new UiComposition(application.Resources, application.Styles);
+        composition.Views.Register<ConfirmDialogViewModel>(() => new ConfirmDialogView());
+        composition.Views.Register<ChoiceDialogViewModel>(() => new ChoiceDialogView());
         Screens.Register(composition);
         context.Compose?.Invoke(composition);
 
         UiServices? services = null;
         var navigator = new Navigator(route => composition.Pages.Create(route, services!));
-        services = new UiServices { Agent = agent, Navigator = navigator, Context = context };
+        services = new UiServices
+        {
+            Agent = agent,
+            Navigator = navigator,
+            Dialogs = new DialogHost(),
+            Toasts = new ToastHost(),
+            Context = context,
+        };
         return new UiSession(composition, services, new ShellViewModel(services, composition.FirstRun));
     }
 

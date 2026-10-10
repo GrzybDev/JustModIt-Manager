@@ -441,4 +441,133 @@
   <data name="Shell_PageLicenses" xml:space="preserve">
     <value>Licenses</value>
   </data>
+  <data name="Dialog_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Shell_CloseTitle" xml:space="preserve">
+    <value>Closing the app</value>
+  </data>
+  <data name="Shell_CloseMessage" xml:space="preserve">
+    <value>Choose what the app does.</value>
+  </data>
+  <data name="Shell_CloseToTray" xml:space="preserve">
+    <value>Keep in the tray</value>
+  </data>
+  <data name="Shell_CloseToTrayDescription" xml:space="preserve">
+    <value>The window goes away and the app keeps looking after the installed projects in the background.</value>
+  </data>
+  <data name="Shell_CloseExit" xml:space="preserve">
+    <value>Close the app</value>
+  </data>
+  <data name="Shell_CloseExitDescription" xml:space="preserve">
+    <value>Closing the window ends the app.</value>
+  </data>
+  <data name="Shell_CloseRemember" xml:space="preserve">
+    <value>Remember my choice</value>
+  </data>
+  <data name="Shell_CloseRememberHint" xml:space="preserve">
+    <value>It can be changed in the settings.</value>
+  </data>
+  <data name="Shell_ExitAfterJobsTitle" xml:space="preserve">
+    <value>Close once the work is done?</value>
+  </data>
+  <data name="Shell_ExitAfterJobsMessage" xml:space="preserve">
+    <value>A job is still running. Stopping it halfway would leave its game half changed, so the app closes as soon as the running jobs are done and starts no new ones.</value>
+  </data>
+  <data name="Shell_ExitAfterJobs" xml:space="preserve">
+    <value>Close when done</value>
+  </data>
+  <data name="Toast_Notifications" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="Toast_Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="Toast_ShowGame" xml:space="preserve">
+    <value>Show the game</value>
+  </data>
+  <data name="Toast_ProjectOfGame" xml:space="preserve">
+    <value>{project} ({game})</value>
+  </data>
+  <data name="Toast_InstalledTitle" xml:space="preserve">
+    <value>Installed</value>
+  </data>
+  <data name="Toast_Installed" xml:space="preserve">
+    <value>{game} – {team}'s project is ready. Have fun!</value>
+  </data>
+  <data name="Toast_InstalledAnyTeam" xml:space="preserve">
+    <value>{game} – the project is ready. Have fun!</value>
+  </data>
+  <data name="Toast_UpdatedTitle" xml:space="preserve">
+    <value>Updated</value>
+  </data>
+  <data name="Toast_Updated" xml:space="preserve">
+    <value>{game} – version {version} is installed.</value>
+  </data>
+  <data name="Toast_UpdatedLatest" xml:space="preserve">
+    <value>{game} – the newest release is installed.</value>
+  </data>
+  <data name="Toast_RepairedTitle" xml:space="preserve">
+    <value>Repaired</value>
+  </data>
+  <data name="Toast_Repaired" xml:space="preserve">
+    <value>{game} – the store changed the game's files, so the project was installed again.</value>
+  </data>
+  <data name="Toast_AvailableTitle" xml:space="preserve">
+    <value>Ready to install</value>
+  </data>
+  <data name="Toast_Available" xml:space="preserve">
+    <value>{game} – {team}'s project can be installed.</value>
+  </data>
+  <data name="Toast_AvailableAnyTeam" xml:space="preserve">
+    <value>{game} – a project can be installed.</value>
+  </data>
+  <data name="Toast_AvailableOfficial" xml:space="preserve">
+    <value>{game} – the game is officially in this language, but a project can be installed too.</value>
+  </data>
+  <data name="Toast_ChoiceNeededTitle" xml:space="preserve">
+    <value>Several projects to choose from</value>
+  </data>
+  <data name="Toast_ChoiceNeeded" xml:space="preserve">
+    <value>{game} – different teams made them, so one has to be chosen to install.</value>
+  </data>
+  <data name="Toast_UpdateAvailableTitle" xml:space="preserve">
+    <value>Update available</value>
+  </data>
+  <data name="Toast_UpdateAvailable" xml:space="preserve">
+    <value>{game} – version {version} is ready to install.</value>
+  </data>
+  <data name="Toast_UpdateAvailableLatest" xml:space="preserve">
+    <value>{game} – a new release is ready to install.</value>
+  </data>
+  <data name="Toast_RepairNeededTitle" xml:space="preserve">
+    <value>Needs a repair</value>
+  </data>
+  <data name="Toast_RepairNeeded" xml:space="preserve">
+    <value>{game} – the store changed the game's files, so the project has to be installed again.</value>
+  </data>
+  <data name="Toast_ForgottenTitle" xml:space="preserve">
+    <value>Taken off the list</value>
+  </data>
+  <data name="Toast_Forgotten" xml:space="preserve">
+    <value>{game} – the game's folder is gone, so its install was taken off the list.</value>
+  </data>
+  <data name="Toast_ForgottenKeepingBackups" xml:space="preserve">
+    <value>{game} – the game's folder is gone; its backups stay and can be removed in the settings.</value>
+  </data>
+  <data name="Toast_PreviousReleaseLostTitle" xml:space="preserve">
+    <value>The update failed</value>
+  </data>
+  <data name="Toast_PreviousReleaseLost" xml:space="preserve">
+    <value>{game} – the previous release could not be put back; it can be installed again on the game's page.</value>
+  </data>
+  <data name="Toast_FailedTitle" xml:space="preserve">
+    <value>{job, select, Install {Installing failed} Update {Updating failed} Repair {Repairing failed} Uninstall {Uninstalling failed} other {Something went wrong}}</value>
+  </data>
+  <data name="Toast_Failed" xml:space="preserve">
+    <value>{game} – the game's page says what went wrong.</value>
+  </data>
+  <data name="Toast_ReleaseUnavailable" xml:space="preserve">
+    <value>{game} – this release is no longer available on the site.</value>
+  </data>
 </root>

@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             x:Class="JustModIt.Manager.Ui.Overlays.ConfirmDialogView"
+             x:DataType="overlays:ConfirmDialogViewModel">
+  <Border Classes="dialog" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Message}">
+    <StackPanel Spacing="20">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+        <Border Classes="iconChip accent" Classes.danger="{Binding IsDanger}" Classes.warning="{Binding IsWarning}" VerticalAlignment="Top">
+          <ui:Icon Data="{Binding Icon}" />
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="6">
+          <TextBlock Classes="dialogTitle" Text="{Binding Title}" />
+          <TextBlock Classes="bodyText" Text="{Binding Message}" />
+        </StackPanel>
+      </Grid>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+        <Button Classes="quiet" Content="{Binding CancelText}" Command="{Binding DismissCommand}" />
+        <Button Classes="outline" Classes.dangerTint="{Binding IsDanger}" Content="{Binding ConfirmText}"
+                ui:ButtonAssist.Icon="{Binding ConfirmIcon}" Command="{Binding ConfirmCommand}" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

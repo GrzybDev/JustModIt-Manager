@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Overlays.ToastLayer"
+             x:DataType="overlays:ToastHost"
+             HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="20"
+             IsVisible="{Binding HasItems}">
+  <ItemsControl ItemsSource="{Binding Items}" AutomationProperties.Name="{x:Static loc:Strings.Toast_Notifications}">
+    <ItemsControl.ItemsPanel>
+      <ItemsPanelTemplate>
+        <StackPanel Spacing="8" />
+      </ItemsPanelTemplate>
+    </ItemsControl.ItemsPanel>
+    <ItemsControl.ItemTemplate>
+      <DataTemplate x:DataType="overlays:ToastViewModel">
+        <Border Classes="toast" Classes.closing="{Binding IsClosing}" Classes.success="{Binding IsSuccess}"
+                Classes.warning="{Binding IsWarning}" Classes.danger="{Binding IsDanger}"
+                AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{Binding Title}"
+                AutomationProperties.HelpText="{Binding Message}"
+                PointerEntered="OnPointerEntered" PointerExited="OnPointerExited">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+            <ui:Icon Classes="toastIcon" Data="{Binding Icon}" Width="18" Height="18" Margin="0,1,0,0" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="2">
+              <TextBlock Classes="toastTitle" Text="{Binding Title}" />
+              <TextBlock Classes="caption" Text="{Binding Message}"
+                         IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <Button Classes="quiet toastAction" Content="{Binding ActionText}" Command="{Binding ActCommand}"
+                      IsVisible="{Binding HasAction}" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="icon toastClose" Command="{Binding DismissCommand}"
+                    ToolTip.Tip="{x:Static loc:Strings.Toast_Dismiss}">
+              <ui:Icon Data="{x:Static theme:Icons.X}" Width="14" Height="14" />
+            </Button>
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ItemsControl.ItemTemplate>
+  </ItemsControl>
+</UserControl>
