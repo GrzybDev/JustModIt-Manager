@@ -63,6 +63,7 @@ public sealed class ExitTests : IAsyncDisposable
     {
         _agent.Start();
         var job = await HeldRecoveryEngine.StartJobAsync(_agent);
+        await Eventually.HoldsAsync(() => _agent.Tray.Tooltip is not null);
 
         _agent.Tray.Pick(TrayCommands.Exit);
 

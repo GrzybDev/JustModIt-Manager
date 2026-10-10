@@ -88,6 +88,7 @@ public sealed class UpdateServiceTests : IAsyncDisposable
         _updater.Newest = "1.1.0";
         agent.Start();
         await HeldRecoveryEngine.StartJobAsync(agent);
+        await Eventually.HoldsAsync(() => agent.Tray.Tooltip is not null);
 
         agent.Tray.Pick(TrayCommands.CheckNow);
 
