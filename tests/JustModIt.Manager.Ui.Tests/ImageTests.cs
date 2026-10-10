@@ -21,9 +21,18 @@ public sealed class ImageTests : IDisposable
     public void Dispose()
     {
         _server.Dispose();
-        if (Directory.Exists(_folder))
+        // A moving picture's frames keep its file open until the player's loop ends on the thread pool, after the window closed.
+        var until = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (Directory.Exists(_folder))
         {
-            Directory.Delete(_folder, recursive: true);
+            try
+            {
+                Directory.Delete(_folder, recursive: true);
+            }
+            catch (IOException) when (DateTime.UtcNow < until)
+            {
+                Thread.Sleep(20);
+            }
         }
     }
 
@@ -138,6 +147,29 @@ public sealed class ImageTests : IDisposable
         codecs.Decoded.Should().ContainSingle();
     }
 
+    [AvaloniaTheory]
+    [InlineData("three-colours.gif")]
+    [InlineData("three-colours.webp")]
+    public async Task An_animated_gif_or_webp_shows_its_frames_one_after_another(string name)
+    {
+        var address = "https://images.example.com/attachments/" + name;
+        _server.Images[address] = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
+        using var images = Cache();
+        var image = new RemoteImage { Source = address, Width = 48, Height = 32 };
+        var window = new Window { Width = 200, Height = 200, Content = image };
+        RemoteImage.SetLoader(window, images);
+        window.Show();
+        var seen = new HashSet<string>();
+
+        await UiHarness.WaitUntilAsync(() =>
+        {
+            seen.Add(TestImages.ColourAt(window, new PixelPoint(100, 100)));
+            return seen.IsSupersetOf(["red", "green", "blue"]);
+        });
+
+        window.Close();
+    }
+
     [AvaloniaFact]
     public void An_image_loads_once_it_scrolls_near_the_view_at_the_size_of_its_box()
     {
@@ -185,11 +217,89 @@ public sealed class ImageTests : IDisposable
         plain!.Save(Path.Combine(UiHarness.RendersDirectory, "backdrop-plain.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 
-    private ImageCache Cache(long? memoryBudget = null, IMediaCodecs? codecs = null) =>
-        new(_folder, ["images.example.com", "posters.example.net/vi/"], new HttpClient(_server, disposeHandler: false), NullLogger.Instance,
-            codecs, memoryBudget);
+    [AvaloniaTheory]
+    [InlineData("three-colours.gif")]
+    [InlineData("three-colours.webp")]
+    public async Task The_frames_of_an_animated_gif_or_webp_are_composed_and_last_as_long_as_the_picture_says(string name)
+    {
+        var address = "https://images.example.com/attachments/" + name;
+        _server.Images[address] = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
+        using var images = Cache();
 
-    /// <summary>The system's decoders as the test sets them up: a file that starts with SYSTEMONLY is a picture of one size.</summary>
+        var still = await images.LoadAsync(address, new PixelSize(48, 32), CancellationToken.None);
+        using var frames = await images.OpenFramesAsync(address, new PixelSize(48, 32), CancellationToken.None);
+
+        still!.IsAnimated.Should().BeTrue();
+        frames!.Size.Should().Be(still.Bitmap.PixelSize, "the frames take the still's place");
+        // The GIF holds each colour in two frames of 100 ms, the WebP in one of 200 ms; both show the same.
+        Timeline(frames, TimeSpan.FromMilliseconds(1200)).Should().Equal(
+            ("red", 200), ("green", 200), ("blue", 200), ("red", 200), ("green", 200), ("blue", 200));
+        (await images.OpenFramesAsync(Cover, new PixelSize(48, 32), CancellationToken.None)).Should().BeNull("a still picture has no frames");
+        (await images.LoadAsync(Cover, new PixelSize(48, 32), CancellationToken.None))!.IsAnimated.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public async Task A_clip_plays_through_the_systems_decoders_scaled_to_cover_its_box()
+    {
+        const string Clip = "https://images.example.com/attachments/lantern.mp4";
+        _server.Images[Clip] = [.. "SYSTEMCLIP"u8];
+        using var images = Cache(codecs: new FakeCodecs(new PixelSize(400, 200)));
+
+        using var frames = await images.OpenFramesAsync(Clip, new PixelSize(128, 64), CancellationToken.None);
+
+        (frames!.NaturalSize, frames.Size).Should().Be((new PixelSize(400, 200), new PixelSize(128, 64)));
+        Timeline(frames, TimeSpan.FromMilliseconds(200)).Should().Equal(("red", 50), ("blue", 50), ("red", 50), ("blue", 50));
+    }
+
+    [AvaloniaFact]
+    public async Task The_frames_playing_at_once_stay_within_their_memory_budget()
+    {
+        const string Moving = "https://images.example.com/attachments/three-colours.gif";
+        _server.Images[Moving] = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "three-colours.gif"));
+        // One 48x32 GIF holds its composed frame, its scaled frame, and the player's frame and bitmap.
+        using var images = Cache(framesBudget: 4 * 4 * 48 * 32);
+
+        var first = await images.OpenFramesAsync(Moving, new PixelSize(48, 32), CancellationToken.None);
+        var second = await images.OpenFramesAsync(Moving, new PixelSize(48, 32), CancellationToken.None);
+        first!.Dispose();
+        using var third = await images.OpenFramesAsync(Moving, new PixelSize(48, 32), CancellationToken.None);
+
+        second.Should().BeNull("the first frames took the whole budget");
+        third.Should().NotBeNull("frames let go hand their memory back");
+    }
+
+    private ImageCache Cache(long? memoryBudget = null, IMediaCodecs? codecs = null, long? framesBudget = null) =>
+        new(_folder, ["images.example.com", "posters.example.net/vi/"], new HttpClient(_server, disposeHandler: false), NullLogger.Instance,
+            codecs, memoryBudget, framesBudget);
+
+    // The colours the frames show in turn, each with how long it shows, until the given time has passed.
+    private static List<(string Colour, double Milliseconds)> Timeline(IFrameSource frames, TimeSpan length)
+    {
+        var pixels = new byte[frames.Size.Width * frames.Size.Height * 4];
+        var middle = ((frames.Size.Height / 2 * frames.Size.Width) + (frames.Size.Width / 2)) * 4;
+        var shown = new List<(string Colour, double Milliseconds)>();
+        while (shown.Sum(colour => colour.Milliseconds) < length.TotalMilliseconds)
+        {
+            var milliseconds = frames.DecodeNext(pixels)!.Value.TotalMilliseconds;
+            var (blue, green, red) = (pixels[middle], pixels[middle + 1], pixels[middle + 2]);
+            var colour = red > green && red > blue ? "red" : green > blue ? "green" : "blue";
+            if (shown.Count > 0 && shown[^1].Colour == colour)
+            {
+                shown[^1] = (colour, shown[^1].Milliseconds + milliseconds);
+            }
+            else
+            {
+                shown.Add((colour, milliseconds));
+            }
+        }
+
+        return shown;
+    }
+
+    /// <summary>
+    /// The system's decoders as the test sets them up: a file that starts with SYSTEMONLY is a picture of one size, and
+    /// one that starts with SYSTEMCLIP a clip of that size, red and blue frames of 50 ms in turn.
+    /// </summary>
     private sealed class FakeCodecs(PixelSize natural) : IMediaCodecs
     {
         public List<string> Decoded { get; } = [];
@@ -204,6 +314,33 @@ public sealed class ImageTests : IDisposable
             Decoded.Add(path);
             var (width, height) = sizeFor(natural.Width, natural.Height);
             return new MediaPicture(width, height, natural.Width, natural.Height, new byte[width * height * 4]);
+        }
+
+        public IMediaClip? OpenClip(string path) =>
+            File.ReadAllText(path).StartsWith("SYSTEMCLIP", StringComparison.Ordinal) ? new FakeClip(natural) : null;
+    }
+
+    private sealed class FakeClip(PixelSize natural) : IMediaClip
+    {
+        private int _next;
+
+        public int Width => natural.Width;
+
+        public int Height => natural.Height;
+
+        public TimeSpan? ReadFrame(Span<byte> pixels)
+        {
+            byte red = _next++ % 2 == 0 ? (byte)0xE0 : (byte)0x40;
+            for (var at = 0; at < pixels.Length; at += 4)
+            {
+                (pixels[at], pixels[at + 1], pixels[at + 2], pixels[at + 3]) = ((byte)(0x100 - red), 0x30, red, 0xFF);
+            }
+
+            return TimeSpan.FromMilliseconds(50);
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

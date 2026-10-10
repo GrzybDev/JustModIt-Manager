@@ -14,10 +14,13 @@ public sealed class MotionTests
     public void Loops_run_only_while_the_window_can_be_seen_and_motion_is_allowed()
     {
         using var ui = new UiHarness(TestStates.Idle());
+        var page = ui.Find<Control>().Last();
         ui.Window.Classes.Should().Contain("loops");
+        Motion.GetLoops(page).Should().BeTrue();
 
         ui.Window.WindowState = WindowState.Minimized;
         ui.Window.Classes.Should().NotContain("loops");
+        Motion.GetLoops(page).Should().BeFalse("every control in the window, such as a moving picture, inherits it");
         ui.Window.WindowState = WindowState.Normal;
 
         try

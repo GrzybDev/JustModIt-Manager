@@ -127,7 +127,13 @@ public sealed class MarkdownView : StackPanel
 
     private static Border Image(ImageBlock image)
     {
-        var picture = new RemoteImage { Source = image.Source, Stretch = Stretch.Uniform, FitsPicture = true };
+        var picture = new RemoteImage
+        {
+            Source = image.Source,
+            ClipSource = image.Clips.Count > 0 ? image.Clips[0] : null,
+            Stretch = Stretch.Uniform,
+            FitsPicture = true,
+        };
         AutomationProperties.SetName(picture, image.Alt);
         return new Border { Classes = { "picture" }, Child = picture };
     }

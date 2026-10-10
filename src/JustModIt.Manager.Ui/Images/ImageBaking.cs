@@ -43,11 +43,35 @@ internal static class ImageBaking
     /// <summary>Scales decoded pixels into a bitmap of the given size, cropping what does not fit.</summary>
     /// <param name="source">The decoded pixels.</param>
     /// <param name="size">The bitmap's size.</param>
-    public static WriteableBitmap Scaled(SKPixmap source, PixelSize size) => Bake(size, canvas =>
+    public static WriteableBitmap Scaled(SKPixmap source, PixelSize size) => Bake(size, canvas => DrawCover(canvas, source, size));
+
+    /// <summary>A bitmap for one frame: rows of BGRA pixels, one right after another.</summary>
+    /// <param name="size">The frame's size.</param>
+    /// <param name="alpha">Whether the frame is opaque or premultiplied.</param>
+    public static SKBitmap Frame(PixelSize size, SKAlphaType alpha) =>
+        new(new SKImageInfo(size.Width, size.Height, SKColorType.Bgra8888, alpha, SKColorSpace.CreateSrgb()));
+
+    /// <summary>Scales decoded pixels over rows of premultiplied BGRA pixels, cropping what does not fit.</summary>
+    /// <param name="source">The decoded pixels.</param>
+    /// <param name="scaled">A <see cref="Frame"/> of the target's size, which the pixels are scaled into on their way.</param>
+    /// <param name="target">The rows, one after another, of a picture of <paramref name="scaled"/>'s size.</param>
+    public static void Cover(SKPixmap source, SKBitmap scaled, Span<byte> target)
+    {
+        ArgumentNullException.ThrowIfNull(scaled);
+        using (var canvas = new SKCanvas(scaled))
+        {
+            canvas.Clear(SKColors.Transparent);
+            DrawCover(canvas, source, new PixelSize(scaled.Width, scaled.Height));
+        }
+
+        scaled.GetPixelSpan().CopyTo(target);
+    }
+
+    private static void DrawCover(SKCanvas canvas, SKPixmap source, PixelSize size)
     {
         using var image = SKImage.FromPixels(source);
         canvas.DrawImage(image, CoverRect(image.Width, image.Height, new SKRect(0, 0, size.Width, size.Height)), Smooth);
-    });
+    }
 
     /// <summary>Copies rows of premultiplied BGRA pixels into a bitmap.</summary>
     /// <param name="pixels">The rows, one after another.</param>

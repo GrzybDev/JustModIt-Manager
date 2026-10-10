@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
@@ -261,6 +262,7 @@ public sealed class GameTests
             images.Missing.Add("https://i.ytimg.com/vi/Tr4iLer-0_1/maxresdefault.jpg");
             images.Sizes[Welcome] = new PixelSize(480, 56);
             images.Sizes["https://images.example.com/attachments/lantern.avif"] = new PixelSize(616, 200);
+            images.Animations["https://images.example.com/attachments/lantern.mp4"] = [Colors.Orange, Colors.Gold];
         });
         var page = Page(ui);
         await UiHarness.WaitUntilAsync(() => page.Details is not null);
@@ -282,6 +284,11 @@ public sealed class GameTests
             + "description, also one opening a paragraph and a looping clip's still");
         ui.Find<Controls.RemoteImage>().Single(image => image.Source == Welcome).Bounds.Size.Should().Be(new Size(480, 56),
             "a picture in a text keeps its own proportions and width");
+        var clip = ui.Find<Controls.RemoteImage>().Single(image => image.ClipSource is not null);
+        clip.BringIntoView();
+        await UiHarness.WaitUntilAsync(() => clip.Player is { Frames: > 2 });
+        ui.Images.Opened.Select(opened => opened.Address).Distinct().Should().Equal(["https://images.example.com/attachments/lantern.mp4"],
+            "a store page's looping clip plays in its still's place, its first format first");
 
         ui.Click(ui.Find<Button>("StatusChip"));
         page.IsStatusOpen.Should().BeTrue();

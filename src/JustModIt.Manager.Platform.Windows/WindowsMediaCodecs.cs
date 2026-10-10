@@ -10,7 +10,7 @@ namespace JustModIt.Manager.Platform.Windows;
 
 /// <summary>
 /// Decodes pictures with the Windows Imaging Component, which reads AVIF through the system's HEIF and AV1 extensions
-/// besides the formats Windows ships with.
+/// besides the formats Windows ships with, and clips with Media Foundation.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class WindowsMediaCodecs : IMediaCodecs
@@ -19,6 +19,8 @@ public sealed class WindowsMediaCodecs : IMediaCodecs
     private const long MaxPixels = 64L << 20;
 
     public MediaPicture? DecodePicture(string path, Func<int, int, (int Width, int Height)> sizeFor) => Decode(path, sizeFor, out _);
+
+    public IMediaClip? OpenClip(string path) => WindowsMediaClip.Open(path, out _);
 
     /// <summary>Decodes the first frame of a picture, telling a missing decoder from a damaged file.</summary>
     /// <param name="path">The picture's file.</param>

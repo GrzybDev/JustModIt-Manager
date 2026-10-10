@@ -67,6 +67,7 @@ public sealed class MarkdownTests
         ((ParagraphBlock)document.Blocks[1]).Inlines.Select(inline => inline.Text).Should()
             .Equal("Welcome to the island", "", "The lighthouse turns back time.");
         ((ImageBlock)document.Blocks[2]).Source.Should().Be("https://images.example.com/lantern.avif");
+        ((ImageBlock)document.Blocks[2]).Clips.Should().Equal("https://images.example.com/lantern.mp4");
         ((ParagraphBlock)document.Blocks[3]).Inlines.Select(inline => inline.Text).Should().Equal("Before");
         ((ImageBlock)document.Blocks[4]).Should().Be(new ImageBlock("https://images.example.com/map.png", "The map"));
         ((ParagraphBlock)document.Blocks[5]).Inlines.Select(inline => inline.Text).Should().Equal("after.");
@@ -86,6 +87,7 @@ public sealed class MarkdownTests
             "VideoBlock", "ParagraphBlock");
         document.Blocks.OfType<ImageBlock>().Select(image => image.Source).Should().Equal("https://images.example.com/deck.webp",
             "https://images.example.com/drift.avif", "https://images.example.com/hull.webp", "https://images.example.com/bridge.webp");
+        ((ImageBlock)document.Blocks[1]).Clips.Should().Equal("https://images.example.com/drift.mp4", "https://images.example.com/drift.webm");
         document.Blocks[4].Should().Be(new VideoBlock("Tr4iLer-0_1", 7));
         ((ParagraphBlock)document.Blocks[5]).Inlines.Select(inline => inline.Text).Should().Equal("Signals from the hull.");
     }

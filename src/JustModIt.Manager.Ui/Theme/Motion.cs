@@ -22,6 +22,13 @@ public static class Motion
     public static readonly AttachedProperty<bool> EnterProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("Enter", typeof(Motion));
 
+    /// <summary>
+    /// Looping animations may run here: the window can be seen and motion is not reduced. The window sets it, and every
+    /// control in it inherits it, as moving pictures that pause with it do.
+    /// </summary>
+    public static readonly AttachedProperty<bool> LoopsProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("Loops", typeof(Motion), defaultValue: true, inherits: true);
+
     /// <summary>The time between two staggered entrances.</summary>
     public static readonly TimeSpan StaggerStep = TimeSpan.FromMilliseconds(40);
 
@@ -84,6 +91,23 @@ public static class Motion
     {
         ArgumentNullException.ThrowIfNull(control);
         control.SetValue(EnterProperty, value);
+    }
+
+    /// <summary>Reads whether looping animations may run in a part of the window.</summary>
+    /// <param name="control">The control, which inherits it from the window.</param>
+    public static bool GetLoops(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        return control.GetValue(LoopsProperty);
+    }
+
+    /// <summary>Sets whether looping animations may run in a part of the window.</summary>
+    /// <param name="control">The window.</param>
+    /// <param name="value">True while the window can be seen and motion is not reduced.</param>
+    public static void SetLoops(Control control, bool value)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        control.SetValue(LoopsProperty, value);
     }
 
     /// <summary>Follows the system's wish for reduced motion; the window calls it when it starts and comes to the front.</summary>

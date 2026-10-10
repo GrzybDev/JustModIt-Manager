@@ -62,10 +62,14 @@ public sealed record CodeBlock(string Text) : MarkdownBlock;
 /// <summary>A dividing line.</summary>
 public sealed record RuleBlock : MarkdownBlock;
 
-/// <summary>A picture on a line of its own.</summary>
-/// <param name="Source">The picture's address.</param>
+/// <summary>A picture on a line of its own, or a silent looping clip shown as one.</summary>
+/// <param name="Source">The picture's address, or the clip's still; empty for a clip without one.</param>
 /// <param name="Alt">What it shows, for screen readers.</param>
-public sealed record ImageBlock(string Source, string Alt) : MarkdownBlock;
+public sealed record ImageBlock(string Source, string Alt) : MarkdownBlock
+{
+    /// <summary>The clip's addresses in the order the site offers its formats; empty for a picture.</summary>
+    public IReadOnlyList<string> Clips { get; init; } = [];
+}
 
 /// <summary>A film on YouTube, shown as its still and played in the browser.</summary>
 /// <param name="Id">The film's id.</param>
@@ -79,8 +83,8 @@ public sealed record TableBlock(IReadOnlyList<IReadOnlyList<IReadOnlyList<Markdo
 /// <summary>
 /// A text of the site, written in GitHub-flavoured Markdown that may hold raw HTML, read into blocks the window lays out
 /// as its own controls. Reading never runs on the UI thread; the result is immutable, so any thread may hold it. Raw HTML
-/// is reduced to its text, line breaks, pictures, the stills of its looping clips and its YouTube films, and links lead
-/// only to https addresses. Pictures stand on lines of their own, as the site shows them.
+/// is reduced to its text, line breaks, pictures, silent looping clips and YouTube films, and links lead only to https
+/// addresses. Pictures stand on lines of their own, as the site shows them.
 /// </summary>
 /// <param name="Blocks">The document's blocks in order.</param>
 public sealed partial record MarkdownDocument(IReadOnlyList<MarkdownBlock> Blocks)
@@ -228,8 +232,8 @@ public sealed partial record MarkdownDocument(IReadOnlyList<MarkdownBlock> Block
         blocks.Add(text(kept));
     }
 
-    // Raw HTML from the site shows as what it says, in its order: its text with its line breaks, its pictures, the stills
-    // of the silent looping clips a store page's import brings, and the YouTube films the site's editor embeds.
+    // Raw HTML from the site shows as what it says, in its order: its text with its line breaks, its pictures, the silent
+    // looping clips a store page's import makes of its GIFs, and the YouTube films the site's editor embeds.
     private static void AddHtml(List<MarkdownBlock> blocks, string html)
     {
         var at = 0;
@@ -256,7 +260,10 @@ public sealed partial record MarkdownDocument(IReadOnlyList<MarkdownBlock> Block
 
         if (element.StartsWith("<video", StringComparison.OrdinalIgnoreCase))
         {
-            return HttpsAddress(Attribute(tag, "poster")) is { } poster ? new ImageBlock(poster.AbsoluteUri, "") : null;
+            List<string> clips = [.. SourceTag().Matches(element).Select(source => Attribute(source.Value, "src")).Prepend(Attribute(tag, "src"))
+                .Select(HttpsAddress).OfType<Uri>().Select(clip => clip.AbsoluteUri)];
+            var poster = HttpsAddress(Attribute(tag, "poster"))?.AbsoluteUri;
+            return poster is null && clips.Count == 0 ? null : new ImageBlock(poster ?? "", "") { Clips = clips };
         }
 
         return Attribute(tag, "src") is { } player && YouTube.FromEmbed(player) is var (id, start) ? new VideoBlock(id, start) : null;
@@ -426,6 +433,9 @@ public sealed partial record MarkdownDocument(IReadOnlyList<MarkdownBlock> Block
 
     [GeneratedRegex(@"^<(?:[^>""']|""[^""]*""|'[^']*')*>")]
     private static partial Regex OpeningTag();
+
+    [GeneratedRegex(@"<source\b(?:[^>""']|""[^""]*""|'[^']*')*>", RegexOptions.IgnoreCase)]
+    private static partial Regex SourceTag();
 
     [GeneratedRegex(@"(?<name>[A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:""(?<value>[^""]*)""|'(?<value>[^']*)'|(?<value>[^\s""'=<>`]+))")]
     private static partial Regex AttributePattern();

@@ -4,6 +4,13 @@
   "comInterop": {
     "useIntPtrForComOutPointers": true,
     "preserveSigMethods": [
+      "IMF2DBuffer",
+      "IMFAttributes",
+      "IMFByteStream",
+      "IMFMediaType",
+      "IMFReadWriteClassFactory",
+      "IMFSample",
+      "IMFSourceReader",
       "IWICBitmapDecoder",
       "IWICBitmapScaler",
       "IWICBitmapSource",

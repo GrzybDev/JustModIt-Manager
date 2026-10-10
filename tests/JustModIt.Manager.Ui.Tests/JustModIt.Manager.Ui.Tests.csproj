@@ -14,4 +14,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\JustModIt.Manager.Ui\JustModIt.Manager.Ui.csproj" />
   </ItemGroup>
+
+  <!-- Invented moving pictures made of solid colours. -->
+  <ItemGroup>
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

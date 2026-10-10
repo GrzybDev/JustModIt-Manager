@@ -1,4 +1,7 @@
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using JustModIt.Manager.Ui.Images;
@@ -17,6 +20,26 @@ public static class TestImages
     }
 
     public static WriteableBitmap Bitmap(int width, int height) => Bitmap(width, height, 0xD4, 0x7C, 0x4A);
+
+    /// <summary>The colour a window shows at a point, named by its strongest channel, or "none" where it is dark.</summary>
+    public static string ColourAt(TopLevel window, PixelPoint point)
+    {
+        using var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("Nothing was rendered.");
+        var pixel = new byte[4];
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixel, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            frame.CopyPixels(new PixelRect(point, new PixelSize(1, 1)), handle.AddrOfPinnedObject(), 4, 4);
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        var (red, green, blue) = frame.Format == PixelFormats.Rgba8888 ? (pixel[0], pixel[1], pixel[2]) : (pixel[2], pixel[1], pixel[0]);
+        var strongest = Math.Max(red, Math.Max(green, blue));
+        return strongest < 0x60 ? "none" : strongest == red ? "red" : strongest == green ? "green" : "blue";
+    }
 
     /// <summary>A picture that stands in for an address's cover in renders: a diagonal glow in a colour the address picks.</summary>
     public static WriteableBitmap Cover(string address, int width, int height)
@@ -115,6 +138,15 @@ public sealed class FakeImages : IImageLoader
     /// <summary>Addresses that do not load, as a film without its largest still.</summary>
     public HashSet<string> Missing { get; } = [];
 
+    /// <summary>
+    /// Moving pictures and clips by address, as the colours of their frames, none for a clip that opens without a frame;
+    /// anything else stands still.
+    /// </summary>
+    public Dictionary<string, Color[]> Animations { get; } = [];
+
+    /// <summary>The frames handed out, in order, with the address each plays.</summary>
+    public List<(string Address, FakeFrames Frames)> Opened { get; } = [];
+
     public Task<RemotePicture?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken)
     {
         Requests.Add((address, size));
@@ -125,7 +157,21 @@ public sealed class FakeImages : IImageLoader
 
         var natural = Sizes.TryGetValue(address, out var own) ? own : size;
         var decoded = ImageBaking.CoverSize(natural, size);
-        return Task.FromResult<RemotePicture?>(new RemotePicture(TestImages.Cover(address, decoded.Width, decoded.Height), natural));
+        return Task.FromResult<RemotePicture?>(new RemotePicture(TestImages.Cover(address, decoded.Width, decoded.Height), natural,
+            Animations.ContainsKey(address)));
+    }
+
+    public Task<IFrameSource?> OpenFramesAsync(string address, PixelSize size, CancellationToken cancellationToken)
+    {
+        if (!Animations.TryGetValue(address, out var colours))
+        {
+            return Task.FromResult<IFrameSource?>(null);
+        }
+
+        var natural = Sizes.TryGetValue(address, out var own) ? own : size;
+        var frames = new FakeFrames(colours, natural, ImageBaking.CoverSize(natural, size));
+        Opened.Add((address, frames));
+        return Task.FromResult<IFrameSource?>(frames);
     }
 
     public Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken)
@@ -139,4 +185,35 @@ public sealed class FakeImages : IImageLoader
         Backdrops.Add((recipe, size));
         return Task.FromResult<Bitmap?>(ImageBaking.Backdrop(null, null, null, size, scale));
     }
+}
+
+/// <summary>Frames of solid colours, one after another, each for 40 ms; without colours, no frame comes.</summary>
+public sealed class FakeFrames(Color[] colours, PixelSize natural, PixelSize size) : IFrameSource
+{
+    private int _next;
+    private volatile bool _disposed;
+
+    public PixelSize Size => size;
+
+    public PixelSize NaturalSize => natural;
+
+    public bool IsDisposed => _disposed;
+
+    public TimeSpan? DecodeNext(Span<byte> pixels)
+    {
+        if (colours.Length == 0)
+        {
+            return null;
+        }
+
+        var colour = colours[_next++ % colours.Length];
+        for (var at = 0; at < pixels.Length; at += 4)
+        {
+            (pixels[at], pixels[at + 1], pixels[at + 2], pixels[at + 3]) = (colour.B, colour.G, colour.R, 0xFF);
+        }
+
+        return TimeSpan.FromMilliseconds(40);
+    }
+
+    public void Dispose() => _disposed = true;
 }

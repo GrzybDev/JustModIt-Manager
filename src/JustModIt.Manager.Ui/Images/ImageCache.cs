@@ -11,9 +11,10 @@ using SkiaSharp;
 namespace JustModIt.Manager.Ui.Images;
 
 /// <summary>A picture decoded for a box.</summary>
-/// <param name="Bitmap">The picture at the size it was decoded to.</param>
+/// <param name="Bitmap">The picture at the size it was decoded to; its first frame when it moves.</param>
 /// <param name="NaturalSize">The picture's own size, which a picture in a text keeps the proportions and at most the width of.</param>
-public sealed record RemotePicture(Bitmap Bitmap, PixelSize NaturalSize);
+/// <param name="IsAnimated">The picture moves, as an animated GIF or WebP, and its frames play through <see cref="IImageLoader.OpenFramesAsync"/>.</param>
+public sealed record RemotePicture(Bitmap Bitmap, PixelSize NaturalSize, bool IsAnimated = false);
 
 /// <summary>Loads the site's images for the window, decoded to the size they are shown at.</summary>
 public interface IImageLoader
@@ -38,6 +39,13 @@ public interface IImageLoader
     /// <param name="scale">Physical pixels per layout pixel, which the layers' positions are given in.</param>
     /// <param name="cancellationToken">Stops waiting once the backdrop is no longer needed.</param>
     Task<Bitmap?> LoadBackdropAsync(BackdropRecipe recipe, PixelSize size, double scale, CancellationToken cancellationToken);
+
+    /// <summary>Opens the frames of a moving picture or a silent clip, decoded to cover a box of the given size.</summary>
+    /// <param name="address">The picture's or the clip's absolute address.</param>
+    /// <param name="size">The box it fills, in physical pixels.</param>
+    /// <param name="cancellationToken">Stops waiting once the frames are no longer needed.</param>
+    /// <returns>The frames, to be disposed; null when nothing moves there, it cannot be played or the frames playing take all the memory they may.</returns>
+    Task<IFrameSource?> OpenFramesAsync(string address, PixelSize size, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -56,6 +64,12 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
 
     /// <summary>The largest image downloaded; anything larger is not a cover or a screenshot.</summary>
     public const long MaxImageBytes = 16L << 20;
+
+    /// <summary>The largest clip downloaded, above the 25 MB the site takes.</summary>
+    public const long MaxClipBytes = 32L << 20;
+
+    /// <summary>The memory the frames playing at once may hold, in bytes; a picture beyond it shows still.</summary>
+    public const long FramesBudget = 96L << 20;
 
     // Decoding to sizes rounded up to this step lets a box that changes by a few pixels reuse the image decoded before.
     private const int SizeStep = 64;
@@ -76,22 +90,25 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     private readonly ILogger _logger;
     private readonly IMediaCodecs? _codecs;
     private readonly long _memoryBudget;
+    private readonly long _framesBudget;
     private readonly CancellationTokenSource _stopping = new();
     private readonly Lock _gate = new();
     private readonly Dictionary<string, Task<string?>> _downloads = [];
     private readonly Dictionary<string, LinkedListNode<Decoded>> _decoded = [];
     private readonly LinkedList<Decoded> _recent = [];
     private long _memoryBytes;
+    private long _framesBytes;
 
     /// <summary>Creates the service over the app's image cache folder and removes what is over its budget there.</summary>
     /// <param name="directory">The cache folder; created when the first image is downloaded.</param>
     /// <param name="sources">The only hosts images are loaded from, each alone or with the path its images are under, e.g. <c>images.example.com/vi/</c>.</param>
     /// <param name="http">The client the images are downloaded with; disposed with the service.</param>
     /// <param name="logger">Where failed downloads are logged.</param>
-    /// <param name="codecs">The system's decoders for the pictures Skia does not read; null for none.</param>
+    /// <param name="codecs">The system's decoders for the pictures Skia does not read and for clips; null for none.</param>
     /// <param name="memoryBudget">The decoded images kept in memory, in bytes; null for <see cref="MemoryBudget"/>.</param>
+    /// <param name="framesBudget">The memory the frames playing at once may hold, in bytes; null for <see cref="FramesBudget"/>.</param>
     public ImageCache(string directory, IEnumerable<string> sources, HttpClient http, ILogger logger, IMediaCodecs? codecs = null,
-        long? memoryBudget = null)
+        long? memoryBudget = null, long? framesBudget = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(directory);
         ArgumentNullException.ThrowIfNull(sources);
@@ -104,6 +121,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         _logger = logger;
         _codecs = codecs;
         _memoryBudget = memoryBudget ?? MemoryBudget;
+        _framesBudget = framesBudget ?? FramesBudget;
         _ = Task.Run(Prune);
     }
 
@@ -225,6 +243,64 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         return backdrop;
     }
 
+    public async Task<IFrameSource?> OpenFramesAsync(string address, PixelSize size, CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || !IsAllowed(uri) || size.Width <= 0 || size.Height <= 0)
+        {
+            return null;
+        }
+
+        var file = await FileAsync(uri, MaxClipBytes).WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (file is null)
+        {
+            return null;
+        }
+
+        var box = new PixelSize(RoundUp(size.Width), RoundUp(size.Height));
+        return await Task.Run(() => OpenFrames(uri, file, box), cancellationToken).ConfigureAwait(false);
+    }
+
+    private BudgetedFrames? OpenFrames(Uri address, string path, PixelSize box)
+    {
+        IFrameSource? frames;
+        try
+        {
+            frames = (IFrameSource?)SkiaFrames.Open(path, box) ?? (_codecs?.OpenClip(path) is { } clip ? new ClipFrames(clip, box) : null);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException
+            or InvalidOperationException)
+        {
+            LogFailed(_logger, address, exception);
+            return null;
+        }
+
+        if (frames is null)
+        {
+            return null;
+        }
+
+        // The decoder's frame at the picture's own size, and the scaled frame and the player's frame and bitmap at the box's.
+        var bytes = 4 * ((long)frames.NaturalSize.Width * frames.NaturalSize.Height + (3L * frames.Size.Width * frames.Size.Height));
+        lock (_gate)
+        {
+            if (_framesBytes + bytes <= _framesBudget)
+            {
+                _framesBytes += bytes;
+                return new BudgetedFrames(frames, () =>
+                {
+                    lock (_gate)
+                    {
+                        _framesBytes -= bytes;
+                    }
+                });
+            }
+        }
+
+        LogFramesOverBudget(_logger, address);
+        frames.Dispose();
+        return null;
+    }
+
     // An empty address or one the window may not load reads as no image, so a backdrop goes without that layer.
     private async Task<(Uri Address, string Path)?> FileAsync(string address)
     {
@@ -249,7 +325,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         Path.Combine(_directory, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(address.AbsoluteUri))) + Extension);
 
     // One download per image however many boxes ask for it; a caller that gives up only stops waiting for it.
-    private Task<string?> FileAsync(Uri address)
+    private Task<string?> FileAsync(Uri address, long limit = MaxImageBytes)
     {
         var path = PathOf(address);
         lock (_gate)
@@ -259,7 +335,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
                 return running;
             }
 
-            var download = Task.Run(() => FetchAsync(address, path));
+            var download = Task.Run(() => FetchAsync(address, path, limit));
             _downloads[path] = download;
             _ = download.ContinueWith(_ =>
             {
@@ -272,7 +348,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         }
     }
 
-    private async Task<string?> FetchAsync(Uri address, string path)
+    private async Task<string?> FetchAsync(Uri address, string path, long limit)
     {
         if (File.Exists(path))
         {
@@ -292,7 +368,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
                 return null;
             }
 
-            if (response.Content.Headers.ContentLength > MaxImageBytes)
+            if (response.Content.Headers.ContentLength > limit)
             {
                 LogTooLarge(_logger, address);
                 return null;
@@ -305,7 +381,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
                 var target = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
                 await using (target.ConfigureAwait(false))
                 {
-                    if (!await CopyAsync(source, target, timeout.Token).ConfigureAwait(false))
+                    if (!await CopyAsync(source, target, limit, timeout.Token).ConfigureAwait(false))
                     {
                         LogTooLarge(_logger, address);
                         return null;
@@ -328,7 +404,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         }
     }
 
-    private static async Task<bool> CopyAsync(Stream source, Stream target, CancellationToken cancellationToken)
+    private static async Task<bool> CopyAsync(Stream source, Stream target, long limit, CancellationToken cancellationToken)
     {
         var buffer = new byte[81920];
         long copied = 0;
@@ -336,7 +412,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
         {
             copied += read;
-            if (copied > MaxImageBytes)
+            if (copied > limit)
             {
                 return false;
             }
@@ -400,7 +476,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         }
 
         using var pixels = decoded.PeekPixels();
-        return new RemotePicture(ImageBaking.Scaled(pixels, size), natural);
+        return new RemotePicture(ImageBaking.Scaled(pixels, size), natural, codec.FrameCount > 1);
     }
 
     private RemotePicture? DecodeWithSystem(string path, PixelSize box)
@@ -524,5 +600,29 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     [LoggerMessage(Level = LogLevel.Warning, Message = "The image cache could not be pruned")]
     private static partial void LogPruneFailed(ILogger logger, Exception exception);
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "The frames of {Address} stay still, since the frames playing take all the memory they may")]
+    private static partial void LogFramesOverBudget(ILogger logger, Uri address);
+
     private sealed record Decoded(string Key, RemotePicture Picture, long Bytes);
+
+    // Frames that hand back their share of the frames' budget when they are disposed.
+    private sealed class BudgetedFrames(IFrameSource frames, Action release) : IFrameSource
+    {
+        private int _disposed;
+
+        public PixelSize Size => frames.Size;
+
+        public PixelSize NaturalSize => frames.NaturalSize;
+
+        public TimeSpan? DecodeNext(Span<byte> pixels) => frames.DecodeNext(pixels);
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            {
+                frames.Dispose();
+                release();
+            }
+        }
+    }
 }

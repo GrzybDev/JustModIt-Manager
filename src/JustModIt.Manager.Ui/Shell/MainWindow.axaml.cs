@@ -167,8 +167,10 @@ public sealed partial class MainWindow : Window
     // Loops cost nothing while nobody sees them, so they run only in a visible, unminimised window.
     private void UpdateMotion()
     {
+        var loops = !Motion.IsReduced && IsVisible && WindowState != WindowState.Minimized;
         Classes.Set("reducedMotion", Motion.IsReduced);
-        Classes.Set("loops", !Motion.IsReduced && IsVisible && WindowState != WindowState.Minimized);
+        Classes.Set("loops", loops);
+        Motion.SetLoops(this, loops);
     }
 
     private void OnMinimize(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
