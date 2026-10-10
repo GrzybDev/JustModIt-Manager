@@ -6,7 +6,8 @@ Measures how much memory the agent keeps while it sits in the tray.
 .DESCRIPTION
 Publishes the app with NativeAOT as a development build with a vendor id of its own, so it never meets an installed copy
 and starts from an empty data folder, removed afterwards. It reads the agent's memory once the first library scan and
-catalogue refresh are saved, a minute later and after -IdleMinutes, and stops every process it started.
+catalogue refresh are saved, a minute later and after -IdleMinutes, and stops every process it started. It fails when
+the agent loaded the window's native libraries.
 
 The agent reads the real store libraries and site, read-only: the first-run setup is not finished, so nothing is
 downloaded or installed.
@@ -97,6 +98,12 @@ try {
 
     $ready = Get-Date
     $readings = @(Read-Footprint $agent 'first scan and refresh')
+    # The agent role touches no Avalonia type, so the window's native libraries must never load in the tray.
+    $windowLibraries = @($agent.Modules |
+        Where-Object { $_.ModuleName -in 'libSkiaSharp.dll', 'libHarfBuzzSharp.dll', 'av_libglesv2.dll' })
+    if ($windowLibraries.Count) {
+        throw "The agent loaded the window's native libraries: $(($windowLibraries | ForEach-Object ModuleName) -join ', ')."
+    }
     Wait-Until $ready.AddMinutes(1)
     $readings += Read-Footprint $agent '1 min later'
     Wait-Until $ready.AddMinutes($IdleMinutes)
