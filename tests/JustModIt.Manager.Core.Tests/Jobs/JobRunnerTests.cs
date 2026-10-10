@@ -166,9 +166,12 @@ public sealed class JobRunnerTests
     {
         await using var jobs = await JobsHarness.CreateAsync();
         jobs.Library.Describe(Installed(state: GameInstallState.Validating));
+        var timers = jobs.Time.TimersCreated;
 
         var handle = jobs.Runner.Start(JobsHarness.Install());
         await jobs.WaitsAsync(handle.Job.Id, JobWaitReason.StoreBusy);
+        // The clock only moves once the job sleeps, or a slow machine would count its way to the wait as time waited.
+        await Eventually.HoldsAsync(() => jobs.Time.TimersCreated > timers, "the job sleeps until it looks again");
         jobs.Library.Probes.Clear();
 
         var waited = await jobs.Time.RunUntilCompletedAsync(handle.Completion, TimeSpan.FromSeconds(10));
