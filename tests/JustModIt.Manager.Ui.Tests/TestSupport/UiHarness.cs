@@ -12,6 +12,7 @@ using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
+using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Shell;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
@@ -32,7 +33,7 @@ public sealed class UiHarness : IDisposable
             Agent.Push(state);
         }
 
-        Session = UiSession.Create(Application.Current!, Context(compose, launch), Agent, Images, Clock);
+        Session = UiSession.Create(Application.Current!, Context(compose, launch), Agent, Images, Links, Clock);
         Window = Session.CreateWindow();
         // A click here moves, presses and releases, each after running the dispatcher and a frame; under load that takes
         // longer than a tooltip's delay, and the tooltip, which opens inside the window here, can slide over the pointer
@@ -47,6 +48,9 @@ public sealed class UiHarness : IDisposable
     public FakeAgent Agent { get; } = new();
 
     public FakeImages Images { get; } = new();
+
+    /// <summary>The addresses the window asked to open outside itself.</summary>
+    public RecordingLinks Links { get; } = new();
 
     /// <summary>A clock standing at <see cref="TestStates.Now"/>, in UTC.</summary>
     public FakeTimeProvider Clock { get; } = new(TestStates.Now);
@@ -200,4 +204,12 @@ public sealed class UiHarness : IDisposable
         Session.Dispose();
         Settle();
     }
+}
+
+/// <summary>Records the addresses the window opens instead of starting programs.</summary>
+public sealed class RecordingLinks : IExternalLinks
+{
+    public List<Uri> Opened { get; } = [];
+
+    public void Open(Uri address) => Opened.Add(address);
 }

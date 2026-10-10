@@ -1113,4 +1113,439 @@
   <data name="Library_Joined" xml:space="preserve">
     <value>{first} · {second}</value>
   </data>
+  <data name="GamePage_About" xml:space="preserve">
+    <value>About the game</value>
+  </data>
+  <data name="GamePage_AllStatuses" xml:space="preserve">
+    <value>All project statuses</value>
+  </data>
+  <data name="GamePage_AutoHint" xml:space="preserve">
+    <value>{source, select, own {Set for this game.} other {As in the settings.}} {kind, select, install {{on, select, true {{choice, select, true {It installs by itself once a team is chosen.} other {It installs by itself while the game is not running.}}} other {It installs only when asked to.}}} other {{on, select, true {New versions install by themselves while the game is not running.} other {A new version only brings a notification.}}}}</value>
+  </data>
+  <data name="GamePage_AutoInstall" xml:space="preserve">
+    <value>Install automatically</value>
+  </data>
+  <data name="GamePage_AutoUpdate" xml:space="preserve">
+    <value>Update automatically</value>
+  </data>
+  <data name="GamePage_BackToLibrary" xml:space="preserve">
+    <value>Back to “{library}”</value>
+  </data>
+  <data name="GamePage_BackupsStay" xml:space="preserve">
+    <value>The copy of the original files still takes space on {drive}</value>
+  </data>
+  <data name="GamePage_BackupsText" xml:space="preserve">
+    <value>The folder {folder} is not available, e.g. its drive is disconnected. Until it is back, the project can be neither uninstalled nor updated.</value>
+  </data>
+  <data name="GamePage_BackupsTitle" xml:space="preserve">
+    <value>The copy of the originals is unavailable</value>
+  </data>
+  <data name="GamePage_Build" xml:space="preserve">
+    <value>build {build}</value>
+  </data>
+  <data name="GamePage_BytesOf" xml:space="preserve">
+    <value>{done} of {total}</value>
+  </data>
+  <data name="GamePage_CancelledText" xml:space="preserve">
+    <value>{kind, select, Install {The game's files stay as they were.} Uninstall {The project stays installed.} other {Version {version} was put back, so the game is as it was before.}}</value>
+  </data>
+  <data name="GamePage_CancelledTitle" xml:space="preserve">
+    <value>{kind, select, Install {Installing cancelled} Update {Updating cancelled} Repair {Repairing cancelled} Uninstall {Uninstalling cancelled} other {Job cancelled}}</value>
+  </data>
+  <data name="GamePage_Caption" xml:space="preserve">
+    <value>{hasSize, select, true {Version {version} · {size}} other {Version {version}}}</value>
+  </data>
+  <data name="GamePage_CaptionTo" xml:space="preserve">
+    <value>{hasSize, select, true {To version {version} · {size}} other {To version {version}}}</value>
+  </data>
+  <data name="GamePage_CaptionWaits" xml:space="preserve">
+    <value>{caption} · starts once connected</value>
+  </data>
+  <data name="GamePage_Change" xml:space="preserve">
+    <value>Change variant</value>
+  </data>
+  <data name="GamePage_ChangeText" xml:space="preserve">
+    <value>The installed variant is removed and “{variant}” takes its place. The game must not run meanwhile.</value>
+  </data>
+  <data name="GamePage_ChangeTitle" xml:space="preserve">
+    <value>Changing the variant</value>
+  </data>
+  <data name="GamePage_ChangesHide" xml:space="preserve">
+    <value>Hide the changes</value>
+  </data>
+  <data name="GamePage_ChangesShow" xml:space="preserve">
+    <value>See what's new</value>
+  </data>
+  <data name="GamePage_ChangesTitle" xml:space="preserve">
+    <value>What's new in version {version}</value>
+  </data>
+  <data name="GamePage_Checked" xml:space="preserve">
+    <value>Checked {time}</value>
+  </data>
+  <data name="GamePage_CheckedLast" xml:space="preserve">
+    <value>Last checked {time}</value>
+  </data>
+  <data name="GamePage_ChoiceName" xml:space="preserve">
+    <value>{team}: {status}, version {version}. Choose this project</value>
+  </data>
+  <data name="GamePage_ChooseText" xml:space="preserve">
+    <value>{count} teams made a project for this game. They stand side by side below; a click on one picks it to install. The choice can change until something is installed.</value>
+  </data>
+  <data name="GamePage_ChooseTitle" xml:space="preserve">
+    <value>Choose a project</value>
+  </data>
+  <data name="GamePage_CompareLatest" xml:space="preserve">
+    <value>Latest version</value>
+  </data>
+  <data name="GamePage_CompareStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="GamePage_CompareText" xml:space="preserve">
+    <value>Each comes from another team and fits this version of the game.</value>
+  </data>
+  <data name="GamePage_CompareTitle" xml:space="preserve">
+    <value>Compare the projects</value>
+  </data>
+  <data name="GamePage_CoverName" xml:space="preserve">
+    <value>Cover of {game}</value>
+  </data>
+  <data name="GamePage_Creators" xml:space="preserve">
+    <value>Creators</value>
+  </data>
+  <data name="GamePage_Credits" xml:space="preserve">
+    <value>Made by</value>
+  </data>
+  <data name="GamePage_CurrentText" xml:space="preserve">
+    <value>{auto, select, true {The newest version is installed. New ones install by themselves once the team releases them.} other {The newest version is installed. New ones bring a notification.}}</value>
+  </data>
+  <data name="GamePage_CurrentTitle" xml:space="preserve">
+    <value>The project is up to date</value>
+  </data>
+  <data name="GamePage_Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="GamePage_DoneText" xml:space="preserve">
+    <value>The project is ready. Have fun!</value>
+  </data>
+  <data name="GamePage_DoneTitle" xml:space="preserve">
+    <value>{kind, select, Install {Project installed} Update {Project updated} Repair {Project repaired} other {Done}}</value>
+  </data>
+  <data name="GamePage_DontRun" xml:space="preserve">
+    <value>The game should not run until the job is done.</value>
+  </data>
+  <data name="GamePage_FailedKept" xml:space="preserve">
+    <value>Version {version} stayed as it was.</value>
+  </data>
+  <data name="GamePage_FailedTitle" xml:space="preserve">
+    <value>{kind, select, Install {The project could not be installed} Update {The project could not be updated} Repair {The project could not be repaired} Uninstall {The project could not be uninstalled} other {The job failed}}</value>
+  </data>
+  <data name="GamePage_FilesChanged" xml:space="preserve">
+    <value>{reason, select, OriginalsRestored {{store} put originals back in place of some of the project's files} FilesMissing {Some of the project's files are missing} other {Some of the project's files changed}}</value>
+  </data>
+  <data name="GamePage_FilesInPlace" xml:space="preserve">
+    <value>The project's files are in place · {location, select, GameFolder {the originals wait in a copy in the game's folder} AppData {the originals wait in a copy in the app's folder} other {the originals wait in a copy in the chosen folder}}</value>
+  </data>
+  <data name="GamePage_Gallery" xml:space="preserve">
+    <value>Gallery</value>
+  </data>
+  <data name="GamePage_GalleryImages" xml:space="preserve">
+    <value>{count, plural, one {# screenshot} other {# screenshots}}</value>
+  </data>
+  <data name="GamePage_GalleryVideos" xml:space="preserve">
+    <value>{count, plural, one {# film · opens in the browser} other {# films · open in the browser}}</value>
+  </data>
+  <data name="GamePage_GalleryImage" xml:space="preserve">
+    <value>Screenshot {index} of {count}: {caption}</value>
+  </data>
+  <data name="GamePage_GalleryVideo" xml:space="preserve">
+    <value>Film {index} of {count}: {caption} – opens in the browser</value>
+  </data>
+  <data name="GamePage_GameGone" xml:space="preserve">
+    <value>{store} no longer reports this game</value>
+  </data>
+  <data name="GamePage_GameReady" xml:space="preserve">
+    <value>The game is ready</value>
+  </data>
+  <data name="GamePage_Genres" xml:space="preserve">
+    <value>Genres</value>
+  </data>
+  <data name="GamePage_GoneText" xml:space="preserve">
+    <value>If the game was uninstalled, the project can go too – this works without the internet as well.</value>
+  </data>
+  <data name="GamePage_GoneTitle" xml:space="preserve">
+    <value>This game is not found</value>
+  </data>
+  <data name="GamePage_Hidden" xml:space="preserve">
+    <value>Hidden in “{library}”</value>
+  </data>
+  <data name="GamePage_Hide" xml:space="preserve">
+    <value>Hide game</value>
+  </data>
+  <data name="GamePage_InfoFiles" xml:space="preserve">
+    <value>Changed files</value>
+  </data>
+  <data name="GamePage_InfoPackage" xml:space="preserve">
+    <value>Package</value>
+  </data>
+  <data name="GamePage_InfoSaved" xml:space="preserve">
+    <value>Saved when it was installed.</value>
+  </data>
+  <data name="GamePage_InfoTitle" xml:space="preserve">
+    <value>About the project</value>
+  </data>
+  <data name="GamePage_Install" xml:space="preserve">
+    <value>Install project</value>
+  </data>
+  <data name="GamePage_InstallText" xml:space="preserve">
+    <value>{duration, select, short {It takes a few seconds.} minute {It takes about a minute.} other {It takes a few minutes.}} The game must not run meanwhile.</value>
+  </data>
+  <data name="GamePage_InstallTitle" xml:space="preserve">
+    <value>The project is ready to install</value>
+  </data>
+  <data name="GamePage_InstalledWhen" xml:space="preserve">
+    <value>installed {when}</value>
+  </data>
+  <data name="GamePage_JobTitle" xml:space="preserve">
+    <value>{kind, select, Install {Installing the project} Update {Updating the project} Repair {Repairing the project} Uninstall {Uninstalling the project} TestInstall {Installing the test package} MoveBackups {Moving the copy of the originals} FollowMove {Moving the install} other {Working}}</value>
+  </data>
+  <data name="GamePage_Launch" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="GamePage_LeftBehind" xml:space="preserve">
+    <value>It stayed in the game's previous folder, on {drive}</value>
+  </data>
+  <data name="GamePage_Loading" xml:space="preserve">
+    <value>Loading the project's page…</value>
+  </data>
+  <data name="GamePage_LostTitle" xml:space="preserve">
+    <value>The previous version could not be put back</value>
+  </data>
+  <data name="GamePage_MovedText" xml:space="preserve">
+    <value>{store} now reports the game on {drive}. Once the project is uninstalled from the old folder, it can be installed in the new one.</value>
+  </data>
+  <data name="GamePage_MovedTitle" xml:space="preserve">
+    <value>The game moved</value>
+  </data>
+  <data name="GamePage_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="GamePage_NotForThisGame" xml:space="preserve">
+    <value>The newest version has no package for this version of the game. One that fits installs by itself once the team releases it.</value>
+  </data>
+  <data name="GamePage_NotFoundText" xml:space="preserve">
+    <value>This game is not in “{library}” now. It may have been uninstalled, or its store stopped reporting it.</value>
+  </data>
+  <data name="GamePage_NotFoundTitle" xml:space="preserve">
+    <value>This game is not here</value>
+  </data>
+  <data name="GamePage_NotInCatalogueText" xml:space="preserve">
+    <value>So there will be no new versions or description. Uninstalling still works, also without the internet.</value>
+  </data>
+  <data name="GamePage_NotInCatalogueTitle" xml:space="preserve">
+    <value>The site no longer has this project</value>
+  </data>
+  <data name="GamePage_NotInstalled" xml:space="preserve">
+    <value>Not installed yet</value>
+  </data>
+  <data name="GamePage_NotInstalledHint" xml:space="preserve">
+    <value>A copy of the game's original files is kept before anything changes.</value>
+  </data>
+  <data name="GamePage_NotReadyText" xml:space="preserve">
+    <value>{state}. {installed, select, true {Once {store} is done, the project is checked against the game and installed again if needed.} other {The project can be installed once the game is ready.}}</value>
+  </data>
+  <data name="GamePage_NotReadyTitle" xml:space="preserve">
+    <value>Waiting for the game to be ready</value>
+  </data>
+  <data name="GamePage_NotesTitle" xml:space="preserve">
+    <value>Notes from {team}</value>
+  </data>
+  <data name="GamePage_Official" xml:space="preserve">
+    <value>The game is also officially translated</value>
+  </data>
+  <data name="GamePage_OfficialHint" xml:space="preserve">
+    <value>So the project does not install automatically.</value>
+  </data>
+  <data name="GamePage_OfflineMeta" xml:space="preserve">
+    <value>The connection is tried again by itself</value>
+  </data>
+  <data name="GamePage_OfflineText" xml:space="preserve">
+    <value>Showing the last known data. The update starts once the connection is back; uninstalling works without it.</value>
+  </data>
+  <data name="GamePage_OpenFolder" xml:space="preserve">
+    <value>Open the game's folder</value>
+  </data>
+  <data name="GamePage_OpenHelp" xml:space="preserve">
+    <value>Open the help</value>
+  </data>
+  <data name="GamePage_OpenInStore" xml:space="preserve">
+    <value>Open {game} in {store}</value>
+  </data>
+  <data name="GamePage_OpenOnSite" xml:space="preserve">
+    <value>Open on the site</value>
+  </data>
+  <data name="GamePage_OpenOriginal" xml:space="preserve">
+    <value>Open the original</value>
+  </data>
+  <data name="GamePage_Outdated" xml:space="preserve">
+    <value>The team has not confirmed it with the game's newest version yet</value>
+  </data>
+  <data name="GamePage_Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="GamePage_ProjectOfTeam" xml:space="preserve">
+    <value>{project} · {team}</value>
+  </data>
+  <data name="GamePage_QueuedAfter" xml:space="preserve">
+    <value>{kind, select, Install {Installing} Update {Updating} Repair {Repairing} Uninstall {Uninstalling} other {The job}} starts once the job for {other} is done.</value>
+  </data>
+  <data name="GamePage_QueuedText" xml:space="preserve">
+    <value>{kind, select, Install {Installing} Update {Updating} Repair {Repairing} Uninstall {Uninstalling} other {The job}} starts in a moment.</value>
+  </data>
+  <data name="GamePage_Recommended" xml:space="preserve">
+    <value>recommended</value>
+  </data>
+  <data name="GamePage_RefusedTitle" xml:space="preserve">
+    <value>The project cannot be installed now</value>
+  </data>
+  <data name="GamePage_RemovedGone" xml:space="preserve">
+    <value>The game leaves “{library}” once this page is left.</value>
+  </data>
+  <data name="GamePage_RemovedText" xml:space="preserve">
+    <value>The game's original files are back.</value>
+  </data>
+  <data name="GamePage_RemovedTitle" xml:space="preserve">
+    <value>Project uninstalled</value>
+  </data>
+  <data name="GamePage_Repair" xml:space="preserve">
+    <value>Repair project</value>
+  </data>
+  <data name="GamePage_RepairCaption" xml:space="preserve">
+    <value>No new download</value>
+  </data>
+  <data name="GamePage_RepairText" xml:space="preserve">
+    <value>{reason, select, OriginalsRestored {This happens after {store} checks the game's files.} other {This happens after a game update.}} Repairing installs the project again.</value>
+  </data>
+  <data name="GamePage_RepairTitle" xml:space="preserve">
+    <value>The project needs repairing</value>
+  </data>
+  <data name="GamePage_RowGame" xml:space="preserve">
+    <value>Game</value>
+  </data>
+  <data name="GamePage_RowInstall" xml:space="preserve">
+    <value>Installing</value>
+  </data>
+  <data name="GamePage_RowProject" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="GamePage_RowUpdates" xml:space="preserve">
+    <value>Updates</value>
+  </data>
+  <data name="GamePage_RowVariant" xml:space="preserve">
+    <value>Variant</value>
+  </data>
+  <data name="GamePage_SeeNotes" xml:space="preserve">
+    <value>The team's notes are further down.</value>
+  </data>
+  <data name="GamePage_Show" xml:space="preserve">
+    <value>Show in “{library}”</value>
+  </data>
+  <data name="GamePage_ShowMore" xml:space="preserve">
+    <value>Show more</value>
+  </data>
+  <data name="GamePage_Speed" xml:space="preserve">
+    <value>{speed}/s</value>
+  </data>
+  <data name="GamePage_StatusTip" xml:space="preserve">
+    <value>Status: {status} – what does it mean?</value>
+  </data>
+  <data name="GamePage_StatusesLink" xml:space="preserve">
+    <value>What do the statuses mean?</value>
+  </data>
+  <data name="GamePage_Step" xml:space="preserve">
+    <value>{step, select, Download {Downloading} Check {Checking} Remove {Removing the old version} Install {Installing} Restore {Restoring the originals} other {Working}}</value>
+  </data>
+  <data name="GamePage_Support" xml:space="preserve">
+    <value>Support the team via {platform}</value>
+  </data>
+  <data name="GamePage_TeamFacts" xml:space="preserve">
+    <value>Team · {members, plural, one {# member} other {# members}}</value>
+  </data>
+  <data name="GamePage_TeamLine" xml:space="preserve">
+    <value>A project by</value>
+  </data>
+  <data name="GamePage_TestDetail" xml:space="preserve">
+    <value>A test install from the package creator</value>
+  </data>
+  <data name="GamePage_TestText" xml:space="preserve">
+    <value>The package creator installed this package to try it out; it is never updated.</value>
+  </data>
+  <data name="GamePage_TestTitle" xml:space="preserve">
+    <value>Test install</value>
+  </data>
+  <data name="GamePage_ThisComputer" xml:space="preserve">
+    <value>On this computer</value>
+  </data>
+  <data name="GamePage_Trouble" xml:space="preserve">
+    <value>Something wrong?</value>
+  </data>
+  <data name="GamePage_Unavailable" xml:space="preserve">
+    <value>{reason, select, OtherStores {The packages of this version are made for other stores.} OtherSystems {The packages of this version are made for other systems.} UnsupportedFormat {The package of this version comes in a format this app does not install.} NoReadyFiles {The files of this version are not ready yet.} other {There is no version to download.}}</value>
+  </data>
+  <data name="GamePage_UnavailableTitle" xml:space="preserve">
+    <value>The project does not fit this version of the game</value>
+  </data>
+  <data name="GamePage_UninstallProject" xml:space="preserve">
+    <value>Uninstall project</value>
+  </data>
+  <data name="GamePage_Update" xml:space="preserve">
+    <value>Update project</value>
+  </data>
+  <data name="GamePage_UpdateFixTitle" xml:space="preserve">
+    <value>The team corrected this version's package</value>
+  </data>
+  <data name="GamePage_UpdateText" xml:space="preserve">
+    <value>The installed version is removed first, then the new one is installed. The game must not run meanwhile.</value>
+  </data>
+  <data name="GamePage_UpdateTitle" xml:space="preserve">
+    <value>A new version of the project is out</value>
+  </data>
+  <data name="GamePage_VariantLocked" xml:space="preserve">
+    <value>The variant can change once the job is done.</value>
+  </data>
+  <data name="GamePage_Version" xml:space="preserve">
+    <value>Version {version}</value>
+  </data>
+  <data name="GamePage_VersionUnknown" xml:space="preserve">
+    <value>Version unknown</value>
+  </data>
+  <data name="GamePage_ViewerCounter" xml:space="preserve">
+    <value>{index} / {count}</value>
+  </data>
+  <data name="GamePage_ViewerKeys" xml:space="preserve">
+    <value>← → switch · Esc close</value>
+  </data>
+  <data name="GamePage_ViewerTitle" xml:space="preserve">
+    <value>{game} · Gallery</value>
+  </data>
+  <data name="GamePage_WaitingGameText" xml:space="preserve">
+    <value>{processes, select, none {The game is running.} other {The game is running ({processes}).}} {kind, select, Install {Installing} Update {Updating} Repair {Repairing} Uninstall {Uninstalling} other {The job}} starts right after it closes.</value>
+  </data>
+  <data name="GamePage_WaitingGameTitle" xml:space="preserve">
+    <value>Waiting for the game to close</value>
+  </data>
+  <data name="GamePage_WaitingRecoveryText" xml:space="preserve">
+    <value>An earlier operation on this game is finished or undone first.</value>
+  </data>
+  <data name="GamePage_WaitingStoreText" xml:space="preserve">
+    <value>{store} is working on the game. The job starts by itself once it is done.</value>
+  </data>
+  <data name="GamePage_When" xml:space="preserve">
+    <value>{age} ({date})</value>
+  </data>
+  <data name="GamePage_ChoosePreferred" xml:space="preserve">
+    <value>With the teams ordered in the settings, automatic installs take the highest one.</value>
+  </data>
+  <data name="GamePage_DescriptionFilm" xml:space="preserve">
+    <value>Film – opens in the browser</value>
+  </data>
 </root>

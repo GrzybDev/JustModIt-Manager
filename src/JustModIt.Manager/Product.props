@@ -10,7 +10,8 @@
     <!-- The only public JustModIt site so far. -->
     <ManagerApiUrl>https://api.bazaspolszczen.pl/</ManagerApiUrl>
     <ManagerSiteUrl>https://bazaspolszczen.pl/</ManagerSiteUrl>
-    <ManagerImageHosts>storage.bazaspolszczen.pl</ManagerImageHosts>
+    <!-- Where the site loads images from: its storage, and the stills of the YouTube films its pages show. -->
+    <ManagerImageHosts>storage.bazaspolszczen.pl;i.ytimg.com/vi/</ManagerImageHosts>
     <ManagerUpdateUrl>https://github.com/GrzybDev/JustModIt-Manager</ManagerUpdateUrl>
     <ManagerLanguage>en</ManagerLanguage>
     <ManagerTargetLanguage></ManagerTargetLanguage>

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Avalonia;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Platform;
@@ -8,6 +9,11 @@ using Microsoft.Extensions.Logging;
 using SkiaSharp;
 
 namespace JustModIt.Manager.Ui.Images;
+
+/// <summary>A picture decoded for a box.</summary>
+/// <param name="Bitmap">The picture at the size it was decoded to.</param>
+/// <param name="NaturalSize">The picture's own size, which a picture in a text keeps the proportions and at most the width of.</param>
+public sealed record RemotePicture(Bitmap Bitmap, PixelSize NaturalSize);
 
 /// <summary>Loads the site's images for the window, decoded to the size they are shown at.</summary>
 public interface IImageLoader
@@ -17,7 +23,7 @@ public interface IImageLoader
     /// <param name="size">The box it fills, in physical pixels.</param>
     /// <param name="cancellationToken">Stops waiting once the image is no longer needed.</param>
     /// <returns>The image; null when it is not allowed, cannot be downloaded or is not an image.</returns>
-    Task<Bitmap?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken);
+    Task<RemotePicture?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken);
 
     /// <summary>Loads an image as a soft blur of its colours, as an adult game's cover shows while the player has it veiled.</summary>
     /// <param name="address">The image's absolute address.</param>
@@ -25,6 +31,13 @@ public interface IImageLoader
     /// <param name="cancellationToken">Stops waiting once the image is no longer needed.</param>
     /// <returns>The blur; null when the image is not allowed, cannot be downloaded or is not an image.</returns>
     Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken);
+
+    /// <summary>Bakes a page's backdrop from its images, once per recipe and size, since the window never blends live.</summary>
+    /// <param name="recipe">The backdrop's images and colour.</param>
+    /// <param name="size">The backdrop in physical pixels.</param>
+    /// <param name="scale">Physical pixels per layout pixel, which the layers' positions are given in.</param>
+    /// <param name="cancellationToken">Stops waiting once the backdrop is no longer needed.</param>
+    Task<Bitmap?> LoadBackdropAsync(BackdropRecipe recipe, PixelSize size, double scale, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -50,7 +63,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     // A format that cannot decode to a smaller size, such as PNG, decodes whole first; a small file can hold a huge picture.
     private const long MaxDecodedPixels = 64L << 20;
 
-    // How small an image is decoded before it is spread into a blur.
+    // How small an image is decoded before it is spread into a blur or averaged into a tint.
     private const int BlurSource = 24;
     private const string Extension = ".img";
     private const string PartialExtension = ".part";
@@ -113,7 +126,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
                 && address.AbsolutePath.StartsWith(source.Path, StringComparison.Ordinal));
     }
 
-    public async Task<Bitmap?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken)
+    public async Task<RemotePicture?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken)
     {
         if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || !IsAllowed(uri) || size.Width <= 0 || size.Height <= 0)
         {
@@ -133,13 +146,13 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
             return null;
         }
 
-        var bitmap = await Task.Run(() => Decode(uri, file, decodeSize), cancellationToken).ConfigureAwait(false);
-        if (bitmap is not null)
+        var picture = await Task.Run(() => Decode(uri, file, decodeSize), cancellationToken).ConfigureAwait(false);
+        if (picture is not null)
         {
-            Remember(key, bitmap);
+            Remember(key, picture);
         }
 
-        return bitmap;
+        return picture;
     }
 
     public async Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken)
@@ -152,7 +165,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         var key = FormattableString.Invariant($"blur {size.Width}x{size.Height} {uri.AbsoluteUri}");
         if (Recall(key) is { } kept)
         {
-            return kept;
+            return kept.Bitmap;
         }
 
         var file = await FileAsync(uri).WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -164,15 +177,63 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         var blurred = await Task.Run(() =>
         {
             // Decoding to a few pixels throws away the detail, so the blur needs no large kernel.
-            using var tiny = Decode(uri, file, new PixelSize(BlurSource, BlurSource));
+            using var tiny = Decode(uri, file, new PixelSize(BlurSource, BlurSource))?.Bitmap;
             return tiny is null ? null : ImageBaking.Blur(tiny, size);
         }, cancellationToken).ConfigureAwait(false);
         if (blurred is not null)
         {
-            Remember(key, blurred);
+            Remember(key, new RemotePicture(blurred, blurred.PixelSize));
         }
 
         return blurred;
+    }
+
+    public async Task<Bitmap?> LoadBackdropAsync(BackdropRecipe recipe, PixelSize size, double scale, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(recipe);
+        if (size.Width <= 0 || size.Height <= 0)
+        {
+            return null;
+        }
+
+        // The recipe's text names every layer, so a backdrop gains its artwork once the project's page arrives.
+        var key = FormattableString.Invariant($"backdrop {size.Width}x{size.Height} {recipe}");
+        if (Recall(key) is { } kept)
+        {
+            return kept.Bitmap;
+        }
+
+        var artwork = FileAsync(recipe.Artwork);
+        var banner = FileAsync(recipe.Banner);
+        var cover = recipe.Tint.Length > 0 ? Task.FromResult<(Uri Address, string Path)?>(null) : FileAsync(recipe.Cover);
+        await Task.WhenAll(artwork, banner, cover).WaitAsync(cancellationToken).ConfigureAwait(false);
+        var backdrop = await Task.Run(() =>
+        {
+            using var art = artwork.Result is { } artFile
+                ? Decode(artFile.Address, artFile.Path, new PixelSize(size.Width, (int)(size.Width * 0.5625)))?.Bitmap : null;
+            using var band = banner.Result is { } bandFile ? Decode(bandFile.Address, bandFile.Path, new PixelSize(size.Width, 1))?.Bitmap : null;
+            Color? tint = Color.TryParse(recipe.Tint, out var parsed) ? parsed : null;
+            if (tint is null && cover.Result is { } coverFile)
+            {
+                using var small = Decode(coverFile.Address, coverFile.Path, new PixelSize(BlurSource, BlurSource))?.Bitmap;
+                tint = small is null ? null : ImageBaking.AverageTint(small);
+            }
+
+            return ImageBaking.Backdrop(art, band, tint, size, scale);
+        }, cancellationToken).ConfigureAwait(false);
+        Remember(key, new RemotePicture(backdrop, backdrop.PixelSize));
+        return backdrop;
+    }
+
+    // An empty address or one the window may not load reads as no image, so a backdrop goes without that layer.
+    private async Task<(Uri Address, string Path)?> FileAsync(string address)
+    {
+        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || !IsAllowed(uri))
+        {
+            return null;
+        }
+
+        return await FileAsync(uri).ConfigureAwait(false) is { } file ? (uri, file) : null;
     }
 
     public void Dispose()
@@ -287,14 +348,14 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     }
 
     // Decoded to cover the box, never beyond the picture's own size; Skia reads what it can, the system's decoders the rest.
-    private WriteableBitmap? Decode(Uri address, string path, PixelSize box)
+    private RemotePicture? Decode(Uri address, string path, PixelSize box)
     {
         Exception? failure = null;
         try
         {
-            if ((DecodeWithSkia(path, box) ?? DecodeWithSystem(path, box)) is { } bitmap)
+            if ((DecodeWithSkia(path, box) ?? DecodeWithSystem(path, box)) is { } picture)
             {
-                return bitmap;
+                return picture;
             }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -313,7 +374,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         return null;
     }
 
-    private static WriteableBitmap? DecodeWithSkia(string path, PixelSize box)
+    private static RemotePicture? DecodeWithSkia(string path, PixelSize box)
     {
         using var stream = File.OpenRead(path);
         using var codec = SKCodec.Create(stream);
@@ -339,10 +400,10 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         }
 
         using var pixels = decoded.PeekPixels();
-        return ImageBaking.Scaled(pixels, size);
+        return new RemotePicture(ImageBaking.Scaled(pixels, size), natural);
     }
 
-    private WriteableBitmap? DecodeWithSystem(string path, PixelSize box)
+    private RemotePicture? DecodeWithSystem(string path, PixelSize box)
     {
         (int Width, int Height) SizeFor(int width, int height)
         {
@@ -351,11 +412,12 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         }
 
         return _codecs?.DecodePicture(path, SizeFor) is { } picture
-            ? ImageBaking.FromPixels(picture.Pixels, new PixelSize(picture.Width, picture.Height))
+            ? new RemotePicture(ImageBaking.FromPixels(picture.Pixels, new PixelSize(picture.Width, picture.Height)),
+                new PixelSize(picture.NaturalWidth, picture.NaturalHeight))
             : null;
     }
 
-    private Bitmap? Recall(string key)
+    private RemotePicture? Recall(string key)
     {
         lock (_gate)
         {
@@ -366,14 +428,14 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
 
             _recent.Remove(node);
             _recent.AddFirst(node);
-            return node.Value.Bitmap;
+            return node.Value.Picture;
         }
     }
 
     // Images pushed out are only forgotten, never disposed, since a box may still show them.
-    private void Remember(string key, Bitmap bitmap)
+    private void Remember(string key, RemotePicture picture)
     {
-        var bytes = 4L * bitmap.PixelSize.Width * bitmap.PixelSize.Height;
+        var bytes = 4L * picture.Bitmap.PixelSize.Width * picture.Bitmap.PixelSize.Height;
         lock (_gate)
         {
             if (_decoded.ContainsKey(key))
@@ -381,7 +443,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
                 return;
             }
 
-            _decoded[key] = _recent.AddFirst(new Decoded(key, bitmap, bytes));
+            _decoded[key] = _recent.AddFirst(new Decoded(key, picture, bytes));
             _memoryBytes += bytes;
             while (_memoryBytes > _memoryBudget && _recent.Last is { } oldest && oldest != _recent.First)
             {
@@ -462,5 +524,5 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     [LoggerMessage(Level = LogLevel.Warning, Message = "The image cache could not be pruned")]
     private static partial void LogPruneFailed(ILogger logger, Exception exception);
 
-    private sealed record Decoded(string Key, Bitmap Bitmap, long Bytes);
+    private sealed record Decoded(string Key, RemotePicture Picture, long Bytes);
 }

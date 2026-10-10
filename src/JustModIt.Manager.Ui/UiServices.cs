@@ -27,6 +27,9 @@ public sealed class UiServices
     /// <summary>The app's names, links and options.</summary>
     public required UiContext Context { get; init; }
 
+    /// <summary>Opens the site's pages and the stores' links outside the window.</summary>
+    public required IExternalLinks Links { get; init; }
+
     /// <summary>The time now and the local time zone, which dates on the pages are told against.</summary>
     public TimeProvider Clock { get; init; } = TimeProvider.System;
 }

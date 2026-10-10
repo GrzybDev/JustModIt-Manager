@@ -1101,4 +1101,439 @@
   <data name="Library_Joined" xml:space="preserve">
     <value>{first} · {second}</value>
   </data>
+  <data name="GamePage_About" xml:space="preserve">
+    <value>O grze</value>
+  </data>
+  <data name="GamePage_AllStatuses" xml:space="preserve">
+    <value>Wszystkie statusy projektów</value>
+  </data>
+  <data name="GamePage_AutoHint" xml:space="preserve">
+    <value>{source, select, own {Ustawione dla tej gry.} other {Tak jak w ustawieniach.}} {kind, select, install {{on, select, true {{choice, select, true {Projekt zainstaluje się sam po wyborze grupy.} other {Projekt zainstaluje się sam, gdy gra będzie wyłączona.}}} other {Instalacja tylko ręcznie.}}} other {{on, select, true {Nowe wersje zainstalują się same, gdy gra będzie wyłączona.} other {O nowej wersji pojawi się tylko powiadomienie.}}}}</value>
+  </data>
+  <data name="GamePage_AutoInstall" xml:space="preserve">
+    <value>Instaluj automatycznie</value>
+  </data>
+  <data name="GamePage_AutoUpdate" xml:space="preserve">
+    <value>Aktualizuj automatycznie</value>
+  </data>
+  <data name="GamePage_BackToLibrary" xml:space="preserve">
+    <value>Wróć do „{library}”</value>
+  </data>
+  <data name="GamePage_BackupsStay" xml:space="preserve">
+    <value>Kopia oryginalnych plików nadal zajmuje miejsce na dysku {drive}</value>
+  </data>
+  <data name="GamePage_BackupsText" xml:space="preserve">
+    <value>Folder {folder} jest niedostępny, np. dysk jest odłączony. Do jego powrotu projektu nie da się odinstalować ani zaktualizować.</value>
+  </data>
+  <data name="GamePage_BackupsTitle" xml:space="preserve">
+    <value>Kopia oryginałów jest niedostępna</value>
+  </data>
+  <data name="GamePage_Build" xml:space="preserve">
+    <value>kompilacja {build}</value>
+  </data>
+  <data name="GamePage_BytesOf" xml:space="preserve">
+    <value>{done} z {total}</value>
+  </data>
+  <data name="GamePage_CancelledText" xml:space="preserve">
+    <value>{kind, select, Install {Pliki gry zostały bez zmian.} Uninstall {Projekt nadal jest zainstalowany.} other {Przywrócono wersję {version}, więc gra jest w takim stanie jak przed zadaniem.}}</value>
+  </data>
+  <data name="GamePage_CancelledTitle" xml:space="preserve">
+    <value>{kind, select, Install {Anulowano instalację} Update {Anulowano aktualizację} Repair {Anulowano naprawę} Uninstall {Anulowano odinstalowanie} other {Anulowano zadanie}}</value>
+  </data>
+  <data name="GamePage_Caption" xml:space="preserve">
+    <value>{hasSize, select, true {Wersja {version} · {size}} other {Wersja {version}}}</value>
+  </data>
+  <data name="GamePage_CaptionTo" xml:space="preserve">
+    <value>{hasSize, select, true {Do wersji {version} · {size}} other {Do wersji {version}}}</value>
+  </data>
+  <data name="GamePage_CaptionWaits" xml:space="preserve">
+    <value>{caption} · ruszy po połączeniu</value>
+  </data>
+  <data name="GamePage_Change" xml:space="preserve">
+    <value>Zmień wariant</value>
+  </data>
+  <data name="GamePage_ChangeText" xml:space="preserve">
+    <value>Obecny wariant zostanie usunięty, a jego miejsce zajmie „{variant}”. Gra musi być w tym czasie wyłączona.</value>
+  </data>
+  <data name="GamePage_ChangeTitle" xml:space="preserve">
+    <value>Zmiana wariantu projektu</value>
+  </data>
+  <data name="GamePage_ChangesHide" xml:space="preserve">
+    <value>Zwiń listę zmian</value>
+  </data>
+  <data name="GamePage_ChangesShow" xml:space="preserve">
+    <value>Zobacz, co nowego</value>
+  </data>
+  <data name="GamePage_ChangesTitle" xml:space="preserve">
+    <value>Co nowego w wersji {version}</value>
+  </data>
+  <data name="GamePage_Checked" xml:space="preserve">
+    <value>Sprawdzono {time}</value>
+  </data>
+  <data name="GamePage_CheckedLast" xml:space="preserve">
+    <value>Ostatnio sprawdzono {time}</value>
+  </data>
+  <data name="GamePage_ChoiceName" xml:space="preserve">
+    <value>{team}: {status}, wersja {version}. Wybierz ten projekt</value>
+  </data>
+  <data name="GamePage_ChooseText" xml:space="preserve">
+    <value>{count, plural, few {Do tej gry powstały # projekty.} many {Do tej gry powstało # projektów.} other {Do tej gry powstało # projektu.}} Poniżej są obok siebie; kliknięcie wybiera ten do instalacji. Wybór można zmienić, dopóki nic nie jest zainstalowane.</value>
+  </data>
+  <data name="GamePage_ChooseTitle" xml:space="preserve">
+    <value>Wybierz projekt</value>
+  </data>
+  <data name="GamePage_CompareLatest" xml:space="preserve">
+    <value>Ostatnia wersja</value>
+  </data>
+  <data name="GamePage_CompareStatus" xml:space="preserve">
+    <value>Stan</value>
+  </data>
+  <data name="GamePage_CompareText" xml:space="preserve">
+    <value>Każdy przygotowała inna grupa i każdy pasuje do tej wersji gry.</value>
+  </data>
+  <data name="GamePage_CompareTitle" xml:space="preserve">
+    <value>Porównaj projekty</value>
+  </data>
+  <data name="GamePage_CoverName" xml:space="preserve">
+    <value>Okładka gry {game}</value>
+  </data>
+  <data name="GamePage_Creators" xml:space="preserve">
+    <value>Twórcy</value>
+  </data>
+  <data name="GamePage_Credits" xml:space="preserve">
+    <value>Autorzy projektu</value>
+  </data>
+  <data name="GamePage_CurrentText" xml:space="preserve">
+    <value>{auto, select, true {Zainstalowana jest najnowsza wersja. Kolejne zainstalują się same, gdy grupa je wyda.} other {Zainstalowana jest najnowsza wersja. O kolejnych pojawi się powiadomienie.}}</value>
+  </data>
+  <data name="GamePage_CurrentTitle" xml:space="preserve">
+    <value>Projekt jest aktualny</value>
+  </data>
+  <data name="GamePage_Dismiss" xml:space="preserve">
+    <value>Zamknij komunikat</value>
+  </data>
+  <data name="GamePage_DoneText" xml:space="preserve">
+    <value>Projekt jest gotowy. Miłej gry!</value>
+  </data>
+  <data name="GamePage_DoneTitle" xml:space="preserve">
+    <value>{kind, select, Install {Zainstalowano projekt} Update {Zaktualizowano projekt} Repair {Naprawiono projekt} other {Gotowe}}</value>
+  </data>
+  <data name="GamePage_DontRun" xml:space="preserve">
+    <value>Gry nie należy uruchamiać, dopóki zadanie trwa.</value>
+  </data>
+  <data name="GamePage_FailedKept" xml:space="preserve">
+    <value>Wersja {version} została bez zmian.</value>
+  </data>
+  <data name="GamePage_FailedTitle" xml:space="preserve">
+    <value>{kind, select, Install {Nie udało się zainstalować projektu} Update {Nie udało się zaktualizować projektu} Repair {Nie udało się naprawić projektu} Uninstall {Nie udało się odinstalować projektu} other {Zadanie się nie powiodło}}</value>
+  </data>
+  <data name="GamePage_FilesChanged" xml:space="preserve">
+    <value>{reason, select, OriginalsRestored {{store} zastąpił część plików projektu oryginałami} FilesMissing {Brakuje części plików projektu} other {Część plików projektu się zmieniła}}</value>
+  </data>
+  <data name="GamePage_FilesInPlace" xml:space="preserve">
+    <value>Pliki projektu są na miejscu · {location, select, GameFolder {oryginały czekają w kopii w folderze gry} AppData {oryginały czekają w kopii w folderze aplikacji} other {oryginały czekają w kopii w wybranym folderze}}</value>
+  </data>
+  <data name="GamePage_Gallery" xml:space="preserve">
+    <value>Galeria</value>
+  </data>
+  <data name="GamePage_GalleryImages" xml:space="preserve">
+    <value>{count, plural, one {# zrzut ekranu} few {# zrzuty ekranu} many {# zrzutów ekranu} other {# zrzutu ekranu}}</value>
+  </data>
+  <data name="GamePage_GalleryVideos" xml:space="preserve">
+    <value>{count, plural, one {# film · otworzy się w przeglądarce} few {# filmy · otworzą się w przeglądarce} many {# filmów · otworzą się w przeglądarce} other {# filmu · otworzą się w przeglądarce}}</value>
+  </data>
+  <data name="GamePage_GalleryImage" xml:space="preserve">
+    <value>Zrzut ekranu {index} z {count}: {caption}</value>
+  </data>
+  <data name="GamePage_GalleryVideo" xml:space="preserve">
+    <value>Film {index} z {count}: {caption} – otworzy się w przeglądarce</value>
+  </data>
+  <data name="GamePage_GameGone" xml:space="preserve">
+    <value>{store} nie zgłasza już tej gry</value>
+  </data>
+  <data name="GamePage_GameReady" xml:space="preserve">
+    <value>Gra jest gotowa</value>
+  </data>
+  <data name="GamePage_Genres" xml:space="preserve">
+    <value>Gatunki</value>
+  </data>
+  <data name="GamePage_GoneText" xml:space="preserve">
+    <value>Jeśli gra została odinstalowana, można usunąć też projekt – zadziała to także bez internetu.</value>
+  </data>
+  <data name="GamePage_GoneTitle" xml:space="preserve">
+    <value>Nie wykryto tej gry</value>
+  </data>
+  <data name="GamePage_Hidden" xml:space="preserve">
+    <value>Ukryta w „{library}”</value>
+  </data>
+  <data name="GamePage_Hide" xml:space="preserve">
+    <value>Ukryj grę</value>
+  </data>
+  <data name="GamePage_InfoFiles" xml:space="preserve">
+    <value>Zmienione pliki</value>
+  </data>
+  <data name="GamePage_InfoPackage" xml:space="preserve">
+    <value>Paczka</value>
+  </data>
+  <data name="GamePage_InfoSaved" xml:space="preserve">
+    <value>Zapisane przy instalacji.</value>
+  </data>
+  <data name="GamePage_InfoTitle" xml:space="preserve">
+    <value>Informacje o projekcie</value>
+  </data>
+  <data name="GamePage_Install" xml:space="preserve">
+    <value>Zainstaluj projekt</value>
+  </data>
+  <data name="GamePage_InstallText" xml:space="preserve">
+    <value>{duration, select, short {Potrwa to kilka sekund.} minute {Potrwa to około minuty.} other {Potrwa to kilka minut.}} Gra musi być w tym czasie wyłączona.</value>
+  </data>
+  <data name="GamePage_InstallTitle" xml:space="preserve">
+    <value>Projekt czeka na instalację</value>
+  </data>
+  <data name="GamePage_InstalledWhen" xml:space="preserve">
+    <value>zainstalowana {when}</value>
+  </data>
+  <data name="GamePage_JobTitle" xml:space="preserve">
+    <value>{kind, select, Install {Instalowanie projektu} Update {Aktualizowanie projektu} Repair {Naprawianie projektu} Uninstall {Odinstalowywanie projektu} TestInstall {Instalowanie paczki testowej} MoveBackups {Przenoszenie kopii oryginałów} FollowMove {Przenoszenie instalacji} other {Praca}}</value>
+  </data>
+  <data name="GamePage_Launch" xml:space="preserve">
+    <value>Uruchom grę</value>
+  </data>
+  <data name="GamePage_LeftBehind" xml:space="preserve">
+    <value>Został w poprzednim folderze gry, na dysku {drive}</value>
+  </data>
+  <data name="GamePage_Loading" xml:space="preserve">
+    <value>Wczytywanie strony projektu…</value>
+  </data>
+  <data name="GamePage_LostTitle" xml:space="preserve">
+    <value>Nie udało się przywrócić poprzedniej wersji</value>
+  </data>
+  <data name="GamePage_MovedText" xml:space="preserve">
+    <value>{store} zgłasza grę teraz na dysku {drive}. Po odinstalowaniu projektu ze starego folderu można go zainstalować w nowym miejscu.</value>
+  </data>
+  <data name="GamePage_MovedTitle" xml:space="preserve">
+    <value>Gra zmieniła folder</value>
+  </data>
+  <data name="GamePage_Next" xml:space="preserve">
+    <value>Następny</value>
+  </data>
+  <data name="GamePage_NotForThisGame" xml:space="preserve">
+    <value>Najnowsza wersja nie ma paczki dla tej wersji gry. Pasująca zainstaluje się sama, gdy grupa ją wyda.</value>
+  </data>
+  <data name="GamePage_NotFoundText" xml:space="preserve">
+    <value>Tej gry nie ma teraz w „{library}”. Mogła zostać odinstalowana albo sklep przestał ją zgłaszać.</value>
+  </data>
+  <data name="GamePage_NotFoundTitle" xml:space="preserve">
+    <value>Nie znaleziono tej gry</value>
+  </data>
+  <data name="GamePage_NotInCatalogueText" xml:space="preserve">
+    <value>Nie będzie więc nowych wersji ani opisu. Odinstalowanie nadal działa, także bez internetu.</value>
+  </data>
+  <data name="GamePage_NotInCatalogueTitle" xml:space="preserve">
+    <value>Tego projektu nie ma już w serwisie</value>
+  </data>
+  <data name="GamePage_NotInstalled" xml:space="preserve">
+    <value>Jeszcze nie zainstalowany</value>
+  </data>
+  <data name="GamePage_NotInstalledHint" xml:space="preserve">
+    <value>Przed zmianami zostanie zachowana kopia oryginalnych plików gry.</value>
+  </data>
+  <data name="GamePage_NotReadyText" xml:space="preserve">
+    <value>{state}. {installed, select, true {Gdy {store} skończy, projekt zostanie sprawdzony i w razie potrzeby zainstalowany ponownie.} other {Projekt będzie można zainstalować, gdy gra będzie gotowa.}}</value>
+  </data>
+  <data name="GamePage_NotReadyTitle" xml:space="preserve">
+    <value>Oczekiwanie na gotowość gry</value>
+  </data>
+  <data name="GamePage_NotesTitle" xml:space="preserve">
+    <value>Uwagi od grupy {team}</value>
+  </data>
+  <data name="GamePage_Official" xml:space="preserve">
+    <value>Gra ma też oficjalne tłumaczenie</value>
+  </data>
+  <data name="GamePage_OfficialHint" xml:space="preserve">
+    <value>Dlatego projekt nie instaluje się automatycznie.</value>
+  </data>
+  <data name="GamePage_OfflineMeta" xml:space="preserve">
+    <value>Połączenie zostanie ponowione automatycznie</value>
+  </data>
+  <data name="GamePage_OfflineText" xml:space="preserve">
+    <value>Widoczne są ostatnie znane dane. Aktualizacja ruszy po powrocie połączenia; odinstalowanie działa i bez niego.</value>
+  </data>
+  <data name="GamePage_OpenFolder" xml:space="preserve">
+    <value>Otwórz folder gry</value>
+  </data>
+  <data name="GamePage_OpenHelp" xml:space="preserve">
+    <value>Otwórz Pomoc</value>
+  </data>
+  <data name="GamePage_OpenInStore" xml:space="preserve">
+    <value>Otwórz grę {game} w {store}</value>
+  </data>
+  <data name="GamePage_OpenOnSite" xml:space="preserve">
+    <value>Otwórz na stronie</value>
+  </data>
+  <data name="GamePage_OpenOriginal" xml:space="preserve">
+    <value>Otwórz oryginał</value>
+  </data>
+  <data name="GamePage_Outdated" xml:space="preserve">
+    <value>Grupa nie potwierdziła jeszcze działania z najnowszą wersją gry</value>
+  </data>
+  <data name="GamePage_Previous" xml:space="preserve">
+    <value>Poprzedni</value>
+  </data>
+  <data name="GamePage_ProjectOfTeam" xml:space="preserve">
+    <value>{project} · {team}</value>
+  </data>
+  <data name="GamePage_QueuedAfter" xml:space="preserve">
+    <value>{kind, select, Install {Instalacja} Update {Aktualizacja} Repair {Naprawa} Uninstall {Odinstalowanie} other {Zadanie}} ruszy, gdy skończy się zadanie dla gry {other}.</value>
+  </data>
+  <data name="GamePage_QueuedText" xml:space="preserve">
+    <value>{kind, select, Install {Instalacja} Update {Aktualizacja} Repair {Naprawa} Uninstall {Odinstalowanie} other {Zadanie}} ruszy za chwilę.</value>
+  </data>
+  <data name="GamePage_Recommended" xml:space="preserve">
+    <value>polecany</value>
+  </data>
+  <data name="GamePage_RefusedTitle" xml:space="preserve">
+    <value>Nie można teraz zainstalować projektu</value>
+  </data>
+  <data name="GamePage_RemovedGone" xml:space="preserve">
+    <value>Gra zniknie z „{library}” po wyjściu z tej strony.</value>
+  </data>
+  <data name="GamePage_RemovedText" xml:space="preserve">
+    <value>Przywrócono oryginalne pliki gry.</value>
+  </data>
+  <data name="GamePage_RemovedTitle" xml:space="preserve">
+    <value>Odinstalowano projekt</value>
+  </data>
+  <data name="GamePage_Repair" xml:space="preserve">
+    <value>Napraw projekt</value>
+  </data>
+  <data name="GamePage_RepairCaption" xml:space="preserve">
+    <value>Bez ponownego pobierania</value>
+  </data>
+  <data name="GamePage_RepairText" xml:space="preserve">
+    <value>{reason, select, OriginalsRestored {Tak bywa po sprawdzeniu spójności plików gry w {store}.} other {Tak bywa po aktualizacji gry.}} Naprawa zainstaluje projekt ponownie.</value>
+  </data>
+  <data name="GamePage_RepairTitle" xml:space="preserve">
+    <value>Projekt wymaga naprawy</value>
+  </data>
+  <data name="GamePage_RowGame" xml:space="preserve">
+    <value>Gra</value>
+  </data>
+  <data name="GamePage_RowInstall" xml:space="preserve">
+    <value>Instalacja</value>
+  </data>
+  <data name="GamePage_RowProject" xml:space="preserve">
+    <value>Projekt</value>
+  </data>
+  <data name="GamePage_RowUpdates" xml:space="preserve">
+    <value>Aktualizacje</value>
+  </data>
+  <data name="GamePage_RowVariant" xml:space="preserve">
+    <value>Wariant</value>
+  </data>
+  <data name="GamePage_SeeNotes" xml:space="preserve">
+    <value>Warto zajrzeć do uwag od grupy poniżej.</value>
+  </data>
+  <data name="GamePage_Show" xml:space="preserve">
+    <value>Pokaż w „{library}”</value>
+  </data>
+  <data name="GamePage_ShowMore" xml:space="preserve">
+    <value>Pokaż więcej</value>
+  </data>
+  <data name="GamePage_Speed" xml:space="preserve">
+    <value>{speed}/s</value>
+  </data>
+  <data name="GamePage_StatusTip" xml:space="preserve">
+    <value>Status: {status} – co to znaczy?</value>
+  </data>
+  <data name="GamePage_StatusesLink" xml:space="preserve">
+    <value>Co oznaczają statusy?</value>
+  </data>
+  <data name="GamePage_Step" xml:space="preserve">
+    <value>{step, select, Download {Pobieranie} Check {Sprawdzanie} Remove {Usuwanie starej wersji} Install {Instalowanie} Restore {Przywracanie oryginałów} other {Praca}}</value>
+  </data>
+  <data name="GamePage_Support" xml:space="preserve">
+    <value>Wesprzyj grupę przez {platform}</value>
+  </data>
+  <data name="GamePage_TeamFacts" xml:space="preserve">
+    <value>Grupa · {members, plural, one {# osoba} few {# osoby} many {# osób} other {# osoby}}</value>
+  </data>
+  <data name="GamePage_TeamLine" xml:space="preserve">
+    <value>Projekt grupy</value>
+  </data>
+  <data name="GamePage_TestDetail" xml:space="preserve">
+    <value>Instalacja testowa z kreatora</value>
+  </data>
+  <data name="GamePage_TestText" xml:space="preserve">
+    <value>Kreator zainstalował tę paczkę, aby ją wypróbować; nie będzie aktualizowana.</value>
+  </data>
+  <data name="GamePage_TestTitle" xml:space="preserve">
+    <value>Instalacja testowa</value>
+  </data>
+  <data name="GamePage_ThisComputer" xml:space="preserve">
+    <value>Na tym komputerze</value>
+  </data>
+  <data name="GamePage_Trouble" xml:space="preserve">
+    <value>Coś nie działa?</value>
+  </data>
+  <data name="GamePage_Unavailable" xml:space="preserve">
+    <value>{reason, select, OtherStores {Paczki tej wersji są przygotowane dla innych sklepów.} OtherSystems {Paczki tej wersji są przygotowane dla innych systemów.} UnsupportedFormat {Paczka tej wersji ma format, którego ta aplikacja nie instaluje.} NoReadyFiles {Pliki tej wersji nie są jeszcze gotowe.} other {Nie ma wersji do pobrania.}}</value>
+  </data>
+  <data name="GamePage_UnavailableTitle" xml:space="preserve">
+    <value>Projekt nie pasuje do tej wersji gry</value>
+  </data>
+  <data name="GamePage_UninstallProject" xml:space="preserve">
+    <value>Odinstaluj projekt</value>
+  </data>
+  <data name="GamePage_Update" xml:space="preserve">
+    <value>Zaktualizuj projekt</value>
+  </data>
+  <data name="GamePage_UpdateFixTitle" xml:space="preserve">
+    <value>Grupa poprawiła paczkę tej wersji</value>
+  </data>
+  <data name="GamePage_UpdateText" xml:space="preserve">
+    <value>Najpierw zostanie usunięta obecna wersja, a potem zainstalowana nowa. Gra musi być w tym czasie wyłączona.</value>
+  </data>
+  <data name="GamePage_UpdateTitle" xml:space="preserve">
+    <value>Jest nowa wersja projektu</value>
+  </data>
+  <data name="GamePage_VariantLocked" xml:space="preserve">
+    <value>Wariant można zmienić po zakończeniu zadania.</value>
+  </data>
+  <data name="GamePage_Version" xml:space="preserve">
+    <value>Wersja {version}</value>
+  </data>
+  <data name="GamePage_VersionUnknown" xml:space="preserve">
+    <value>Wersja nieznana</value>
+  </data>
+  <data name="GamePage_ViewerCounter" xml:space="preserve">
+    <value>{index} / {count}</value>
+  </data>
+  <data name="GamePage_ViewerKeys" xml:space="preserve">
+    <value>← → przełącz · Esc zamknij</value>
+  </data>
+  <data name="GamePage_ViewerTitle" xml:space="preserve">
+    <value>{game} · Galeria</value>
+  </data>
+  <data name="GamePage_WaitingGameText" xml:space="preserve">
+    <value>{processes, select, none {Gra jest uruchomiona.} other {Gra jest uruchomiona ({processes}).}} {kind, select, Install {Instalacja} Update {Aktualizacja} Repair {Naprawa} Uninstall {Odinstalowanie} other {Zadanie}} ruszy zaraz po jej zamknięciu.</value>
+  </data>
+  <data name="GamePage_WaitingGameTitle" xml:space="preserve">
+    <value>Oczekiwanie na zamknięcie gry</value>
+  </data>
+  <data name="GamePage_WaitingRecoveryText" xml:space="preserve">
+    <value>Najpierw kończona lub cofana jest wcześniejsza operacja na tej grze.</value>
+  </data>
+  <data name="GamePage_WaitingStoreText" xml:space="preserve">
+    <value>{store} pracuje teraz nad grą. Zadanie ruszy samo, gdy skończy.</value>
+  </data>
+  <data name="GamePage_When" xml:space="preserve">
+    <value>{age} ({date})</value>
+  </data>
+  <data name="GamePage_ChoosePreferred" xml:space="preserve">
+    <value>Po ustawieniu kolejności grup w ustawieniach automatyczna instalacja wybierze tę najwyżej na liście.</value>
+  </data>
+  <data name="GamePage_DescriptionFilm" xml:space="preserve">
+    <value>Film – otworzy się w przeglądarce</value>
+  </data>
 </root>

@@ -8,9 +8,9 @@ namespace JustModIt.Manager.Ui.Tests.TestSupport;
 /// <summary>Plain images made by the test, as PNG files or as bitmaps.</summary>
 public static class TestImages
 {
-    public static byte[] Png(int width, int height)
+    public static byte[] Png(int width, int height, string? address = null)
     {
-        using var bitmap = Bitmap(width, height);
+        using var bitmap = address is null ? Bitmap(width, height) : Cover(address, width, height);
         using var stream = new MemoryStream();
         bitmap.Save(stream, new PngBitmapEncoderOptions());
         return stream.ToArray();
@@ -107,15 +107,36 @@ public sealed class FakeImages : IImageLoader
 
     public List<string> Blurred { get; } = [];
 
-    public Task<Bitmap?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken)
+    public List<(BackdropRecipe Recipe, PixelSize Size)> Backdrops { get; } = [];
+
+    /// <summary>The pictures' own sizes by address; any other picture is as large as the box it is asked for.</summary>
+    public Dictionary<string, PixelSize> Sizes { get; } = [];
+
+    /// <summary>Addresses that do not load, as a film without its largest still.</summary>
+    public HashSet<string> Missing { get; } = [];
+
+    public Task<RemotePicture?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken)
     {
         Requests.Add((address, size));
-        return Task.FromResult<Bitmap?>(TestImages.Cover(address, size.Width, size.Height));
+        if (Missing.Contains(address))
+        {
+            return Task.FromResult<RemotePicture?>(null);
+        }
+
+        var natural = Sizes.TryGetValue(address, out var own) ? own : size;
+        var decoded = ImageBaking.CoverSize(natural, size);
+        return Task.FromResult<RemotePicture?>(new RemotePicture(TestImages.Cover(address, decoded.Width, decoded.Height), natural));
     }
 
     public Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken)
     {
         Blurred.Add(address);
         return Task.FromResult<Bitmap?>(ImageBaking.Blur(TestImages.Cover(address, 8, 12), size));
+    }
+
+    public Task<Bitmap?> LoadBackdropAsync(BackdropRecipe recipe, PixelSize size, double scale, CancellationToken cancellationToken)
+    {
+        Backdrops.Add((recipe, size));
+        return Task.FromResult<Bitmap?>(ImageBaking.Backdrop(null, null, null, size, scale));
     }
 }

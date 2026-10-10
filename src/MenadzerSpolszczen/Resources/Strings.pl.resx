@@ -294,4 +294,127 @@
   <data name="GamePage_FailureReason" xml:space="preserve">
     <value>{reason, select, AlreadyRunning {Dla tej gry trwa już inne zadanie.} GameNotDetected {{store} nie zgłasza już tej gry.} GameNotReady {Gra nie była gotowa: {state}.} GameRunning {Gra była uruchomiona ({processes}).} GameFolderMissing {Brakuje folderu gry.} GameBusy {Inna instalacja zmieniała w tym czasie pliki gry.} FilesLocked {Pliki gry są używane przez: {processes}.} PermissionRequired {Brak uprawnień do zmiany plików gry ({file}).} NotEnoughSpace {Za mało miejsca na dysku {drive} (potrzeba {required}, wolne {available}).} OtherGame {Paczka jest przeznaczona dla innej gry.} UnsupportedGameVersion {Pliki gry są w innej wersji niż ta, dla której przygotowano paczkę.} NewReleaseIncompatible {Nowa wersja pasuje do innej wersji gry, więc zainstalowana została bez zmian.} AlreadyApplied {Pliki gry mają już zawartość paczki.} ConflictingInstall {Inne zainstalowane spolszczenie zmienia te same pliki.} OtherProjectInstalled {Do tej gry zainstalowane jest już inne spolszczenie.} ManagedByOtherApp {Plikami gry zarządza inna aplikacja ({app}).} RecoveryPending {Wcześniejsza operacja na tej grze czeka na dokończenie.} InstallNotFound {Ta instalacja już nie istnieje.} UnreadableInstall {Nie udało się odczytać zapisu instalacji; mogła go utworzyć nowsza wersja aplikacji.} BackupFolderUnavailable {Folder z oryginalnymi plikami jest niedostępny ({location}).} ProjectNotFound {Spolszczenia nie ma już w Bazie Spolszczeń.} ProjectNotCompleted {Spolszczenie nie jest jeszcze ukończone.} ReleaseUnavailable {Tej wersji nie można już pobrać.} NoPackage {Ta wersja nie ma paczki dla tej gry.} Offline {Brak połączenia z internetem.} ServerError {Serwer nie odpowiedział poprawnie.} DownloadCorrupt {Pobrany plik był uszkodzony.} InvalidPackage {Paczka jest uszkodzona.} AppUpdateRequired {Paczka wymaga nowszej wersji aplikacji.} InstallFailed {Coś poszło nie tak, więc wszystkie zmiany zostały cofnięte.} RollbackIncomplete {Nie wszystkie zmiany udało się już cofnąć; aplikacja spróbuje ponownie przy następnym uruchomieniu.} AccessDenied {Nie udało się uzyskać dostępu do pliku.} DiskError {Zapis na dysku się nie powiódł.} other {Wystąpił nieoczekiwany błąd.}}</value>
   </data>
+  <data name="GamePage_AutoHint" xml:space="preserve">
+    <value>{source, select, own {Ustawione dla tej gry.} other {Tak jak w ustawieniach.}} {kind, select, install {{on, select, true {{choice, select, true {Spolszczenie zainstaluje się samo po wyborze grupy.} other {Spolszczenie zainstaluje się samo, gdy gra będzie wyłączona.}}} other {Instalacja tylko ręcznie.}}} other {{on, select, true {Nowe wersje zainstalują się same, gdy gra będzie wyłączona.} other {O nowej wersji pojawi się tylko powiadomienie.}}}}</value>
+  </data>
+  <data name="GamePage_BackupsText" xml:space="preserve">
+    <value>Folder {folder} jest niedostępny, np. dysk jest odłączony. Do jego powrotu spolszczenia nie da się odinstalować ani zaktualizować.</value>
+  </data>
+  <data name="GamePage_CancelledText" xml:space="preserve">
+    <value>{kind, select, Install {Pliki gry zostały bez zmian.} Uninstall {Spolszczenie nadal jest zainstalowane.} other {Przywrócono wersję {version}, więc gra jest w takim stanie jak przed zadaniem.}}</value>
+  </data>
+  <data name="GamePage_ChangeTitle" xml:space="preserve">
+    <value>Zmiana wariantu spolszczenia</value>
+  </data>
+  <data name="GamePage_ChoiceName" xml:space="preserve">
+    <value>{team}: {status}, wersja {version}. Wybierz to spolszczenie</value>
+  </data>
+  <data name="GamePage_ChooseText" xml:space="preserve">
+    <value>{count, plural, few {Do tej gry powstały # spolszczenia.} many {Do tej gry powstało # spolszczeń.} other {Do tej gry powstało # spolszczenia.}} Poniżej są obok siebie; kliknięcie wybiera to do instalacji. Wybór można zmienić, dopóki nic nie jest zainstalowane.</value>
+  </data>
+  <data name="GamePage_ChooseTitle" xml:space="preserve">
+    <value>Wybierz spolszczenie</value>
+  </data>
+  <data name="GamePage_CompareText" xml:space="preserve">
+    <value>Każde przygotowała inna grupa i każde pasuje do tej wersji gry.</value>
+  </data>
+  <data name="GamePage_CompareTitle" xml:space="preserve">
+    <value>Porównaj spolszczenia</value>
+  </data>
+  <data name="GamePage_Credits" xml:space="preserve">
+    <value>Autorzy spolszczenia</value>
+  </data>
+  <data name="GamePage_CurrentTitle" xml:space="preserve">
+    <value>Spolszczenie jest aktualne</value>
+  </data>
+  <data name="GamePage_DoneText" xml:space="preserve">
+    <value>Spolszczenie jest gotowe. Miłej gry!</value>
+  </data>
+  <data name="GamePage_DoneTitle" xml:space="preserve">
+    <value>{kind, select, Install {Zainstalowano spolszczenie} Update {Zaktualizowano spolszczenie} Repair {Naprawiono spolszczenie} other {Gotowe}}</value>
+  </data>
+  <data name="GamePage_FailedTitle" xml:space="preserve">
+    <value>{kind, select, Install {Nie udało się zainstalować spolszczenia} Update {Nie udało się zaktualizować spolszczenia} Repair {Nie udało się naprawić spolszczenia} Uninstall {Nie udało się odinstalować spolszczenia} other {Zadanie się nie powiodło}}</value>
+  </data>
+  <data name="GamePage_FilesChanged" xml:space="preserve">
+    <value>{reason, select, OriginalsRestored {{store} zastąpił część plików spolszczenia oryginałami} FilesMissing {Brakuje części plików spolszczenia} other {Część plików spolszczenia się zmieniła}}</value>
+  </data>
+  <data name="GamePage_FilesInPlace" xml:space="preserve">
+    <value>Pliki spolszczenia są na miejscu · {location, select, GameFolder {oryginały czekają w kopii w folderze gry} AppData {oryginały czekają w kopii w folderze aplikacji} other {oryginały czekają w kopii w wybranym folderze}}</value>
+  </data>
+  <data name="GamePage_GoneText" xml:space="preserve">
+    <value>Jeśli gra została odinstalowana, można usunąć też spolszczenie – zadziała to także bez internetu.</value>
+  </data>
+  <data name="GamePage_InfoTitle" xml:space="preserve">
+    <value>Informacje o spolszczeniu</value>
+  </data>
+  <data name="GamePage_Install" xml:space="preserve">
+    <value>Zainstaluj spolszczenie</value>
+  </data>
+  <data name="GamePage_InstallTitle" xml:space="preserve">
+    <value>Spolszczenie czeka na instalację</value>
+  </data>
+  <data name="GamePage_JobTitle" xml:space="preserve">
+    <value>{kind, select, Install {Instalowanie spolszczenia} Update {Aktualizowanie spolszczenia} Repair {Naprawianie spolszczenia} Uninstall {Odinstalowywanie spolszczenia} TestInstall {Instalowanie paczki testowej} MoveBackups {Przenoszenie kopii oryginałów} FollowMove {Przenoszenie instalacji} other {Praca}}</value>
+  </data>
+  <data name="GamePage_LeftBehind" xml:space="preserve">
+    <value>Zostało w poprzednim folderze gry, na dysku {drive}</value>
+  </data>
+  <data name="GamePage_Loading" xml:space="preserve">
+    <value>Wczytywanie strony spolszczenia…</value>
+  </data>
+  <data name="GamePage_MovedText" xml:space="preserve">
+    <value>{store} zgłasza grę teraz na dysku {drive}. Po odinstalowaniu spolszczenia ze starego folderu można je zainstalować w nowym miejscu.</value>
+  </data>
+  <data name="GamePage_NotInCatalogueTitle" xml:space="preserve">
+    <value>Tego spolszczenia nie ma już w Bazie Spolszczeń</value>
+  </data>
+  <data name="GamePage_NotInstalled" xml:space="preserve">
+    <value>Jeszcze nie zainstalowane</value>
+  </data>
+  <data name="GamePage_NotReadyText" xml:space="preserve">
+    <value>{state}. {installed, select, true {Gdy {store} skończy, spolszczenie zostanie sprawdzone i w razie potrzeby nałożone ponownie.} other {Spolszczenie będzie można zainstalować, gdy gra będzie gotowa.}}</value>
+  </data>
+  <data name="GamePage_Official" xml:space="preserve">
+    <value>Gra ma też oficjalne polskie tłumaczenie</value>
+  </data>
+  <data name="GamePage_OfficialHint" xml:space="preserve">
+    <value>Dlatego spolszczenie nie instaluje się automatycznie.</value>
+  </data>
+  <data name="GamePage_RefusedTitle" xml:space="preserve">
+    <value>Nie można teraz zainstalować spolszczenia</value>
+  </data>
+  <data name="GamePage_RemovedTitle" xml:space="preserve">
+    <value>Odinstalowano spolszczenie</value>
+  </data>
+  <data name="GamePage_Repair" xml:space="preserve">
+    <value>Napraw spolszczenie</value>
+  </data>
+  <data name="GamePage_RepairText" xml:space="preserve">
+    <value>{reason, select, OriginalsRestored {Tak bywa po sprawdzeniu spójności plików gry w {store}.} other {Tak bywa po aktualizacji gry.}} Naprawa nałoży spolszczenie ponownie.</value>
+  </data>
+  <data name="GamePage_RepairTitle" xml:space="preserve">
+    <value>Spolszczenie wymaga naprawy</value>
+  </data>
+  <data name="GamePage_RowProject" xml:space="preserve">
+    <value>Spolszczenie</value>
+  </data>
+  <data name="GamePage_TeamLine" xml:space="preserve">
+    <value>Spolszczenie grupy</value>
+  </data>
+  <data name="GamePage_TestDetail" xml:space="preserve">
+    <value>Instalacja testowa z kreatora spolszczeń</value>
+  </data>
+  <data name="GamePage_UnavailableTitle" xml:space="preserve">
+    <value>Spolszczenie nie pasuje do tej wersji gry</value>
+  </data>
+  <data name="GamePage_UninstallProject" xml:space="preserve">
+    <value>Odinstaluj spolszczenie</value>
+  </data>
+  <data name="GamePage_Update" xml:space="preserve">
+    <value>Zaktualizuj spolszczenie</value>
+  </data>
+  <data name="GamePage_UpdateTitle" xml:space="preserve">
+    <value>Jest nowa wersja spolszczenia</value>
+  </data>
 </root>

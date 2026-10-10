@@ -24,5 +24,6 @@
     <StyleInclude Source="avares://JustModIt.Manager.Ui/Theme/Shell.axaml" />
     <StyleInclude Source="avares://JustModIt.Manager.Ui/Theme/Overlays.axaml" />
     <StyleInclude Source="avares://JustModIt.Manager.Ui/Theme/Motion.axaml" />
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Theme/Prose.axaml" />
   </Application.Styles>
 </Application>

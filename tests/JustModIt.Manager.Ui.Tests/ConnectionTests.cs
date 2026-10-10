@@ -7,6 +7,7 @@ using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Pages.Game;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Shell;
 using JustModIt.Manager.Ui.Tests.TestSupport;
@@ -106,15 +107,29 @@ public sealed class ConnectionTests
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         UiHarness.Render(window, "library-downloading");
 
-        pipe.Post(new StateChanged(TestGames.State(TestGames.Installed("Ember Hollow", "4100", offer: game.Project)) with { Version = 3 }));
+        pipe.Post(new JobProgress([download with { Fraction = 0.5, BytesDone = 94_371_840, Sequence = 6 }]));
+        await UiHarness.WaitUntilAsync(() => card.Progress > 30);
+        session.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(game.Key)]);
+        var page = (GamePageViewModel)session.Shell.Navigator.Current!;
+        (page.Progress, page.IsIndeterminate).Should().Be((50.0, false));
+        pipe.Post(new StateChanged(downloading with { Version = 3 }));
         await UiHarness.WaitUntilAsync(() => connection.State.Version == 3);
+        (page.Progress, page.IsIndeterminate).Should().Be((50.0, false));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        UiHarness.Render(window, "game-downloading");
+
+        pipe.Post(new StateChanged(TestGames.State(TestGames.Installed("Ember Hollow", "4100", offer: game.Project)) with { Version = 4 }));
+        await UiHarness.WaitUntilAsync(() => connection.State.Version == 4);
         pipe.Post(new JobProgress([download with { Stage = JobStage.Installing, Fraction = 1, Sequence = 9 }]));
         // The window answers a ping as it reads it, so the report before it has been read by then.
         await pipe.RequestAsync(new Ping(), cancellationToken: TestContext.Current.CancellationToken);
         UiHarness.Settle();
 
         connection.State.Jobs.Should().BeEmpty();
+        page.Step!.Kind.Should().Be(StepKind.Done);
         (card.ShowsProgress, session.Shell.Status.ShowsProgress).Should().Be((false, false));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        UiHarness.Render(window, "game-done-after-a-late-report");
 
         await pipe.RequestAsync(new ShutdownRequested(ShutdownReason.Exit), cancellationToken: TestContext.Current.CancellationToken);
         await UiHarness.WaitUntilAsync(() => !window.IsVisible);

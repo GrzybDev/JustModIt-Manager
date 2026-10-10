@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:game="using:JustModIt.Manager.Ui.Pages.Game"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Game.GalleryViewer"
+             x:DataType="game:GalleryViewerViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.thumb">
+      <Setter Property="Width" Value="72" />
+      <Setter Property="Height" Value="44" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+    </Style>
+    <Style Selector="Button.thumb.current /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.arrow">
+      <Setter Property="Width" Value="44" />
+      <Setter Property="Height" Value="44" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Background" Value="#B8030712" />
+      <Setter Property="BorderBrush" Value="#2EFFFFFF" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="16,0" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border x:Name="Frame" Classes="floating" Padding="0" ClipToBounds="True" Background="#F7070B14">
+    <Grid RowDefinitions="56,*,Auto,36">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="20,0,12,0">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+          <TextBlock Text="{Binding Counter}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="outline small" Content="{x:Static loc:Strings.GamePage_OpenOriginal}" VerticalAlignment="Center"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUpRight}" ui:ButtonAssist.IconAfter="True" Command="{Binding OpenOriginalCommand}" />
+        <Button Grid.Column="2" Classes="icon" VerticalAlignment="Center" ToolTip.Tip="{x:Static loc:Strings.Shell_Close}" Command="{Binding CloseCommand}">
+          <ui:Icon Data="{x:Static theme:Icons.X}" />
+        </Button>
+      </Grid>
+      <Panel Grid.Row="1" Background="#030712">
+        <ui:RemoteImage Source="{Binding Current.Image}" Stretch="Uniform" AutomationProperties.Name="{Binding Caption}" />
+        <Button Classes="arrow" HorizontalAlignment="Left" ToolTip.Tip="{x:Static loc:Strings.GamePage_Previous}" Command="{Binding PreviousCommand}">
+          <ui:Icon Data="{x:Static theme:Icons.ChevronLeft}" Width="20" Height="20" />
+        </Button>
+        <Button Classes="arrow" HorizontalAlignment="Right" ToolTip.Tip="{x:Static loc:Strings.GamePage_Next}" Command="{Binding NextCommand}">
+          <ui:Icon Data="{x:Static theme:Icons.ChevronRight}" Width="20" Height="20" />
+        </Button>
+      </Panel>
+      <ItemsControl Grid.Row="2" ItemsSource="{Binding Thumbs}" HorizontalAlignment="Center" Margin="0,12">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="8" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="game:GalleryThumb">
+            <Button Classes="thumb" Classes.current="{Binding IsCurrent}" AutomationProperties.Name="{Binding Item.Caption}"
+                    Command="{Binding $parent[UserControl].((game:GalleryViewerViewModel)DataContext).ShowCommand}" CommandParameter="{Binding}">
+              <Border CornerRadius="5" ClipToBounds="True">
+                <ui:RemoteImage Source="{Binding Item.Image}" />
+              </Border>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="20,0,20,10">
+        <TextBlock Text="{Binding Caption}" FontSize="13" Foreground="{StaticResource TextBodyBrush}" TextTrimming="CharacterEllipsis" />
+        <TextBlock Grid.Column="1" Text="{x:Static loc:Strings.GamePage_ViewerKeys}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

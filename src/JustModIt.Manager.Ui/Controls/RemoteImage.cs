@@ -17,11 +17,23 @@ public sealed class RemoteImage : Control
 {
     public static readonly StyledProperty<string?> SourceProperty = AvaloniaProperty.Register<RemoteImage, string?>(nameof(Source));
 
+    /// <summary>An address tried when the source does not load, such as a film's smaller still.</summary>
+    public static readonly StyledProperty<string?> FallbackProperty = AvaloniaProperty.Register<RemoteImage, string?>(nameof(Fallback));
+
     public static readonly StyledProperty<Stretch> StretchProperty =
         AvaloniaProperty.Register<RemoteImage, Stretch>(nameof(Stretch), Stretch.UniformToFill);
 
     /// <summary>The image shows as a soft blur of its colours, baked when it is decoded, as an adult game's cover is veiled.</summary>
     public static readonly StyledProperty<bool> IsBlurredProperty = AvaloniaProperty.Register<RemoteImage, bool>(nameof(IsBlurred));
+
+    /// <summary>
+    /// The control takes the picture's own proportions and at most its width, as a picture in a text does; until the
+    /// picture arrives it holds a 16:9 place, and one that cannot be shown takes none.
+    /// </summary>
+    public static readonly StyledProperty<bool> FitsPictureProperty = AvaloniaProperty.Register<RemoteImage, bool>(nameof(FitsPicture));
+
+    public static readonly DirectProperty<RemoteImage, PixelSize> NaturalSizeProperty =
+        AvaloniaProperty.RegisterDirect<RemoteImage, PixelSize>(nameof(NaturalSize), image => image.NaturalSize);
 
     /// <summary>The service images load through, set once on the window and inherited by every image in it.</summary>
     public static readonly AttachedProperty<IImageLoader?> LoaderProperty =
@@ -30,13 +42,21 @@ public sealed class RemoteImage : Control
     // Images this far beyond the visible part start loading before they scroll in.
     private const double Lookahead = 600;
 
-    private Bitmap? _bitmap;
+    private const double PlaceholderRatio = 0.5625;
+
+    private RemotePicture? _picture;
+    private PixelSize _naturalSize;
     private CancellationTokenSource? _loading;
     private string? _loadedSource;
     private PixelSize _loadedSize;
     private bool _isNearView;
+    private bool _hasFailed;
 
-    static RemoteImage() => AffectsRender<RemoteImage>(StretchProperty);
+    static RemoteImage()
+    {
+        AffectsRender<RemoteImage>(StretchProperty);
+        AffectsMeasure<RemoteImage>(FitsPictureProperty);
+    }
 
     /// <summary>Creates an image that shows nothing until it has a source and comes near the view.</summary>
     public RemoteImage() => EffectiveViewportChanged += OnEffectiveViewportChanged;
@@ -46,6 +66,12 @@ public sealed class RemoteImage : Control
     {
         get => GetValue(SourceProperty);
         set => SetValue(SourceProperty, value);
+    }
+
+    public string? Fallback
+    {
+        get => GetValue(FallbackProperty);
+        set => SetValue(FallbackProperty, value);
     }
 
     public Stretch Stretch
@@ -60,8 +86,17 @@ public sealed class RemoteImage : Control
         set => SetValue(IsBlurredProperty, value);
     }
 
+    public bool FitsPicture
+    {
+        get => GetValue(FitsPictureProperty);
+        set => SetValue(FitsPictureProperty, value);
+    }
+
+    /// <summary>The picture's own size in pixels; empty until it has loaded.</summary>
+    public PixelSize NaturalSize => _naturalSize;
+
     /// <summary>The image shown; null until one has loaded.</summary>
-    public Bitmap? Bitmap => _bitmap;
+    public Bitmap? Bitmap => _picture?.Bitmap;
 
     /// <summary>Gets the service images in a part of the window load through.</summary>
     /// <param name="control">The control where it was set, or one inside it.</param>
@@ -83,7 +118,7 @@ public sealed class RemoteImage : Control
     public override void Render(DrawingContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (_bitmap is not { } bitmap || Bounds.Width <= 0 || Bounds.Height <= 0)
+        if (Bitmap is not { } bitmap || Bounds.Width <= 0 || Bounds.Height <= 0)
         {
             return;
         }
@@ -95,11 +130,34 @@ public sealed class RemoteImage : Control
         context.DrawImage(bitmap, source, shown);
     }
 
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (!FitsPicture)
+        {
+            return base.MeasureOverride(availableSize);
+        }
+
+        if (_hasFailed)
+        {
+            return default;
+        }
+
+        var width = double.IsInfinity(availableSize.Width) ? 0 : availableSize.Width;
+        if (NaturalSize is { Width: > 0, Height: > 0 } natural)
+        {
+            width = width > 0 ? Math.Min(width, natural.Width) : natural.Width;
+            return new Size(width, width * natural.Height / natural.Width);
+        }
+
+        return new Size(width, width * PlaceholderRatio);
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         ArgumentNullException.ThrowIfNull(change);
         base.OnPropertyChanged(change);
-        if (change.Property == SourceProperty || change.Property == LoaderProperty || change.Property == IsBlurredProperty)
+        if (change.Property == SourceProperty || change.Property == FallbackProperty || change.Property == LoaderProperty
+            || change.Property == IsBlurredProperty)
         {
             Reset();
             Load();
@@ -127,11 +185,10 @@ public sealed class RemoteImage : Control
     private void Reset()
     {
         Cancel();
-        _bitmap = null;
+        Show(null, failed: false);
         _loadedSource = null;
         _loadedSize = default;
         SetState(null);
-        InvalidateVisual();
     }
 
     private void Cancel()
@@ -163,17 +220,21 @@ public sealed class RemoteImage : Control
     {
         using var loading = new CancellationTokenSource();
         _loading = loading;
-        if (_bitmap is null)
+        if (_picture is null)
         {
             SetState(":loading");
         }
 
-        Bitmap? bitmap;
-        var task = IsBlurred ? loader.LoadBlurredAsync(source, size, loading.Token) : loader.LoadAsync(source, size, loading.Token);
+        RemotePicture? picture;
+        var task = LoadOneAsync(loader, source, size, loading.Token);
         var arrivedAtOnce = task.IsCompleted;
         try
         {
-            bitmap = await task;
+            picture = await task;
+            if (picture is null && Fallback is { Length: > 0 } fallback && fallback != source)
+            {
+                picture = await LoadOneAsync(loader, fallback, size, loading.Token);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -194,25 +255,48 @@ public sealed class RemoteImage : Control
 
         _loadedSource = source;
         _loadedSize = size;
-        if (bitmap is null)
+        if (picture is null)
         {
-            if (_bitmap is null)
+            if (_picture is null)
             {
                 SetState(":failed");
+                Show(null, failed: true);
             }
 
             return;
         }
 
-        var first = _bitmap is null;
-        _bitmap = bitmap;
+        var first = _picture is null;
+        Show(picture, failed: false);
         SetState(":loaded");
-        InvalidateVisual();
         // An image kept in memory shows at once, as when going back to a page; only one that had to arrive fades in.
         if (first && !arrivedAtOnce)
         {
             Motion.FadeIn(this);
         }
+    }
+
+    private async Task<RemotePicture?> LoadOneAsync(IImageLoader loader, string address, PixelSize size, CancellationToken cancellationToken)
+    {
+        if (!IsBlurred)
+        {
+            return await loader.LoadAsync(address, size, cancellationToken);
+        }
+
+        return await loader.LoadBlurredAsync(address, size, cancellationToken) is { } blur ? new RemotePicture(blur, blur.PixelSize) : null;
+    }
+
+    private void Show(RemotePicture? picture, bool failed)
+    {
+        _picture = picture;
+        var resized = SetAndRaise(NaturalSizeProperty, ref _naturalSize, picture?.NaturalSize ?? default) | _hasFailed != failed;
+        _hasFailed = failed;
+        if (resized && FitsPicture)
+        {
+            InvalidateMeasure();
+        }
+
+        InvalidateVisual();
     }
 
     private void SetState(string? state)

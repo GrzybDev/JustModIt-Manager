@@ -6,6 +6,7 @@ using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages;
 using JustModIt.Manager.Ui.Shell;
 using JustModIt.Manager.Ui.Theme;
+using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui;
 
@@ -33,9 +34,10 @@ public sealed class UiSession : IDisposable
     /// <param name="context">What the process knows about the app.</param>
     /// <param name="agent">The agent the window talks to.</param>
     /// <param name="images">Loads the site's images; null for the image cache in the app's cache folder.</param>
+    /// <param name="links">Opens addresses outside the window; null for the system's shell.</param>
     /// <param name="clock">The time the pages tell dates against; null for the system's clock.</param>
     public static UiSession Create(Application application, UiContext context, IAgent agent, IImageLoader? images = null,
-        TimeProvider? clock = null)
+        IExternalLinks? links = null, TimeProvider? clock = null)
     {
         ArgumentNullException.ThrowIfNull(application);
         ArgumentNullException.ThrowIfNull(context);
@@ -57,6 +59,7 @@ public sealed class UiSession : IDisposable
             Toasts = new ToastHost(),
             Images = images ?? cache!,
             Context = context,
+            Links = links ?? new ShellLinks(context.Loggers.CreateLogger<ShellLinks>()),
             Clock = clock ?? TimeProvider.System,
         };
         return new UiSession(composition, services, new ShellViewModel(services, composition.FirstRun), cache);

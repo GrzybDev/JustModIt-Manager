@@ -1,6 +1,4 @@
-using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Navigation;
-using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Game;
 
@@ -12,7 +10,8 @@ internal static class GameScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
-        ui.Pages.Register<GameRoute>((route, services) => new PlaceholderPageViewModel(
-            services.Agent.State.Games.FirstOrDefault(game => game.Key == route.Game)?.Name ?? Strings.Shell_PageGame, Icons.Gamepad));
+        ui.Pages.Register<GameRoute>((route, services) => new GamePageViewModel(services, route.Game));
+        ui.Views.Register<GamePageViewModel>(() => new GamePage());
+        ui.Views.Register<GalleryViewerViewModel>(() => new GalleryViewer());
     }
 }

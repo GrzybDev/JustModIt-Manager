@@ -1,0 +1,376 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.VisualTree;
+using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Protocol.Messages;
+using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
+using JustModIt.Manager.Ui.Pages.Game;
+using JustModIt.Manager.Ui.Pages.Library;
+using JustModIt.Manager.Ui.Tests.TestSupport;
+using static JustModIt.Manager.Ui.Tests.TestSupport.TestGames;
+
+namespace JustModIt.Manager.Ui.Tests;
+
+public sealed class GameTests
+{
+    private static readonly ProjectOfferView Ember = Offer("Ember Hollow", twoVariants: true);
+
+    [AvaloniaFact]
+    public async Task Installing_takes_the_chosen_variant_and_shows_the_job_live_until_it_is_cancelled()
+    {
+        var game = Available("Ember Hollow", "4100", Ember);
+        using var ui = Open(State(game), game, Ember);
+        var page = Page(ui);
+        await UiHarness.WaitUntilAsync(() => page.Details is not null);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
+        ui.Render("game-install");
+
+        page.Step!.Kind.Should().Be(StepKind.Install);
+        page.Step.PrimaryCaption.Should().Be("Wersja 2 · 3,6\u00A0MB");
+        ui.Click(ui.Find<RadioButton>().Single(pill => pill.DataContext is VariantChoice { Name: "Subtitles only" }));
+        page.Step.PrimaryCaption.Should().Be("Wersja 2 · 2,1\u00A0MB");
+        ui.Click(ui.Find<Button>("PrimaryButton"));
+        ui.Agent.Requests.OfType<InstallProject>().Should().Equal(new InstallProject(game.Key, Ember.ProjectId, "Subtitles only"));
+
+        var job = Job(game, JobKind.Install, JobStage.Downloading, fraction: 0.4);
+        ui.Push(State(Busy(game, job)));
+        page.Step.Kind.Should().Be(StepKind.Job);
+        page.Steps.Select(step => (step.Label, step.State)).Should().Equal(
+            ("Pobieranie", StepState.Current), ("Sprawdzanie", StepState.Pending), ("Instalowanie", StepState.Pending));
+        var band = page.Step;
+        ui.Clock.Advance(TimeSpan.FromSeconds(2));
+        ui.Agent.Progress(job with { Fraction = 0.6, BytesDone = 113_246_208, Sequence = 2 });
+        UiHarness.Settle();
+        page.Step.Should().BeSameAs(band, "progress moves the bar without building the step again");
+        page.PercentText.Should().Be("60%");
+        page.StageText.Should().StartWith("Pobieranie · 108,0\u00A0MB z 180,0\u00A0MB");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-installing");
+
+        ui.Click(ui.Find<Button>("SecondaryButton"));
+        ui.Agent.Requests.OfType<CancelJob>().Should().Equal(new CancelJob(job.Id));
+        ui.Push(State(game) with { Version = 7 });
+        page.Step.Kind.Should().Be(StepKind.Cancelled);
+        page.Step.Primary.Should().Be("Zainstaluj spolszczenie", "the step that was there before the job stays offered");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-cancelled");
+    }
+
+    [AvaloniaFact]
+    public void A_report_after_the_state_that_ended_its_job_brings_back_neither_its_band_nor_its_card()
+    {
+        var game = Available("Ember Hollow", "4100", Ember);
+        var job = Job(game, JobKind.Install, JobStage.Installing, fraction: 0.9);
+        using var ui = Open(State(Busy(game, job)), game);
+        var page = Page(ui);
+        var card = ui.Shell.Navigator.Pages.OfType<LibraryPageViewModel>().Single().GridItems.OfType<GameCardViewModel>().Single();
+
+        ui.Push(State(Installed("Ember Hollow", "4100", offer: Ember)) with { Version = 5 });
+        ui.Agent.Progress(job with { Fraction = 1, Sequence = 2 });
+        UiHarness.Settle();
+
+        page.Step!.Kind.Should().Be(StepKind.Done);
+        card.ShowsProgress.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public async Task Uninstalling_asks_first_and_leaves_its_result_where_the_step_was()
+    {
+        var game = Installed("Ember Hollow", "4100", offer: Ember);
+        using var ui = Open(State(game), game);
+        var page = Page(ui);
+        page.Step!.Kind.Should().Be(StepKind.Current);
+
+        var uninstall = ui.Find<Button>().First(button => button.Classes.Contains("danger") && button.IsEffectivelyVisible);
+        ui.Click(uninstall);
+        ui.Shell.Dialogs.Current.Should().BeOfType<ConfirmDialogViewModel>().Which.IsDanger.Should().BeTrue();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-uninstall-confirm");
+        ((ConfirmDialogViewModel)ui.Shell.Dialogs.Current!).ConfirmCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => ui.Agent.Requests.OfType<UninstallProject>().Any());
+        ui.Agent.Requests.OfType<UninstallProject>().Should().Equal(new UninstallProject(game.Installs[0].Id));
+
+        ui.Push(State(Busy(game, Job(game, JobKind.Uninstall, JobStage.Uninstalling, fraction: 0.55))));
+        page.Steps.Select(step => step.Label).Should().Equal("Sprawdzanie", "Przywracanie oryginałów");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-uninstalling");
+
+        ui.Push(State() with { Version = 9 });
+        page.IsMissing.Should().BeFalse("the page keeps what it showed once the game leaves the list");
+        page.Step!.Kind.Should().Be(StepKind.Removed);
+        ui.Click(ui.Find<Button>("SecondaryButton"));
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new LibraryRoute());
+    }
+
+    [AvaloniaFact]
+    public async Task Updates_repairs_and_failures_offer_what_sees_to_them()
+    {
+        var update = UpdateAvailable("Ember Hollow", "4100");
+        using var ui = Open(State(update), update, update.Installs[0].Project);
+        var page = Page(ui);
+        await UiHarness.WaitUntilAsync(() => page.Details is not null);
+        page.Step!.Kind.Should().Be(StepKind.Update);
+        page.Step.PrimaryCaption.Should().Be("Do wersji 2 · 3,6\u00A0MB");
+        ui.Click(ui.Find<Button>("ChangesToggle"));
+        page.AreChangesOpen.Should().BeTrue();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-update");
+        ui.Click(ui.Find<Button>("PrimaryButton"));
+        ui.Agent.Requests.OfType<UpdateProject>().Should().Equal(new UpdateProject(update.Installs[0].Id));
+
+        ui.Push(State(Busy(update, Job(update, JobKind.Update, JobStage.Installing, fraction: 0.9))));
+        ui.Push(State(Installed("Ember Hollow", "4100")) with { Version = 15 });
+        page.Step!.Kind.Should().Be(StepKind.Done);
+        page.Step.Title.Should().Be("Zaktualizowano spolszczenie");
+        page.Step.PointsToNotes.Should().BeTrue("the team's notes are worth a look after an update");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-done");
+        ui.Click(ui.Find<Button>().First(button => button.GetValue(ToolTip.TipProperty) is "Zamknij komunikat"));
+        page.Step.Kind.Should().Be(StepKind.Current);
+
+        ui.Push(State(update).Offline());
+        page.Step.Kind.Should().Be(StepKind.Offline);
+        page.Step.PrimaryCaption.Should().Be("Do wersji 2 · 3,6\u00A0MB · ruszy po połączeniu");
+
+        var repair = NeedsRepair("Ember Hollow", "4100");
+        ui.Push(State(repair) with { Version = 20 });
+        page.Step.Kind.Should().Be(StepKind.Repair);
+        page.Step.PrimaryRequest.Should().Be(new RepairProject(repair.Installs[0].Id));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-repair");
+
+        var failed = FailedUpdate("Ember Hollow", "4100");
+        ui.Push(State(failed) with { Version = 21 });
+        page.Step.Kind.Should().Be(StepKind.Failed);
+        page.Step.Text.Should().Be("Za mało miejsca na dysku D: (potrzeba 1,6\u00A0GB, wolne 921,6\u00A0MB). Wersja 1 została bez zmian.");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-failed");
+        ui.Click(ui.Find<Button>().First(button => button.GetValue(ToolTip.TipProperty) is "Zamknij komunikat"));
+        await UiHarness.WaitUntilAsync(() => ui.Agent.Requests.OfType<DismissFailure>().Any());
+        ui.Agent.Requests.OfType<DismissFailure>().Should().Equal(new DismissFailure(failed.Key, failed.Installs[0].Id));
+    }
+
+    [AvaloniaFact]
+    public async Task Several_teams_wait_for_the_players_choice_without_a_red_button()
+    {
+        var game = Choice("Saltmarsh: Low Tide", "5400");
+        using var ui = Open(State(game), game);
+        var page = Page(ui);
+
+        page.Step!.Kind.Should().Be(StepKind.Choose);
+        page.Step.HasPrimary.Should().BeFalse();
+        page.Choices.Select(choice => choice.Team).Should().Equal("Lantern Team", "Night Owls");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-choice", height: 1100);
+
+        ui.Click(ui.Find<Button>().Single(button => button.DataContext is ProjectChoice { Team: "Night Owls" }));
+        ui.Agent.Requests.OfType<ChooseProject>().Should().Equal(new ChooseProject(game.Key, game.Projects[1].ProjectId));
+    }
+
+    [AvaloniaFact]
+    public void Every_install_of_a_game_has_its_row_and_the_one_project_rule_hides_the_others()
+    {
+        var first = Offer("Ember Hollow", Lanterns);
+        var second = Offer("Ember Hollow", Owls, status: "Wczesny dostęp", color: EarlyAccess);
+        var installed = new[]
+        {
+            Install(first, 2, new GameStatusView(MyGameState.Installed)),
+            Install(second, 1, new GameStatusView(MyGameState.UpdateAvailable) { Update = Core.Catalog.UpdateState.Available, UpdateVariant = "Full" }),
+        };
+        var generic = Available("Ember Hollow", "4100", first) with
+        {
+            Projects = [first, second, Offer("Ember Hollow", Cranes)],
+            Installs = installed,
+            Status = new GameStatusView(MyGameState.UpdateAvailable),
+        };
+        using var ui = Open(State(generic), generic);
+        var page = Page(ui);
+
+        page.Installs.Select(row => row.Project).Should().Equal("Ember Hollow · Lantern Team", "Ember Hollow · Night Owls");
+        page.Step!.Kind.Should().Be(StepKind.Update, "the install that needs the player leads the page");
+        page.ShowsChoices.Should().BeTrue("another team's project can join the game's installs");
+        ui.Click(ui.Find<Button>().Single(button => button.DataContext is ProjectChoice { Team: "Paper Cranes" }));
+        ui.Agent.Requests.OfType<InstallProject>().Should().ContainSingle().Which.ProjectId.Should().NotBe(first.ProjectId);
+
+        ui.Push(State(generic with { InstallReplaces = true, Installs = [installed[0]], Status = new GameStatusView(MyGameState.Installed) }));
+        page.ShowsChoices.Should().BeFalse("an app with one project per game offers no second one beside the installed");
+        page.Installs.Should().ContainSingle().Which.HasProject.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public async Task A_game_that_has_the_target_language_gets_a_notice_and_the_switch_sends_the_players_choice()
+    {
+        var official = Available("Ember Hollow", "4100", Ember) with { OffersTargetLanguage = true };
+        using var ui = Open(State(official), official);
+        var page = Page(ui);
+        page.ShowsOfficial.Should().BeTrue();
+        page.ShowsAutomation.Should().BeFalse();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-official");
+
+        ui.Push(State(Installed("Ember Hollow", "4100", offer: Ember)));
+        page.ShowsAutomation.Should().BeTrue("updates of a project installed by hand follow the switch as anywhere");
+        page.AutomationHint.Should().Be("Tak jak w ustawieniach. Nowe wersje zainstalują się same, gdy gra będzie wyłączona.");
+        ui.Click(ui.Find<ToggleSwitch>("AutomationSwitch"));
+        ui.Agent.Requests.OfType<SetGameAutomation>().Should().Equal(new SetGameAutomation(official.Key, AutoUpdate: false));
+    }
+
+    [AvaloniaFact]
+    public async Task An_install_without_its_game_or_project_offers_only_to_be_uninstalled()
+    {
+        var gone = Orphaned("Ember Hollow", "4100", OrphanReason.GameNotDetected);
+        using var ui = Open(State(gone), gone);
+        var page = Page(ui);
+        page.Step!.Kind.Should().Be(StepKind.Gone);
+        page.ShowsVariants.Should().BeFalse();
+        page.ShowsAutomation.Should().BeFalse();
+        page.GameState.Should().Be("Steam nie zgłasza już tej gry");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-gone");
+
+        var moved = Orphaned("Ember Hollow", "4100", OrphanReason.GameMoved);
+        ui.Push(State(moved with { Detected = moved.Detected! with { InstallDirectory = @"E:\Games\Ember Hollow" } }));
+        page.Step.Kind.Should().Be(StepKind.Moved);
+        page.Step.Text.Should().Contain("na dysku E:");
+
+        var removed = Orphaned("Ember Hollow", "4100", OrphanReason.NotInCatalog);
+        removed = removed with { Projects = [], Project = null, Installs = [removed.Installs[0] with { Project = null }] };
+        ui.Push(State(removed) with { Version = 30 });
+        page.Step.Kind.Should().Be(StepKind.NotInCatalogue);
+        page.ShowsSavedInfo.Should().BeTrue();
+        page.SavedPackage.Should().Be("ember-hollow-v2.zip");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-not-in-catalogue");
+        ui.Click(ui.Find<Button>("SecondaryButton"));
+        ui.Shell.Dialogs.Current.Should().BeOfType<ConfirmDialogViewModel>();
+    }
+
+    [AvaloniaFact]
+    public async Task The_project_page_fills_the_page_below_and_its_links_open_outside_the_window()
+    {
+        const string Welcome = "https://images.example.com/attachments/welcome.webp";
+        var game = Installed("Ember Hollow", "4100", offer: Ember);
+        using var ui = Open(State(game), game, Ember, images =>
+        {
+            images.Missing.Add("https://i.ytimg.com/vi/Tr4iLer-0_1/maxresdefault.jpg");
+            images.Sizes[Welcome] = new PixelSize(480, 56);
+            images.Sizes["https://images.example.com/attachments/lantern.avif"] = new PixelSize(616, 200);
+        });
+        var page = Page(ui);
+        await UiHarness.WaitUntilAsync(() => page.Details is not null);
+
+        ui.Agent.Requests.OfType<GetProjectPage>().Should().ContainSingle()
+            .Which.Should().Be(new GetProjectPage(Ember.GameSlug, Ember.Team.Slug, Ember.ProjectId));
+        page.Summary.Should().StartWith("Latarnik wraca");
+        page.Details!.Gallery.Should().HaveCount(3);
+        page.Details.Credits.Select(credit => credit.Name).Should().Equal("Ada Lantern", "Olek Tide");
+        page.TeamFacts.Should().Be("Grupa · 3 osoby");
+        ui.Images.Backdrops.Should().Contain(backdrop => backdrop.Recipe.Artwork == $"https://images.example.com/backgrounds/{Ember.GameSlug}.png");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
+        ui.Render("game-full", height: 2200);
+        ui.Unnamed().Should().BeEmpty("every control a player can reach has a name a screen reader reads");
+        ui.Images.Requests.Select(request => request.Address).Should().Contain(
+            ["https://i.ytimg.com/vi/Tr4iLer-0_1/maxresdefault.jpg", "https://i.ytimg.com/vi/Tr4iLer-0_1/hqdefault.jpg", Welcome,
+                "https://images.example.com/attachments/lantern.avif"],
+            "the site shows a film's still from YouTube, the smaller one when the largest is missing, and every picture of a "
+            + "description, also one opening a paragraph and a looping clip's still");
+        ui.Find<Controls.RemoteImage>().Single(image => image.Source == Welcome).Bounds.Size.Should().Be(new Size(480, 56),
+            "a picture in a text keeps its own proportions and width");
+
+        ui.Click(ui.Find<Button>("StatusChip"));
+        page.IsStatusOpen.Should().BeTrue();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-status");
+        ui.ClickAt(new Point(700, 700));
+        page.IsStatusOpen.Should().BeFalse("a click beside the explanation closes it");
+
+        var link = ui.Find<Controls.Markdown.ProseText>().First(text => text.Links.Count > 0);
+        page.OpenCommand.Execute(link.Links[0]);
+        ui.Links.Opened.Should().Equal(new Uri("https://example.com/ember-hollow"));
+        page.ToggleDescriptionCommand.Execute(null);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-description", height: 2600);
+        ui.Click(ui.Find<Button>().Single(button => button.Classes.Contains("film")));
+        ui.Links.Opened[^1].Should().Be(new Uri("https://www.youtube.com/watch?v=W4lkThr0ugh&t=30s"));
+
+        ui.Click(ui.Find<Button>().First(button => button.DataContext is GalleryTile { Item.IsVideo: true }));
+        ui.Links.Opened[^1].Should().Be(new Uri("https://www.youtube.com/watch?v=Tr4iLer-0_1"));
+        ui.Click(ui.Find<Button>().First(button => button.DataContext is GalleryTile { Item.Caption: "Przystań" }));
+        var viewer = ui.Shell.Dialogs.Current.Should().BeOfType<GalleryViewerViewModel>().Subject;
+        viewer.Counter.Should().Be("2 / 2");
+        ui.Press(Key.Right);
+        viewer.Counter.Should().Be("1 / 2");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-gallery");
+    }
+
+    [AvaloniaFact]
+    public void Hiding_launching_opening_the_folder_and_the_site_send_their_commands()
+    {
+        var game = Installed("Ember Hollow", "4100", offer: Ember);
+        using var ui = Open(State(game), game);
+        var page = Page(ui);
+
+        ui.Click(ui.Find<Button>("HideButton"));
+        page.LaunchCommand.Execute(null);
+        page.OpenFolderCommand.Execute(null);
+        page.OpenCommand.Execute(page.SitePage);
+        page.OpenCommand.Execute(page.StorePage);
+
+        ui.Agent.Requests.Should().Contain(new HideGame(game.Key, true)).And.Contain(new LaunchGame(game.Key))
+            .And.Contain(new OpenFolder(AppFolder.Game, game.Key));
+        ui.Links.Opened.Should().Equal(new Uri("https://example.com/games/ember-hollow/lantern-team"), new Uri("steam://nav/games/details/4100"));
+
+        ui.Push(State(game with { IsHidden = true, Preferences = game.Preferences with { IsHidden = true } }));
+        page.HideText.Should().Be("Pokaż w „Moje gry”");
+    }
+
+    [AvaloniaFact]
+    public async Task A_game_no_longer_listed_says_so_with_one_way_back()
+    {
+        using var ui = Open(State(), Available("Ember Hollow", "4100"));
+        Page(ui).IsMissing.Should().BeTrue();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-missing");
+        ui.Click(ui.Find<Button>().Single(button => button.IsEffectivelyVisible && button.Content is "Wróć do „Moje gry”"));
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new LibraryRoute());
+    }
+
+    [AvaloniaFact]
+    public async Task At_the_smallest_window_the_next_step_leads_the_panel_above_the_edge()
+    {
+        var game = UpdateAvailable("Ember Hollow", "4100");
+        using var ui = new UiHarness(State(game), width: 960, height: 600);
+        ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(game.Key)]);
+        UiHarness.Settle();
+        var page = Page(ui);
+        page.IsCompact.Should().BeTrue();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
+        ui.Render("game-minimum");
+
+        var button = ui.Find<Button>().Single(button => button.Name == "PrimaryButton" && button.IsEffectivelyVisible);
+        button.TranslatePoint(new Point(0, button.Bounds.Height), ui.Window)!.Value.Y.Should().BeLessThan(600);
+    }
+
+    private static UiHarness Open(AppStateView state, GameView game, ProjectOfferView? page = null, Action<FakeImages>? images = null)
+    {
+        var ui = new UiHarness(state);
+        if (page is not null)
+        {
+            ui.Agent.Answer = TestPages.Answer(page);
+        }
+
+        images?.Invoke(ui.Images);
+        ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(game.Key)]);
+        UiHarness.Settle();
+        return ui;
+    }
+
+    private static GamePageViewModel Page(UiHarness ui) => (GamePageViewModel)ui.Shell.Navigator.Current!;
+}
