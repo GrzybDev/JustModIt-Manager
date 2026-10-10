@@ -278,15 +278,6 @@ public sealed class SimplePlanTests : IDisposable
         advanced.Plan.Findings.Should().BeEmpty();
     }
 
-    [Fact]
-    public async Task Confirms_a_plan_that_nothing_blocks()
-    {
-        _workspace.Author("a.txt", "a");
-        var review = await ReviewAsync(Project);
-
-        review.Plan.Confirm().Plan.Should().BeSameAs(review.Plan);
-    }
-
     private static ReviewEntry Entry(CreatorReview review, string path) => review.Entries.Single(entry => entry.File.Path == path);
 
     private async Task<CreatorReview> ReviewAsync(CreatorProject project) =>

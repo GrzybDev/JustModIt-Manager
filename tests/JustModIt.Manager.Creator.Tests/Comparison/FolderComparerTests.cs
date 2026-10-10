@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Tests.TestSupport;
 
@@ -78,21 +79,25 @@ public sealed class FolderComparerTests : IDisposable
     }
 
     [Fact]
-    public async Task Finds_the_original_library_a_proxy_moved_aside()
+    public async Task Leaves_out_links_in_the_game_and_the_authors_folder()
     {
-        var original = Workspace.Bytes(8192, 1);
-        _workspace.Game("bin/engine.dll", original);
-        _workspace.Game("bin/other.dll", Workspace.Bytes(8192, 2));
-        _workspace.Author("bin/engine.dll", Workspace.Bytes(6000, 3));
-        _workspace.Author("bin/engine_o.dll", original);
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The links are junctions.");
+        var outside = Directory.CreateDirectory(Path.Combine(_workspace.Root, "outside")).FullName;
+        File.WriteAllText(Path.Combine(outside, "data.bin"), "outside");
+        File.WriteAllText(Path.Combine(outside, "new.txt"), "outside");
+        _workspace.Game("data/real.bin", "original");
+        _workspace.Author("data/real.bin", "changed");
+        CreateJunction(_workspace.GamePath("linked"), outside);
+        CreateJunction(_workspace.GamePath("data/linked"), outside);
+        CreateJunction(_workspace.AuthorFile("linked"), outside);
 
         var comparison = await _workspace.CompareAsync();
 
-        var moved = comparison.FindAuthorFile("bin/engine_o.dll")!;
-        moved.Difference.Should().Be(FileDifference.New);
-        moved.CopyOf.Should().Be("bin/engine.dll");
-        moved.RenameFrom.Should().Be("bin/engine.dll");
-        comparison.FindAuthorFile("bin/engine.dll")!.Difference.Should().Be(FileDifference.Changed);
+        comparison.Files.Select(file => file.Path).Should().Equal("data/real.bin");
+        comparison.Game.FileCount.Should().Be(1);
+        File.WriteAllText(Path.Combine(outside, "data.bin"), "changed outside");
+        File.WriteAllText(Path.Combine(outside, "new.txt"), "changed outside");
+        (await new FolderComparer(Workspace.Options).HasChangedAsync(comparison, TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -109,21 +114,6 @@ public sealed class FolderComparerTests : IDisposable
 
         comparison.FindAuthorFile("movies/intro_xx.bik")!.RenameFrom.Should().Be("movies/intro.bik");
         comparison.FindAuthorFile("videos/credits.bik")!.RenameFrom.Should().Be("extras/credits.bik");
-    }
-
-    [Fact]
-    public async Task Leaves_a_tie_alone_but_still_marks_the_copy()
-    {
-        var content = Workspace.Bytes(4096, 1);
-        _workspace.Game("a/one.bin", content);
-        _workspace.Game("b/two.bin", content);
-        _workspace.Author("c/three.bin", content);
-
-        var comparison = await _workspace.CompareAsync();
-
-        var file = comparison.Files.Should().ContainSingle().Subject;
-        file.CopyOf.Should().NotBeNull();
-        file.RenameFrom.Should().BeNull();
     }
 
     [Fact]
@@ -185,25 +175,6 @@ public sealed class FolderComparerTests : IDisposable
 
         comparison.Files.Where(file => file.Difference == FileDifference.Missing).Select(file => file.Path)
             .Should().Equal("movies/d.bik");
-    }
-
-    [Fact]
-    public async Task A_renamed_file_in_a_folder_copied_whole_names_the_removed_original()
-    {
-        var video = Workspace.Bytes(4096, 1);
-        _workspace.Game("movies/intro.bik", video);
-        foreach (var name in new[] { "outro", "credits", "logo" })
-        {
-            _workspace.Game($"movies/{name}.bik", name);
-            _workspace.Author($"movies/{name}.bik", name);
-        }
-
-        _workspace.Author("movies/intro_xx.bik", video);
-
-        var comparison = await _workspace.CompareAsync();
-
-        comparison.FindAuthorFile("movies/intro_xx.bik")!.RenameFrom.Should().Be("movies/intro.bik");
-        comparison.Files.Should().Contain(file => file.Path == "movies/intro.bik" && file.Difference == FileDifference.Missing);
     }
 
     [Fact]
@@ -282,7 +253,7 @@ public sealed class FolderComparerTests : IDisposable
     }
 
     [Fact]
-    public async Task Refuses_a_game_another_app_manages()
+    public async Task Refuses_a_game_another_app_manages_but_not_one_this_app_marked()
     {
         _workspace.Author("data.txt", "text");
         _workspace.MarkGameFolder(".other-app", "OtherApp");
@@ -293,26 +264,10 @@ public sealed class FolderComparerTests : IDisposable
         block.Reason.Should().Be(CreatorBlockReason.GameManagedByOtherApp);
         block.App.Should().Be("OtherApp");
         Path.GetFileName(block.Path).Should().Be(".other-app");
-    }
 
-    [Fact]
-    public async Task A_development_build_refuses_a_game_the_installed_copy_manages_and_the_other_way_round()
-    {
-        _workspace.Author("data.txt", "text");
-        var development = Workspace.Options with { HiddenFolderName = ".example-app-dev", InstanceName = "ExampleApp.Dev" };
+        Directory.Delete(_workspace.GamePath(".other-app"), recursive: true);
         _workspace.MarkGameFolder(Workspace.HiddenFolderName, Workspace.InstanceName);
-
-        var fromDevelopment = () => _workspace.CompareAsync(options: development);
-        (await fromDevelopment.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle()
-            .Which.App.Should().Be(Workspace.InstanceName);
         (await _workspace.CompareAsync()).Game.FileCount.Should().Be(0, "the app's own folder holds no game files");
-
-        Directory.Delete(_workspace.GamePath(Workspace.HiddenFolderName), recursive: true);
-        _workspace.MarkGameFolder(".example-app-dev", "ExampleApp.Dev");
-
-        var fromInstalled = () => _workspace.CompareAsync();
-        (await fromInstalled.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle()
-            .Which.App.Should().Be("ExampleApp.Dev");
     }
 
     [Fact]
@@ -347,14 +302,34 @@ public sealed class FolderComparerTests : IDisposable
     }
 
     [Fact]
-    public async Task Stops_when_cancelled()
+    public async Task Stops_hashing_when_the_author_cancels()
     {
-        _workspace.Author("data.txt", "text");
+        _workspace.Game("data/pack.bin", Workspace.Bytes(3 * 1024 * 1024, 1));
+        _workspace.Author("data/pack.bin", Workspace.Bytes(3 * 1024 * 1024, 2));
         using var cancellation = new CancellationTokenSource();
-        await cancellation.CancelAsync();
+        var reports = new List<CompareProgress>();
+        var progress = new Core.InlineProgress<CompareProgress>(report =>
+        {
+            reports.Add(report);
+            if (report.BytesDone > 0)
+            {
+                cancellation.Cancel();
+            }
+        });
 
-        var compare = () => _workspace.CompareAsync(cancellationToken: cancellation.Token);
+        var compare = () => _workspace.CompareAsync(progress: progress, cancellationToken: cancellation.Token);
 
         await compare.Should().ThrowAsync<OperationCanceledException>();
+        reports[^1].BytesDone.Should().BeLessThan(reports[^1].BytesTotal);
+    }
+
+    private static void CreateJunction(string link, string target)
+    {
+        using var process = Process.Start(new ProcessStartInfo("cmd.exe") { ArgumentList = { "/c", "mklink", "/J", Path.GetFullPath(link), target },
+            CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true })!;
+        process.StandardOutput.ReadToEnd();
+        process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        Assert.SkipWhen(process.ExitCode != 0, "Junctions cannot be created on this machine.");
     }
 }

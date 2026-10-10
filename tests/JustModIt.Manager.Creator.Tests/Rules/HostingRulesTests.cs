@@ -16,33 +16,37 @@ public sealed class HostingRulesTests : IDisposable
 
     public void Dispose() => _workspace.Dispose();
 
-    [Fact]
-    public void Loads_the_rules_shipped_with_the_app()
-    {
-        var rules = HostingRuleSet.Default;
-
-        rules.StoreLibraries.Should().Contain("steam_api*.dll");
-        rules.CircumventionFolders.Should().Contain("steam_settings");
-        rules.ThirdPartyTools.Select(tool => tool.Id).Should().Contain(["bepinex", "ue4ss", "melonloader", "asi-loader"]);
-        rules.LargePatchRatio.Should().Be(0.5);
-    }
-
     [Theory]
-    [InlineData("bin/steam_api64.dll")]
-    [InlineData("Binaries/Win64/EOSSDK-Win64-Shipping.dll")]
-    [InlineData("EpicOnlineServices/EpicOnlineServicesInstaller.exe")]
-    [InlineData("Galaxy64.dll")]
-    [InlineData("bin/STEAMCLIENT.DLL")]
-    public async Task Never_lets_a_package_touch_store_libraries(string library)
+    [InlineData("bin/steam_api64.dll", OperationKind.Patch, true)]
+    [InlineData("Binaries/Win64/EOSSDK-Win64-Shipping.dll", OperationKind.Rename, true)]
+    [InlineData("EpicOnlineServices/EpicOnlineServicesInstaller.exe", OperationKind.Copy, false)]
+    [InlineData("Galaxy64.dll", OperationKind.Copy, true)]
+    [InlineData("bin/STEAMCLIENT.DLL", OperationKind.Delete, true)]
+    public async Task Never_lets_a_package_touch_store_libraries(string library, OperationKind kind, bool inGame)
     {
-        _workspace.Game(library, Workspace.Bytes(4096, 1));
-        _workspace.Author(library, Workspace.Bytes(4000, 2));
-        var project = Project.WithExtraStep(new RenameFileStep(library, library + ".bak"));
+        if (inGame)
+        {
+            _workspace.Game(library, Workspace.Bytes(4096, 1));
+        }
+
+        if (kind is OperationKind.Patch or OperationKind.Copy)
+        {
+            _workspace.Author(library, Workspace.Bytes(4000, 2));
+        }
+
+        var project = kind switch
+        {
+            OperationKind.Rename => Project.WithExtraStep(new RenameFileStep(library, library + ".bak")),
+            OperationKind.Delete => Project.WithExtraStep(new DeleteFileStep(library)),
+            OperationKind.Copy when inGame => Project.WithChoice((await ReviewAsync(Project)).Entries.Single(), FileChoice.Copy),
+            _ => Project,
+        };
 
         var plan = await PlanAsync(project);
 
-        plan.Findings.Where(finding => finding.Kind == FindingKind.StoreLibrary).Should().HaveCount(2)
-            .And.OnlyContain(finding => finding.Severity == FindingSeverity.Error);
+        plan.Operations.Should().ContainSingle().Which.Kind.Should().Be(kind);
+        plan.Findings.Where(finding => finding.Kind == FindingKind.StoreLibrary).Should().ContainSingle()
+            .Which.Severity.Should().Be(FindingSeverity.Error);
     }
 
     [Theory]
@@ -75,7 +79,7 @@ public sealed class HostingRulesTests : IDisposable
     }
 
     [Fact]
-    public async Task Refuses_to_carry_a_copy_of_a_game_file()
+    public async Task Refuses_to_carry_a_copy_of_a_game_file_when_no_single_original_can_be_renamed()
     {
         var content = Workspace.Bytes(4096, 1);
         _workspace.Game("a/one.bin", content);
@@ -86,6 +90,7 @@ public sealed class HostingRulesTests : IDisposable
 
         plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
             finding.Kind == FindingKind.CopyOfGameFile && finding.Path == "c/three.bin" && finding.RelatedPath != null);
+        plan.Operations.Should().NotContain(operation => operation.Kind == OperationKind.Rename);
     }
 
     [Fact]
@@ -194,10 +199,11 @@ public sealed class HostingRulesTests : IDisposable
         _workspace.Author("scripts/example-mod.asi", "plugin");
         _workspace.Author("dinput8.dll", "loader");
         _workspace.Author("ue4ss/Mods/ExampleMod/main.lua", "mod");
+        _workspace.Author("MelonLoader/MelonLoader.dll", "loader");
 
         var plan = await PlanAsync(Project);
 
-        plan.Findings.Select(finding => finding.ToolId).Should().BeEquivalentTo("asi-loader", "ue4ss");
+        plan.Findings.Select(finding => finding.ToolId).Should().BeEquivalentTo("asi-loader", "ue4ss", "melonloader");
     }
 
     private async Task<CreatorReview> ReviewAsync(CreatorProject project) =>

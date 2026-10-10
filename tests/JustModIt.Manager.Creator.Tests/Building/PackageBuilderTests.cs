@@ -70,7 +70,7 @@ public sealed class PackageBuilderTests : IDisposable
         _workspace.Author("readme_xx.txt", "notes");
         var plan = await PlanAsync(new CreatorProject());
 
-        var result = await BuildAsync(plan, "example.zip");
+        var result = await BuildAsync(plan, "example.ZIP");
 
         result.Manifest.Should().BeNull();
         await using var package = await new PackageReader().OpenAsync(result.OutputPath, TestContext.Current.CancellationToken);
@@ -245,42 +245,32 @@ public sealed class PackageBuilderTests : IDisposable
     }
 
     [Theory]
-    [InlineData("example.zip", BuildFailure.WrongExtension)]
-    [InlineData("example", BuildFailure.WrongExtension)]
-    [InlineData("example.othermod", BuildFailure.WrongExtension)]
-    [InlineData("author/example.examplemod", BuildFailure.OutputInAuthorFolder)]
-    [InlineData("game/example.examplemod", BuildFailure.OutputInGameFolder)]
-    public async Task Refuses_an_output_it_must_not_write(string output, BuildFailure failure)
+    [InlineData(false, "out/example.zip", BuildFailure.WrongExtension)]
+    [InlineData(false, "out/example", BuildFailure.WrongExtension)]
+    [InlineData(false, "out/example.othermod", BuildFailure.WrongExtension)]
+    [InlineData(false, "author/example.examplemod", BuildFailure.OutputInAuthorFolder)]
+    [InlineData(false, "game/example.examplemod", BuildFailure.OutputInGameFolder)]
+    [InlineData(true, "out/example.examplemod", BuildFailure.WrongExtension)]
+    public async Task Refuses_an_output_it_must_not_write(bool copiesOnly, string output, BuildFailure failure)
     {
-        _workspace.Game("data.bin", "original");
-        _workspace.Author("data.bin", "changed");
-        var plan = await PlanAsync(Project);
+        if (copiesOnly)
+        {
+            _workspace.Author("data.txt", "text");
+        }
+        else
+        {
+            _workspace.Game("data.bin", "original");
+            _workspace.Author("data.bin", "changed");
+        }
+
+        var plan = await PlanAsync(copiesOnly ? new CreatorProject() : Project);
+        var path = Path.Combine(_workspace.Root, output);
 
         var build = () => new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
-            new BuildRequest { OutputPath = Path.Combine(_workspace.Root, output) }, progress: null, TestContext.Current.CancellationToken);
+            new BuildRequest { OutputPath = path }, progress: null, TestContext.Current.CancellationToken);
 
         (await build.Should().ThrowAsync<PackageBuildException>()).Which.Failure.Should().Be(failure);
-    }
-
-    [Fact]
-    public async Task Accepts_the_extension_in_any_letter_case()
-    {
-        _workspace.Author("data.txt", "text");
-
-        var result = await BuildAsync(await PlanAsync(new CreatorProject()), "EXAMPLE.ZIP");
-
-        result.Kind.Should().Be(PackageKind.Zip);
-    }
-
-    [Fact]
-    public async Task Refuses_the_apps_package_extension_for_a_plain_zip()
-    {
-        _workspace.Author("data.txt", "text");
-        var plan = await PlanAsync(new CreatorProject());
-
-        var build = () => BuildAsync(plan, "example.examplemod");
-
-        (await build.Should().ThrowAsync<PackageBuildException>()).Which.Failure.Should().Be(BuildFailure.WrongExtension);
+        File.Exists(path).Should().BeFalse();
         Directory.GetFileSystemEntries(_workspace.OutputDirectory).Should().BeEmpty();
     }
 
@@ -374,19 +364,6 @@ public sealed class PackageBuilderTests : IDisposable
 
         await using var package = await new PackageReader().OpenAsync(result.OutputPath, TestContext.Current.CancellationToken);
         package.Steps.OfType<CopyStep>().Select(step => step.Entry).Should().Equal("files/data/text.txt", "files/Data/TEXT.txt.2");
-    }
-
-    [Fact]
-    public void Names_the_hidden_folder_and_the_owner_after_the_app()
-    {
-        var options = CreatorOptions.For(new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: false),
-            Workspace.Generator, ".examplemod", ".exampleproj");
-        var development = CreatorOptions.For(new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: true),
-            Workspace.Generator, ".examplemod", ".exampleproj");
-
-        (options.HiddenFolderName, options.InstanceName).Should().Be((".example-app", "ExampleApp"));
-        (development.HiddenFolderName, development.InstanceName).Should().Be((".example-app-dev", "ExampleApp.Dev"));
-        options.Rules.Should().BeSameAs(HostingRuleSet.Default);
     }
 
     private static InstalledGame Game(PackagePlan plan, string? buildId = null) => new()

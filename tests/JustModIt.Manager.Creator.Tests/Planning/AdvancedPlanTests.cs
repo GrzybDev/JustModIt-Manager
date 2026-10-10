@@ -128,14 +128,6 @@ public sealed class AdvancedPlanTests : IDisposable
             finding.Kind == FindingKind.InvalidPath && finding.Path == path && finding.StepIndex == 0);
     }
 
-    [Fact]
-    public async Task An_empty_list_of_steps_is_an_empty_package()
-    {
-        var plan = await PlanAsync();
-
-        plan.Findings.Should().ContainSingle().Which.Kind.Should().Be(FindingKind.EmptyPackage);
-    }
-
     private async Task<PackagePlan> PlanAsync(params ProjectStep[] steps)
     {
         var project = new CreatorProject

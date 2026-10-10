@@ -2,26 +2,25 @@ namespace JustModIt.Manager.Creator.Tests;
 
 public sealed class FileNamesTests
 {
+    public static TheoryData<string?, string> Names => new()
+    {
+        { "Example Game", "Example Game.examplemod" },
+        { "Example: Chapter 1", "Example Chapter 1.examplemod" },
+        { "What? <Really> \"Yes\" / No | Maybe*", "What Really Yes No Maybe.examplemod" },
+        { "  Spaced   out  ", "Spaced out.examplemod" },
+        { "Version 2.0.", "Version 2.0.examplemod" },
+        { "Café Déjà Vu", "Café Déjà Vu.examplemod" },
+        { "Aux", "package.examplemod" },
+        { "nul.txt", "package.examplemod" },
+        { ":?*", "package.examplemod" },
+        { "", "package.examplemod" },
+        { null, "package.examplemod" },
+        { new string('x', 300), new string('x', 100) + ".examplemod" },
+        { new string('x', 99) + "\U0001F3AE game", new string('x', 99) + ".examplemod" },
+    };
+
     [Theory]
-    [InlineData("Example Game", "Example Game.examplemod")]
-    [InlineData("Example: Chapter 1", "Example Chapter 1.examplemod")]
-    [InlineData("What? <Really> \"Yes\" / No | Maybe*", "What Really Yes No Maybe.examplemod")]
-    [InlineData("  Spaced   out  ", "Spaced out.examplemod")]
-    [InlineData("Version 2.0.", "Version 2.0.examplemod")]
-    [InlineData("Café Déjà Vu", "Café Déjà Vu.examplemod")]
-    [InlineData("Aux", "package.examplemod")]
-    [InlineData("nul.txt", "package.examplemod")]
-    [InlineData(":?*", "package.examplemod")]
-    [InlineData("", "package.examplemod")]
-    [InlineData(null, "package.examplemod")]
+    [MemberData(nameof(Names))]
     public void Suggests_a_name_every_system_accepts(string? name, string expected) =>
         FileNames.Suggest(name, "package", ".examplemod").Should().Be(expected);
-
-    [Fact]
-    public void Shortens_a_long_name() =>
-        FileNames.Suggest(new string('x', 300), "package", ".exampleproj").Should().Be(new string('x', 100) + ".exampleproj");
-
-    [Fact]
-    public void Shortens_a_long_name_without_splitting_a_character() =>
-        FileNames.Suggest(new string('x', 99) + "\U0001F3AE game", "package", ".exampleproj").Should().Be(new string('x', 99) + ".exampleproj");
 }
