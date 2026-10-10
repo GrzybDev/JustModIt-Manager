@@ -67,6 +67,10 @@ dotnet_diagnostic.CA1416.severity = error
 [src/JustModIt.Manager.{Core,Platform.Windows,Creator,Protocol,Agent}/**.cs]
 dotnet_diagnostic.CA2007.severity = warning
 
+[src/JustModIt.Manager.Platform.Windows/**.cs]
+# CsWin32 tags each function with the Windows that added it, none newer than the oldest Windows .NET 10 runs on.
+dotnet_diagnostic.CA1416.severity = none
+
 [src/**/ViewModels/**.cs]
 dotnet_diagnostic.CA1822.severity = none
 

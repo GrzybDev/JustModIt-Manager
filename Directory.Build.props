@@ -17,6 +17,8 @@
     <RestoreLockedMode Condition="'$(GITHUB_ACTIONS)' == 'true'">true</RestoreLockedMode>
     <!-- Lock files must describe the runtime graph that publishing restores, or locked restores fail in CI. -->
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!-- CsWin32 generates structures whose layout differs by architecture, such as the tray icon's, only for a known one. -->
+    <PlatformTarget>x64</PlatformTarget>
     <UseArtifactsOutput>true</UseArtifactsOutput>
     <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
     <NeutralLanguage>en</NeutralLanguage>

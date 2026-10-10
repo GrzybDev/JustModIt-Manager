@@ -9,10 +9,13 @@ namespace JustModIt.Manager.Core.Interop;
 internal static partial class WindowsFileApi
 {
     private const uint FileReadAttributes = 0x80;
-    private const uint FileShareAll = 0x7;
+    private const uint FileShareRead = 0x1;
+    private const uint FileShareWrite = 0x2;
+    private const uint FileShareDelete = 0x4;
     private const uint OpenExisting = 3;
     private const uint FileFlagBackupSemantics = 0x02000000;
-    private const uint FileNameNormalizedVolumeNameDos = 0x0;
+    private const uint FileNameNormalized = 0x0;
+    private const uint VolumeNameDos = 0x0;
     private const int InitialBufferLength = 512;
 
     /// <summary>
@@ -20,23 +23,18 @@ internal static partial class WindowsFileApi
     /// the path does not exist or cannot be opened.
     /// </summary>
     /// <param name="path">A full path to a file or folder.</param>
-    public static unsafe string? TryGetFinalPath(string path)
+    public static string? TryGetFinalPath(string path)
     {
         // Backup semantics are required to open a directory handle.
-        using var handle = CreateFile(LongPath.ToExtended(path), FileReadAttributes, FileShareAll, 0, OpenExisting,
-            FileFlagBackupSemantics, 0);
+        using var handle = CreateFile(LongPath.ToExtended(path), FileReadAttributes, FileShareRead | FileShareWrite | FileShareDelete, 0,
+            OpenExisting, FileFlagBackupSemantics, 0);
         if (handle.IsInvalid)
         {
             return null;
         }
 
-        return ReadGrowing(buffer =>
-        {
-            fixed (char* chars = buffer)
-            {
-                return GetFinalPathNameByHandle(handle, chars, (uint)buffer.Length, FileNameNormalizedVolumeNameDos);
-            }
-        }) is { } final
+        return ReadGrowing(buffer => GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Length, FileNameNormalized | VolumeNameDos))
+            is { } final
             ? LongPath.StripPrefix(final)
             : null;
     }
@@ -46,15 +44,9 @@ internal static partial class WindowsFileApi
     /// not exist.
     /// </summary>
     /// <param name="path">A full path to a file or folder.</param>
-    public static unsafe string? TryGetShortPath(string path)
+    public static string? TryGetShortPath(string path)
     {
-        var shortPath = ReadGrowing(buffer =>
-        {
-            fixed (char* chars = buffer)
-            {
-                return GetShortPathName(LongPath.ToExtended(path), chars, (uint)buffer.Length);
-            }
-        });
+        var shortPath = ReadGrowing(buffer => GetShortPathName(LongPath.ToExtended(path), buffer, (uint)buffer.Length));
         return shortPath is null ? null : LongPath.StripPrefix(shortPath);
     }
 
@@ -83,9 +75,9 @@ internal static partial class WindowsFileApi
     private static partial SafeFileHandle CreateFile(string fileName, uint desiredAccess, uint shareMode, nint securityAttributes,
         uint creationDisposition, uint flagsAndAttributes, nint templateFile);
 
-    [LibraryImport("kernel32.dll", EntryPoint = "GetFinalPathNameByHandleW", SetLastError = true)]
-    private static unsafe partial uint GetFinalPathNameByHandle(SafeFileHandle file, char* path, uint pathLength, uint flags);
+    [LibraryImport("kernel32.dll", EntryPoint = "GetFinalPathNameByHandleW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    private static partial uint GetFinalPathNameByHandle(SafeFileHandle file, Span<char> path, uint pathLength, uint flags);
 
     [LibraryImport("kernel32.dll", EntryPoint = "GetShortPathNameW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    private static unsafe partial uint GetShortPathName(string longPath, char* shortPath, uint shortPathLength);
+    private static partial uint GetShortPathName(string longPath, Span<char> shortPath, uint shortPathLength);
 }

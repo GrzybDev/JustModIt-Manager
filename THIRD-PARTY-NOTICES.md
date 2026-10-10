@@ -39,6 +39,16 @@ compiled app does not show which of them it contains, so ".NET – THIRD-PARTY-N
 These packages come from the same repository as .NET and carry the same notices, reproduced in ".NET –
 THIRD-PARTY-NOTICES.TXT".
 
+### CsWin32
+
+- Website: https://github.com/microsoft/CsWin32
+- Licence: MIT (see "MIT License")
+- Copyright: Copyright (c) Microsoft Corporation
+- NuGet package: Microsoft.Windows.CsWin32 0.3.335
+- Use: generates the app's bindings to Windows from the Win32 metadata (https://github.com/microsoft/win32metadata,
+  MIT, Copyright (c) Microsoft Corporation) while the app is built; the generated code, with CsWin32's own helper
+  code, is compiled into the app's executable, and the generator itself does not ship.
+
 ### Serilog
 
 - Website: https://serilog.net (https://github.com/serilog)
@@ -286,14 +296,16 @@ Kārlis Gaņģis, licensed under the BSD 3-Clause licence (see "BSD 3-Clause Lic
 
 ### MIT License
 
-Applies to .NET, Brotli (in .NET), Microsoft.Extensions, MessageFormat, Velopack, Avalonia, MicroCom.Runtime,
-Tmds.DBus.Protocol, SkiaSharp and HarfBuzzSharp, Vulkan Memory Allocator, D3D12 Memory Allocator and
-CommunityToolkit.Mvvm. The copyright lines are those of these projects' licence files; the component each belongs to is
-given in brackets.
+Applies to .NET, Brotli (in .NET), Microsoft.Extensions, CsWin32 and the Win32 metadata, MessageFormat, Velopack,
+Avalonia, MicroCom.Runtime, Tmds.DBus.Protocol, SkiaSharp and HarfBuzzSharp, Vulkan Memory Allocator, D3D12 Memory
+Allocator and CommunityToolkit.Mvvm. The copyright lines are those of these projects' licence files; the component each
+belongs to is given in brackets.
 
 ```text
 Copyright (c) .NET Foundation and Contributors (.NET, Microsoft.Extensions)
 Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors. (Brotli, in .NET)
+Copyright (c) Microsoft Corporation (CsWin32)
+Copyright (c) Microsoft Corporation. (Win32 metadata, in CsWin32's generated code)
 Copyright (c) 2014 Jeff Hansen (MessageFormat)
 Copyright © 2021 Caelan Sayler (Velopack)
 Copyright © 2024 Velopack Ltd. (Velopack)

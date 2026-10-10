@@ -67,11 +67,7 @@ public sealed class PhysicalVolumes : IVolumes
             return false;
         }
 
-        if (OperatingSystem.IsWindows())
-        {
-            return WindowsVolumeApi.IsRemote(mountPoint);
-        }
-
+        // A share is mapped to a drive letter, never mounted in a folder, so its drive tells.
         try
         {
             return new DriveInfo(mountPoint).DriveType == DriveType.Network;

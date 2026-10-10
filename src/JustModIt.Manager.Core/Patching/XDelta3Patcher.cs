@@ -130,7 +130,7 @@ public sealed class XDelta3Patcher(long? memoryBudget = null)
     /// The source as a read-only mapping, so the page cache holds what the encoder random-accesses instead of a private
     /// copy; decoding reads blocks instead, because an I/O error on a mapped page ends the process.
     /// </summary>
-    private sealed unsafe class MappedSource : IDisposable
+    private sealed class MappedSource : IDisposable
     {
         private readonly MemoryMappedFile? _mapping;
         private readonly MemoryMappedViewAccessor? _view;
@@ -154,16 +154,16 @@ public sealed class XDelta3Patcher(long? memoryBudget = null)
             var mapping = MemoryMappedFile.CreateFromFile(source, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None,
                 leaveOpen: true);
             var view = mapping.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-            byte* pointer = null;
-            view.SafeMemoryMappedViewHandle.AcquirePointer(ref pointer);
-            return new MappedSource(mapping, view, (nint)(pointer + view.PointerOffset));
+            var added = false;
+            view.SafeMemoryMappedViewHandle.DangerousAddRef(ref added);
+            return new MappedSource(mapping, view, view.SafeMemoryMappedViewHandle.DangerousGetHandle() + (nint)view.PointerOffset);
         }
 
         public void Dispose()
         {
             if (_view is not null)
             {
-                _view.SafeMemoryMappedViewHandle.ReleasePointer();
+                _view.SafeMemoryMappedViewHandle.DangerousRelease();
                 _view.Dispose();
             }
 

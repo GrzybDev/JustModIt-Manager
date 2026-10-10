@@ -24,6 +24,9 @@ public sealed partial class ThirdPartyNoticesTests
         "SkiaSharp.NativeAssets.WebAssembly",
     };
 
+    // Code generators that only a library references, whose generated code is compiled into the apps.
+    private static readonly HashSet<string> GeneratedIntoApps = new(StringComparer.Ordinal) { "Microsoft.Windows.CsWin32" };
+
     private static readonly List<Component> Components = ReadComponents();
 
     // Only the components' package lines count: the licence texts and upstream notices name packages they do not describe.
@@ -102,6 +105,11 @@ public sealed partial class ThirdPartyNoticesTests
     private static List<LockedPackage> Locked() =>
     [
         .. RepositoryFiles.Apps().SelectMany(app => LockedBy(Path.Combine(app, "packages.lock.json")))
+            .Concat(Directory.EnumerateDirectories(RepositoryFiles.PathOf("src"))
+                .Select(project => Path.Combine(project, "packages.lock.json"))
+                .Where(File.Exists)
+                .SelectMany(LockedBy)
+                .Where(package => GeneratedIntoApps.Contains(package.Name)))
             .Distinct()
             .OrderBy(package => package.Name, StringComparer.Ordinal),
     ];

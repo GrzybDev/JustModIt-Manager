@@ -1,0 +1,61 @@
+// Tray
+AppendMenu
+CreatePopupMenu
+CreateWindowEx
+DefWindowProc
+DestroyIcon
+DestroyMenu
+DestroyWindow
+DispatchMessage
+ExtractIconEx
+GetMessage
+GetModuleHandle
+GetSystemMetrics
+IDI_APPLICATION
+LoadIcon
+NINF_KEY
+NIN_BALLOONUSERCLICK
+NIN_SELECT
+NOTIFYICON_VERSION_4
+PostMessage
+PostQuitMessage
+RegisterClassEx
+RegisterWindowMessage
+SetForegroundWindow
+SetMenuDefaultItem
+Shell_NotifyIcon
+TrackPopupMenuEx
+TRACK_POPUP_MENU_FLAGS
+TranslateMessage
+UnregisterClass
+WM_APP
+WM_CLOSE
+WM_CONTEXTMENU
+WM_DESTROY
+WM_NULL
+
+// System events
+CM_Register_Notification
+CM_Unregister_Notification
+DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS
+GUID_DEVINTERFACE_VOLUME
+PBT_APMRESUMEAUTOMATIC
+PBT_APMRESUMESUSPEND
+PowerRegisterSuspendResumeNotification
+PowerUnregisterSuspendResumeNotification
+
+// Processes and Restart Manager
+CCH_RM_SESSION_KEY
+OpenProcess
+QueryFullProcessImageName
+RmEndSession
+RmGetList
+RmRegisterResources
+RmStartSession
+UNICODE_STRING_MAX_CHARS
+
+// Registry
+RegNotifyChangeKeyValue
+
+// Anything else
+AllowSetForegroundWindow

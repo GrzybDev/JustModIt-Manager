@@ -3,17 +3,14 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Safety;
-using Microsoft.Win32.SafeHandles;
+using Windows.Win32;
+using Windows.Win32.System.Threading;
 
 namespace JustModIt.Manager.Platform.Windows;
 
 [SupportedOSPlatform("windows")]
-public sealed partial class WindowsProcessSource : IProcessSource
+public sealed class WindowsProcessSource : IProcessSource
 {
-    // The limited right is granted for elevated and most protected processes, unlike PROCESS_QUERY_INFORMATION.
-    private const uint ProcessQueryLimitedInformation = 0x1000;
-    private const int MaxLongPath = 32767;
-
     public static WindowsProcessSource Instance { get; } = new();
 
     public int CurrentSessionId { get; } = GetCurrentSessionId();
@@ -71,16 +68,18 @@ public sealed partial class WindowsProcessSource : IProcessSource
 
     /// <summary>The full path of a process's executable; null when it cannot be read.</summary>
     /// <param name="processId">The process; elevated and most protected ones are read too.</param>
-    internal static unsafe string? TryGetImagePath(int processId)
+    internal static string? TryGetImagePath(int processId)
     {
-        using var process = OpenProcess(ProcessQueryLimitedInformation, inheritHandle: false, (uint)processId);
+        // The limited right is granted for elevated and most protected processes, unlike PROCESS_QUERY_INFORMATION.
+        using var process = PInvoke.OpenProcess_SafeHandle(PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION, false,
+            (uint)processId);
         if (process.IsInvalid)
         {
             return null;
         }
 
         Span<char> small = stackalloc char[512];
-        return TryQuery(process, small) ?? TryQuery(process, new char[MaxLongPath]);
+        return TryQuery(process, small) ?? TryQuery(process, new char[PInvoke.UNICODE_STRING_MAX_CHARS]);
     }
 
     private static ProcessEntry? TryDescribe(Process process)
@@ -96,18 +95,12 @@ public sealed partial class WindowsProcessSource : IProcessSource
         }
     }
 
-    private static unsafe string? TryQuery(SafeProcessHandle process, Span<char> buffer)
+    private static string? TryQuery(SafeHandle process, Span<char> buffer)
     {
         var length = (uint)buffer.Length;
-        fixed (char* chars = buffer)
-        {
-            if (!QueryFullProcessImageName(process, 0, chars, ref length))
-            {
-                return null;
-            }
-        }
-
-        return new string(buffer[..(int)length]);
+        return PInvoke.QueryFullProcessImageName(process, PROCESS_NAME_FORMAT.PROCESS_NAME_WIN32, buffer, ref length)
+            ? new string(buffer[..(int)length])
+            : null;
     }
 
     private static int GetCurrentSessionId()
@@ -115,11 +108,4 @@ public sealed partial class WindowsProcessSource : IProcessSource
         using var current = Process.GetCurrentProcess();
         return current.SessionId;
     }
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    private static partial SafeProcessHandle OpenProcess(uint desiredAccess, [MarshalAs(UnmanagedType.Bool)] bool inheritHandle, uint processId);
-
-    [LibraryImport("kernel32.dll", EntryPoint = "QueryFullProcessImageNameW", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static unsafe partial bool QueryFullProcessImageName(SafeProcessHandle process, uint flags, char* exeName, ref uint size);
 }

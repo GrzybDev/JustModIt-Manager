@@ -1,8 +1,9 @@
-using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Watching;
-using Microsoft.Win32.SafeHandles;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.Registry;
 using Win32 = Microsoft.Win32;
 
 namespace JustModIt.Manager.Platform.Windows;
@@ -12,7 +13,7 @@ namespace JustModIt.Manager.Platform.Windows;
 /// per key and stopping never waits for one.
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed partial class WindowsRegistryWatcher : IRegistryWatcher
+public sealed class WindowsRegistryWatcher : IRegistryWatcher
 {
     public static WindowsRegistryWatcher Instance { get; } = new();
 
@@ -27,16 +28,8 @@ public sealed partial class WindowsRegistryWatcher : IRegistryWatcher
     /// Watches the key, or while it is missing its nearest existing ancestor for the next key on the way, moving down as
     /// keys appear, e.g. when a store is installed.
     /// </summary>
-    private sealed partial class KeyWatch : IDisposable
+    private sealed class KeyWatch : IDisposable
     {
-        private const int ErrorSuccess = 0;
-        private const int ErrorKeyDeleted = 1018;
-        private const uint NotifyChangeName = 0x1;
-        private const uint NotifyChangeLastSet = 0x4;
-
-        // Without it the notification ends with the thread that asked for it, and pool threads come and go.
-        private const uint NotifyThreadAgnostic = 0x10000000;
-
         private readonly WatchedRegistryKey _target;
         private readonly string _targetPath;
         private readonly Action<WatchSignal> _onSignal;
@@ -126,16 +119,20 @@ public sealed partial class WindowsRegistryWatcher : IRegistryWatcher
                 }
 
                 var onTarget = IsOnTarget;
-                var result = RegNotifyChangeKeyValue(_key!.Handle, onTarget && _target.IncludeSubkeys,
-                    (onTarget ? NotifyChangeName | NotifyChangeLastSet : NotifyChangeName) | NotifyThreadAgnostic,
-                    _changed.SafeWaitHandle, asynchronous: true);
-                if (result == ErrorKeyDeleted)
+                var changes = onTarget
+                    ? REG_NOTIFY_FILTER.REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_FILTER.REG_NOTIFY_CHANGE_LAST_SET
+                    : REG_NOTIFY_FILTER.REG_NOTIFY_CHANGE_NAME;
+                // Thread-agnostic, or the notification would end with the thread that asked for it, and pool threads come
+                // and go.
+                var result = PInvoke.RegNotifyChangeKeyValue(_key!.Handle, onTarget && _target.IncludeSubkeys,
+                    changes | REG_NOTIFY_FILTER.REG_NOTIFY_THREAD_AGNOSTIC, _changed.SafeWaitHandle, fAsynchronous: true);
+                if (result == WIN32_ERROR.ERROR_KEY_DELETED)
                 {
                     CloseKey();
                     continue;
                 }
 
-                if (result != ErrorSuccess)
+                if (result != WIN32_ERROR.ERROR_SUCCESS)
                 {
                     // Anything else would fail again at once; the periodic rescan covers the key.
                     CloseKey();
@@ -207,9 +204,5 @@ public sealed partial class WindowsRegistryWatcher : IRegistryWatcher
         }
 
         private static string ParentOf(string path) => path.LastIndexOf('\\') is var separator and >= 0 ? path[..separator] : string.Empty;
-
-        [LibraryImport("advapi32.dll")]
-        private static partial int RegNotifyChangeKeyValue(SafeRegistryHandle key, [MarshalAs(UnmanagedType.Bool)] bool watchSubtree,
-            uint notifyFilter, SafeWaitHandle eventHandle, [MarshalAs(UnmanagedType.Bool)] bool asynchronous);
     }
 }

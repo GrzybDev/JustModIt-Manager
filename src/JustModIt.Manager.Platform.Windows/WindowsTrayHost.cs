@@ -3,6 +3,10 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Platform;
 using Microsoft.Extensions.Logging;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.Shell;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace JustModIt.Manager.Platform.Windows;
 
@@ -11,50 +15,27 @@ namespace JustModIt.Manager.Platform.Windows;
 /// is top-level rather than message-only, since only those hear that Explorer restarted and the icon must be added again.
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed unsafe partial class WindowsTrayHost : ITrayHost
+public sealed partial class WindowsTrayHost : ITrayHost
 {
-    private const int MaxTooltipLength = 127;
-    private const int MaxTitleLength = 63;
-    private const int MaxMessageLength = 255;
-
     private const uint IconId = 1;
-    private const uint CallbackMessage = 0x8000 + 1;
-    private const uint RefreshMessage = 0x8000 + 2;
-    private const uint WmNull = 0x0000;
-    private const uint WmDestroy = 0x0002;
-    private const uint WmClose = 0x0010;
-    private const uint WmContextMenu = 0x007B;
-    private const uint NinSelect = 0x0400;
-    private const uint NinKeySelect = 0x0401;
-    private const uint NinBalloonUserClick = 0x0405;
-    private const uint NimAdd = 0;
-    private const uint NimModify = 1;
-    private const uint NimDelete = 2;
-    private const uint NimSetVersion = 4;
-    private const uint NotifyIconVersion4 = 4;
-    private const uint NifMessage = 0x1;
-    private const uint NifIcon = 0x2;
-    private const uint NifTip = 0x4;
-    private const uint NifInfo = 0x10;
-    private const uint NifShowTip = 0x80;
-    private const uint NiifUser = 0x4;
-    private const uint NiifRespectQuietTime = 0x80;
-    private const uint MfString = 0x0;
-    private const uint MfGrayed = 0x1;
-    private const uint MfSeparator = 0x800;
-    private const uint TpmRightAlign = 0x8;
-    private const uint TpmBottomAlign = 0x20;
-    private const uint TpmNoNotify = 0x80;
-    private const uint TpmReturnCmd = 0x100;
-    private const uint TpmRightButton = 0x2;
-    private const int SmMenuDropAlignment = 40;
-    private const int GwlpUserData = -21;
-    private const nint IdiApplication = 32512;
+    private const uint CallbackMessage = PInvoke.WM_APP + 1;
+    private const uint RefreshMessage = PInvoke.WM_APP + 2;
+    // shellapi.h's NIN_KEYSELECT, which the metadata leaves out.
+    private const uint KeySelect = PInvoke.NIN_SELECT | PInvoke.NINF_KEY;
 
     // The thread only removes the icon on its way out; one that hangs in a shell call must not hold up the agent's exit.
     private static readonly TimeSpan ThreadExitTimeout = TimeSpan.FromSeconds(5);
 
+    // The shell shows what fits in the structure's buffers, less the terminator.
+    private static readonly int MaxTooltipLength = default(NOTIFYICONDATAW).szTip.Length - 1;
+    private static readonly int MaxTitleLength = default(NOTIFYICONDATAW).szInfoTitle.Length - 1;
+    private static readonly int MaxMessageLength = default(NOTIFYICONDATAW).szInfo.Length - 1;
+
     private static int _classCount;
+
+    // Windows calls a window procedure only on the thread that made the window, so that thread's host is the window's.
+    [ThreadStatic]
+    private static WindowsTrayHost? _threadHost;
 
     private readonly string _iconPath;
     private readonly ILogger _logger;
@@ -66,12 +47,12 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
     private IReadOnlyList<TrayMenuItem> _menu = [];
     private bool _shown;
     private bool _disposed;
-    private nint _window;
+    private HWND _window;
 
     // Only the tray thread touches these.
     private bool _added;
     private string? _notificationTag;
-    private nint _icon;
+    private HICON _icon;
     private bool _ownsIcon;
     private uint _taskbarCreated;
 
@@ -123,7 +104,7 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
 
     public void Dispose()
     {
-        nint window;
+        HWND window;
         lock (_gate)
         {
             if (_disposed)
@@ -135,9 +116,9 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
             window = _window;
         }
 
-        if (window != 0)
+        if (!window.IsNull)
         {
-            PostMessageW(window, WmClose, 0, 0);
+            PInvoke.PostMessage(window, PInvoke.WM_CLOSE, default, default);
         }
 
         _thread.Join(ThreadExitTimeout);
@@ -159,16 +140,15 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-    private static nint WindowProc(nint window, uint message, nint wParam, nint lParam)
+    private static LRESULT WindowProc(HWND window, uint message, WPARAM wParam, LPARAM lParam)
     {
-        var self = GetWindowLongPtrW(window, GwlpUserData);
-        if (self != 0 && GCHandle.FromIntPtr(self).Target is WindowsTrayHost host)
+        if (_threadHost is { } host)
         {
             try
             {
                 if (host.Handle(window, message, wParam, lParam))
                 {
-                    return 0;
+                    return default;
                 }
             }
             // An exception unwinding into the window manager would end the process.
@@ -178,68 +158,67 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
             }
         }
 
-        return DefWindowProcW(window, message, wParam, lParam);
+        return PInvoke.DefWindowProc(window, message, wParam, lParam);
+    }
+
+    // Windows calls WindowProc through the class, and only unsafe code can take its address and the class name's.
+    private unsafe HWND RegisterAndCreateWindow(HINSTANCE instance)
+    {
+        fixed (char* className = _className)
+        {
+            var windowClass = new WNDCLASSEXW
+            {
+                cbSize = (uint)sizeof(WNDCLASSEXW),
+                lpfnWndProc = &WindowProc,
+                hInstance = instance,
+                lpszClassName = className,
+            };
+            return PInvoke.RegisterClassEx(windowClass) == 0
+                ? HWND.Null
+                : PInvoke.CreateWindowEx(0, className, className, 0, 0, 0, 0, 0, HWND.Null, HMENU.Null, instance, null);
+        }
     }
 
     private void Run()
     {
-        var instance = GetModuleHandleW(null);
-        var self = GCHandle.Alloc(this);
+        _threadHost = this;
+        using var module = PInvoke.GetModuleHandle((string?)null);
         try
         {
-            if (!CreateWindow(instance, self))
+            if (!CreateWindow((HINSTANCE)module.DangerousGetHandle()))
             {
                 return;
             }
 
             LoadIcon();
-            _taskbarCreated = RegisterWindowMessageW("TaskbarCreated");
+            _taskbarCreated = PInvoke.RegisterWindowMessage("TaskbarCreated");
             ApplyState();
-            Message message;
-            while (GetMessageW(&message, 0, 0, 0) > 0)
+            while (PInvoke.GetMessage(out var message, HWND.Null, 0, 0) > 0)
             {
-                TranslateMessage(&message);
-                DispatchMessageW(&message);
+                PInvoke.TranslateMessage(message);
+                PInvoke.DispatchMessage(message);
             }
         }
         finally
         {
             if (_ownsIcon)
             {
-                DestroyIcon(_icon);
+                PInvoke.DestroyIcon(_icon);
             }
 
-            UnregisterClassW(_className, instance);
-            self.Free();
+            PInvoke.UnregisterClass(_className, module);
         }
     }
 
-    private bool CreateWindow(nint instance, GCHandle self)
+    private bool CreateWindow(HINSTANCE instance)
     {
-        fixed (char* className = _className)
-        {
-            var windowClass = new WindowClass
-            {
-                Size = (uint)sizeof(WindowClass),
-                WindowProc = &WindowProc,
-                Instance = instance,
-                ClassName = className,
-            };
-            if (RegisterClassExW(&windowClass) == 0)
-            {
-                LogWindowFailed(Marshal.GetLastPInvokeError());
-                return false;
-            }
-        }
-
-        var window = CreateWindowExW(0, _className, _className, 0, 0, 0, 0, 0, 0, 0, instance, 0);
-        if (window == 0)
+        var window = RegisterAndCreateWindow(instance);
+        if (window.IsNull)
         {
             LogWindowFailed(Marshal.GetLastPInvokeError());
             return false;
         }
 
-        SetWindowLongPtrW(window, GwlpUserData, GCHandle.ToIntPtr(self));
         bool disposed;
         lock (_gate)
         {
@@ -250,7 +229,7 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
         // Disposed before the window existed, so nobody else will close it.
         if (disposed)
         {
-            PostMessageW(window, WmClose, 0, 0);
+            PInvoke.PostMessage(window, PInvoke.WM_CLOSE, default, default);
         }
 
         return true;
@@ -258,40 +237,39 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
 
     private void LoadIcon()
     {
-        nint small = 0;
-        if (ExtractIconExW(_iconPath, 0, null, &small, 1) > 0 && small != 0)
+        Span<HICON> small = stackalloc HICON[1];
+        if (PInvoke.ExtractIconEx(_iconPath, 0, [], small) > 0 && !small[0].IsNull)
         {
-            _icon = small;
+            _icon = small[0];
             _ownsIcon = true;
         }
         else
         {
-            _icon = LoadIconW(0, IdiApplication);
+            _icon = PInvoke.LoadIcon(HINSTANCE.Null, PInvoke.IDI_APPLICATION);
         }
     }
 
-    private bool Handle(nint window, uint message, nint wParam, nint lParam)
+    private bool Handle(HWND window, uint message, WPARAM wParam, LPARAM lParam)
     {
         switch (message)
         {
             case CallbackMessage:
-                OnIconEvent(window, (uint)(lParam & 0xFFFF), wParam);
+                OnIconEvent(window, (uint)(lParam.Value & 0xFFFF), wParam);
                 return true;
             case RefreshMessage:
                 ApplyState();
                 return true;
-            case WmClose:
+            case PInvoke.WM_CLOSE:
                 if (_added)
                 {
-                    var data = NewData(window, 0);
-                    Shell_NotifyIconW(NimDelete, &data);
+                    PInvoke.Shell_NotifyIcon(NOTIFY_ICON_MESSAGE.NIM_DELETE, NewData(window, 0));
                     _added = false;
                 }
 
-                DestroyWindow(window);
+                PInvoke.DestroyWindow(window);
                 return true;
-            case WmDestroy:
-                PostQuitMessage(0);
+            case PInvoke.WM_DESTROY:
+                PInvoke.PostQuitMessage(0);
                 return true;
             default:
                 if (message == _taskbarCreated && _taskbarCreated != 0)
@@ -305,27 +283,27 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
         }
     }
 
-    private void OnIconEvent(nint window, uint iconEvent, nint position)
+    private void OnIconEvent(HWND window, uint iconEvent, WPARAM position)
     {
         switch (iconEvent)
         {
-            case NinSelect or NinKeySelect:
+            case PInvoke.NIN_SELECT or KeySelect:
                 Activated?.Invoke(this, EventArgs.Empty);
                 break;
-            case WmContextMenu:
-                if (ShowMenu(window, (short)(position & 0xFFFF), (short)((position >> 16) & 0xFFFF)) is { } command)
+            case PInvoke.WM_CONTEXTMENU:
+                if (ShowMenu(window, (short)(position.Value & 0xFFFF), (short)((position.Value >> 16) & 0xFFFF)) is { } command)
                 {
                     CommandInvoked?.Invoke(this, command);
                 }
 
                 break;
-            case NinBalloonUserClick:
+            case PInvoke.NIN_BALLOONUSERCLICK:
                 NotificationClicked?.Invoke(this, _notificationTag);
                 break;
         }
     }
 
-    private string? ShowMenu(nint window, int x, int y)
+    private string? ShowMenu(HWND window, int x, int y)
     {
         IReadOnlyList<TrayMenuItem> items;
         lock (_gate)
@@ -338,53 +316,52 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
             return null;
         }
 
-        var menu = CreatePopupMenu();
-        try
+        using var menu = new DestroyMenuSafeHandle(PInvoke.CreatePopupMenu());
+        for (var index = 0; index < items.Count; index++)
         {
-            for (var index = 0; index < items.Count; index++)
+            var item = items[index];
+            var id = (nuint)(index + 1);
+            if (item.IsSeparator)
             {
-                var item = items[index];
-                var id = (nuint)(index + 1);
-                if (item.IsSeparator)
-                {
-                    AppendMenuW(menu, MfSeparator, 0, null);
-                    continue;
-                }
-
-                // A single ampersand would underline the next letter as the item's access key.
-                AppendMenuW(menu, MfString | (item.IsEnabled ? 0 : MfGrayed), id, item.Text.Replace("&", "&&", StringComparison.Ordinal));
-                if (item.IsDefault)
-                {
-                    SetMenuDefaultItem(menu, (uint)id, 0);
-                }
+                PInvoke.AppendMenu(menu, MENU_ITEM_FLAGS.MF_SEPARATOR, 0, null);
+                continue;
             }
 
-            // Without taking the foreground the menu would stay open after a click elsewhere.
-            SetForegroundWindow(window);
-            var alignment = GetSystemMetrics(SmMenuDropAlignment) != 0 ? TpmRightAlign : 0;
-            var chosen = TrackPopupMenuEx(menu, TpmReturnCmd | TpmNoNotify | TpmRightButton | TpmBottomAlign | alignment, x, y,
-                window, 0);
-            PostMessageW(window, WmNull, 0, 0);
-            return chosen > 0 && chosen <= items.Count && items[chosen - 1] is { IsEnabled: true } picked ? picked.Command : null;
+            // A single ampersand would underline the next letter as the item's access key.
+            PInvoke.AppendMenu(menu, MENU_ITEM_FLAGS.MF_STRING | (item.IsEnabled ? 0 : MENU_ITEM_FLAGS.MF_GRAYED), id,
+                item.Text.Replace("&", "&&", StringComparison.Ordinal));
+            if (item.IsDefault)
+            {
+                PInvoke.SetMenuDefaultItem(menu, (uint)id, 0);
+            }
         }
-        finally
+
+        // Without taking the foreground the menu would stay open after a click elsewhere.
+        PInvoke.SetForegroundWindow(window);
+        var flags = TRACK_POPUP_MENU_FLAGS.TPM_RETURNCMD | TRACK_POPUP_MENU_FLAGS.TPM_NONOTIFY
+            | TRACK_POPUP_MENU_FLAGS.TPM_RIGHTBUTTON | TRACK_POPUP_MENU_FLAGS.TPM_BOTTOMALIGN;
+        if (PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_MENUDROPALIGNMENT) != 0)
         {
-            DestroyMenu(menu);
+            flags |= TRACK_POPUP_MENU_FLAGS.TPM_RIGHTALIGN;
         }
+
+        int chosen = PInvoke.TrackPopupMenuEx(menu, (uint)flags, x, y, window, null);
+        PInvoke.PostMessage(window, PInvoke.WM_NULL, default, default);
+        return chosen > 0 && chosen <= items.Count && items[chosen - 1] is { IsEnabled: true } picked ? picked.Command : null;
     }
 
     private void Refresh()
     {
-        nint window;
+        HWND window;
         lock (_gate)
         {
             window = _window;
         }
 
         // Before the window exists the thread applies the state itself once it has created it.
-        if (window != 0)
+        if (!window.IsNull)
         {
-            PostMessageW(window, RefreshMessage, 0, 0);
+            PInvoke.PostMessage(window, RefreshMessage, default, default);
         }
     }
 
@@ -403,24 +380,26 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
             return;
         }
 
-        var data = NewData(_window, NifMessage | NifIcon | NifTip | NifShowTip);
-        data.CallbackMessage = CallbackMessage;
-        data.Icon = _icon;
-        Copy(tooltip, data.Tip, MaxTooltipLength + 1);
+        var data = NewData(_window,
+            NOTIFY_ICON_DATA_FLAGS.NIF_MESSAGE | NOTIFY_ICON_DATA_FLAGS.NIF_ICON | NOTIFY_ICON_DATA_FLAGS.NIF_TIP
+            | NOTIFY_ICON_DATA_FLAGS.NIF_SHOWTIP);
+        data.uCallbackMessage = CallbackMessage;
+        data.hIcon = _icon;
+        data.szTip = tooltip;
         if (!_added)
         {
             // Fails while Explorer is not running; the icon is added when it says it has started.
-            if (!Shell_NotifyIconW(NimAdd, &data))
+            if (!PInvoke.Shell_NotifyIcon(NOTIFY_ICON_MESSAGE.NIM_ADD, data))
             {
                 return;
             }
 
             _added = true;
             var version = NewData(_window, 0);
-            version.TimeoutOrVersion = NotifyIconVersion4;
-            Shell_NotifyIconW(NimSetVersion, &version);
+            version.uVersion = PInvoke.NOTIFYICON_VERSION_4;
+            PInvoke.Shell_NotifyIcon(NOTIFY_ICON_MESSAGE.NIM_SETVERSION, version);
         }
-        else if (!Shell_NotifyIconW(NimModify, &data))
+        else if (!PInvoke.Shell_NotifyIcon(NOTIFY_ICON_MESSAGE.NIM_MODIFY, data))
         {
             _added = false;
             return;
@@ -442,171 +421,28 @@ public sealed unsafe partial class WindowsTrayHost : ITrayHost
                 }
             }
 
-            var data = NewData(_window, NifInfo);
-            data.InfoFlags = NiifUser | NiifRespectQuietTime;
-            Copy(notification.Title, data.InfoTitle, MaxTitleLength + 1);
-            Copy(notification.Message, data.Info, MaxMessageLength + 1);
-            if (Shell_NotifyIconW(NimModify, &data))
+            var data = NewData(_window, NOTIFY_ICON_DATA_FLAGS.NIF_INFO);
+            data.dwInfoFlags = NOTIFY_ICON_INFOTIP_FLAGS.NIIF_USER | NOTIFY_ICON_INFOTIP_FLAGS.NIIF_RESPECT_QUIET_TIME;
+            data.szInfoTitle = notification.Title;
+            data.szInfo = notification.Message;
+            if (PInvoke.Shell_NotifyIcon(NOTIFY_ICON_MESSAGE.NIM_MODIFY, data))
             {
                 _notificationTag = notification.Tag;
             }
         }
     }
 
-    private static NotifyIconData NewData(nint window, uint flags) => new()
+    private static NOTIFYICONDATAW NewData(HWND window, NOTIFY_ICON_DATA_FLAGS flags) => new()
     {
-        Size = (uint)sizeof(NotifyIconData),
-        Window = window,
-        Id = IconId,
-        Flags = flags,
+        cbSize = (uint)Unsafe.SizeOf<NOTIFYICONDATAW>(),
+        hWnd = window,
+        uID = IconId,
+        uFlags = flags,
     };
-
-    private static void Copy(string text, char* destination, int capacity)
-    {
-        var length = Math.Min(text.Length, capacity - 1);
-        text.AsSpan(0, length).CopyTo(new Span<char>(destination, capacity));
-        destination[length] = '\0';
-    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The tray window could not be created (error {Error})")]
     private partial void LogWindowFailed(int error);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Handling a tray event failed")]
     private partial void LogHandlerFailed(Exception exception);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct WindowClass
-    {
-        public uint Size;
-        public uint Style;
-        public delegate* unmanaged[Stdcall]<nint, uint, nint, nint, nint> WindowProc;
-        public int ClassExtra;
-        public int WindowExtra;
-        public nint Instance;
-        public nint Icon;
-        public nint Cursor;
-        public nint Background;
-        public char* MenuName;
-        public char* ClassName;
-        public nint SmallIcon;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Message
-    {
-        public nint Window;
-        public uint Id;
-        public nint WParam;
-        public nint LParam;
-        public uint Time;
-        public int X;
-        public int Y;
-        public uint Private;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NotifyIconData
-    {
-        public uint Size;
-        public nint Window;
-        public uint Id;
-        public uint Flags;
-        public uint CallbackMessage;
-        public nint Icon;
-        public fixed char Tip[MaxTooltipLength + 1];
-        public uint State;
-        public uint StateMask;
-        public fixed char Info[MaxMessageLength + 1];
-        public uint TimeoutOrVersion;
-        public fixed char InfoTitle[MaxTitleLength + 1];
-        public uint InfoFlags;
-        public Guid Item;
-        public nint BalloonIcon;
-    }
-
-    [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    private static partial nint GetModuleHandleW(string? moduleName);
-
-    [LibraryImport("user32.dll", SetLastError = true)]
-    private static partial ushort RegisterClassExW(WindowClass* windowClass);
-
-    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool UnregisterClassW(string className, nint instance);
-
-    [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    private static partial nint CreateWindowExW(uint exStyle, string className, string windowName, uint style, int x, int y,
-        int width, int height, nint parent, nint menu, nint instance, nint parameter);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool DestroyWindow(nint window);
-
-    [LibraryImport("user32.dll")]
-    private static partial nint DefWindowProcW(nint window, uint message, nint wParam, nint lParam);
-
-    [LibraryImport("user32.dll")]
-    private static partial int GetMessageW(Message* message, nint window, uint filterMin, uint filterMax);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool TranslateMessage(Message* message);
-
-    [LibraryImport("user32.dll")]
-    private static partial nint DispatchMessageW(Message* message);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool PostMessageW(nint window, uint message, nint wParam, nint lParam);
-
-    [LibraryImport("user32.dll")]
-    private static partial void PostQuitMessage(int exitCode);
-
-    [LibraryImport("user32.dll")]
-    private static partial nint SetWindowLongPtrW(nint window, int index, nint value);
-
-    [LibraryImport("user32.dll")]
-    private static partial nint GetWindowLongPtrW(nint window, int index);
-
-    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    private static partial uint RegisterWindowMessageW(string name);
-
-    [LibraryImport("user32.dll")]
-    private static partial nint CreatePopupMenu();
-
-    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool AppendMenuW(nint menu, uint flags, nuint id, string? text);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetMenuDefaultItem(nint menu, uint item, uint byPosition);
-
-    [LibraryImport("user32.dll")]
-    private static partial int TrackPopupMenuEx(nint menu, uint flags, int x, int y, nint window, nint parameters);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool DestroyMenu(nint menu);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetForegroundWindow(nint window);
-
-    [LibraryImport("user32.dll")]
-    private static partial int GetSystemMetrics(int index);
-
-    [LibraryImport("user32.dll")]
-    private static partial nint LoadIconW(nint instance, nint name);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool DestroyIcon(nint icon);
-
-    [LibraryImport("shell32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool Shell_NotifyIconW(uint message, NotifyIconData* data);
-
-    [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    private static partial uint ExtractIconExW(string file, int index, nint* largeIcons, nint* smallIcons, uint count);
 }

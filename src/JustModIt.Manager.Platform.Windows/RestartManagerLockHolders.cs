@@ -1,7 +1,8 @@
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Safety;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.RestartManager;
 
 namespace JustModIt.Manager.Platform.Windows;
 
@@ -10,18 +11,13 @@ namespace JustModIt.Manager.Platform.Windows;
 /// administrator rights; all files share one session, so a game holding hundreds of files costs one query.
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed partial class RestartManagerLockHolders : ILockHolderSource
+public sealed class RestartManagerLockHolders : ILockHolderSource
 {
-    private const int ErrorSuccess = 0;
-    private const int ErrorMoreData = 234;
-    private const int SessionKeyLength = 32;
-    private const int MaxAppNameLength = 255;
-    private const int MaxServiceNameLength = 63;
     private const int MaxAttempts = 3;
 
     public static RestartManagerLockHolders Instance { get; } = new();
 
-    public unsafe IReadOnlyList<string> FindHolders(IReadOnlyList<string> paths)
+    public IReadOnlyList<string> FindHolders(IReadOnlyList<string> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
         if (paths.Count == 0)
@@ -29,8 +25,8 @@ public sealed partial class RestartManagerLockHolders : ILockHolderSource
             return [];
         }
 
-        var key = stackalloc char[SessionKeyLength + 1];
-        if (RmStartSession(out var session, 0, key) != ErrorSuccess)
+        Span<char> key = stackalloc char[(int)PInvoke.CCH_RM_SESSION_KEY + 1];
+        if (PInvoke.RmStartSession(out var session, key) != WIN32_ERROR.ERROR_SUCCESS)
         {
             return [];
         }
@@ -38,42 +34,37 @@ public sealed partial class RestartManagerLockHolders : ILockHolderSource
         try
         {
             string[] files = [.. paths.Select(Path.GetFullPath)];
-            return RmRegisterResources(session, (uint)files.Length, files, 0, 0, 0, 0) == ErrorSuccess
+            return PInvoke.RmRegisterResources(session, files, [], []) == WIN32_ERROR.ERROR_SUCCESS
                 ? [.. GetHolders(session).Select(Describe).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)]
                 : [];
         }
         finally
         {
-            _ = RmEndSession(session);
+            _ = PInvoke.RmEndSession(session);
         }
     }
 
-    private static unsafe List<(int ProcessId, string ApplicationName)> GetHolders(uint session)
+    private static List<(int ProcessId, string ApplicationName)> GetHolders(uint session)
     {
         uint capacity = 0;
-        RmProcessInfo[] infos = [];
+        RM_PROCESS_INFO[] infos = [];
         for (var attempt = 0; attempt < MaxAttempts; attempt++)
         {
-            int result;
             var count = capacity;
-            fixed (RmProcessInfo* buffer = infos)
+            var result = PInvoke.RmGetList(session, out var needed, ref count, infos, out _);
+            capacity = needed;
+            if (result == WIN32_ERROR.ERROR_SUCCESS)
             {
-                result = RmGetList(session, out var needed, ref count, buffer, out _);
-                capacity = needed;
-            }
-
-            if (result == ErrorSuccess)
-            {
-                return [.. infos.Take((int)count).Select(info => ((int)info.Process.ProcessId, new string(info.AppName)))];
+                return [.. infos.Take((int)count).Select(info => ((int)info.Process.dwProcessId, info.strAppName.ToString()))];
             }
 
             // The list of holders can grow between the sizing call and the real one.
-            if (result != ErrorMoreData)
+            if (result != WIN32_ERROR.ERROR_MORE_DATA)
             {
                 return [];
             }
 
-            infos = new RmProcessInfo[capacity];
+            infos = new RM_PROCESS_INFO[capacity];
         }
 
         return [];
@@ -84,37 +75,4 @@ public sealed partial class RestartManagerLockHolders : ILockHolderSource
         WindowsProcessSource.TryGetImagePath(holder.ProcessId) is { } image
             ? Path.GetFileName(image)
             : string.IsNullOrWhiteSpace(holder.ApplicationName) ? null : holder.ApplicationName;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct RmUniqueProcess
-    {
-        public uint ProcessId;
-        public FILETIME ProcessStartTime;
-    }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private unsafe struct RmProcessInfo
-    {
-        public RmUniqueProcess Process;
-        public fixed char AppName[MaxAppNameLength + 1];
-        public fixed char ServiceShortName[MaxServiceNameLength + 1];
-        public int ApplicationType;
-        public uint AppStatus;
-        public uint TerminalServicesSessionId;
-        public int Restartable;
-    }
-
-    [LibraryImport("rstrtmgr.dll")]
-    private static unsafe partial int RmStartSession(out uint sessionHandle, uint sessionFlags, char* sessionKey);
-
-    [LibraryImport("rstrtmgr.dll", StringMarshalling = StringMarshalling.Utf16)]
-    private static partial int RmRegisterResources(uint sessionHandle, uint fileCount, string[] fileNames,
-        uint applicationCount, nint applications, uint serviceCount, nint serviceNames);
-
-    [LibraryImport("rstrtmgr.dll")]
-    private static unsafe partial int RmGetList(uint sessionHandle, out uint processInfoNeeded, ref uint processInfoCount,
-        RmProcessInfo* affectedApps, out uint rebootReasons);
-
-    [LibraryImport("rstrtmgr.dll")]
-    private static partial int RmEndSession(uint sessionHandle);
 }
