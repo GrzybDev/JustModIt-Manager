@@ -1,0 +1,257 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+        xmlns:shell="using:JustModIt.Manager.Ui.Shell">
+  <!-- The window frame (the Shell board): a 40 px title bar and a 240 px sidebar in the chrome colour around the pages,
+       which sit on the page colour behind a hairline with a 12 px top-left corner. -->
+
+  <Style Selector="StackPanel.brand">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="10" />
+    <Setter Property="Margin" Value="16,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.titleBack">
+    <Setter Property="Margin" Value="8,0,0,0" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- Caption buttons: 46x40, a 16 px icon of stroke 1.5; closing turns red. -->
+  <Style Selector="Button.caption">
+    <Setter Property="Width" Value="46" />
+    <Setter Property="Height" Value="40" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Cursor" Value="Arrow" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    <!-- The system's own keys move and close the window; the caption buttons serve the pointer. -->
+    <Setter Property="IsTabStop" Value="False" />
+  </Style>
+  <Style Selector="Button.caption ui|Icon">
+    <Setter Property="StrokeThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Button.caption:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="Button.caption.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource CloseHoverBrush}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+  <Style Selector="Button.caption.close:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource ClosePressedBrush}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <!-- The sidebar, which slides away for the first-run setup and while the window waits for the agent. -->
+  <Style Selector="Grid.sidebar">
+    <Setter Property="Margin" Value="12,10,12,12" />
+    <Setter Property="RenderTransform" Value="translateX(0px)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.4" Easing="CubicEaseOut" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.45" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Grid.sidebar.away">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="RenderTransform" Value="translateX(-24px)" />
+  </Style>
+  <Style Selector=":is(Window).reducedMotion Grid.sidebar.away">
+    <Setter Property="RenderTransform" Value="translateX(0px)" />
+  </Style>
+
+  <!-- Sidebar entries: 40 px, an 18 px icon 12 px from the label; the active one has a fill, an accent icon and a bar. -->
+  <Style Selector="Button.nav">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Padding" Value="14,0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Button.nav StackPanel.buttonContent">
+    <Setter Property="Spacing" Value="12" />
+  </Style>
+  <Style Selector="Button.nav ui|Icon.buttonIcon">
+    <Setter Property="Width" Value="18" />
+    <Setter Property="Height" Value="18" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Foreground" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+  <Style Selector="Button.nav.active">
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="Button.nav.active /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="Button.nav.active ui|Icon.buttonIcon">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.navIndicator">
+    <Setter Property="Width" Value="3" />
+    <Setter Property="Height" Value="18" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="RenderTransform" Value="scaleY(0.3)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.navIndicator.active">
+    <Setter Property="Opacity" Value="1" />
+    <Setter Property="RenderTransform" Value="scaleY(1)" />
+  </Style>
+  <Style Selector="Border.navSeparator">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Margin" Value="6,0,6,6" />
+    <Setter Property="Background" Value="{StaticResource HairlineBrush}" />
+  </Style>
+
+  <!-- The status card: a fill of 3%, a line of 8%, radius 12; never a red button. -->
+  <Style Selector="Border.statusCard">
+    <Setter Property="Padding" Value="12" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="Background" Value="#08FFFFFF" />
+  </Style>
+  <Style Selector="Border.statusIcon">
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.statusIcon > ui|Icon">
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Border.statusIcon.accent">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+  <Style Selector="Border.statusIcon.accent > ui|Icon">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.statusDot">
+    <Setter Property="Width" Value="12" />
+    <Setter Property="Height" Value="12" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Margin" Value="0,-3,-3,0" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="BorderBrush" Value="{StaticResource ChromeBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="TextBlock.statusTitle">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LineHeight" Value="18" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="TextBlock.statusTitle.single">
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+  <Style Selector="TextBlock.statusSeparator">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LineHeight" Value="18" />
+    <Setter Property="Margin" Value="5,0" />
+    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+  </Style>
+  <Style Selector="TextBlock.statusSuffix">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LineHeight" Value="18" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.statusDetail">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="LineHeight" Value="16" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+
+  <!-- The pages' host, which fades away for the first-run setup and while the window waits for the agent. -->
+  <Style Selector="Border.contentHost">
+    <Setter Property="Background" Value="{StaticResource PageBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="BorderThickness" Value="1,1,0,0" />
+    <Setter Property="CornerRadius" Value="12,0,0,0" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.4" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.contentHost.away">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+
+  <!-- Waiting for the agent: shown only after a moment, so a quick connection never flashes it. -->
+  <Style Selector="shell|ConnectingView">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="shell|ConnectingView.shown">
+    <Setter Property="Opacity" Value="1" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.4" Delay="0:0:0.4" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.connectingBackdrop">
+    <Setter Property="Background" Value="{StaticResource ChromeBrush}" />
+  </Style>
+  <Style Selector="StackPanel.connectingContent">
+    <Setter Property="Spacing" Value="20" />
+    <Setter Property="MaxWidth" Value="460" />
+    <Setter Property="Margin" Value="32" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Panel.connectingArt">
+    <Setter Property="Width" Value="200" />
+    <Setter Property="Height" Value="120" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Ellipse.connectingGlow">
+    <Setter Property="Fill">
+      <RadialGradientBrush>
+        <GradientStop Offset="0" Color="{DynamicResource AccentSoftStrongColor}" />
+        <GradientStop Offset="1" Color="#00000000" />
+      </RadialGradientBrush>
+    </Setter>
+  </Style>
+</Styles>

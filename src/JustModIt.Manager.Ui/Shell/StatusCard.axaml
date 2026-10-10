@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:JustModIt.Manager.Ui.Shell"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             x:Class="JustModIt.Manager.Ui.Shell.StatusCard"
+             x:DataType="shell:StatusCardViewModel">
+  <Border Classes="statusCard" AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{Binding AccessibleText}">
+    <StackPanel Spacing="10">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <Panel VerticalAlignment="Center">
+          <Border Classes="statusIcon" Classes.accent="{Binding IsAccent}">
+            <ui:Icon Data="{Binding Icon}" Classes.spin="{Binding IsBusy}" />
+          </Border>
+          <Border Classes="statusDot" IsVisible="{Binding HasDot}" />
+        </Panel>
+        <StackPanel x:Name="Texts" Grid.Column="1" VerticalAlignment="Center" Spacing="7">
+          <StackPanel>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Classes="statusTitle" Classes.single="{Binding Detail, Converter={x:Static ObjectConverters.IsNull}}"
+                         Text="{Binding Title}" />
+              <StackPanel Orientation="Horizontal" IsVisible="{Binding Suffix, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <TextBlock Classes="statusSeparator" Text="·" />
+                <TextBlock Classes="statusSuffix" Text="{Binding Suffix}" />
+              </StackPanel>
+            </StackPanel>
+            <TextBlock Classes="statusDetail" Text="{Binding Detail}"
+                       IsVisible="{Binding Detail, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+          <ProgressBar Classes="thin" Value="{Binding Progress}" IsIndeterminate="{Binding IsIndeterminate}"
+                       IsVisible="{Binding ShowsProgress}" AutomationProperties.Name="{Binding Title}" />
+        </StackPanel>
+      </Grid>
+      <Button Classes="outline small" HorizontalAlignment="Stretch" Content="{Binding ActionText}"
+              ui:ButtonAssist.Icon="{Binding ActionIcon}" Command="{Binding ActCommand}" IsVisible="{Binding HasAction}"
+              ToolTip.Tip="{Binding ActionTip}" />
+    </StackPanel>
+  </Border>
+</UserControl>

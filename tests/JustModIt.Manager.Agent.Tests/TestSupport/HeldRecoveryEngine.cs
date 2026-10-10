@@ -8,7 +8,7 @@ namespace JustModIt.Manager.Agent.Tests.TestSupport;
 /// An engine without installs whose crash recovery, which every job waits for, waits for the test, so a job keeps the
 /// agent busy until <see cref="Release"/> and then fails, since no store reports its game.
 /// </summary>
-internal sealed class HeldRecoveryEngine : IInstallEngine
+internal sealed class HeldRecoveryEngine : StubEngine
 {
     private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -20,47 +20,9 @@ internal sealed class HeldRecoveryEngine : IInstallEngine
         (await agent.ServiceAsync<JobRunner>()).Start(new TestInstallJobRequest(new GameKey(StoreId.Steam, "1000"), "Example Game",
             Path.Combine(agent.Directory, "example.zip")));
 
-    public async Task<IReadOnlyList<RecoveredOperation>> RecoverAsync(CancellationToken cancellationToken)
+    public override async Task<IReadOnlyList<RecoveredOperation>> RecoverAsync(CancellationToken cancellationToken)
     {
         await _released.Task.WaitAsync(cancellationToken);
         return [];
     }
-
-    public Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<InstallRecord>>([]);
-
-    public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<LeftoverBackup>>([]);
-
-    public Task<bool> RemoveLeftoverBackupsAsync(Guid recordId, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-    public Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken) =>
-        throw new NotSupportedException();
-
-    public Task<PreflightReport> CheckInstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
-        CancellationToken cancellationToken) => throw new NotSupportedException();
-
-    public Task<InstallResult> InstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
-        CancellationToken cancellationToken) => throw new NotSupportedException();
-
-    public Task<PreflightReport> PredictReplacementAsync(Guid recordId, InstallRequest replacement,
-        IProgress<InstallProgress>? progress, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-    public Task<UninstallResult> UninstallAsync(Guid recordId, IProgress<InstallProgress>? progress,
-        CancellationToken cancellationToken) => throw new NotSupportedException();
-
-    public Task<VerificationResult> VerifyAsync(Guid recordId, IProgress<InstallProgress>? progress,
-        CancellationToken cancellationToken) => throw new NotSupportedException();
-
-    public Task<InstallRecord> MoveBackupsAsync(Guid recordId, BackupChoice destination, IProgress<InstallProgress>? progress,
-        CancellationToken cancellationToken) => throw new NotSupportedException();
-
-    public Task<InstallRecord?> AdoptMovedAsync(Guid recordId, InstalledGame game, IProgress<InstallProgress>? progress,
-        CancellationToken cancellationToken) => throw new NotSupportedException();
-
-    public Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken) =>
-        throw new NotSupportedException();
-
-    public Task<InstalledFiles> LoadFilesAsync(Guid recordId, CancellationToken cancellationToken) =>
-        throw new NotSupportedException();
 }

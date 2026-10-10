@@ -1,0 +1,421 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+        xmlns:theme="using:JustModIt.Manager.Ui.Theme">
+  <!-- The theme's look of stock controls by class (the Tokens board, sections 03, 04, 06, 08-10). Hover and press go
+       through transitions; nothing shows a state by fading, a disabled control has its own colours. -->
+
+  <!-- Keyboard focus: 2 px of the focus colour 2 px off the control, following its corners. The adorner layer would
+       clip it to the control's own bounds, which hides a ring drawn outside them. -->
+  <Style Selector=":is(Control)">
+    <Setter Property="FocusAdorner">
+      <FocusAdornerTemplate>
+        <Border BorderThickness="2" BorderBrush="{DynamicResource FocusRingBrush}" Margin="-4" AdornerLayer.IsClipEnabled="False"
+                CornerRadius="{Binding $self.(AdornerLayer.AdornedElement), Converter={x:Static ui:FocusRing.Radius}}" />
+      </FocusAdornerTemplate>
+    </Setter>
+  </Style>
+
+  <!-- Buttons: text as content names the button for screen readers; ui:ButtonAssist.Icon adds an icon. -->
+  <Style Selector="Button">
+    <Setter Property="Height" Value="40" />
+    <Setter Property="Padding" Value="16,0" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button[(ui|ButtonAssist.HasIcon)=True]">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="buttonContent" Orientation="Horizontal">
+          <ui:Icon Classes="buttonIcon" Data="{Binding $parent[Button].(ui:ButtonAssist.Icon)}"
+                   IsVisible="{Binding !$parent[Button].(ui:ButtonAssist.IconAfter)}" />
+          <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <ui:Icon Classes="buttonIcon after" Data="{Binding $parent[Button].(ui:ButtonAssist.Icon)}"
+                   IsVisible="{Binding $parent[Button].(ui:ButtonAssist.IconAfter)}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+  </Style>
+  <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Button StackPanel.buttonContent">
+    <Setter Property="Spacing" Value="8" />
+  </Style>
+  <Style Selector="Button ui|Icon.buttonIcon">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.small">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="Button.small ui|Icon.buttonIcon">
+    <Setter Property="Width" Value="14" />
+    <Setter Property="Height" Value="14" />
+  </Style>
+
+  <!-- The one red button of a screen: the main action. -->
+  <Style Selector="Button.primary">
+    <Setter Property="Height" Value="48" />
+    <Setter Property="Padding" Value="24,0" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="RenderTransform" Value="scale(1)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BoxShadow" Value="{DynamicResource ElevPrimary}" />
+  </Style>
+  <Style Selector="Button.primary StackPanel.buttonContent">
+    <Setter Property="Spacing" Value="10" />
+  </Style>
+  <Style Selector="Button.primary ui|Icon.buttonIcon">
+    <Setter Property="Width" Value="20" />
+    <Setter Property="Height" Value="20" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="BoxShadow" Value="{DynamicResource ElevPrimaryHover}" />
+  </Style>
+  <Style Selector="Button.primary:pressed">
+    <Setter Property="RenderTransform" Value="scale(0.98)" />
+  </Style>
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevPrimaryPressed}" />
+  </Style>
+  <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource DisabledFillBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevNone}" />
+  </Style>
+  <Style Selector="Button.primary.compact">
+    <Setter Property="Height" Value="40" />
+    <Setter Property="Padding" Value="16,0" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="Button.primary.compact StackPanel.buttonContent">
+    <Setter Property="Spacing" Value="8" />
+  </Style>
+  <Style Selector="Button.primary.compact ui|Icon.buttonIcon">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+  </Style>
+
+  <!-- The main action where there is no red one, and "Cancel" beside a running job. -->
+  <Style Selector="Button.outline">
+    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+  </Style>
+  <Style Selector="Button.outline:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderHoverBrush}" />
+  </Style>
+  <Style Selector="Button.outline:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+  </Style>
+  <Style Selector="Button.outline.onArt">
+    <Setter Property="Background" Value="#59030712" />
+  </Style>
+
+  <!-- Quiet: secondary actions and toggles that unfold content in place. -->
+  <Style Selector="Button.quiet">
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+  </Style>
+  <Style Selector="Button.quiet.expanded /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+
+  <!-- Destructive but quiet: never a red fill on a page. -->
+  <Style Selector="Button.danger">
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+  <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource DangerHoverBrush}" />
+    <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+  <!-- A destructive confirmation in a dialog: a red tint, still no red fill, since a red button may sit under the scrim. -->
+  <Style Selector="Button.dangerTint">
+    <Setter Property="Foreground" Value="{StaticResource DangerTextStrongBrush}" />
+    <Setter Property="Background" Value="{StaticResource DangerChipBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource DangerButtonEdgeBrush}" />
+  </Style>
+  <Style Selector="Button.dangerTint:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#3DEF4444" />
+    <Setter Property="BorderBrush" Value="#99F87171" />
+    <Setter Property="Foreground" Value="{StaticResource DangerTextStrongBrush}" />
+  </Style>
+
+  <!-- A link: underlined in white at 30%, in the text's colour under the pointer. -->
+  <Style Selector="Button.link">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Orientation="Horizontal" Spacing="2">
+          <TextBlock Text="{Binding}" VerticalAlignment="Center">
+            <TextBlock.TextDecorations>
+              <TextDecorationCollection>
+                <TextDecoration Location="Underline" Stroke="#4DFFFFFF" StrokeThickness="1" StrokeOffset="3" StrokeOffsetUnit="Pixel" />
+              </TextDecorationCollection>
+            </TextBlock.TextDecorations>
+          </TextBlock>
+          <ui:Icon Classes="buttonIcon" Width="12" Height="12" Data="{Binding $parent[Button].(ui:ButtonAssist.Icon)}"
+                   IsVisible="{Binding $parent[Button].(ui:ButtonAssist.Icon), Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+
+  <!-- A square of 32 px (40 with .large) around a 16 px icon, named by its tooltip. -->
+  <Style Selector="Button.icon">
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="AutomationProperties.Name" Value="{Binding $self.(ToolTip.Tip)}" />
+  </Style>
+  <Style Selector="Button.icon.large">
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="40" />
+  </Style>
+
+  <!-- An action tile: a choice tile that acts at once, as in the close-the-window dialog. -->
+  <Style Selector="Button.tile">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="Padding" Value="16,18,16,16" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.tile:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+  </Style>
+  <Style Selector="RadioButton:checked ui|TileContent /template/ Border#Chip, Button.tile:pointerover ui|TileContent /template/ Border#Chip, Button.tile:focus-visible ui|TileContent /template/ Border#Chip">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftStrongBrush}" />
+    <Setter Property="RenderTransform" Value="scale(1.08)" />
+  </Style>
+  <Style Selector="RadioButton:checked ui|TileContent /template/ ui|Icon#Glyph, Button.tile:pointerover ui|TileContent /template/ ui|Icon#Glyph, Button.tile:focus-visible ui|TileContent /template/ ui|Icon#Glyph">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="RadioButton:checked ui|TileContent /template/ TextBlock#TileTitle">
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+  <Style Selector="RadioButton:pointerover ui|TileContent /template/ Border#Chip">
+    <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+  </Style>
+  <Style Selector="ui|TileContent.danger /template/ Border#Chip">
+    <Setter Property="Background" Value="{StaticResource DangerChipBrush}" />
+  </Style>
+  <Style Selector="ui|TileContent.danger /template/ ui|Icon#Glyph">
+    <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+
+  <!-- Fields: 40 px, a fill of 4% and a line of 12%, the accent while typing. -->
+  <Style Selector="TextBox">
+    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+    <Setter Property="CaretBrush" Value="{StaticResource TextBrush}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderHoverBrush}" />
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <!-- The search box: a magnifier before the text; its accessible name comes from the page. -->
+  <Style Selector="TextBox.search">
+    <Setter Property="Padding" Value="0,8,10,8" />
+    <Setter Property="InnerLeftContent">
+      <Template>
+        <ui:Icon Data="{x:Static theme:Icons.Search}" Width="16" Height="16" Margin="12,0,10,0"
+                 Foreground="{StaticResource TextSecondaryBrush}" />
+      </Template>
+    </Setter>
+  </Style>
+
+  <!-- Surfaces -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+  </Style>
+  <!-- A card that is one link: under the pointer it rises 4 px, its edge turns to the accent and it casts a shadow. -->
+  <Style Selector="Border.card.lift">
+    <Setter Property="RenderTransform" Value="translateY(0px)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
+        <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.3" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.card.lift:pointerover">
+    <Setter Property="RenderTransform" Value="translateY(-4px)" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource ElevLift}" />
+  </Style>
+  <Style Selector=":is(Window).reducedMotion Border.card.lift:pointerover">
+    <Setter Property="RenderTransform" Value="translateY(0px)" />
+  </Style>
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="16" />
+  </Style>
+  <Style Selector="Border.floating">
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevFloating}" />
+  </Style>
+  <Style Selector="Border.divider">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="{StaticResource HairlineBrush}" />
+  </Style>
+
+  <!-- A square around an icon, e.g. in a settings row: 36 px, radius 10. -->
+  <Style Selector="Border.iconChip">
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+  </Style>
+  <Style Selector="Border.iconChip > ui|Icon">
+    <Setter Property="Width" Value="18" />
+    <Setter Property="Height" Value="18" />
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+  <Style Selector="Border.iconChip.accent">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+  <Style Selector="Border.iconChip.accent > ui|Icon">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.iconChip.danger">
+    <Setter Property="Background" Value="{StaticResource DangerChipBrush}" />
+  </Style>
+  <Style Selector="Border.iconChip.danger > ui|Icon">
+    <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+  <Style Selector="Border.iconChip.warning">
+    <Setter Property="Background" Value="#29F59E0B" />
+  </Style>
+  <Style Selector="Border.iconChip.warning > ui|Icon">
+    <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+  </Style>
+
+  <!-- A neutral chip: a label or a count, 24 px. -->
+  <Style Selector="Border.chip">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+  </Style>
+  <Style Selector="Border.chip > TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- The tone dot of a filter pill or a state line. -->
+  <Style Selector="Ellipse.dot">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="Height" Value="6" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Fill" Value="{Binding $parent[TemplatedControl].Foreground}" />
+  </Style>
+
+  <Style Selector="ui|Skeleton">
+    <Setter Property="Background" Value="{StaticResource SkeletonBrush}" />
+  </Style>
+  <Style Selector="ui|ProgressRing">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Track" Value="{StaticResource FillStrongerBrush}" />
+  </Style>
+
+  <Style Selector="ToolTip">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Padding" Value="10,6" />
+  </Style>
+  <Style Selector="ToolTip /template/ Border">
+    <Setter Property="BoxShadow" Value="{StaticResource ElevToast}" />
+  </Style>
+
+  <!-- A page: only its content scrolls; 40 px of margin, 32 px when the content is narrower than 1040 px. -->
+  <Style Selector="ScrollViewer.page">
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+  <Style Selector="StackPanel.page">
+    <Setter Property="Margin" Value="{StaticResource PagePadding}" />
+    <Setter Property="Spacing" Value="24" />
+  </Style>
+</Styles>

@@ -25,6 +25,20 @@ public sealed class ReconnectingPipeClientTests
     }
 
     [Fact]
+    public async Task Posts_events_to_the_agent_while_connected_and_drops_them_while_not()
+    {
+        await using var client = StartClient();
+        client.Post(new WindowActivity(IsActive: true)).Should().BeFalse();
+
+        var handler = new TestHandler();
+        await using var server = TestPipes.StartServer(_name, handler);
+        await _states.ExpectAsync(ConnectionState.Connecting, ConnectionState.Connected);
+
+        client.Post(new WindowActivity(IsActive: true)).Should().BeTrue();
+        (await handler.Events.NextAsync()).Should().Be(new WindowActivity(IsActive: true));
+    }
+
+    [Fact]
     public async Task Reconnects_after_the_agent_restarts_and_keeps_subscriptions()
     {
         var received = Channel.CreateUnbounded<Navigate>();

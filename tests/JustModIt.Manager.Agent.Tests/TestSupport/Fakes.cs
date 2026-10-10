@@ -4,6 +4,7 @@ using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
@@ -197,6 +198,37 @@ internal sealed class FakeWindow : IConnectionHandler
 
     public async Task<AppStateView> StateAsync(Func<AppStateView, bool> condition) =>
         (await NextAsync<StateChanged>(changed => condition(changed.State))).State;
+}
+
+/// <summary>A store whose one library holds one installed, idle game.</summary>
+/// <param name="game">The game's key.</param>
+/// <param name="folder">The game's folder.</param>
+internal sealed class OneGameLibrary(GameKey game, string folder) : ILibraryProvider
+{
+    private InstalledGame Game => new()
+    {
+        Key = game,
+        Name = "Example Game",
+        InstallDirectory = folder,
+        LibraryId = "library",
+        State = GameInstallState.Installed,
+    };
+
+    public StoreId Store => game.Store;
+
+    public Task<StoreScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken) => Task.FromResult(new StoreScan
+    {
+        Store = game.Store,
+        IsPresent = true,
+        Libraries = [new LibraryLocation("library", "test", Path.GetDirectoryName(folder), LibraryState.Online)],
+        Games = [Game],
+    });
+
+    public Task<InstalledGame?> ProbeAsync(InstalledGame known, LibraryScanContext context, CancellationToken cancellationToken) =>
+        Task.FromResult<InstalledGame?>(Game);
+
+    public Task<LibraryFolderEvidence> InspectFolderAsync(string path, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
 }
 
 /// <summary>A site that cannot be reached.</summary>

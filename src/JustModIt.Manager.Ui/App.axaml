@@ -1,0 +1,27 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="JustModIt.Manager.Ui.App"
+             RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://JustModIt.Manager.Ui/Theme/Tokens.axaml" />
+        <ResourceInclude Source="avares://JustModIt.Manager.Ui/Theme/ControlThemes.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark" Accent="#D4213D" AltHigh="#030712" RegionColor="#030712"
+                               ChromeMediumLow="#0F1626" ChromeMedium="#111827" ChromeHigh="#1F2937"
+                               ChromeAltLow="#F4F4F5" BaseHigh="#F4F4F5" ErrorText="#F87171" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Theme/Typography.axaml" />
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Theme/Controls.axaml" />
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Theme/Shell.axaml" />
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Theme/Motion.axaml" />
+  </Application.Styles>
+</Application>

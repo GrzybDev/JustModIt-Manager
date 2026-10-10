@@ -1,0 +1,104 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="using:JustModIt.Manager.Ui.Shell"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+        xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+        xmlns:loc="using:JustModIt.Manager.Localization"
+        x:Class="JustModIt.Manager.Ui.Shell.MainWindow"
+        x:DataType="shell:ShellViewModel"
+        Title="{Binding ProductName}"
+        Width="1280" Height="800" MinWidth="960" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource ChromeBrush}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="40"
+        WindowDecorationsTheme="{StaticResource NoDrawnDecorations}">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Alt+Left" Command="{Binding Navigator.GoBackCommand}" />
+  </Window.KeyBindings>
+
+  <Window.DataTemplates>
+    <DataTemplate x:DataType="shell:NavigationItem">
+      <Panel Classes="navItem" IsVisible="{Binding IsVisible}">
+        <Button Classes="nav" Classes.active="{Binding IsActive}" Content="{Binding Title}"
+                ui:ButtonAssist.Icon="{Binding Icon}" AutomationProperties.Name="{Binding Title}"
+                Command="{Binding $parent[Window].((shell:ShellViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}" />
+        <Border Classes="navIndicator" Classes.active="{Binding IsActive}" />
+      </Panel>
+    </DataTemplate>
+  </Window.DataTemplates>
+
+  <Panel x:Name="LayoutRoot">
+    <Grid RowDefinitions="40,*" ColumnDefinitions="240,*">
+      <!-- Everything a TitleBar element holds would start a window drag, so the bar's buttons are its siblings on top. -->
+      <Border Grid.ColumnSpan="2" Background="Transparent" WindowDecorationProperties.ElementRole="TitleBar" />
+
+      <StackPanel Classes="brand" IsHitTestVisible="False">
+        <Image Source="{Binding Logo}" Width="30" Height="30" IsVisible="{Binding Logo, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <TextBlock Classes="wordmark" Text="{Binding Wordmark}" VerticalAlignment="Center" />
+      </StackPanel>
+
+      <Button x:Name="BackButton" Grid.Column="1" Classes="icon titleBack" Command="{Binding Navigator.GoBackCommand}"
+              IsVisible="{Binding Navigator.CanGoBack}" ToolTip.Tip="{x:Static loc:Strings.Shell_BackTip}"
+              AutomationProperties.Name="{x:Static loc:Strings.Shell_Back}">
+        <ui:Icon Data="{x:Static theme:Icons.ArrowLeft}" />
+      </Button>
+
+      <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+        <Button x:Name="MinimizeButton" Classes="caption" Click="OnMinimize" ToolTip.Tip="{x:Static loc:Strings.Shell_Minimize}"
+                AutomationProperties.Name="{x:Static loc:Strings.Shell_Minimize}" WindowDecorationProperties.ElementRole="MinimizeButton">
+          <ui:Icon Data="{x:Static theme:Icons.Minus}" />
+        </Button>
+        <!-- The MaximizeButton role makes Windows 11 offer its snap layouts while the pointer rests on it. -->
+        <Button x:Name="MaximizeButton" Classes="caption" Click="OnMaximize" ToolTip.Tip="{x:Static loc:Strings.Shell_Maximize}"
+                AutomationProperties.Name="{x:Static loc:Strings.Shell_Maximize}" WindowDecorationProperties.ElementRole="MaximizeButton">
+          <ui:Icon x:Name="MaximizeIcon" Data="{x:Static theme:Icons.Square}" Width="14" Height="14" />
+        </Button>
+        <Button x:Name="CloseButton" Classes="caption close" Click="OnClose" ToolTip.Tip="{x:Static loc:Strings.Shell_Close}"
+                AutomationProperties.Name="{x:Static loc:Strings.Shell_Close}" WindowDecorationProperties.ElementRole="CloseButton">
+          <ui:Icon Data="{x:Static theme:Icons.X}" />
+        </Button>
+      </StackPanel>
+
+      <!-- Rows rather than docking, so the keyboard reaches the pages first and the tools after them. -->
+      <Grid x:Name="Sidebar" Grid.Row="1" Classes="sidebar" Classes.away="{Binding !ShowsPages}" RowDefinitions="Auto,*,Auto">
+        <ItemsControl ItemsSource="{Binding Primary}" AutomationProperties.Name="{x:Static loc:Strings.Shell_Pages}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="4" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+        <StackPanel Grid.Row="2" Spacing="4">
+          <Border Classes="navSeparator" />
+          <ItemsControl ItemsSource="{Binding Secondary}" AutomationProperties.Name="{x:Static loc:Strings.Shell_Tools}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="4" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+          <shell:StatusCard DataContext="{Binding Status}" Margin="0,8,0,0" />
+        </StackPanel>
+      </Grid>
+
+      <Border x:Name="ContentHost" Grid.Row="1" Grid.Column="1" Classes="contentHost" Classes.away="{Binding !ShowsPages}">
+        <TransitioningContentControl x:Name="Pages" Content="{Binding Navigator.Current}"
+                                     IsTransitionReversed="{Binding Navigator.WentBack}">
+          <TransitioningContentControl.PageTransition>
+            <theme:PageTransition />
+          </TransitioningContentControl.PageTransition>
+        </TransitioningContentControl>
+      </Border>
+
+      <TransitioningContentControl x:Name="FirstRunHost" Grid.Row="1" Grid.ColumnSpan="2" Content="{Binding FirstRun}">
+        <TransitioningContentControl.PageTransition>
+          <theme:PageTransition Duration="0:0:0.5" />
+        </TransitioningContentControl.PageTransition>
+      </TransitioningContentControl>
+
+      <shell:ConnectingView Grid.Row="1" Grid.ColumnSpan="2" />
+    </Grid>
+  </Panel>
+</Window>

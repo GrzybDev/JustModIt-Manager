@@ -14,6 +14,12 @@
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 
+  <!-- The window's logo and icon, which AppBranding reads from the app's own assembly. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Branding\logo-256.png" LogicalName="JustModIt.Manager.Logo.png" WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="Branding\app.ico" LogicalName="JustModIt.Manager.Icon.ico" WithCulture="false" Visible="false" />
+  </ItemGroup>
+
   <Import Project="$(MSBuildThisFileDirectory)ProductConfiguration.targets" />
   <Import Project="$(MSBuildThisFileDirectory)LegalNotices.targets" />
   <Import Project="$(MSBuildThisFileDirectory)..\JustModIt.Manager.Localization\Texts.targets" />

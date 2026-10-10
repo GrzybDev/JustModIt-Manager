@@ -3,7 +3,10 @@ using JustModIt.Manager.Agent;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Creator;
+using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
+using JustModIt.Manager.Ui;
+using Microsoft.Extensions.Logging;
 using Velopack.Locators;
 
 namespace JustModIt.Manager.Host;
@@ -87,6 +90,30 @@ internal sealed record HostEnvironment
             : null,
         RestartedByUpdater = RestartedByUpdater,
     };
+
+    /// <summary>What the window's process knows about this app when it starts.</summary>
+    /// <param name="options">What the app hands the startup about itself.</param>
+    /// <param name="launch">This process's command line, parsed.</param>
+    /// <param name="loggers">The window process's log.</param>
+    public UiContext WindowContext(AppOptions options, LaunchArguments launch, ILoggerFactory loggers)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return new UiContext
+        {
+            ProductName = Product.ProductName,
+            Version = Version,
+            PipeName = Names.PipeName,
+            Links = Links,
+            Creator = CreatorOptions(),
+            Launch = launch,
+            Loggers = loggers,
+            Notices = new LegalNotices(options.App),
+            Branding = new AppBranding(options.App),
+            AccentColor = Product.AccentColor,
+            SystemMotion = OperatingSystem.IsWindows() ? new WindowsSystemMotion() : null,
+            Compose = options.ConfigureUi,
+        };
+    }
 
     /// <summary>The package creator's options for this app.</summary>
     public CreatorOptions CreatorOptions() => Creator.CreatorOptions.For(Identity, $"{Product.ProductName} {Version}",

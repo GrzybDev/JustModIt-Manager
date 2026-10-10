@@ -132,4 +132,10 @@
   <data name="SetupPending" xml:space="preserve">
     <value>Do tego czasu aplikacja nie zajmie się spolszczeniami. Kliknij, aby do niej wrócić.</value>
   </data>
+  <data name="Shell_Creator" xml:space="preserve">
+    <value>Kreator spolszczeń</value>
+  </data>
+  <data name="Shell_StatusCheckingDetail" xml:space="preserve">
+    <value>i pasujących spolszczeń</value>
+  </data>
 </root>

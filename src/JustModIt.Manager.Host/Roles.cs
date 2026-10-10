@@ -42,18 +42,8 @@ internal static partial class Roles
     /// <param name="launch">The command line, parsed.</param>
     /// <param name="args">The command line as given, for a hand-over.</param>
     public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
-        RunClaimed(environment, environment.Names.UiLock, "ui", args, loggers => (options.Ui ?? new ConnectionOnlyUiHost()).Run(
-            new UiContext
-            {
-                ProductName = environment.Product.ProductName,
-                Version = environment.Version,
-                PipeName = environment.Names.PipeName,
-                Links = environment.Links,
-                Creator = environment.CreatorOptions(),
-                Launch = launch,
-                Loggers = loggers,
-                Notices = new LegalNotices(options.App),
-            }));
+        RunClaimed(environment, environment.Names.UiLock, "ui", args,
+            loggers => (options.Ui ?? new WindowHost()).Run(environment.WindowContext(options, launch, loggers)));
 
     // A launch whose role is taken hands its command line over and ends; a failed hand-over is in the launcher's log.
     private static int RunClaimed(HostEnvironment environment, string lockName, string role, string[] args,

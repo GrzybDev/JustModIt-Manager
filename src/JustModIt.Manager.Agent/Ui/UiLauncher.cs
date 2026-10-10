@@ -285,7 +285,20 @@ public sealed partial class UiLauncher : IDisposable
 
     private void OnPublished(object? sender, AppStateView state) => SendToWindow(new StateChanged(state));
 
-    private void OnJobsProgressed(object? sender, IReadOnlyList<JobView> jobs) => SendToWindow(new JobProgress(jobs));
+    // The publisher gathers reports and sends them at its own pace, so one may come after the state that ended its job or
+    // moved it on. The newest state, read under the lock that orders what the window gets, tells which are still news.
+    private void OnJobsProgressed(object? sender, IReadOnlyList<JobView> jobs)
+    {
+        lock (_gate)
+        {
+            var listed = _publisher.Latest.Jobs;
+            List<JobView> news = [.. jobs.Where(job => listed.Any(known => known.Id == job.Id && known.Sequence < job.Sequence))];
+            if (news.Count > 0)
+            {
+                _window?.Post(new JobProgress(news));
+            }
+        }
+    }
 
     private void SendToWindow(Message message)
     {

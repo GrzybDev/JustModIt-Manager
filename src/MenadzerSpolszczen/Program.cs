@@ -11,6 +11,7 @@ internal static class Program
         Product = ProductConfiguration.Settings,
         App = typeof(Program).Assembly,
         ConfigureAgent = services => services.AddSingleton<IInstallPolicy, OneProjectPerGamePolicy>(),
+        ConfigureUi = WindowLook.Compose,
     };
 
     [STAThread]

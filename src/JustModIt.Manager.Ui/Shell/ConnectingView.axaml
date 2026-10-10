@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:JustModIt.Manager.Ui.Shell"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Shell.ConnectingView"
+             x:DataType="shell:ShellViewModel"
+             Classes="connecting" Classes.shown="{Binding IsConnecting}" IsHitTestVisible="{Binding IsConnecting}">
+  <Border Classes="connectingBackdrop">
+    <StackPanel Classes="connectingContent" AutomationProperties.LiveSetting="Polite">
+      <Panel Classes="connectingArt">
+        <Ellipse Classes="connectingGlow pulse" />
+        <Image Classes="bob" Source="{Binding Logo}" Width="64" Height="64" />
+      </Panel>
+      <StackPanel Spacing="6">
+        <TextBlock Classes="h2" TextAlignment="Center" Text="{Binding ConnectingTitle}" />
+        <TextBlock Classes="bodyL" TextAlignment="Center" Text="{Binding ConnectingMessage}" />
+      </StackPanel>
+      <ProgressBar Classes="thin" Width="160" IsIndeterminate="True" AutomationProperties.Name="{Binding ConnectingTitle}" />
+      <StackPanel Spacing="12" IsVisible="{Binding IsSlowToConnect}">
+        <TextBlock Classes="caption" TextAlignment="Center" Text="{x:Static loc:Strings.Shell_ConnectingSlow}" />
+        <Button Classes="outline" HorizontalAlignment="Center" Content="{x:Static loc:Strings.Shell_StartAgent}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RotateCcw}" Command="{Binding StartAgentCommand}" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

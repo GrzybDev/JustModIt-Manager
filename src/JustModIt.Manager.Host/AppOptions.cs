@@ -15,6 +15,9 @@ public sealed record AppOptions
     /// <summary>The app's own agent services, registered after the shared ones, so they add to or replace them.</summary>
     public Action<IServiceCollection>? ConfigureAgent { get; init; }
 
+    /// <summary>The app's own views, pages, styles and resources of the window, added after the shared ones so they win.</summary>
+    public Action<UiComposition>? ConfigureUi { get; init; }
+
     /// <summary>The window's process; the shared one when null.</summary>
     public IUiHost? Ui { get; init; }
 }

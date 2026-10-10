@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Protocol.Activation;
 using Microsoft.Extensions.Logging;
@@ -26,6 +27,18 @@ public sealed record UiContext
 
     /// <summary>What the licences page shows.</summary>
     public required LegalNotices Notices { get; init; }
+
+    /// <summary>The app's logo and the window's icon.</summary>
+    public required AppBranding Branding { get; init; }
+
+    /// <summary>The app's accent colour as <c>#rrggbb</c>; empty keeps the theme's own.</summary>
+    public string AccentColor { get; init; } = "";
+
+    /// <summary>The system's wish for reduced motion, which the window follows; null where the system has none.</summary>
+    public ISystemMotion? SystemMotion { get; init; }
+
+    /// <summary>The app's own views, pages, styles and resources, added after the shared ones so they win.</summary>
+    public Action<UiComposition>? Compose { get; init; }
 }
 
 /// <summary>The window's process, started by the agent when the player asks for the window and ended when it closes.</summary>

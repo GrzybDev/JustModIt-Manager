@@ -1,0 +1,203 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- The design tokens of the window (the Tokens board): a near-black page, navy surfaces, white with alpha for fills
+       and lines, and the app's accent for one primary action and the app's own work. The accent family is replaced at
+       start from the app's accent colour (AccentPalette), so styles take it with DynamicResource. -->
+
+  <!-- Surfaces -->
+  <Color x:Key="PageColor">#030712</Color>
+  <Color x:Key="PageAltColor">#060A13</Color>
+  <Color x:Key="ChromeColor">#070B14</Color>
+  <Color x:Key="SurfaceColor">#0F1626</Color>
+  <Color x:Key="SurfaceSunkenColor">#0B111E</Color>
+  <Color x:Key="SurfaceSeamColor">#0C1220</Color>
+  <Color x:Key="SurfaceFloatingColor">#111827</Color>
+  <Color x:Key="SurfaceOverArtColor">#D10B111E</Color>
+  <Color x:Key="SurfaceOverArtStrongColor">#E00B111E</Color>
+  <Color x:Key="ScrimColor">#99030712</Color>
+  <Color x:Key="SkeletonColor">#1F2937</Color>
+  <Color x:Key="DisabledFillColor">#1A2030</Color>
+
+  <!-- White with alpha: fills and lines -->
+  <Color x:Key="FillSubtleColor">#0AFFFFFF</Color>
+  <Color x:Key="FillColor">#0FFFFFFF</Color>
+  <Color x:Key="FillStrongColor">#14FFFFFF</Color>
+  <Color x:Key="FillStrongerColor">#1AFFFFFF</Color>
+  <Color x:Key="HairlineFaintColor">#0DFFFFFF</Color>
+  <Color x:Key="HairlineColor">#14FFFFFF</Color>
+  <Color x:Key="BorderColor">#1AFFFFFF</Color>
+  <Color x:Key="FieldBorderColor">#1FFFFFFF</Color>
+  <Color x:Key="BorderStrongColor">#26FFFFFF</Color>
+  <Color x:Key="BorderStrongerColor">#29FFFFFF</Color>
+  <Color x:Key="BorderHoverColor">#40FFFFFF</Color>
+  <Color x:Key="BorderSelectedColor">#8CFFFFFF</Color>
+  <Color x:Key="SwitchOffBorderColor">#66FFFFFF</Color>
+
+  <!-- Text, with its contrast on the page -->
+  <Color x:Key="TextStrongColor">#FFFFFF</Color>
+  <Color x:Key="TextColor">#F4F4F5</Color>
+  <Color x:Key="TextEmphasisColor">#E4E4E7</Color>
+  <Color x:Key="TextBodyColor">#D4D4D8</Color>
+  <Color x:Key="TextSecondaryColor">#A1A1AA</Color>
+  <!-- 4.2:1, so only for separators and hints in fields, never for content. -->
+  <Color x:Key="TextMutedColor">#71717A</Color>
+  <Color x:Key="TextOnLightColor">#18181B</Color>
+
+  <!-- The accent family; AccentPalette derives it from the app's accent. -->
+  <Color x:Key="AccentColor">#D4213D</Color>
+  <Color x:Key="AccentHoverColor">#D83750</Color>
+  <Color x:Key="AccentPressedColor">#B91C34</Color>
+  <Color x:Key="AccentTextColor">#FF6467</Color>
+  <Color x:Key="AccentSoftColor">#26D4213D</Color>
+  <Color x:Key="AccentSoftStrongColor">#38D4213D</Color>
+  <Color x:Key="AccentFilterColor">#21D4213D</Color>
+  <Color x:Key="AccentFilterStrongColor">#42D4213D</Color>
+  <Color x:Key="AccentFilterEdgeColor">#B3D4213D</Color>
+  <Color x:Key="AccentBorderColor">#80EF4444</Color>
+  <Color x:Key="FocusRingColor">#EF4444</Color>
+
+  <!-- Tones of what happens on this computer: a base colour and a label colour that reads on dark surfaces. -->
+  <Color x:Key="SuccessColor">#22C55E</Color>
+  <Color x:Key="SuccessTextColor">#4ADE80</Color>
+  <Color x:Key="InfoColor">#3B82F6</Color>
+  <Color x:Key="InfoTextColor">#9DC0FA</Color>
+  <Color x:Key="WarningColor">#F59E0B</Color>
+  <Color x:Key="WarningTextColor">#FBBF24</Color>
+  <Color x:Key="DangerColor">#EF4444</Color>
+  <Color x:Key="DangerTextColor">#F87171</Color>
+  <Color x:Key="DangerTextStrongColor">#FCA5A5</Color>
+  <Color x:Key="NeutralColor">#71717A</Color>
+  <Color x:Key="NeutralTextColor">#B8B8BC</Color>
+  <Color x:Key="CloseHoverColor">#E81123</Color>
+  <Color x:Key="ClosePressedColor">#F1707A</Color>
+
+  <SolidColorBrush x:Key="PageBrush" Color="{StaticResource PageColor}" />
+  <SolidColorBrush x:Key="PageAltBrush" Color="{StaticResource PageAltColor}" />
+  <SolidColorBrush x:Key="ChromeBrush" Color="{StaticResource ChromeColor}" />
+  <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+  <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="{StaticResource SurfaceSunkenColor}" />
+  <SolidColorBrush x:Key="SurfaceSeamBrush" Color="{StaticResource SurfaceSeamColor}" />
+  <SolidColorBrush x:Key="SurfaceFloatingBrush" Color="{StaticResource SurfaceFloatingColor}" />
+  <SolidColorBrush x:Key="SurfaceOverArtBrush" Color="{StaticResource SurfaceOverArtColor}" />
+  <SolidColorBrush x:Key="SurfaceOverArtStrongBrush" Color="{StaticResource SurfaceOverArtStrongColor}" />
+  <SolidColorBrush x:Key="ScrimBrush" Color="{StaticResource ScrimColor}" />
+  <SolidColorBrush x:Key="SkeletonBrush" Color="{StaticResource SkeletonColor}" />
+  <SolidColorBrush x:Key="DisabledFillBrush" Color="{StaticResource DisabledFillColor}" />
+  <SolidColorBrush x:Key="FillSubtleBrush" Color="{StaticResource FillSubtleColor}" />
+  <SolidColorBrush x:Key="FillBrush" Color="{StaticResource FillColor}" />
+  <SolidColorBrush x:Key="FillStrongBrush" Color="{StaticResource FillStrongColor}" />
+  <SolidColorBrush x:Key="FillStrongerBrush" Color="{StaticResource FillStrongerColor}" />
+  <SolidColorBrush x:Key="HairlineFaintBrush" Color="{StaticResource HairlineFaintColor}" />
+  <SolidColorBrush x:Key="HairlineBrush" Color="{StaticResource HairlineColor}" />
+  <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+  <SolidColorBrush x:Key="FieldBorderBrush" Color="{StaticResource FieldBorderColor}" />
+  <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}" />
+  <SolidColorBrush x:Key="BorderStrongerBrush" Color="{StaticResource BorderStrongerColor}" />
+  <SolidColorBrush x:Key="BorderHoverBrush" Color="{StaticResource BorderHoverColor}" />
+  <SolidColorBrush x:Key="BorderSelectedBrush" Color="{StaticResource BorderSelectedColor}" />
+  <SolidColorBrush x:Key="SwitchOffBorderBrush" Color="{StaticResource SwitchOffBorderColor}" />
+  <SolidColorBrush x:Key="TextStrongBrush" Color="{StaticResource TextStrongColor}" />
+  <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}" />
+  <SolidColorBrush x:Key="TextEmphasisBrush" Color="{StaticResource TextEmphasisColor}" />
+  <SolidColorBrush x:Key="TextBodyBrush" Color="{StaticResource TextBodyColor}" />
+  <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+  <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+  <SolidColorBrush x:Key="TextOnLightBrush" Color="{StaticResource TextOnLightColor}" />
+  <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}" />
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="{DynamicResource AccentHoverColor}" />
+  <SolidColorBrush x:Key="AccentPressedBrush" Color="{DynamicResource AccentPressedColor}" />
+  <SolidColorBrush x:Key="AccentTextBrush" Color="{DynamicResource AccentTextColor}" />
+  <SolidColorBrush x:Key="AccentSoftBrush" Color="{DynamicResource AccentSoftColor}" />
+  <SolidColorBrush x:Key="AccentSoftStrongBrush" Color="{DynamicResource AccentSoftStrongColor}" />
+  <SolidColorBrush x:Key="AccentFilterBrush" Color="{DynamicResource AccentFilterColor}" />
+  <SolidColorBrush x:Key="AccentFilterStrongBrush" Color="{DynamicResource AccentFilterStrongColor}" />
+  <SolidColorBrush x:Key="AccentFilterEdgeBrush" Color="{DynamicResource AccentFilterEdgeColor}" />
+  <SolidColorBrush x:Key="AccentBorderBrush" Color="{DynamicResource AccentBorderColor}" />
+  <SolidColorBrush x:Key="FocusRingBrush" Color="{DynamicResource FocusRingColor}" />
+  <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+  <SolidColorBrush x:Key="SuccessTextBrush" Color="{StaticResource SuccessTextColor}" />
+  <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}" />
+  <SolidColorBrush x:Key="InfoTextBrush" Color="{StaticResource InfoTextColor}" />
+  <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+  <SolidColorBrush x:Key="WarningTextBrush" Color="{StaticResource WarningTextColor}" />
+  <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
+  <SolidColorBrush x:Key="DangerTextBrush" Color="{StaticResource DangerTextColor}" />
+  <SolidColorBrush x:Key="DangerTextStrongBrush" Color="{StaticResource DangerTextStrongColor}" />
+  <SolidColorBrush x:Key="NeutralBrush" Color="{StaticResource NeutralColor}" />
+  <SolidColorBrush x:Key="NeutralTextBrush" Color="{StaticResource NeutralTextColor}" />
+  <SolidColorBrush x:Key="CloseHoverBrush" Color="{StaticResource CloseHoverColor}" />
+  <SolidColorBrush x:Key="ClosePressedBrush" Color="{StaticResource ClosePressedColor}" />
+
+  <!-- Tinted messages: the tone's base colour at 10-12% and its label colour at 26-30% for the edge. -->
+  <SolidColorBrush x:Key="InfoSoftBrush" Color="#1F3B82F6" />
+  <SolidColorBrush x:Key="InfoEdgeBrush" Color="#479DC0FA" />
+  <SolidColorBrush x:Key="SuccessSoftBrush" Color="#1A22C55E" />
+  <SolidColorBrush x:Key="SuccessEdgeBrush" Color="#474ADE80" />
+  <SolidColorBrush x:Key="WarningSoftBrush" Color="#1AF59E0B" />
+  <SolidColorBrush x:Key="WarningEdgeBrush" Color="#47FBBF24" />
+  <SolidColorBrush x:Key="DangerSoftBrush" Color="#1FEF4444" />
+  <SolidColorBrush x:Key="DangerEdgeBrush" Color="#4DF87171" />
+  <SolidColorBrush x:Key="DangerChipBrush" Color="#29EF4444" />
+  <SolidColorBrush x:Key="DangerHoverBrush" Color="#1AEF4444" />
+  <SolidColorBrush x:Key="DangerButtonEdgeBrush" Color="#73F87171" />
+
+  <!-- Radii: XS avatars and tooltips, SM buttons and fields, MD avatars, LG cards and messages, XL gallery tiles,
+       XXL panels and dialogs, Pill pills and progress tracks. -->
+  <CornerRadius x:Key="RadiusXs">6</CornerRadius>
+  <CornerRadius x:Key="RadiusSm">8</CornerRadius>
+  <CornerRadius x:Key="RadiusMd">10</CornerRadius>
+  <CornerRadius x:Key="RadiusLg">12</CornerRadius>
+  <CornerRadius x:Key="RadiusXl">14</CornerRadius>
+  <CornerRadius x:Key="RadiusXxl">16</CornerRadius>
+  <CornerRadius x:Key="RadiusPill">999</CornerRadius>
+  <!-- Fluent's own radii, so stock controls match. -->
+  <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+  <CornerRadius x:Key="OverlayCornerRadius">12</CornerRadius>
+
+  <!-- Elevation: lines carry the dark interface; a shadow only on what really floats. -->
+  <BoxShadows x:Key="ElevRest">0 1 2 0 #66000000</BoxShadows>
+  <BoxShadows x:Key="ElevLift">0 22 40 -18 #59D4213D, 0 12 24 -12 #CC000000</BoxShadows>
+  <BoxShadows x:Key="ElevCover">0 0 0 1 #24FFFFFF, 0 30 60 -24 #F2000000, 0 14 28 -16 #CC000000</BoxShadows>
+  <BoxShadows x:Key="ElevPrimary">0 14 30 -14 #CCD4213D, inset 0 1 0 0 #1FFFFFFF</BoxShadows>
+  <BoxShadows x:Key="ElevPrimaryHover">0 16 32 -14 #F2D4213D, inset 0 1 0 0 #24FFFFFF</BoxShadows>
+  <BoxShadows x:Key="ElevPrimaryPressed">inset 0 1 0 0 #14FFFFFF</BoxShadows>
+  <BoxShadows x:Key="ElevSeamPill">0 4 10 -2 #99000000</BoxShadows>
+  <BoxShadows x:Key="ElevFloating">0 0 0 1 #1FFFFFFF, 0 24 60 -30 #E6000000</BoxShadows>
+  <BoxShadows x:Key="ElevToast">0 8 24 0 #66000000</BoxShadows>
+  <BoxShadows x:Key="ElevNone">0 0 0 0 #00000000</BoxShadows>
+
+  <!-- Window constants -->
+  <x:Double x:Key="TitleBarHeight">40</x:Double>
+  <x:Double x:Key="SidebarWidth">240</x:Double>
+  <x:Double x:Key="NavItemHeight">40</x:Double>
+  <Thickness x:Key="PagePadding">40,32,40,56</Thickness>
+  <Thickness x:Key="PagePaddingNarrow">32,32,32,56</Thickness>
+  <x:Double x:Key="PageMaxWidth">1120</x:Double>
+
+  <!-- Inter 3.19 (SIL Open Font License) from Avalonia.Fonts.Inter; ExtraBold titles render with its Bold. -->
+  <FontFamily x:Key="InterFont">fonts:Inter#Inter</FontFamily>
+
+  <!-- The brush of the product's name in the title bar; an app may replace it with its own (UiComposition). -->
+  <SolidColorBrush x:Key="WordmarkBrush" Color="{StaticResource TextColor}" />
+
+  <!-- Fluent's own keys, so stock controls take the theme. -->
+  <SolidColorBrush x:Key="ToolTipBackground" Color="{StaticResource SurfaceFloatingColor}" />
+  <SolidColorBrush x:Key="ToolTipBorderBrush" Color="{StaticResource HairlineColor}" />
+  <SolidColorBrush x:Key="ToolTipForeground" Color="{StaticResource TextEmphasisColor}" />
+  <x:Double x:Key="ToolTipContentThemeFontSize">13</x:Double>
+  <Thickness x:Key="ToolTipBorderThemePadding">10,6,10,6</Thickness>
+  <Color x:Key="ScrollBarThumbBackgroundColor">#33FFFFFF</Color>
+  <Color x:Key="ScrollBarPanningThumbBackgroundColor">#33FFFFFF</Color>
+  <SolidColorBrush x:Key="ScrollBarThumbFillPointerOver" Color="#4DFFFFFF" />
+  <SolidColorBrush x:Key="ScrollBarThumbFillPressed" Color="#66FFFFFF" />
+  <SolidColorBrush x:Key="ScrollBarTrackFill" Color="Transparent" />
+  <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="#0AFFFFFF" />
+  <SolidColorBrush x:Key="ScrollBarTrackStroke" Color="Transparent" />
+  <SolidColorBrush x:Key="ScrollBarTrackStrokePointerOver" Color="Transparent" />
+  <SolidColorBrush x:Key="ScrollBarButtonArrowForeground" Color="{StaticResource TextSecondaryColor}" />
+  <SolidColorBrush x:Key="ScrollBarButtonArrowForegroundPointerOver" Color="{StaticResource TextColor}" />
+  <SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="{DynamicResource AccentSoftStrongColor}" />
+  <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="{StaticResource TextMutedColor}" />
+  <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="{StaticResource TextMutedColor}" />
+  <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="{StaticResource TextMutedColor}" />
+</ResourceDictionary>

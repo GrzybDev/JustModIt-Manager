@@ -1,6 +1,10 @@
 using System.Reflection;
 using JustModIt.Manager.Agent;
+using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
+using JustModIt.Manager.Protocol.Messages;
+using JustModIt.Manager.Ui;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Host.Tests;
 
@@ -81,6 +85,22 @@ public sealed class HostEnvironmentTests
 
         environment.AgentOptions().PackageExtension.Should().Be(".examplemod");
         (creator.PackageExtension, creator.ProjectExtension).Should().Be((".examplemod", ".exampleproj"));
+    }
+
+    [Fact]
+    public void The_window_gets_the_apps_accent_its_names_the_systems_motion_setting_and_its_own_composition()
+    {
+        Action<UiComposition> compose = _ => { };
+        var options = new AppOptions { Product = Product, App = typeof(HostEnvironmentTests).Assembly, ConfigureUi = compose };
+
+        var context = HostEnvironment.Create(Product with { AccentColor = "#3B82F6" }, Build)
+            .WindowContext(options, new LaunchArguments(ProcessRole.Ui, Background: false, Target: null), NullLoggerFactory.Instance);
+
+        context.AccentColor.Should().Be("#3B82F6");
+        context.Compose.Should().BeSameAs(compose);
+        context.ProductName.Should().Be(ProductConfiguration.ProductName);
+        context.PipeName.Should().Be(InstanceNames.ForCurrentUser("ExampleApp.Dev").PipeName);
+        context.SystemMotion.Should().Match(motion => !OperatingSystem.IsWindows() || motion is WindowsSystemMotion);
     }
 
     [Fact]

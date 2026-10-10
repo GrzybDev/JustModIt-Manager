@@ -285,4 +285,160 @@
   <data name="SetupPending" xml:space="preserve">
     <value>Until you do, the app changes none of your games. Click to go back to it.</value>
   </data>
+  <data name="Shell_Library" xml:space="preserve">
+    <value>My games</value>
+  </data>
+  <data name="Shell_Catalogue" xml:space="preserve">
+    <value>Catalogue</value>
+  </data>
+  <data name="Shell_Creator" xml:space="preserve">
+    <value>Package creator</value>
+  </data>
+  <data name="Shell_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Shell_Pages" xml:space="preserve">
+    <value>Pages</value>
+  </data>
+  <data name="Shell_Tools" xml:space="preserve">
+    <value>Tools and settings</value>
+  </data>
+  <data name="Shell_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Shell_BackTip" xml:space="preserve">
+    <value>Back (Alt+←)</value>
+  </data>
+  <data name="Shell_Minimize" xml:space="preserve">
+    <value>Minimize</value>
+  </data>
+  <data name="Shell_Maximize" xml:space="preserve">
+    <value>Maximize</value>
+  </data>
+  <data name="Shell_Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="Shell_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Shell_StatusStarting" xml:space="preserve">
+    <value>Starting…</value>
+  </data>
+  <data name="Shell_StatusExitPending" xml:space="preserve">
+    <value>Closing after the jobs</value>
+  </data>
+  <data name="Shell_StatusJobs" xml:space="preserve">
+    <value>{count, plural, one {# job} other {# jobs}} in progress</value>
+  </data>
+  <data name="Shell_StatusChecking" xml:space="preserve">
+    <value>Checking games</value>
+  </data>
+  <data name="Shell_StatusCheckingDetail" xml:space="preserve">
+    <value>and matching projects</value>
+  </data>
+  <data name="Shell_StatusDetailProgress" xml:space="preserve">
+    <value>{detail} · {percent}</value>
+  </data>
+  <data name="Shell_StatusVersion" xml:space="preserve">
+    <value>Version {version}</value>
+  </data>
+  <data name="Shell_StatusUpToDate" xml:space="preserve">
+    <value>up to date</value>
+  </data>
+  <data name="Shell_StatusUpdateDownloading" xml:space="preserve">
+    <value>Downloading an update</value>
+  </data>
+  <data name="Shell_StatusUpdateReady" xml:space="preserve">
+    <value>Update ready</value>
+  </data>
+  <data name="Shell_StatusRestart" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="Shell_StatusRestartTip" xml:space="preserve">
+    <value>The window closes, version {version} installs and the window opens again.</value>
+  </data>
+  <data name="Shell_StatusUpdateAvailable" xml:space="preserve">
+    <value>Update available</value>
+  </data>
+  <data name="Shell_StatusDownload" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="Shell_StatusDownloadTip" xml:space="preserve">
+    <value>Downloads the new version, which installs once the app is not busy.</value>
+  </data>
+  <data name="Shell_JobQueued" xml:space="preserve">
+    <value>Queued</value>
+  </data>
+  <data name="Shell_JobWaitingForGame" xml:space="preserve">
+    <value>Waiting for the game to close</value>
+  </data>
+  <data name="Shell_JobWaitingForStore" xml:space="preserve">
+    <value>Waiting for the store</value>
+  </data>
+  <data name="Shell_JobWaitingForRecovery" xml:space="preserve">
+    <value>Finishing an interrupted job</value>
+  </data>
+  <data name="Shell_JobWaitingForDownload" xml:space="preserve">
+    <value>Waiting to download</value>
+  </data>
+  <data name="Shell_JobRollingBack" xml:space="preserve">
+    <value>Undoing the changes</value>
+  </data>
+  <data name="Shell_JobRestoringPrevious" xml:space="preserve">
+    <value>Restoring the previous release</value>
+  </data>
+  <data name="Shell_JobInstalling" xml:space="preserve">
+    <value>Installing</value>
+  </data>
+  <data name="Shell_JobUpdating" xml:space="preserve">
+    <value>Updating</value>
+  </data>
+  <data name="Shell_JobRepairing" xml:space="preserve">
+    <value>Repairing</value>
+  </data>
+  <data name="Shell_JobUninstalling" xml:space="preserve">
+    <value>Uninstalling</value>
+  </data>
+  <data name="Shell_JobTestInstalling" xml:space="preserve">
+    <value>Test install</value>
+  </data>
+  <data name="Shell_JobMovingBackups" xml:space="preserve">
+    <value>Moving backups</value>
+  </data>
+  <data name="Shell_JobFollowingMove" xml:space="preserve">
+    <value>Following the game to its new folder</value>
+  </data>
+  <data name="Shell_ConnectingTitle" xml:space="preserve">
+    <value>Starting…</value>
+  </data>
+  <data name="Shell_ConnectingMessage" xml:space="preserve">
+    <value>The window is waiting for the part of the app that runs in the background and looks after the games.</value>
+  </data>
+  <data name="Shell_UpdatingTitle" xml:space="preserve">
+    <value>Finishing the update</value>
+  </data>
+  <data name="Shell_UpdatingMessage" xml:space="preserve">
+    <value>The app is updating itself. The window reconnects as soon as it is done.</value>
+  </data>
+  <data name="Shell_ConnectingSlow" xml:space="preserve">
+    <value>The part of the app that runs in the background does not answer.</value>
+  </data>
+  <data name="Shell_StartAgent" xml:space="preserve">
+    <value>Start it again</value>
+  </data>
+  <data name="Shell_PlaceholderTitle" xml:space="preserve">
+    <value>Coming soon</value>
+  </data>
+  <data name="Shell_PlaceholderMessage" xml:space="preserve">
+    <value>This part of the window arrives in a later version.</value>
+  </data>
+  <data name="Shell_PageGame" xml:space="preserve">
+    <value>Game</value>
+  </data>
+  <data name="Shell_PageUndetected" xml:space="preserve">
+    <value>Can't see your game?</value>
+  </data>
+  <data name="Shell_PageLicenses" xml:space="preserve">
+    <value>Licenses</value>
+  </data>
 </root>

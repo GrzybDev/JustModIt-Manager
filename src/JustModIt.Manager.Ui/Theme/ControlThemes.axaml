@@ -1,0 +1,469 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ui="using:JustModIt.Manager.Ui.Controls">
+  <!-- Templates of controls the theme draws its own way. Controls whose look changes by class stay on Fluent's
+       templates and are restyled in Controls.axaml; the pills and tiles below are picked with Theme="{StaticResource …}". -->
+
+  <!-- Avalonia draws a title bar and caption buttons over an extended client area; an empty template leaves the area
+       to the window's own title bar. -->
+  <ControlTheme x:Key="NoDrawnDecorations" TargetType="WindowDrawnDecorations">
+    <Setter Property="DefaultTitleBarHeight" Value="40" />
+    <Setter Property="DefaultFrameThickness" Value="0" />
+    <Setter Property="DefaultShadowThickness" Value="0" />
+    <Setter Property="Template">
+      <WindowDrawnDecorationsTemplate>
+        <WindowDrawnDecorationsContent />
+      </WindowDrawnDecorationsTemplate>
+    </Setter>
+  </ControlTheme>
+
+  <!-- A switch without on/off words, its row's title naming it: 40x22, a 14 px knob off and a 16 px knob on. -->
+  <ControlTheme x:Key="{x:Type ToggleSwitch}" TargetType="ToggleSwitch">
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource SwitchOffBorderBrush}" />
+    <Setter Property="CornerRadius" Value="11" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="KnobTransitions">
+      <Transitions>
+        <DoubleTransition Property="Canvas.Left" Duration="0:0:0.18" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid Name="SwitchAreaGrid" Width="40" Height="22" Background="Transparent">
+          <Border Name="OuterBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="1" CornerRadius="{TemplateBinding CornerRadius}">
+            <Border.Transitions>
+              <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+              </Transitions>
+            </Border.Transitions>
+          </Border>
+          <Canvas Name="PART_MovingKnobs" Width="40" Height="22" HorizontalAlignment="Left">
+            <Panel Name="PART_SwitchKnob" Width="22" Height="22" Canvas.Left="0">
+              <Ellipse Name="SwitchKnobOff" Width="14" Height="14" Fill="{StaticResource TextBodyBrush}" />
+              <Ellipse Name="SwitchKnobOn" Width="16" Height="16" Fill="White" Opacity="0" />
+            </Panel>
+          </Canvas>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="^:checked:pointerover">
+      <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
+    </Style>
+    <Style Selector="^:checked /template/ Panel#PART_SwitchKnob">
+      <Setter Property="Canvas.Left" Value="18" />
+    </Style>
+    <Style Selector="^:checked /template/ Ellipse#SwitchKnobOn">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="^:checked /template/ Ellipse#SwitchKnobOff">
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.55" />
+    </Style>
+  </ControlTheme>
+
+  <!-- A track of 6 px (4 px with Classes="thin") in the accent: the app's own work. The width eases between updates, from
+       zero at first: a bar that begins indeterminate has no width yet, and easing from none stays none while reports keep
+       coming faster than the easing ends. -->
+  <ControlTheme x:Key="{x:Type ProgressBar}" TargetType="ProgressBar">
+    <Setter Property="Height" Value="6" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="Background" Value="{StaticResource FillStrongerBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True">
+          <Panel>
+            <Border Name="PART_Indicator" Background="{TemplateBinding Foreground}" CornerRadius="{TemplateBinding CornerRadius}"
+                    HorizontalAlignment="Left" Width="0">
+              <Border.Transitions>
+                <Transitions>
+                  <DoubleTransition Property="Width" Duration="0:0:0.25" Easing="CubicEaseOut" />
+                </Transitions>
+              </Border.Transitions>
+            </Border>
+            <ui:ProgressStripe Name="Stripe" Foreground="{TemplateBinding Foreground}" IsVisible="False" />
+          </Panel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^.thin">
+      <Setter Property="Height" Value="4" />
+    </Style>
+    <Style Selector="^:indeterminate /template/ Border#PART_Indicator">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="^:indeterminate /template/ ui|ProgressStripe#Stripe">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+  </ControlTheme>
+
+  <!-- A choice among a few options: a centred tile whose selection shows through the accent alone, no radio dot. -->
+  <ControlTheme x:Key="ChoiceTile" TargetType="RadioButton">
+    <Setter Property="Padding" Value="16,18,16,16" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                          CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
+                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}">
+          <ContentPresenter.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.15" />
+              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+            </Transitions>
+          </ContentPresenter.Transitions>
+        </ContentPresenter>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    </Style>
+  </ControlTheme>
+
+  <!-- The order of a list: three quiet pills instead of a dropdown. -->
+  <ControlTheme x:Key="SortPill" TargetType="RadioButton">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource FillStrongerBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                          CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
+                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                          VerticalContentAlignment="Center">
+          <ContentPresenter.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.15" />
+              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+            </Transitions>
+          </ContentPresenter.Transitions>
+        </ContentPresenter>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="Background" Value="{StaticResource FillStrongerBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderSelectedBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+    </Style>
+  </ControlTheme>
+
+  <!-- A variant or a team under a button: a pill with a radio circle, the recommended one chosen at the start. -->
+  <ControlTheme x:Key="ChoicePill" TargetType="RadioButton">
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Padding" Value="11,0,14,0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    <Setter Property="Background" Value="#73030712" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongerBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                Padding="{TemplateBinding Padding}">
+          <Border.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.15" />
+              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+            </Transitions>
+          </Border.Transitions>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Border Width="15" Height="15" CornerRadius="999" BorderThickness="1.5" VerticalAlignment="Center"
+                    BorderBrush="{TemplateBinding Foreground}">
+              <Ellipse Name="Dot" Width="6" Height="6" Fill="{TemplateBinding Foreground}" Opacity="0" />
+            </Border>
+            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+      <Setter Property="BorderBrush" Value="#47FFFFFF" />
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="Background" Value="{StaticResource FillStrongerBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderSelectedBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+    </Style>
+    <Style Selector="^:checked /template/ Ellipse#Dot">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+  </ControlTheme>
+
+  <!-- A filter of a list, tinted by its tone class (accent by default; success, info, warning, neutral, or all). -->
+  <ControlTheme x:Key="FilterPill" TargetType="ToggleButton">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AccentFilterBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                          CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
+                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                          VerticalContentAlignment="Center">
+          <ContentPresenter.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.15" />
+              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+            </Transitions>
+          </ContentPresenter.Transitions>
+        </ContentPresenter>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:checked">
+      <Setter Property="Background" Value="{DynamicResource AccentFilterStrongBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentFilterEdgeBrush}" />
+    </Style>
+    <Style Selector="^.success">
+      <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+      <Setter Property="Background" Value="#2122C55E" />
+    </Style>
+    <Style Selector="^.success:checked">
+      <Setter Property="Background" Value="#4222C55E" />
+      <Setter Property="BorderBrush" Value="#B322C55E" />
+    </Style>
+    <Style Selector="^.info">
+      <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}" />
+      <Setter Property="Background" Value="#213B82F6" />
+    </Style>
+    <Style Selector="^.info:checked">
+      <Setter Property="Background" Value="#423B82F6" />
+      <Setter Property="BorderBrush" Value="#B33B82F6" />
+    </Style>
+    <Style Selector="^.warning">
+      <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+      <Setter Property="Background" Value="#21F59E0B" />
+    </Style>
+    <Style Selector="^.warning:checked">
+      <Setter Property="Background" Value="#42F59E0B" />
+      <Setter Property="BorderBrush" Value="#B3F59E0B" />
+    </Style>
+    <Style Selector="^.neutral">
+      <Setter Property="Foreground" Value="{StaticResource NeutralTextBrush}" />
+      <Setter Property="Background" Value="#2171717A" />
+    </Style>
+    <Style Selector="^.neutral:checked">
+      <Setter Property="Background" Value="#4271717A" />
+      <Setter Property="BorderBrush" Value="#B371717A" />
+    </Style>
+    <Style Selector="^.all">
+      <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+      <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+    </Style>
+    <Style Selector="^.all:checked">
+      <Setter Property="Foreground" Value="{StaticResource TextOnLightBrush}" />
+      <Setter Property="Background" Value="{StaticResource TextBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource TextBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </ControlTheme>
+
+  <ControlTheme x:Key="{x:Type ui:TileContent}" TargetType="ui:TileContent">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Spacing="12" HorizontalAlignment="Stretch">
+          <Border Name="Chip" Width="56" Height="56" CornerRadius="14" HorizontalAlignment="Center"
+                  Background="{StaticResource FillStrongBrush}" RenderTransform="scale(1)">
+            <Border.Transitions>
+              <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="BackEaseOut" />
+              </Transitions>
+            </Border.Transitions>
+            <ui:Icon Name="Glyph" Data="{TemplateBinding Icon}" Width="26" Height="26" Foreground="{StaticResource TextEmphasisBrush}" />
+          </Border>
+          <StackPanel Spacing="4">
+            <TextBlock Name="TileTitle" Text="{TemplateBinding Title}" FontSize="15" LineHeight="20" FontWeight="SemiBold"
+                       TextAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" />
+            <TextBlock Text="{TemplateBinding Description}" FontSize="13" LineHeight="18" FontWeight="Normal" TextAlignment="Center"
+                       TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"
+                       IsVisible="{TemplateBinding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+  </ControlTheme>
+
+  <ControlTheme x:Key="{x:Type ui:EmptyState}" TargetType="ui:EmptyState">
+    <Setter Property="Padding" Value="24,40,24,36" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Spacing="12" Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" MaxWidth="520">
+          <Border Name="Chip" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center"
+                  Background="{DynamicResource AccentSoftBrush}" BorderThickness="1" BorderBrush="Transparent">
+            <ui:Icon Name="Glyph" Data="{TemplateBinding Icon}" Width="26" Height="26" Foreground="{DynamicResource AccentTextBrush}" />
+          </Border>
+          <TextBlock Classes="h2" Margin="0,4,0,0" Text="{TemplateBinding Title}" TextAlignment="Center" TextWrapping="Wrap" />
+          <TextBlock Classes="subtitle" Text="{TemplateBinding Message}" TextAlignment="Center"
+                     IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalAlignment="Center" Margin="0,4,0,0"
+                            IsVisible="{TemplateBinding Content, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^.neutral /template/ Border#Chip">
+      <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    </Style>
+    <Style Selector="^.neutral /template/ ui|Icon#Glyph">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+  </ControlTheme>
+
+  <ControlTheme x:Key="{x:Type ui:PageHeader}" TargetType="ui:PageHeader">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Spacing="4">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+            <TextBlock Classes="pageTitle" Text="{TemplateBinding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <ContentPresenter Grid.Column="1" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                              VerticalAlignment="Center" />
+          </Grid>
+          <TextBlock Classes="subtitle" Text="{TemplateBinding Subtitle}"
+                     IsVisible="{TemplateBinding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+  </ControlTheme>
+
+  <ControlTheme x:Key="{x:Type ui:Callout}" TargetType="ui:Callout">
+    <Setter Property="Padding" Value="18,14" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="MaxWidth" Value="720" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource InfoEdgeBrush}" />
+    <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                Padding="{TemplateBinding Padding}">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <ui:Icon Data="{TemplateBinding Icon}" Width="18" Height="18" Margin="0,3,0,0" VerticalAlignment="Top"
+                     Foreground="{TemplateBinding Foreground}" />
+            <StackPanel Grid.Column="1" Spacing="2">
+              <TextBlock Text="{TemplateBinding Title}" FontSize="15" LineHeight="24" FontWeight="SemiBold" TextWrapping="Wrap"
+                         Foreground="{StaticResource TextStrongBrush}"
+                         IsVisible="{TemplateBinding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <TextBlock Text="{TemplateBinding Message}" FontSize="15" LineHeight="24" FontWeight="Normal" TextWrapping="Wrap"
+                         Foreground="{StaticResource TextEmphasisBrush}"
+                         IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                Margin="0,8,0,0" IsVisible="{TemplateBinding Content, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^.success">
+      <Setter Property="Background" Value="{StaticResource SuccessSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource SuccessEdgeBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+    </Style>
+    <Style Selector="^.warning">
+      <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource WarningEdgeBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+    </Style>
+    <Style Selector="^.danger">
+      <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource DangerEdgeBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+    </Style>
+  </ControlTheme>
+
+  <!-- The site's status of a project: the site's colour at 15% on a surface, 22% on a cover's edge or on artwork. -->
+  <ControlTheme x:Key="{x:Type ui:StatusPill}" TargetType="ui:StatusPill">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="Base" Height="{TemplateBinding Height}" CornerRadius="{TemplateBinding CornerRadius}">
+          <Border Name="Pill" Padding="{TemplateBinding Padding}" CornerRadius="{TemplateBinding CornerRadius}"
+                  Background="{TemplateBinding Tint}" BorderThickness="1" BorderBrush="Transparent">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Ellipse Width="6" Height="6" Fill="{TemplateBinding Label}" VerticalAlignment="Center" />
+              <TextBlock Classes="chip" Text="{TemplateBinding Text}" Foreground="{TemplateBinding Label}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^.seam /template/ Border#Base">
+      <Setter Property="Background" Value="{StaticResource SurfaceSeamBrush}" />
+      <Setter Property="BoxShadow" Value="{StaticResource ElevSeamPill}" />
+    </Style>
+    <Style Selector="^.onArt /template/ Border#Base">
+      <Setter Property="Background" Value="#C7030712" />
+    </Style>
+    <Style Selector="^.seam /template/ Border#Pill, ^.onArt /template/ Border#Pill">
+      <Setter Property="Background" Value="{Binding $parent[ui:StatusPill].StrongTint}" />
+      <Setter Property="BorderBrush" Value="{Binding $parent[ui:StatusPill].Edge}" />
+    </Style>
+  </ControlTheme>
+</ResourceDictionary>

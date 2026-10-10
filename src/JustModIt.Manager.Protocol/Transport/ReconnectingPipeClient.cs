@@ -90,6 +90,21 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
         CancellationToken cancellationToken = default) =>
         (_connection ?? throw new ConnectionClosedException()).RequestAsync(request, timeout, cancellationToken);
 
+    /// <summary>Queues an event on the current connection without waiting; while there is none it is dropped.</summary>
+    /// <param name="message">The event's payload.</param>
+    /// <returns>False when there was no connection to send it on.</returns>
+    public bool Post(Message message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        if (_connection is not { } connection)
+        {
+            return false;
+        }
+
+        connection.Post(message);
+        return true;
+    }
+
     /// <summary>Hands the agent's events of one type to a handler, across reconnects, until the result is disposed.</summary>
     /// <param name="handler">Runs on the connection's reader in the order events arrive, so it must not block.</param>
     public IDisposable Subscribe<TMessage>(Action<TMessage> handler)
