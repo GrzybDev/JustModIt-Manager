@@ -78,15 +78,8 @@ public sealed class CreatorLiveTests : IDisposable
         after.ChangesSince(before).Should().BeEmpty("the game is as its store left it");
         after.Hashes.Should().BeEquivalentTo(before.Hashes);
         engine.Downloads.FromSite.Should().BeLessThanOrEqualTo(1, "every download counts on the site");
-    }
 
-    [Fact]
-    public async Task Packs_files_that_only_add_to_the_game_as_a_plain_zip()
-    {
-        LiveTest.SkipUnlessEnabledOnWindows();
-        await using var engine = await LiveEngine.StartAsync(nameof(CreatorLiveTests), Token);
-        var (game, author, _) = await PrepareAsync(engine);
-        var added = (await CompareAsync(engine, game, author)).Files
+        var added = comparison.Files
             .Where(file => file is { Difference: FileDifference.New, RenameFrom: null, CopyOf: null, ExpectedFolder: null })
             .Select(file => file.AuthorPath!)
             .ToList();
@@ -99,16 +92,15 @@ public sealed class CreatorLiveTests : IDisposable
             File.Copy(GameFolderState.FullPath(author, path), target);
         }
 
-        var plan = CreatorPlanner.Plan(await CompareAsync(engine, game, copies), new CreatorProject(), Options).Plan;
+        var copiesOnly = CreatorPlanner.Plan(await CompareAsync(engine, game, copies), new CreatorProject(), Options).Plan;
 
-        plan.Format.Should().Be(new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]));
-        plan.Operations.Should().OnlyContain(operation => operation.Kind == OperationKind.Copy).And.HaveCount(added.Count);
-        var built = await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(plan.Confirm(),
+        copiesOnly.Format.Should().Be(new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]));
+        copiesOnly.Operations.Should().OnlyContain(operation => operation.Kind == OperationKind.Copy).And.HaveCount(added.Count);
+        var zip = await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(copiesOnly.Confirm(),
             new BuildRequest { OutputPath = Path.Combine(_workspace, "package.zip"), Game = game }, progress: null, Token);
-        built.Kind.Should().Be(PackageKind.Zip);
-        await using var package = await new PackageReader().OpenAsync(built.OutputPath, Token);
-        package.Kind.Should().Be(PackageKind.Zip);
-        package.Steps.OfType<CopyStep>().Select(step => step.Path)
+        await using var plain = await new PackageReader().OpenAsync(zip.OutputPath, Token);
+        plain.Kind.Should().Be(PackageKind.Zip);
+        plain.Steps.OfType<CopyStep>().Select(step => step.Path)
             .Should().BeEquivalentTo(added, options => options.Using(StringComparer.OrdinalIgnoreCase));
     }
 

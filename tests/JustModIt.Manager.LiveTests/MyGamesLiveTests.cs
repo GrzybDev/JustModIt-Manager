@@ -13,25 +13,6 @@ public sealed class MyGamesLiveTests
     private static readonly GameKey[] Installable = [OwnerGames.Dispatch, OwnerGames.QuantumBreak, OwnerGames.ManOfMedan];
 
     [Fact]
-    public async Task Detects_the_owners_games_in_the_real_steam_library()
-    {
-        LiveTest.SkipUnlessEnabledOnWindows();
-        await using var engine = await LiveEngine.StartAsync(nameof(MyGamesLiveTests), LiveTest.Token);
-
-        var snapshot = engine.Library.Snapshot;
-
-        snapshot.IsCached.Should().BeFalse();
-        foreach (var key in OwnerGames.All)
-        {
-            var game = snapshot.Find(key);
-            game.Should().NotBeNull($"{key} is installed through Steam");
-            Directory.Exists(game!.InstallDirectory).Should().BeTrue();
-            game.Platform.Should().Be(OperatingSystemKind.Windows);
-            game.BuildId.Should().NotBeNullOrEmpty();
-        }
-    }
-
-    [Fact]
     public async Task Lists_only_the_detected_games_with_an_installable_release()
     {
         LiveTest.SkipUnlessEnabledOnWindows();

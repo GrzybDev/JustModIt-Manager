@@ -33,6 +33,4 @@ internal static class OwnerGames
 
     /// <summary>Its project is only announced, with no release yet.</summary>
     public static readonly GameKey WhiteWhisper = new(StoreId.Steam, "3994800");
-
-    public static IReadOnlyList<GameKey> All { get; } = [Dispatch, QuantumBreak, ManOfMedan, WhiteWhisper];
 }

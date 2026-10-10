@@ -47,8 +47,8 @@ public sealed class LiveLibraryTests
         scan.Watch.Folders.Should().NotBeEmpty();
 
         var owned = scan.Games.Where(game => OwnerSteamGames.Contains(game.Key.StoreGameId)).ToList();
-        Assert.SkipWhen(owned.Count == 0, "None of the owner's test games is installed on this machine.");
-        owned.Should().OnlyContain(game => Directory.Exists(game.InstallDirectory) && game.BuildId != null);
+        owned.Select(game => game.Key.StoreGameId).Should().BeEquivalentTo(OwnerSteamGames, "the owner installed the test games through Steam");
+        owned.Should().OnlyContain(game => Directory.Exists(game.InstallDirectory) && !string.IsNullOrEmpty(game.BuildId));
         foreach (var game in owned.Where(game => game.IsReady))
         {
             var probed = await provider.ProbeAsync(game, LibraryScanContext.Empty, Token);
