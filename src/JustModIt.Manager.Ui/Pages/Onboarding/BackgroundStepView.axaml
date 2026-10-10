@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:onboarding="using:JustModIt.Manager.Ui.Pages.Onboarding"
+             xmlns:settings="using:JustModIt.Manager.Core.Settings"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Onboarding.BackgroundStepView"
+             x:DataType="onboarding:BackgroundStep">
+  <ScrollViewer Classes="setupStep">
+    <StackPanel Classes="setupStep" theme:Motion.Stagger="True">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="displayS" TextWrapping="Wrap" Text="{Binding Title}" />
+          <TextBlock Classes="subtitle stepLead" Text="{Binding Lead}" />
+        </StackPanel>
+        <Border Grid.Column="1" Classes="stepIcon">
+          <ui:Icon Data="{x:Static theme:Icons.MonitorDown}" />
+        </Border>
+      </Grid>
+
+      <Border Classes="inset">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+          <Border Classes="iconChip">
+            <ui:Icon Data="{x:Static theme:Icons.Sunrise}" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_StartWithSystem}" />
+            <TextBlock Classes="caption" Text="{x:Static loc:Strings.Onboarding_StartWithSystemDescription}" />
+          </StackPanel>
+          <ToggleSwitch Grid.Column="2" IsChecked="{Binding Setup.StartWithSystem}"
+                        AutomationProperties.Name="{x:Static loc:Strings.Onboarding_StartWithSystem}"
+                        AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_StartWithSystemDescription}" />
+        </Grid>
+      </Border>
+
+      <StackPanel Spacing="10">
+        <TextBlock Classes="overline" Text="{Binding Heading}" />
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+          <RadioButton Theme="{StaticResource ChoiceTile}" Classes="compact"
+                       IsChecked="{Binding Setup.CloseBehavior, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static settings:CloseBehavior.Ask}}"
+                       AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CloseAsk}"
+                       AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_CloseAskDescription}">
+            <ui:TileContent Icon="{x:Static theme:Icons.CircleHelp}" Title="{x:Static loc:Strings.Onboarding_CloseAsk}"
+                            Description="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
+          </RadioButton>
+          <RadioButton Grid.Column="1" Theme="{StaticResource ChoiceTile}" Classes="compact"
+                       IsChecked="{Binding Setup.CloseBehavior, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static settings:CloseBehavior.MinimizeToTray}}"
+                       AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseToTray}"
+                       AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseToTrayDescription}">
+            <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static loc:Strings.Shell_CloseToTray}"
+                            Description="{x:Static loc:Strings.Shell_CloseToTrayDescription}" />
+          </RadioButton>
+          <RadioButton Grid.Column="2" Theme="{StaticResource ChoiceTile}" Classes="compact"
+                       IsChecked="{Binding Setup.CloseBehavior, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static settings:CloseBehavior.Exit}}"
+                       AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseExit}"
+                       AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseExitDescription}">
+            <ui:TileContent Icon="{x:Static theme:Icons.Power}" Title="{x:Static loc:Strings.Shell_CloseExit}"
+                            Description="{x:Static loc:Strings.Shell_CloseExitDescription}" />
+          </RadioButton>
+        </Grid>
+      </StackPanel>
+
+      <Grid Classes="hint" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <ui:Icon Data="{x:Static theme:Icons.Info}" />
+        <TextBlock Grid.Column="1" Text="{Binding ExitHint}" />
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

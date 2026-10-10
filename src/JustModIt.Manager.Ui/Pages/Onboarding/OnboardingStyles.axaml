@@ -1,0 +1,276 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls">
+  <!-- The first-run setup (the Oobe board): an 800x640 card in the middle of the window, over a still, darkened wall of
+       the catalogue's covers with the accent's glow falling from the top. The card shortens in a small window, where the
+       step scrolls inside it and the buttons at its foot stay in view. -->
+
+  <Style Selector="Panel.setup">
+    <Setter Property="Background" Value="{StaticResource PageBrush}" />
+  </Style>
+  <Style Selector="Border.wallShade">
+    <Setter Property="Background" Value="#C2030712" />
+  </Style>
+  <Style Selector="Border.wallVignette">
+    <Setter Property="Background">
+      <RadialGradientBrush Center="50%,46%" GradientOrigin="50%,46%" RadiusX="71%" RadiusY="76%">
+        <GradientStop Offset="0" Color="#00030712" />
+        <GradientStop Offset="0.58" Color="#80030712" />
+        <GradientStop Offset="1" Color="#F0030712" />
+      </RadialGradientBrush>
+    </Setter>
+  </Style>
+  <Style Selector="Border.wallGlow">
+    <Setter Property="Opacity" Value="0.3" />
+    <Setter Property="Background">
+      <RadialGradientBrush Center="50%,0%" GradientOrigin="50%,0%" RadiusX="60%" RadiusY="50%">
+        <GradientStop Offset="0" Color="{DynamicResource AccentColor}" />
+        <GradientStop Offset="0.72" Color="#00000000" />
+      </RadialGradientBrush>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.setupCard">
+    <Setter Property="MaxWidth" Value="800" />
+    <Setter Property="MaxHeight" Value="640" />
+    <Setter Property="Margin" Value="16" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BoxShadow" Value="0 24 60 -30 #E6000000, 0 40 90 -30 #BF000000" />
+  </Style>
+  <Style Selector=":is(Window):not(.reducedMotion) Border.setupCard">
+    <Style.Animations>
+      <Animation Duration="0:0:0.45" Delay="0:0:0.1" Easing="CubicEaseOut" FillMode="Backward">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="0" />
+          <Setter Property="RenderTransform" Value="translateY(20px) scale(0.97)" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+          <Setter Property="RenderTransform" Value="translateY(0px) scale(1)" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+  <Style Selector="Border.setupFooter">
+    <Setter Property="Padding" Value="20,0" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+
+  <!-- The progress: a dot per step, the current one a wider bar in the accent, the passed ones a softer accent. -->
+  <Style Selector="Border.stepDot">
+    <Setter Property="Width" Value="8" />
+    <Setter Property="Height" Value="8" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Background" Value="#2EFFFFFF" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Width" Duration="0:0:0.3" Easing="CubicEaseOut" />
+        <BrushTransition Property="Background" Duration="0:0:0.3" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.stepDot.done">
+    <Setter Property="Background" Value="{DynamicResource AccentBorderBrush}" />
+  </Style>
+  <Style Selector="Border.stepDot.current">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <!-- A step: a header with the step's icon, then its sections 22 px apart. -->
+  <Style Selector="ScrollViewer.setupStep">
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+  <Style Selector="StackPanel.setupStep">
+    <Setter Property="Margin" Value="40,34,40,24" />
+    <Setter Property="Spacing" Value="22" />
+  </Style>
+  <Style Selector="TextBlock.stepLead">
+    <Setter Property="MaxWidth" Value="580" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+  <Style Selector="Border.stepIcon">
+    <Setter Property="Width" Value="56" />
+    <Setter Property="Height" Value="56" />
+    <Setter Property="CornerRadius" Value="14" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+  <Style Selector="Border.stepIcon > ui|Icon">
+    <Setter Property="Width" Value="26" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.facts">
+    <Setter Property="Padding" Value="0,16" />
+    <Setter Property="BorderBrush" Value="{StaticResource FillBrush}" />
+    <Setter Property="BorderThickness" Value="0,1" />
+  </Style>
+  <Style Selector="TextBlock.itemTitle">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <!-- Three tiles share a row in the card, so theirs are a size smaller than the settings page's. -->
+  <Style Selector="RadioButton.compact">
+    <Setter Property="Padding" Value="14,16,14,14" />
+  </Style>
+  <Style Selector="RadioButton.compact ui|TileContent /template/ Border#Chip">
+    <Setter Property="Width" Value="48" />
+    <Setter Property="Height" Value="48" />
+  </Style>
+  <Style Selector="RadioButton.compact ui|TileContent /template/ ui|Icon#Glyph">
+    <Setter Property="Width" Value="22" />
+    <Setter Property="Height" Value="22" />
+  </Style>
+  <!-- A switch's row and the search's results sit in a faint inset. -->
+  <Style Selector="Border.inset">
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="#08FFFFFF" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Grid.hint > ui|Icon">
+    <Setter Property="Margin" Value="0,2,0,0" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Grid.hint > TextBlock">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LineHeight" Value="20" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+
+  <!-- The welcome: the app's art (a breathing glow, a flat orbit, the logo and six bobbing chips) over the greeting. The
+       glow is the accent at half strength around the logo, breathing down to about a quarter. -->
+  <Style Selector="Panel.artGlow">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+  <Style Selector="Panel.artGlow > Ellipse">
+    <Setter Property="Fill">
+      <RadialGradientBrush>
+        <GradientStop Offset="0" Color="{DynamicResource AccentColor}" />
+        <GradientStop Offset="0.4" Color="{DynamicResource AccentColor}" />
+        <GradientStop Offset="1" Color="#00000000" />
+      </RadialGradientBrush>
+    </Setter>
+  </Style>
+  <Style Selector="Ellipse.artOrbit">
+    <Setter Property="Stroke" Value="{StaticResource BorderStrongBrush}" />
+    <Setter Property="StrokeThickness" Value="1" />
+    <Setter Property="StrokeDashArray" Value="2,4" />
+  </Style>
+  <Style Selector="Border.artChip">
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="40" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+  </Style>
+  <Style Selector="Border.artChip > ui|Icon">
+    <Setter Property="Width" Value="18" />
+    <Setter Property="Height" Value="18" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+  </Style>
+  <Style Selector="Border.artChip.accent">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+  </Style>
+  <Style Selector="Border.artChip.accent > ui|Icon">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.welcomeTitle">
+    <Setter Property="LineHeight" Value="46" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <!-- The app's name in the accent's hues, as the site's headings write it. -->
+  <Style Selector="TextBlock.welcomeName">
+    <Setter Property="Foreground">
+      <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Offset="0" Color="{DynamicResource AccentHoverColor}" />
+        <GradientStop Offset="0.5" Color="{DynamicResource AccentTextColor}" />
+        <GradientStop Offset="1" Color="{DynamicResource AccentColor}" />
+      </LinearGradientBrush>
+    </Setter>
+  </Style>
+  <Style Selector="TextBlock.welcomeLead">
+    <Setter Property="MaxWidth" Value="580" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="LineHeight" Value="26" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+  </Style>
+
+  <!-- The last step: what this computer holds, then the choices made. -->
+  <Style Selector="Border.scanResult">
+    <Setter Property="Padding" Value="0,12,0,0" />
+    <Setter Property="BorderBrush" Value="{StaticResource FillBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="Border.scanResult.first">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="StackPanel.store">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="8" />
+    <Setter Property="Margin" Value="0,3,24,3" />
+  </Style>
+  <Style Selector="StackPanel.store > ui|StoreIcon">
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="StackPanel.store > TextBlock">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="20" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="StackPanel.store.found > TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+  </Style>
+  <Style Selector="StackPanel.store > TextBlock.storeName">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="Border.thumb">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="66" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="Background" Value="{StaticResource SkeletonBrush}" />
+  </Style>
+  <Style Selector="Border.thumbRing">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+  <Style Selector="Border.summaryIcon">
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+  </Style>
+  <Style Selector="Border.summaryIcon > ui|Icon">
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Border.summaryIcon.active">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+  <Style Selector="Border.summaryIcon.active > ui|Icon">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+</Styles>

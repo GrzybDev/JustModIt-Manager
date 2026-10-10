@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:onboarding="using:JustModIt.Manager.Ui.Pages.Onboarding"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Onboarding.CreatorStepView"
+             x:DataType="onboarding:CreatorStep">
+  <ScrollViewer Classes="setupStep">
+    <StackPanel Classes="setupStep" theme:Motion.Stagger="True">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="displayS" TextWrapping="Wrap" Text="{Binding Title}" />
+          <TextBlock Classes="subtitle stepLead" Text="{Binding Lead}" />
+        </StackPanel>
+        <Border Grid.Column="1" Classes="stepIcon">
+          <ui:Icon Data="{x:Static theme:Icons.WandSparkles}" />
+        </Border>
+      </Grid>
+
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+        <RadioButton Theme="{StaticResource ChoiceTile}"
+                     IsChecked="{Binding Setup.CreatorMode, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:False}}"
+                     AutomationProperties.Name="{x:Static loc:Strings.Onboarding_PlayerTile}"
+                     AutomationProperties.HelpText="{Binding PlayerDescription}">
+          <ui:TileContent Icon="{x:Static theme:Icons.Gamepad}" Title="{x:Static loc:Strings.Onboarding_PlayerTile}"
+                          Description="{Binding PlayerDescription}" />
+        </RadioButton>
+        <RadioButton Grid.Column="1" Theme="{StaticResource ChoiceTile}"
+                     IsChecked="{Binding Setup.CreatorMode, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:True}}"
+                     AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CreatorTile}"
+                     AutomationProperties.HelpText="{Binding CreatorDescription}">
+          <ui:TileContent Icon="{x:Static theme:Icons.WandSparkles}" Title="{x:Static loc:Strings.Onboarding_CreatorTile}"
+                          Description="{Binding CreatorDescription}" />
+        </RadioButton>
+      </Grid>
+
+      <Grid Classes="hint" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <ui:Icon Data="{x:Static theme:Icons.Info}" />
+        <TextBlock Grid.Column="1" Text="{x:Static loc:Strings.Onboarding_CreatorHint}" />
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

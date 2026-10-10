@@ -1,0 +1,101 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:onboarding="using:JustModIt.Manager.Ui.Pages.Onboarding"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Onboarding.ReadyStepView"
+             x:DataType="onboarding:ReadyStep">
+  <ScrollViewer Classes="setupStep">
+    <StackPanel Classes="setupStep" theme:Motion.Stagger="True">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="displayS" TextWrapping="Wrap" Text="{Binding Title}" />
+          <TextBlock Classes="subtitle stepLead" Text="{Binding Lead}" />
+        </StackPanel>
+        <Border Grid.Column="1" Classes="stepIcon">
+          <ui:Icon Data="{x:Static theme:Icons.Rocket}" />
+        </Border>
+      </Grid>
+
+      <Border Classes="inset" Padding="18,16">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="overline" Text="{Binding ComputerHeading}" />
+          <ItemsControl ItemsSource="{Binding Stores}" IsVisible="{Binding HasStores}" theme:Motion.Stagger="True">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="onboarding:StoreLine">
+                <StackPanel Classes="store" Classes.found="{Binding IsFound}">
+                  <ui:StoreIcon Store="{Binding Store}" />
+                  <TextBlock Classes="storeName" Text="{Binding Name}" />
+                  <TextBlock Text="{Binding Detail}" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border Classes="scanResult" Classes.first="{Binding !HasStores}" AutomationProperties.LiveSetting="Polite">
+            <Panel>
+              <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsSearching}">
+                <ui:ProgressRing Width="18" Height="18" />
+                <TextBlock Classes="h4" TextWrapping="Wrap" Text="{x:Static loc:Strings.Onboarding_Searching}" />
+              </StackPanel>
+              <Grid x:Name="Found" ColumnDefinitions="*,Auto" ColumnSpacing="16" IsVisible="{Binding !IsSearching}">
+                <TextBlock Classes="h4" TextWrapping="Wrap" VerticalAlignment="Center" Text="{Binding Result}" />
+                <ItemsControl Grid.Column="1" ItemsSource="{Binding Matches}" theme:Motion.Stagger="True">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" Spacing="8" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="onboarding:MatchedGame">
+                      <Panel ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}">
+                        <Border Classes="thumb">
+                          <ui:RemoteImage Source="{Binding Cover}" />
+                        </Border>
+                        <Border Classes="thumbRing" />
+                      </Panel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Grid>
+            </Panel>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <StackPanel Spacing="12">
+        <TextBlock Classes="overline" Text="{Binding SettingsHeading}" />
+        <ItemsControl ItemsSource="{Binding Summary}" Margin="-10,-7">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="3" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="onboarding:SummaryItem">
+              <Grid Margin="10,7" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <Border Classes="summaryIcon" Classes.active="{Binding IsActive}">
+                  <ui:Icon Data="{Binding Icon}" />
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                  <TextBlock Classes="caption" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Text="{Binding Label}" />
+                  <TextBlock Classes="itemTitle" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Text="{Binding Value}" />
+                </StackPanel>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <Grid Classes="hint" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <ui:Icon Data="{x:Static theme:Icons.Info}" />
+        <TextBlock Grid.Column="1" Text="{x:Static loc:Strings.Onboarding_ChangeLater}" />
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

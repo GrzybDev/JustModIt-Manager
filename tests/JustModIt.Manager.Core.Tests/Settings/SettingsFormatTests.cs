@@ -32,6 +32,7 @@ public sealed class SettingsFormatTests : IDisposable
             BlurAdultContent = false,
             CreatorMode = true,
             OnboardingCompleted = true,
+            OnboardingStep = 3,
             TrayNoticeShown = true,
             BackupLocation = BackupLocation.CustomFolder,
             CustomBackupFolder = Rooted("Backups"),

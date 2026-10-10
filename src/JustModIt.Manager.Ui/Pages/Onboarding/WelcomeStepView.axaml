@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:onboarding="using:JustModIt.Manager.Ui.Pages.Onboarding"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Onboarding.WelcomeStepView"
+             x:DataType="onboarding:WelcomeStep">
+  <ScrollViewer Classes="setupStep">
+    <Grid MinHeight="{Binding $parent[ScrollViewer].Viewport.Height}">
+      <StackPanel Classes="setupStep" VerticalAlignment="Center" theme:Motion.Stagger="True">
+        <!-- The chips bob on periods that never meet, so they never move in step. -->
+        <Panel Width="340" Height="190" HorizontalAlignment="Center" IsHitTestVisible="False"
+               AutomationProperties.AccessibilityView="Raw">
+          <Panel Classes="artGlow">
+            <Ellipse Classes="pulse" Width="230" Height="230" />
+          </Panel>
+          <Ellipse Classes="artOrbit" Width="300" Height="150" />
+          <Image Source="{Binding Setup.Logo}" Width="132" Height="132" />
+          <Canvas>
+            <Border Classes="artChip accent bob" Canvas.Left="5" Canvas.Top="56">
+              <ui:Icon Data="{x:Static theme:Icons.Gamepad}" />
+            </Border>
+            <Border Classes="artChip bob2" Canvas.Left="87" Canvas.Top="7">
+              <ui:Icon Data="{x:Static theme:Icons.Languages}" />
+            </Border>
+            <Border Classes="artChip bob3" Canvas.Left="27" Canvas.Top="118">
+              <ui:Icon Data="{x:Static theme:Icons.Download}" />
+            </Border>
+            <Border Classes="artChip bob2" Canvas.Left="295" Canvas.Top="56">
+              <ui:Icon Data="{x:Static theme:Icons.RefreshCw}" />
+            </Border>
+            <Border Classes="artChip accent bob3" Canvas.Left="213" Canvas.Top="7">
+              <ui:Icon Data="{x:Static theme:Icons.Sparkles}" />
+            </Border>
+            <Border Classes="artChip bob" Canvas.Left="273" Canvas.Top="118">
+              <ui:Icon Data="{x:Static theme:Icons.ShieldCheck}" />
+            </Border>
+          </Canvas>
+        </Panel>
+
+        <StackPanel>
+          <TextBlock Classes="displayL welcomeTitle" Text="{x:Static loc:Strings.Onboarding_WelcomeTitle}" />
+          <TextBlock Classes="displayL welcomeTitle welcomeName" Text="{Binding Name}" />
+        </StackPanel>
+        <TextBlock Classes="welcomeLead" HorizontalAlignment="Center" Text="{Binding Lead}" />
+        <TextBlock Classes="meta" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                   Text="{x:Static loc:Strings.Onboarding_WelcomeNote}" />
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

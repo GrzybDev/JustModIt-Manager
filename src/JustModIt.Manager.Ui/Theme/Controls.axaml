@@ -253,7 +253,7 @@
   <Style Selector="RadioButton:checked ui|TileContent /template/ TextBlock#TileTitle">
     <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
   </Style>
-  <Style Selector="RadioButton:pointerover ui|TileContent /template/ Border#Chip">
+  <Style Selector="RadioButton:pointerover:not(:checked) ui|TileContent /template/ Border#Chip">
     <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
   </Style>
   <Style Selector="ui|TileContent.danger /template/ Border#Chip">

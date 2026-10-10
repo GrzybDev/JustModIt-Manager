@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:onboarding="using:JustModIt.Manager.Ui.Pages.Onboarding"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Onboarding.AutomationStepView"
+             x:DataType="onboarding:AutomationStep">
+  <ScrollViewer Classes="setupStep">
+    <StackPanel Classes="setupStep" theme:Motion.Stagger="True">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="displayS" TextWrapping="Wrap" Text="{Binding Title}" />
+          <TextBlock Classes="subtitle stepLead" Text="{Binding Lead}" />
+        </StackPanel>
+        <Border Grid.Column="1" Classes="stepIcon">
+          <ui:Icon Data="{x:Static theme:Icons.ListChecks}" />
+        </Border>
+      </Grid>
+
+      <Border Classes="facts">
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="20">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <Border Classes="iconChip" VerticalAlignment="Top">
+              <ui:Icon Data="{x:Static theme:Icons.Search}" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2">
+              <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_DetectTitle}" />
+              <TextBlock Classes="caption" Text="{x:Static loc:Strings.Onboarding_Detect}" />
+            </StackPanel>
+          </Grid>
+          <Grid Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <Border Classes="iconChip" VerticalAlignment="Top">
+              <ui:Icon Data="{x:Static theme:Icons.Languages}" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2">
+              <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_MatchTitle}" />
+              <TextBlock Classes="caption" Text="{x:Static loc:Strings.Onboarding_Match}" />
+            </StackPanel>
+          </Grid>
+          <Grid Grid.Column="2" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <Border Classes="iconChip" VerticalAlignment="Top">
+              <ui:Icon Data="{x:Static theme:Icons.ShieldCheck}" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2">
+              <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_SafetyTitle}" />
+              <TextBlock Classes="caption" Text="{x:Static loc:Strings.Onboarding_Safety}" />
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </Border>
+
+      <StackPanel Spacing="10">
+        <TextBlock Classes="overline" Text="{Binding Heading}" />
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+          <RadioButton Theme="{StaticResource ChoiceTile}" Classes="compact"
+                       IsChecked="{Binding Setup.Automation, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static onboarding:AutomationChoice.Everything}}"
+                       AutomationProperties.Name="{x:Static loc:Strings.Onboarding_AutomateEverything}"
+                       AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_AutomateEverythingDescription}">
+            <ui:TileContent Icon="{x:Static theme:Icons.Zap}" Title="{x:Static loc:Strings.Onboarding_AutomateEverything}"
+                            Description="{x:Static loc:Strings.Onboarding_AutomateEverythingDescription}" />
+          </RadioButton>
+          <RadioButton Grid.Column="1" Theme="{StaticResource ChoiceTile}" Classes="compact"
+                       IsChecked="{Binding Setup.Automation, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static onboarding:AutomationChoice.UpdatesOnly}}"
+                       AutomationProperties.Name="{x:Static loc:Strings.Onboarding_AutomateUpdates}"
+                       AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_AutomateUpdatesDescription}">
+            <ui:TileContent Icon="{x:Static theme:Icons.RefreshCw}" Title="{x:Static loc:Strings.Onboarding_AutomateUpdates}"
+                            Description="{x:Static loc:Strings.Onboarding_AutomateUpdatesDescription}" />
+          </RadioButton>
+          <RadioButton Grid.Column="2" Theme="{StaticResource ChoiceTile}" Classes="compact"
+                       IsChecked="{Binding Setup.Automation, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static onboarding:AutomationChoice.Nothing}}"
+                       AutomationProperties.Name="{x:Static loc:Strings.Onboarding_AutomateNothing}"
+                       AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_AutomateNothingDescription}">
+            <ui:TileContent Icon="{x:Static theme:Icons.Hand}" Title="{x:Static loc:Strings.Onboarding_AutomateNothing}"
+                            Description="{x:Static loc:Strings.Onboarding_AutomateNothingDescription}" />
+          </RadioButton>
+        </Grid>
+      </StackPanel>
+
+      <Border Classes="inset">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+          <Border Classes="iconChip">
+            <ui:Icon Data="{x:Static theme:Icons.Bell}" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_Notifications}" />
+            <TextBlock Classes="caption" Text="{x:Static loc:Strings.Onboarding_NotificationsDescription}" />
+          </StackPanel>
+          <ToggleSwitch Grid.Column="2" IsChecked="{Binding Setup.ShowNotifications}"
+                        AutomationProperties.Name="{x:Static loc:Strings.Onboarding_Notifications}"
+                        AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_NotificationsDescription}" />
+        </Grid>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

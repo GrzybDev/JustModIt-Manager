@@ -55,6 +55,9 @@ public sealed record AppSettings
     /// <summary>The automation does nothing until the first-run setup is finished.</summary>
     public bool OnboardingCompleted { get; init; }
 
+    /// <summary>The step of the first-run setup shown last, so a setup left halfway opens there again.</summary>
+    public int OnboardingStep { get; init; }
+
     /// <summary>Whether the player was told once that closing the window keeps the app running in the tray.</summary>
     public bool TrayNoticeShown { get; init; }
 

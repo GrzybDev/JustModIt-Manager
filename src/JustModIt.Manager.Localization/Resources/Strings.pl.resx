@@ -558,4 +558,223 @@
   <data name="Toast_ReleaseUnavailable" xml:space="preserve">
     <value>{game} – to wydanie nie jest już dostępne na stronie.</value>
   </data>
+  <data name="Onboarding_Title" xml:space="preserve">
+    <value>Pierwsze uruchomienie</value>
+  </data>
+  <data name="Onboarding_StepOf" xml:space="preserve">
+    <value>Krok {step} z {count}</value>
+  </data>
+  <data name="Onboarding_Back" xml:space="preserve">
+    <value>Wstecz</value>
+  </data>
+  <data name="Onboarding_BackTip" xml:space="preserve">
+    <value>Wstecz (Alt+←)</value>
+  </data>
+  <data name="Onboarding_Skip" xml:space="preserve">
+    <value>Pomiń</value>
+  </data>
+  <data name="Onboarding_SkipTip" xml:space="preserve">
+    <value>Pomiń konfigurację – wszystko można później zmienić w Ustawieniach.</value>
+  </data>
+  <data name="Onboarding_Next" xml:space="preserve">
+    <value>Dalej</value>
+  </data>
+  <data name="Onboarding_NextTip" xml:space="preserve">
+    <value>Dalej (Enter)</value>
+  </data>
+  <data name="Onboarding_Start" xml:space="preserve">
+    <value>Zaczynamy</value>
+  </data>
+  <data name="Onboarding_WelcomeStep" xml:space="preserve">
+    <value>Powitanie</value>
+  </data>
+  <data name="Onboarding_WelcomeTitle" xml:space="preserve">
+    <value>Witaj w aplikacji</value>
+  </data>
+  <data name="Onboarding_WelcomeName" xml:space="preserve">
+    <value>{product}</value>
+  </data>
+  <data name="Onboarding_WelcomeLead" xml:space="preserve">
+    <value>{product} wykrywa gry zainstalowane przez sklepy i dopasowuje do nich projekty ze strony. Instaluje je jednym kliknięciem i dba o ich aktualizacje. Każdą zmianę da się cofnąć – oryginalne pliki gier są zawsze zachowywane.</value>
+  </data>
+  <data name="Onboarding_WelcomeNote" xml:space="preserve">
+    <value>Jeszcze kilka ustawień – zajmie to mniej niż minutę.</value>
+  </data>
+  <data name="Onboarding_AutomationTitle" xml:space="preserve">
+    <value>Jak to działa</value>
+  </data>
+  <data name="Onboarding_AutomationLead" xml:space="preserve">
+    <value>Tu można zdecydować, ile {product} robi samodzielnie. Każde z tych ustawień można później zmienić w Ustawieniach.</value>
+  </data>
+  <data name="Onboarding_DetectTitle" xml:space="preserve">
+    <value>Wykrywanie gier</value>
+  </data>
+  <data name="Onboarding_Detect" xml:space="preserve">
+    <value>W bibliotekach Steam, GOG Galaxy, Epic Games i Heroic.</value>
+  </data>
+  <data name="Onboarding_MatchTitle" xml:space="preserve">
+    <value>Dobór projektów</value>
+  </data>
+  <data name="Onboarding_Match" xml:space="preserve">
+    <value>Ze strony, pasujące do zainstalowanej wersji gry.</value>
+  </data>
+  <data name="Onboarding_SafetyTitle" xml:space="preserve">
+    <value>Bezpieczna instalacja</value>
+  </data>
+  <data name="Onboarding_Safety" xml:space="preserve">
+    <value>Z kopią oryginalnych plików, bez ruszania uruchomionej gry.</value>
+  </data>
+  <data name="Onboarding_AutomationHeading" xml:space="preserve">
+    <value>Co dzieje się bez pytania</value>
+  </data>
+  <data name="Onboarding_AutomateEverything" xml:space="preserve">
+    <value>Wszystko automatycznie</value>
+  </data>
+  <data name="Onboarding_AutomateEverythingDescription" xml:space="preserve">
+    <value>Nowe projekty i aktualizacje instalują się same.</value>
+  </data>
+  <data name="Onboarding_AutomateUpdates" xml:space="preserve">
+    <value>Tylko aktualizacje</value>
+  </data>
+  <data name="Onboarding_AutomateUpdatesDescription" xml:space="preserve">
+    <value>Aktualizacje instalują się same, nowe projekty – ręcznie.</value>
+  </data>
+  <data name="Onboarding_AutomateNothing" xml:space="preserve">
+    <value>Nic bez pytania</value>
+  </data>
+  <data name="Onboarding_AutomateNothingDescription" xml:space="preserve">
+    <value>Tylko powiadomienia; nic nie instaluje się samo.</value>
+  </data>
+  <data name="Onboarding_AutomateCustom" xml:space="preserve">
+    <value>Własne ustawienia</value>
+  </data>
+  <data name="Onboarding_Notifications" xml:space="preserve">
+    <value>Powiadomienia systemowe</value>
+  </data>
+  <data name="Onboarding_NotificationsDescription" xml:space="preserve">
+    <value>Informacje o instalacjach, aktualizacjach i nowych projektach.</value>
+  </data>
+  <data name="Onboarding_BackgroundTitle" xml:space="preserve">
+    <value>Działanie w tle</value>
+  </data>
+  <data name="Onboarding_BackgroundLead" xml:space="preserve">
+    <value>{product} pracuje w tle, z ikoną w zasobniku systemowym obok zegara, i dba o projekty także przy zamkniętym oknie.</value>
+  </data>
+  <data name="Onboarding_StartWithSystem" xml:space="preserve">
+    <value>Uruchamiaj razem z systemem</value>
+  </data>
+  <data name="Onboarding_StartWithSystemDescription" xml:space="preserve">
+    <value>Po zalogowaniu aplikacja uruchamia się po cichu, bez otwierania okna.</value>
+  </data>
+  <data name="Onboarding_CloseHeading" xml:space="preserve">
+    <value>Po zamknięciu okna</value>
+  </data>
+  <data name="Onboarding_CloseAsk" xml:space="preserve">
+    <value>Pytaj za każdym razem</value>
+  </data>
+  <data name="Onboarding_CloseAskDescription" xml:space="preserve">
+    <value>Przy zamykaniu okna pojawi się pytanie, co zrobić.</value>
+  </data>
+  <data name="Onboarding_ExitHint" xml:space="preserve">
+    <value>Aplikację można całkiem zamknąć z menu jej ikony w zasobniku: prawy przycisk myszy → {exit}.</value>
+  </data>
+  <data name="Onboarding_CreatorTitle" xml:space="preserve">
+    <value>Tryb twórcy</value>
+  </data>
+  <data name="Onboarding_CreatorLead" xml:space="preserve">
+    <value>{creator} pomaga przygotować paczkę, którą gracze zainstalują jednym kliknięciem.</value>
+  </data>
+  <data name="Onboarding_PlayerTile" xml:space="preserve">
+    <value>Tylko gram</value>
+  </data>
+  <data name="Onboarding_PlayerTileDescription" xml:space="preserve">
+    <value>W pasku bocznym są {library} i {catalogue}.</value>
+  </data>
+  <data name="Onboarding_CreatorTile" xml:space="preserve">
+    <value>Tworzę paczki</value>
+  </data>
+  <data name="Onboarding_CreatorTileDescription" xml:space="preserve">
+    <value>{creator} do tworzenia paczek pojawi się w pasku bocznym.</value>
+  </data>
+  <data name="Onboarding_CreatorHint" xml:space="preserve">
+    <value>Tryb twórcy można włączyć albo wyłączyć w każdej chwili w Ustawieniach.</value>
+  </data>
+  <data name="Onboarding_ReadyTitle" xml:space="preserve">
+    <value>Wszystko gotowe</value>
+  </data>
+  <data name="Onboarding_ReadyLead" xml:space="preserve">
+    <value>Po kliknięciu „{start}” w Moich grach pojawią się projekty pasujące do gier z tego komputera.</value>
+  </data>
+  <data name="Onboarding_ThisComputer" xml:space="preserve">
+    <value>Na tym komputerze</value>
+  </data>
+  <data name="Onboarding_StoreFound" xml:space="preserve">
+    <value>{libraries, plural, one {# biblioteka} few {# biblioteki} many {# bibliotek} other {# biblioteki}}, {games, plural, one {# gra} few {# gry} many {# gier} other {# gry}}</value>
+  </data>
+  <data name="Onboarding_StoreMissing" xml:space="preserve">
+    <value>nie znaleziono</value>
+  </data>
+  <data name="Onboarding_StoreUnreadable" xml:space="preserve">
+    <value>nie udało się odczytać</value>
+  </data>
+  <data name="Onboarding_StoreSteam" xml:space="preserve">
+    <value>Steam</value>
+  </data>
+  <data name="Onboarding_StoreGog" xml:space="preserve">
+    <value>GOG</value>
+  </data>
+  <data name="Onboarding_StoreEpic" xml:space="preserve">
+    <value>Epic Games</value>
+  </data>
+  <data name="Onboarding_Searching" xml:space="preserve">
+    <value>Wyszukiwanie gier…</value>
+  </data>
+  <data name="Onboarding_Matched" xml:space="preserve">
+    <value>{count, plural, one {Projekty są dostępne dla # gry} few {Projekty są dostępne dla # gier} many {Projekty są dostępne dla # gier} other {Projekty są dostępne dla # gry}}</value>
+  </data>
+  <data name="Onboarding_MatchedNone" xml:space="preserve">
+    <value>Na razie brak projektów pasujących do wykrytych gier.</value>
+  </data>
+  <data name="Onboarding_SiteUnavailable" xml:space="preserve">
+    <value>Nie udało się połączyć ze stroną; pasujące projekty pojawią się w Moich grach później.</value>
+  </data>
+  <data name="Onboarding_ChosenSettings" xml:space="preserve">
+    <value>Wybrane ustawienia</value>
+  </data>
+  <data name="Onboarding_SummaryAutomation" xml:space="preserve">
+    <value>Bez pytania</value>
+  </data>
+  <data name="Onboarding_SummaryNotifications" xml:space="preserve">
+    <value>Powiadomienia</value>
+  </data>
+  <data name="Onboarding_SummaryStart" xml:space="preserve">
+    <value>Start z systemem</value>
+  </data>
+  <data name="Onboarding_SummaryBackups" xml:space="preserve">
+    <value>Kopie oryginalnych plików</value>
+  </data>
+  <data name="Onboarding_On" xml:space="preserve">
+    <value>Włączony</value>
+  </data>
+  <data name="Onboarding_Off" xml:space="preserve">
+    <value>Wyłączony</value>
+  </data>
+  <data name="Onboarding_NotificationsOn" xml:space="preserve">
+    <value>Włączone</value>
+  </data>
+  <data name="Onboarding_NotificationsOff" xml:space="preserve">
+    <value>Wyłączone</value>
+  </data>
+  <data name="Onboarding_BackupsInGameFolders" xml:space="preserve">
+    <value>W folderach gier</value>
+  </data>
+  <data name="Onboarding_BackupsInAppData" xml:space="preserve">
+    <value>W danych aplikacji</value>
+  </data>
+  <data name="Onboarding_BackupsInCustomFolder" xml:space="preserve">
+    <value>W wybranym folderze</value>
+  </data>
+  <data name="Onboarding_ChangeLater" xml:space="preserve">
+    <value>Każde z tych ustawień można później zmienić w Ustawieniach.</value>
+  </data>
 </root>

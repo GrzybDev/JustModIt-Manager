@@ -23,6 +23,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string BlurAdultContent = "blurAdultContent";
     private const string CreatorMode = "creatorMode";
     private const string OnboardingCompleted = "onboardingCompleted";
+    private const string OnboardingStep = "onboardingStep";
     private const string TrayNoticeShown = "trayNoticeShown";
     private const string BackupLocationName = "backupLocation";
     private const string CustomBackupFolder = "customBackupFolder";
@@ -50,9 +51,9 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
 
     public IReadOnlySet<string> KnownProperties { get; } = FrozenSet.Create(StringComparer.Ordinal,
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
-        AutoUpdateApp, ShowNotifications, BlurAdultContent, CreatorMode, OnboardingCompleted, TrayNoticeShown,
-        BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders, AdultContentConfirmedUntil,
-        LegacyShowAdultContent, LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
+        AutoUpdateApp, ShowNotifications, BlurAdultContent, CreatorMode, OnboardingCompleted, OnboardingStep,
+        TrayNoticeShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
+        AdultContentConfirmedUntil, LegacyShowAdultContent, LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
 
     public AppSettings Read(JsonElement root, int version)
     {
@@ -80,6 +81,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             BlurAdultContent = blurAdultContent,
             CreatorMode = root.GetBooleanOrNull(CreatorMode) ?? defaults.CreatorMode,
             OnboardingCompleted = root.GetBooleanOrNull(OnboardingCompleted) ?? defaults.OnboardingCompleted,
+            OnboardingStep = root.GetInt32OrNull(OnboardingStep) is >= 0 and var step ? step : defaults.OnboardingStep,
             TrayNoticeShown = root.GetBooleanOrNull(TrayNoticeShown) ?? defaults.TrayNoticeShown,
             BackupLocation = backupLocation,
             CustomBackupFolder = customBackupFolder,
@@ -104,6 +106,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteBoolean(BlurAdultContent, document.BlurAdultContent);
         writer.WriteBoolean(CreatorMode, document.CreatorMode);
         writer.WriteBoolean(OnboardingCompleted, document.OnboardingCompleted);
+        writer.WriteNumber(OnboardingStep, document.OnboardingStep);
         writer.WriteBoolean(TrayNoticeShown, document.TrayNoticeShown);
         writer.WriteString(BackupLocationName, document.BackupLocation.ToString());
         writer.WriteIfSet(CustomBackupFolder, document.CustomBackupFolder);

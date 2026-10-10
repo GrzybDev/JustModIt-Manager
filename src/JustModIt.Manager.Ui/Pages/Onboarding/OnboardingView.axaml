@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:onboarding="using:JustModIt.Manager.Ui.Pages.Onboarding"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Onboarding.OnboardingView"
+             x:DataType="onboarding:OnboardingViewModel">
+  <UserControl.Styles>
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Onboarding/OnboardingStyles.axaml" />
+  </UserControl.Styles>
+
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Alt+Left" Command="{Binding BackCommand}" />
+  </UserControl.KeyBindings>
+
+  <Panel Classes="setup">
+    <Panel IsHitTestVisible="False" ClipToBounds="True" AutomationProperties.AccessibilityView="Raw">
+      <onboarding:CoverWall Covers="{Binding Covers}" />
+      <Border Classes="wallShade" />
+      <Border Classes="wallVignette" />
+      <Border Classes="wallGlow" />
+    </Panel>
+
+    <Border x:Name="Card" Classes="setupCard" AutomationProperties.Name="{Binding CurrentStep.Title}">
+      <Grid RowDefinitions="*,72">
+        <TransitioningContentControl x:Name="Steps" Content="{Binding CurrentStep}" IsTransitionReversed="{Binding IsGoingBack}"
+                                     ClipToBounds="True">
+          <TransitioningContentControl.PageTransition>
+            <theme:PageTransition IsHorizontal="True" Offset="28" />
+          </TransitioningContentControl.PageTransition>
+        </TransitioningContentControl>
+
+        <Border Grid.Row="1" Classes="setupFooter">
+          <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="16">
+            <Button x:Name="BackButton" Classes="outline" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Onboarding_Back}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.ChevronLeft}" ToolTip.Tip="{x:Static loc:Strings.Onboarding_BackTip}"
+                    Command="{Binding BackCommand}" IsVisible="{Binding !IsFirstStep}" />
+
+            <ItemsControl Grid.Column="1" ItemsSource="{Binding Steps}" VerticalAlignment="Center"
+                          AutomationProperties.Name="{Binding Progress}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="6" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="onboarding:OnboardingStep">
+                  <Border Classes="stepDot" Classes.current="{Binding IsCurrent}" Classes.done="{Binding IsDone}" ToolTip.Tip="{Binding Title}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+              <Button x:Name="SkipButton" Classes="quiet" Content="{x:Static loc:Strings.Onboarding_Skip}"
+                      ToolTip.Tip="{x:Static loc:Strings.Onboarding_SkipTip}" Command="{Binding SkipCommand}" IsVisible="{Binding !IsLastStep}" />
+              <Button x:Name="NextButton" Classes="primary compact" IsDefault="True" Content="{Binding NextText}"
+                      ui:ButtonAssist.Icon="{Binding NextIcon}" ui:ButtonAssist.IconAfter="True" ToolTip.Tip="{Binding NextTip}"
+                      Command="{Binding NextCommand}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+      </Grid>
+    </Border>
+  </Panel>
+</UserControl>

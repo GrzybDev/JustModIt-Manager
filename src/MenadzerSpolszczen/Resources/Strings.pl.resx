@@ -180,4 +180,46 @@
   <data name="Toast_FailedTitle" xml:space="preserve">
     <value>{job, select, Install {Nie udało się zainstalować spolszczenia} Update {Nie udało się zaktualizować spolszczenia} Repair {Nie udało się naprawić spolszczenia} Uninstall {Nie udało się odinstalować spolszczenia} other {Coś poszło nie tak}}</value>
   </data>
+  <data name="Onboarding_WelcomeTitle" xml:space="preserve">
+    <value>Witaj w</value>
+  </data>
+  <data name="Onboarding_WelcomeName" xml:space="preserve">
+    <value>Menadżerze Spolszczeń</value>
+  </data>
+  <data name="Onboarding_WelcomeLead" xml:space="preserve">
+    <value>{product} wykrywa gry z bibliotek sklepów i dopasowuje do nich spolszczenia z Bazy Spolszczeń. Instaluje je jednym kliknięciem i dba o aktualizacje. Każdą zmianę da się cofnąć – oryginalne pliki gier są zawsze zachowywane.</value>
+  </data>
+  <data name="Onboarding_MatchTitle" xml:space="preserve">
+    <value>Dobór spolszczeń</value>
+  </data>
+  <data name="Onboarding_Match" xml:space="preserve">
+    <value>Z Bazy Spolszczeń, pasujące do zainstalowanej wersji gry.</value>
+  </data>
+  <data name="Onboarding_AutomateEverythingDescription" xml:space="preserve">
+    <value>Nowe spolszczenia i aktualizacje instalują się same.</value>
+  </data>
+  <data name="Onboarding_AutomateUpdatesDescription" xml:space="preserve">
+    <value>Aktualizacje instalują się same, nowe spolszczenia – ręcznie.</value>
+  </data>
+  <data name="Onboarding_NotificationsDescription" xml:space="preserve">
+    <value>Informacje o instalacjach, aktualizacjach i nowych spolszczeniach.</value>
+  </data>
+  <data name="Onboarding_BackgroundLead" xml:space="preserve">
+    <value>{product} pracuje w tle, z ikoną w zasobniku systemowym obok zegara, i dba o spolszczenia także przy zamkniętym oknie.</value>
+  </data>
+  <data name="Onboarding_CreatorTile" xml:space="preserve">
+    <value>Tłumaczę gry</value>
+  </data>
+  <data name="Onboarding_ReadyLead" xml:space="preserve">
+    <value>Po kliknięciu „{start}” w Moich grach pojawią się spolszczenia pasujące do gier z tego komputera.</value>
+  </data>
+  <data name="Onboarding_Matched" xml:space="preserve">
+    <value>{count, plural, one {Spolszczenia są dostępne dla # gry} few {Spolszczenia są dostępne dla # gier} many {Spolszczenia są dostępne dla # gier} other {Spolszczenia są dostępne dla # gry}}</value>
+  </data>
+  <data name="Onboarding_MatchedNone" xml:space="preserve">
+    <value>Na razie brak spolszczeń pasujących do wykrytych gier.</value>
+  </data>
+  <data name="Onboarding_SiteUnavailable" xml:space="preserve">
+    <value>Nie udało się połączyć z Bazą Spolszczeń; pasujące spolszczenia pojawią się w Moich grach później.</value>
+  </data>
 </root>
