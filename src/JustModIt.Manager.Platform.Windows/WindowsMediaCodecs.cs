@@ -22,12 +22,10 @@ public sealed class WindowsMediaCodecs : IMediaCodecs
 
     public IMediaClip? OpenClip(string path) => WindowsMediaClip.Open(path, out _);
 
-    /// <summary>Decodes the first frame of a picture, telling a missing decoder from a damaged file.</summary>
+    /// <summary>Decodes the first frame of a picture, giving the result of the call that failed when it cannot.</summary>
     /// <param name="path">The picture's file.</param>
     /// <param name="sizeFor">Gives the size to decode to from the picture's own width and height.</param>
-    /// <param name="status">
-    /// The result of the call that failed, <see cref="HRESULT.WINCODEC_ERR_COMPONENTNOTFOUND"/> when no decoder reads the file.
-    /// </param>
+    /// <param name="status">The result of the call that failed.</param>
     /// <returns>The picture; null when it could not be decoded.</returns>
     internal static MediaPicture? Decode(string path, Func<int, int, (int Width, int Height)> sizeFor, out HRESULT status)
     {

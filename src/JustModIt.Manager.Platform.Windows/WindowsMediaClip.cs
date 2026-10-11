@@ -55,9 +55,9 @@ internal sealed class WindowsMediaClip : IMediaClip
 
     public int Height { get; private set; }
 
-    /// <summary>Opens a clip, telling a system without the decoders it needs from a damaged file.</summary>
+    /// <summary>Opens a clip, giving the result of the call that failed when it cannot.</summary>
     /// <param name="path">The clip's file, MP4 or WebM.</param>
-    /// <param name="status">The result of the call that failed; see <see cref="LacksSupport"/>.</param>
+    /// <param name="status">The result of the call that failed.</param>
     /// <returns>The clip; null when it cannot be read.</returns>
     internal static WindowsMediaClip? Open(string path, out HRESULT status)
     {
@@ -91,12 +91,6 @@ internal sealed class WindowsMediaClip : IMediaClip
 
         return clip;
     }
-
-    /// <summary>Tells whether an open failed for want of what the system lacks rather than a fault of the file.</summary>
-    /// <param name="status">The status <see cref="Open"/> gave.</param>
-    internal static bool LacksSupport(HRESULT status) =>
-        status == HRESULT.MF_E_PLATFORM_NOT_INITIALIZED || status == HRESULT.MF_E_TOPO_CODEC_NOT_FOUND
-        || status == HRESULT.MF_E_INVALIDMEDIATYPE || status == HRESULT.MF_E_UNSUPPORTED_BYTESTREAM_TYPE;
 
     public TimeSpan? ReadFrame(Span<byte> pixels)
     {

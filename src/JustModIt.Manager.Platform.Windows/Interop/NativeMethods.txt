@@ -64,9 +64,11 @@ CoIncrementMTAUsage
 E_INVALIDARG
 E_OUTOFMEMORY
 GUID_WICPixelFormat32bppPBGRA
+IWICBitmapCodecInfo
 IWICImagingFactory
 SHCreateMemStream
-WINCODEC_ERR_COMPONENTNOTFOUND
+WICComponentEnumerateOptions
+WICComponentType
 
 // Clips (Media Foundation)
 CLSID_MFReadWriteClassFactory
@@ -77,7 +79,6 @@ IMFSourceReader
 MF_BYTESTREAM_CONTENT_TYPE
 MF_E_INVALIDMEDIATYPE
 MF_E_PLATFORM_NOT_INITIALIZED
-MF_E_TOPO_CODEC_NOT_FOUND
 MF_E_UNSUPPORTED_BYTESTREAM_TYPE
 MF_MT_DEFAULT_STRIDE
 MF_MT_FRAME_SIZE
@@ -96,8 +97,14 @@ MFCreateMediaType
 MFMediaType_Video
 MFSTARTUP_LITE
 MFStartup
+MFT_CATEGORY_VIDEO_DECODER
+MFT_ENUM_FLAG
+MFTEnumEx
 MFVideoArea
+MFVideoFormat_AV1
+MFVideoFormat_H264
 MFVideoFormat_RGB32
+MFVideoFormat_VP90
 
 // Anything else
 AllowSetForegroundWindow

@@ -11,9 +11,11 @@
       "IMFReadWriteClassFactory",
       "IMFSample",
       "IMFSourceReader",
+      "IWICBitmapCodecInfo",
       "IWICBitmapDecoder",
       "IWICBitmapScaler",
       "IWICBitmapSource",
+      "IWICComponentInfo",
       "IWICFormatConverter",
       "IWICImagingFactory"
     ]

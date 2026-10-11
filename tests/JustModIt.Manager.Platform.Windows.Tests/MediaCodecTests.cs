@@ -1,18 +1,37 @@
 using System.Runtime.Versioning;
-using Windows.Win32.Foundation;
+using Windows.Win32;
 
 namespace JustModIt.Manager.Platform.Windows.Tests;
 
 [SupportedOSPlatform("windows")]
 public sealed class MediaCodecTests
 {
+    // AVIF needs a WIC decoder for its container and the AV1 extension's video decoder, VP9 its own extension, and H.264
+    // Media Foundation, which editions without the media features lack.
+    private static readonly Dictionary<string, Func<bool>> SystemDecodes = new()
+    {
+        ["still.png"] = () => true,
+        ["still.avif"] = () => InstalledDecoders.HasPictureDecoder("image/avif") && InstalledDecoders.HasVideoDecoder(PInvoke.MFVideoFormat_AV1),
+        ["three-colours.mp4"] = () => InstalledDecoders.HasVideoDecoder(PInvoke.MFVideoFormat_H264),
+        ["three-colours.webm"] = () => InstalledDecoders.HasVideoDecoder(PInvoke.MFVideoFormat_VP90),
+    };
+
     public MediaCodecTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The system's decoders are read on Windows.");
+
+    [Fact]
+    public void A_format_counts_as_decodable_only_when_the_system_registered_a_decoder_for_it()
+    {
+        InstalledDecoders.HasPictureDecoder("image/png").Should().BeTrue("every Windows has WIC's PNG decoder");
+        InstalledDecoders.HasPictureDecoder("image/x-invented").Should().BeFalse();
+        InstalledDecoders.HasVideoDecoder(Guid.NewGuid()).Should().BeFalse();
+    }
 
     [Theory]
     [InlineData("still.png")]
     [InlineData("still.avif")]
     public void A_still_decodes_through_the_systems_decoders_to_the_size_chosen_from_its_own(string name)
     {
+        SkipUnlessTheSystemDecodes(name);
         (int Width, int Height) natural = default;
 
         var picture = WindowsMediaCodecs.Decode(Fixture(name), (width, height) =>
@@ -21,7 +40,7 @@ public sealed class MediaCodecTests
             return (24, 16);
         }, out var status);
 
-        Assert.SkipWhen(status == HRESULT.WINCODEC_ERR_COMPONENTNOTFOUND, "This system has no decoder for the format, as Windows Server lacks the AV1 extension.");
+        picture.Should().NotBeNull("the system has the decoders the format needs, yet decoding failed with {0}", status);
         natural.Should().Be((48, 32));
         (picture!.Width, picture.Height, picture.NaturalWidth, picture.NaturalHeight).Should().Be((24, 16, 48, 32));
         var middle = ((8 * 24) + 12) * 4;
@@ -54,9 +73,11 @@ public sealed class MediaCodecTests
     [InlineData("three-colours.webm")]
     public void A_clip_reads_frame_after_frame_without_the_coders_padding_and_starts_over_after_the_last(string name)
     {
+        SkipUnlessTheSystemDecodes(name);
+
         using var clip = WindowsMediaClip.Open(Fixture(name), out var status);
 
-        Assert.SkipWhen(clip is null && WindowsMediaClip.LacksSupport(status), "This system has no Media Foundation or no decoder for the format.");
+        clip.Should().NotBeNull("the system has the decoder the format needs, yet opening the clip failed with {0}", status);
         // The coder pads the 40x24 frames to whole 16-pixel blocks, which the clip leaves out.
         (clip!.Width, clip.Height).Should().Be((40, 24));
         var pixels = new byte[40 * 24 * 4];
@@ -98,6 +119,9 @@ public sealed class MediaCodecTests
             File.Delete(path);
         }
     }
+
+    private static void SkipUnlessTheSystemDecodes(string name) =>
+        Assert.SkipUnless(SystemDecodes[name](), $"This system lacks a decoder {name} needs; Windows Server has neither the AV1 nor the VP9 extension.");
 
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
 
