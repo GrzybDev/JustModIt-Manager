@@ -36,7 +36,7 @@ on:
         description: An exact version instead, such as 1.2.3 or 1.2.3-alpha.1
         type: string
       sign:
-        description: Sign the executables and the installer (run build\sign-pending.ps1 -Watch on the signing machine)
+        description: Sign the executables and the installer (run codesign\sign-pending.ps1 -Watch from GrzybDev/actions on the signing machine)
         type: boolean
         default: true
       dry_run:
@@ -90,6 +90,16 @@ jobs:
 
       - uses: ./.github/actions/build
 
+      - name: Set up code signing
+        id: codesign
+        if: ${{ env.SIGN == 'true' }}
+        uses: GrzybDev/actions/codesign@v1
+        with:
+          version: ${{ steps.version.outputs.version }}
+          app: ${{ steps.version.outputs.slug }}
+          store: ${{ vars.SIGNING_STORE || 's3://codesign' }}
+          subject: ${{ vars.SIGNING_SUBJECT }}
+
       - name: Package
         id: package
         shell: pwsh
@@ -103,11 +113,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
           AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
-          SIGNING_STORE: ${{ vars.SIGNING_STORE || 's3://codesign' }}
-          SIGNING_REPOSITORY: ${{ github.event.repository.name }}
-          SIGNING_APP: ${{ steps.version.outputs.slug }}
-          SIGNING_VERSION: ${{ steps.version.outputs.version }}
-          SIGNING_SUBJECT: ${{ vars.SIGNING_SUBJECT }}
+          SIGN_COMMAND: ${{ steps.codesign.outputs.command }}
         run: |
           $arguments = @{
             App = $env:APP; Version = $env:VERSION; Token = $env:GH_TOKEN
@@ -117,8 +123,7 @@ jobs:
             if (-not $env:AWS_ACCESS_KEY_ID) {
               throw 'Signing needs the secrets AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION and AWS_ENDPOINT_URL of the signing store.'
             }
-            $arguments.SignTemplate = "pwsh -NoProfile -File $env:GITHUB_WORKSPACE/build/sign-remote.ps1 {{file...}}"
-            Write-Host "::notice title=Waiting for signatures::Sign the files on the signing machine with build\sign-pending.ps1 -Watch -Store $env:SIGNING_STORE"
+            $arguments.SignTemplate = "$env:SIGN_COMMAND {{file...}}"
           }
           ./build/package.ps1 @arguments
 
@@ -227,30 +232,9 @@ jobs:
             "- Published: $(if ($env:PUBLISHED -eq 'success') { "yes, to $env:UPDATE_URL" } else { 'no' })"
           )
           if ($env:SIGN -eq 'true') {
-            $lines += '', "The signatures come from ``build\sign-pending.ps1 -Watch -Store $env:STORE`` on the signing machine."
+            $lines += '', "The signatures come from ``codesign\sign-pending.ps1 -Watch -Store $env:STORE`` of GrzybDev/actions on the signing machine."
           }
           if ($env:CHECKSUMS -and (Test-Path $env:CHECKSUMS)) {
             $lines += @('', 'SHA-256:', '', '```text') + @(Get-Content $env:CHECKSUMS) + '```'
           }
           $lines | Add-Content -Path $env:GITHUB_STEP_SUMMARY
-
-      - name: Clear the signing store
-        if: ${{ always() && steps.version.outputs.version && env.SIGN == 'true' }}
-        shell: pwsh
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-          AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
-          STORE: ${{ vars.SIGNING_STORE || 's3://codesign' }}
-          RELEASE: ${{ github.event.repository.name }}/${{ steps.version.outputs.slug }}/v${{ steps.version.outputs.version }}
-        run: |
-          Import-Module ./build/Signing.psm1
-          try {
-            foreach ($side in 'unsigned', 'signed') { Remove-StoreFolder $env:STORE "$side/$env:RELEASE" }
-          }
-          catch {
-            # What is left expires with the store's lifecycle rule; sign-pending.ps1 removes it once no run waits for it.
-            Write-Host "::warning title=Signing store not cleared::$($_.Exception.Message)"
-            exit 0
-          }
