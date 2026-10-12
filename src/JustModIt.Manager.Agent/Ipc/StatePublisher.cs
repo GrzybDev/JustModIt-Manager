@@ -87,7 +87,7 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
         {
             await _changes.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             var state = AppStateView.From(++version, coordinator.Current, settings.Current, catalogue.Current.Site, status.Activity,
-                status.Update);
+                status.Update) with { UncleanExit = status.UncleanExit };
             Volatile.Write(ref _latest, state);
             EventRaising.RaiseEach(Published, this, state, LogListenerFailed);
         }

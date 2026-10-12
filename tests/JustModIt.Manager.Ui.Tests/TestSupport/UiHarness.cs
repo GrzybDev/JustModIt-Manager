@@ -235,9 +235,22 @@ public sealed class FakePickers : IFilePickers
 
     public List<string> Asked { get; } = [];
 
+    /// <summary>The file the player saves to; null cancels.</summary>
+    public string? SaveFile { get; set; }
+
+    /// <summary>The names the save pickers suggested, in order.</summary>
+    public List<string> Suggested { get; } = [];
+
     public Task<string?> PickFolderAsync(string title)
     {
         Asked.Add(title);
         return Task.FromResult(Folder);
+    }
+
+    public Task<string?> PickSaveFileAsync(string title, string suggestedName, FileKind kind)
+    {
+        Asked.Add(title);
+        Suggested.Add(suggestedName);
+        return Task.FromResult(SaveFile);
     }
 }

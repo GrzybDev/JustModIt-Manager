@@ -23,6 +23,14 @@ internal static class ShellHooks
             environment.Identity.Slug, product.ProductName, environment.Install.ExecutablePath,
             ReadSettings(environment.Locations).StartWithSystem));
 
+    /// <summary>
+    /// Ends the session markers of the runs that the installer stopped before it replaced the app's files, after an install
+    /// or an update.
+    /// </summary>
+    /// <param name="product">The app's build settings.</param>
+    public static void EndStoppedRuns(ProductSettings product) =>
+        Apply(product, environment => Roles.EndStoppedRuns(environment.Locations.StateDirectory));
+
     /// <summary>Removes the link scheme and autostart before the app is uninstalled.</summary>
     /// <param name="product">The app's build settings.</param>
     public static void Unregister(ProductSettings product) => Apply(product, environment =>

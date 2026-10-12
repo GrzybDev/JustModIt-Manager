@@ -76,6 +76,8 @@ public sealed partial class WindowsTrayHost : ITrayHost
 
     public event EventHandler<string?>? NotificationClicked;
 
+    public event EventHandler? SessionEnding;
+
     public void Show(string tooltip, IReadOnlyList<TrayMenuItem> menu)
     {
         ArgumentNullException.ThrowIfNull(tooltip);
@@ -270,6 +272,10 @@ public sealed partial class WindowsTrayHost : ITrayHost
                 return true;
             case PInvoke.WM_DESTROY:
                 PInvoke.PostQuitMessage(0);
+                return true;
+            // Windows may end the process any time after this message is handled, so handlers run before it returns.
+            case PInvoke.WM_ENDSESSION when wParam.Value != 0:
+                SessionEnding?.Invoke(this, EventArgs.Empty);
                 return true;
             default:
                 if (message == _taskbarCreated && _taskbarCreated != 0)

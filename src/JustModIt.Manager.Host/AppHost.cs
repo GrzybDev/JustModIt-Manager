@@ -26,8 +26,8 @@ public static class AppHost
         if (OperatingSystem.IsWindows())
         {
             velopack = velopack
-                .OnAfterInstallFastCallback(_ => RegisterShell(product))
-                .OnAfterUpdateFastCallback(_ => RegisterShell(product))
+                .OnAfterInstallFastCallback(_ => AfterInstall(product))
+                .OnAfterUpdateFastCallback(_ => AfterInstall(product))
                 .OnBeforeUninstallFastCallback(_ => UnregisterShell(product));
         }
 
@@ -51,10 +51,13 @@ public static class AppHost
             : Roles.RunAgent(environment, options, launch, args);
     }
 
-    private static void RegisterShell(ProductSettings product)
+    // Before it replaces the app's files, an update, like an installer run over this copy, stops every process of the app
+    // that still runs without letting it exit, and a stop the player agreed to is no unexpected close.
+    private static void AfterInstall(ProductSettings product)
     {
         if (OperatingSystem.IsWindows())
         {
+            ShellHooks.EndStoppedRuns(product);
             ShellHooks.Register(product);
         }
     }

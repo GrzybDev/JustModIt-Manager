@@ -102,6 +102,8 @@ internal sealed class FakeTray : ITrayHost
 
     public event EventHandler<string?>? NotificationClicked;
 
+    public event EventHandler? SessionEnding;
+
     public string? Tooltip { get; private set; }
 
     public IReadOnlyList<TrayMenuItem> Menu { get; private set; } = [];
@@ -130,6 +132,8 @@ internal sealed class FakeTray : ITrayHost
     public void Pick(string command) => CommandInvoked?.Invoke(this, command);
 
     public void ClickNotification(string? tag) => NotificationClicked?.Invoke(this, tag);
+
+    public void EndSession() => SessionEnding?.Invoke(this, EventArgs.Empty);
 
     public void Dispose() => IsDisposed = true;
 }

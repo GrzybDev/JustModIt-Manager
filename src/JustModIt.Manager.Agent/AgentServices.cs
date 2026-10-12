@@ -1,4 +1,5 @@
 using System.Runtime.Versioning;
+using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Agent.Ipc;
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Notifications;
@@ -163,6 +164,7 @@ public static class AgentServices
         services.AddSingleton(MemoryTrimSchedule.Default);
         services.AddSingleton<IAgentService, MemoryTrimmer>();
         services.AddSingleton<IAgentService, ApiKeyCheck>();
+        services.AddSingleton<IAgentService, SessionEnd>();
         services.AddSingleton<AgentRuntime>();
     }
 

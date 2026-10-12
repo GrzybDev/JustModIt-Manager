@@ -46,6 +46,9 @@ public sealed record AppStateView
     /// <inheritdoc cref="AppState.PendingBackupMoves"/>
     public int PendingBackupMoves { get; init; }
 
+    /// <summary>How the agent's previous run ended when it did not exit cleanly; null once the window told the player.</summary>
+    public UncleanExitView? UncleanExit { get; init; }
+
     /// <summary>Makes the snapshot of the engine's state and the agent's own status.</summary>
     /// <param name="version">The snapshot's number among those the agent sent.</param>
     /// <param name="state">The engine's newest state.</param>
@@ -134,6 +137,11 @@ public enum AppUpdateState
     Ready,
     Failed,
 }
+
+/// <summary>A run of the agent that did not exit cleanly, as its session marker tells at the next start.</summary>
+/// <param name="Version">The app's version in that run; empty when its marker was cut short.</param>
+/// <param name="CrashType">The type of the exception that ended it; null when it was killed or the power went out.</param>
+public sealed record UncleanExitView(string Version, string? CrashType);
 
 /// <summary>The app's own updates.</summary>
 public sealed record AppUpdateView

@@ -70,6 +70,8 @@ public sealed class MessageTests
         new BackupFolderChecked(BackupFolderProblem.InsideGameFolder),
         new BackupFolderChecked(AvailableBytes: 812_000_000_000),
         new RemoveLeftoverBackups([RecordId]),
+        new DismissUncleanExit(),
+        new SaveDiagnosticReport(@"C:\Reports\report.zip"),
         new ApplyAppUpdate(),
         new ExitApp(ExitMode.AfterJobs),
         new GetProjectPage("example-game", "lantern-team", Project),

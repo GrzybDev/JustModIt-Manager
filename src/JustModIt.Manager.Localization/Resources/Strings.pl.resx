@@ -2277,4 +2277,34 @@
   <data name="Licenses_Trademarks" xml:space="preserve">
     <value>Steam i logo Steam są znakami towarowymi Valve Corporation. GOG.com i GOG GALAXY są znakami towarowymi CD PROJEKT S.A. Epic Games i Epic Games Store są znakami towarowymi Epic Games, Inc. {product} nie jest powiązany z żadną z tych firm, a znaków sklepów używa tylko po to, by pokazać, skąd pochodzi gra.</value>
   </data>
+  <data name="Shell_UncleanExitTitle" xml:space="preserve">
+    <value>Aplikacja {product} została nieoczekiwanie zamknięta</value>
+  </data>
+  <data name="Shell_UncleanExitMessage" xml:space="preserve">
+    <value>Pliki gier są bezpieczne – niedokończone zmiany zostały cofnięte przy uruchomieniu aplikacji. Jeśli sytuacja się powtarza, warto zapisać raport diagnostyczny i dołączyć go do zgłoszenia problemu.</value>
+  </data>
+  <data name="Shell_UncleanExitCrash" xml:space="preserve">
+    <value>Przyczyna: błąd {error} w wersji {version}.</value>
+  </data>
+  <data name="Shell_UncleanExitKilled" xml:space="preserve">
+    <value>Wersja {version} przestała działać bez zamknięcia, np. po zakończeniu jej procesu albo po zaniku zasilania.</value>
+  </data>
+  <data name="Shell_SaveReport" xml:space="preserve">
+    <value>Zapisz raport…</value>
+  </data>
+  <data name="Shell_SaveReportTitle" xml:space="preserve">
+    <value>Zapisz raport diagnostyczny</value>
+  </data>
+  <data name="Shell_ReportFileName" xml:space="preserve">
+    <value>{product} – raport {date}.zip</value>
+  </data>
+  <data name="Shell_ReportFileType" xml:space="preserve">
+    <value>Archiwum ZIP</value>
+  </data>
+  <data name="Shell_ReportSaved" xml:space="preserve">
+    <value>Raport zapisano jako {file}.</value>
+  </data>
+  <data name="Shell_ReportFailed" xml:space="preserve">
+    <value>Nie udało się zapisać raportu.</value>
+  </data>
 </root>

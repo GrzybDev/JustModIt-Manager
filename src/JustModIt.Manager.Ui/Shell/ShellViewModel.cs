@@ -40,7 +40,8 @@ public sealed partial class NavigationItem(ShellSection section, string title, G
 
 /// <summary>
 /// The window around the pages: the title bar's name and way back, the sidebar, the status card, the first-run setup
-/// that takes the whole window until it is done, and the calm state shown while the agent cannot be reached.
+/// that takes the whole window until it is done, the calm state shown while the agent cannot be reached, and the one-time
+/// word that the app closed unexpectedly last time.
 /// </summary>
 public sealed partial class ShellViewModel : ObservableObject, IDisposable
 {
@@ -51,6 +52,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private readonly Func<UiServices, PageViewModel>? _firstRun;
     private readonly NavigationItem _creator;
     private readonly DispatcherTimer _slowConnection;
+    private bool _toldUncleanExit;
 
     /// <summary>Creates the shell, which opens the player's games or the place the window was started for.</summary>
     /// <param name="services">What the shell and its pages talk to.</param>
@@ -210,6 +212,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             return;
         }
 
+        if (Agent.State.UncleanExit is { } exit && !_toldUncleanExit)
+        {
+            _toldUncleanExit = true;
+            _ = TellUncleanExitAsync(exit);
+        }
+
         var settings = Agent.State.Settings;
         _creator.IsVisible = settings.CreatorMode;
         if (!settings.CreatorMode && Navigator.CurrentRoute?.Section == ShellSection.Creator)
@@ -228,6 +236,20 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             // The setup ends with a check that fills the player's games, whatever a link opened behind it.
             Navigator.Navigate(new LibraryRoute());
         }
+    }
+
+    // The agent forgets the exit at once, so the next window does not tell it again even if this one closes meanwhile.
+    private async Task TellUncleanExitAsync(UncleanExitView exit)
+    {
+        try
+        {
+            await Agent.RequestAsync(new DismissUncleanExit()).ConfigureAwait(true);
+        }
+        catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
+        {
+        }
+
+        await Dialogs.ShowAsync(new UncleanExitDialogViewModel(_services, exit)).ConfigureAwait(true);
     }
 
     private void SyncNavigation()

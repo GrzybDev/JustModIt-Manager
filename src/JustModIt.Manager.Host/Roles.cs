@@ -18,6 +18,9 @@ namespace JustModIt.Manager.Host;
 /// </summary>
 internal static partial class Roles
 {
+    private const string AgentRole = "agent";
+    private const string UiRole = "ui";
+
     // How long a launch keeps trying to reach an agent that is still starting or already exiting.
     private static readonly TimeSpan HandOverTimeout = TimeSpan.FromSeconds(15);
 
@@ -27,9 +30,14 @@ internal static partial class Roles
     /// <param name="launch">The command line, parsed.</param>
     /// <param name="args">The command line as given, for a hand-over.</param>
     public static int RunAgent(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
-        RunClaimed(environment, environment.Names.AgentLock, "agent", args, loggers =>
+        RunClaimed(environment, environment.Names.AgentLock, AgentRole, args, (loggers, session, previous) =>
         {
-            AgentHost.RunAsync(environment.AgentOptions(), launch, loggers, options.ConfigureAgent).GetAwaiter().GetResult();
+            var agent = environment.AgentOptions() with
+            {
+                Session = session,
+                PreviousExit = UntoldExit.Carry(environment.Locations.StateDirectory, previous),
+            };
+            AgentHost.RunAsync(agent, launch, loggers, options.ConfigureAgent).GetAwaiter().GetResult();
             return 0;
         });
 
@@ -42,12 +50,24 @@ internal static partial class Roles
     /// <param name="launch">The command line, parsed.</param>
     /// <param name="args">The command line as given, for a hand-over.</param>
     public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
-        RunClaimed(environment, environment.Names.UiLock, "ui", args,
-            loggers => (options.Ui ?? new WindowHost()).Run(environment.WindowContext(options, launch, loggers)));
+        RunClaimed(environment, environment.Names.UiLock, UiRole, args,
+            (loggers, _, _) => (options.Ui ?? new WindowHost()).Run(environment.WindowContext(options, launch, loggers)));
+
+    /// <summary>
+    /// Ends the session markers of the runs that the installer stopped to replace the app, so the next start does not take
+    /// a stop the player agreed to for an unexpected close; a crash a marker recorded, and an exit no window has told yet,
+    /// stay to be told.
+    /// </summary>
+    /// <param name="stateDirectory">The app's state folder.</param>
+    public static void EndStoppedRuns(string stateDirectory)
+    {
+        SessionMarker.EndStopped(stateDirectory, AgentRole);
+        SessionMarker.EndStopped(stateDirectory, UiRole);
+    }
 
     // A launch whose role is taken hands its command line over and ends; a failed hand-over is in the launcher's log.
     private static int RunClaimed(HostEnvironment environment, string lockName, string role, string[] args,
-        Func<ILoggerFactory, int> run)
+        Func<ILoggerFactory, SessionMarker, UncleanExit?, int> run)
     {
         InstanceClaim claim;
         using (var log = new RoleLog(environment, "launcher"))
@@ -78,18 +98,19 @@ internal static partial class Roles
         }
     }
 
-    private static int RunRole(HostEnvironment environment, string role, Func<ILoggerFactory, int> run)
+    private static int RunRole(HostEnvironment environment, string role, Func<ILoggerFactory, SessionMarker, UncleanExit?, int> run)
     {
         using var log = new RoleLog(environment, role);
         var logger = log.Loggers.CreateLogger(typeof(Roles).FullName!);
         LogStarting(logger, role, environment.Version, RuntimeInformation.OSDescription, RuntimeInformation.ProcessArchitecture,
             environment.Install.IsInstalled, Environment.IsPrivilegedProcess);
         var session = new SessionMarker(environment.Locations.StateDirectory, role, environment.Version, TimeProvider.System);
-        CrashHandlers.Report(logger, session.Begin());
+        var previous = session.Begin();
+        CrashHandlers.Report(logger, previous);
         int exitCode;
         using (CrashHandlers.Install(logger, session, log))
         {
-            exitCode = run(log.Loggers);
+            exitCode = run(log.Loggers, session, previous);
         }
 
         session.End();

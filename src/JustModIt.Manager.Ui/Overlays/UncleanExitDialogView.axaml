@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Overlays.UncleanExitDialogView"
+             x:DataType="overlays:UncleanExitDialogViewModel">
+  <Border Classes="dialog" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Message}">
+    <StackPanel Spacing="20">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+        <Border Classes="iconChip warning" VerticalAlignment="Top">
+          <ui:Icon Data="{x:Static theme:Icons.TriangleAlert}" />
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="6">
+          <TextBlock Classes="dialogTitle" Text="{Binding Title}" />
+          <TextBlock Classes="bodyText" Text="{Binding Message}" />
+          <TextBlock Classes="caption" Text="{Binding Detail}" IsVisible="{Binding Detail, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <ui:StatusLine x:Name="SaveResult" Margin="0,4,0,0" FontSize="13" Detail="{Binding SaveResult}" Icon="{Binding SaveIcon}"
+                         Tone="{Binding SaveTone}" Foreground="{StaticResource TextBodyBrush}"
+                         IsVisible="{Binding SaveResult, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+      </Grid>
+      <!-- The way out comes first, so the dialog's focus starts on it; the tab order follows the buttons as they stand. -->
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+        <Button x:Name="CloseDialog" Grid.Column="2" Classes="quiet" KeyboardNavigation.TabIndex="2" Content="{x:Static loc:Strings.Shell_Close}"
+                Command="{Binding CloseCommand}" />
+        <Button x:Name="ReportProblem" Grid.Column="3" Classes="outline" KeyboardNavigation.TabIndex="3" IsVisible="{Binding CanReport}"
+                Content="{x:Static loc:Strings.Settings_ReportProblem}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ExternalLink}"
+                ui:ButtonAssist.IconAfter="True" Command="{Binding ReportCommand}" />
+        <Button x:Name="SaveReport" Classes="quiet" KeyboardNavigation.TabIndex="1" Content="{x:Static loc:Strings.Shell_SaveReport}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.Save}" Command="{Binding SaveReportCommand}" />
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>

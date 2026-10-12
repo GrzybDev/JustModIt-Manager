@@ -1,3 +1,4 @@
+using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Protocol.Activation;
@@ -42,6 +43,15 @@ public sealed record AgentOptions
 
     /// <summary>The updater started this process after applying an update, or after failing to apply it.</summary>
     public bool RestartedByUpdater { get; init; }
+
+    /// <summary>The agent's last unclean exit that no window has told the player of yet; the next window tells it once.</summary>
+    public UntoldExit? PreviousExit { get; init; }
+
+    /// <summary>
+    /// This run's session marker, ended when the system's session ends, since the system then stops the process with no
+    /// exit of its own and the next start must not take that for an unexpected one.
+    /// </summary>
+    public SessionMarker? Session { get; init; }
 }
 
 /// <summary>The feed the app's own updates come from.</summary>

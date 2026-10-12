@@ -30,6 +30,12 @@ public interface ITrayHost : IDisposable
     /// <summary>The player clicked a notification; carries the tag it was shown with.</summary>
     event EventHandler<string?>? NotificationClicked;
 
+    /// <summary>
+    /// The system's session ends, by shutting down, restarting or signing out, and the process is stopped once the
+    /// handlers return, with no exit of its own.
+    /// </summary>
+    event EventHandler? SessionEnding;
+
     /// <summary>Shows the icon, or updates it when it is shown, ending texts longer than the system shows in an ellipsis.</summary>
     /// <param name="tooltip">The product name and the status, shown when the pointer rests on the icon.</param>
     /// <param name="menu">The entries of the icon's menu, in order.</param>

@@ -1,3 +1,4 @@
+using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Agent.Updates;
@@ -27,10 +28,10 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="fileSystem">Finds a game's program.</param>
 /// <param name="checks">Runs a check the player asks for.</param>
 /// <param name="updates">Restarts into a ready update.</param>
-/// <param name="status">Tells whether an update is ready.</param>
+/// <param name="status">Tells whether an update is ready, and forgets how the previous run ended once the window told the player.</param>
 /// <param name="lifetime">Exits the app.</param>
 /// <param name="shell">Opens folders and links and starts programs.</param>
-/// <param name="options">The app's folders and the folder it is installed in.</param>
+/// <param name="options">The app's folders, the logs among them, the folder it is installed in and its last unclean exit.</param>
 /// <param name="time">Dates the player's confirmation of being an adult.</param>
 public sealed class AgentCommands(
     StateCoordinator coordinator,
@@ -86,6 +87,8 @@ public sealed class AgentCommands(
         ValidateBackupFolder validate => CheckBackupFolder(validate.Folder) is { } problem
             ? new BackupFolderChecked(problem)
             : new BackupFolderChecked(AvailableBytes: volumes.GetAvailableBytes(validate.Folder)),
+        DismissUncleanExit => Done(ForgetUncleanExit),
+        SaveDiagnosticReport save => await SaveReportAsync(save.Path, cancellationToken).ConfigureAwait(false),
         ApplyAppUpdate => RestartToUpdate(),
         ExitApp exit => Done(() => _ = lifetime.RequestExitAsync(exit.Mode)),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),
@@ -98,6 +101,12 @@ public sealed class AgentCommands(
     }
 
     private static RequestFailedException Invalid(string detail) => new(ErrorCode.InvalidRequest, detail);
+
+    private void ForgetUncleanExit()
+    {
+        status.ForgetUncleanExit();
+        options.PreviousExit?.Forget();
+    }
 
     private static StoreId StoreOf(string store) =>
         StoreId.TryParse(store, out var id) ? id : throw Invalid("The store is not a store id.");
@@ -231,6 +240,24 @@ public sealed class AgentCommands(
         var game = Find(request.Game ?? throw Invalid("The folder belongs to a game, which is missing."));
         return game.Game?.InstallDirectory ?? (game.Installs is [var first, ..] ? first.Record.InstallDirectory : null)
             ?? throw Invalid("The game has no such folder.");
+    }
+
+    private async Task<Message?> SaveReportAsync(string path, CancellationToken cancellationToken)
+    {
+        if (!Path.IsPathFullyQualified(path))
+        {
+            throw Invalid("The report's path is not fully qualified.");
+        }
+
+        try
+        {
+            await DiagnosticReport.WriteAsync(options.Locations.LogsDirectory, path, cancellationToken).ConfigureAwait(false);
+            return null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new RequestFailedException(ErrorCode.Failed, "The report could not be written.");
+        }
     }
 
     // Answered before the window is asked to close, since closing ends the connection the answer would take.

@@ -2289,4 +2289,34 @@
   <data name="Licenses_Trademarks" xml:space="preserve">
     <value>Steam and the Steam logo are trademarks of Valve Corporation. GOG.com and GOG GALAXY are trademarks of CD PROJEKT S.A. Epic Games and Epic Games Store are trademarks of Epic Games, Inc. {product} is not affiliated with any of them and uses the stores' marks only to show where a game came from.</value>
   </data>
+  <data name="Shell_UncleanExitTitle" xml:space="preserve">
+    <value>{product} closed unexpectedly</value>
+  </data>
+  <data name="Shell_UncleanExitMessage" xml:space="preserve">
+    <value>The games' files are safe: changes left unfinished were undone when the app started. If this happens again, a diagnostic report saved here helps with a problem report.</value>
+  </data>
+  <data name="Shell_UncleanExitCrash" xml:space="preserve">
+    <value>Cause: the error {error} in version {version}.</value>
+  </data>
+  <data name="Shell_UncleanExitKilled" xml:space="preserve">
+    <value>Version {version} stopped without closing, e.g. because its process was ended or the power went out.</value>
+  </data>
+  <data name="Shell_SaveReport" xml:space="preserve">
+    <value>Save report…</value>
+  </data>
+  <data name="Shell_SaveReportTitle" xml:space="preserve">
+    <value>Save a diagnostic report</value>
+  </data>
+  <data name="Shell_ReportFileName" xml:space="preserve">
+    <value>{product} report {date}.zip</value>
+  </data>
+  <data name="Shell_ReportFileType" xml:space="preserve">
+    <value>ZIP archive</value>
+  </data>
+  <data name="Shell_ReportSaved" xml:space="preserve">
+    <value>The report is saved as {file}.</value>
+  </data>
+  <data name="Shell_ReportFailed" xml:space="preserve">
+    <value>The report could not be saved.</value>
+  </data>
 </root>

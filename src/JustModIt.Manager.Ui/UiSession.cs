@@ -47,6 +47,7 @@ public sealed class UiSession : IDisposable
         var composition = new UiComposition(application.Resources, application.Styles);
         composition.Views.Register<ConfirmDialogViewModel>(() => new ConfirmDialogView());
         composition.Views.Register<ChoiceDialogViewModel>(() => new ChoiceDialogView());
+        composition.Views.Register<UncleanExitDialogViewModel>(() => new UncleanExitDialogView());
         Screens.Register(composition);
         context.Compose?.Invoke(composition);
 

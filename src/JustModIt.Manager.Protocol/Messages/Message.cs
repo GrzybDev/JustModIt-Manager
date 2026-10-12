@@ -42,6 +42,8 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(ValidateBackupFolder), "validateBackupFolder")]
 [JsonDerivedType(typeof(BackupFolderChecked), "backupFolderChecked")]
 [JsonDerivedType(typeof(RemoveLeftoverBackups), "removeLeftoverBackups")]
+[JsonDerivedType(typeof(DismissUncleanExit), "dismissUncleanExit")]
+[JsonDerivedType(typeof(SaveDiagnosticReport), "saveDiagnosticReport")]
 [JsonDerivedType(typeof(ApplyAppUpdate), "applyAppUpdate")]
 [JsonDerivedType(typeof(ExitApp), "exitApp")]
 [JsonDerivedType(typeof(GetProjectPage), "getProjectPage")]

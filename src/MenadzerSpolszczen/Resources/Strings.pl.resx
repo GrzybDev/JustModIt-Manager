@@ -551,4 +551,7 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Undetected_AddedNothingOffered" xml:space="preserve">
     <value>Dodano folder {folder}. Znaleziono w nim {games, plural, one {# grę} few {# gry} many {# gier} other {# gry}}, ale żadna nie ma jeszcze spolszczenia do zainstalowania.</value>
   </data>
+  <data name="Shell_UncleanExitTitle" xml:space="preserve">
+    <value>{product} został nieoczekiwanie zamknięty</value>
+  </data>
 </root>

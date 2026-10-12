@@ -160,6 +160,15 @@ public sealed record BackupFolderChecked(BackupFolderProblem? Problem = null, lo
 /// <param name="RecordIds">The forgotten installs' ids; one whose folder is not there stays listed.</param>
 public sealed record RemoveLeftoverBackups(IReadOnlyList<Guid> RecordIds) : Message;
 
+/// <summary>The window told the player that the agent's previous run ended unexpectedly, so it is not told again.</summary>
+public sealed record DismissUncleanExit : Message;
+
+/// <summary>
+/// Writes the app's logs into a zip file the player picked, to attach to a problem report; answered once it is written.
+/// </summary>
+/// <param name="Path">The report's full path.</param>
+public sealed record SaveDiagnosticReport(string Path) : Message;
+
 /// <summary>Restarts into the downloaded update once the window has agreed to close.</summary>
 public sealed record ApplyAppUpdate : Message;
 

@@ -31,7 +31,7 @@ public sealed class SessionMarker
         ArgumentException.ThrowIfNullOrWhiteSpace(role);
         ArgumentNullException.ThrowIfNull(version);
         ArgumentNullException.ThrowIfNull(time);
-        _path = Path.Combine(directory, role + ".session");
+        _path = PathOf(directory, role);
         _version = version;
         _time = time;
     }
@@ -44,7 +44,7 @@ public sealed class SessionMarker
         UncleanExit? previous = null;
         try
         {
-            previous = Read();
+            previous = Read(_path);
             Write(null);
         }
         // An antivirus or a backup tool may hold the marker, and a diagnostics file must never keep a role from running.
@@ -81,12 +81,37 @@ public sealed class SessionMarker
         }
     }
 
-    private UncleanExit? Read()
+    /// <summary>
+    /// Ends the marker a role's run left when it was stopped from outside, as the installer stops the app to replace it, so
+    /// the next start counts the stop as a clean exit; a marker that recorded a crash stays to be told.
+    /// </summary>
+    /// <param name="directory">The app's state folder.</param>
+    /// <param name="role">The role whose run was stopped.</param>
+    public static void EndStopped(string directory, string role)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(role);
+        var path = PathOf(directory, role);
+        try
+        {
+            if (Read(path) is { CrashType: null })
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static string PathOf(string directory, string role) => Path.Combine(directory, role + ".session");
+
+    private static UncleanExit? Read(string path)
     {
         byte[] json;
         try
         {
-            json = File.ReadAllBytes(_path);
+            json = File.ReadAllBytes(path);
         }
         catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
         {
