@@ -531,6 +531,27 @@
   <data name="Settings_CreatorModeDescription" xml:space="preserve">
     <value>Pokazuje {creator} – narzędzie do tworzenia paczek z własnymi tłumaczeniami gier.</value>
   </data>
+  <data name="Settings_ClearCacheDescription" xml:space="preserve">
+    <value>Usunięte zostaną obrazy, zapisane strony spolszczeń i paczki, których nie potrzebuje żadne zainstalowane spolszczenie. Kopie oryginalnych plików zostaną.</value>
+  </data>
+  <data name="Settings_UninstallAll" xml:space="preserve">
+    <value>Odinstaluj wszystkie spolszczenia</value>
+  </data>
+  <data name="Settings_UninstallAllNothing" xml:space="preserve">
+    <value>Żadne spolszczenie nie jest zainstalowane.</value>
+  </data>
+  <data name="Settings_UninstallAllUnreachable" xml:space="preserve">
+    <value>Oryginalne pliki zainstalowanych spolszczeń są teraz niedostępne.</value>
+  </data>
+  <data name="Settings_UninstallAllTitle" xml:space="preserve">
+    <value>Odinstalować wszystkie spolszczenia?</value>
+  </data>
+  <data name="Settings_UninstallAllMessage" xml:space="preserve">
+    <value>Spolszczenia zostaną odinstalowane z {count, plural, one {# gry} few {# gier} many {# gier} other {# gry}}, a gry odzyskają oryginalne pliki. Uruchomione gry poczekają na zamknięcie. Automatyczne instalowanie spolszczeń w tych grach zostanie wyłączone.</value>
+  </data>
+  <data name="Settings_UninstallAllSkipped" xml:space="preserve">
+    <value>{count, plural, one {# gra zachowa spolszczenie, bo jej oryginalne pliki są teraz niedostępne.} few {# gry zachowają spolszczenia, bo ich oryginalne pliki są teraz niedostępne.} many {# gier zachowa spolszczenia, bo ich oryginalne pliki są teraz niedostępne.} other {# gry zachowają spolszczenia, bo ich oryginalne pliki są teraz niedostępne.}}</value>
+  </data>
   <data name="Settings_AboutText" xml:space="preserve">
     <value>Otwartoźródłowa aplikacja Bazy Spolszczeń. Wykrywa gry na tym komputerze i instaluje do nich fanowskie spolszczenia – stworzone przez graczy, dla graczy.</value>
   </data>

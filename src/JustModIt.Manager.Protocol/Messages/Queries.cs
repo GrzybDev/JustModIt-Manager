@@ -94,3 +94,14 @@ public sealed record GetLeftoverBackups : Query;
 /// <summary>The answer to <see cref="GetLeftoverBackups"/>.</summary>
 /// <param name="Backups">The leftover backups with their size.</param>
 public sealed record LeftoverBackups(IReadOnlyList<LeftoverBackup> Backups) : Message;
+
+/// <summary>Asks how much space the app's own data takes; answered with <see cref="AppDataUsage"/>.</summary>
+public sealed record GetAppDataUsage : Query;
+
+/// <summary>The answer to <see cref="GetAppDataUsage"/>, in bytes.</summary>
+/// <param name="DataFolder">The app's data folder, whose drive the window names.</param>
+/// <param name="Total">Everything the app keeps of its own, backups in its data folder included.</param>
+/// <param name="Downloads">The downloaded packages, partial ones included.</param>
+/// <param name="ImagesAndCatalogue">The window's images and the saved catalogue with its project pages.</param>
+/// <param name="Logs">The logs.</param>
+public sealed record AppDataUsage(string DataFolder, long Total, long Downloads, long ImagesAndCatalogue, long Logs) : Message;

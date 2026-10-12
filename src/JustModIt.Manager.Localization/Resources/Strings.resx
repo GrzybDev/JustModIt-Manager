@@ -1785,6 +1785,9 @@
   <data name="Settings_ForCreators" xml:space="preserve">
     <value>For creators</value>
   </data>
+  <data name="Settings_AppData" xml:space="preserve">
+    <value>App data</value>
+  </data>
   <data name="Settings_About" xml:space="preserve">
     <value>About</value>
   </data>
@@ -1991,6 +1994,72 @@
   </data>
   <data name="Settings_CreatorModeDescription" xml:space="preserve">
     <value>Shows {creator}, a tool for making packages of one's own projects for games.</value>
+  </data>
+  <data name="Settings_DiskUsage" xml:space="preserve">
+    <value>Disk space</value>
+  </data>
+  <data name="Settings_DiskUsageText" xml:space="preserve">
+    <value>The app's data folder on drive {drive} takes {size}.</value>
+  </data>
+  <data name="Settings_DiskUsageMeasuring" xml:space="preserve">
+    <value>Measuring the space the app's data folder takes…</value>
+  </data>
+  <data name="Settings_DiskUsageUnknown" xml:space="preserve">
+    <value>The space the app's data folder takes could not be measured.</value>
+  </data>
+  <data name="Settings_OpenDataFolder" xml:space="preserve">
+    <value>Open the data folder</value>
+  </data>
+  <data name="Settings_DownloadedPackages" xml:space="preserve">
+    <value>Downloaded packages</value>
+  </data>
+  <data name="Settings_ImagesAndCatalogue" xml:space="preserve">
+    <value>Images and catalogue data</value>
+  </data>
+  <data name="Settings_Logs" xml:space="preserve">
+    <value>Logs</value>
+  </data>
+  <data name="Settings_ClearCache" xml:space="preserve">
+    <value>Clear the cache</value>
+  </data>
+  <data name="Settings_ClearCacheDescription" xml:space="preserve">
+    <value>Images, saved project pages and the packages that no installed project needs are deleted. The backups of original files stay.</value>
+  </data>
+  <data name="Settings_ClearCacheBusy" xml:space="preserve">
+    <value>The cache can be cleared once no job is running.</value>
+  </data>
+  <data name="Settings_Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Settings_CacheCleared" xml:space="preserve">
+    <value>The cache was cleared, which freed {size}.</value>
+  </data>
+  <data name="Settings_UninstallAll" xml:space="preserve">
+    <value>Uninstall every project</value>
+  </data>
+  <data name="Settings_UninstallAllDescription" xml:space="preserve">
+    <value>The original files come back in {count, plural, one {# game} other {# games}}. Games that are running wait until they are closed.</value>
+  </data>
+  <data name="Settings_UninstallAllNothing" xml:space="preserve">
+    <value>No project is installed.</value>
+  </data>
+  <data name="Settings_UninstallAllUnreachable" xml:space="preserve">
+    <value>The original files of the installed projects cannot be reached now.</value>
+  </data>
+  <data name="Settings_UninstallAllRunning" xml:space="preserve">
+    <value>Uninstalling: {count, plural, one {# game to go} other {# games to go}}.</value>
+  </data>
+  <data name="Settings_UninstallAllButton" xml:space="preserve">
+    <value>Uninstall all</value>
+  </data>
+  <data name="Settings_UninstallAllTitle" xml:space="preserve">
+    <value>Uninstall every project?</value>
+  </data>
+  <data name="Settings_UninstallAllMessage" xml:space="preserve">
+    <value>The projects are uninstalled from {count, plural, one {# game} other {# games}}, which get their original files back. Games that are running wait until they are closed. Automatic installs stop for these games.</value>
+  </data>
+  <data name="Settings_UninstallAllSkipped" xml:space="preserve">
+    <value>{count, plural, one {# game keeps its project, since its original files cannot be reached now.} other {# games keep their projects, since their original files cannot be reached now.}}</value>
   </data>
   <data name="Settings_UpdateChecked" xml:space="preserve">
     <value>Updates are looked for every 4 hours, last {time}.</value>

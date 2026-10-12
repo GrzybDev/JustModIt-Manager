@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JustModIt.Manager.Agent.Storage;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
@@ -11,14 +12,15 @@ using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Agent.Ipc;
 
-/// <summary>What the window reads beyond the state: project pages, the catalogue and detection details.</summary>
+/// <summary>What the window reads beyond the state: project pages, the catalogue, detection details and the app's own data.</summary>
 /// <param name="catalogue">Reads project pages and the catalogue's listing.</param>
 /// <param name="library">The snapshot the detection report comes from.</param>
 /// <param name="engine">Finds leftover backups.</param>
 /// <param name="settings">Tells whether the player confirmed being an adult.</param>
+/// <param name="storage">Measures the app's own folders.</param>
 /// <param name="time">Tells whether that confirmation still holds.</param>
 public sealed class AgentQueries(CatalogueService catalogue, ILibraryService library, IInstallEngine engine,
-    ISettingsService settings, TimeProvider time)
+    ISettingsService settings, AppStorage storage, TimeProvider time)
 {
     /// <summary>A slice larger than this is cut, so no answer comes near the frame limit.</summary>
     public const int MaxCataloguePage = 200;
@@ -37,6 +39,7 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
         GetDetectionReport => new DetectionReportResult(DetectionReportView.From(DetectionReport.From(library.Snapshot),
             (await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false))?.Reference.StorefrontPlatforms ?? [])),
         GetLeftoverBackups => new LeftoverBackups(await engine.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false)),
+        GetAppDataUsage => storage.Measure(),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),
     };
 

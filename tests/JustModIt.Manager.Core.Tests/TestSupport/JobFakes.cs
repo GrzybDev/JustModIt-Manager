@@ -194,7 +194,7 @@ internal sealed class FakeDownloader : IPackageDownloader
 
     public ConcurrentDictionary<Guid, bool> Cached { get; } = new();
 
-    public ConcurrentQueue<IReadOnlySet<Guid>> Prunes { get; } = new();
+    public ConcurrentQueue<(IReadOnlySet<Guid> Keep, bool KeepPartial)> Prunes { get; } = new();
 
     public ConcurrentDictionary<Guid, TaskCompletionSource> Gates { get; } = new();
 
@@ -237,9 +237,9 @@ internal sealed class FakeDownloader : IPackageDownloader
             ? new DownloadedPackage(PathOf(request.Locator.FileUuid, request.Format), 1024, "", null, request.Format, FromCache: true)
             : null);
 
-    public Task<int> PruneAsync(IReadOnlySet<Guid> keep, CancellationToken cancellationToken)
+    public Task<int> PruneAsync(IReadOnlySet<Guid> keep, bool keepPartial, CancellationToken cancellationToken)
     {
-        Prunes.Enqueue(keep);
+        Prunes.Enqueue((keep, keepPartial));
         var removed = 0;
         foreach (var file in Cached.Keys.Where(file => !keep.Contains(file)))
         {

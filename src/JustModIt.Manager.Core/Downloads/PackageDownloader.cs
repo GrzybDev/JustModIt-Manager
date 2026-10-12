@@ -115,7 +115,7 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
         }
     }
 
-    public async Task<int> PruneAsync(IReadOnlySet<Guid> keep, CancellationToken cancellationToken)
+    public async Task<int> PruneAsync(IReadOnlySet<Guid> keep, bool keepPartial, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(keep);
         await _slot.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -134,8 +134,8 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
             foreach (var download in downloads)
             {
                 if (download.Key is not { } id || keep.Contains(id)
-                    || download.Any(file => file.Name.Contains(PartialMarker, StringComparison.Ordinal)
-                        && now - File.GetLastWriteTimeUtc(file.Path) < PartialLifetime))
+                    || (keepPartial && download.Any(file => file.Name.Contains(PartialMarker, StringComparison.Ordinal)
+                        && now - File.GetLastWriteTimeUtc(file.Path) < PartialLifetime)))
                 {
                     continue;
                 }

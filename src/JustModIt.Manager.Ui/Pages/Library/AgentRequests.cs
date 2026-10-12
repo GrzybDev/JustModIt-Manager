@@ -12,15 +12,17 @@ internal static class AgentRequests
     /// <summary>Sends a command; a refusal or a lost connection shows a toast, never an exception.</summary>
     /// <param name="services">The window's services.</param>
     /// <param name="request">The command.</param>
+    /// <param name="busy">What the toast says when the agent refuses since something else runs; null says a game has a job.</param>
     /// <returns>Whether the agent took the command.</returns>
-    public static async Task<bool> SendAsync(UiServices services, Message request) =>
-        (await AskAsync(services, request).ConfigureAwait(true)).Sent;
+    public static async Task<bool> SendAsync(UiServices services, Message request, string? busy = null) =>
+        (await AskAsync(services, request, busy).ConfigureAwait(true)).Sent;
 
     /// <summary>Sends a request and returns its answer; a refusal or a lost connection shows a toast instead.</summary>
     /// <param name="services">The window's services.</param>
     /// <param name="request">The request.</param>
+    /// <param name="busy">What the toast says when the agent refuses since something else runs; null says a game has a job.</param>
     /// <returns>Whether the agent took the request, and its answer.</returns>
-    public static async Task<(bool Sent, Message? Answer)> AskAsync(UiServices services, Message request)
+    public static async Task<(bool Sent, Message? Answer)> AskAsync(UiServices services, Message request, string? busy = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         try
@@ -32,7 +34,7 @@ internal static class AgentRequests
             Show(services, exception.Code switch
             {
                 ErrorCode.ShuttingDown => Strings.Library_RequestShuttingDown,
-                ErrorCode.Failed => Strings.Library_RequestBusy,
+                ErrorCode.Failed => busy ?? Strings.Library_RequestBusy,
                 _ => Strings.Library_RequestRefused,
             });
         }

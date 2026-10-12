@@ -644,6 +644,89 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
+    public async Task Uninstalls_every_install_one_job_at_a_time_on_each_game_but_one_whose_originals_cannot_be_reached()
+    {
+        using var drive = new TempDirectory();
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Library.Publish(Installed(), Installed(OtherGame));
+        app.Engine.Add(Record());
+        app.Engine.Add(Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject)));
+        var gone = app.Engine.Add(Record(OtherGame, backup: new BackupFolder(BackupLocation.AppData, drive.Combine("gone"))));
+        app.Engine.Backups[gone.Id] = true;
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var uninstalls = 0;
+        app.Engine.OnUninstall = async (record, token) =>
+        {
+            await gate.Task.WaitAsync(token);
+            if (Interlocked.Increment(ref uninstalls) == 1)
+            {
+                throw new IOException("A file is in use.");
+            }
+
+            app.Engine.Records.TryRemove(record, out _);
+            return new UninstallResult([]);
+        };
+        await app.StartAsync();
+        await app.StateAsync(state => state.Find(OtherGame)?.Installs.SingleOrDefault()?.Status.State == MyGameState.BackupsUnavailable,
+            "the originals of one install cannot be reached");
+
+        app.Coordinator.UninstallEverything();
+        await app.StateAsync(state => state.Jobs.Any(job => job.Kind == JobKind.Uninstall) && state.PendingUninstalls == 0,
+            "one install is uninstalled while the other waits for the game, which counts among the jobs and not again as waiting");
+        app.Coordinator.UninstallEverything();
+        gate.SetResult();
+
+        await app.StateAsync(state => state.Jobs.Count == 0 && state.Find(Game)?.Installs.Count == 1,
+            "the game's other install is uninstalled after the one that failed");
+        await Eventually.SettleAsync();
+        app.Engine.Records.Should().HaveCount(2).And.ContainKey(gone.Id);
+        app.Engine.Calls.Count(call => call == "uninstall").Should().Be(2,
+            "an uninstall that runs when the player asks again is not tried again once it fails, and originals that cannot be "
+            + "reached could not be put back");
+    }
+
+    [Theory]
+    [InlineData("an update")]
+    [InlineData("an update that fails and puts the release back")]
+    [InlineData("another project taking its place")]
+    public async Task Uninstalls_what_a_job_running_when_the_player_asks_leaves_in_the_place_of_an_install(string job)
+    {
+        await using var app = new CoordinatorHarness(policy: new OneProjectPolicy()).WithGameAndProject();
+        var record = app.Engine.Add(Record());
+        app.Downloader.Cached[FileOne] = true;
+        await app.StartAsync();
+        JobRequest request = new UpdateJobRequest(record);
+        if (job == "another project taking its place")
+        {
+            app.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
+            request = new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"), null);
+        }
+        else
+        {
+            app.PublishReleaseTwo();
+        }
+
+        if (job == "an update that fails and puts the release back")
+        {
+            app.Engine.NextInstalls.Enqueue((_, _, _) => throw new IOException("A file is in use."));
+        }
+
+        app.Downloader.Gates[FileTwo] = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var running = app.Jobs.Start(request);
+        await Eventually.HoldsAsync(() => app.Downloader.Downloads.Contains(FileTwo), "the job downloads");
+
+        app.Coordinator.UninstallEverything();
+        await app.StateAsync(state => state.PendingUninstalls == 1, "the game's uninstall waits for the job");
+        app.Downloader.Gates[FileTwo].SetResult();
+
+        (await running.Completion).Installed.Should().NotBeNull("the job leaves an install of its own in the place of the one asked for");
+        await app.StateAsync(state => state.Jobs.Count == 0 && state.PendingUninstalls == 0 && state.Find(Game) is { Installs.Count: 0 },
+            "the install the job left is uninstalled");
+        app.Engine.Records.Should().BeEmpty();
+        app.Engine.Calls.Count(call => call == "uninstall").Should().Be(2, "the job's own uninstall and then the one the player asked for");
+    }
+
+    [Fact]
     public async Task A_slow_reader_gets_the_latest_state_without_the_ones_in_between()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();

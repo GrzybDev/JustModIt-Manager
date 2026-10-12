@@ -16,6 +16,7 @@ using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Settings;
 using JustModIt.Manager.Ui.Tests.TestSupport;
 using static JustModIt.Manager.Ui.Tests.TestSupport.TestGames;
@@ -60,7 +61,7 @@ public sealed class SettingsTests
         Toggle(ui, Strings.Settings_CreatorMode).IsChecked.Should().BeTrue("a change made elsewhere shows here too");
         Toggle(ui, Strings.Settings_StartWithSystem).IsChecked.Should().Be(sent[2].StartWithSystem);
         ui.Unnamed().Should().BeEmpty();
-        ui.Render("settings", height: 2900);
+        ui.Render("settings", height: 3200);
     }
 
     [AvaloniaFact]
@@ -203,6 +204,101 @@ public sealed class SettingsTests
     }
 
     [AvaloniaFact]
+    public async Task The_apps_data_shows_what_it_takes_and_its_cache_is_cleared_only_while_no_job_runs()
+    {
+        var measured = new AppDataUsage(@"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp", 317_718_528, 224_395_264, 90_177_536,
+            3_355_443);
+        var state = State();
+        using var ui = await OpenAsync(state, answer: request => request switch
+        {
+            GetAppDataUsage => measured,
+            ClearCache => Clear(),
+            _ => null,
+        });
+
+        Message? Clear()
+        {
+            measured = measured with { Total = 4_194_304, Downloads = 0, ImagesAndCatalogue = 838_861 };
+            return null;
+        }
+
+        var data = Page(ui).Data;
+        await UiHarness.WaitUntilAsync(() => data.IsMeasured);
+        data.Usage.Should().Be("Folder danych aplikacji na dysku C: zajmuje 303,0\u00A0MB.");
+        (data.Downloads, data.ImagesAndCatalogue, data.Logs).Should().Be(("214,0\u00A0MB", "86,0\u00A0MB", "3,2\u00A0MB"));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("settings-app-data", height: 3200);
+
+        ui.Click(ui.Find<Button>("OpenDataFolder"));
+        ui.Agent.Requests.OfType<OpenFolder>().Should().Equal(new OpenFolder(AppFolder.Data));
+
+        ui.Push(state.With(TestStates.Job()));
+        ui.Find<Button>("ClearCache").IsEffectivelyEnabled.Should().BeFalse("a job may be about to use a package");
+        data.ClearText.Should().Be(Strings.Settings_ClearCacheBusy);
+        ui.Push(state with { Version = 3 });
+        ui.Click(ui.Find<Button>("ClearCache"));
+        await UiHarness.WaitUntilAsync(() => data.Downloads == "0\u00A0B");
+
+        ui.Agent.Requests.OfType<ClearCache>().Should().ContainSingle();
+        data.ClearText.Should().Be("Pamięć podręczna została wyczyszczona. Zwolniono 299,2\u00A0MB.");
+        data.Usage.Should().Be("Folder danych aplikacji na dysku C: zajmuje 4,0\u00A0MB.");
+    }
+
+    [AvaloniaFact]
+    public async Task Every_project_is_uninstalled_only_after_a_confirmation_that_names_what_happens()
+    {
+        var ember = Installed("Ember Hollow", "4100");
+        var harbor = Installed("Quiet Harbor", "4200");
+        // A running game is told first, but the agent leaves its install alone all the same, since its originals are out of reach.
+        var running = Unreachable(NotReady("Saltmarsh", "4300", GameInstallState.Running, GameStateReason.GameRunning), @"F:\Backups");
+        var state = State(settings => settings, ember, harbor, running);
+        using var ui = await OpenAsync(state, answer: request => request is GetAppDataUsage
+            ? new AppDataUsage(@"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp", 317_718_528, 224_395_264, 90_177_536, 3_355_443)
+            : null);
+        var data = Page(ui).Data;
+        data.UninstallText.Should().Be("Oryginalne pliki zostaną przywrócone w 2 grach. Uruchomione gry poczekają na zamknięcie.");
+
+        ui.Click(ui.Find<Button>("UninstallAll"));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Shell.Dialogs.Current.Should().BeOfType<ConfirmDialogViewModel>().Which.Message.Should().Be(
+            "Spolszczenia zostaną odinstalowane z 2 gier, a gry odzyskają oryginalne pliki. Uruchomione gry poczekają na zamknięcie. "
+            + "Automatyczne instalowanie spolszczeń w tych grach zostanie wyłączone. "
+            + "1 gra zachowa spolszczenie, bo jej oryginalne pliki są teraz niedostępne.");
+        ui.Render("settings-uninstall-all-confirm");
+        ui.Shell.Dialogs.CancelCurrent();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Agent.Requests.OfType<UninstallEverything>().Should().BeEmpty();
+        ui.Render("settings-uninstall-all");
+
+        ui.Click(ui.Find<Button>("UninstallAll"));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Click(ui.Find<Button>().Last(button => button.IsEffectivelyVisible && button.Content as string == Strings.Settings_UninstallAllButton));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(100));
+        ui.Agent.Requests.OfType<UninstallEverything>().Should().ContainSingle();
+
+        // A game with no other job starts its uninstall at once, so none of them waits.
+        JobView[] jobs = [Job(ember, JobKind.Uninstall, JobStage.Installing), Job(harbor, JobKind.Uninstall, JobStage.Installing)];
+        ui.Push(state with { Version = 2, Games = [Busy(ember, jobs[0]), Busy(harbor, jobs[1]), running], Jobs = jobs });
+        data.UninstallText.Should().Be("Trwa odinstalowywanie. Zostały 2 gry.");
+        ui.Find<Button>("UninstallAll").IsEffectivelyEnabled.Should().BeFalse("the uninstalls are under way");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("settings-uninstall-all-running", height: 3200);
+        var update = Job(ember, JobKind.Update, JobStage.Downloading);
+        ui.Push(state with
+        {
+            Version = 3,
+            Games = [Busy(ember, update), Busy(harbor, jobs[1]), running],
+            Jobs = [update, jobs[1]],
+            PendingUninstalls = 1,
+        });
+        data.UninstallText.Should().Be("Trwa odinstalowywanie. Zostały 2 gry.", "a game whose uninstall waits for another job is still to go");
+        ui.Find<Button>("UninstallAll").IsEffectivelyEnabled.Should().BeFalse();
+        ui.Push(state with { Version = 4, Games = [running] });
+        data.UninstallText.Should().Be(Strings.Settings_UninstallAllUnreachable);
+        ui.Find<Button>("UninstallAll").IsEffectivelyEnabled.Should().BeFalse("nothing could be put back now");
+    }
+
+    [AvaloniaFact]
     public async Task Leftover_backups_show_their_size_and_go_only_after_the_player_confirms()
     {
         var leftover = new LeftoverBackup(Guid.NewGuid(), SteamKey("4400"), "Tidewatch", @"E:\Game backups\ExampleApp\steam-4400", 39_845_888);
@@ -313,7 +409,7 @@ public sealed class SettingsTests
         ui.Click(ui.Find<Button>().Single(button => AutomationProperties.GetName(button) == row.RemoveName));
         ui.Agent.Requests.OfType<RemoveLibraryFolder>().Should().Equal(new RemoveLibraryFolder("gog", @"D:\GOG Games"));
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
-        ui.Render("settings-folders", height: 2900);
+        ui.Render("settings-folders", height: 3200);
     }
 
     [AvaloniaFact]
@@ -337,7 +433,7 @@ public sealed class SettingsTests
         page.UpdateText.Should().Be("Pobieranie wersji 0.2.0 · 64%");
         ui.Find<Button>("CheckForUpdates").IsEffectivelyEnabled.Should().BeFalse("a download is already under way");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        ui.Render("settings-about-downloading", height: 2900);
+        ui.Render("settings-about-downloading", height: 3200);
         ui.Push(state with { Version = 4, Update = state.Update with { State = AppUpdateState.Ready, Version = "0.2.0" } });
         ui.Find<Button>("CheckForUpdates").IsVisible.Should().BeFalse("the sidebar's card restarts into a ready update");
         ui.Push(state with { Version = 5, Update = state.Update with { State = AppUpdateState.Failed } });
@@ -347,7 +443,7 @@ public sealed class SettingsTests
         ui.Find<ToggleSwitch>("AutoUpdateApp").IsEffectivelyEnabled.Should().BeFalse("a copy that does not update itself has nothing to switch");
         ui.Push(state with { Version = 7, Update = state.Update with { State = AppUpdateState.Failed } });
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        ui.Render("settings-about-failed", height: 2900);
+        ui.Render("settings-about-failed", height: 3200);
 
         ui.Click(ui.Find<Button>("OpenSite"));
         ui.Click(ui.Find<Button>("OpenSource"));

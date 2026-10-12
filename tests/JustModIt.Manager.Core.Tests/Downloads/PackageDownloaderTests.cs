@@ -388,7 +388,7 @@ public sealed class PackageDownloaderTests : IDisposable
     }
 
     [Fact]
-    public async Task Keeps_only_what_may_still_be_needed_when_pruning()
+    public async Task Keeps_only_what_may_still_be_needed_when_pruning_and_drops_partial_downloads_when_asked()
     {
         var kept = Guid.NewGuid();
         var dropped = Guid.NewGuid();
@@ -414,11 +414,13 @@ public sealed class PackageDownloaderTests : IDisposable
             File.SetLastWriteTimeUtc(_directory.Combine(name), now - PackageDownloader.PartialLifetime - TimeSpan.FromHours(1));
         }
 
-        var deleted = await Downloader.PruneAsync(new HashSet<Guid> { kept }, Token);
+        var deleted = await Downloader.PruneAsync(new HashSet<Guid> { kept }, keepPartial: true, Token);
 
         deleted.Should().Be(4);
         _directory.Files().Should().BeEquivalentTo(
             $"{kept:D}.zip", $"{kept:D}.json", $"{recentPartial:D}.part", $"{recentPartial:D}.part.json", "notes.txt");
+        (await Downloader.PruneAsync(new HashSet<Guid> { kept }, keepPartial: false, Token)).Should().Be(2);
+        _directory.Files().Should().BeEquivalentTo($"{kept:D}.zip", $"{kept:D}.json", "notes.txt");
     }
 
     public void Dispose()

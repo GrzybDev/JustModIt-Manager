@@ -46,6 +46,9 @@ public sealed record AppStateView
     /// <inheritdoc cref="AppState.PendingBackupMoves"/>
     public int PendingBackupMoves { get; init; }
 
+    /// <inheritdoc cref="AppState.PendingUninstalls"/>
+    public int PendingUninstalls { get; init; }
+
     /// <summary>How the agent's previous run ended when it did not exit cleanly; null once the window told the player.</summary>
     public UncleanExitView? UncleanExit { get; init; }
 
@@ -87,6 +90,7 @@ public sealed record AppStateView
             Update = update,
             PendingRecoveries = state.PendingRecoveries,
             PendingBackupMoves = state.PendingBackupMoves,
+            PendingUninstalls = state.PendingUninstalls,
         };
     }
 }

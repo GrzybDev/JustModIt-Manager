@@ -1,6 +1,7 @@
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Shell;
+using JustModIt.Manager.Agent.Storage;
 using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
@@ -32,6 +33,7 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="lifetime">Exits the app.</param>
 /// <param name="shell">Opens folders and links and starts programs.</param>
 /// <param name="options">The app's folders, the logs among them, the folder it is installed in and its last unclean exit.</param>
+/// <param name="storage">Clears the app's cache.</param>
 /// <param name="time">Dates the player's confirmation of being an adult.</param>
 public sealed class AgentCommands(
     StateCoordinator coordinator,
@@ -47,6 +49,7 @@ public sealed class AgentCommands(
     AgentLifetime lifetime,
     IDesktopShell shell,
     AgentOptions options,
+    AppStorage storage,
     TimeProvider time)
 {
     /// <summary>Carries out one of the window's commands.</summary>
@@ -62,6 +65,8 @@ public sealed class AgentCommands(
         TestInstallPackage test => Start(TestInstall(test)),
         MoveBackups => Done(() => coordinator.MoveBackups(BackupChoice.From(settings.Current))),
         StopMovingBackups => Done(coordinator.StopMovingBackups),
+        UninstallEverything => Done(coordinator.UninstallEverything),
+        ClearCache => await ClearCacheAsync(cancellationToken).ConfigureAwait(false),
         RemoveLeftoverBackups remove => await RemoveLeftoverBackupsAsync(remove.RecordIds, cancellationToken).ConfigureAwait(false),
         CancelJob cancel => Done(() => jobs.Cancel(cancel.Job)),
         DismissFailure dismiss => Done(() => coordinator.DismissFailure(dismiss.Game, dismiss.Install)),
@@ -176,6 +181,16 @@ public sealed class AgentCommands(
         return null;
     }
 
+    // Installs keep their packages, so putting a release back after a failed update or repair downloads nothing.
+    private async Task<Message?> ClearCacheAsync(CancellationToken cancellationToken)
+    {
+        var installed = coordinator.Current.Games.SelectMany(game => game.Installs)
+            .Select(install => install.Record.Source?.ReleaseFileUuid).OfType<Guid>().ToHashSet();
+        return await storage.ClearCacheAsync(installed, cancellationToken).ConfigureAwait(false)
+            ? null
+            : throw new RequestFailedException(ErrorCode.Failed, "A job is running.");
+    }
+
     private Message? ChangeSettings(SettingsView view)
     {
         var current = settings.Current;
@@ -225,10 +240,11 @@ public sealed class AgentCommands(
 
     private string FolderOf(OpenFolder request)
     {
-        if (request.Folder == AppFolder.Logs)
+        if (request.Folder is AppFolder.Logs or AppFolder.Data)
         {
-            Directory.CreateDirectory(options.Locations.LogsDirectory);
-            return options.Locations.LogsDirectory;
+            var folder = request.Folder == AppFolder.Logs ? options.Locations.LogsDirectory : options.Locations.DataDirectory;
+            Directory.CreateDirectory(folder);
+            return folder;
         }
 
         if (request.Folder == AppFolder.InstallBackups)

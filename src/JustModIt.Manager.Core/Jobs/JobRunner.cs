@@ -252,7 +252,33 @@ public sealed partial class JobRunner : IAsyncDisposable
             _recentlyFinished.Clear();
         }
 
-        return _downloader.PruneAsync(kept, cancellationToken);
+        return _downloader.PruneAsync(kept, keepPartial: true, cancellationToken);
+    }
+
+    /// <summary>
+    /// Deletes every downloaded package but the kept ones, partial downloads too, as the player asked; only while no job
+    /// runs, since a job may be about to use a package it has not claimed yet.
+    /// </summary>
+    /// <param name="keep">The release file ids of the packages that installs need.</param>
+    /// <param name="cancellationToken">Stops deleting.</param>
+    /// <returns>False when a job runs, and nothing was deleted.</returns>
+    public async Task<bool> ClearDownloadsAsync(IReadOnlySet<Guid> keep, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(keep);
+        HashSet<Guid> kept;
+        lock (_gate)
+        {
+            if (_active.Count > 0)
+            {
+                return false;
+            }
+
+            // A job that finished since may have installed a package the caller's list does not know of yet.
+            kept = [.. keep, .. _recentlyFinished];
+        }
+
+        await _downloader.PruneAsync(kept, keepPartial: false, cancellationToken).ConfigureAwait(false);
+        return true;
     }
 
     public async ValueTask DisposeAsync()

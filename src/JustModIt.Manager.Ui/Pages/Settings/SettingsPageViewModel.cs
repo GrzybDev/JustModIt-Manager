@@ -35,6 +35,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         Backups = new BackupsViewModel(services, _editor, Sync);
         Teams = new PreferredTeamsViewModel(services, _editor);
         Folders = new AddedFoldersViewModel(services);
+        Data = new AppDataViewModel(services);
         Sync();
         _services.Agent.PropertyChanged += OnAgentChanged;
         _services.Agent.JobsProgressed += OnJobsProgressed;
@@ -48,6 +49,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     public AddedFoldersViewModel Folders { get; }
 
+    public AppDataViewModel Data { get; }
+
     public string GeneralHeading { get; } = Overline(Strings.Settings_General);
 
     public string ProjectsHeading { get; } = Overline(Strings.Settings_Projects);
@@ -57,6 +60,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     public string LibrariesHeading { get; } = Overline(Strings.Settings_Libraries);
 
     public string CreatorsHeading { get; } = Overline(Strings.Settings_ForCreators);
+
+    public string AppDataHeading { get; } = Overline(Strings.Settings_AppData);
 
     public string AboutHeading { get; } = Overline(Strings.Settings_About);
 
@@ -154,6 +159,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         Backups.Load();
         Teams.Load();
         Folders.Load();
+        Data.Load();
     }
 
     public void Dispose()
@@ -253,6 +259,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         _syncing = false;
         Backups.Refresh();
         Teams.Refresh();
+        Data.Refresh();
         ShowUpdate();
         var state = _services.Agent.State;
         SiteName = state.Catalogue.SiteName is { Length: > 0 } name ? name : _services.Context.Site.SiteAddress?.Host ?? "";
@@ -296,6 +303,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         else if (e.PropertyName is nameof(IAgent.State))
         {
             Backups.Refresh();
+            Data.Refresh();
             ShowUpdate();
             Folders.Refresh();
         }

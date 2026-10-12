@@ -60,6 +60,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     private readonly Dictionary<Guid, bool> _hasBackups = [];
     private readonly Dictionary<GameKey, ValueList<RunningProcess>> _running = [];
     private readonly Dictionary<Guid, BackupChoice> _backupMoves = [];
+    private readonly HashSet<Guid> _uninstalls = [];
     private LibrarySnapshot _snapshot = LibrarySnapshot.Empty;
     private CatalogueSnapshot _catalogueSnapshot = CatalogueSnapshot.Empty;
     private AppSettings _current = AppSettings.Default;
@@ -140,6 +141,11 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
 
     /// <summary>Starts no more moves of backups; a move already running finishes, so no install is left halfway.</summary>
     public void StopMovingBackups() => Post(new BackupsMoveStopped());
+
+    /// <summary>
+    /// Uninstalls every install whose originals can be reached, one job per install, each once its game has no other job.
+    /// </summary>
+    public void UninstallEverything() => Post(new UninstallsRequested());
 
     /// <summary>Reads the local data, publishes the first state from it, then keeps the state up to date until cancelled.</summary>
     /// <param name="cancellationToken">Stops the loop.</param>
@@ -280,6 +286,13 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                 break;
             case BackupsMoveStopped:
                 _backupMoves.Clear();
+                break;
+            // Originals that cannot be reached could not be put back, and an install being uninstalled would only be tried
+            // again after a failure.
+            case UninstallsRequested:
+                _uninstalls.UnionWith(_records.Values
+                    .Where(record => !_unavailableBackups.Contains(record.Id) && !IsRunning(JobKind.Uninstall, record))
+                    .Select(record => record.Id));
                 break;
             case GoneChecked gone:
                 ApplyGoneCheck(gone);
@@ -446,8 +459,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                 CatalogueFetchedAt = _catalogueSnapshot.FetchedAt,
                 CatalogueFailure = _catalogueSnapshot.Failure,
                 PendingRecoveries = [.. _recoveries.Where(operation => operation.Outcome is RecoveryOutcome.Failed or RecoveryOutcome.Unavailable)],
-                PendingBackupMoves = _backupMoves.Keys.Where(_records.ContainsKey).Select(id => _records[id].Game)
-                    .Where(game => _activeJobs.GetValueOrDefault(game)?.Kind != JobKind.MoveBackups).Distinct().Count(),
+                PendingBackupMoves = WaitingGames(_backupMoves.Keys, JobKind.MoveBackups),
+                PendingUninstalls = WaitingGames(_uninstalls, JobKind.Uninstall),
             };
             _state = state;
             next = _next;
@@ -465,7 +478,9 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     private bool Schedule()
     {
         var changed = FollowMovedGames();
-        changed |= MoveBackupsOfFreeGames();
+        changed |= StartQueued(_uninstalls, record => new UninstallJobRequest(record), _uninstalls.Remove);
+        changed |= StartQueued(_backupMoves.Keys, record => new MoveBackupsJobRequest(record, _backupMoves[record.Id]),
+            _backupMoves.Remove);
         changed |= Automate();
         StartVerification();
         CheckBackups();
@@ -498,14 +513,15 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         return changed;
     }
 
-    private bool MoveBackupsOfFreeGames()
+    // Each queued install's job starts once its game has no other job; an install that is gone leaves the queue.
+    private bool StartQueued(IEnumerable<Guid> queued, Func<InstallRecord, JobRequest> request, Func<Guid, bool> dequeue)
     {
         var changed = false;
-        foreach (var (id, destination) in _backupMoves.ToList())
+        foreach (var id in queued.ToList())
         {
             if (!_records.TryGetValue(id, out var record))
             {
-                _backupMoves.Remove(id);
+                dequeue(id);
                 continue;
             }
 
@@ -514,10 +530,10 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                 continue;
             }
 
-            var handle = jobs.Start(new MoveBackupsJobRequest(record, destination));
+            var handle = jobs.Start(request(record));
             if (!IsRefusedAsBusy(handle))
             {
-                _backupMoves.Remove(id);
+                dequeue(id);
                 changed |= Track(handle);
             }
         }
@@ -588,6 +604,13 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     private static bool IsRefusedAsBusy(JobHandle handle) =>
         handle.Completion is { IsCompletedSuccessfully: true, Result.Failure.Reason: JobFailureReason.AlreadyRunning };
 
+    // A game whose queued job of the kind runs already counts among the jobs instead.
+    private int WaitingGames(IEnumerable<Guid> queued, JobKind kind) => queued.Where(_records.ContainsKey).Select(id => _records[id].Game)
+        .Where(game => _activeJobs.GetValueOrDefault(game)?.Kind != kind).Distinct().Count();
+
+    private bool IsRunning(JobKind kind, InstallRecord record) =>
+        _activeJobs.GetValueOrDefault(record.Game) is { } job && job.Kind == kind && job.InstallId == record.Id;
+
     // A folder the player picked holds each install's backups in folders of its own below it.
     private static bool IsIn(BackupFolder backup, BackupChoice destination) =>
         backup.Location == destination.Location && (destination.Location != BackupLocation.CustomFolder
@@ -597,6 +620,11 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     // the game a new record, which takes over what was queued for the one it replaced.
     private void FollowReplacement(Guid replaced, InstallRecord installed)
     {
+        if (_uninstalls.Remove(replaced))
+        {
+            _uninstalls.Add(installed.Id);
+        }
+
         if (_backupMoves.Remove(replaced, out var destination) && !IsIn(installed.Backup, destination))
         {
             _backupMoves[installed.Id] = destination;
@@ -853,6 +881,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     private sealed record BackupsMoveRequested(BackupChoice Destination) : Trigger;
 
     private sealed record BackupsMoveStopped : Trigger;
+
+    private sealed record UninstallsRequested : Trigger;
 
     private sealed record FailureDismissed(FailureKey Key) : Trigger;
 

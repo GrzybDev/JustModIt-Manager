@@ -484,6 +484,24 @@ public sealed class JobRunnerTests
     }
 
     [Fact]
+    public async Task Clears_downloads_for_the_player_only_while_no_job_runs_and_keeps_the_package_of_a_job_just_finished()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        jobs.Downloader.Cached[FileTwo] = true;
+        jobs.Catalogue.PageGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handle = jobs.Runner.Start(JobsHarness.Install());
+
+        (await jobs.Runner.ClearDownloadsAsync(new HashSet<Guid>(), Token)).Should().BeFalse("a job may be about to use a package");
+        jobs.Downloader.Prunes.Should().BeEmpty();
+        jobs.Catalogue.PageGate.SetResult();
+        (await handle.Completion).IsSuccess.Should().BeTrue();
+
+        (await jobs.Runner.ClearDownloadsAsync(new HashSet<Guid>(), Token)).Should().BeTrue();
+        jobs.Downloader.Cached.Keys.Should().Equal([FileOne], "the install that just finished needs its package, which the list may not know of yet");
+        jobs.Downloader.Prunes.Single().KeepPartial.Should().BeFalse("clearing the cache drops partial downloads too");
+    }
+
+    [Fact]
     public async Task Keeps_the_package_of_a_job_that_finished_since_the_last_prune_whatever_it_is_asked()
     {
         await using var jobs = await JobsHarness.CreateAsync();

@@ -48,6 +48,12 @@ public sealed record AppState
     /// </summary>
     public int PendingBackupMoves { get; init; }
 
+    /// <summary>
+    /// How many games wait to be uninstalled since the player asked to uninstall everything, each once the game has no
+    /// other job; a game whose uninstall runs is not counted, since that uninstall is one of the jobs.
+    /// </summary>
+    public int PendingUninstalls { get; init; }
+
     /// <summary>The game in the player's list; null when it is not there.</summary>
     /// <param name="game">The game's store and id.</param>
     public MyGame? Find(GameKey game) => Games.FirstOrDefault(candidate => candidate.Key == game);

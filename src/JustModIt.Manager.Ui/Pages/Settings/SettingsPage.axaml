@@ -48,6 +48,22 @@
       <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
+    <!-- A size in the app data section: its icon beside a label over the size. -->
+    <Style Selector="Grid.size">
+      <Setter Property="ColumnSpacing" Value="10" />
+    </Style>
+    <Style Selector="Grid.size > ui|Icon">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+    <Style Selector="TextBlock.size">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="LineHeight" Value="22" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    </Style>
     <Style Selector="Border.footer">
       <Setter Property="Background" Value="#05FFFFFF" />
       <Setter Property="Padding" Value="20,14,20,16" />
@@ -312,6 +328,55 @@
             <ToggleSwitch IsChecked="{Binding CreatorMode}" AutomationProperties.Name="{x:Static loc:Strings.Settings_CreatorMode}"
                           AutomationProperties.HelpText="{Binding CreatorModeDescription}" />
           </ui:SettingRow>
+        </Border>
+      </StackPanel>
+
+      <StackPanel Classes="section">
+        <TextBlock Classes="overline" Text="{Binding AppDataHeading}" />
+        <Border Classes="settingsCard">
+          <StackPanel>
+            <ui:SettingRow Icon="{x:Static theme:Icons.ChartPie}" Title="{x:Static loc:Strings.Settings_DiskUsage}" Description="{Binding Data.Usage}">
+              <Button x:Name="OpenDataFolder" Classes="quiet" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                      Content="{x:Static loc:Strings.Settings_OpenDataFolder}" Command="{Binding Data.OpenFolderCommand}" />
+            </ui:SettingRow>
+            <WrapPanel x:Name="DataSizes" Margin="72,0,20,20" ItemSpacing="40" LineSpacing="12" IsVisible="{Binding Data.IsMeasured}"
+                       theme:Motion.Enter="True">
+              <Grid Classes="size" ColumnDefinitions="Auto,Auto">
+                <ui:Icon Data="{x:Static theme:Icons.Package}" />
+                <StackPanel Grid.Column="1">
+                  <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_DownloadedPackages}" />
+                  <TextBlock Classes="size" Text="{Binding Data.Downloads}" />
+                </StackPanel>
+              </Grid>
+              <Grid Classes="size" ColumnDefinitions="Auto,Auto">
+                <ui:Icon Data="{x:Static theme:Icons.Image}" />
+                <StackPanel Grid.Column="1">
+                  <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_ImagesAndCatalogue}" />
+                  <TextBlock Classes="size" Text="{Binding Data.ImagesAndCatalogue}" />
+                </StackPanel>
+              </Grid>
+              <Grid Classes="size" ColumnDefinitions="Auto,Auto">
+                <ui:Icon Data="{x:Static theme:Icons.ScrollText}" />
+                <StackPanel Grid.Column="1">
+                  <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_Logs}" />
+                  <TextBlock Classes="size" Text="{Binding Data.Logs}" />
+                </StackPanel>
+              </Grid>
+            </WrapPanel>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Eraser}" Title="{x:Static loc:Strings.Settings_ClearCache}"
+                           Description="{Binding Data.ClearText}">
+              <Button x:Name="ClearCache" Classes="outline" ui:ButtonAssist.Icon="{x:Static theme:Icons.Eraser}"
+                      Content="{x:Static loc:Strings.Settings_Clear}" Command="{Binding Data.ClearCommand}"
+                      AutomationProperties.Name="{x:Static loc:Strings.Settings_ClearCache}" AutomationProperties.HelpText="{Binding Data.ClearText}" />
+            </ui:SettingRow>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Trash}" Title="{x:Static loc:Strings.Settings_UninstallAll}"
+                           Description="{Binding Data.UninstallText}">
+              <Button x:Name="UninstallAll" Classes="danger" ui:ButtonAssist.Icon="{x:Static theme:Icons.Trash}"
+                      Content="{x:Static loc:Strings.Settings_UninstallAllButton}" Command="{Binding Data.UninstallAllCommand}"
+                      AutomationProperties.Name="{x:Static loc:Strings.Settings_UninstallAll}"
+                      AutomationProperties.HelpText="{Binding Data.UninstallText}" />
+            </ui:SettingRow>
+          </StackPanel>
         </Border>
       </StackPanel>
 

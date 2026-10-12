@@ -4,6 +4,7 @@ using JustModIt.Manager.Agent.Ipc;
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Notifications;
 using JustModIt.Manager.Agent.Shell;
+using JustModIt.Manager.Agent.Storage;
 using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Agent.Updates;
@@ -147,6 +148,8 @@ public static class AgentServices
         services.AddSingleton<ActivationHandler>();
         services.AddSingleton<Checks>();
         services.AddSingleton<IDesktopShell, DesktopShell>();
+        services.AddSingleton(provider => new AppStorage(options.Locations, provider.GetRequiredService<CatalogueCache>(),
+            provider.GetRequiredService<JobRunner>(), provider.GetRequiredService<ILogger<AppStorage>>()));
         services.AddSingleton<AgentCommands>();
         services.AddSingleton<AgentQueries>();
         services.AddSingleton<AgentRequestHandler>();

@@ -43,6 +43,18 @@ public sealed record MoveBackups : Message;
 /// <summary>Moves no more installs' backups; a move already running finishes, so none is left halfway.</summary>
 public sealed record StopMovingBackups : Message;
 
+/// <summary>
+/// Uninstalls every install whose originals can be reached, one job per install, each once its game has no other job;
+/// answered once they are queued.
+/// </summary>
+public sealed record UninstallEverything : Message;
+
+/// <summary>
+/// Deletes what the app can fetch again: the window's images, saved project pages and the packages no install needs;
+/// refused with <see cref="Transport.ErrorCode.Failed"/> while a job runs, since a job may be about to use a package.
+/// </summary>
+public sealed record ClearCache : Message;
+
 /// <summary>The answer to a job request, naming the queued job.</summary>
 /// <param name="JobId">The id that <see cref="JobView.Id"/> and <see cref="CancelJob"/> use.</param>
 public sealed record JobStarted(Guid JobId) : Message;
@@ -118,6 +130,9 @@ public enum AppFolder
     InstallBackups,
 
     Logs,
+
+    /// <summary>The app's own data: settings, install records, its cache and, by default, its logs.</summary>
+    Data,
 }
 
 /// <summary>Shows a folder in the file manager.</summary>

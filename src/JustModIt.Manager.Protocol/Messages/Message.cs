@@ -22,6 +22,8 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(TestInstallPackage), "testInstallPackage")]
 [JsonDerivedType(typeof(MoveBackups), "moveBackups")]
 [JsonDerivedType(typeof(StopMovingBackups), "stopMovingBackups")]
+[JsonDerivedType(typeof(UninstallEverything), "uninstallEverything")]
+[JsonDerivedType(typeof(ClearCache), "clearCache")]
 [JsonDerivedType(typeof(JobStarted), "jobStarted")]
 [JsonDerivedType(typeof(CancelJob), "cancelJob")]
 [JsonDerivedType(typeof(DismissFailure), "dismissFailure")]
@@ -58,6 +60,8 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(DetectionReportResult), "detectionReportResult")]
 [JsonDerivedType(typeof(GetLeftoverBackups), "getLeftoverBackups")]
 [JsonDerivedType(typeof(LeftoverBackups), "leftoverBackups")]
+[JsonDerivedType(typeof(GetAppDataUsage), "getAppDataUsage")]
+[JsonDerivedType(typeof(AppDataUsage), "appDataUsage")]
 public abstract record Message;
 
 /// <summary>The first frame each side sends; its shape must stay readable by every protocol version.</summary>

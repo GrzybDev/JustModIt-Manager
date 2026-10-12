@@ -349,7 +349,9 @@ public sealed partial class BackupsViewModel : ObservableObject
             ?? install.BackupDirectory
         : install.BackupDirectory;
 
-    private static string Drive(string folder) => Path.GetPathRoot(folder)?.TrimEnd('\\', '/') ?? folder;
+    /// <summary>The drive a folder is on, as the texts name it, e.g. <c>E:</c>.</summary>
+    /// <param name="folder">A full path.</param>
+    internal static string Drive(string folder) => Path.GetPathRoot(folder)?.TrimEnd('\\', '/') ?? folder;
 
     private sealed record GameInstall(GameView Game, InstallView Install);
 }

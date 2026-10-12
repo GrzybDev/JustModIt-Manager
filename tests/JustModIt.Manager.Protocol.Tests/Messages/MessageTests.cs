@@ -46,6 +46,8 @@ public sealed class MessageTests
         new TestInstallPackage(Game, @"C:\Work\example.examplemod"),
         new MoveBackups(),
         new StopMovingBackups(),
+        new UninstallEverything(),
+        new ClearCache(),
         new JobStarted(Job),
         new CancelJob(Job),
         new DismissFailure(FailedGame),
@@ -115,6 +117,8 @@ public sealed class MessageTests
             Stores = State.Stores,
             ScannedAt = Now,
         }), [new StorefrontPlatform { Uuid = Guid.Empty, Name = "Steam", Provider = "steam", InstallHint = "Open **Properties**." }])),
+        new GetAppDataUsage(),
+        new AppDataUsage(@"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp", 317_718_528, 224_395_264, 90_177_536, 3_355_443),
         new GetLeftoverBackups(),
         new LeftoverBackups([new LeftoverBackup(RecordId, FailedGame, "Other Game", @"E:\Backups\ExampleApp\gog-1", 4096)]),
     ];

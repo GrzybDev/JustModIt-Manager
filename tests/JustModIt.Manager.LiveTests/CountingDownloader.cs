@@ -25,5 +25,6 @@ internal sealed class CountingDownloader(IPackageDownloader inner) : IPackageDow
     public Task<DownloadedPackage?> FindCachedAsync(PackageRequest request, CancellationToken cancellationToken) =>
         inner.FindCachedAsync(request, cancellationToken);
 
-    public Task<int> PruneAsync(IReadOnlySet<Guid> keep, CancellationToken cancellationToken) => inner.PruneAsync(keep, cancellationToken);
+    public Task<int> PruneAsync(IReadOnlySet<Guid> keep, bool keepPartial, CancellationToken cancellationToken) =>
+        inner.PruneAsync(keep, keepPartial, cancellationToken);
 }

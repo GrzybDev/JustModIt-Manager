@@ -42,6 +42,9 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
 
     private string SiteFile => Path.Combine(directory, "site.json");
 
+    /// <summary>The folder of the saved project pages, each of which is read from the site again when it is gone.</summary>
+    public string PagesDirectory => Path.Combine(directory, "projects");
+
     /// <summary>The saved catalogue listing; null when there is none to read.</summary>
     /// <param name="cancellationToken">Cancels the read.</param>
     public async Task<CatalogueListing?> LoadListingAsync(CancellationToken cancellationToken) =>
@@ -129,7 +132,7 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
             cancellationToken);
     }
 
-    private string PageFile(Guid projectUuid) => Path.Combine(directory, "projects", $"{projectUuid:D}.json");
+    private string PageFile(Guid projectUuid) => Path.Combine(PagesDirectory, $"{projectUuid:D}.json");
 
     private async Task WriteAsync(string path, int version, DateTimeOffset fetchedAt, Action<Utf8JsonWriter> writeData,
         CancellationToken cancellationToken)

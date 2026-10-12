@@ -1773,6 +1773,9 @@
   <data name="Settings_ForCreators" xml:space="preserve">
     <value>Dla twórców</value>
   </data>
+  <data name="Settings_AppData" xml:space="preserve">
+    <value>Dane aplikacji</value>
+  </data>
   <data name="Settings_About" xml:space="preserve">
     <value>O programie</value>
   </data>
@@ -1979,6 +1982,72 @@
   </data>
   <data name="Settings_CreatorModeDescription" xml:space="preserve">
     <value>Pokazuje {creator} – narzędzie do tworzenia paczek z własnymi projektami do gier.</value>
+  </data>
+  <data name="Settings_DiskUsage" xml:space="preserve">
+    <value>Miejsce na dysku</value>
+  </data>
+  <data name="Settings_DiskUsageText" xml:space="preserve">
+    <value>Folder danych aplikacji na dysku {drive} zajmuje {size}.</value>
+  </data>
+  <data name="Settings_DiskUsageMeasuring" xml:space="preserve">
+    <value>Trwa liczenie miejsca zajętego przez folder danych aplikacji…</value>
+  </data>
+  <data name="Settings_DiskUsageUnknown" xml:space="preserve">
+    <value>Nie udało się policzyć miejsca zajętego przez folder danych aplikacji.</value>
+  </data>
+  <data name="Settings_OpenDataFolder" xml:space="preserve">
+    <value>Otwórz folder danych</value>
+  </data>
+  <data name="Settings_DownloadedPackages" xml:space="preserve">
+    <value>Pobrane paczki</value>
+  </data>
+  <data name="Settings_ImagesAndCatalogue" xml:space="preserve">
+    <value>Obrazy i dane katalogu</value>
+  </data>
+  <data name="Settings_Logs" xml:space="preserve">
+    <value>Logi</value>
+  </data>
+  <data name="Settings_ClearCache" xml:space="preserve">
+    <value>Wyczyść pamięć podręczną</value>
+  </data>
+  <data name="Settings_ClearCacheDescription" xml:space="preserve">
+    <value>Usunięte zostaną obrazy, zapisane strony projektów i paczki, których nie potrzebuje żaden zainstalowany projekt. Kopie oryginalnych plików zostaną.</value>
+  </data>
+  <data name="Settings_ClearCacheBusy" xml:space="preserve">
+    <value>Pamięć podręczną można wyczyścić, gdy nie trwa żadne zadanie.</value>
+  </data>
+  <data name="Settings_Clear" xml:space="preserve">
+    <value>Wyczyść</value>
+  </data>
+  <data name="Settings_CacheCleared" xml:space="preserve">
+    <value>Pamięć podręczna została wyczyszczona. Zwolniono {size}.</value>
+  </data>
+  <data name="Settings_UninstallAll" xml:space="preserve">
+    <value>Odinstaluj wszystkie projekty</value>
+  </data>
+  <data name="Settings_UninstallAllDescription" xml:space="preserve">
+    <value>Oryginalne pliki zostaną przywrócone w {count, plural, one {# grze} few {# grach} many {# grach} other {# grach}}. Uruchomione gry poczekają na zamknięcie.</value>
+  </data>
+  <data name="Settings_UninstallAllNothing" xml:space="preserve">
+    <value>Żaden projekt nie jest zainstalowany.</value>
+  </data>
+  <data name="Settings_UninstallAllUnreachable" xml:space="preserve">
+    <value>Oryginalne pliki zainstalowanych projektów są teraz niedostępne.</value>
+  </data>
+  <data name="Settings_UninstallAllRunning" xml:space="preserve">
+    <value>Trwa odinstalowywanie. {count, plural, one {Została # gra} few {Zostały # gry} many {Zostało # gier} other {Zostało # gry}}.</value>
+  </data>
+  <data name="Settings_UninstallAllButton" xml:space="preserve">
+    <value>Odinstaluj wszystkie</value>
+  </data>
+  <data name="Settings_UninstallAllTitle" xml:space="preserve">
+    <value>Odinstalować wszystkie projekty?</value>
+  </data>
+  <data name="Settings_UninstallAllMessage" xml:space="preserve">
+    <value>Projekty zostaną odinstalowane z {count, plural, one {# gry} few {# gier} many {# gier} other {# gry}}, a gry odzyskają oryginalne pliki. Uruchomione gry poczekają na zamknięcie. Automatyczne instalowanie w tych grach zostanie wyłączone.</value>
+  </data>
+  <data name="Settings_UninstallAllSkipped" xml:space="preserve">
+    <value>{count, plural, one {# gra zachowa projekt, bo jej oryginalne pliki są teraz niedostępne.} few {# gry zachowają projekty, bo ich oryginalne pliki są teraz niedostępne.} many {# gier zachowa projekty, bo ich oryginalne pliki są teraz niedostępne.} other {# gry zachowają projekty, bo ich oryginalne pliki są teraz niedostępne.}}</value>
   </data>
   <data name="Settings_UpdateChecked" xml:space="preserve">
     <value>Aktualizacje są sprawdzane co 4 godziny, ostatnio {time}.</value>

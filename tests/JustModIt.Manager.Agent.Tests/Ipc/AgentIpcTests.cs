@@ -221,15 +221,51 @@ public sealed class AgentIpcTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task The_logs_folder_opens_in_the_system_shell()
+    public async Task The_logs_and_the_data_folder_open_in_the_system_shell()
     {
         _agent.Start();
         var window = await _agent.ConnectWindowAsync();
 
         await window.RequestAsync(new OpenFolder(AppFolder.Logs));
+        await window.RequestAsync(new OpenFolder(AppFolder.Data));
 
-        _agent.Shell.Opened.Should().Equal(_agent.Options.Locations.LogsDirectory);
+        _agent.Shell.Opened.Should().Equal(_agent.Options.Locations.LogsDirectory, _agent.Options.Locations.DataDirectory);
         Directory.Exists(_agent.Options.Locations.LogsDirectory).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task The_apps_data_is_measured_and_clearing_the_cache_keeps_what_cannot_be_fetched_again()
+    {
+        var locations = _agent.Options.Locations;
+        string[] cached =
+        [
+            Write(locations.DownloadsDirectory, $"{Guid.NewGuid():D}.zip", 4000),
+            Write(locations.DownloadsDirectory, $"{Guid.NewGuid():D}.part", 1000),
+            Write(locations.ImageCacheDirectory, "0a1b2c.img", 300),
+            Write(Path.Combine(locations.CatalogueCacheDirectory, "projects"), $"{Guid.NewGuid():D}.json", 200),
+        ];
+        var log = Write(locations.LogsDirectory, "agent-20261001.log", 50);
+        var listing = Write(locations.CatalogueCacheDirectory, "listing.json", 70);
+        // Today's log stays open while the app runs, as the logger keeps it.
+        await using var today = new FileStream(Path.Combine(locations.LogsDirectory, "agent-20261002.log"), FileMode.Create, FileAccess.Write,
+            FileShare.ReadWrite | FileShare.Delete);
+        today.Write(new byte[3000]);
+        today.Flush();
+        _agent.Start();
+        var window = await _agent.ConnectWindowAsync();
+        await window.StateAsync(state => state.IsLoaded);
+
+        var before = (await window.RequestAsync(new GetAppDataUsage())).Should().BeOfType<AppDataUsage>().Which;
+        await window.RequestAsync(new ClearCache());
+        var after = (AppDataUsage)(await window.RequestAsync(new GetAppDataUsage()))!;
+
+        before.Should().Match<AppDataUsage>(usage => usage.DataFolder == locations.DataDirectory && usage.Downloads == 5000
+            && usage.ImagesAndCatalogue >= 570 && usage.Logs >= 3050 && usage.Total >= 8620);
+        cached.Should().AllSatisfy(file => File.Exists(file).Should().BeFalse());
+        File.Exists(log).Should().BeTrue("the logs are not a cache");
+        File.Exists(listing).Should().BeTrue("the saved catalogue keeps the player's games listed offline");
+        after.Downloads.Should().Be(0);
+        after.Total.Should().BeLessThan(before.Total);
     }
 
     [Fact]
@@ -259,6 +295,14 @@ public sealed class AgentIpcTests : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync() => await _agent.DisposeAsync();
+
+    private static string Write(string folder, string name, int length)
+    {
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, name);
+        File.WriteAllBytes(path, new byte[length]);
+        return path;
+    }
 
     private static ListedGame Listed(string name, bool isAdult) => new(
         new GameSummary { Uuid = Guid.NewGuid(), Slug = name, Name = name, IsAdult = isAdult },
