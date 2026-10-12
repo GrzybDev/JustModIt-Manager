@@ -44,6 +44,9 @@ public sealed record UiContext
     /// <summary>The repository holding the app's source code; null offers no link to it.</summary>
     public Uri? SourceAddress { get; init; }
 
+    /// <summary>The commit the app was built from, whose source the licences page links to; null when the build did not record it.</summary>
+    public string? Revision { get; init; }
+
     /// <summary>Where players report a problem, which the window gives the app's and the system's version; null offers none.</summary>
     public Uri? IssuesAddress { get; init; }
 

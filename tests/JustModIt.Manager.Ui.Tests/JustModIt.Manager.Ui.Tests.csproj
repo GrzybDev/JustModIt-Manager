@@ -5,10 +5,16 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
-  <!-- The generic app's logo, which is licensed like the code, stands in for an app's branding. -->
+  <!-- The generic app's logo and branding notice, which are licensed like the code, stand in for an app's branding, beside
+       the repository's licence and third-party notices, as every app embeds them. -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\src\JustModIt.Manager\Branding\logo-256.png" LogicalName="JustModIt.Manager.Logo.png"
                       WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="..\..\src\JustModIt.Manager\Branding\LICENSE.md" LogicalName="JustModIt.Manager.BrandingNotice.md"
+                      WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="..\..\LICENSE.md" LogicalName="JustModIt.Manager.License.md" WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.md" LogicalName="JustModIt.Manager.ThirdPartyNotices.md" WithCulture="false"
+                      Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

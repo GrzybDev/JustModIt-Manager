@@ -44,6 +44,9 @@ internal sealed record HostEnvironment
 
     public required string Version { get; init; }
 
+    /// <summary>The commit the app was built from; null when the build did not record it.</summary>
+    public string? Revision { get; init; }
+
     public required InstallLocation Install { get; init; }
 
     /// <summary>The updater started this process after applying an update, or after failing to apply it.</summary>
@@ -66,6 +69,7 @@ internal sealed record HostEnvironment
             Names = InstanceNames.ForCurrentUser(identity.InstanceName),
             Links = new AppLinks(identity.Slug),
             Version = VersionOf(Assembly.GetEntryAssembly()),
+            Revision = RevisionOf(Assembly.GetEntryAssembly()),
             Install = install,
         };
     }
@@ -111,6 +115,7 @@ internal sealed record HostEnvironment
             AccentColor = Product.AccentColor,
             Site = Site(apiKey: null),
             SourceAddress = Address(Product.SourceUrl),
+            Revision = Revision,
             IssuesAddress = Address(Product.IssuesUrl),
             ImageCacheDirectory = Locations.ImageCacheDirectory,
             ImageHosts = Product.ImageHosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
@@ -135,4 +140,12 @@ internal sealed record HostEnvironment
         assembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
         ?? assembly?.GetName().Version?.ToString(3)
         ?? "0.0.0";
+
+    /// <summary>The commit the build appends to the version.</summary>
+    /// <param name="assembly">The app's entry assembly.</param>
+    /// <returns>Null when the build appended none.</returns>
+    internal static string? RevisionOf(Assembly? assembly) =>
+        assembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+') is [_, { Length: > 0 } revision]
+            ? revision
+            : null;
 }

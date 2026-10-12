@@ -2127,4 +2127,154 @@
   <data name="Undetected_Rejection" xml:space="preserve">
     <value>{rejection, select, NoEvidence {W tym folderze nie ma biblioteki Steam, gry z GOG ani gry z Epic Games Store.} GameOutsideLibrary {Ta gra nie należy do żadnej biblioteki swojego sklepu, więc nie da się potwierdzić, skąd pochodzi. Po dodaniu jej folderu w samym sklepie gra pojawi się tu sama.} DlcOnly {W tym folderze jest tylko dodatek (DLC). Dodać można folder gry podstawowej.} AlreadyAdded {Ten folder jest już na liście: {settings}, sekcja Biblioteki gier.} AlreadyDetected {Ta biblioteka albo gra jest już wykryta – gry z niej są w zakładce „{library}”.} Unreachable {Nie udało się odczytać folderu. Dysk z tym folderem może być odłączony.} other {Tego folderu nie można dodać.}}</value>
   </data>
+  <data name="Licenses_Subtitle" xml:space="preserve">
+    <value>Zasady korzystania z aplikacji {product} i elementy innych autorów, z których jest zbudowana.</value>
+  </data>
+  <data name="Licenses_Code" xml:space="preserve">
+    <value>Kod programu</value>
+  </data>
+  <data name="Licenses_CodeLicense" xml:space="preserve">
+    <value>GPL-3.0-or-later</value>
+  </data>
+  <data name="Licenses_CodeText" xml:space="preserve">
+    <value>{product} jest wolnym oprogramowaniem: wolno go używać, badać, zmieniać i rozpowszechniać na warunkach Powszechnej Licencji Publicznej GNU (GNU GPL) w wersji 3 albo, według wyboru, dowolnej późniejszej. Program jest rozpowszechniany bez jakiejkolwiek gwarancji – szczegóły są w tekście licencji poniżej.</value>
+  </data>
+  <data name="Licenses_SourceOfVersion" xml:space="preserve">
+    <value>Kod źródłowy tej wersji ({version}):</value>
+  </data>
+  <data name="Licenses_Branding" xml:space="preserve">
+    <value>Nazwy, logo i ikony</value>
+  </data>
+  <data name="Licenses_BrandingText" xml:space="preserve">
+    <value>Nazwa aplikacji {product}, jej logo i ikony są udostępnione na licencji GNU GPL, tak jak kod.</value>
+  </data>
+  <data name="Licenses_LicenseText" xml:space="preserve">
+    <value>Tekst licencji</value>
+  </data>
+  <data name="Licenses_Original" xml:space="preserve">
+    <value>oryginał po angielsku</value>
+  </data>
+  <data name="Licenses_ShowAll" xml:space="preserve">
+    <value>Pokaż cały tekst</value>
+  </data>
+  <data name="Licenses_ShowLess" xml:space="preserve">
+    <value>Pokaż mniej</value>
+  </data>
+  <data name="Licenses_Components" xml:space="preserve">
+    <value>Komponenty innych autorów</value>
+  </data>
+  <data name="Licenses_ComponentsText" xml:space="preserve">
+    <value>Biblioteki, czcionka i ikony innych autorów, z których zbudowano aplikację {product}. Po rozwinięciu pozycji widać prawa autorskie i pełny tekst licencji. Ten sam wykaz jest w pliku THIRD-PARTY-NOTICES.md obok programu.</value>
+  </data>
+  <data name="Licenses_Libraries" xml:space="preserve">
+    <value>Biblioteki</value>
+  </data>
+  <data name="Licenses_Artwork" xml:space="preserve">
+    <value>Czcionka i ikony</value>
+  </data>
+  <data name="Licenses_UseHead" xml:space="preserve">
+    <value>Do czego</value>
+  </data>
+  <data name="Licenses_UseDotNet" xml:space="preserve">
+    <value>Środowisko uruchomieniowe i kompilator NativeAOT</value>
+  </data>
+  <data name="Licenses_UseExtensions" xml:space="preserve">
+    <value>Składanie usług aplikacji, logowanie</value>
+  </data>
+  <data name="Licenses_UseCsWin32" xml:space="preserve">
+    <value>Wywołania systemu Windows</value>
+  </data>
+  <data name="Licenses_UseSerilog" xml:space="preserve">
+    <value>Zapis logów</value>
+  </data>
+  <data name="Licenses_UseMessageFormat" xml:space="preserve">
+    <value>Liczba mnoga w tekstach aplikacji</value>
+  </data>
+  <data name="Licenses_UseVelopack" xml:space="preserve">
+    <value>Aktualizacje aplikacji</value>
+  </data>
+  <data name="Licenses_UseVelopackInstaller" xml:space="preserve">
+    <value>Instalator i program aktualizujący</value>
+  </data>
+  <data name="Licenses_UseAvalonia" xml:space="preserve">
+    <value>Okno i kontrolki interfejsu</value>
+  </data>
+  <data name="Licenses_UseMicroCom" xml:space="preserve">
+    <value>Wywołania COM w bibliotece okna</value>
+  </data>
+  <data name="Licenses_UseDBus" xml:space="preserve">
+    <value>Komunikaty D-Bus w systemie Linux</value>
+  </data>
+  <data name="Licenses_UseSkiaSharp" xml:space="preserve">
+    <value>Rysowanie grafiki i składanie tekstu</value>
+  </data>
+  <data name="Licenses_UseSkia" xml:space="preserve">
+    <value>Grafika 2D</value>
+  </data>
+  <data name="Licenses_UseSkiaLibraries" xml:space="preserve">
+    <value>Formaty obrazów i kompresja dla Skii</value>
+  </data>
+  <data name="Licenses_UseWuffs" xml:space="preserve">
+    <value>Dekodowanie obrazów GIF</value>
+  </data>
+  <data name="Licenses_UseSpirvCross" xml:space="preserve">
+    <value>Tłumaczenie shaderów</value>
+  </data>
+  <data name="Licenses_UseVulkanMemory" xml:space="preserve">
+    <value>Pamięć grafiki dla Vulkana</value>
+  </data>
+  <data name="Licenses_UseD3D12Memory" xml:space="preserve">
+    <value>Pamięć grafiki dla Direct3D 12</value>
+  </data>
+  <data name="Licenses_UseHarfBuzz" xml:space="preserve">
+    <value>Składanie tekstu</value>
+  </data>
+  <data name="Licenses_UseAngle" xml:space="preserve">
+    <value>OpenGL ES na Direct3D 11</value>
+  </data>
+  <data name="Licenses_UseAbseil" xml:space="preserve">
+    <value>Biblioteka C++ dla ANGLE</value>
+  </data>
+  <data name="Licenses_UseXxHash" xml:space="preserve">
+    <value>Funkcja skrótu dla ANGLE</value>
+  </data>
+  <data name="Licenses_UseAstc" xml:space="preserve">
+    <value>Dekodowanie tekstur ASTC</value>
+  </data>
+  <data name="Licenses_UseLibCxx" xml:space="preserve">
+    <value>Biblioteka standardowa C++ dla ANGLE</value>
+  </data>
+  <data name="Licenses_UseMvvm" xml:space="preserve">
+    <value>Łączenie interfejsu z danymi</value>
+  </data>
+  <data name="Licenses_UseMarkdig" xml:space="preserve">
+    <value>Opisy zapisane w Markdown</value>
+  </data>
+  <data name="Licenses_UseXdelta" xml:space="preserve">
+    <value>Łatki binarne w paczkach</value>
+  </data>
+  <data name="Licenses_UseLzma" xml:space="preserve">
+    <value>Kompresja łatek</value>
+  </data>
+  <data name="Licenses_UseInter" xml:space="preserve">
+    <value>Czcionka interfejsu</value>
+  </data>
+  <data name="Licenses_UseLucide" xml:space="preserve">
+    <value>Ikony interfejsu</value>
+  </data>
+  <data name="Licenses_UseSimpleIcons" xml:space="preserve">
+    <value>Znaki sklepów</value>
+  </data>
+  <data name="Licenses_LicenseHead" xml:space="preserve">
+    <value>Licencja</value>
+  </data>
+  <data name="Licenses_Several" xml:space="preserve">
+    <value>Kilka licencji</value>
+  </data>
+  <data name="Licenses_ComponentName" xml:space="preserve">
+    <value>{name}, {license}</value>
+  </data>
+  <data name="Licenses_Trademarks" xml:space="preserve">
+    <value>Steam i logo Steam są znakami towarowymi Valve Corporation. GOG.com i GOG GALAXY są znakami towarowymi CD PROJEKT S.A. Epic Games i Epic Games Store są znakami towarowymi Epic Games, Inc. {product} nie jest powiązany z żadną z tych firm, a znaków sklepów używa tylko po to, by pokazać, skąd pochodzi gra.</value>
+  </data>
 </root>

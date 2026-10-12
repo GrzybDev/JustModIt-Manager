@@ -52,7 +52,7 @@ THIRD-PARTY-NOTICES.TXT".
 ### Serilog
 
 - Website: https://serilog.net (https://github.com/serilog)
-- Licence: Apache License 2.0 (see "Apache License 2.0")
+- Licence: Apache-2.0 (see "Apache License 2.0")
 - Copyright: Copyright © Serilog Contributors
 - NuGet packages: Serilog 4.4.0, Serilog.Extensions.Logging 10.0.0, Serilog.Sinks.Async 2.1.0, Serilog.Sinks.File 7.0.0
 - Use: writing the app's log files, compiled into the app's executable.
@@ -137,7 +137,7 @@ THIRD-PARTY-NOTICES.txt".
 
 - Version: 119 (the Skia milestone that SkiaSharp.NativeAssets.Win32 3.119.4 is built from)
 - Website: https://skia.org (https://github.com/google/skia)
-- Licence: BSD 3-Clause (text in "SkiaSharp and HarfBuzzSharp – THIRD-PARTY-NOTICES.txt", part "skia")
+- Licence: BSD-3-Clause (text in "SkiaSharp and HarfBuzzSharp – THIRD-PARTY-NOTICES.txt", part "skia")
 - Copyright: Copyright (c) 2011 Google Inc. All rights reserved.
 - Use: the 2D graphics library in `libSkiaSharp.dll`.
 
@@ -159,7 +159,7 @@ libraries that the notice leaves out, described in the next sections.
 
 - Version: commit e3f919ccfe3ef542cfc983a82146070258fb57f8 of wuffs-mirror-release-c, as Skia pins it
 - Website: https://github.com/google/wuffs
-- Licence: Apache License 2.0 (see "Apache License 2.0")
+- Licence: Apache-2.0 (see "Apache License 2.0")
 - Copyright: Copyright 2017 The Wuffs Authors.
 - Use: decoding GIF images, statically linked into `libSkiaSharp.dll`.
 
@@ -167,7 +167,7 @@ libraries that the notice leaves out, described in the next sections.
 
 - Version: commit 6e1fb9b09efadee38748e0fd0e6210d329087e89, as Skia pins it
 - Website: https://github.com/KhronosGroup/SPIRV-Cross
-- Licence: Apache License 2.0 or MIT, at the licensee's choice; the apps use it under the Apache License 2.0 (see
+- Licence: Apache-2.0 OR MIT, at the licensee's choice; the apps use it under the Apache License 2.0 (see
   "Apache License 2.0")
 - Copyright: Copyright 2015-2021 Arm Limited, Copyright 2016-2021 Robert Konrad
 - Use: translating shaders, statically linked into `libSkiaSharp.dll`.
@@ -192,7 +192,7 @@ libraries that the notice leaves out, described in the next sections.
 
 - Version: 8.3.1
 - Website: https://harfbuzz.github.io (https://github.com/harfbuzz/harfbuzz)
-- Licence: "Old MIT" (see "HarfBuzz – COPYING")
+- Licence: MIT-Modern-Variant, the "Old MIT" licence (see "HarfBuzz – COPYING")
 - Copyright: Copyright © 2010-2022 Google, Inc. and the others listed in "HarfBuzz – COPYING"
 - Use: text shaping, the native library `libHarfBuzzSharp.dll`.
 
@@ -203,7 +203,7 @@ in "HarfBuzz – src/ms-use/COPYING".
 
 - Version: 2.1.1 (git 1c89805903c1)
 - Website: https://github.com/AvaloniaUI/angle
-- Licence: BSD 3-Clause (see "BSD 3-Clause License")
+- Licence: BSD-3-Clause (see "BSD 3-Clause License")
 - Copyright: Copyright 2018 The ANGLE Project Authors. All rights reserved.
 - NuGet package: Avalonia.Angle.Windows.Natives 2.1.27548.20260419
 - Use: the native library `av_libglesv2.dll`, which translates OpenGL ES to Direct3D 11 when the user interface is
@@ -212,14 +212,14 @@ in "HarfBuzz – src/ms-use/COPYING".
 ### Abseil (in av_libglesv2.dll)
 
 - Website: https://github.com/abseil/abseil-cpp
-- Licence: Apache License 2.0 (see "Apache License 2.0")
+- Licence: Apache-2.0 (see "Apache License 2.0")
 - Copyright: Copyright The Abseil Authors
 - Use: a C++ library statically linked into `av_libglesv2.dll`.
 
 ### xxHash (in av_libglesv2.dll)
 
 - Website: https://github.com/Cyan4973/xxHash
-- Licence: BSD 2-Clause (see "BSD 2-Clause License")
+- Licence: BSD-2-Clause (see "BSD 2-Clause License")
 - Copyright: Copyright (c) 2012-2021 Yann Collet
 - Use: a hash function statically linked into `av_libglesv2.dll`.
 
@@ -227,14 +227,14 @@ in "HarfBuzz – src/ms-use/COPYING".
 
 - Version: 5.2.0
 - Website: https://github.com/ARM-software/astc-encoder
-- Licence: Apache License 2.0 (see "Apache License 2.0")
+- Licence: Apache-2.0 (see "Apache License 2.0")
 - Copyright: Copyright 2011-2025 Arm Limited
 - Use: decoding ASTC textures, statically linked into `av_libglesv2.dll`.
 
 ### LLVM libc++ (in av_libglesv2.dll)
 
 - Website: https://github.com/llvm/llvm-project/tree/main/libcxx
-- Licence: Apache License 2.0 with LLVM Exceptions (https://llvm.org/LICENSE.txt)
+- Licence: Apache-2.0 WITH LLVM-exception (https://llvm.org/LICENSE.txt)
 - Copyright: Copyright (c) LLVM Project contributors
 - Use: the C++ standard library, statically linked into `av_libglesv2.dll`. The LLVM exception waives the notice
   requirement for code embedded in a program; it is listed for completeness.
@@ -254,7 +254,7 @@ licences; it is reproduced in "CommunityToolkit.Mvvm – ThirdPartyNotices.txt".
 ### Markdig
 
 - Website: https://github.com/xoofx/markdig
-- Licence: BSD 2-Clause (see "BSD 2-Clause License")
+- Licence: BSD-2-Clause (see "BSD 2-Clause License")
 - Copyright: Copyright (c) 2016-2026, Alexandre Mutel
 - NuGet package: Markdig 1.4.0
 - Use: reading project descriptions written in Markdown, compiled into the app's executable.
@@ -270,7 +270,7 @@ Kārlis Gaņģis, licensed under the BSD 3-Clause licence (see "BSD 3-Clause Lic
 - Version: 3.2.0 (git submodule `native/xdelta`, tag v3.2.0, commit ff322e592383227b0d65ddfde7e0e5bbc504dc15,
   unmodified)
 - Website: https://github.com/jmacd/xdelta
-- Licence: Apache License 2.0 (see "Apache License 2.0")
+- Licence: Apache-2.0 (see "Apache License 2.0")
 - Copyright: Copyright 2016 Joshua MacDonald
 - Use: the xdelta3 library, statically linked into `xd3shim.dll` next to the app's executable, which applies and
   creates patches in the VCDIFF format.
@@ -279,7 +279,7 @@ Kārlis Gaņģis, licensed under the BSD 3-Clause licence (see "BSD 3-Clause Lic
 
 - Version: 5.8.4 (git submodule `native/xz`, commit d3e650e63c110e830fd5391e7f8b45df0b91d3da, unmodified)
 - Website: https://tukaani.org/xz/ (https://github.com/tukaani-project/xz)
-- Licence: BSD Zero Clause License (see "BSD Zero Clause License")
+- Licence: 0BSD (see "BSD Zero Clause License")
 - Copyright: Copyright (C) The XZ Utils authors and contributors
 - Use: This software includes code from XZ Utils <https://tukaani.org/xz/>. liblzma is statically linked into
   `xd3shim.dll` for the LZMA compression of xdelta3 patches. Only liblzma's files, all under 0BSD, are built; the xz
@@ -295,7 +295,7 @@ Kārlis Gaņģis, licensed under the BSD 3-Clause licence (see "BSD 3-Clause Lic
 ### Simple Icons
 
 - Website: https://simpleicons.org (https://github.com/simple-icons/simple-icons)
-- Licence: CC0 1.0 Universal (public domain dedication)
+- Licence: CC0-1.0 (public domain dedication)
 - Use: the marks of Steam, GOG and the Epic Games Store, which tell the store a game was found in. The marks themselves
   belong to their owners.
 
@@ -303,7 +303,7 @@ Kārlis Gaņģis, licensed under the BSD 3-Clause licence (see "BSD 3-Clause Lic
 
 - Version: 3.19, as Avalonia.Fonts.Inter 12.1.3 embeds it
 - Website: https://rsms.me/inter/ (https://github.com/rsms/inter)
-- Licence: SIL Open Font License 1.1 (see "Inter – OFL.txt")
+- Licence: OFL-1.1 (see "Inter – OFL.txt")
 - Copyright: Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
 - Use: the typeface of the user interface, embedded in the app's executable.
 

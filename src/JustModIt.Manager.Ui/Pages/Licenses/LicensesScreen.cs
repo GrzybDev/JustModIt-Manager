@@ -1,6 +1,4 @@
-using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Navigation;
-using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Licenses;
 
@@ -12,6 +10,7 @@ internal static class LicensesScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
-        ui.Pages.Register<LicensesRoute>((_, _) => new PlaceholderPageViewModel(Strings.Shell_PageLicenses, Icons.Scale));
+        ui.Pages.Register<LicensesRoute>((_, services) => new LicensesPageViewModel(services));
+        ui.Views.Register<LicensesPageViewModel>(() => new LicensesPage());
     }
 }

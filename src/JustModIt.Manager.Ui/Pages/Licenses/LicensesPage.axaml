@@ -1,0 +1,232 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:licenses="using:JustModIt.Manager.Ui.Pages.Licenses"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:md="using:JustModIt.Manager.Ui.Controls.Markdown"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Licenses.LicensesPage"
+             x:DataType="licenses:LicensesPageViewModel">
+  <UserControl.Styles>
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Settings/SettingsStyles.axaml" />
+
+    <!-- The Licences board: the app's own terms in one card, then a table of the components of others whose rows open. -->
+    <Style Selector="Border.mark">
+      <Setter Property="Width" Value="64" />
+      <Setter Property="Height" Value="64" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style Selector="Border.mark > ui|Icon">
+      <Setter Property="Width" Value="26" />
+      <Setter Property="Height" Value="26" />
+      <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+    </Style>
+    <Style Selector="Border.licenseChip">
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Padding" Value="10,0" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.licenseChip > TextBlock">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+    <Style Selector="Border.licenseText">
+      <Setter Property="Padding" Value="22,20" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="TextBlock.columnHead">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="LineHeight" Value="16" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="LetterSpacing" Value="0.72" />
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+
+    <!-- The head of the libraries' and then the typeface's and icons' part of the table. -->
+    <Style Selector="Border.tableHead">
+      <Setter Property="Padding" Value="20,12,20,10" />
+      <Setter Property="Background" Value="#05FFFFFF" />
+      <Setter Property="BorderBrush" Value="{StaticResource FillBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+    <Style Selector="Border.tableHead.second">
+      <Setter Property="BorderThickness" Value="0,1" />
+    </Style>
+
+    <!-- A component's row: a toggle across the table that opens its notice under it. -->
+    <Style Selector="ItemsControl.components > ContentPresenter:not(:nth-child(1))">
+      <Setter Property="BorderBrush" Value="{StaticResource FillBrush}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="ToggleButton.componentRow">
+      <Setter Property="Height" Value="52" />
+      <Setter Property="Padding" Value="20,0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="ToggleButton.componentRow:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.componentRow:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.componentRow:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.componentRow ui|Icon.chevron">
+      <Setter Property="RenderTransform" Value="rotate(0deg)" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="ToggleButton.componentRow:checked ui|Icon.chevron">
+      <Setter Property="RenderTransform" Value="rotate(180deg)" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <DataTemplate x:Key="ComponentTemplate" x:DataType="licenses:ComponentRow">
+      <StackPanel>
+        <ToggleButton Classes="componentRow" IsChecked="{Binding IsExpanded}" AutomationProperties.Name="{Binding AccessibleName}"
+                      AutomationProperties.HelpText="{Binding Use}">
+          <Grid ColumnDefinitions="1.25*,1.6*,200,20" ColumnSpacing="16">
+            <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+              <Run Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextStrongBrush}" />
+              <Run Text="  " />
+              <Run Text="{Binding Version}" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" />
+            </TextBlock>
+            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" LineHeight="18" TextWrapping="Wrap" MaxLines="2"
+                       TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding Use}" />
+            <Border Grid.Column="2" Classes="licenseChip" MaxWidth="200">
+              <TextBlock Text="{Binding License}" />
+            </Border>
+            <ui:Icon Grid.Column="3" Classes="chevron" Data="{x:Static theme:Icons.ChevronDown}" Width="16" Height="16"
+                     HorizontalAlignment="Right" Foreground="{StaticResource TextSecondaryBrush}" />
+          </Grid>
+        </ToggleButton>
+        <Border Classes="licenseText" Margin="20,4,20,20" IsVisible="{Binding IsExpanded}">
+          <Panel>
+            <ui:Skeleton Height="120" CornerRadius="8" IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNull}}" />
+            <md:MarkdownView Classes="compact" Document="{Binding Notice}"
+                             LinkCommand="{Binding $parent[UserControl].((licenses:LicensesPageViewModel)DataContext).OpenLinkCommand}" />
+          </Panel>
+        </Border>
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ScrollViewer Classes="page">
+    <StackPanel Classes="page" Spacing="36" MaxWidth="{StaticResource PageMaxWidth}" theme:Motion.Stagger="True">
+      <ui:PageHeader Title="{Binding Title}" Subtitle="{Binding Subtitle}" />
+
+      <StackPanel Classes="section">
+        <TextBlock Classes="overline" Text="{Binding AppHeading}" />
+        <Border Classes="settingsCard">
+          <StackPanel>
+            <Grid Margin="20" ColumnDefinitions="Auto,*" ColumnSpacing="20">
+              <Border Classes="mark">
+                <ui:Icon Data="{x:Static theme:Icons.CodeXml}" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <TextBlock Text="{x:Static loc:Strings.Licenses_Code}" FontSize="17" LineHeight="24" FontWeight="Bold"
+                             Foreground="{StaticResource TextStrongBrush}" />
+                  <Border Classes="licenseChip">
+                    <TextBlock Text="{x:Static loc:Strings.Licenses_CodeLicense}" />
+                  </Border>
+                </StackPanel>
+                <TextBlock Classes="bodyText" LineHeight="22" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding CodeText}" />
+                <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding SourceLink, Converter={x:Static ObjectConverters.IsNotNull}}">
+                  <TextBlock Classes="caption" VerticalAlignment="Center" Text="{Binding SourceText}" />
+                  <Button x:Name="OpenSource" Classes="link" FontSize="13" Content="{Binding SourceLink}"
+                          ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUpRight}" Command="{Binding OpenSourceCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+            <Border Classes="divider" />
+            <Grid Margin="20" ColumnDefinitions="Auto,*" ColumnSpacing="20">
+              <Border Classes="mark">
+                <Image Source="{Binding Logo}" Width="44" Height="44" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="8">
+                <TextBlock Text="{x:Static loc:Strings.Licenses_Branding}" FontSize="17" LineHeight="24" FontWeight="Bold"
+                           Foreground="{StaticResource TextStrongBrush}" />
+                <md:MarkdownView x:Name="BrandingSummary" Classes="compact" MaxWidth="760" HorizontalAlignment="Left"
+                                 Document="{Binding BrandingSummary}" LinkCommand="{Binding OpenLinkCommand}" />
+                <md:MarkdownView x:Name="BrandingNotice" Classes="compact" MaxWidth="760" HorizontalAlignment="Left" Document="{Binding Branding}"
+                                 LinkCommand="{Binding OpenLinkCommand}" IsVisible="{Binding IsBrandingExpanded}" />
+                <Button x:Name="ToggleBranding" Classes="quiet" Margin="-12,0,0,0" HorizontalAlignment="Left" Content="{Binding BrandingToggleText}"
+                        ui:ButtonAssist.Icon="{Binding BrandingToggleIcon}" ui:ButtonAssist.IconAfter="True"
+                        Command="{Binding ToggleBrandingCommand}" />
+              </StackPanel>
+            </Grid>
+            <Border Classes="divider" />
+            <StackPanel Margin="20,18,20,20" Spacing="12">
+              <TextBlock FontSize="14" LineHeight="20">
+                <Run Text="{x:Static loc:Strings.Licenses_LicenseText}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                <Run Text=" · " Foreground="{StaticResource TextMutedBrush}" />
+                <Run Text="{x:Static loc:Strings.Licenses_Original}" Foreground="{StaticResource TextSecondaryBrush}" />
+              </TextBlock>
+              <Border Classes="licenseText">
+                <SelectableTextBlock x:Name="LicenseText" Text="{Binding LicenseText}" FontSize="14" LineHeight="21" TextWrapping="Wrap"
+                                     MaxWidth="760" HorizontalAlignment="Left" Foreground="{StaticResource TextBodyBrush}" />
+              </Border>
+              <Button x:Name="ToggleLicense" Classes="quiet" Margin="-12,0,0,0" HorizontalAlignment="Left" Content="{Binding ToggleText}"
+                      ui:ButtonAssist.Icon="{Binding ToggleIcon}" ui:ButtonAssist.IconAfter="True"
+                      Command="{Binding ToggleLicenseCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <StackPanel Classes="section">
+        <TextBlock Classes="overline" Text="{Binding ComponentsHeading}" />
+        <TextBlock Classes="bodyText" LineHeight="22" MaxWidth="820" HorizontalAlignment="Left" Foreground="{StaticResource TextSecondaryBrush}"
+                   Text="{Binding ComponentsText}" />
+        <Border Classes="settingsCard">
+          <StackPanel>
+            <Border Classes="tableHead">
+              <Grid ColumnDefinitions="1.25*,1.6*,200,20" ColumnSpacing="16">
+                <TextBlock Classes="columnHead" Text="{Binding LibrariesHead}" />
+                <TextBlock Grid.Column="1" Classes="columnHead" Text="{Binding UseHead}" />
+                <TextBlock Grid.Column="2" Classes="columnHead" Text="{Binding LicenseHead}" />
+              </Grid>
+            </Border>
+            <StackPanel Margin="20,14,20,20" Spacing="10" IsVisible="{Binding IsLoading}">
+              <ui:Skeleton Height="32" CornerRadius="8" />
+              <ui:Skeleton Height="32" CornerRadius="8" />
+              <ui:Skeleton Height="32" CornerRadius="8" />
+            </StackPanel>
+            <ItemsControl x:Name="Libraries" Classes="components" ItemsSource="{Binding Libraries}" ItemTemplate="{StaticResource ComponentTemplate}" />
+            <Border Classes="tableHead second" IsVisible="{Binding !IsLoading}">
+              <Grid ColumnDefinitions="1.25*,1.6*,200,20" ColumnSpacing="16">
+                <TextBlock Classes="columnHead" Text="{Binding ArtworkHead}" />
+                <TextBlock Grid.Column="1" Classes="columnHead" Text="{Binding UseHead}" />
+                <TextBlock Grid.Column="2" Classes="columnHead" Text="{Binding LicenseHead}" />
+              </Grid>
+            </Border>
+            <ItemsControl x:Name="Artwork" Classes="components" ItemsSource="{Binding Artwork}" ItemTemplate="{StaticResource ComponentTemplate}" />
+          </StackPanel>
+        </Border>
+        <TextBlock Classes="caption" LineHeight="20" MaxWidth="900" HorizontalAlignment="Left" Text="{Binding Trademarks}" />
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

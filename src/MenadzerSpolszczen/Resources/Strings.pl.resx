@@ -534,6 +534,11 @@
   <data name="Settings_AboutText" xml:space="preserve">
     <value>Otwartoźródłowa aplikacja Bazy Spolszczeń. Wykrywa gry na tym komputerze i instaluje do nich fanowskie spolszczenia – stworzone przez graczy, dla graczy.</value>
   </data>
+  <data name="Licenses_BrandingText" xml:space="preserve">
+    <value>Nazwy „Baza Spolszczeń” i „Menadżer Spolszczeń” oraz ich logo i ikony nie są objęte licencją GNU GPL. © 2026 Marek Grzyb. Wszelkie prawa zastrzeżone.
+
+Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), udostępniona na licencji [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): dodano barwy flagi, czarny obrys i granatowe przyciski.</value>
+  </data>
   <data name="Settings_BrandingLine" xml:space="preserve">
     <value>Nazwy, logo i ikony Bazy Spolszczeń i Menadżera Spolszczeń nie są objęte tą licencją. © 2026 Marek Grzyb. Wszelkie prawa zastrzeżone.</value>
   </data>

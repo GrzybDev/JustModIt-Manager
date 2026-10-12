@@ -117,8 +117,12 @@ public sealed class HostEnvironmentTests
     }
 
     [Fact]
-    public void The_version_leaves_out_the_commit_the_build_appends() =>
-        HostEnvironment.VersionOf(typeof(HostEnvironmentTests).Assembly).Should()
-            .Be(typeof(HostEnvironmentTests).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion
-                .Split('+')[0]).And.NotContain("+");
+    public void The_version_and_the_commit_the_build_appends_to_it_come_apart()
+    {
+        var assembly = typeof(HostEnvironmentTests).Assembly;
+        var built = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion.Split('+');
+
+        HostEnvironment.VersionOf(assembly).Should().Be(built[0]).And.NotContain("+");
+        HostEnvironment.RevisionOf(assembly).Should().Be(built.ElementAtOrDefault(1));
+    }
 }
