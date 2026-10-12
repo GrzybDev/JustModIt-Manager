@@ -124,9 +124,10 @@ public sealed class AgentCommands(
         return new InstallJobRequest(game.Key, game.Name, offer.Project.Locator, request.VariantName);
     }
 
+    // A package is made for a game no project is on offer for yet, which the player's games do not list.
     private TestInstallJobRequest TestInstall(TestInstallPackage request)
     {
-        var game = Detected(request.Game);
+        var game = library.Snapshot.Find(request.Game) ?? throw Invalid("No store reports the game.");
         return Path.IsPathFullyQualified(request.PackagePath)
             ? new TestInstallJobRequest(game.Key, game.Name, request.PackagePath)
             : throw Invalid("The package path is not fully qualified.");
