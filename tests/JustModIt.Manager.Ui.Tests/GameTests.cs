@@ -9,6 +9,8 @@ using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Controls;
+using JustModIt.Manager.Ui.Images;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Game;
@@ -380,6 +382,28 @@ public sealed class GameTests
         ui.Shell.Navigator.GoBackCommand.Execute(null);
         UiHarness.Settle();
         ((LibraryPageViewModel)ui.Shell.Navigator.Current!).GridItems.OfType<GameCardViewModel>().Single().IsCoverBlurred.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public async Task An_adult_games_page_veils_its_gallery_and_the_artwork_behind_its_head_like_its_cover()
+    {
+        var game = Installed("Ember Hollow", "4100", offer: Ember) with { IsAdult = true, SiteIds = [SiteId] };
+        using var ui = Open(State(game), game, Ember);
+        var page = Page(ui);
+        await UiHarness.WaitUntilAsync(() => page.Details is not null);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
+        ui.Render("game-adult", height: 2200);
+
+        page.IsCoverBlurred.Should().BeTrue();
+        ui.Find<RemoteImage>().Where(image => image.DataContext is GalleryTile).Should().NotBeEmpty().And.OnlyContain(image => image.IsBlurred,
+            "the gallery's pictures are veiled like the cover");
+        ui.Images.Backdrops[^1].Recipe.Should().Match<BackdropRecipe>(recipe => recipe.IsBlurred && recipe.Artwork.Length > 0,
+            "the project's artwork and banner are baked veiled while adult covers are");
+
+        ui.Push(State(game) with { Version = 2, RevealedAdultGames = [SiteId] });
+        UiHarness.Settle();
+        ui.Find<RemoteImage>().Where(image => image.DataContext is GalleryTile).Should().OnlyContain(image => !image.IsBlurred);
+        ui.Images.Backdrops[^1].Recipe.IsBlurred.Should().BeFalse("the player unveiled the game's pictures");
     }
 
     private static UiHarness Open(AppStateView state, GameView game, ProjectOfferView? page = null, Action<FakeImages>? images = null)

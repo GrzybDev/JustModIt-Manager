@@ -547,7 +547,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         CoverName = Text.Format(Strings.GamePage_CoverName, ("game", game.Name));
         Cover = project?.Cover is { Length: > 0 } cover ? cover : install?.CoverUrl?.AbsoluteUri ?? (game.Projects.Count > 0 ? game.Projects[0].Cover : "");
         IsCoverBlurred = AdultContent.IsVeiled(state, game.IsAdult, game.SiteIds);
-        Backdrop = Details?.Backdrop ?? (project is null ? null : new BackdropRecipe(project.ProjectId.ToString(), "", "", "", project.Cover));
+        var backdrop = Details?.Backdrop ?? (project is null ? null : new BackdropRecipe(project.ProjectId.ToString(), "", "", "", project.Cover));
+        Backdrop = backdrop is null ? null : backdrop with { IsBlurred = IsCoverBlurred };
         Status = project?.Status?.Name ?? "";
         StatusColor = project?.Status?.Color ?? "";
         StatusTip = Text.Format(Strings.GamePage_StatusTip, ("status", Status));
@@ -561,7 +562,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         TeamPage = project is null ? null : PageLinks.TeamPage(site, project.Team.Slug);
         SitePage = project is null ? null : PageLinks.ProjectPage(site, project.GameSlug, project.Team.Slug);
         Summary = IsCompact ? "" : Details?.Summary ?? "";
-        (Story.GameName, Story.TeamName, Story.TeamAvatar, Story.TeamPage) = (Name, TeamName, TeamAvatar, TeamPage);
+        (Story.GameName, Story.TeamName, Story.TeamAvatar, Story.TeamPage, Story.IsBlurred) = (Name, TeamName, TeamAvatar, TeamPage, IsCoverBlurred);
 
         IsChecking = state.Activity.IsChecking;
         CheckedText = state.Library.ScannedAt is { } scanned
