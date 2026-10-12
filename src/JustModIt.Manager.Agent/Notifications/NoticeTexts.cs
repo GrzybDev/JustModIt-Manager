@@ -27,7 +27,8 @@ public static class NoticeTexts
                 : notice.TeamName is { } team ? Text.Format(Strings.NoticeAvailable, ("team", team))
                 : Strings.NoticeAvailableAnyTeam),
             NoticeKind.ChoiceNeeded => (Title(Strings.NoticeChoiceNeededTitle), Strings.NoticeChoiceNeeded),
-            NoticeKind.AvailableSummary => (Strings.NoticeAvailableSummaryTitle, Summary(notice)),
+            NoticeKind.AvailableSummary => (Strings.NoticeAvailableSummaryTitle,
+                NoticeSummary.Format(notice.Games, notice.Updates, notice.Repairs)),
             NoticeKind.UpdateAvailable => (InstallTitle(Strings.NoticeUpdateAvailableTitle, Strings.NoticeUpdateAvailableProjectTitle),
                 Versioned(Strings.NoticeUpdateAvailable, Strings.NoticeUpdateAvailableLatest)),
             NoticeKind.RepairNeeded => (InstallTitle(Strings.NoticeRepairNeededTitle, Strings.NoticeRepairNeededProjectTitle),
@@ -44,16 +45,5 @@ public static class NoticeTexts
             _ => (InstallTitle(Strings.NoticeFailedTitle, Strings.NoticeFailedProjectTitle),
                 notice.Failure?.Reason == JobFailureReason.ReleaseUnavailable ? Strings.NoticeReleaseUnavailable : Strings.NoticeFailed),
         };
-    }
-
-    private static string Summary(AutomationNotice notice)
-    {
-        (string Pattern, int Count)[] parts =
-        [
-            (Strings.NoticeAvailableSummary, notice.Games.Count(game => !notice.Updates.Contains(game) && !notice.Repairs.Contains(game))),
-            (Strings.NoticeUpdatesSummary, notice.Updates.Count),
-            (Strings.NoticeRepairsSummary, notice.Repairs.Count),
-        ];
-        return string.Join(" ", parts.Where(part => part.Count > 0).Select(part => Text.Format(part.Pattern, ("count", part.Count))));
     }
 }

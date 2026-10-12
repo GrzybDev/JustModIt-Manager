@@ -39,7 +39,8 @@ public static class NoticeToasts
                 : notice.TeamName is { } team ? About(Strings.Toast_Available, ("team", team))
                 : About(Strings.Toast_AvailableAnyTeam), true),
             NoticeKind.ChoiceNeeded => (ToastTone.Info, Icons.Users, Strings.Toast_ChoiceNeededTitle, About(Strings.Toast_ChoiceNeeded), true),
-            NoticeKind.AvailableSummary => (ToastTone.Info, Icons.Info, Strings.NoticeAvailableSummaryTitle, Summary(notice), false),
+            NoticeKind.AvailableSummary => (ToastTone.Info, Icons.Info, Strings.NoticeAvailableSummaryTitle,
+                NoticeSummary.Format(notice.Games, notice.Updates, notice.Repairs), false),
             NoticeKind.UpdateAvailable => (ToastTone.Info, Icons.CircleArrowUp, Strings.Toast_UpdateAvailableTitle,
                 version.Length > 0 ? About(Strings.Toast_UpdateAvailable, ("version", version)) : About(Strings.Toast_UpdateAvailableLatest), true),
             NoticeKind.RepairNeeded => (ToastTone.Warning, Icons.Wrench, Strings.Toast_RepairNeededTitle, About(Strings.Toast_RepairNeeded), true),
@@ -58,16 +59,5 @@ public static class NoticeToasts
             ActionText = offersGame && notice.Game is not null ? Strings.Toast_ShowGame : null,
             Action = offersGame && notice.Game is not null ? () => showGame(notice) : null,
         };
-    }
-
-    private static string Summary(NoticeView notice)
-    {
-        (string Pattern, int Count)[] parts =
-        [
-            (Strings.NoticeAvailableSummary, notice.Games.Count(game => !notice.Updates.Contains(game) && !notice.Repairs.Contains(game))),
-            (Strings.NoticeUpdatesSummary, notice.Updates.Count),
-            (Strings.NoticeRepairsSummary, notice.Repairs.Count),
-        ];
-        return string.Join(" ", parts.Where(part => part.Count > 0).Select(part => Text.Format(part.Pattern, ("count", part.Count))));
     }
 }
