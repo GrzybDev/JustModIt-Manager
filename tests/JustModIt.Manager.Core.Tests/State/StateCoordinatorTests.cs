@@ -564,6 +564,63 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
+    public async Task Moves_only_the_backups_that_are_not_in_the_new_place_yet_and_can_be_reached()
+    {
+        using var drive = new TempDirectory();
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Library.Publish(Installed(), Installed(OtherGame));
+        var there = app.Engine.Add(Record(backup: new BackupFolder(BackupLocation.CustomFolder,
+            Path.Join(drive.Path, "ExampleApp", "steam-1", "there"))));
+        var elsewhere = app.Engine.Add(Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject)));
+        var gone = app.Engine.Add(Record(OtherGame, backup: new BackupFolder(BackupLocation.AppData, drive.Combine("gone"))));
+        app.Engine.Backups[gone.Id] = true;
+        await app.StartAsync();
+        await app.StateAsync(state => state.Find(OtherGame)?.Installs.SingleOrDefault()?.Status.State == MyGameState.BackupsUnavailable,
+            "the originals of one install cannot be reached");
+
+        app.Coordinator.MoveBackups(new BackupChoice(BackupLocation.CustomFolder, drive.Path));
+
+        await app.StateAsync(state => state.Jobs.Count == 0 && state.PendingBackupMoves == 0
+            && state.Find(Game)!.Installs.All(install => install.Record.Backup.Location == BackupLocation.CustomFolder),
+            "the install outside the folder moved into it");
+        await Eventually.SettleAsync();
+        app.Engine.Calls.Count(call => call == "move backups").Should().Be(1,
+            "an install already in the folder is not moved again, and one whose originals cannot be reached would only fail");
+        app.Engine.Records[there.Id].Backup.Should().Be(there.Backup);
+        app.Engine.Records[gone.Id].Backup.Should().Be(gone.Backup);
+        app.Engine.Records[elsewhere.Id].Backup.Location.Should().Be(BackupLocation.CustomFolder);
+    }
+
+    [Fact]
+    public async Task Moves_the_backups_of_the_release_an_update_running_meanwhile_installs_in_the_old_place()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        var record = app.Engine.Add(Record());
+        await app.StartAsync();
+        app.PublishReleaseTwo();
+        var installing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        app.Engine.NextInstalls.Enqueue(async (request, _, token) =>
+        {
+            installing.SetResult();
+            await gate.Task.WaitAsync(token);
+            return await app.Engine.InstallNowAsync(request);
+        });
+        var update = app.Jobs.Start(new UpdateJobRequest(record));
+        await installing.Task.WaitAsync(TimeSpan.FromSeconds(10), CoordinatorHarness.Token);
+
+        app.Coordinator.MoveBackups(new BackupChoice(BackupLocation.AppData));
+        await app.StateAsync(state => state.PendingBackupMoves == 1, "the game's move waits for the update");
+        gate.SetResult();
+
+        (await update.Completion).Outcome.Should().Be(JobOutcome.Succeeded);
+        await app.StateAsync(state => state.Jobs.Count == 0 && state.PendingBackupMoves == 0
+            && state.Find(Game)?.Installs.SingleOrDefault()?.Record.Backup.Location == BackupLocation.AppData,
+            "the new release's backups follow the old one's to the new place");
+        app.Engine.Calls.Count(call => call == "move backups").Should().Be(1);
+    }
+
+    [Fact]
     public async Task A_slow_reader_gets_the_latest_state_without_the_ones_in_between()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();

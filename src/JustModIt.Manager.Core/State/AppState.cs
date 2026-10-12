@@ -42,6 +42,12 @@ public sealed record AppState
     /// <summary>Operations a crash interrupted that could not be finished or undone yet; their games stay untouched.</summary>
     public ValueList<RecoveredOperation> PendingRecoveries { get; init; }
 
+    /// <summary>
+    /// How many games' backups wait to be moved, each once the game has no other job; a game whose move runs is not counted,
+    /// since that move is one of the jobs.
+    /// </summary>
+    public int PendingBackupMoves { get; init; }
+
     /// <summary>The game in the player's list; null when it is not there.</summary>
     /// <param name="game">The game's store and id.</param>
     public MyGame? Find(GameKey game) => Games.FirstOrDefault(candidate => candidate.Key == game);

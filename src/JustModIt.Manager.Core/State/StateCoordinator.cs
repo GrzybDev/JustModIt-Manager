@@ -128,8 +128,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     public void DismissFailure(GameKey game, Guid? install) => Post(new FailureDismissed(new FailureKey(game, install)));
 
     /// <summary>
-    /// Moves every install's backups to where the settings now keep them, one job per install, each once its game has no
-    /// other job.
+    /// Moves the backups of every install that keeps them elsewhere, where they can be reached, to where the settings now
+    /// keep them, one job per install, each once its game has no other job.
     /// </summary>
     /// <param name="destination">Where the settings now keep backups.</param>
     public void MoveBackups(BackupChoice destination)
@@ -265,10 +265,11 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                 _moved.Recheck(installs);
                 _backupsChanged = true;
                 break;
+            // Originals that cannot be reached would only fail to move; the player asks again once they are back.
             case BackupsMoveRequested move:
                 _backupMoves.Clear();
-                foreach (var record in _records.Values.Where(record => record.Backup.Location != move.Destination.Location
-                    || move.Destination.Location == BackupLocation.CustomFolder))
+                foreach (var record in _records.Values.Where(record => !IsIn(record.Backup, move.Destination)
+                    && !_unavailableBackups.Contains(record.Id)))
                 {
                     _backupMoves[record.Id] = move.Destination;
                 }
@@ -321,6 +322,10 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         {
             _records[installed.Id] = installed;
             _verifications.Forget(installed.Id);
+            if (result.RemovedRecord is { } replaced)
+            {
+                FollowReplacement(replaced, installed);
+            }
         }
 
         // A job may also have failed on a backup folder that is gone.
@@ -435,6 +440,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                 CatalogueFetchedAt = _catalogueSnapshot.FetchedAt,
                 CatalogueFailure = _catalogueSnapshot.Failure,
                 PendingRecoveries = [.. _recoveries.Where(operation => operation.Outcome is RecoveryOutcome.Failed or RecoveryOutcome.Unavailable)],
+                PendingBackupMoves = _backupMoves.Keys.Where(_records.ContainsKey).Select(id => _records[id].Game)
+                    .Where(game => _activeJobs.GetValueOrDefault(game)?.Kind != JobKind.MoveBackups).Distinct().Count(),
             };
             _state = state;
             next = _next;
@@ -574,6 +581,21 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     // done.
     private static bool IsRefusedAsBusy(JobHandle handle) =>
         handle.Completion is { IsCompletedSuccessfully: true, Result.Failure.Reason: JobFailureReason.AlreadyRunning };
+
+    // A folder the player picked holds each install's backups in folders of its own below it.
+    private static bool IsIn(BackupFolder backup, BackupChoice destination) =>
+        backup.Location == destination.Location && (destination.Location != BackupLocation.CustomFolder
+            || (destination.CustomFolder is { } folder && PathComparison.IsWithin(folder, backup.Directory)));
+
+    // An update, a repair, the release put back after either fails, or another project installed in an install's place gives
+    // the game a new record, which takes over what was queued for the one it replaced.
+    private void FollowReplacement(Guid replaced, InstallRecord installed)
+    {
+        if (_backupMoves.Remove(replaced, out var destination) && !IsIn(installed.Backup, destination))
+        {
+            _backupMoves[installed.Id] = destination;
+        }
+    }
 
     // Shows a job this loop started at once, rather than when its first snapshot arrives.
     private bool Track(JobHandle handle)

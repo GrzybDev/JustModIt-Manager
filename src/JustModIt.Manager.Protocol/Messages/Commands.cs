@@ -35,8 +35,8 @@ public sealed record UninstallProject(Guid Install) : Message;
 public sealed record TestInstallPackage(GameKey Game, string PackagePath) : Message;
 
 /// <summary>
-/// Moves every install's backups to where the settings now keep them, one job per install, each once its game has no
-/// other job.
+/// Moves the backups of every install that keeps them elsewhere, where they can be reached, to where the settings now
+/// keep them, one job per install, each once its game has no other job.
 /// </summary>
 public sealed record MoveBackups : Message;
 
