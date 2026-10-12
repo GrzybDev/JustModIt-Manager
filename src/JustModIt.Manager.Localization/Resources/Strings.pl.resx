@@ -553,10 +553,7 @@
     <value>{job, select, Install {Nie udało się zainstalować} Update {Nie udało się zaktualizować} Repair {Nie udało się naprawić} Uninstall {Nie udało się odinstalować} other {Coś poszło nie tak}}</value>
   </data>
   <data name="Toast_Failed" xml:space="preserve">
-    <value>{game} – szczegóły są na stronie gry.</value>
-  </data>
-  <data name="Toast_ReleaseUnavailable" xml:space="preserve">
-    <value>{game} – to wydanie nie jest już dostępne na stronie.</value>
+    <value>{game} – {reason}</value>
   </data>
   <data name="Onboarding_Title" xml:space="preserve">
     <value>Pierwsze uruchomienie</value>

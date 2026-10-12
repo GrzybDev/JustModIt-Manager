@@ -147,7 +147,12 @@ public sealed class OverlayTests
             Game = TestStates.Ember,
             GameName = "Ember Hollow",
             Job = JobKind.Update,
-            Failure = new JobFailureView(JobFailureReason.NotEnoughSpace),
+            Failure = new JobFailureView(JobFailureReason.NotEnoughSpace)
+            {
+                Location = @"D:\Games\Ember Hollow",
+                RequiredBytes = 1_717_986_918,
+                AvailableBytes = 966_367_642,
+            },
         });
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
 
@@ -155,6 +160,8 @@ public sealed class OverlayTests
             Text.Format(Strings.Toast_FailedTitle, ("job", "Update")));
         ui.Shell.Toasts.Items[0].Message.Should().Be(Text.Format(Strings.Toast_Installed, ("game", "Ember Hollow"), ("team", "Lantern Team")));
         ui.Shell.Toasts.Items[0].HasAction.Should().BeFalse("nothing waits on the game once it is installed");
+        ui.Shell.Toasts.Items[2].Message.Should().Be("Ember Hollow – Za ma\u0142o miejsca na dysku D: (potrzeba 1,6\u00A0GB, wolne 921,6\u00A0MB).",
+            "a failure says why in the words of the game's page");
         ui.Render("toasts");
 
         ui.Click(ui.Find<Button>().Last(button => button.IsEffectivelyVisible && Name(button) == Strings.Toast_ShowGame));

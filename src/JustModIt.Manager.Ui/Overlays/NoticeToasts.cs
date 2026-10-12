@@ -1,8 +1,8 @@
 using Avalonia.Media;
 using JustModIt.Manager.Core.Automation;
-using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Overlays;
@@ -50,8 +50,9 @@ public static class NoticeToasts
                 About(Strings.Toast_PreviousReleaseLost), true),
             _ => (ToastTone.Danger, Icons.CircleX,
                 Text.Format(Strings.Toast_FailedTitle, ("job", notice.Job?.ToString() ?? "")),
-                notice.Failure?.Reason == JobFailureReason.ReleaseUnavailable ? About(Strings.Toast_ReleaseUnavailable) : About(Strings.Toast_Failed),
-                true),
+                About(Strings.Toast_Failed, ("reason", notice.Game is { } game
+                    ? GameWording.FailureReason(notice.Failure, game.Store, notice.GameName ?? "")
+                    : "")), true),
         };
 
         return new ToastViewModel(tone, icon, title, message)

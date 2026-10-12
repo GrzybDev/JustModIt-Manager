@@ -565,10 +565,7 @@
     <value>{job, select, Install {Installing failed} Update {Updating failed} Repair {Repairing failed} Uninstall {Uninstalling failed} other {Something went wrong}}</value>
   </data>
   <data name="Toast_Failed" xml:space="preserve">
-    <value>{game} – the game's page says what went wrong.</value>
-  </data>
-  <data name="Toast_ReleaseUnavailable" xml:space="preserve">
-    <value>{game} – this release is no longer available on the site.</value>
+    <value>{game} – {reason}</value>
   </data>
   <data name="Onboarding_Title" xml:space="preserve">
     <value>First-run setup</value>
