@@ -105,12 +105,11 @@
                   <ui:RemoteImage Source="{Binding Item.Image}" Fallback="{Binding Item.Fallback}"
                                   IsBlurred="{Binding $parent[UserControl].((game:ProjectStory)DataContext).IsBlurred}" />
                   <Border Classes="play" Width="56" Height="56" HorizontalAlignment="Center" VerticalAlignment="Center"
-                          IsVisible="{Binding IsLarge}">
-                    <ui:Icon Data="{x:Static theme:Icons.Play}" Width="22" Height="22" Foreground="White" Margin="3,0,0,0"
-                             IsVisible="{Binding Item.IsVideo}" />
+                          IsVisible="{Binding IsLargeFilm}">
+                    <ui:Icon Data="{x:Static theme:Icons.Play}" Width="22" Height="22" Foreground="White" Margin="3,0,0,0" />
                   </Border>
                   <Border Classes="play" Width="32" Height="32" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10"
-                          IsVisible="{Binding Item.IsVideo}">
+                          IsVisible="{Binding IsSmallFilm}">
                     <ui:Icon Data="{x:Static theme:Icons.Play}" Width="12" Height="12" Foreground="White" Margin="2,0,0,0" />
                   </Border>
                   <Panel IsVisible="{Binding IsFirst}">

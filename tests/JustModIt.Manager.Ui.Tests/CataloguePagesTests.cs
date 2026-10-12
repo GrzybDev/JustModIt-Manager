@@ -35,6 +35,9 @@ public sealed class CataloguePagesTests
         page.Stores.Select(store => (store.Name, store.IsLink)).Should().Equal(("Steam", true), ("GOG", false));
         (page.ShowsAbsent, page.HasNote, page.ShowsStatusBox).Should().Be((true, false, false));
         page.Story.ShowsFilms.Should().BeTrue();
+        ui.Find<Border>().Where(badge => badge.Classes.Contains("play") && badge.IsEffectivelyVisible)
+            .GroupBy(badge => (GalleryTile)badge.DataContext!).Should().OnlyContain(tile => tile.Key.Item.IsVideo && tile.Count() == 1,
+                "a film shows one play button and a picture beside it, both on large tiles, none");
         ui.Unnamed().Should().BeEmpty("every control a player can reach has a name a screen reader reads");
 
         ui.Click(ui.Find<Button>("PrimaryButton"));

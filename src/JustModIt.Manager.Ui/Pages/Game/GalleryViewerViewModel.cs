@@ -17,6 +17,12 @@ public sealed record GalleryTile(GalleryItemView Item, int Row, int Column, int 
 {
     public bool IsLarge => RowSpan > 1;
 
+    /// <summary>A film on a large tile, which shows its play button large in the middle.</summary>
+    public bool IsLargeFilm => IsLarge && Item.IsVideo;
+
+    /// <summary>A film on a small tile, which shows its play button small in a corner.</summary>
+    public bool IsSmallFilm => !IsLarge && Item.IsVideo;
+
     /// <summary>The gallery's first tile, which says how many films the gallery has where it has no heading.</summary>
     public bool IsFirst => Row == 0 && Column == 0;
 
