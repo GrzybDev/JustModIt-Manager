@@ -37,6 +37,7 @@ public sealed class CreatorProjectStoreTests : IDisposable
             ],
             Metadata = new PackageMetadata { Title = "Example package", Version = "2.0", Authors = ["Example Team"] },
             ToolNotices = [new ToolNotice("bepinex", "LGPL-2.1", "https://example.com/loader")],
+            LibraryNotices = [new LibraryNotice("bin/hook.dll", "MIT", "")],
             Acknowledged = ["whole-game-file:data/fonts.bin:1234"],
         };
 

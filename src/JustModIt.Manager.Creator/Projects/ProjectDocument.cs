@@ -25,6 +25,8 @@ internal sealed record ProjectDocument
 
     public List<ToolNotice>? ThirdParty { get; init; }
 
+    public List<LibraryNotice>? Libraries { get; init; }
+
     public List<string>? Acknowledged { get; init; }
 }
 

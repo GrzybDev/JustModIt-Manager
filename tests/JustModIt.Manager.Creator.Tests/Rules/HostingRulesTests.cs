@@ -75,7 +75,8 @@ public sealed class HostingRulesTests : IDisposable
 
         var plan = await PlanAsync(Project);
 
-        plan.Findings.Should().BeEmpty();
+        plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
+            finding.Kind == FindingKind.AddedLibrary && finding.Path == "bin/GalaxyMap.dll" && !finding.BlocksBuild);
     }
 
     [Fact]
@@ -105,7 +106,8 @@ public sealed class HostingRulesTests : IDisposable
         var copied = await ReviewAsync(Project.WithChoice(
             review.Entries.Single(entry => entry.File.Path == "bin/engine_o.dll"), FileChoice.Copy));
 
-        review.Plan.Findings.Should().BeEmpty();
+        review.Plan.Findings.Should().ContainSingle().Which.Kind.Should().Be(FindingKind.AddedLibrary,
+            "the library put in place of the renamed one is the author's, unless the author says otherwise");
         copied.Plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
             finding.Kind == FindingKind.CopyOfGameFile && finding.RelatedPath == "bin/engine.dll");
     }
@@ -191,6 +193,31 @@ public sealed class HostingRulesTests : IDisposable
             new ThirdPartyNotice { Name = "BepInEx", License = "LGPL-2.1", SourceUrl = "https://example.com/loader/source" });
         plan.Format.Should().Be(new PackageFormatDecision(PackageKind.Manifest, [FormatReason.CarriesThirdPartyNotices]),
             "a plain zip of these copies could not carry the notice");
+    }
+
+    [Fact]
+    public async Task Takes_an_added_library_for_the_authors_code_unless_the_author_names_it_another_authors_tool()
+    {
+        _workspace.Author("plugins/subtitles.dll", "the translation's own library");
+        _workspace.Author("plugins/hook.DLL", "a hooking library of another author");
+        const string Source = "https://code.example.com/hook";
+
+        var own = await PlanAsync(Project);
+        var asked = await PlanAsync(Project.WithLibraryNotice(new LibraryNotice("plugins/hook.dll", "MIT", "")));
+        var named = await PlanAsync(Project.WithLibraryNotice(new LibraryNotice("plugins/hook.dll", " MIT ", Source)));
+        var ownAgain = await PlanAsync(Project.WithLibraryNotice(new LibraryNotice("plugins/hook.dll", "MIT", Source))
+            .WithoutLibraryNotice("plugins/HOOK.dll"));
+
+        own.Findings.Should().HaveCount(2).And.OnlyContain(finding => finding.Kind == FindingKind.AddedLibrary && !finding.BlocksBuild);
+        own.Format.Kind.Should().Be(PackageKind.Zip);
+        asked.Findings.Single(finding => finding.BlocksBuild).Path.Should().Be("plugins/hook.DLL");
+        asked.Format.Should().Be(new PackageFormatDecision(PackageKind.Manifest, [FormatReason.CarriesThirdPartyNotices]));
+        named.CanBuild.Should().BeTrue();
+        named.ThirdPartyNotices.Should().ContainSingle().Which.Should().BeEquivalentTo(new ThirdPartyNotice
+        {
+            Name = "hook.DLL", License = "MIT", SourceUrl = Source, Paths = ["plugins/hook.DLL"],
+        });
+        ownAgain.Should().BeEquivalentTo(own);
     }
 
     [Fact]

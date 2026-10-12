@@ -102,6 +102,7 @@ public static class CreatorProjectStore
             Steps = project.Steps.Count > 0 ? [.. project.Steps] : null,
             Metadata = new MetadataDocument(project.Metadata.Title, project.Metadata.Version, [.. project.Metadata.Authors]),
             ThirdParty = project.ToolNotices.Count > 0 ? [.. project.ToolNotices] : null,
+            Libraries = project.LibraryNotices.Count > 0 ? [.. project.LibraryNotices] : null,
             Acknowledged = project.Acknowledged.Count > 0 ? [.. project.Acknowledged] : null,
         };
         using var buffer = new MemoryStream();
@@ -173,6 +174,7 @@ public static class CreatorProjectStore
             Authors = Items(document.Metadata?.Authors),
         },
         ToolNotices = Items(document.ThirdParty),
+        LibraryNotices = Items(document.Libraries),
         Acknowledged = [.. Items(document.Acknowledged).Distinct(StringComparer.Ordinal)],
     };
 

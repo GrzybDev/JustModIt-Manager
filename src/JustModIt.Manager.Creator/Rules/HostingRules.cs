@@ -94,6 +94,10 @@ internal static class HostingRules
         {
             yield return WholeGameFile(isArchive: true, operation.Path, size);
         }
+        else if (IsUnknownLibrary(operation.Path, rules))
+        {
+            yield return new PlanFinding(FindingKind.AddedLibrary, operation.Path);
+        }
     }
 
     private static PlanFinding WholeGameFile(bool isArchive, string path, long size)
@@ -109,6 +113,10 @@ internal static class HostingRules
     private static bool IsCircumvention(string path, HostingRuleSet rules) =>
         Matches(rules.CircumventionFiles, GameIndex.NameOf(path))
         || FoldersOf(path).Any(folder => Matches(rules.CircumventionFolders, folder));
+
+    private static bool IsUnknownLibrary(string path, HostingRuleSet rules) =>
+        PackagePath.IsValid(path) && rules.LibraryExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)
+        && !Matches(rules.StoreLibraries, GameIndex.NameOf(path)) && !IsCircumvention(path, rules) && ToolOf(path, rules) is null;
 
     private static bool IsArchive(string path, long size, HostingRuleSet rules) =>
         size >= rules.LargeFileBytes || rules.ArchiveExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);

@@ -40,6 +40,7 @@
     ".arc", ".assets", ".ba2", ".big", ".bin", ".bsa", ".bundle", ".cpk", ".dat", ".forge", ".gpk", ".npk", ".pak",
     ".pck", ".pkg", ".resources", ".rpa", ".rpf", ".sb", ".toc", ".ucas", ".utoc", ".vpk", ".wad", ".xp3"
   ],
+  "libraryExtensions": [ ".dll", ".so", ".dylib" ],
   "largeFileBytes": 16777216,
   "largePatchRatio": 0.5,
   "largePatchMinimumBytes": 1048576,

@@ -48,7 +48,10 @@ public static class CreatorPlanner
 
         findings.AddRange(HostingRules.Check(comparison, resolved, options.Rules));
         var tools = findings.Where(finding => finding.Kind == FindingKind.ThirdPartyTool).Select(finding => finding.ToolId!).ToList();
-        var format = PackageFormatDecision.For(resolved, carriesThirdPartyTools: tools.Count > 0);
+        var libraries = findings.Where(finding => finding.Kind == FindingKind.AddedLibrary)
+            .Select(finding => (Path: finding.Path!, Notice: project.LibraryNoticeOf(finding.Path!)))
+            .Where(library => library.Notice is not null).ToList();
+        var format = PackageFormatDecision.For(resolved, carriesThirdPartyTools: tools.Count > 0 || libraries.Count > 0);
         findings.AddRange(PackageChecks(resolved, format, project.Metadata, options));
         var plan = new PackagePlan
         {
@@ -58,15 +61,27 @@ public static class CreatorPlanner
             Format = format,
             Findings = [.. findings.Select(finding => Acknowledge(finding, project))],
             Metadata = project.Metadata,
-            ThirdPartyNotices = [.. tools.Select(tool => NoticeOf(tool, project, options.Rules)).OfType<ThirdPartyNotice>()],
+            ThirdPartyNotices =
+            [
+                .. tools.Select(tool => NoticeOf(tool, project, options.Rules)).OfType<ThirdPartyNotice>(),
+                .. libraries.Where(library => library.Notice!.IsComplete).Select(library => NoticeOf(library.Path, library.Notice!)),
+            ],
             Acknowledged = project.Acknowledged,
         };
         return new CreatorReview([.. entries], plan);
     }
 
-    // A third-party tool is acknowledged by its licence and source, never by a plain acknowledgement.
+    // The site takes another author's code only with its licence and source, so no plain acknowledgement stands in for
+    // them, and the author's own library needs neither.
     private static PlanFinding Acknowledge(PlanFinding finding, CreatorProject project) => finding switch
     {
+        { Kind: FindingKind.AddedLibrary } => project.LibraryNoticeOf(finding.Path!) is { } library
+            ? finding with
+            {
+                AcknowledgementKey = AcknowledgementKeys.For(FindingKind.AddedLibrary, finding.Path!),
+                IsAcknowledged = library.IsComplete,
+            }
+            : finding,
         { AcknowledgementKey: null } => finding,
         { Kind: FindingKind.ThirdPartyTool } => finding with { IsAcknowledged = CompleteNotice(finding.ToolId!, project) is not null },
         _ => finding with { IsAcknowledged = project.Acknowledged.Contains(finding.AcknowledgementKey) },
@@ -86,6 +101,15 @@ public static class CreatorPlanner
                 SourceUrl = notice.SourceUrl.Trim(),
             }
             : null;
+
+    // The notice names the library's file, which is all the creator knows of the tool.
+    private static ThirdPartyNotice NoticeOf(string path, LibraryNotice library) => new()
+    {
+        Name = GameIndex.NameOf(path),
+        License = library.License.Trim(),
+        SourceUrl = library.SourceUrl.Trim(),
+        Paths = [path],
+    };
 
     // The author's extra steps run first, then renames and deletions, then the files in path order, so a game file can
     // be renamed away and replaced, as a proxy library needs.

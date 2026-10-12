@@ -85,6 +85,12 @@ public enum FindingKind
     /// </summary>
     ThirdPartyTool,
 
+    /// <summary>
+    /// The package adds a library that no rule names, which is the author's own code unless the author says it is another
+    /// author's tool (<see cref="LibraryNotice"/>); only then does it need the tool's licence and source.
+    /// </summary>
+    AddedLibrary,
+
     /// <summary>The built package is larger than the site takes as a release file.</summary>
     LargerThanSiteTakes,
 
@@ -105,7 +111,7 @@ public sealed record PlanFinding(FindingKind Kind, string? Path = null)
 {
     public FindingSeverity Severity => Kind is FindingKind.RenameOverwritesFile or FindingKind.RenamedFileNotReplaced
         or FindingKind.WholeGameFile or FindingKind.WholeGameArchive or FindingKind.LargePatch or FindingKind.ThirdPartyTool
-        or FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite
+        or FindingKind.AddedLibrary or FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite
         ? FindingSeverity.Warning
         : FindingSeverity.Error;
 

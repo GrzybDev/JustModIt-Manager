@@ -57,7 +57,8 @@ public sealed class SimplePlanTests : IDisposable
             (OperationKind.Copy, null, "dx11/engine_x64.dll", OperationReason.OriginalRenamedAway));
         review.Plan.Operations[2].Replaces.Should().BeNull();
         Entry(review, "dx11/engine_x64.dll").Choices.Should().Equal(FileChoice.Copy, FileChoice.Skip);
-        review.Plan.Findings.Should().BeEmpty();
+        review.Plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
+            finding.Kind == FindingKind.AddedLibrary && finding.Path == "dx11/engine_x64.dll" && !finding.BlocksBuild);
     }
 
     [Fact]
@@ -195,7 +196,7 @@ public sealed class SimplePlanTests : IDisposable
             (OperationKind.Copy, "bin/engine.dll", null),
             (OperationKind.Patch, "data/strings.bin", null));
         review.Plan.Operations[2].Reason.Should().Be(OperationReason.OriginalRenamedAway);
-        review.Plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
+        review.Plan.Findings.Should().ContainSingle(finding => finding.BlocksBuild).Which.Should().Match<PlanFinding>(finding =>
             finding.Kind == FindingKind.FileRemovedEarlier && finding.OperationIndex == 3 && finding.Path == "data/strings.bin");
 
         var fixedProject = project.WithoutExtraStep(1);
@@ -275,7 +276,9 @@ public sealed class SimplePlanTests : IDisposable
         advanced.Entries.Should().BeEmpty();
         advanced.Plan.Operations.Select(operation => (operation.Kind, operation.From, operation.Path, operation.Source)).Should()
             .Equal(simple.Plan.Operations.Select(operation => (operation.Kind, operation.From, operation.Path, operation.Source)));
-        advanced.Plan.Findings.Should().BeEmpty();
+        advanced.Plan.Findings.Select(finding => (finding.Kind, finding.Path))
+            .Should().Equal(simple.Plan.Findings.Select(finding => (finding.Kind, finding.Path)));
+        advanced.Plan.CanBuild.Should().BeTrue();
     }
 
     private static ReviewEntry Entry(CreatorReview review, string path) => review.Entries.Single(entry => entry.File.Path == path);

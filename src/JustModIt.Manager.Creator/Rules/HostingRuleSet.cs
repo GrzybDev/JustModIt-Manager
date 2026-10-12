@@ -32,6 +32,9 @@ public sealed record HostingRuleSet
     /// <summary>Extensions of game archives, whose whole copy carries a large share of the game's assets.</summary>
     public required IReadOnlyList<string> ArchiveExtensions { get; init; }
 
+    /// <summary>Extensions of libraries of code, which a package adds either as the author's own or as another author's tool.</summary>
+    public required IReadOnlyList<string> LibraryExtensions { get; init; }
+
     /// <summary>From this size on, a whole game file counts like an archive.</summary>
     public required long LargeFileBytes { get; init; }
 

@@ -19,6 +19,7 @@ internal static class AcknowledgementKeys
         FindingKind.WholeGameFile or FindingKind.WholeGameArchive => "whole-game-file",
         FindingKind.LargePatch => "large-patch",
         FindingKind.ThirdPartyTool => "third-party",
+        FindingKind.AddedLibrary => "third-party-library",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "The finding needs no acknowledgement."),
     };
 }
