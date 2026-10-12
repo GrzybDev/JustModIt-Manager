@@ -1,0 +1,336 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:cat="using:JustModIt.Manager.Ui.Pages.Catalogue"
+             xmlns:game="using:JustModIt.Manager.Ui.Pages.Game"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Catalogue.CatalogueGamePage"
+             x:DataType="cat:CatalogueGamePageViewModel">
+  <UserControl.Resources>
+    <!-- The status's progress and explanation, tinted in its colour; it stands before the buttons or after them. -->
+    <DataTemplate x:Key="StatusBoxTemplate" x:DataType="cat:CatalogueGamePageViewModel">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" MaxWidth="720" />
+        </Grid.ColumnDefinitions>
+        <Border Padding="18,14" CornerRadius="12" BorderThickness="1"
+                Background="{Binding StatusColor, Converter={x:Static cat:CatalogueGamePage.BoxTint}}"
+                BorderBrush="{Binding StatusColor, Converter={x:Static cat:CatalogueGamePage.BoxEdge}}">
+          <StackPanel Spacing="10">
+            <StackPanel Spacing="8" IsVisible="{Binding HasProgress}">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <TextBlock Text="{Binding ProgressKind}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                  <TextBlock Text="{Binding ProgressPercent}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextBrush}" />
+                  <TextBlock Text="·" FontSize="13" Foreground="{StaticResource TextMutedBrush}" IsVisible="{Binding HasProgressValue}" />
+                  <TextBlock Text="{Binding ProgressValue}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" IsVisible="{Binding HasProgressValue}" />
+                </StackPanel>
+              </Grid>
+              <ProgressBar Classes="thin" Value="{Binding Progress}" AutomationProperties.Name="{Binding ProgressKind}" />
+            </StackPanel>
+            <StackPanel Spacing="8">
+              <TextBlock Text="{Binding StatusDescription}" FontSize="15" LineHeight="24" TextWrapping="Wrap" Foreground="{StaticResource TextEmphasisBrush}"
+                         IsVisible="{Binding StatusDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <TextBlock Text="{Binding StatusDate}" FontSize="13" LineHeight="20" TextWrapping="Wrap" Foreground="{StaticResource WarningTextBrush}"
+                         IsVisible="{Binding HasStatusDate}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Border.cover">
+      <Setter Property="Width" Value="160" />
+      <Setter Property="Height" Value="240" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+      <Setter Property="BoxShadow" Value="0 0 0 1 #24FFFFFF, 0 30 60 -24 #F2000000, 0 14 28 -16 #CC000000" />
+    </Style>
+    <Style Selector="Border.cover.compact">
+      <Setter Property="Width" Value="120" />
+      <Setter Property="Height" Value="180" />
+    </Style>
+    <Style Selector="TextBlock.displayL.compact">
+      <Setter Property="FontSize" Value="32" />
+      <Setter Property="LineHeight" Value="38" />
+    </Style>
+    <Style Selector="Button.chip">
+      <Setter Property="Height" Value="NaN" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Cursor" Value="Help" />
+    </Style>
+    <Style Selector="Button.chip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.popover">
+      <Setter Property="Width" Value="320" />
+      <Setter Property="Padding" Value="16,14,16,12" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BoxShadow" Value="0 24 48 -28 #E6000000, 0 8 24 0 #66000000" />
+    </Style>
+    <Style Selector="Border.adultChip">
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Padding" Value="10,0" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.big">
+      <Setter Property="Height" Value="48" />
+      <Setter Property="Padding" Value="22,0,24,0" />
+      <Setter Property="FontSize" Value="16" />
+    </Style>
+    <Style Selector="Button.onArt">
+      <Setter Property="Background" Value="#59030712" />
+    </Style>
+    <Style Selector="TextBlock.fact">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="LineHeight" Value="20" />
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.storeLink TextBlock">
+      <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
+    <!-- The site's button stays at the end of the actions' line while it fits, and goes under them when it does not. -->
+    <Style Selector="Button#SiteButton">
+      <Setter Property="Grid.Column" Value="2" />
+    </Style>
+    <Style Selector="Button#SiteButton.under">
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+    <!-- Without a red button the site's button leads the line, before the facts. -->
+    <Style Selector="Button#SiteButton.lead">
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.Row" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="1" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Grid#Actions">
+      <Setter Property="Margin" Value="0,28,0,0" />
+    </Style>
+    <Style Selector="Grid#Actions.afterBox">
+      <Setter Property="Margin" Value="0,20,0,0" />
+    </Style>
+    <!-- Under a banner the head starts lower, so the banner shows above it. -->
+    <Style Selector="Grid#Head">
+      <Setter Property="Margin" Value="0,24,0,0" />
+    </Style>
+    <Style Selector="Grid#Head.banner">
+      <Setter Property="Margin" Value="0,156,0,0" />
+    </Style>
+    <Style Selector="Grid#Head.banner.compact">
+      <Setter Property="Margin" Value="0,96,0,0" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <ScrollViewer x:Name="Scroller" Classes="page">
+      <Panel>
+        <ui:Backdrop Recipe="{Binding Backdrop}" VerticalAlignment="Top" Height="900" IsHitTestVisible="False" />
+        <StackPanel x:Name="PageContent" Margin="{StaticResource PagePadding}" MaxWidth="{StaticResource PageMaxWidth}">
+          <!-- The head: the cover, the status, the name, the team, and what the catalogue offers for the game. -->
+          <Grid x:Name="Head" ColumnDefinitions="Auto,*" ColumnSpacing="32" ZIndex="2" Classes.banner="{Binding HasBanner}"
+                Classes.compact="{Binding IsCompact}">
+            <Border Classes="cover" Classes.compact="{Binding IsCompact}" VerticalAlignment="Top">
+              <Panel>
+                <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="36" Height="36" StrokeThickness="1.5" Foreground="#80C4B5FD" />
+                <ui:RemoteImage Source="{Binding Cover}" IsBlurred="{Binding IsCoverBlurred}" AutomationProperties.Name="{Binding CoverName}" />
+              </Panel>
+            </Border>
+            <StackPanel Grid.Column="1" Margin="0,18,0,0">
+              <StackPanel Orientation="Horizontal" Spacing="8" ZIndex="1">
+                <Panel IsVisible="{Binding HasStatus}">
+                  <Button x:Name="StatusChip" Classes="chip" Command="{Binding ToggleStatusCommand}" ToolTip.Tip="{Binding StatusTip}"
+                          AutomationProperties.Name="{Binding StatusTip}" IsVisible="{Binding StatusOpensExplanation}">
+                    <ui:StatusPill Classes="onArt" Text="{Binding Status}" Hex="{Binding StatusColor}" />
+                  </Button>
+                  <ui:StatusPill Classes="onArt" Text="{Binding Status}" Hex="{Binding StatusColor}" IsVisible="{Binding !StatusOpensExplanation}" />
+                  <Canvas Width="0" Height="0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <Border x:Name="StatusPopover" Classes="popover" Canvas.Top="32" IsVisible="{Binding IsStatusOpen}" theme:Motion.Enter="True">
+                      <StackPanel Spacing="10">
+                        <ui:StatusPill Text="{Binding Status}" Hex="{Binding StatusColor}" />
+                        <TextBlock Text="{Binding StatusDescription}" FontSize="13" LineHeight="20" TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextEmphasisBrush}"
+                                   IsVisible="{Binding StatusDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <Button Classes="inlineLink" Content="{x:Static loc:Strings.GamePage_AllStatuses}" Command="{Binding OpenStatusesCommand}"
+                                ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUpRight}" ui:ButtonAssist.IconAfter="True" />
+                      </StackPanel>
+                    </Border>
+                  </Canvas>
+                </Panel>
+                <Border Classes="adultChip" IsVisible="{Binding IsAdult}" ToolTip.Tip="{x:Static loc:Strings.Library_AdultTip}">
+                  <TextBlock Text="{x:Static loc:Strings.Library_Adult}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}"
+                             VerticalAlignment="Center" />
+                </Border>
+                <Button x:Name="RevealButton" Classes="quiet small" Content="{x:Static loc:Strings.Catalogue_ShowPictures}" IsVisible="{Binding CanReveal}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.Eye}" Command="{Binding RevealCommand}" />
+              </StackPanel>
+              <TextBlock Classes="displayL" Classes.compact="{Binding IsCompact}" Text="{Binding Name}" TextWrapping="Wrap" Margin="0,14,0,0" />
+
+              <!-- One project: its team. Several: their marks and names. -->
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0" IsVisible="{Binding IsProject}">
+                <TextBlock Text="{x:Static loc:Strings.GamePage_TeamLine}" FontSize="15" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                <Button Classes="inlineLink" Command="{Binding OpenCommand}" CommandParameter="{Binding TeamPage}" FontSize="15"
+                        AutomationProperties.Name="{Binding TeamName}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ui:TeamBadge NameText="{Binding TeamName}" Avatar="{Binding TeamAvatar}" Width="24" Height="24" CornerRadius="6" />
+                    <TextBlock Text="{Binding TeamName}" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0" IsVisible="{Binding IsComparison}">
+                <StackPanel Orientation="Horizontal" Spacing="-6" VerticalAlignment="Center">
+                  <ui:TeamBadge NameText="{Binding TeamName}" Avatar="{Binding TeamAvatar}" Width="24" Height="24" CornerRadius="6" />
+                  <ui:TeamBadge NameText="{Binding OtherTeamName}" Avatar="{Binding OtherTeamAvatar}" Width="24" Height="24" CornerRadius="6" />
+                </StackPanel>
+                <TextBlock Text="{Binding TeamsLine}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+
+              <TextBlock Text="{Binding Summary}" FontSize="15" LineHeight="24" Foreground="{StaticResource TextBodyBrush}" TextWrapping="Wrap"
+                         MaxLines="3" TextTrimming="CharacterEllipsis" MaxWidth="690" HorizontalAlignment="Left" Margin="0,14,0,0"
+                         IsVisible="{Binding HasSummary}" />
+
+              <!-- Where there is nothing to download, the status's explanation stands where the button would. -->
+              <ContentControl x:Name="StatusBox" Content="{Binding}" ContentTemplate="{StaticResource StatusBoxTemplate}" Margin="0,28,0,0"
+                              IsVisible="{Binding ShowsStatusBoxAbove}" />
+
+              <!-- While the project's page is on its way, its parts stand in where they will be. -->
+              <StackPanel Spacing="10" Margin="0,16,0,0" IsVisible="{Binding IsLoadingDetails}">
+                <ui:Skeleton Height="12" Width="560" HorizontalAlignment="Left" />
+                <ui:Skeleton Height="12" Width="440" HorizontalAlignment="Left" />
+                <StackPanel Orientation="Horizontal" Spacing="20" Margin="0,18,0,0">
+                  <ui:Skeleton Width="220" Height="48" CornerRadius="8" />
+                  <StackPanel Spacing="10" VerticalAlignment="Center">
+                    <ui:Skeleton Width="280" Height="12" />
+                    <ui:Skeleton Width="200" Height="12" />
+                  </StackPanel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,16,0,0">
+                  <ui:ProgressRing Width="14" Height="14" VerticalAlignment="Center" />
+                  <TextBlock Text="{x:Static loc:Strings.GamePage_Loading}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+              </StackPanel>
+              <Grid Margin="0,28,0,0" IsVisible="{Binding IsOffline}">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" MaxWidth="720" />
+                </Grid.ColumnDefinitions>
+                <ui:Callout x:Name="Offline" Classes="warning" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.WifiOff}" theme:Motion.Enter="True"
+                            Title="{x:Static loc:Strings.Catalogue_PageOfflineTitle}" Message="{x:Static loc:Strings.Catalogue_PageOfflineText}">
+                  <Button Classes="outline" Content="{x:Static cat:CataloguePage.RetryText}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
+                          Command="{Binding RetryCommand}" HorizontalAlignment="Left" />
+                </ui:Callout>
+              </Grid>
+
+              <!-- The actions: at most one red button, the facts beside it, and the way to the site. -->
+              <Grid x:Name="Actions" IsVisible="{Binding ShowsActions}" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="20" RowSpacing="16"
+                    Classes.afterBox="{Binding ShowsStatusBoxAbove}">
+                <Button x:Name="PrimaryButton" Classes="primary big" IsVisible="{Binding HasPrimary}" Command="{Binding RunPrimaryCommand}"
+                        AutomationProperties.Name="{Binding Primary}" VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="20" Height="20" VerticalAlignment="Center" IsVisible="{Binding PrimaryOpensGame}" />
+                    <ui:StoreIcon Store="{Binding PrimaryStore}" Width="20" Height="20" VerticalAlignment="Center" IsVisible="{Binding !PrimaryOpensGame}" />
+                    <TextBlock Text="{Binding Primary}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="16" Height="16" VerticalAlignment="Center" IsVisible="{Binding PrimaryOpensGame}" />
+                    <ui:Icon Data="{x:Static theme:Icons.ArrowUpRight}" Width="16" Height="16" VerticalAlignment="Center" IsVisible="{Binding !PrimaryOpensGame}" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="StoreButton" Classes="outline onArt" IsVisible="{Binding HasStoreAction}" Command="{Binding RunStoreActionCommand}"
+                        AutomationProperties.Name="{Binding StoreAction}" VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ui:StoreIcon Store="{Binding StoreActionStore}" Width="16" Height="16" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding StoreAction}" VerticalAlignment="Center" />
+                    <ui:Icon Data="{x:Static theme:Icons.ArrowUpRight}" Width="14" Height="14" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                  </StackPanel>
+                </Button>
+                <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center" IsVisible="{Binding ShowsFacts}">
+                  <WrapPanel ItemSpacing="8">
+                    <TextBlock Classes="fact" Text="{Binding Released}" Foreground="{StaticResource TextEmphasisBrush}" TextWrapping="Wrap" />
+                    <TextBlock Classes="fact" Text="{x:Static loc:Strings.Catalogue_Stopped}" FontWeight="Medium" Foreground="{StaticResource WarningTextBrush}"
+                               IsVisible="{Binding IsStopped}" />
+                  </WrapPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasStores}">
+                    <TextBlock Classes="fact" Text="{x:Static loc:Strings.Catalogue_Works}" />
+                    <ItemsControl ItemsSource="{Binding Stores}" AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Works}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" Spacing="6" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="cat:StoreFact">
+                          <StackPanel Orientation="Horizontal">
+                            <Button Classes="inlineLink storeLink" FontSize="14" FontWeight="Medium" IsVisible="{Binding IsLink}" AutomationProperties.Name="{Binding Name}"
+                                    Command="{Binding $parent[UserControl].((cat:CatalogueGamePageViewModel)DataContext).OpenCommand}" CommandParameter="{Binding Address}">
+                              <StackPanel Orientation="Horizontal" Spacing="5">
+                                <ui:StoreIcon Store="{Binding Store}" Width="14" Height="14" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                <ui:Icon Data="{x:Static theme:Icons.ArrowUpRight}" Width="12" Height="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                         VerticalAlignment="Center" />
+                              </StackPanel>
+                            </Button>
+                            <StackPanel Orientation="Horizontal" Spacing="5" IsVisible="{Binding !IsLink}">
+                              <ui:StoreIcon Store="{Binding Store}" Width="14" Height="14" VerticalAlignment="Center" Foreground="{StaticResource TextEmphasisBrush}" />
+                              <TextBlock Classes="fact" Text="{Binding Name}" Foreground="{StaticResource TextEmphasisBrush}" />
+                            </StackPanel>
+                            <TextBlock Classes="fact" Text="," IsVisible="{Binding Separates}" />
+                          </StackPanel>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                  <TextBlock Classes="fact" Text="{Binding Variants}" IsVisible="{Binding HasVariants}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Button x:Name="SiteButton" Classes="outline onArt" Content="{x:Static loc:Strings.GamePage_OpenOnSite}" IsVisible="{Binding IsProject}"
+                        Classes.under="{Binding IsCompact}" Classes.lead="{Binding LeadsWithSite}" VerticalAlignment="Center"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUpRight}"
+                        ui:ButtonAssist.IconAfter="True" Command="{Binding OpenCommand}" CommandParameter="{Binding SitePage}" />
+              </Grid>
+
+              <!-- Beside a file, the progress and its explanation follow the buttons. -->
+              <ContentControl Content="{Binding}" ContentTemplate="{StaticResource StatusBoxTemplate}" Margin="0,24,0,0"
+                              IsVisible="{Binding ShowsStatusBoxBelow}" />
+
+              <!-- What the page says about the game on this computer. -->
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="0,16,0,0" IsVisible="{Binding HasNote}">
+                <ui:Icon Data="{x:Static theme:Icons.MonitorCheck}" Foreground="{StaticResource SuccessTextBrush}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                <TextBlock Grid.Column="1" Text="{Binding Note}" FontSize="14" LineHeight="21" Foreground="{StaticResource TextEmphasisBrush}"
+                           TextWrapping="Wrap" MaxWidth="720" HorizontalAlignment="Left" />
+              </Grid>
+              <Grid Margin="0,24,0,0" IsVisible="{Binding ShowsAbsent}">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" MaxWidth="720" />
+                </Grid.ColumnDefinitions>
+                <ui:Callout x:Name="Absent" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Monitor}" Title="{x:Static loc:Strings.Catalogue_AbsentTitle}"
+                            Message="{x:Static cat:CatalogueGamePage.AbsentText}">
+                  <Button Classes="link" Content="{x:Static loc:Strings.Catalogue_AbsentLink}" Command="{Binding OpenUndetectedCommand}" Margin="0,-6,0,0" />
+                </ui:Callout>
+              </Grid>
+            </StackPanel>
+          </Grid>
+
+          <game:ProjectStoryView x:Name="Story" DataContext="{Binding Story}" Margin="0,56,0,0"
+                                 IsVisible="{Binding $parent[UserControl].((cat:CatalogueGamePageViewModel)DataContext).ShowsStory}" />
+          <game:ProjectComparisonView x:Name="Comparison" Margin="0,48,0,0" IsVisible="{Binding IsComparison}" />
+        </StackPanel>
+      </Panel>
+    </ScrollViewer>
+
+    <StackPanel Spacing="12" VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding IsLoading}">
+      <ui:ProgressRing Width="28" Height="28" />
+    </StackPanel>
+  </Panel>
+</UserControl>

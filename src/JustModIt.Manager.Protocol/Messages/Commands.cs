@@ -94,6 +94,10 @@ public sealed record HideGame(GameKey Game, bool IsHidden) : Message;
 /// <summary>The player confirmed being an adult, which lets the catalogue show adult games for a day.</summary>
 public sealed record ConfirmAdultContent : Message;
 
+/// <summary>Unveils an adult game's pictures from now on, as the player chose on its page.</summary>
+/// <param name="Game">The game's uuid on the site.</param>
+public sealed record RevealAdultPictures(Guid Game) : Message;
+
 /// <summary>
 /// Starts the game through its store, or opens its page in a store client that starts games only from there; refused as
 /// unsupported for a store the app has no link for.

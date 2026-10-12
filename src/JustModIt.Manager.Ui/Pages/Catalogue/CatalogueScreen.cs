@@ -1,6 +1,4 @@
-using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Navigation;
-using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Catalogue;
 
@@ -12,9 +10,12 @@ internal static class CatalogueScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
+        var gone = new GoneProjects();
         ui.Pages.Register<CatalogueRoute>((_, services) => new CataloguePageViewModel(services));
+        ui.Pages.Register<CatalogueGameRoute>((route, services) => new CatalogueGamePageViewModel(services, route.GameSlug, null, gone));
+        ui.Pages.Register<CatalogueProjectRoute>((route, services) =>
+            new CatalogueGamePageViewModel(services, route.GameSlug, (route.TeamSlug, route.ProjectSlug), gone));
         ui.Views.Register<CataloguePageViewModel>(() => new CataloguePage());
-        ui.Pages.Register<CatalogueGameRoute>((_, _) => new PlaceholderPageViewModel(Strings.Shell_Catalogue, Icons.Library));
-        ui.Pages.Register<CatalogueProjectRoute>((_, _) => new PlaceholderPageViewModel(Strings.Shell_Catalogue, Icons.Library));
+        ui.Views.Register<CatalogueGamePageViewModel>(() => new CatalogueGamePage());
     }
 }

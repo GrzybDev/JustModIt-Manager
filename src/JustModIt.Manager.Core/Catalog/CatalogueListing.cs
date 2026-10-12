@@ -155,6 +155,10 @@ public sealed class CatalogueListing
     /// <param name="projectUuid">The project's id.</param>
     public ListedProject? FindProject(Guid projectUuid) => _byProject.GetValueOrDefault(projectUuid);
 
+    /// <summary>A listed game by its slug; null when the listing does not have it.</summary>
+    /// <param name="slug">The game's slug in the site's addresses.</param>
+    public ListedGame? FindGame(string slug) => Games.FirstOrDefault(listed => listed.Game.Slug == slug);
+
     /// <summary>The listed games that fit the query, in the order it asks for.</summary>
     /// <param name="query">The text, filters and order the player chose.</param>
     /// <param name="names">Orders game names, in the app's language.</param>

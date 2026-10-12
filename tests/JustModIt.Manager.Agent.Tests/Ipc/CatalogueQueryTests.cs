@@ -45,6 +45,11 @@ public sealed class CatalogueQueryTests : IAsyncDisposable
         all.Detected.Should().Be(1);
         mine.Games.Select(game => game.Name).Should().Equal("Found Game");
         (mine.Total, mine.Unfiltered, mine.Facets.Teams.Total).Should().Be((1, 2, 1));
+
+        var game = (CatalogueGameResult)(await window.RequestAsync(new GetCatalogueGame("Found Game")))!;
+        var unknown = (CatalogueGameResult)(await window.RequestAsync(new GetCatalogueGame("Lost Game")))!;
+        game.Game!.Detected.Should().Equal(Found);
+        unknown.Game.Should().BeNull();
     }
 
     public async ValueTask DisposeAsync() => await _agent.DisposeAsync();

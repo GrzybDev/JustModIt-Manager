@@ -236,18 +236,6 @@
       <Setter Property="FontSize" Value="15" />
       <Setter Property="HorizontalContentAlignment" Value="Left" />
     </Style>
-    <Style Selector="Button.inlineLink">
-      <Setter Property="Height" Value="NaN" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="FontSize" Value="13" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    </Style>
-    <Style Selector="Button.inlineLink:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
-    </Style>
     <Style Selector="Border.changes">
       <Setter Property="Margin" Value="0,16,0,0" />
       <Setter Property="MaxWidth" Value="640" />
@@ -282,78 +270,6 @@
       <Setter Property="LetterSpacing" Value="-0.2" />
       <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
     </Style>
-    <Style Selector="Border.aside">
-      <Setter Property="Padding" Value="20" />
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="Background" Value="#D10B111E" />
-    </Style>
-    <Style Selector="Border.genre">
-      <Setter Property="Height" Value="26" />
-      <Setter Property="Padding" Value="10,0" />
-      <Setter Property="CornerRadius" Value="999" />
-      <Setter Property="Background" Value="{StaticResource FillBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-    </Style>
-    <Style Selector="Button.galleryTile">
-      <Setter Property="Height" Value="NaN" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="CornerRadius" Value="12" />
-      <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="VerticalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="VerticalContentAlignment" Value="Stretch" />
-    </Style>
-    <Style Selector="Button.galleryTile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
-    </Style>
-    <Style Selector="Border.play">
-      <Setter Property="CornerRadius" Value="999" />
-      <Setter Property="Background" Value="#B8030712" />
-      <Setter Property="BorderBrush" Value="#2EFFFFFF" />
-      <Setter Property="BorderThickness" Value="1" />
-    </Style>
-    <Style Selector="Button.choiceCard">
-      <Setter Property="Height" Value="NaN" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="Background" Value="#D10B111E" />
-      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="VerticalContentAlignment" Value="Stretch" />
-    </Style>
-    <Style Selector="Button.choiceCard:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
-    </Style>
-    <Style Selector="Button.choiceCard.chosen /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
-      <Setter Property="Background" Value="{DynamicResource AccentFilterBrush}" />
-    </Style>
-    <Style Selector="Border.choicePart">
-      <Setter Property="Padding" Value="16,0" />
-      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-      <Setter Property="BorderThickness" Value="0,1,0,0" />
-    </Style>
-    <Style Selector="Border#Description">
-      <Setter Property="MaxHeight" Value="234" />
-    </Style>
-    <Style Selector="Border#Description.open">
-      <Setter Property="MaxHeight" Value="Infinity" />
-    </Style>
-    <Style Selector="Border#Description.long:not(.open)">
-      <Setter Property="OpacityMask">
-        <LinearGradientBrush StartPoint="50%,0%" EndPoint="50%,100%">
-          <GradientStop Color="Black" Offset="0.6" />
-          <GradientStop Color="Transparent" Offset="1" />
-        </LinearGradientBrush>
-      </Setter>
-    </Style>
     <Style Selector="ui|Icon.flipped">
       <Setter Property="RenderTransform" Value="rotate(180deg)" />
     </Style>
@@ -385,10 +301,6 @@
       <Setter Property="Grid.Column" Value="2" />
       <Setter Property="HorizontalAlignment" Value="Left" />
       <Setter Property="Margin" Value="-12,4,0,0" />
-    </Style>
-    <Style Selector="Border.labelPart">
-      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-      <Setter Property="BorderThickness" Value="0,1,0,0" />
     </Style>
   </UserControl.Styles>
 
@@ -783,62 +695,7 @@
             </StackPanel>
           </Border>
 
-          <!-- Several teams' projects side by side, each column one choice. -->
-          <StackPanel x:Name="Comparison" Spacing="20" Margin="0,48,0,0" IsVisible="{Binding ShowsChoices}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-              <StackPanel Spacing="4">
-                <TextBlock Classes="section" Text="{x:Static loc:Strings.GamePage_CompareTitle}" />
-                <TextBlock Text="{Binding ChoicesText}" FontSize="15" LineHeight="24" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
-              </StackPanel>
-              <Button Grid.Column="1" Classes="link" VerticalAlignment="Bottom" Content="{x:Static loc:Strings.GamePage_StatusesLink}"
-                      ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUpRight}" Command="{Binding OpenStatusesCommand}" />
-            </Grid>
-            <Grid ColumnDefinitions="140,*" ColumnSpacing="14">
-              <StackPanel>
-                <Border Height="66" />
-                <Border Classes="labelPart" Height="72">
-                  <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_CompareStatus}" VerticalAlignment="Center" />
-                </Border>
-                <Border Classes="labelPart" Height="64">
-                  <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_CompareLatest}" VerticalAlignment="Center" />
-                </Border>
-              </StackPanel>
-              <ItemsControl Grid.Column="1" ItemsSource="{Binding Choices}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <UniformGrid Rows="1" ColumnSpacing="14" />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="game:ProjectChoice">
-                    <Button Classes="choiceCard" Classes.chosen="{Binding IsChosen}" AutomationProperties.Name="{Binding AccessibleName}"
-                            Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).ChooseProjectCommand}" CommandParameter="{Binding}">
-                      <StackPanel>
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Height="66" Margin="16,0">
-                          <ui:TeamBadge NameText="{Binding Team}" Avatar="{Binding Avatar}" Width="32" Height="32" CornerRadius="8" />
-                          <TextBlock Grid.Column="1" Text="{Binding Team}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"
-                                     VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                          <Border Grid.Column="2" Classes="roundChip" Width="28" Height="28" CornerRadius="999" Background="{StaticResource FillBrush}"
-                                  BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1">
-                            <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" />
-                          </Border>
-                        </Grid>
-                        <Border Classes="choicePart" Height="72">
-                          <ui:StatusPill Text="{Binding Status}" Hex="{Binding StatusColor}" VerticalAlignment="Center" IsVisible="{Binding HasStatus}" />
-                        </Border>
-                        <Border Classes="choicePart" Height="64">
-                          <StackPanel VerticalAlignment="Center" Spacing="2">
-                            <TextBlock Text="{Binding Version}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
-                            <TextBlock Text="{Binding Released}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-                          </StackPanel>
-                        </Border>
-                      </StackPanel>
-                    </Button>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </Grid>
-          </StackPanel>
+          <game:ProjectComparisonView x:Name="Comparison" Margin="0,48,0,0" IsVisible="{Binding ShowsChoices}" />
 
           <!-- What the install's record keeps of a project the site no longer has. -->
           <Border Classes="aside" Margin="0,48,0,0" MaxWidth="720" HorizontalAlignment="Left" IsVisible="{Binding ShowsSavedInfo}">
@@ -887,129 +744,8 @@
             </Border>
           </Grid>
 
-          <StackPanel Spacing="20" Margin="0,56,0,0" IsVisible="{Binding HasGallery}">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-              <TextBlock Classes="section" Text="{x:Static loc:Strings.GamePage_Gallery}" />
-              <TextBlock Text="{Binding GalleryText}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
-                         Margin="0,4,0,0" />
-            </StackPanel>
-            <ItemsControl x:Name="Gallery" ItemsSource="{Binding GalleryTiles}" Height="263">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <Grid ColumnDefinitions="2*,*,*" RowDefinitions="*,*" ColumnSpacing="12" RowSpacing="12" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
-              <ItemsControl.Styles>
-                <Style Selector="ItemsControl#Gallery > ContentPresenter" x:DataType="game:GalleryTile">
-                  <Setter Property="Grid.Row" Value="{Binding Row}" />
-                  <Setter Property="Grid.Column" Value="{Binding Column}" />
-                  <Setter Property="Grid.RowSpan" Value="{Binding RowSpan}" />
-                  <Setter Property="Grid.ColumnSpan" Value="{Binding ColumnSpan}" />
-                </Style>
-              </ItemsControl.Styles>
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="game:GalleryTile">
-                  <Button Classes="galleryTile" AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Item.Caption}"
-                          Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).OpenGalleryCommand}" CommandParameter="{Binding}">
-                    <Border CornerRadius="11" ClipToBounds="True">
-                      <Panel>
-                        <ui:RemoteImage Source="{Binding Item.Image}" Fallback="{Binding Item.Fallback}" />
-                        <Border Classes="play" Width="56" Height="56" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                IsVisible="{Binding IsLarge}">
-                          <ui:Icon Data="{x:Static theme:Icons.Play}" Width="22" Height="22" Foreground="White" Margin="3,0,0,0"
-                                   IsVisible="{Binding Item.IsVideo}" />
-                        </Border>
-                        <Border Classes="play" Width="32" Height="32" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10"
-                                IsVisible="{Binding Item.IsVideo}">
-                          <ui:Icon Data="{x:Static theme:Icons.Play}" Width="12" Height="12" Foreground="White" Margin="2,0,0,0" />
-                        </Border>
-                      </Panel>
-                    </Border>
-                  </Button>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-
-          <Grid ColumnDefinitions="*,360" ColumnSpacing="48" Margin="0,56,0,0" IsVisible="{Binding ShowsDetails}">
-            <StackPanel Spacing="16" IsVisible="{Binding HasAbout}">
-              <WrapPanel ItemSpacing="12" LineSpacing="8">
-                <TextBlock Classes="section" Text="{x:Static loc:Strings.GamePage_About}" />
-                <ItemsControl ItemsSource="{Binding Details.Genres}" VerticalAlignment="Center" AutomationProperties.Name="{x:Static loc:Strings.GamePage_Genres}">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <WrapPanel ItemSpacing="6" LineSpacing="6" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="x:String">
-                      <Border Classes="genre">
-                        <TextBlock Text="{Binding}" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextBodyBrush}" VerticalAlignment="Center" />
-                      </Border>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </WrapPanel>
-              <Border x:Name="Description" ClipToBounds="True" Classes.open="{Binding IsDescriptionOpen}"
-                      Classes.long="{Binding LongDescription}">
-                <md:MarkdownView Document="{Binding Details.Description}" LinkCommand="{Binding OpenCommand}" />
-              </Border>
-              <Button Classes="quiet" HorizontalAlignment="Left" Margin="-12,-4,0,0" IsVisible="{Binding LongDescription}"
-                      Command="{Binding ToggleDescriptionCommand}" Content="{Binding IsDescriptionOpen, Converter={x:Static game:GamePage.MoreOrLess}}"
-                      ui:ButtonAssist.Icon="{x:Static theme:Icons.ChevronDown}" ui:ButtonAssist.IconAfter="True" />
-              <md:MarkdownView Document="{Binding Details.Disclaimer}" Classes="compact" Opacity="0.85" IsVisible="{Binding HasDisclaimer}"
-                               LinkCommand="{Binding OpenCommand}" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Spacing="16" IsVisible="{Binding HasTeam}">
-              <TextBlock Classes="section" Text="{x:Static loc:Strings.GamePage_Creators}" />
-              <Border Classes="aside">
-                <StackPanel Spacing="16">
-                  <Button Classes="inlineLink" Command="{Binding OpenCommand}" CommandParameter="{Binding TeamPage}" AutomationProperties.Name="{Binding TeamName}">
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                      <ui:TeamBadge NameText="{Binding TeamName}" Avatar="{Binding TeamAvatar}" Width="44" Height="44" CornerRadius="10" />
-                      <StackPanel VerticalAlignment="Center" Spacing="2">
-                        <TextBlock Text="{Binding TeamName}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
-                        <TextBlock Text="{Binding TeamFacts}" FontSize="13" FontWeight="Normal" Foreground="{StaticResource TextSecondaryBrush}" />
-                      </StackPanel>
-                    </StackPanel>
-                  </Button>
-                  <ItemsControl ItemsSource="{Binding Details.Support}" IsVisible="{Binding HasSupport}">
-                    <ItemsControl.ItemsPanel>
-                      <ItemsPanelTemplate>
-                        <StackPanel Spacing="8" />
-                      </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="game:SupportLink">
-                        <Button Classes="outline" HorizontalAlignment="Left" Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).OpenCommand}"
-                                CommandParameter="{Binding Address}" Content="{Binding Platform, Converter={x:Static game:GamePage.SupportText}}"
-                                ui:ButtonAssist.Icon="{x:Static theme:Icons.Coffee}" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                  <StackPanel Spacing="14" IsVisible="{Binding HasCredits}">
-                    <Border Classes="divider" />
-                    <TextBlock Classes="overline" Text="{x:Static game:GamePageViewModel.CreditsTitle}" />
-                    <ItemsControl ItemsSource="{Binding Details.Credits}">
-                      <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                          <UniformGrid Columns="2" ColumnSpacing="20" RowSpacing="16" />
-                        </ItemsPanelTemplate>
-                      </ItemsControl.ItemsPanel>
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="game:CreditView">
-                          <StackPanel Spacing="2">
-                            <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding Role}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
-                          </StackPanel>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-                </StackPanel>
-              </Border>
-            </StackPanel>
-          </Grid>
+          <game:ProjectStoryView x:Name="Story" DataContext="{Binding Story}" Margin="0,56,0,0"
+                                 IsVisible="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).ShowsDetails}" />
         </StackPanel>
       </Panel>
     </ScrollViewer>

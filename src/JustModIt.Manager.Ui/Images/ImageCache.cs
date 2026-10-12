@@ -227,9 +227,8 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         await Task.WhenAll(artwork, banner, cover).WaitAsync(cancellationToken).ConfigureAwait(false);
         var backdrop = await Task.Run(() =>
         {
-            using var art = artwork.Result is { } artFile
-                ? Decode(artFile.Address, artFile.Path, new PixelSize(size.Width, (int)(size.Width * 0.5625)))?.Bitmap : null;
-            using var band = banner.Result is { } bandFile ? Decode(bandFile.Address, bandFile.Path, new PixelSize(size.Width, 1))?.Bitmap : null;
+            using var art = artwork.Result is { } artFile ? Layer(artFile, new PixelSize(size.Width, (int)(size.Width * 0.5625)), recipe.IsBlurred) : null;
+            using var band = banner.Result is { } bandFile ? Layer(bandFile, new PixelSize(size.Width, 1), recipe.IsBlurred) : null;
             Color? tint = Color.TryParse(recipe.Tint, out var parsed) ? parsed : null;
             if (tint is null && cover.Result is { } coverFile)
             {
@@ -241,6 +240,20 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         }, cancellationToken).ConfigureAwait(false);
         Remember(key, new RemotePicture(backdrop, backdrop.PixelSize));
         return backdrop;
+    }
+
+    // A veiled layer is decoded a few pixels wide like a veiled cover, so none of its detail reaches the backdrop.
+    private Bitmap? Layer((Uri Address, string Path) file, PixelSize box, bool blurred)
+    {
+        if (!blurred)
+        {
+            return Decode(file.Address, file.Path, box)?.Bitmap;
+        }
+
+        using var tiny = Decode(file.Address, file.Path, new PixelSize(BlurSource, 1))?.Bitmap;
+        return tiny is null
+            ? null
+            : ImageBaking.Blur(tiny, new PixelSize(box.Width, Math.Max(1, box.Width * tiny.PixelSize.Height / tiny.PixelSize.Width)));
     }
 
     public async Task<IFrameSource?> OpenFramesAsync(string address, PixelSize size, CancellationToken cancellationToken)

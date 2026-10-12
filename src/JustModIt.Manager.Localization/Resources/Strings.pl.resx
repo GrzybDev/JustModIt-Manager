@@ -1692,4 +1692,67 @@
   <data name="Catalogue_HaveGame" xml:space="preserve">
     <value>Masz tę grę</value>
   </data>
+  <data name="Catalogue_SeeInStore" xml:space="preserve">
+    <value>Zobacz grę na {store}</value>
+  </data>
+  <data name="Catalogue_OpenInStore" xml:space="preserve">
+    <value>Otwórz w {store}</value>
+  </data>
+  <data name="Catalogue_LastChange" xml:space="preserve">
+    <value>Ostatnia zmiana: {age} ({date})</value>
+  </data>
+  <data name="Catalogue_Works" xml:space="preserve">
+    <value>Działa z:</value>
+  </data>
+  <data name="Catalogue_Stopped" xml:space="preserve">
+    <value>Ostatnia wersja – prace przerwane</value>
+  </data>
+  <data name="Catalogue_Variants" xml:space="preserve">
+    <value>Warianty: {variants}</value>
+  </data>
+  <data name="Catalogue_HereInstalls" xml:space="preserve">
+    <value>Gra jest na tym komputerze. Instalacja i aktualizacje projektu są w „Moich grach”.</value>
+  </data>
+  <data name="Catalogue_HereWaits" xml:space="preserve">
+    <value>Gra jest na tym komputerze. Gdy grupa wyda projekt, pojawi się w „Moich grach”.</value>
+  </data>
+  <data name="Catalogue_Here" xml:space="preserve">
+    <value>Gra jest na tym komputerze.</value>
+  </data>
+  <data name="Catalogue_HereChoose" xml:space="preserve">
+    <value>Gra jest na tym komputerze. W „Moich grach” można wybrać jeden z projektów i go zainstalować.</value>
+  </data>
+  <data name="Catalogue_AbsentTitle" xml:space="preserve">
+    <value>Tej gry nie ma na tym komputerze</value>
+  </data>
+  <data name="Catalogue_AbsentText" xml:space="preserve">
+    <value>Gdy zostanie zainstalowana, pojawi się w „Moich grach”.</value>
+  </data>
+  <data name="Catalogue_AbsentLink" xml:space="preserve">
+    <value>Gra jest zainstalowana, a jej nie widać?</value>
+  </data>
+  <data name="Catalogue_ShowPictures" xml:space="preserve">
+    <value>Pokaż grafiki</value>
+  </data>
+  <data name="Catalogue_ProgressValue" xml:space="preserve">
+    <value>{done} z {total} {unit}</value>
+  </data>
+  <data name="Catalogue_PageOfflineTitle" xml:space="preserve">
+    <value>Nie można wczytać strony projektu</value>
+  </data>
+  <data name="Catalogue_PageOfflineText" xml:space="preserve">
+    <value>Brak połączenia z serwerem, a tej strony nie ma jeszcze na tym komputerze. Widoczne jest to, co wiadomo z katalogu.</value>
+  </data>
+  <data name="Catalogue_TeamsLine" xml:space="preserve">
+    <value>{count, plural, one {# projekt} few {# projekty} many {# projektów} other {# projektu}}: {teams}</value>
+  </data>
+  <data name="Catalogue_And" xml:space="preserve">
+    <value>{first} i {second}</value>
+  </data>
+  <data name="Catalogue_CompareText" xml:space="preserve">
+    <value>{hasStores, select, true {Każdy przygotowała inna grupa. Wspólne wersje gry: {stores}.} other {Każdy przygotowała inna grupa.}}</value>
+  </data>
+  <data name="Catalogue_Films" xml:space="preserve">
+    <value>{count, plural, one {Film w YouTube} few {# filmy w YouTube} many {# filmów w YouTube} other {# filmu w YouTube}}</value>
+  </data>
 </root>

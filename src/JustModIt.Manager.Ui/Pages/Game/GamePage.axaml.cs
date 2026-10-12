@@ -15,14 +15,6 @@ public sealed partial class GamePage : UserControl
     public static readonly IValueConverter BandPadding =
         new FuncValueConverter<bool, Thickness>(dismissable => dismissable ? new Thickness(24, 22, 12, 22) : new Thickness(24, 22));
 
-    /// <summary>The description's toggle: more while it is folded, less once it is open.</summary>
-    public static readonly IValueConverter MoreOrLess =
-        new FuncValueConverter<bool, string>(open => open ? Strings.Library_ShowLess : Strings.GamePage_ShowMore);
-
-    /// <summary>A support link's label from its platform's name.</summary>
-    public static readonly IValueConverter SupportText =
-        new FuncValueConverter<string, string>(platform => Text.Format(Strings.GamePage_Support, ("platform", platform ?? "")));
-
     // A window this short cannot show the panel's foot without scrolling, so its next step moves to its head.
     private const double CompactHeight = 720;
 

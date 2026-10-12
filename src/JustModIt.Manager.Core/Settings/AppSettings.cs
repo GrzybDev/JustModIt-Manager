@@ -86,6 +86,9 @@ public sealed record AppSettings
     /// <summary>Until when the player counts as an adult, which games marked as adult content and their pages need.</summary>
     public DateTimeOffset? AdultContentConfirmedUntil { get; init; }
 
+    /// <summary>Adult games by their uuid on the site whose pictures the player chose to see unveiled.</summary>
+    public ValueList<Guid> RevealedAdultGames { get; init; }
+
     /// <summary>The player's choices for a game, or the defaults.</summary>
     /// <param name="key">The game's store and store id.</param>
     public GamePreferences GetGame(GameKey key) => Games.TryGetValue(key, out var preferences) ? preferences : GamePreferences.Default;
@@ -107,6 +110,11 @@ public sealed record AppSettings
     /// <summary>Whether the player's confirmed age still holds.</summary>
     /// <param name="now">The current time.</param>
     public bool IsAdultContentConfirmed(DateTimeOffset now) => AdultContentConfirmedUntil > now;
+
+    /// <summary>The settings with an adult game's pictures unveiled from now on.</summary>
+    /// <param name="game">The game's uuid on the site.</param>
+    public AppSettings RevealAdultPictures(Guid game) =>
+        RevealedAdultGames.Contains(game) ? this : this with { RevealedAdultGames = RevealedAdultGames.Add(game) };
 
     /// <summary>Whether the automation installs projects for the game, by its own choice or else the global setting.</summary>
     /// <param name="key">The game's store and store id.</param>

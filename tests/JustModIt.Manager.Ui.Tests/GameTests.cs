@@ -22,6 +22,8 @@ public sealed class GameTests
 {
     private static readonly ProjectOfferView Ember = Offer("Ember Hollow", twoVariants: true);
 
+    private static readonly Guid SiteId = new("3e0c5a1d-7b2f-4c8e-9a6d-5f4e3d2c1b0a");
+
     [AvaloniaFact]
     public async Task Installing_takes_the_chosen_variant_and_shows_the_job_live_until_it_is_cancelled()
     {
@@ -272,7 +274,7 @@ public sealed class GameTests
         page.Summary.Should().StartWith("Latarnik wraca");
         page.Details!.Gallery.Should().HaveCount(3);
         page.Details.Credits.Select(credit => credit.Name).Should().Equal("Ada Lantern", "Olek Tide");
-        page.TeamFacts.Should().Be("Grupa · 3 osoby");
+        page.Story.TeamFacts.Should().Be("Grupa · 3 osoby");
         ui.Images.Backdrops.Should().Contain(backdrop => backdrop.Recipe.Artwork == $"https://images.example.com/backgrounds/{Ember.GameSlug}.png");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
         ui.Render("game-full", height: 2200);
@@ -300,7 +302,7 @@ public sealed class GameTests
         var link = ui.Find<Controls.Markdown.ProseText>().First(text => text.Links.Count > 0);
         page.OpenCommand.Execute(link.Links[0]);
         ui.Links.Opened.Should().Equal(new Uri("https://example.com/ember-hollow"));
-        page.ToggleDescriptionCommand.Execute(null);
+        page.Story.ToggleDescriptionCommand.Execute(null);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
         ui.Render("game-description", height: 2600);
         ui.Click(ui.Find<Button>().Single(button => button.Classes.Contains("film")));
@@ -363,6 +365,21 @@ public sealed class GameTests
 
         var button = ui.Find<Button>().Single(button => button.Name == "PrimaryButton" && button.IsEffectivelyVisible);
         button.TranslatePoint(new Point(0, button.Bounds.Height), ui.Window)!.Value.Y.Should().BeLessThan(600);
+    }
+
+    [AvaloniaFact]
+    public void An_adult_game_unveiled_in_the_catalogue_shows_its_cover_on_its_page_and_its_card()
+    {
+        var game = Installed("Ember Hollow", "4100", offer: Ember) with { IsAdult = true, SiteIds = [SiteId] };
+        using var ui = Open(State(game), game, Ember);
+        var page = Page(ui);
+        page.IsCoverBlurred.Should().BeTrue();
+
+        ui.Push(State(game) with { Version = 2, RevealedAdultGames = [SiteId] });
+        page.IsCoverBlurred.Should().BeFalse("the player unveiled the game's pictures on its page in the catalogue");
+        ui.Shell.Navigator.GoBackCommand.Execute(null);
+        UiHarness.Settle();
+        ((LibraryPageViewModel)ui.Shell.Navigator.Current!).GridItems.OfType<GameCardViewModel>().Single().IsCoverBlurred.Should().BeFalse();
     }
 
     private static UiHarness Open(AppStateView state, GameView game, ProjectOfferView? page = null, Action<FakeImages>? images = null)

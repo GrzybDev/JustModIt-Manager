@@ -1704,4 +1704,67 @@
   <data name="Catalogue_HaveGame" xml:space="preserve">
     <value>You have this game</value>
   </data>
+  <data name="Catalogue_SeeInStore" xml:space="preserve">
+    <value>View the game on {store}</value>
+  </data>
+  <data name="Catalogue_OpenInStore" xml:space="preserve">
+    <value>Open in {store}</value>
+  </data>
+  <data name="Catalogue_LastChange" xml:space="preserve">
+    <value>Last change: {age} ({date})</value>
+  </data>
+  <data name="Catalogue_Works" xml:space="preserve">
+    <value>Works with:</value>
+  </data>
+  <data name="Catalogue_Stopped" xml:space="preserve">
+    <value>Last version – work stopped</value>
+  </data>
+  <data name="Catalogue_Variants" xml:space="preserve">
+    <value>Variants: {variants}</value>
+  </data>
+  <data name="Catalogue_HereInstalls" xml:space="preserve">
+    <value>The game is on this computer. The project is installed and updated in “{library}”.</value>
+  </data>
+  <data name="Catalogue_HereWaits" xml:space="preserve">
+    <value>The game is on this computer. Once the team releases the project, it shows in “{library}”.</value>
+  </data>
+  <data name="Catalogue_Here" xml:space="preserve">
+    <value>The game is on this computer.</value>
+  </data>
+  <data name="Catalogue_HereChoose" xml:space="preserve">
+    <value>The game is on this computer. One of the projects is chosen and installed in “{library}”.</value>
+  </data>
+  <data name="Catalogue_AbsentTitle" xml:space="preserve">
+    <value>This game is not on this computer</value>
+  </data>
+  <data name="Catalogue_AbsentText" xml:space="preserve">
+    <value>Once it is installed, it shows in “{library}”.</value>
+  </data>
+  <data name="Catalogue_AbsentLink" xml:space="preserve">
+    <value>Installed, yet not found?</value>
+  </data>
+  <data name="Catalogue_ShowPictures" xml:space="preserve">
+    <value>Show pictures</value>
+  </data>
+  <data name="Catalogue_ProgressValue" xml:space="preserve">
+    <value>{done} of {total} {unit}</value>
+  </data>
+  <data name="Catalogue_PageOfflineTitle" xml:space="preserve">
+    <value>The project page cannot be loaded</value>
+  </data>
+  <data name="Catalogue_PageOfflineText" xml:space="preserve">
+    <value>There is no connection to the server, and this page is not on this computer yet. Showing what the catalogue knows.</value>
+  </data>
+  <data name="Catalogue_TeamsLine" xml:space="preserve">
+    <value>{count, plural, one {# project} other {# projects}}: {teams}</value>
+  </data>
+  <data name="Catalogue_And" xml:space="preserve">
+    <value>{first} and {second}</value>
+  </data>
+  <data name="Catalogue_CompareText" xml:space="preserve">
+    <value>{hasStores, select, true {Each one was made by another team. Store versions they share: {stores}.} other {Each one was made by another team.}}</value>
+  </data>
+  <data name="Catalogue_Films" xml:space="preserve">
+    <value>{count, plural, one {Film on YouTube} other {# films on YouTube}}</value>
+  </data>
 </root>

@@ -3,6 +3,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Pages.Library;
 
 namespace JustModIt.Manager.Ui.Pages.Catalogue;
 
@@ -103,7 +104,7 @@ public sealed partial class CatalogueCardViewModel(Guid id) : ObservableObject
     /// <summary>Shows the game as the catalogue's newest answer has it.</summary>
     /// <param name="game">The game with the projects its card shows.</param>
     /// <param name="query">The player's search.</param>
-    /// <param name="state">The agent's state, which tells the player's games and the blur setting.</param>
+    /// <param name="state">The agent's state, which tells the player's games, the blur setting and the games unveiled.</param>
     /// <param name="clock">The clock ages are told against.</param>
     public void Update(CatalogueGameView game, string query, AppStateView state, TimeProvider clock)
     {
@@ -116,7 +117,7 @@ public sealed partial class CatalogueCardViewModel(Guid id) : ObservableObject
         Query = query;
         Cover = game.Cover;
         IsAdult = game.IsAdult;
-        IsCoverBlurred = game.IsAdult && state.Settings.BlurAdultContent;
+        IsCoverBlurred = AdultContent.IsVeiled(state, game.IsAdult, [game.Id]);
         Status = best?.Status?.Name ?? "";
         StatusColor = best?.Status?.Color ?? "";
         HasManyTeams = projects.Count > 1;
@@ -159,23 +160,24 @@ public sealed partial class CatalogueCardViewModel(Guid id) : ObservableObject
     private static List<CatalogueProjectView> Best(IEnumerable<CatalogueProjectView> projects) =>
         [.. projects.OrderByDescending(project => project.Status?.IsCompleted == true).ThenByDescending(project => project.Progress ?? -1)];
 
-    private static string MovedText(CatalogueGameView game, CatalogueProjectView? project, TimeProvider clock)
+    /// <summary>
+    /// When a project without a release was announced, while its status holds releases back before work, or finished, once
+    /// the game's makers ship its work, and otherwise when it last changed, as the site's cards tell it.
+    /// </summary>
+    /// <param name="project">The project; null says nothing.</param>
+    /// <param name="clock">The clock ages are told against.</param>
+    internal static string Announced(CatalogueProjectView? project, TimeProvider clock) => project switch
     {
-        if (game.LatestReleaseAt is { } released)
-        {
-            return Text.Format(Strings.Catalogue_Released, ("age", Formats.CalendarAge(released, clock)));
-        }
+        { Status: { HoldsReleasesBack: true, IsCompleted: false }, FirstPublishedAt: { } announced } =>
+            Text.Format(Strings.Catalogue_Announced, ("age", Formats.CalendarAge(announced, clock))),
+        { Status: { HoldsReleasesBack: true, IsCompleted: true }, CompletedAt: { } completed } =>
+            Text.Format(Strings.Catalogue_Completed, ("age", Formats.CalendarAge(completed, clock))),
+        { UpdatedAt: { } changed } => Text.Format(Strings.Catalogue_Changed, ("age", Formats.CalendarAge(changed, clock))),
+        _ => "",
+    };
 
-        // As on the site's cards, a project that holds releases back tells its announcement before work and its completion
-        // once the game's makers ship the work; any other tells its last change.
-        return project switch
-        {
-            { Status: { HoldsReleasesBack: true, IsCompleted: false }, FirstPublishedAt: { } announced } =>
-                Text.Format(Strings.Catalogue_Announced, ("age", Formats.CalendarAge(announced, clock))),
-            { Status: { HoldsReleasesBack: true, IsCompleted: true }, CompletedAt: { } completed } =>
-                Text.Format(Strings.Catalogue_Completed, ("age", Formats.CalendarAge(completed, clock))),
-            { UpdatedAt: { } changed } => Text.Format(Strings.Catalogue_Changed, ("age", Formats.CalendarAge(changed, clock))),
-            _ => "",
-        };
-    }
+    private static string MovedText(CatalogueGameView game, CatalogueProjectView? project, TimeProvider clock) =>
+        game.LatestReleaseAt is { } released
+            ? Text.Format(Strings.Catalogue_Released, ("age", Formats.CalendarAge(released, clock)))
+            : Announced(project, clock);
 }

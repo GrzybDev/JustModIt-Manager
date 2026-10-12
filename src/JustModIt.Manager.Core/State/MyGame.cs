@@ -56,7 +56,10 @@ public sealed record MyGame
 
     public bool IsHidden => Preferences.IsHidden;
 
-    public bool IsAdult => Projects.Concat(Installs.Select(install => install.Project)).Any(offer => offer?.Project.Game.IsAdult == true);
+    public bool IsAdult => Offers.Any(offer => offer.Project.Game.IsAdult);
+
+    /// <summary>The game's ids on the site, as the projects on offer and installed name it.</summary>
+    public IEnumerable<Guid> SiteIds => Offers.Select(offer => offer.Project.Game.Uuid).Distinct();
 
     /// <summary>
     /// Something only the player can sort out: an install that needs repairing, lost its game or its originals, or a job
@@ -67,6 +70,8 @@ public sealed record MyGame
     /// <summary>The install on the game; null when the game has none with this id.</summary>
     /// <param name="id">The install's record id.</param>
     public MyInstall? FindInstall(Guid id) => Installs.FirstOrDefault(install => install.Record.Id == id);
+
+    private IEnumerable<ProjectOffer> Offers => Projects.Concat(Installs.Select(install => install.Project)).OfType<ProjectOffer>();
 }
 
 /// <summary>An install on a game in the player's list, with what it needs.</summary>

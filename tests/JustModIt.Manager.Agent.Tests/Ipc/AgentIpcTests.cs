@@ -194,10 +194,11 @@ public sealed class AgentIpcTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Adult_games_reach_the_catalogue_once_the_player_confirmed_being_an_adult()
+    public async Task Adult_games_reach_the_catalogue_once_the_player_confirmed_being_an_adult_and_keep_their_pictures_unveiled()
     {
+        var adultGame = Listed("Adult Game", isAdult: true);
         await new CatalogueCache(_agent.Options.Locations.CatalogueCacheDirectory, TimeProvider.System, NullLogger<CatalogueCache>.Instance)
-            .SaveListingAsync(new CatalogueListing(DateTimeOffset.UtcNow, [Listed("Example Game", isAdult: false), Listed("Adult Game", isAdult: true)],
+            .SaveListingAsync(new CatalogueListing(DateTimeOffset.UtcNow, [Listed("Example Game", isAdult: false), adultGame],
                 new CatalogueReference()), AgentHarness.Token);
         _agent.Start();
         var window = await _agent.ConnectWindowAsync();
@@ -207,10 +208,14 @@ public sealed class AgentIpcTests : IAsyncDisposable
         await window.RequestAsync(new ConfirmAdultContent());
         var confirmed = await window.StateAsync(state => state.AdultContentConfirmedUntil is not null);
         var adult = (CataloguePageResult)(await window.RequestAsync(page))!;
+        await window.RequestAsync(new RevealAdultPictures(adultGame.Game.Uuid));
+        var revealed = await window.StateAsync(state => state.RevealedAdultGames.Count > 0);
 
         unconfirmed.Games.Select(game => game.Name).Should().Equal("Example Game");
         confirmed.AdultContentConfirmedUntil.Should().BeCloseTo(DateTimeOffset.UtcNow.AddDays(1), TimeSpan.FromMinutes(1));
         adult.Games.Select(game => game.Name).Should().BeEquivalentTo("Example Game", "Adult Game");
+        revealed.RevealedAdultGames.Should().Equal(adultGame.Game.Uuid);
+        (await _agent.ServiceAsync<ISettingsService>()).Current.RevealedAdultGames.Should().Equal(adultGame.Game.Uuid);
     }
 
     [Fact]

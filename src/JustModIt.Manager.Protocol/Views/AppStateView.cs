@@ -29,6 +29,9 @@ public sealed record AppStateView
     /// </summary>
     public DateTimeOffset? AdultContentConfirmedUntil { get; init; }
 
+    /// <inheritdoc cref="AppSettings.RevealedAdultGames"/>
+    public IReadOnlyList<Guid> RevealedAdultGames { get; init; } = [];
+
     public LibraryView Library { get; init; } = new();
 
     public CatalogueView Catalogue { get; init; } = new();
@@ -63,6 +66,7 @@ public sealed record AppStateView
             Jobs = [.. state.Jobs.Select(JobView.From)],
             Settings = SettingsView.From(settings),
             AdultContentConfirmedUntil = settings.AdultContentConfirmedUntil,
+            RevealedAdultGames = [.. settings.RevealedAdultGames],
             Library = LibraryView.From(state, settings),
             Catalogue = new CatalogueView
             {

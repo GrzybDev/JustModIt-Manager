@@ -59,6 +59,14 @@ public sealed record CataloguePageResult(int Total, IReadOnlyList<CatalogueGameV
     public int Unfiltered { get; init; }
 }
 
+/// <summary>Asks for one game of the catalogue with all its listed projects; answered with <see cref="CatalogueGameResult"/>.</summary>
+/// <param name="GameSlug">The game's slug in the site's addresses.</param>
+public sealed record GetCatalogueGame(string GameSlug) : Query;
+
+/// <summary>The answer to <see cref="GetCatalogueGame"/>.</summary>
+/// <param name="Game">The game; null when the catalogue does not list it, or was never read.</param>
+public sealed record CatalogueGameResult(CatalogueGameView? Game = null) : Message;
+
 /// <summary>Asks for the options of the catalogue's filters; answered with <see cref="CatalogueFiltersResult"/>.</summary>
 public sealed record GetCatalogueFilters : Query;
 

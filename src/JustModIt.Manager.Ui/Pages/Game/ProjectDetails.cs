@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Controls.Markdown;
 using JustModIt.Manager.Ui.Images;
 
@@ -46,6 +47,26 @@ public sealed record SupportLink(string Platform, Uri Address);
 /// <param name="Role">What they did; empty when the project does not say.</param>
 public sealed record CreditView(string Name, string Role);
 
+/// <summary>A store version of the game the project is made for, with the game's page in that store.</summary>
+/// <param name="Name">The store's name on the site.</param>
+/// <param name="Store">The store's id in the app, e.g. <c>steam</c>; empty for a store the app does not know.</param>
+/// <param name="Address">The game's page in the store; null when the site gives none.</param>
+public sealed record StoreLinkView(string Name, string Store, Uri? Address);
+
+/// <summary>How far a project is, as its main progress bar shows it.</summary>
+/// <param name="Kind">What the progress measures, e.g. the translation.</param>
+/// <param name="Percent">The share done, from 0 to 100.</param>
+public sealed record ProgressView(string Kind, int Percent)
+{
+    /// <summary>How much is done, counted in <see cref="Unit"/>; null for a progress set as a share only.</summary>
+    public long? Done { get; init; }
+
+    public long? Total { get; init; }
+
+    /// <summary>What is counted, e.g. words, in the site's language.</summary>
+    public string Unit { get; init; } = "";
+}
+
 /// <summary>
 /// What the window shows of a project's page from the site, read and parsed on the thread pool: texts as Markdown
 /// documents, the gallery, the team and its people, and the backdrop's images.
@@ -79,6 +100,24 @@ public sealed record ProjectDetails
     public IReadOnlyList<SupportLink> Support { get; init; } = [];
 
     public int TeamMembers { get; init; }
+
+    /// <summary>The release players can download; null when there is none.</summary>
+    public ReleaseView? Release { get; init; }
+
+    /// <summary>The names of the release's variants, as the site groups its files.</summary>
+    public IReadOnlyList<string> Variants { get; init; } = [];
+
+    /// <summary>The release has a file ready to download, so the project has something to install.</summary>
+    public bool HasFile { get; init; }
+
+    /// <summary>The game's makers ship the project's work with the game itself, so the team releases nothing to download.</summary>
+    public bool ShipsWithGame { get; init; }
+
+    /// <summary>The store versions of the game the project is made for, in the site's order.</summary>
+    public IReadOnlyList<StoreLinkView> Stores { get; init; } = [];
+
+    /// <summary>The main progress, while the project's status shows one; null otherwise.</summary>
+    public ProgressView? Progress { get; init; }
 
     public required BackdropRecipe Backdrop { get; init; }
 
@@ -121,6 +160,24 @@ public sealed record ProjectDetails
                     .Select(method => new SupportLink(method.Platform, method.Address!)),
             ],
             TeamMembers = project.Team.MemberCount,
+            Release = project.PublicRelease is { } release ? ReleaseView.From(release) : null,
+            Variants = project.PublicRelease is { } shown ? ReleaseSelector.VariantNames(shown) : [],
+            HasFile = project.Status?.AllowsPublicReleases != false && project.PublicRelease?.Files.Any(file => file.IsReady) == true,
+            ShipsWithGame = project.Status is { IsCompleted: true, AllowsPublicReleases: false },
+            Stores =
+            [
+                .. project.StorefrontLinks.OrderBy(link => link.Position).Where(link => link.Platform is not null)
+                    .Select(link => new StoreLinkView(link.Platform!.Name, link.Store?.Value ?? "",
+                        Uri.TryCreate(link.Url, UriKind.Absolute, out var address) && address.Scheme == Uri.UriSchemeHttps ? address : null)),
+            ],
+            Progress = project is { Status.ShowsProgress: true, PrimaryProgress: { } progress }
+                ? new ProgressView(progress.Kind?.Name ?? "", Math.Clamp(progress.Percentage, 0, 100))
+                {
+                    Done = progress.Mode == "fraction" ? progress.CurrentValue : null,
+                    Total = progress.Mode == "fraction" ? progress.TotalValue : null,
+                    Unit = progress.UnitLabel,
+                }
+                : null,
             Backdrop = new BackdropRecipe(project.Uuid.ToString(), project.PageBackgroundImage, project.BackgroundImage,
                 project.Game.CoverMeta?.Color ?? "", project.Game.Cover),
         };

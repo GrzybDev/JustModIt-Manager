@@ -17,7 +17,7 @@ public static class AgentLinks
         GameTarget game when StoreId.TryParse(game.Store, out var store) && !string.IsNullOrWhiteSpace(game.GameId) =>
             [new LibraryRoute(), new GameRoute(new GameKey(store, game.GameId))],
         CatalogueTarget { GameSlug: { Length: > 0 } game, TeamSlug: { Length: > 0 } team, ProjectSlug: { Length: > 0 } project } =>
-            [new CatalogueRoute(), new CatalogueGameRoute(game), new CatalogueProjectRoute(game, team, project)],
+            [new CatalogueRoute(), new CatalogueProjectRoute(game, team, project)],
         CatalogueTarget { GameSlug: { Length: > 0 } game } => [new CatalogueRoute(), new CatalogueGameRoute(game)],
         CatalogueTarget => [new CatalogueRoute()],
         SettingsTarget => [new SettingsRoute()],

@@ -66,6 +66,7 @@ public sealed class AppStateViewTests
         });
         game.Job.RunningProcesses.Should().Equal("example.exe");
         game.RunningProcesses.Should().Equal("example.exe");
+        game.SiteIds.Should().Equal([Guid.Parse("66666666-0000-4000-8000-000000000001")], "the window unveils an adult game by its id on the site");
     }
 
     [Fact]

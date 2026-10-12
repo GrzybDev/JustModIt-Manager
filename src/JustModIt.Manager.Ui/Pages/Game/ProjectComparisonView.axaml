@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:game="using:JustModIt.Manager.Ui.Pages.Game"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Game.ProjectComparisonView"
+             x:DataType="game:IProjectComparison">
+  <UserControl.Styles>
+    <Style Selector="Button.choiceCard">
+      <Setter Property="Height" Value="NaN" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Background" Value="#D10B111E" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.choiceCard:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    </Style>
+    <Style Selector="Button.choiceCard.chosen /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentFilterBrush}" />
+    </Style>
+    <Style Selector="Border.choicePart">
+      <Setter Property="Padding" Value="16,0" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="Border.labelPart">
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="Border.labelPart > TextBlock">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="LineHeight" Value="18" />
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- Several teams' projects side by side, each column one choice. -->
+  <StackPanel Spacing="20">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h2" Text="{x:Static loc:Strings.GamePage_CompareTitle}" />
+        <TextBlock Text="{Binding ChoicesText}" FontSize="15" LineHeight="24" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="link" VerticalAlignment="Bottom" Content="{x:Static loc:Strings.GamePage_StatusesLink}"
+              ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUpRight}" Command="{Binding OpenStatusesCommand}" />
+    </Grid>
+    <Grid ColumnDefinitions="140,*" ColumnSpacing="14">
+      <StackPanel>
+        <Border Height="66" />
+        <Border Classes="labelPart" Height="72">
+          <TextBlock Text="{x:Static loc:Strings.GamePage_CompareStatus}" />
+        </Border>
+        <Border Classes="labelPart" Height="64">
+          <TextBlock Text="{x:Static loc:Strings.GamePage_CompareLatest}" />
+        </Border>
+      </StackPanel>
+      <ItemsControl Grid.Column="1" ItemsSource="{Binding Choices}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Rows="1" ColumnSpacing="14" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="game:ProjectChoice">
+            <Button Classes="choiceCard" Classes.chosen="{Binding IsChosen}" AutomationProperties.Name="{Binding AccessibleName}"
+                    Command="{Binding $parent[UserControl].((game:IProjectComparison)DataContext).ChooseProjectCommand}" CommandParameter="{Binding}">
+              <StackPanel>
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Height="66" Margin="16,0">
+                  <ui:TeamBadge NameText="{Binding Team}" Avatar="{Binding Avatar}" Width="32" Height="32" CornerRadius="8" />
+                  <TextBlock Grid.Column="1" Text="{Binding Team}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"
+                             VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  <Border Grid.Column="2" Width="28" Height="28" CornerRadius="999" Background="{StaticResource FillBrush}"
+                          BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1">
+                    <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" />
+                  </Border>
+                </Grid>
+                <Border Classes="choicePart" Height="72">
+                  <StackPanel VerticalAlignment="Center" Spacing="8">
+                    <ui:StatusPill Text="{Binding Status}" Hex="{Binding StatusColor}" IsVisible="{Binding HasStatus}" />
+                    <Grid ColumnDefinitions="140,Auto,Auto" ColumnSpacing="10" IsVisible="{Binding HasProgress}">
+                      <ProgressBar Classes="thin" Value="{Binding Progress}" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="1" Text="{Binding ProgressKind}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                      <TextBlock Grid.Column="2" Text="{Binding ProgressText}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextBrush}" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+                <Border Classes="choicePart" Height="64">
+                  <StackPanel VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="{Binding Version}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                    <TextBlock Text="{Binding Released}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Grid>
+  </StackPanel>
+</UserControl>

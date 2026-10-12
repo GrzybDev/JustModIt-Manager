@@ -20,6 +20,9 @@ public sealed record BackdropRecipe(string Key, string Artwork, string Banner, s
 {
     /// <summary>The backdrop's height in pixels at scale 1: the head of the page and the glow under it.</summary>
     public const double Height = 900;
+
+    /// <summary>The artwork and the banner show only as a blur of their colours, as an adult game's pictures do while veiled.</summary>
+    public bool IsBlurred { get; init; }
 }
 
 /// <summary>Bakes images with SkiaSharp on the thread they are called on, which is never the UI thread.</summary>

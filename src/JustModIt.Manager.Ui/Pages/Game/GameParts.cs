@@ -1,3 +1,6 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using JustModIt.Manager.Protocol.Messages;
@@ -199,5 +202,31 @@ public sealed record ProjectChoice(Guid ProjectId, string Team, string Avatar, s
     /// <summary>The column read out as one sentence.</summary>
     public string AccessibleName { get; init; } = "";
 
+    /// <summary>What the project's progress measures, e.g. its proofreading; empty while it shows none.</summary>
+    public string ProgressKind { get; init; } = "";
+
+    /// <summary>From 0 to 100.</summary>
+    public double Progress { get; init; }
+
+    public string ProgressText { get; init; } = "";
+
     public bool HasStatus => Status.Length > 0;
+
+    public bool HasProgress => ProgressText.Length > 0;
+}
+
+/// <summary>A page that sets a game's projects side by side, of which the player picks one.</summary>
+public interface IProjectComparison : INotifyPropertyChanged
+{
+    /// <summary>The projects, one column each.</summary>
+    ObservableCollection<ProjectChoice> Choices { get; }
+
+    /// <summary>What the projects share, said once above them.</summary>
+    string ChoicesText { get; }
+
+    /// <summary>Takes a column's project, which it is given.</summary>
+    ICommand ChooseProjectCommand { get; }
+
+    /// <summary>Opens the site's explanation of the statuses.</summary>
+    ICommand OpenStatusesCommand { get; }
 }

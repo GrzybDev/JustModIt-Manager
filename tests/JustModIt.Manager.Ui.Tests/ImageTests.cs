@@ -217,6 +217,23 @@ public sealed class ImageTests : IDisposable
         plain!.Save(Path.Combine(UiHarness.RendersDirectory, "backdrop-plain.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 
+    [AvaloniaFact]
+    public async Task A_veiled_backdrop_keeps_only_the_colours_of_its_artwork()
+    {
+        const string Artwork = "https://images.example.com/backgrounds/velvet-abyss.png";
+        _server.Images[Artwork] = TestImages.StripesPng(1600, 900, stripe: 40);
+        using var images = Cache();
+        // A black tint leaves the artwork grey and lights no glow, so only the stripes can set a row's pixels apart.
+        var recipe = new BackdropRecipe("velvet-abyss", Artwork, "", "#000000", "");
+
+        var plain = await images.LoadBackdropAsync(recipe, new PixelSize(1024, 900), 1, CancellationToken.None);
+        var veiled = await images.LoadBackdropAsync(recipe with { IsBlurred = true }, new PixelSize(1024, 900), 1, CancellationToken.None);
+
+        Spread(plain!, y: 200, from: 800, to: 864).Should().BeGreaterThan(40, "the artwork's stripes show behind the page's head");
+        Spread(veiled!, y: 200, from: 800, to: 864).Should().BeLessThan(6, "nothing of the stripes is left once veiled");
+        _server.Requests.Should().ContainSingle("both backdrops are baked from the one download");
+    }
+
     [AvaloniaTheory]
     [InlineData("three-colours.gif")]
     [InlineData("three-colours.webp")]
@@ -271,6 +288,24 @@ public sealed class ImageTests : IDisposable
     private ImageCache Cache(long? memoryBudget = null, IMediaCodecs? codecs = null, long? framesBudget = null) =>
         new(_folder, ["images.example.com", "posters.example.net/vi/"], new HttpClient(_server, disposeHandler: false), NullLogger.Instance,
             codecs, memoryBudget, framesBudget);
+
+    // How far apart the brightest and the darkest pixel of a stretch of one row are.
+    private static int Spread(Avalonia.Media.Imaging.Bitmap bitmap, int y, int from, int to)
+    {
+        var pixels = new byte[(to - from) * 4];
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            bitmap.CopyPixels(new PixelRect(from, y, to - from, 1), handle.AddrOfPinnedObject(), pixels.Length, pixels.Length);
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        var brightness = pixels.Chunk(4).Select(pixel => Math.Max(pixel[0], Math.Max(pixel[1], pixel[2]))).ToList();
+        return brightness.Max() - brightness.Min();
+    }
 
     // The colours the frames show in turn, each with how long it shows, until the given time has passed.
     private static List<(string Colour, double Milliseconds)> Timeline(IFrameSource frames, TimeSpan length)

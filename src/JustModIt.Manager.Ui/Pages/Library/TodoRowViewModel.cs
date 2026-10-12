@@ -99,7 +99,6 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(state);
         var offline = state.Catalogue.Failure is not null;
-        var blur = state.Settings.BlurAdultContent;
         var rows = new List<TodoRowViewModel>();
         foreach (var game in state.Games.Where(game => !game.IsHidden && game.Job is null))
         {
@@ -107,7 +106,7 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
             {
                 var key = $"{game.Key}|{install}|{kind}";
                 var row = existing.TryGetValue(key, out var kept) ? kept : new TodoRowViewModel(key);
-                row.Show(game, blur);
+                row.Show(game, state);
                 rows.Add(row);
                 return row;
             }
@@ -154,14 +153,14 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
         return [.. rows.OrderBy(row => row.Kind).ThenBy(row => row.Name, Text.Comparer)];
     }
 
-    private void Show(GameView game, bool blur)
+    private void Show(GameView game, AppStateView state)
     {
         Game = game.Key;
         Name = game.Name;
         var offer = game.Project ?? game.Installs.Select(install => install.Project).FirstOrDefault(project => project is not null)
             ?? (game.Projects.Count > 0 ? game.Projects[0] : null);
         Cover = offer?.Cover is { Length: > 0 } cover ? cover : game.Installs.Select(install => install.CoverUrl?.AbsoluteUri).FirstOrDefault(url => url is not null) ?? "";
-        IsCoverBlurred = game.IsAdult && blur;
+        IsCoverBlurred = AdultContent.IsVeiled(state, game.IsAdult, game.SiteIds);
         Store = game.Key.Store.Value;
         StoreTip = GameWording.DetectedIn(game.Key.Store);
         Teams = [];

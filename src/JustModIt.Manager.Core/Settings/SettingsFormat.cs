@@ -31,6 +31,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string Games = "games";
     private const string LibraryFolders = "libraryFolders";
     private const string AdultContentConfirmedUntil = "adultContentConfirmedUntil";
+    private const string RevealedAdultGames = "revealedAdultGames";
 
     // Version 0 stored the inverse of BlurAdultContent and named the automation after the only kind of project it knew.
     private const string LegacyShowAdultContent = "showAdultContent";
@@ -53,7 +54,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
         AutoUpdateApp, ShowNotifications, BlurAdultContent, CreatorMode, OnboardingCompleted, OnboardingStep,
         TrayNoticeShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
-        AdultContentConfirmedUntil, LegacyShowAdultContent, LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
+        AdultContentConfirmedUntil, RevealedAdultGames, LegacyShowAdultContent, LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
 
     public AppSettings Read(JsonElement root, int version)
     {
@@ -85,10 +86,11 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             TrayNoticeShown = root.GetBooleanOrNull(TrayNoticeShown) ?? defaults.TrayNoticeShown,
             BackupLocation = backupLocation,
             CustomBackupFolder = customBackupFolder,
-            PreferredTeams = ReadTeams(root.GetOrNull(PreferredTeams, JsonValueKind.Array)),
+            PreferredTeams = ReadIds(root.GetOrNull(PreferredTeams, JsonValueKind.Array)),
             Games = ReadGames(root.GetOrNull(Games, JsonValueKind.Object)),
             LibraryFolders = ReadLibraryFolders(root.GetOrNull(LibraryFolders, JsonValueKind.Array)),
             AdultContentConfirmedUntil = root.GetDateTimeOffsetOrNull(AdultContentConfirmedUntil),
+            RevealedAdultGames = ReadIds(root.GetOrNull(RevealedAdultGames, JsonValueKind.Array)),
         };
     }
 
@@ -110,13 +112,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteBoolean(TrayNoticeShown, document.TrayNoticeShown);
         writer.WriteString(BackupLocationName, document.BackupLocation.ToString());
         writer.WriteIfSet(CustomBackupFolder, document.CustomBackupFolder);
-        writer.WriteStartArray(PreferredTeams);
-        foreach (var team in document.PreferredTeams)
-        {
-            writer.WriteStringValue(team);
-        }
-
-        writer.WriteEndArray();
+        WriteIds(writer, PreferredTeams, document.PreferredTeams);
 
         writer.WriteStartObject(Games);
         // Sorted, so a file changes only where a game changed.
@@ -148,6 +144,18 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
 
         writer.WriteEndArray();
         writer.WriteIfSet(AdultContentConfirmedUntil, document.AdultContentConfirmedUntil);
+        WriteIds(writer, RevealedAdultGames, document.RevealedAdultGames);
+    }
+
+    private static void WriteIds(Utf8JsonWriter writer, string name, ValueList<Guid> ids)
+    {
+        writer.WriteStartArray(name);
+        foreach (var id in ids)
+        {
+            writer.WriteStringValue(id);
+        }
+
+        writer.WriteEndArray();
     }
 
     private static ValueDictionary<GameKey, GamePreferences> ReadGames(JsonElement? games)
@@ -182,10 +190,10 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         return new ValueDictionary<GameKey, GamePreferences>(result.ToImmutable());
     }
 
-    private static ValueList<Guid> ReadTeams(JsonElement? teams) =>
-        teams is { } entries
+    private static ValueList<Guid> ReadIds(JsonElement? ids) =>
+        ids is { } entries
             ? [.. entries.EnumerateArray()
-                .Select(team => team.ValueKind == JsonValueKind.String && Guid.TryParse(team.GetString(), out var uuid) ? uuid : Guid.Empty)
+                .Select(id => id.ValueKind == JsonValueKind.String && Guid.TryParse(id.GetString(), out var uuid) ? uuid : Guid.Empty)
                 .Where(uuid => uuid != Guid.Empty)
                 .Distinct()]
             : [];

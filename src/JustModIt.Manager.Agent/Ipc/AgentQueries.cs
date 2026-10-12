@@ -30,6 +30,7 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
     {
         GetProjectPage page => await GetProjectPageAsync(page, cancellationToken).ConfigureAwait(false),
         GetCataloguePage page => await GetCataloguePageAsync(page, cancellationToken).ConfigureAwait(false),
+        GetCatalogueGame game => await GetCatalogueGameAsync(game, cancellationToken).ConfigureAwait(false),
         GetCatalogueFilters => await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false) is { } listing
             ? new CatalogueFiltersResult(CatalogueFiltersView.From(listing.Reference)) { Facets = listing.Facets(new CatalogueQuery()) }
             : new CatalogueFiltersResult(new CatalogueFiltersView()),
@@ -95,6 +96,14 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
             Detected = listing.Count(query, detectedGames),
             Unfiltered = listing.Count(new CatalogueQuery { Text = query.Text }),
         };
+    }
+
+    private async Task<Message> GetCatalogueGameAsync(GetCatalogueGame request, CancellationToken cancellationToken)
+    {
+        var listing = await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false);
+        return new CatalogueGameResult(listing?.FindGame(request.GameSlug) is { } listed
+            ? CatalogueGameView.From(listed) with { Detected = Detected(listing).GetValueOrDefault(listed.Game.Uuid, []) }
+            : null);
     }
 
     // The catalogue's games that the stores found on this computer, by the store ids their projects link to.

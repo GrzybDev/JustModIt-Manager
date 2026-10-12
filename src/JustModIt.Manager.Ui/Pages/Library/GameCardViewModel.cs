@@ -93,16 +93,17 @@ public sealed partial class GameCardViewModel(GameKey key) : ObservableObject
 
     /// <summary>Shows the game as the agent's newest state has it.</summary>
     /// <param name="game">The game.</param>
-    /// <param name="blurAdult">Whether adult covers are veiled.</param>
-    public void Update(GameView game, bool blurAdult)
+    /// <param name="state">The agent's state, which tells whether an adult cover is veiled.</param>
+    public void Update(GameView game, AppStateView state)
     {
         ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(state);
         var offer = game.Project ?? game.Installs.Select(install => install.Project).FirstOrDefault(project => project is not null)
             ?? (game.Projects.Count > 0 ? game.Projects[0] : null);
         Name = game.Name;
         Cover = offer?.Cover is { Length: > 0 } cover ? cover : game.Installs.Select(install => install.CoverUrl?.AbsoluteUri).FirstOrDefault(url => url is not null) ?? "";
         IsAdult = game.IsAdult;
-        IsCoverBlurred = game.IsAdult && blurAdult;
+        IsCoverBlurred = AdultContent.IsVeiled(state, game.IsAdult, game.SiteIds);
         Store = game.Key.Store.Value;
         StoreTip = GameWording.DetectedIn(game.Key.Store);
         HasManyTeams = game.Project is null && game.Installs.Count == 0 && game.Projects.Count > 1;

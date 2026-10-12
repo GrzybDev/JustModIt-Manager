@@ -53,6 +53,9 @@ public sealed record GameView
 
     public bool IsAdult { get; init; }
 
+    /// <inheritdoc cref="MyGame.SiteIds"/>
+    public IReadOnlyList<Guid> SiteIds { get; init; } = [];
+
     /// <inheritdoc cref="MyGame.NeedsAttention"/>
     public bool NeedsAttention { get; init; }
 
@@ -79,6 +82,7 @@ public sealed record GameView
             RunningProcesses = [.. game.RunningProcesses],
             IsHidden = game.IsHidden,
             IsAdult = game.IsAdult,
+            SiteIds = [.. game.SiteIds],
             NeedsAttention = game.NeedsAttention,
         };
     }

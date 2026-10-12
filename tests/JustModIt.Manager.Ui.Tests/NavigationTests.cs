@@ -69,7 +69,7 @@ public sealed class NavigationTests
         AgentLinks.RoutesFor(new GameTarget("gog", "1207658924"), creatorMode: false).Should()
             .Equal(new LibraryRoute(), new GameRoute(game));
         AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow", "lantern-team", "full"), creatorMode: false).Should()
-            .Equal(new CatalogueRoute(), new CatalogueGameRoute("ember-hollow"), new CatalogueProjectRoute("ember-hollow", "lantern-team", "full"));
+            .Equal(new CatalogueRoute(), new CatalogueProjectRoute("ember-hollow", "lantern-team", "full"));
         AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow"), creatorMode: false).Should()
             .Equal(new CatalogueRoute(), new CatalogueGameRoute("ember-hollow"));
         AgentLinks.RoutesFor(new GameTarget("not a store", "1"), creatorMode: false).Should().Equal(new LibraryRoute());

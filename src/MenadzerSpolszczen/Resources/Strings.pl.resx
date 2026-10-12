@@ -462,4 +462,25 @@
   <data name="Catalogue_AwaitingProject" xml:space="preserve">
     <value>Czeka na spolszczenie</value>
   </data>
+  <data name="Catalogue_HereInstalls" xml:space="preserve">
+    <value>Gra jest na tym komputerze. Instalacja i aktualizacje spolszczenia są w „Moich grach”.</value>
+  </data>
+  <data name="Catalogue_HereWaits" xml:space="preserve">
+    <value>Gra jest na tym komputerze. Gdy grupa wyda spolszczenie, pojawi się w „Moich grach”.</value>
+  </data>
+  <data name="Catalogue_HereChoose" xml:space="preserve">
+    <value>Gra jest na tym komputerze. W „Moich grach” można wybrać jedno ze spolszczeń i je zainstalować.</value>
+  </data>
+  <data name="Catalogue_PageOfflineTitle" xml:space="preserve">
+    <value>Nie można wczytać strony spolszczenia</value>
+  </data>
+  <data name="Catalogue_PageOfflineText" xml:space="preserve">
+    <value>Brak połączenia z Bazą Spolszczeń, a tej strony nie ma jeszcze na tym komputerze. Widoczne jest to, co wiadomo z katalogu.</value>
+  </data>
+  <data name="Catalogue_TeamsLine" xml:space="preserve">
+    <value>{count, plural, one {# spolszczenie} few {# spolszczenia} many {# spolszczeń} other {# spolszczenia}}: {teams}</value>
+  </data>
+  <data name="Catalogue_CompareText" xml:space="preserve">
+    <value>{hasStores, select, true {Każde przygotowała inna grupa. Wspólne wersje gry: {stores}.} other {Każde przygotowała inna grupa.}}</value>
+  </data>
 </root>

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -26,7 +27,7 @@ namespace JustModIt.Manager.Ui.Pages.Game;
 /// one next step, and the project's page from the site below. Everything about the game comes from the agent's state,
 /// so the page shows offline; the project's page is asked for in the background and read off the UI thread.
 /// </summary>
-public sealed partial class GamePageViewModel : PageViewModel, IDisposable
+public sealed partial class GamePageViewModel : PageViewModel, IProjectComparison, IDisposable
 {
     // Sizes below these take seconds, about a minute, or longer to install, as the install step says.
     private const long QuickPackage = 50L << 20;
@@ -51,6 +52,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IDisposable
         ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _key = game;
+        Story = new ProjectStory(services);
         _services.Agent.PropertyChanged += OnAgentChanged;
         _services.Agent.JobsProgressed += OnJobsProgressed;
         Refresh();
@@ -59,6 +61,10 @@ public sealed partial class GamePageViewModel : PageViewModel, IDisposable
     public override string Title => _game?.Name ?? Strings.Shell_PageGame;
 
     public GameKey Game => _key;
+
+    ICommand IProjectComparison.ChooseProjectCommand => ChooseProjectCommand;
+
+    ICommand IProjectComparison.OpenStatusesCommand => OpenStatusesCommand;
 
     [ObservableProperty]
     public partial bool IsMissing { get; private set; }
@@ -250,25 +256,17 @@ public sealed partial class GamePageViewModel : PageViewModel, IDisposable
     public partial string SavedFiles { get; private set; } = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsDetails), nameof(HasNotes), nameof(HasGallery), nameof(HasAbout), nameof(HasCredits),
-        nameof(HasSupport), nameof(HasDescription), nameof(HasDisclaimer), nameof(ShowsChangesSection), nameof(HasGenres),
-        nameof(StatusDescription), nameof(LongDescription), nameof(GalleryTiles))]
+    [NotifyPropertyChangedFor(nameof(ShowsDetails), nameof(HasNotes), nameof(ShowsChangesSection), nameof(StatusDescription))]
     public partial ProjectDetails? Details { get; private set; }
+
+    /// <summary>The gallery, the game's story and the people behind the project, from the project's page.</summary>
+    public ProjectStory Story { get; }
 
     [ObservableProperty]
     public partial bool IsLoadingDetails { get; private set; }
 
     [ObservableProperty]
-    public partial bool IsDescriptionOpen { get; set; }
-
-    [ObservableProperty]
     public partial string NotesTitle { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string GalleryText { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string TeamFacts { get; private set; } = "";
 
     /// <summary>The window is too short for the panel to end above its edge, so the next step leads it.</summary>
     [ObservableProperty]
@@ -295,32 +293,10 @@ public sealed partial class GamePageViewModel : PageViewModel, IDisposable
 
     public bool ShowsDetails => Details is not null;
 
-    public bool HasDescription => Details is { Description.IsEmpty: false };
-
-    public bool HasDisclaimer => Details is { Disclaimer.IsEmpty: false };
-
-    public bool HasGenres => Details is { Genres.Count: > 0 };
-
-    public bool HasAbout => HasDescription || HasGenres;
-
     public bool HasNotes => Details is { Notes.IsEmpty: false };
-
-    public bool HasGallery => Details is { Gallery.Count: > 0 };
-
-    public bool HasCredits => Details is { Credits.Count: > 0 };
-
-    public bool HasSupport => Details is { Support.Count: > 0 };
 
     /// <summary>The release's changes show as their own section when no step offers them already.</summary>
     public bool ShowsChangesSection => Details is { Changes.IsEmpty: false } && Step is not { OffersChanges: true };
-
-    /// <summary>The description opens on request, as a long text or any picture in it outgrows the room it first gets.</summary>
-    public bool LongDescription => Details is { } details && (details.Description.HasMedia || details.Description.PlainText().Length > 600);
-
-    public IReadOnlyList<GalleryTile> GalleryTiles => Details is { } details ? GalleryTile.Lay(details.Gallery) : [];
-
-    /// <summary>The credits' heading, in capitals as an overline is set.</summary>
-    public static string CreditsTitle => Strings.GamePage_Credits.ToUpper(Text.Culture);
 
     public override void OnShown()
     {
@@ -373,9 +349,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IDisposable
     private void ToggleChanges() => AreChangesOpen = !AreChangesOpen;
 
     [RelayCommand]
-    private void ToggleDescription() => IsDescriptionOpen = !IsDescriptionOpen;
-
-    [RelayCommand]
     private void Open(Uri? address)
     {
         if (address is not null)
@@ -386,20 +359,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IDisposable
 
     [RelayCommand]
     private void OpenHelp() => Open(PageLinks.Help(_services.Context.Site.SiteAddress));
-
-    // Films play on YouTube in the browser; pictures open large inside the window.
-    [RelayCommand]
-    private Task OpenGalleryAsync(GalleryTile tile)
-    {
-        if (tile.Item.Video is { } video)
-        {
-            Open(video);
-            return Task.CompletedTask;
-        }
-
-        var images = Details?.Gallery.Where(item => !item.IsVideo).ToList() ?? [];
-        return _services.Dialogs.ShowAsync(new GalleryViewerViewModel(Name, images, images.IndexOf(tile.Item), _services.Links));
-    }
 
     [RelayCommand]
     private void OpenStatuses() =>
@@ -587,7 +546,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IDisposable
         Name = game.Name;
         CoverName = Text.Format(Strings.GamePage_CoverName, ("game", game.Name));
         Cover = project?.Cover is { Length: > 0 } cover ? cover : install?.CoverUrl?.AbsoluteUri ?? (game.Projects.Count > 0 ? game.Projects[0].Cover : "");
-        IsCoverBlurred = game.IsAdult && state.Settings.BlurAdultContent;
+        IsCoverBlurred = AdultContent.IsVeiled(state, game.IsAdult, game.SiteIds);
         Backdrop = Details?.Backdrop ?? (project is null ? null : new BackdropRecipe(project.ProjectId.ToString(), "", "", "", project.Cover));
         Status = project?.Status?.Name ?? "";
         StatusColor = project?.Status?.Color ?? "";
@@ -602,6 +561,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IDisposable
         TeamPage = project is null ? null : PageLinks.TeamPage(site, project.Team.Slug);
         SitePage = project is null ? null : PageLinks.ProjectPage(site, project.GameSlug, project.Team.Slug);
         Summary = IsCompact ? "" : Details?.Summary ?? "";
+        (Story.GameName, Story.TeamName, Story.TeamAvatar, Story.TeamPage) = (Name, TeamName, TeamAvatar, TeamPage);
 
         IsChecking = state.Activity.IsChecking;
         CheckedText = state.Library.ScannedAt is { } scanned
@@ -1162,28 +1122,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IDisposable
 
         IsLoadingDetails = false;
         Details = details;
+        Story.Details = details;
         NotesTitle = Text.Format(Strings.GamePage_NotesTitle, ("team", project.Team.Name));
-        GalleryText = details is null ? "" : GalleryLine(details.Gallery);
-        TeamFacts = details is null ? "" : Text.Format(Strings.GamePage_TeamFacts, ("members", details.TeamMembers));
         Compose();
-    }
-
-    private static string GalleryLine(IReadOnlyList<GalleryItemView> gallery)
-    {
-        var videos = gallery.Count(item => item.IsVideo);
-        var images = gallery.Count - videos;
-        var parts = new List<string>();
-        if (images > 0)
-        {
-            parts.Add(Text.Format(Strings.GamePage_GalleryImages, ("count", images)));
-        }
-
-        if (videos > 0)
-        {
-            parts.Add(Text.Format(Strings.GamePage_GalleryVideos, ("count", videos)));
-        }
-
-        return GameWording.Join(parts);
     }
 
     // The install the page is about: the one a job works on, then one that needs the player, then the project's own.

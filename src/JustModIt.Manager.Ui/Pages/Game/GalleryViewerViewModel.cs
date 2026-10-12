@@ -17,6 +17,9 @@ public sealed record GalleryTile(GalleryItemView Item, int Row, int Column, int 
 {
     public bool IsLarge => RowSpan > 1;
 
+    /// <summary>The gallery's first tile, which says how many films the gallery has where it has no heading.</summary>
+    public bool IsFirst => Row == 0 && Column == 0;
+
     /// <summary>The tiles of a gallery, at most five: one large and up to four beside it.</summary>
     /// <param name="gallery">The gallery's items in order.</param>
     public static IReadOnlyList<GalleryTile> Lay(IReadOnlyList<GalleryItemView> gallery)

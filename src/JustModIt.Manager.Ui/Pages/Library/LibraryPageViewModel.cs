@@ -386,7 +386,6 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
 
         var visible = state.Games.Where(game => !game.IsHidden).ToList();
         var hidden = state.Games.Where(game => game.IsHidden).ToList();
-        var blur = state.Settings.BlurAdultContent;
         foreach (var game in state.Games)
         {
             if (!_cards.TryGetValue(game.Key, out var card))
@@ -395,7 +394,7 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
                 _cards[game.Key] = card;
             }
 
-            card.Update(game, blur);
+            card.Update(game, state);
         }
 
         foreach (var gone in _cards.Keys.Except(state.Games.Select(game => game.Key)).ToList())

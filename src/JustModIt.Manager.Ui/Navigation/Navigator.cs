@@ -73,6 +73,30 @@ public sealed partial class Navigator(Func<Route, PageViewModel> create) : Obser
         Show(new Entry(route, create(route)), wentBack: false);
     }
 
+    /// <summary>
+    /// Shows a route in place of the page shown, which is dropped, as for a link that leads nowhere; the route just below
+    /// on the way back is gone back to instead.
+    /// </summary>
+    /// <param name="route">Where to go instead.</param>
+    public void Replace(Route route)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+        if (route.IsRoot || CurrentRoute is not { IsRoot: false } left || Current is not { } page)
+        {
+            Navigate(route);
+            return;
+        }
+
+        if (_back.TryPeek(out var below) && below.Route == route)
+        {
+            GoBack();
+            return;
+        }
+
+        Show(new Entry(route, create(route)), wentBack: false);
+        Drop(new Entry(left, page));
+    }
+
     /// <summary>Opens a place a link names: each route on top of the one before, the first a sidebar destination.</summary>
     /// <param name="routes">The routes in order, from <see cref="AgentLinks.RoutesFor"/>.</param>
     public void Open(IEnumerable<Route> routes)

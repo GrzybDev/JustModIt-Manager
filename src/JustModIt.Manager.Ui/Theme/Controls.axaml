@@ -212,6 +212,20 @@
     <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
   </Style>
 
+  <!-- A link inside a sentence or a fact line: no box, only its text, brighter under the pointer. -->
+  <Style Selector="Button.inlineLink">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="Button.inlineLink:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+
   <!-- A square of 32 px (40 with .large) around a 16 px icon, named by its tooltip. -->
   <Style Selector="Button.icon">
     <Setter Property="Width" Value="32" />
@@ -335,6 +349,14 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="16" />
     <Setter Property="BoxShadow" Value="{StaticResource ElevFloating}" />
+  </Style>
+  <!-- A side panel over a page's backdrop, such as the people behind a project. -->
+  <Style Selector="Border.aside">
+    <Setter Property="Padding" Value="20" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="#D10B111E" />
   </Style>
   <Style Selector="Border.divider">
     <Setter Property="Height" Value="1" />

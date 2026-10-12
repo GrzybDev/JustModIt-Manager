@@ -36,9 +36,10 @@ public sealed record GameRoute(GameKey Game) : Route
 }
 
 /// <summary>What detection found on this computer, for a player whose game is missing.</summary>
-public sealed record UndetectedGamesRoute : Route
+/// <param name="From">The sidebar entry of the page it was opened from, which stays highlighted.</param>
+public sealed record UndetectedGamesRoute(ShellSection From = ShellSection.Library) : Route
 {
-    public override ShellSection Section => ShellSection.Library;
+    public override ShellSection Section => From;
 }
 
 /// <summary>Everything the site offers.</summary>

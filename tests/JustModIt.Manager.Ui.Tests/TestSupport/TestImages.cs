@@ -21,6 +21,31 @@ public static class TestImages
 
     public static WriteableBitmap Bitmap(int width, int height) => Bitmap(width, height, 0xD4, 0x7C, 0x4A);
 
+    /// <summary>Black and white columns, a picture whose detail no blur keeps.</summary>
+    public static byte[] StripesPng(int width, int height, int stripe)
+    {
+        using var bitmap = Bitmap(width, height, 0xFF, 0xFF, 0xFF);
+        using (var pixels = bitmap.Lock())
+        {
+            var row = new byte[pixels.RowBytes];
+            System.Runtime.InteropServices.Marshal.Copy(pixels.Address, row, 0, row.Length);
+            for (var x = 0; x < width; x++)
+            {
+                var shade = x / stripe % 2 == 0 ? (byte)0 : (byte)0xFF;
+                (row[x * 4], row[(x * 4) + 1], row[(x * 4) + 2]) = (shade, shade, shade);
+            }
+
+            for (var y = 0; y < height; y++)
+            {
+                System.Runtime.InteropServices.Marshal.Copy(row, 0, pixels.Address + (y * pixels.RowBytes), row.Length);
+            }
+        }
+
+        using var stream = new MemoryStream();
+        bitmap.Save(stream, new PngBitmapEncoderOptions());
+        return stream.ToArray();
+    }
+
     /// <summary>The colour a window shows at a point, named by its strongest channel, or "none" where it is dark.</summary>
     public static string ColourAt(TopLevel window, PixelPoint point)
     {

@@ -69,6 +69,14 @@ public static class ReleaseSelector
         };
     }
 
+    /// <summary>The names of a release's variants, of its ready files grouped as the site's page groups them.</summary>
+    /// <param name="release">The release.</param>
+    public static IReadOnlyList<string> VariantNames(Release release)
+    {
+        ArgumentNullException.ThrowIfNull(release);
+        return [.. GroupVariants(release.Files.Where(file => file.IsReady)).Select(variant => variant.Name).Distinct()];
+    }
+
     // A file whose coverage overlaps one already in its name's variant starts a variant of its own: older releases reused
     // one name for what were really two choices.
     private static List<(string Name, List<ReleaseFile> Files)> GroupVariants(IEnumerable<ReleaseFile> files)

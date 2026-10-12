@@ -77,6 +77,7 @@ public sealed class AgentCommands(
         HideGame hide => Done(() => settings.Update(current =>
             current.WithGame(hide.Game, preferences => preferences with { IsHidden = hide.IsHidden }))),
         ConfirmAdultContent => Done(() => settings.Update(current => current.ConfirmAdultContent(time.GetUtcNow()))),
+        RevealAdultPictures reveal => Done(() => settings.Update(current => current.RevealAdultPictures(reveal.Game))),
         LaunchGame launch => Launch(library.Snapshot.Find(launch.Game)),
         OpenFolder open => Open(FolderOf(open)),
         AddLibraryFolder add => await AddLibraryFolderAsync(add.Path, cancellationToken).ConfigureAwait(false),
