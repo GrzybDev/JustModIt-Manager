@@ -1,0 +1,140 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:undetected="using:JustModIt.Manager.Ui.Pages.Undetected"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:md="using:JustModIt.Manager.Ui.Controls.Markdown"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Undetected.UndetectedGamesPage"
+             x:DataType="undetected:UndetectedGamesViewModel">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="F5" Command="{Binding CheckNowCommand}" />
+  </UserControl.KeyBindings>
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Settings/SettingsStyles.axaml" />
+
+    <!-- The stores, each a row split from the one before by a faint line (the help panel of the Can't-see-your-game board). -->
+    <Style Selector="ItemsControl.stores > ContentPresenter">
+      <Setter Property="BorderBrush" Value="{StaticResource FillBrush}" />
+      <Setter Property="Padding" Value="0,14" />
+    </Style>
+    <Style Selector="ItemsControl.stores > ContentPresenter:not(:nth-child(1))">
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="Border.storeChip">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style Selector="md|MarkdownView.hint md|ProseText">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="LineHeight" Value="20" />
+      <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer Classes="page">
+    <StackPanel Classes="page" MaxWidth="{StaticResource PageMaxWidth}" theme:Motion.Stagger="True">
+      <ui:PageHeader Title="{Binding Title}" Subtitle="{x:Static loc:Strings.Undetected_Subtitle}">
+        <Button x:Name="CheckNowButton" Classes="outline" Content="{x:Static loc:Strings.Library_CheckNow}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CheckNowCommand}"
+                IsEnabled="{Binding !IsChecking}" ToolTip.Tip="{x:Static loc:Strings.Library_CheckNowTip}" />
+      </ui:PageHeader>
+
+      <Border Classes="settingsCard">
+        <StackPanel Grid.IsSharedSizeScope="True">
+          <Grid Margin="24,20,24,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" SharedSizeGroup="open" />
+            </Grid.ColumnDefinitions>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="32">
+              <TextBlock Classes="overline" Text="{Binding FoundHeading}" />
+              <TextBlock Grid.Column="1" Classes="overline" Text="{Binding HowToHeading}" />
+            </Grid>
+          </Grid>
+
+          <StackPanel Margin="24,14,24,0" Spacing="10" IsVisible="{Binding IsLoading}">
+            <ui:Skeleton Height="44" CornerRadius="8" />
+            <ui:Skeleton Height="44" CornerRadius="8" />
+          </StackPanel>
+          <ItemsControl x:Name="Stores" Classes="stores" Margin="24,0" ItemsSource="{Binding Stores}" theme:Motion.Stagger="True">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="undetected:StoreSection">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="open" />
+                  </Grid.ColumnDefinitions>
+                  <Grid ColumnDefinitions="*,*" ColumnSpacing="32">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                      <Border Classes="storeChip">
+                        <ui:StoreIcon Store="{Binding Store}" Width="16" Height="16" Foreground="{StaticResource TextEmphasisBrush}" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="{Binding Name}" FontSize="14" LineHeight="20" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                        <TextBlock Classes="caption" Text="{Binding Detail}" />
+                        <ItemsControl ItemsSource="{Binding Warnings}" Margin="0,4,0,0">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                              <ui:StatusLine Icon="{x:Static theme:Icons.Unplug}" Tone="Warning" Label="{Binding}" FontSize="13" />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Grid>
+                    <md:MarkdownView Grid.Column="1" Classes="compact hint" Document="{Binding Hint}" IsVisible="{Binding HasHint}"
+                                     LinkCommand="{Binding $parent[UserControl].((undetected:UndetectedGamesViewModel)DataContext).OpenLinkCommand}" />
+                  </Grid>
+                  <Button Grid.Column="1" Classes="quiet aboutLink" Margin="16,-6,0,0" VerticalAlignment="Top"
+                          IsVisible="{Binding Client, Converter={x:Static ObjectConverters.IsNotNull}}"
+                          AutomationProperties.Name="{Binding OpenText}" CommandParameter="{Binding Client}"
+                          Command="{Binding $parent[UserControl].((undetected:UndetectedGamesViewModel)DataContext).OpenClientCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding OpenText}" />
+                      <ui:Icon Classes="trail" Data="{x:Static theme:Icons.ArrowUpRight}" />
+                    </StackPanel>
+                  </Button>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="caption" Margin="24,4,24,18" Text="{Binding ScannedText}" />
+
+          <Border Classes="divider" Margin="24,0" />
+          <StackPanel Margin="24,20,24,24" Spacing="14">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{x:Static loc:Strings.Undetected_OutsideTitle}" FontSize="14" LineHeight="20" FontWeight="SemiBold"
+                         Foreground="{StaticResource TextBrush}" />
+              <TextBlock Classes="caption" LineHeight="20" MaxWidth="760" HorizontalAlignment="Left" Text="{x:Static loc:Strings.Undetected_OutsideText}" />
+            </StackPanel>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="32">
+              <StackPanel Spacing="8">
+                <Button x:Name="AddLibrary" Classes="outline" HorizontalAlignment="Left" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderPlus}"
+                        Content="{x:Static loc:Strings.Undetected_AddLibrary}" Command="{Binding AddLibraryCommand}"
+                        AutomationProperties.HelpText="{x:Static loc:Strings.Undetected_AddLibraryText}" />
+                <TextBlock Classes="caption" Text="{x:Static loc:Strings.Undetected_AddLibraryText}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="8">
+                <Button x:Name="AddGame" Classes="outline" HorizontalAlignment="Left" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderSearch}"
+                        Content="{x:Static loc:Strings.Undetected_AddGame}" Command="{Binding AddGameCommand}"
+                        AutomationProperties.HelpText="{x:Static loc:Strings.Undetected_AddGameText}" />
+                <TextBlock Classes="caption" Text="{x:Static loc:Strings.Undetected_AddGameText}" />
+              </StackPanel>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsAdding}">
+              <ui:ProgressRing Width="16" Height="16" Thickness="2" />
+              <TextBlock Classes="caption" Text="{x:Static loc:Strings.Undetected_Adding}" VerticalAlignment="Center" />
+            </StackPanel>
+            <ui:Callout x:Name="Result" MaxWidth="Infinity" HorizontalAlignment="Stretch" Message="{Binding Result}"
+                        Icon="{Binding ResultIcon}" Classes.success="{Binding IsSuccess}" Classes.warning="{Binding IsWarning}"
+                        IsVisible="{Binding Result, Converter={x:Static ObjectConverters.IsNotNull}}" theme:Motion.Enter="True" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

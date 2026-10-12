@@ -11,8 +11,14 @@ namespace JustModIt.Manager.Core.Library.Gog;
 /// <param name="galaxy">Null where Galaxy's database cannot be located.</param>
 internal sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? galaxy = null) : IInstallSource<GogInstallRecord>
 {
-    /// <summary>The <see cref="LibraryLocation.Id"/> and <see cref="LibraryLocation.Source"/> of the registry records.</summary>
+    /// <summary>
+    /// The <see cref="LibraryLocation.Id"/> of the registry records, and their <see cref="LibraryLocation.Source"/> where GOG
+    /// Galaxy is not installed.
+    /// </summary>
     public const string LibrarySource = "gog-registry";
+
+    /// <summary>The <see cref="LibraryLocation.Source"/> of the registry records where GOG Galaxy is installed.</summary>
+    public const string GalaxySource = "gog-galaxy";
 
     internal const string GogKey = @"SOFTWARE\GOG.com";
     internal const string GamesKey = @"SOFTWARE\GOG.com\Games";
@@ -55,7 +61,8 @@ internal sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? gala
                 .Select(FromUninstallKey).OfType<GogInstallRecord>());
         }
 
-        if (galaxy is not null && SearchOrder.Any(location => registry.ReadKey(location.Hive, location.View, GalaxyClientKey) is not null))
+        var hasGalaxy = SearchOrder.Any(location => registry.ReadKey(location.Hive, location.View, GalaxyClientKey) is not null);
+        if (galaxy is not null && hasGalaxy)
         {
             GalaxyGames games;
             try
@@ -66,7 +73,7 @@ internal sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? gala
             // Usually caught while Galaxy writes it; the games it listed are kept until it can be read again.
             catch (IOException)
             {
-                return new([Library(LibraryState.Unreadable)], [], watch);
+                return new([Library(LibraryState.Unreadable, hasGalaxy)], [], watch);
             }
 
             records = [.. records.Select(record => record with
@@ -78,10 +85,12 @@ internal sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? gala
             })];
         }
 
-        return new([Library(LibraryState.Online)], records, watch);
+        return new([Library(LibraryState.Online, hasGalaxy)], records, watch);
     }
 
-    private static LibraryLocation Library(LibraryState state) => new(LibrarySource, LibrarySource, Path: null, state);
+    // The same records come from Galaxy and from the offline installers; the source tells whether Galaxy is there to open.
+    private static LibraryLocation Library(LibraryState state, bool hasGalaxy) =>
+        new(LibrarySource, hasGalaxy ? GalaxySource : LibrarySource, Path: null, state);
 
     // Names are checked before a key is opened, so hundreds of unrelated uninstall entries cost only a comparison.
     private IEnumerable<RegistryKeySnapshot> ReadSubkeys(RegistryHive hive, RegistryView view, string path, Func<string, bool> includeName) =>

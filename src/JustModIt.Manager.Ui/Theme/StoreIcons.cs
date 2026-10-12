@@ -19,7 +19,7 @@ public static class StoreIcons
     public static Geometry? MarkOf(string? storeOrSource) => storeOrSource switch
     {
         "steam" or "steam-library" => Steam,
-        "gog" or "gog-registry" or "gog-folder" or "galaxy" => Gog,
+        "gog" or "gog-registry" or "gog-galaxy" or "gog-folder" => Gog,
         "epic" or "epic-launcher" or "epic-folder" => Epic,
         _ => null,
     };

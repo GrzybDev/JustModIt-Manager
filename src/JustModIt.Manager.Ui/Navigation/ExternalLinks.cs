@@ -1,15 +1,43 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using JustModIt.Manager.Localization;
+using JustModIt.Manager.Protocol.Views;
 using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Navigation;
 
-/// <summary>Opens addresses outside the window: the site's pages in the browser and a store's page in its client.</summary>
+/// <summary>Opens addresses outside the window: the site's pages in the browser, and stores' pages and clients.</summary>
 public interface IExternalLinks
 {
-    /// <summary>Opens an address with the program the system has for it; anything but https and a store's link is ignored.</summary>
+    /// <summary>Opens an address with the program the system has for it; anything but https and Steam's links is ignored.</summary>
     /// <param name="address">The address to open.</param>
     void Open(Uri address);
+
+    /// <summary>Starts a store client through its own link.</summary>
+    /// <param name="client">The client and its link.</param>
+    void Open(ClientLink client);
+}
+
+/// <summary>
+/// A store client's own link, which only <see cref="PageLinks"/> builds from what detection found, so nothing the site sends
+/// can start a program through it.
+/// </summary>
+public sealed class ClientLink
+{
+    /// <summary>Makes the link of a client the window found.</summary>
+    /// <param name="name">The client's name, as the player knows it.</param>
+    /// <param name="address">The link exactly as the client takes it.</param>
+    internal ClientLink(string name, string address)
+    {
+        Name = name;
+        Address = address;
+    }
+
+    /// <summary>The client's name, as the player knows it.</summary>
+    public string Name { get; }
+
+    /// <summary>The link exactly as the client takes it, since a <see cref="Uri"/> would lower-case a command in its host.</summary>
+    public string Address { get; }
 }
 
 /// <summary>Hands addresses to the system's shell on the thread pool, since starting a program may take a while.</summary>
@@ -19,25 +47,22 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
     public void Open(Uri address)
     {
         ArgumentNullException.ThrowIfNull(address);
-        if (!IsAllowed(address))
+        if (IsAllowed(address))
         {
-            return;
+            Start(address.AbsoluteUri);
         }
-
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo(address.AbsoluteUri) { UseShellExecute = true })?.Dispose();
-            }
-            catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
-            {
-                LogFailed(logger, address, exception);
-            }
-        });
     }
 
-    /// <summary>Tells whether an address is one the window opens: https, or a store client's own link.</summary>
+    public void Open(ClientLink client)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        Start(client.Address);
+    }
+
+    /// <summary>
+    /// Tells whether an address is one the window opens: https, or a link of Steam's client, which may come from anywhere since
+    /// it only shows Steam's pages; other clients open only through a <see cref="ClientLink"/>.
+    /// </summary>
     /// <param name="address">The address.</param>
     public static bool IsAllowed(Uri address)
     {
@@ -45,8 +70,21 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
         return address.IsAbsoluteUri && (address.Scheme == Uri.UriSchemeHttps || address.Scheme == PageLinks.SteamScheme);
     }
 
+    private void Start(string address) =>
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(address) { UseShellExecute = true })?.Dispose();
+            }
+            catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
+            {
+                LogFailed(logger, address, exception);
+            }
+        });
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "The address {Address} could not be opened")]
-    private static partial void LogFailed(ILogger logger, Uri address, Exception exception);
+    private static partial void LogFailed(ILogger logger, string address, Exception exception);
 }
 
 /// <summary>The site's pages and the stores' pages that the window links to.</summary>
@@ -61,6 +99,32 @@ public static class PageLinks
         game.Store == Core.Games.StoreId.Steam && int.TryParse(game.StoreGameId, out var id)
             ? new Uri(FormattableString.Invariant($"{SteamScheme}://nav/games/details/{id}"))
             : null;
+
+    /// <summary>
+    /// The client that detection found for a store, opened on its library: the store's own where it is there, otherwise
+    /// Heroic; null when it found none.
+    /// </summary>
+    /// <param name="store">What detection found for the store.</param>
+    public static ClientLink? StoreClient(StoreDetectionView store)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        if (!store.IsFound)
+        {
+            return null;
+        }
+
+        if (store.Store == Core.Games.StoreId.Steam.Value)
+        {
+            return new ClientLink(Strings.Library_StoreSteam, $"{SteamScheme}://open/games");
+        }
+
+        bool Has(string source) => store.Libraries.Any(library => library.Source == source);
+        return Has("gog-galaxy") ? new ClientLink(Strings.Undetected_ClientGalaxy, "goggalaxy://openGalaxyClient")
+            : Has("epic-launcher") ? new ClientLink(Strings.Undetected_ClientEpicLauncher, "com.epicgames.launcher://store/library")
+            // Heroic comes to the front for any of its links, and a ping only writes to its log.
+            : Has("heroic") ? new ClientLink(Strings.Undetected_ClientHeroic, "heroic://ping")
+            : null;
+    }
 
     /// <summary>A project's page on the site; null when the app knows no site address.</summary>
     /// <param name="site">The site's address.</param>

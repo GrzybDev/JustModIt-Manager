@@ -2,6 +2,7 @@ using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Gog;
+using JustModIt.Manager.Core.Library.Heroic;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -74,6 +75,8 @@ public sealed class GogLibraryProviderTests
             ["Through Heroic"] = LaunchLink.TryCreate("heroic://launch?appName=1001&runner=gog"),
             ["From Its Folder"] = LaunchProgram.TryCreate("game.exe", null, null),
         });
+        scan.Libraries.Select(library => library.Source).Should().Contain([GogRegistrySource.GalaxySource, HeroicLauncher.LibrarySource],
+            "the libraries name the clients there are to open");
     }
 
     [Theory]
@@ -109,7 +112,7 @@ public sealed class GogLibraryProviderTests
         var scan = await Scan();
 
         scan.Games.Should().BeEmpty();
-        scan.Libraries.Should().Equal(new LibraryLocation(GogRegistrySource.LibrarySource, GogRegistrySource.LibrarySource, null,
+        scan.Libraries.Should().Equal(new LibraryLocation(GogRegistrySource.LibrarySource, GogRegistrySource.GalaxySource, null,
             LibraryState.Unreadable));
     }
 

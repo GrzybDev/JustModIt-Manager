@@ -537,4 +537,13 @@
   <data name="Settings_BrandingLine" xml:space="preserve">
     <value>Nazwy, logo i ikony Bazy Spolszczeń i Menadżera Spolszczeń nie są objęte tą licencją. © 2026 Marek Grzyb. Wszelkie prawa zastrzeżone.</value>
   </data>
+  <data name="Undetected_StoreOffered" xml:space="preserve">
+    <value>Spolszczenia są dostępne dla {offered} z nich.</value>
+  </data>
+  <data name="Undetected_AddedGames" xml:space="preserve">
+    <value>Dodano folder {folder}. Znaleziono w nim {games, plural, one {# grę} few {# gry} many {# gier} other {# gry}}, w tym ze spolszczeniem: {offered} – są już na liście.</value>
+  </data>
+  <data name="Undetected_AddedNothingOffered" xml:space="preserve">
+    <value>Dodano folder {folder}. Znaleziono w nim {games, plural, one {# grę} few {# gry} many {# gier} other {# gry}}, ale żadna nie ma jeszcze spolszczenia do zainstalowania.</value>
+  </data>
 </root>

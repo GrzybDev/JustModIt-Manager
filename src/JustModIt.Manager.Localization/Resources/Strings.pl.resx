@@ -2040,4 +2040,91 @@
   <data name="Settings_IssueSystem" xml:space="preserve">
     <value>System: {system}</value>
   </data>
+  <data name="Undetected_Subtitle" xml:space="preserve">
+    <value>Co widać na tym komputerze i co zrobić, gdy brakuje gry.</value>
+  </data>
+  <data name="Undetected_Found" xml:space="preserve">
+    <value>Co widać na tym komputerze</value>
+  </data>
+  <data name="Undetected_HowTo" xml:space="preserve">
+    <value>Jak dodać grę w sklepie</value>
+  </data>
+  <data name="Undetected_StoreFound" xml:space="preserve">
+    <value>{libraries, plural, one {# biblioteka} few {# biblioteki} many {# bibliotek} other {# biblioteki}}, {games, plural, one {# gra} few {# gry} many {# gier} other {# gry}}.</value>
+  </data>
+  <data name="Undetected_StoreOffered" xml:space="preserve">
+    <value>Projekty są dostępne dla {offered} z nich.</value>
+  </data>
+  <data name="Undetected_OpenStore" xml:space="preserve">
+    <value>Otwórz {store}</value>
+  </data>
+  <data name="Undetected_ClientGalaxy" xml:space="preserve">
+    <value>GOG Galaxy</value>
+  </data>
+  <data name="Undetected_ClientEpicLauncher" xml:space="preserve">
+    <value>Epic Games Launcher</value>
+  </data>
+  <data name="Undetected_ClientHeroic" xml:space="preserve">
+    <value>Heroic</value>
+  </data>
+  <data name="Undetected_StoreMissing" xml:space="preserve">
+    <value>Nie znaleziono</value>
+  </data>
+  <data name="Undetected_StoreUnreadable" xml:space="preserve">
+    <value>Nie udało się odczytać jego danych.</value>
+  </data>
+  <data name="Undetected_LibraryOffline" xml:space="preserve">
+    <value>Biblioteka {library} jest niedostępna. Gry z niej wrócą po podłączeniu dysku.</value>
+  </data>
+  <data name="Undetected_LibraryUnreadable" xml:space="preserve">
+    <value>Nie udało się odczytać biblioteki {library}, więc jej gry są takie jak przy ostatnim sprawdzeniu.</value>
+  </data>
+  <data name="Undetected_UnreadableEntries" xml:space="preserve">
+    <value>Nie udało się odczytać {count, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}} w {library}.</value>
+  </data>
+  <data name="Undetected_ScannedAt" xml:space="preserve">
+    <value>Ostatnio sprawdzono {time}.</value>
+  </data>
+  <data name="Undetected_NotScanned" xml:space="preserve">
+    <value>Sklepy nie zostały jeszcze sprawdzone.</value>
+  </data>
+  <data name="Undetected_OutsideTitle" xml:space="preserve">
+    <value>Gra jest poza biblioteką sklepu?</value>
+  </data>
+  <data name="Undetected_OutsideText" xml:space="preserve">
+    <value>Wskazany folder zostanie dodany, jeśli pliki samego sklepu potwierdzą, skąd pochodzą gry. Sprawdzają to te same pliki, po których gry są wykrywane automatycznie.</value>
+  </data>
+  <data name="Undetected_AddLibrary" xml:space="preserve">
+    <value>Dodaj folder biblioteki</value>
+  </data>
+  <data name="Undetected_AddLibraryText" xml:space="preserve">
+    <value>Folder biblioteki Steam z plikami appmanifest albo folder w jej wnętrzu.</value>
+  </data>
+  <data name="Undetected_AddGame" xml:space="preserve">
+    <value>Wskaż folder gry</value>
+  </data>
+  <data name="Undetected_AddGameText" xml:space="preserve">
+    <value>Folder gry z GOG z plikiem goggame-….info, folder z takimi grami albo folder gry z Epic Games Store z folderem .egstore.</value>
+  </data>
+  <data name="Undetected_PickLibraryTitle" xml:space="preserve">
+    <value>Folder biblioteki sklepu</value>
+  </data>
+  <data name="Undetected_PickGameTitle" xml:space="preserve">
+    <value>Folder gry</value>
+  </data>
+  <data name="Undetected_Adding" xml:space="preserve">
+    <value>Sprawdzanie folderu…</value>
+  </data>
+  <data name="Undetected_Added" xml:space="preserve">
+    <value>Dodano folder {folder}. Trwa sprawdzanie gier z niego…</value>
+  </data>
+  <data name="Undetected_AddedGames" xml:space="preserve">
+    <value>Dodano folder {folder}. Znaleziono w nim {games, plural, one {# grę} few {# gry} many {# gier} other {# gry}}, w tym z projektem: {offered} – są już na liście.</value>
+  </data>
+  <data name="Undetected_AddedNothingOffered" xml:space="preserve">
+    <value>Dodano folder {folder}. Znaleziono w nim {games, plural, one {# grę} few {# gry} many {# gier} other {# gry}}, ale żadna nie ma jeszcze projektu do zainstalowania.</value>
+  </data>
+  <data name="Undetected_Rejection" xml:space="preserve">
+    <value>{rejection, select, NoEvidence {W tym folderze nie ma biblioteki Steam, gry z GOG ani gry z Epic Games Store.} GameOutsideLibrary {Ta gra nie należy do żadnej biblioteki swojego sklepu, więc nie da się potwierdzić, skąd pochodzi. Po dodaniu jej folderu w samym sklepie gra pojawi się tu sama.} DlcOnly {W tym folderze jest tylko dodatek (DLC). Dodać można folder gry podstawowej.} AlreadyAdded {Ten folder jest już na liście: {settings}, sekcja Biblioteki gier.} AlreadyDetected {Ta biblioteka albo gra jest już wykryta – gry z niej są w zakładce „{library}”.} Unreachable {Nie udało się odczytać folderu. Dysk z tym folderem może być odłączony.} other {Tego folderu nie można dodać.}}</value>
+  </data>
 </root>
