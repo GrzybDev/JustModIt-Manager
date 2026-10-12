@@ -317,6 +317,83 @@
     </Style>
   </ControlTheme>
 
+  <!-- A filter by a project's status, in the site's colour: 13% when not chosen, 26% with a 70% edge once chosen. -->
+  <ControlTheme x:Key="{x:Type ui:StatusFilterPill}" TargetType="ui:StatusFilterPill">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="11,0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Tint}" BorderBrush="Transparent"
+                          BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                          Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Label}"
+                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                          VerticalContentAlignment="Center">
+          <ContentPresenter.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.15" />
+              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+            </Transitions>
+          </ContentPresenter.Transitions>
+        </ContentPresenter>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].StrongTint}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="^:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].StrongTint}" />
+      <Setter Property="BorderBrush" Value="{Binding $parent[ui:StatusFilterPill].Edge}" />
+    </Style>
+  </ControlTheme>
+
+  <!-- A filter by a value without a colour of its own, such as a team: quiet, with a light edge once chosen. -->
+  <ControlTheme x:Key="OptionPill" TargetType="ToggleButton">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="11,0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                          CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
+                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                          VerticalContentAlignment="Center">
+          <ContentPresenter.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.15" />
+              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+            </Transitions>
+          </ContentPresenter.Transitions>
+        </ContentPresenter>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderHoverBrush}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+      <Setter Property="Background" Value="{StaticResource FillStrongerBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderSelectedBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </ControlTheme>
+
   <ControlTheme x:Key="{x:Type ui:TileContent}" TargetType="ui:TileContent">
     <Setter Property="Template">
       <ControlTemplate>

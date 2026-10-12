@@ -40,6 +40,7 @@ public sealed class CatalogueApiClientTests
             LatestReleaseVersion = "Version 1.1",
         });
         solo.FirstPublishedAt.Should().Be(new DateTimeOffset(2026, 8, 2, 12, 0, 0, TimeSpan.FromHours(2)));
+        solo.CompletedAt.Should().Be(new DateOnly(2026, 8, 4), "the site sends the day the work was finished without a time");
     }
 
     [Fact]

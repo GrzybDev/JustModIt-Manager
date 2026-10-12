@@ -9,6 +9,7 @@ using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
+using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Theme;
@@ -48,15 +49,6 @@ public enum LibraryContent
     FilteredOut,
 }
 
-/// <summary>A row of the grid of cards, so a virtualising list can lay the grid out row by row.</summary>
-public sealed class CardRow
-{
-    public ObservableCollection<object> Items { get; } = [];
-
-    /// <summary>The grid's column count, which every row lays its items out in.</summary>
-    public int Columns { get; init; }
-}
-
 /// <summary>
 /// The player's games: what needs the player first (the to-do panel), then the other games as cards, with search,
 /// filters and order. Everything comes from the agent's state; the page keeps one card and one row per thing, so a new
@@ -73,9 +65,8 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
     private readonly Dictionary<GameKey, GameCardViewModel> _cards = [];
     private readonly Dictionary<string, TodoRowViewModel> _rows = [];
     private readonly HelpTileViewModel _help = new();
-    private List<object> _gridItems = [];
+    private readonly CardGrid _grid = new();
     private List<TodoRowViewModel> _allRows = [];
-    private int _columns = 5;
 
     /// <summary>Creates the page, which follows the agent's state from then on.</summary>
     /// <param name="services">The window's services.</param>
@@ -108,7 +99,7 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
     /// <summary>The to-do rows shown: the first few, or all of them once expanded.</summary>
     public ObservableCollection<TodoRowViewModel> TodoRows { get; } = [];
 
-    public ObservableCollection<CardRow> Rows { get; } = [];
+    public ObservableCollection<CardRow> Rows => _grid.Rows;
 
     /// <summary>Stand-ins for the cards while loading.</summary>
     public IReadOnlyList<int> Skeletons { get; }
@@ -256,20 +247,21 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
     /// <summary>How many cards fit in a row of the grid; the view sets it from its width.</summary>
     public int Columns
     {
-        get => _columns;
+        get => _grid.Columns;
         set
         {
-            value = Math.Max(1, value);
-            if (value != _columns)
+            if (_grid.SetColumns(value))
             {
-                _columns = value;
-                LayOutRows(force: true);
+                OnPropertyChanged();
             }
         }
     }
 
-    /// <summary>The grid's cards in its order, then the help tile; the view moves the keyboard through them.</summary>
-    public IReadOnlyList<object> GridItems => _gridItems;
+    /// <summary>The grid's cards in its order, then the help tile.</summary>
+    public IReadOnlyList<object> GridItems => _grid.Items;
+
+    /// <summary>The grid the view lays out and moves the keyboard through.</summary>
+    public CardGrid Grid => _grid;
 
     public override void OnShown() => Refresh();
 
@@ -445,19 +437,19 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
         var ordered = Sort == LibrarySort.Recent
             ? shown.OrderByDescending(card => card.ReleasedAt ?? DateTimeOffset.MinValue).ThenBy(card => card.Name, Text.Comparer)
             : shown.OrderBy(card => card.Name, Text.Comparer);
-        _gridItems = [.. ordered];
+        List<object> gridItems = [.. ordered];
 
         var known = state.IsLoaded && state.Library.ScannedAt is not null && (state.Catalogue.FetchedAt is not null || state.Catalogue.Failure is not null);
         Content = !_services.Agent.HasState || (state.Games.Count == 0 && !known) ? LibraryContent.Loading
             : state.Games.Count == 0 ? (state.Catalogue.FetchedAt is null ? LibraryContent.FoundOffline : LibraryContent.Empty)
-            : matchingRows.Count == 0 && _gridItems.Count == 0 && query.Length > 0 && (Filter == LibraryFilter.All || AllCount + HiddenCount == 0)
+            : matchingRows.Count == 0 && gridItems.Count == 0 && query.Length > 0 && (Filter == LibraryFilter.All || AllCount + HiddenCount == 0)
                 ? LibraryContent.NoResults
             : visible.Count == 0 && Filter != LibraryFilter.Hidden ? LibraryContent.AllHidden
-            : _gridItems.Count == 0 && (Filter != LibraryFilter.All || query.Length > 0) ? LibraryContent.FilteredOut
+            : gridItems.Count == 0 && (Filter != LibraryFilter.All || query.Length > 0) ? LibraryContent.FilteredOut
             : LibraryContent.Games;
         if (Content == LibraryContent.Games && Filter == LibraryFilter.All)
         {
-            _gridItems.Add(_help);
+            gridItems.Add(_help);
         }
 
         ShowEmptyState(Query.Trim());
@@ -468,9 +460,9 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
         ShowsAllCurrent = Content is LibraryContent.Games && _allRows.Count == 0 && query.Length == 0 && Filter == LibraryFilter.All;
         ShowsTodoToggle = panel.Count > CollapsedTodoRows;
         TodoToggleText = IsTodoExpanded ? Strings.Library_ShowLess : Text.Format(Strings.Library_ShowAllCount, ("count", panel.Count));
-        Sync(TodoRows, IsTodoExpanded ? panel : [.. panel.Take(CollapsedTodoRows)]);
+        CardGrid.Sync(TodoRows, IsTodoExpanded ? panel : [.. panel.Take(CollapsedTodoRows)]);
         ShowBatch();
-        LayOutRows(force: false);
+        _grid.Show(gridItems);
     }
 
     private void ShowOffline(AppStateView state)
@@ -526,53 +518,5 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
         };
         BatchTip = string.Join(Environment.NewLine, batch.Concat(waiting).Select(row => row.BatchLine));
         BatchName = Text.Format(Strings.Library_BatchName, ("action", BatchText), ("games", string.Join(", ", batch.Select(row => row.Name))));
-    }
-
-    private void LayOutRows(bool force)
-    {
-        var columns = _columns;
-        var chunks = _gridItems.Chunk(columns).ToList();
-        if (force || Rows.Count > 0 && Rows[0].Columns != columns)
-        {
-            Rows.Clear();
-        }
-
-        for (var index = 0; index < chunks.Count; index++)
-        {
-            if (index == Rows.Count)
-            {
-                Rows.Add(new CardRow { Columns = columns });
-            }
-
-            Sync(Rows[index].Items, chunks[index]);
-        }
-
-        while (Rows.Count > chunks.Count)
-        {
-            Rows.RemoveAt(Rows.Count - 1);
-        }
-    }
-
-    // Keeps the items that stay, so their views keep their state and do not enter again.
-    private static void Sync<T>(ObservableCollection<T> target, IReadOnlyList<T> desired)
-    {
-        for (var index = 0; index < desired.Count; index++)
-        {
-            var item = desired[index];
-            var at = target.IndexOf(item);
-            if (at < 0)
-            {
-                target.Insert(index, item);
-            }
-            else if (at != index)
-            {
-                target.Move(at, index);
-            }
-        }
-
-        while (target.Count > desired.Count)
-        {
-            target.RemoveAt(target.Count - 1);
-        }
     }
 }

@@ -417,4 +417,49 @@
   <data name="GamePage_UpdateTitle" xml:space="preserve">
     <value>Jest nowa wersja spolszczenia</value>
   </data>
+  <data name="Catalogue_Subtitle" xml:space="preserve">
+    <value>Spolszczenia z Bazy Spolszczeń. Te do gier na tym komputerze są w „Moich grach”.</value>
+  </data>
+  <data name="Catalogue_BannerTitle" xml:space="preserve">
+    <value>{reason, select, Offline {Brak połączenia z Bazą Spolszczeń.} Timeout {Brak połączenia z Bazą Spolszczeń.} Maintenance {Trwa przerwa techniczna Bazy Spolszczeń.} other {Baza Spolszczeń chwilowo nie odpowiada.}}</value>
+  </data>
+  <data name="Catalogue_UnavailableText" xml:space="preserve">
+    <value>Brak połączenia z Bazą Spolszczeń, a katalog nie został jeszcze zapisany na tym komputerze. Wczyta się, gdy połączenie wróci. Zainstalowane spolszczenia działają bez połączenia.</value>
+  </data>
+  <data name="Catalogue_Search" xml:space="preserve">
+    <value>Szukaj spolszczenia: nazwa gry lub grupy</value>
+  </data>
+  <data name="Catalogue_SearchPlaceholder" xml:space="preserve">
+    <value>Czy jest spolszczenie do…? Nazwa gry lub grupy</value>
+  </data>
+  <data name="Catalogue_Statuses" xml:space="preserve">
+    <value>Status spolszczenia</value>
+  </data>
+  <data name="Catalogue_StatusesHelp" xml:space="preserve">
+    <value>Co oznaczają statusy? Otwiera pomoc Bazy Spolszczeń</value>
+  </data>
+  <data name="Catalogue_Results" xml:space="preserve">
+    <value>{count, plural, one {# spolszczenie} few {# spolszczenia} many {# spolszczeń} other {# spolszczenia}}</value>
+  </data>
+  <data name="Catalogue_NoResultsText" xml:space="preserve">
+    <value>Nikt jeszcze nie ogłosił spolszczenia tej gry albo jej nazwa jest zapisana inaczej.</value>
+  </data>
+  <data name="Catalogue_FilteredOutText" xml:space="preserve">
+    <value>{hasQuery, select, true {Bez filtrów {count, plural, one {pasuje # spolszczenie} few {pasują # spolszczenia} many {pasuje # spolszczeń} other {pasuje # spolszczenia}}.} other {Inne filtry pokażą więcej spolszczeń.}}</value>
+  </data>
+  <data name="Catalogue_EmptyTitle" xml:space="preserve">
+    <value>W katalogu nie ma jeszcze spolszczeń</value>
+  </data>
+  <data name="Catalogue_CardName" xml:space="preserve">
+    <value>{game} – strona spolszczenia. {details}</value>
+  </data>
+  <data name="Catalogue_CardCompare" xml:space="preserve">
+    <value>{game} – porównaj {count, plural, one {# spolszczenie} few {# spolszczenia} many {# spolszczeń} other {# spolszczenia}}</value>
+  </data>
+  <data name="Catalogue_CardProjects" xml:space="preserve">
+    <value>{count, plural, one {# spolszczenie} few {# spolszczenia} many {# spolszczeń} other {# spolszczenia}}</value>
+  </data>
+  <data name="Catalogue_AwaitingProject" xml:space="preserve">
+    <value>Czeka na spolszczenie</value>
+  </data>
 </root>

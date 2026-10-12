@@ -12,7 +12,8 @@ internal static class CatalogueScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
-        ui.Pages.Register<CatalogueRoute>((_, _) => new PlaceholderPageViewModel(Strings.Shell_Catalogue, Icons.Library));
+        ui.Pages.Register<CatalogueRoute>((_, services) => new CataloguePageViewModel(services));
+        ui.Views.Register<CataloguePageViewModel>(() => new CataloguePage());
         ui.Pages.Register<CatalogueGameRoute>((_, _) => new PlaceholderPageViewModel(Strings.Shell_Catalogue, Icons.Library));
         ui.Pages.Register<CatalogueProjectRoute>((_, _) => new PlaceholderPageViewModel(Strings.Shell_Catalogue, Icons.Library));
     }

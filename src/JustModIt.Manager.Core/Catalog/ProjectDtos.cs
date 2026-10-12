@@ -126,6 +126,9 @@ public sealed record ProjectSummary
 
     /// <summary>When the project first went public.</summary>
     public DateTimeOffset? FirstPublishedAt { get; init; }
+
+    /// <summary>The day the project's work was finished; null while it is not, or when the site does not know.</summary>
+    public DateOnly? CompletedAt { get; init; }
 }
 
 /// <summary>The public page of a project, as an anonymous visitor sees it.</summary>

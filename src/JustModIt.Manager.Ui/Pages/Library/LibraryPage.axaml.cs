@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.VisualTree;
+using JustModIt.Manager.Ui.Controls;
 
 namespace JustModIt.Manager.Ui.Pages.Library;
 
@@ -19,6 +19,8 @@ public sealed partial class LibraryPage : UserControl
     {
         InitializeComponent();
         PageContent.SizeChanged += (_, e) => SetColumns(e.NewSize.Width);
+        // Before the list's own arrow handling, which looks for the next row and may recycle the focused one meanwhile.
+        GameGrid.AddHandler(KeyDownEvent, OnGridKeyDown, RoutingStrategies.Tunnel);
         // The window's Escape, which closes dialogs, marks the key handled on its way down, so the box listens to it anyway.
         SearchBox.AddHandler(KeyDownEvent, OnSearchKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
     }
@@ -43,7 +45,7 @@ public sealed partial class LibraryPage : UserControl
     {
         if (Page is { } page && width > 0)
         {
-            page.Columns = Math.Max(2, (int)((width + Gap) / (CardMinWidth + Gap)));
+            page.Columns = CardGrid.ColumnsFor(width, CardMinWidth, Gap);
         }
     }
 
@@ -67,40 +69,12 @@ public sealed partial class LibraryPage : UserControl
         }
     }
 
-    // Arrows move between the cards as they lie in the grid, bringing a row that is not realised yet into view first.
+    // Arrows move between the cards as they lie in the grid.
     private void OnGridKeyDown(object? sender, KeyEventArgs e)
     {
-        if (Page is not { } page || e.Source is not Control source || source.DataContext is not { } item)
+        if (Page is { } page && e.Source is Control { DataContext: { } item })
         {
-            return;
-        }
-
-        var items = page.GridItems;
-        var index = Enumerable.Range(0, items.Count).FirstOrDefault(at => items[at] == item, -1);
-        var step = e.Key switch
-        {
-            Key.Left => -1,
-            Key.Right => 1,
-            Key.Up => -page.Columns,
-            Key.Down => page.Columns,
-            _ => 0,
-        };
-        var target = index + step;
-        if (index < 0 || step == 0 || target < 0 || target >= items.Count)
-        {
-            return;
-        }
-
-        var row = target / page.Columns;
-        GameGrid.ScrollIntoView(row);
-        GameGrid.UpdateLayout();
-        if (GameGrid.ContainerFromIndex(row) is { } container
-            && container.GetVisualDescendants().OfType<ItemsControl>().FirstOrDefault()?.ContainerFromIndex(target % page.Columns) is { } cell
-            && cell.GetVisualDescendants().OfType<Button>().FirstOrDefault() is { } button)
-        {
-            button.Focus(NavigationMethod.Directional);
-            button.BringIntoView();
-            e.Handled = true;
+            e.Handled = page.Grid.MoveFocus(GameGrid, item, e.Key);
         }
     }
 }

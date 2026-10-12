@@ -39,21 +39,36 @@ public sealed record ProjectPageResult : Message
 /// <param name="Query">The search, filters and order the games must match.</param>
 /// <param name="Offset">How many matching games to skip.</param>
 /// <param name="Count">How many games to return at most; the agent caps it.</param>
-public sealed record GetCataloguePage(CatalogueQuery Query, int Offset, int Count) : Query;
+/// <param name="DetectedOnly">Only the games found on this computer.</param>
+public sealed record GetCataloguePage(CatalogueQuery Query, int Offset, int Count, bool DetectedOnly = false) : Query;
 
 /// <summary>The answer to <see cref="GetCataloguePage"/>.</summary>
 /// <param name="Total">How many games match, of which <paramref name="Games"/> are the slice asked for.</param>
 /// <param name="Games">The slice, in the query's order.</param>
 /// <param name="FetchedAt">When the catalogue was read from the site; null when it never was, and the slice is empty.</param>
 public sealed record CataloguePageResult(int Total, IReadOnlyList<CatalogueGameView> Games, DateTimeOffset? FetchedAt = null)
-    : Message;
+    : Message
+{
+    /// <summary>What each filter offers with the others applied, among the games found on this computer when only they are asked for.</summary>
+    public CatalogueFacets Facets { get; init; } = new();
+
+    /// <summary>How many of the games that fit the query, found on this computer or not, were found on it.</summary>
+    public int Detected { get; init; }
+
+    /// <summary>How many games the query's text alone finds, without any filter.</summary>
+    public int Unfiltered { get; init; }
+}
 
 /// <summary>Asks for the options of the catalogue's filters; answered with <see cref="CatalogueFiltersResult"/>.</summary>
 public sealed record GetCatalogueFilters : Query;
 
 /// <summary>The answer to <see cref="GetCatalogueFilters"/>.</summary>
 /// <param name="Filters">The options of every filter.</param>
-public sealed record CatalogueFiltersResult(CatalogueFiltersView Filters) : Message;
+public sealed record CatalogueFiltersResult(CatalogueFiltersView Filters) : Message
+{
+    /// <summary>What each filter offers in the whole catalogue, which tells the filters that could narrow it at all.</summary>
+    public CatalogueFacets Facets { get; init; } = new();
+}
 
 /// <summary>Asks what each store integration found; answered with <see cref="DetectionReportResult"/>.</summary>
 public sealed record GetDetectionReport : Query;

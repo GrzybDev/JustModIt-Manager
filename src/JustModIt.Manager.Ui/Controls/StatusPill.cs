@@ -98,6 +98,85 @@ public sealed class StatusPill : TemplatedControl
     }
 }
 
+/// <summary>A filter by a project's status: a toggle tinted with the site's own colour for it, stronger and edged once chosen.</summary>
+public sealed class StatusFilterPill : ToggleButton
+{
+    /// <summary>The site's colour as <c>#rrggbb</c>; anything unreadable shows as grey.</summary>
+    public static readonly StyledProperty<string?> HexProperty = AvaloniaProperty.Register<StatusFilterPill, string?>(nameof(Hex));
+
+    public static readonly DirectProperty<StatusFilterPill, IBrush> TintProperty =
+        AvaloniaProperty.RegisterDirect<StatusFilterPill, IBrush>(nameof(Tint), pill => pill.Tint);
+
+    public static readonly DirectProperty<StatusFilterPill, IBrush> StrongTintProperty =
+        AvaloniaProperty.RegisterDirect<StatusFilterPill, IBrush>(nameof(StrongTint), pill => pill.StrongTint);
+
+    public static readonly DirectProperty<StatusFilterPill, IBrush> LabelProperty =
+        AvaloniaProperty.RegisterDirect<StatusFilterPill, IBrush>(nameof(Label), pill => pill.Label);
+
+    public static readonly DirectProperty<StatusFilterPill, IBrush> EdgeProperty =
+        AvaloniaProperty.RegisterDirect<StatusFilterPill, IBrush>(nameof(Edge), pill => pill.Edge);
+
+    private IBrush _tint = Brushes.Transparent;
+    private IBrush _strongTint = Brushes.Transparent;
+    private IBrush _label = Brushes.Gray;
+    private IBrush _edge = Brushes.Transparent;
+
+    /// <summary>Creates a pill, grey until it is given the site's colour.</summary>
+    public StatusFilterPill() => Update();
+
+    public string? Hex
+    {
+        get => GetValue(HexProperty);
+        set => SetValue(HexProperty, value);
+    }
+
+    /// <summary>The site's colour at 13%, the fill of a pill not chosen.</summary>
+    public IBrush Tint
+    {
+        get => _tint;
+        private set => SetAndRaise(TintProperty, ref _tint, value);
+    }
+
+    /// <summary>The site's colour at 26%, the fill of the chosen pill.</summary>
+    public IBrush StrongTint
+    {
+        get => _strongTint;
+        private set => SetAndRaise(StrongTintProperty, ref _strongTint, value);
+    }
+
+    /// <summary>The text and dot colour, readable on the fill.</summary>
+    public IBrush Label
+    {
+        get => _label;
+        private set => SetAndRaise(LabelProperty, ref _label, value);
+    }
+
+    /// <summary>The site's colour at 70%, the edge of the chosen pill.</summary>
+    public IBrush Edge
+    {
+        get => _edge;
+        private set => SetAndRaise(EdgeProperty, ref _edge, value);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == HexProperty)
+        {
+            Update();
+        }
+    }
+
+    private void Update()
+    {
+        var color = StatusColors.Parse(Hex);
+        Tint = new ImmutableSolidColorBrush(color, 0.13);
+        StrongTint = new ImmutableSolidColorBrush(color, 0.26);
+        Label = new ImmutableSolidColorBrush(StatusColors.Label(color));
+        Edge = new ImmutableSolidColorBrush(color, 0.7);
+    }
+}
+
 /// <summary>How a status colour from the site becomes readable on the window's dark surfaces, as the website does it.</summary>
 public static class StatusColors
 {

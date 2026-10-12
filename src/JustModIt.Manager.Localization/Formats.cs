@@ -118,11 +118,15 @@ public static class Formats
     /// </summary>
     /// <param name="value">The moment.</param>
     /// <param name="clock">Gives the time now and the local time zone.</param>
-    public static string CalendarAge(DateTimeOffset value, TimeProvider clock)
+    public static string CalendarAge(DateTimeOffset value, TimeProvider clock) =>
+        CalendarAge(DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(value, clock.LocalTimeZone).DateTime), clock);
+
+    /// <summary>The age of a day, told as <see cref="CalendarAge(DateTimeOffset, TimeProvider)"/> tells a moment's.</summary>
+    /// <param name="then">The day.</param>
+    /// <param name="clock">Gives the time now and the local time zone.</param>
+    public static string CalendarAge(DateOnly then, TimeProvider clock)
     {
-        var zone = clock.LocalTimeZone;
-        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.GetUtcNow(), zone).DateTime);
-        var then = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(value, zone).DateTime);
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.GetUtcNow(), clock.LocalTimeZone).DateTime);
         var days = today.DayNumber - then.DayNumber;
         if (days < 31)
         {

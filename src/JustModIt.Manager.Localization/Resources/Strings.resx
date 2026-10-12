@@ -1545,4 +1545,163 @@
   <data name="GamePage_DescriptionFilm" xml:space="preserve">
     <value>Film – opens in the browser</value>
   </data>
+  <data name="Catalogue_Subtitle" xml:space="preserve">
+    <value>Everything the site offers. Projects for the games on this computer are installed from “{library}”.</value>
+  </data>
+  <data name="Catalogue_Loading" xml:space="preserve">
+    <value>Loading the catalogue…</value>
+  </data>
+  <data name="Catalogue_Refreshing" xml:space="preserve">
+    <value>Checking for news…</value>
+  </data>
+  <data name="Catalogue_Updated" xml:space="preserve">
+    <value>Updated {time}</value>
+  </data>
+  <data name="Catalogue_Refresh" xml:space="preserve">
+    <value>Refresh the catalogue (F5)</value>
+  </data>
+  <data name="Catalogue_BannerTitle" xml:space="preserve">
+    <value>{reason, select, Offline {No connection to the server.} Timeout {No connection to the server.} Maintenance {The site is down for maintenance.} other {The server is not answering right now.}}</value>
+  </data>
+  <data name="Catalogue_BannerText" xml:space="preserve">
+    <value>Showing the catalogue saved {time}.</value>
+  </data>
+  <data name="Catalogue_UnavailableTitle" xml:space="preserve">
+    <value>The catalogue cannot be loaded</value>
+  </data>
+  <data name="Catalogue_UnavailableText" xml:space="preserve">
+    <value>There is no connection to the server, and the catalogue has not been saved on this computer yet. It loads once the connection is back. Installed projects work without a connection.</value>
+  </data>
+  <data name="Catalogue_FiltersName" xml:space="preserve">
+    <value>Search and filters</value>
+  </data>
+  <data name="Catalogue_Search" xml:space="preserve">
+    <value>Search projects: a game or team name</value>
+  </data>
+  <data name="Catalogue_SearchPlaceholder" xml:space="preserve">
+    <value>Is there a project for…? A game or team name</value>
+  </data>
+  <data name="Catalogue_SearchKey" xml:space="preserve">
+    <value>Ctrl+F</value>
+  </data>
+  <data name="Catalogue_Mine" xml:space="preserve">
+    <value>On this computer</value>
+  </data>
+  <data name="Catalogue_MineTip" xml:space="preserve">
+    <value>Only the games found on this computer</value>
+  </data>
+  <data name="Catalogue_Statuses" xml:space="preserve">
+    <value>Project status</value>
+  </data>
+  <data name="Catalogue_StatusesHelp" xml:space="preserve">
+    <value>What do the statuses mean? Opens the site’s help</value>
+  </data>
+  <data name="Catalogue_Order" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="Catalogue_OrderReleased" xml:space="preserve">
+    <value>Newest</value>
+  </data>
+  <data name="Catalogue_OrderPopular" xml:space="preserve">
+    <value>Popular</value>
+  </data>
+  <data name="Catalogue_Team" xml:space="preserve">
+    <value>Team</value>
+  </data>
+  <data name="Catalogue_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Catalogue_Store" xml:space="preserve">
+    <value>Store</value>
+  </data>
+  <data name="Catalogue_Platform" xml:space="preserve">
+    <value>Platform</value>
+  </data>
+  <data name="Catalogue_Genre" xml:space="preserve">
+    <value>Genre</value>
+  </data>
+  <data name="Catalogue_AdultLabel" xml:space="preserve">
+    <value>Adults</value>
+  </data>
+  <data name="Catalogue_Adult" xml:space="preserve">
+    <value>Adult games</value>
+  </data>
+  <data name="Catalogue_MoreFilters" xml:space="preserve">
+    <value>{hasCount, select, true {More filters · {count}} other {More filters}}</value>
+  </data>
+  <data name="Catalogue_FewerFilters" xml:space="preserve">
+    <value>Fewer filters</value>
+  </data>
+  <data name="Catalogue_ClearFilters" xml:space="preserve">
+    <value>Clear filters</value>
+  </data>
+  <data name="Catalogue_OptionName" xml:space="preserve">
+    <value>{name}: {count, plural, one {# game} other {# games}}</value>
+  </data>
+  <data name="Catalogue_Results" xml:space="preserve">
+    <value>{count, plural, one {# project} other {# projects}}</value>
+  </data>
+  <data name="Catalogue_NoResultsTitle" xml:space="preserve">
+    <value>Nothing matches “{query}”</value>
+  </data>
+  <data name="Catalogue_NoResultsText" xml:space="preserve">
+    <value>No one has announced a project for this game yet, or its name is spelt differently.</value>
+  </data>
+  <data name="Catalogue_FilteredOutTitle" xml:space="preserve">
+    <value>{hasQuery, select, true {Nothing matches “{query}” in the chosen filters} other {Nothing matches the chosen filters}}</value>
+  </data>
+  <data name="Catalogue_FilteredOutText" xml:space="preserve">
+    <value>{hasQuery, select, true {{count, plural, one {Without filters, # project matches.} other {Without filters, # projects match.}}} other {Other filters show more projects.}}</value>
+  </data>
+  <data name="Catalogue_EmptyTitle" xml:space="preserve">
+    <value>The catalogue holds no projects yet</value>
+  </data>
+  <data name="Catalogue_CardName" xml:space="preserve">
+    <value>{game} – project page. {details}</value>
+  </data>
+  <data name="Catalogue_CardCompare" xml:space="preserve">
+    <value>{game} – compare {count, plural, one {# project} other {# projects}}</value>
+  </data>
+  <data name="Catalogue_CardTeam" xml:space="preserve">
+    <value>team {team}</value>
+  </data>
+  <data name="Catalogue_CardAdultBlurred" xml:space="preserve">
+    <value>Adult game, cover blurred</value>
+  </data>
+  <data name="Catalogue_CardProjects" xml:space="preserve">
+    <value>{count, plural, one {# project} other {# projects}}</value>
+  </data>
+  <data name="Catalogue_Released" xml:space="preserve">
+    <value>Released {age}</value>
+  </data>
+  <data name="Catalogue_Announced" xml:space="preserve">
+    <value>Announced {age}</value>
+  </data>
+  <data name="Catalogue_Completed" xml:space="preserve">
+    <value>Completed {age}</value>
+  </data>
+  <data name="Catalogue_Changed" xml:space="preserve">
+    <value>Changed {age}</value>
+  </data>
+  <data name="Catalogue_AwaitingProject" xml:space="preserve">
+    <value>Waiting for a project</value>
+  </data>
+  <data name="Catalogue_OpenInLibrary" xml:space="preserve">
+    <value>Open in “{library}”</value>
+  </data>
+  <data name="Catalogue_BarName" xml:space="preserve">
+    <value>You have this game – open {game} in “{library}”</value>
+  </data>
+  <data name="Catalogue_AgeTitle" xml:space="preserve">
+    <value>Adult content</value>
+  </data>
+  <data name="Catalogue_AgeText" xml:space="preserve">
+    <value>Games marked as adult content show only to adults. The confirmation holds for 24 hours.</value>
+  </data>
+  <data name="Catalogue_AgeConfirm" xml:space="preserve">
+    <value>I am 18 or older</value>
+  </data>
+  <data name="Catalogue_HaveGame" xml:space="preserve">
+    <value>You have this game</value>
+  </data>
 </root>

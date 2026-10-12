@@ -1,0 +1,550 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:cat="using:JustModIt.Manager.Ui.Pages.Catalogue"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Catalogue.CataloguePage"
+             x:DataType="cat:CataloguePageViewModel">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="F5" Command="{Binding RefreshCatalogueCommand}" />
+  </UserControl.KeyBindings>
+
+  <UserControl.Styles>
+    <Style Selector="StackPanel#OrderPills">
+      <Setter Property="Grid.Column" Value="1" />
+    </Style>
+    <Style Selector="StackPanel#OrderPills.under">
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="2" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+    <Style Selector="Border.banner">
+      <Setter Property="Padding" Value="16,10,10,10" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="#1AF59E0B" />
+      <Setter Property="BorderBrush" Value="#47FBBF24" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.filters">
+      <Setter Property="Padding" Value="14" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{StaticResource SurfaceSeamBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BoxShadow" Value="0 24 48 -28 #E6000000" />
+    </Style>
+    <Style Selector="Border.kbd">
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="#0DFFFFFF" />
+    </Style>
+    <Style Selector="TextBlock.count">
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.plain TextBlock.count">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.plain:checked TextBlock.count">
+      <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.team">
+      <Setter Property="Padding" Value="5,0,12,0" />
+    </Style>
+    <Style Selector="ToggleButton.mine">
+      <Setter Property="Height" Value="40" />
+      <Setter Property="Padding" Value="14,0,16,0" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.mine:checked">
+      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.mine.compact">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="11,0,12,0" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="TextBlock.rowLabel">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Margin" Value="0,8,4,0" />
+    </Style>
+    <Style Selector="Border.adultMark">
+      <Setter Property="Height" Value="18" />
+      <Setter Property="Padding" Value="6,0" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    </Style>
+    <Style Selector="Border.adultMark > TextBlock">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- A card: the page link and, for a game on this computer, the bar under it; the whole card rises under the pointer. -->
+    <Style Selector="Border.catalogueCard">
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+      <Setter Property="RenderTransform" Value="translateY(0px)" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
+          <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.3" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.catalogueCard:pointerover">
+      <Setter Property="RenderTransform" Value="translateY(-4px)" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource ElevLift}" />
+    </Style>
+    <Style Selector=":is(Window).reducedMotion Border.catalogueCard:pointerover">
+      <Setter Property="RenderTransform" Value="translateY(0px)" />
+    </Style>
+    <Style Selector="Border.catalogueCard ui|RemoteImage.cover">
+      <Setter Property="RenderTransform" Value="scale(1)" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.catalogueCard:pointerover ui|RemoteImage.cover">
+      <Setter Property="RenderTransform" Value="scale(1.05)" />
+    </Style>
+    <Style Selector=":is(Window).reducedMotion Border.catalogueCard:pointerover ui|RemoteImage.cover">
+      <Setter Property="RenderTransform" Value="scale(1)" />
+    </Style>
+    <Style Selector="Button.cardLink">
+      <Setter Property="Height" Value="NaN" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="11" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.cardLink:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.cardLink:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.cardLink:pointerover TextBlock.cardName">
+      <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
+    <Style Selector="TextBlock.cardName">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="LineHeight" Value="21" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="MaxLines" Value="3" />
+    </Style>
+    <Style Selector="Button.cardBar">
+      <Setter Property="Height" Value="40" />
+      <Setter Property="Padding" Value="14,0,12,0" />
+      <Setter Property="CornerRadius" Value="0,0,11,11" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="#0AFFFFFF" />
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.cardBar:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#14FFFFFF" />
+      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+    </Style>
+    <Style Selector="Panel.coverPlaceholder">
+      <Setter Property="Background">
+        <RadialGradientBrush Center="50%,45%" GradientOrigin="50%,45%" RadiusX="60%" RadiusY="40%">
+          <GradientStop Color="#2E6D5BD0" Offset="0" />
+          <GradientStop Color="#006D5BD0" Offset="1" />
+        </RadialGradientBrush>
+      </Setter>
+    </Style>
+    <Style Selector="ProgressBar.card">
+      <Setter Property="Height" Value="4" />
+      <Setter Property="MinHeight" Value="4" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer x:Name="Scroller" Classes="page">
+    <StackPanel x:Name="PageContent" Classes="page" MaxWidth="{StaticResource PageMaxWidth}" Spacing="20">
+      <ui:PageHeader Title="{Binding Title}" Subtitle="{x:Static cat:CataloguePage.Subtitle}">
+        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowsFreshness}">
+          <ui:ProgressRing Width="14" Height="14" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" />
+          <TextBlock x:Name="Freshness" Text="{Binding FreshnessText}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                     VerticalAlignment="Center" />
+          <Button Classes="icon" IsVisible="{Binding ShowsRefresh}" Command="{Binding RefreshCatalogueCommand}"
+                  ToolTip.Tip="{x:Static loc:Strings.Catalogue_Refresh}" Margin="-4,0,0,0">
+            <ui:Icon Data="{x:Static theme:Icons.RefreshCw}" Foreground="{StaticResource TextEmphasisBrush}" />
+          </Button>
+        </StackPanel>
+      </ui:PageHeader>
+
+      <Border x:Name="Banner" Classes="banner" IsVisible="{Binding ShowsBanner}" theme:Motion.Enter="True">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+          <ui:Icon Data="{Binding BannerIcon}" Foreground="{StaticResource WarningTextBrush}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" FontSize="14" LineHeight="20" TextWrapping="Wrap" VerticalAlignment="Center"
+                     Foreground="{StaticResource TextEmphasisBrush}">
+            <Run Text="{Binding BannerTitle}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+            <Run Text="{Binding BannerText}" />
+          </TextBlock>
+          <Button Grid.Column="2" Classes="quiet" Content="{x:Static cat:CataloguePage.RetryText}" FontWeight="SemiBold"
+                  ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding RefreshCatalogueCommand}" />
+        </Grid>
+      </Border>
+
+      <ui:EmptyState x:Name="Unavailable" Icon="{x:Static theme:Icons.WifiOff}" Title="{x:Static loc:Strings.Catalogue_UnavailableTitle}"
+                     Message="{x:Static loc:Strings.Catalogue_UnavailableText}" IsVisible="{Binding IsUnavailable}" Padding="24,72,24,64"
+                     theme:Motion.Enter="True">
+        <Button Classes="outline" Content="{x:Static cat:CataloguePage.RetryText}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
+                Command="{Binding RefreshCatalogueCommand}" />
+      </ui:EmptyState>
+
+      <!-- Search, filters and order, counted with the other filters applied. -->
+      <Border x:Name="Filters" Classes="filters" IsVisible="{Binding ShowsFilters}"
+              AutomationProperties.Name="{x:Static loc:Strings.Catalogue_FiltersName}">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBox x:Name="SearchBox" Classes="search" Text="{Binding Query}" PlaceholderText="{x:Static loc:Strings.Catalogue_SearchPlaceholder}"
+                     AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Search}">
+              <TextBox.InnerRightContent>
+                <Panel VerticalAlignment="Center">
+                  <Border Classes="kbd" IsVisible="{Binding !HasQuery}">
+                    <TextBlock Text="{x:Static loc:Strings.Catalogue_SearchKey}" FontSize="12" FontWeight="Medium"
+                               Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                  </Border>
+                  <Button Classes="icon" Margin="0,0,4,0" IsVisible="{Binding HasQuery}" Command="{Binding ClearSearchCommand}"
+                          ToolTip.Tip="{x:Static loc:Strings.Library_ClearSearch}">
+                    <ui:Icon Data="{x:Static theme:Icons.X}" Foreground="{StaticResource TextBodyBrush}" />
+                  </Button>
+                </Panel>
+              </TextBox.InnerRightContent>
+            </TextBox>
+            <ToggleButton x:Name="Mine" Grid.Column="1" Theme="{StaticResource OptionPill}" Classes="mine" IsChecked="{Binding DetectedOnly}"
+                          IsVisible="{Binding ShowsWideMine}" ToolTip.Tip="{x:Static loc:Strings.Catalogue_MineTip}"
+                          AutomationProperties.Name="{x:Static loc:Strings.Catalogue_MineTip}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="{x:Static loc:Strings.Catalogue_Mine}" VerticalAlignment="Center" />
+                <TextBlock Classes="count" Text="{Binding DetectedCount}" Foreground="{StaticResource TextSecondaryBrush}" />
+              </StackPanel>
+            </ToggleButton>
+          </Grid>
+
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+            <Panel>
+              <WrapPanel ItemSpacing="8" LineSpacing="8" IsVisible="{Binding ArePillsLoading}">
+                <ui:Skeleton Width="106" Height="32" CornerRadius="999" />
+                <ui:Skeleton Width="132" Height="32" CornerRadius="999" />
+                <ui:Skeleton Width="98" Height="32" CornerRadius="999" />
+                <ui:Skeleton Width="186" Height="32" CornerRadius="999" />
+                <ui:Skeleton Width="146" Height="32" CornerRadius="999" />
+              </WrapPanel>
+              <ItemsControl x:Name="StatusRow" ItemsSource="{Binding StatusPills}" IsVisible="{Binding !ArePillsLoading}"
+                            AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Statuses}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.DataTemplates>
+                  <DataTemplate x:DataType="cat:AllStatusesPill">
+                    <ToggleButton x:Name="AllStatuses" Theme="{StaticResource FilterPill}" Classes="all"
+                                  IsChecked="{Binding $parent[UserControl].((cat:CataloguePageViewModel)DataContext).IsAllStatuses}"
+                                  AutomationProperties.Name="{x:Static loc:Strings.Library_FilterAll}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{x:Static loc:Strings.Library_FilterAll}" VerticalAlignment="Center" />
+                        <TextBlock Classes="count pillCount" Text="{Binding $parent[UserControl].((cat:CataloguePageViewModel)DataContext).AllCount}" />
+                      </StackPanel>
+                    </ToggleButton>
+                  </DataTemplate>
+                  <DataTemplate x:DataType="cat:FilterOption">
+                    <ui:StatusFilterPill Hex="{Binding Color}" IsChecked="{Binding IsSelected}" AutomationProperties.Name="{Binding AccessibleName}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse Width="6" Height="6" Fill="{Binding $parent[ui:StatusFilterPill].Label}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                        <TextBlock Classes="count" Text="{Binding Count}" />
+                      </StackPanel>
+                    </ui:StatusFilterPill>
+                  </DataTemplate>
+                  <DataTemplate x:DataType="cat:StatusesHelp">
+                    <Button Classes="icon" CornerRadius="999" ToolTip.Tip="{x:Static loc:Strings.GamePage_StatusesLink}"
+                            AutomationProperties.Name="{x:Static cat:CataloguePage.StatusesHelpName}"
+                            Command="{Binding $parent[UserControl].((cat:CataloguePageViewModel)DataContext).OpenStatusesCommand}">
+                      <ui:Icon Data="{x:Static theme:Icons.CircleHelp}" Foreground="{StaticResource TextSecondaryBrush}" />
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.DataTemplates>
+              </ItemsControl>
+            </Panel>
+            <StackPanel x:Name="OrderPills" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Classes.under="{Binding IsCompact}"
+                        AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Order}">
+              <ToggleButton Theme="{StaticResource OptionPill}" Classes="mine compact" Margin="0,0,6,0" IsChecked="{Binding DetectedOnly}"
+                            IsVisible="{Binding ShowsCompactMine}" ToolTip.Tip="{x:Static loc:Strings.Catalogue_MineTip}"
+                            AutomationProperties.Name="{x:Static loc:Strings.Catalogue_MineTip}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="14" Height="14" Foreground="{DynamicResource AccentTextBrush}"
+                           VerticalAlignment="Center" />
+                  <TextBlock Text="{x:Static loc:Strings.Catalogue_Mine}" VerticalAlignment="Center" />
+                  <TextBlock Classes="count" Text="{Binding DetectedCount}" Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+              </ToggleButton>
+              <ui:Icon Data="{x:Static theme:Icons.ArrowDownWideNarrow}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
+                       ToolTip.Tip="{x:Static loc:Strings.Catalogue_Order}" />
+              <RadioButton Theme="{StaticResource SortPill}" GroupName="catalogueOrder" Content="{x:Static loc:Strings.Catalogue_OrderReleased}"
+                           IsChecked="{Binding SortsByReleased}" />
+              <RadioButton Theme="{StaticResource SortPill}" GroupName="catalogueOrder" Content="{x:Static loc:Strings.Catalogue_OrderPopular}"
+                           IsChecked="{Binding SortsByPopularity}" />
+              <RadioButton Theme="{StaticResource SortPill}" GroupName="catalogueOrder" Content="{x:Static loc:Strings.Library_SortName}"
+                           IsChecked="{Binding SortsByName}" />
+            </StackPanel>
+          </Grid>
+
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <TextBlock Classes="rowLabel" Text="{x:Static loc:Strings.Catalogue_Team}" IsVisible="{Binding ShowsTeamLabel}" />
+            <WrapPanel Grid.Column="1" ItemSpacing="8" LineSpacing="8" IsVisible="{Binding ArePillsLoading}">
+              <ui:Skeleton Width="130" Height="32" CornerRadius="999" />
+              <ui:Skeleton Width="104" Height="32" CornerRadius="999" />
+              <ui:Skeleton Width="118" Height="32" CornerRadius="999" />
+              <ui:Skeleton Width="150" Height="32" CornerRadius="999" />
+            </WrapPanel>
+            <ItemsControl x:Name="TeamRow" Grid.Column="1" ItemsSource="{Binding TeamOptions}" IsVisible="{Binding ShowsTeams}"
+                          AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Team}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="cat:FilterOption">
+                  <ToggleButton Theme="{StaticResource OptionPill}" Classes="plain team" IsChecked="{Binding IsSelected}"
+                                AutomationProperties.Name="{Binding AccessibleName}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <ui:TeamBadge NameText="{Binding Name}" Avatar="{Binding Avatar}" Width="24" Height="24" CornerRadius="6" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                      <TextBlock Classes="count" Text="{Binding Count}" />
+                    </StackPanel>
+                  </ToggleButton>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+              <Button x:Name="ClearInCard" Classes="link" Margin="8,7,8,0" Content="{x:Static loc:Strings.Catalogue_ClearFilters}"
+                      IsVisible="{Binding ShowsClearInCard}" Command="{Binding ClearFiltersCommand}" Foreground="{StaticResource TextBrush}" />
+              <Button x:Name="MoreToggle" Classes="quiet small" Content="{Binding MoreText}" IsVisible="{Binding ShowsMore}"
+                      Classes.expanded="{Binding AreMoreOpen}" Command="{Binding ToggleMoreCommand}"
+                      ui:ButtonAssist.Icon="{x:Static theme:Icons.Funnel}" />
+            </StackPanel>
+          </Grid>
+
+          <!-- The filters the site keeps behind "more filters". -->
+          <StackPanel x:Name="MoreFilters" Spacing="12" IsVisible="{Binding AreMoreOpen}" theme:Motion.Enter="True">
+            <Border Classes="divider" />
+            <ItemsControl ItemsSource="{Binding ShownGroups}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="12" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="cat:FilterGroup">
+                  <Grid ColumnDefinitions="96,*" ColumnSpacing="8">
+                    <TextBlock Classes="rowLabel" Text="{Binding Title}" />
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Options}" AutomationProperties.Name="{Binding Title}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="cat:FilterOption">
+                          <ToggleButton Theme="{StaticResource OptionPill}" Classes="plain" IsChecked="{Binding IsSelected}"
+                                        AutomationProperties.Name="{Binding AccessibleName}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                              <TextBlock Classes="count" Text="{Binding Count}" />
+                            </StackPanel>
+                          </ToggleButton>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Grid ColumnDefinitions="96,*" ColumnSpacing="8" IsVisible="{Binding OffersAdult}">
+              <TextBlock Classes="rowLabel" Text="{x:Static loc:Strings.Catalogue_AdultLabel}" />
+              <ToggleButton x:Name="AdultPill" Grid.Column="1" Theme="{StaticResource OptionPill}" Classes="plain" HorizontalAlignment="Left"
+                            IsChecked="{Binding IncludeAdult}" AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Adult}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Border Classes="adultMark" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Static loc:Strings.Library_Adult}" />
+                  </Border>
+                  <TextBlock Text="{x:Static loc:Strings.Catalogue_Adult}" VerticalAlignment="Center" />
+                  <TextBlock Classes="count" Text="{Binding AdultCount}" />
+                </StackPanel>
+              </ToggleButton>
+            </Grid>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- While the first answer is on its way, cards stand in. -->
+      <ItemsControl x:Name="Skeletons" ItemsSource="{Binding Skeletons}" IsVisible="{Binding IsLoading}"
+                    AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Loading}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Columns="{Binding $parent[UserControl].((cat:CataloguePageViewModel)DataContext).Columns}" ColumnSpacing="20"
+                         RowSpacing="24" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:Int32">
+            <Border Classes="card" BoxShadow="{StaticResource ElevNone}">
+              <StackPanel>
+                <ui:AspectBox>
+                  <ui:Skeleton CornerRadius="0" />
+                </ui:AspectBox>
+                <StackPanel Spacing="10" Margin="14,22,14,14">
+                  <ui:Skeleton Height="14" Width="110" HorizontalAlignment="Left" />
+                  <ui:Skeleton Height="12" Width="76" HorizontalAlignment="Left" />
+                  <ui:Skeleton Height="12" Width="88" HorizontalAlignment="Left" Margin="0,16,0,0" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <!-- The grid lies out in rows, so the list virtualises; cards of a row enter one after another. -->
+      <ItemsControl x:Name="GameGrid" ItemsSource="{Binding Rows}" IsVisible="{Binding ShowsGames}"
+                    theme:Motion.Stagger="True" AutomationProperties.Name="{Binding ResultsText}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel CacheLength="1" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="ui:CardRow">
+            <ItemsControl ItemsSource="{Binding Items}" Margin="0,0,0,24" theme:Motion.Stagger="True">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <UniformGrid x:DataType="ui:CardRow" Columns="{Binding Columns}" ColumnSpacing="20" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="cat:CatalogueCardViewModel">
+                  <Border Classes="catalogueCard">
+                    <Border CornerRadius="11" ClipToBounds="True">
+                      <Grid RowDefinitions="*,Auto">
+                        <Button Classes="cardLink" AutomationProperties.Name="{Binding AccessibleName}" ToolTip.Tip="{Binding Name}"
+                                Command="{Binding $parent[UserControl].((cat:CataloguePageViewModel)DataContext).OpenCardCommand}"
+                                CommandParameter="{Binding}">
+                          <Grid RowDefinitions="Auto,*">
+                            <ui:AspectBox>
+                              <Panel Background="{StaticResource SurfaceSunkenBrush}">
+                                <!-- Behind the cover, so a cover that does not load, or none, leaves the game's mark. -->
+                                <Panel Classes="coverPlaceholder">
+                                  <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="40" Height="40" StrokeThickness="1.5"
+                                           Foreground="#B3C4B5FD" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Panel>
+                                <ui:RemoteImage Classes="cover" Source="{Binding Cover}" IsBlurred="{Binding IsCoverBlurred}" />
+                              </Panel>
+                            </ui:AspectBox>
+                            <Border Grid.Row="1" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="14,22,14,14">
+                              <Grid RowDefinitions="Auto,Auto,*,Auto">
+                                <ui:MarkedText Classes="cardName" Value="{Binding Name}" Query="{Binding Query}" />
+                                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" Margin="0,6,0,0">
+                                  <Panel VerticalAlignment="Center">
+                                    <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" IsVisible="{Binding !HasManyTeams}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="-4" IsVisible="{Binding HasManyTeams}">
+                                      <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" />
+                                      <ui:TeamBadge NameText="{Binding OtherBadgeName}" Avatar="{Binding OtherBadgeAvatar}" />
+                                    </StackPanel>
+                                  </Panel>
+                                  <ui:MarkedText Grid.Column="1" Value="{Binding TeamName}" Query="{Binding Query}" FontSize="13" LineHeight="18"
+                                                 Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"
+                                                 VerticalAlignment="Center" />
+                                  <Border Grid.Column="2" Classes="adultMark" IsVisible="{Binding IsAdult}" VerticalAlignment="Center"
+                                          ToolTip.Tip="{x:Static loc:Strings.Library_AdultTip}">
+                                    <TextBlock Text="{x:Static loc:Strings.Library_Adult}" />
+                                  </Border>
+                                </Grid>
+                                <Panel Grid.Row="3" Margin="0,12,0,0">
+                                  <TextBlock Text="{Binding Moved}" FontSize="13" LineHeight="18" Foreground="{StaticResource TextSecondaryBrush}"
+                                             TextWrapping="Wrap" IsVisible="{Binding !ShowsProgress}" />
+                                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" IsVisible="{Binding ShowsProgress}">
+                                    <ProgressBar Classes="thin" Value="{Binding Progress}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ProgressText}" FontSize="12" FontWeight="Bold"
+                                               Foreground="{StaticResource TextBrush}" />
+                                  </Grid>
+                                </Panel>
+                              </Grid>
+                            </Border>
+                            <ui:StatusPill Classes="seam" Text="{Binding Status}" Hex="{Binding StatusColor}" IsVisible="{Binding HasStatus}"
+                                           VerticalAlignment="Bottom" Margin="10,0,0,-12" />
+                          </Grid>
+                        </Button>
+                        <Button Grid.Row="1" Classes="cardBar" IsVisible="{Binding OpensGame}" AutomationProperties.Name="{Binding BarName}"
+                                ToolTip.Tip="{x:Static cat:CataloguePage.OpenInLibrary}"
+                                Command="{Binding $parent[UserControl].((cat:CataloguePageViewModel)DataContext).OpenPlayerGameCommand}"
+                                CommandParameter="{Binding}">
+                          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{x:Static loc:Strings.Catalogue_HaveGame}" VerticalAlignment="Center" />
+                            <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14"
+                                     Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                          </Grid>
+                        </Button>
+                        <Border Grid.Row="1" Padding="14,8,12,8" Background="#0AFFFFFF" BorderBrush="{StaticResource HairlineBrush}"
+                                BorderThickness="0,1,0,0" IsVisible="{Binding IsDetectedOnly}">
+                          <StackPanel Spacing="1">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center" />
+                              <TextBlock Text="{x:Static loc:Strings.Catalogue_HaveGame}" FontSize="13" FontWeight="SemiBold"
+                                         Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{x:Static loc:Strings.Catalogue_AwaitingProject}" FontSize="12" LineHeight="16"
+                                       Foreground="{StaticResource TextSecondaryBrush}" IsVisible="{Binding AwaitsProject}" />
+                          </StackPanel>
+                        </Border>
+                      </Grid>
+                    </Border>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <ui:EmptyState x:Name="Nothing" Icon="{Binding EmptyIcon}" Title="{Binding EmptyTitle}" Message="{Binding EmptyMessage}"
+                     IsVisible="{Binding ShowsEmptyState}" theme:Motion.Enter="True">
+        <Button x:Name="NothingAction" Classes="outline" Content="{Binding EmptyAction}"
+                IsVisible="{Binding EmptyAction, Converter={x:Static ObjectConverters.IsNotNull}}" Command="{Binding RunEmptyActionCommand}" />
+      </ui:EmptyState>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -94,6 +94,49 @@ public sealed class CatalogueListingTests : IDisposable
     }
 
     [Fact]
+    public void Counts_every_filter_with_the_others_applied_and_its_own_left_out()
+    {
+        var steam = new StorefrontPlatform { Uuid = Guid.NewGuid(), Name = "Steam" };
+        var gog = new StorefrontPlatform { Uuid = Guid.NewGuid(), Name = "GOG" };
+        var completed = new ProjectStatus { Uuid = Guid.NewGuid(), Name = "Completed" };
+        var translating = new ProjectStatus { Uuid = Guid.NewGuid(), Name = "Translating" };
+        var abandoned = new ProjectStatus { Uuid = Guid.NewGuid(), Name = "Abandoned", IsAbandoned = true };
+        var lantern = new TeamReference { Uuid = Guid.NewGuid(), Slug = "lantern", Name = "Lantern" };
+        var moth = new TeamReference { Uuid = Guid.NewGuid(), Slug = "moth", Name = "Moth" };
+        var mixed = Listed("Mixed", Project(status: completed, team: moth, store: gog), Project(status: translating, team: lantern, store: steam));
+        var listing = new CatalogueListing(DateTimeOffset.UnixEpoch,
+        [
+            Listed("Done", Project(status: completed, team: lantern, store: steam)),
+            mixed,
+            Listed("Started", Project(status: translating, team: moth, store: steam)),
+            Listed("Dropped", Project(status: abandoned, team: lantern, store: steam)),
+            new ListedGame(new GameSummary { Uuid = Guid.NewGuid(), Slug = "adult", Name = "Adult", IsAdult = true },
+                [Project(status: completed, team: lantern, store: steam)]),
+        ], new CatalogueReference());
+        var query = new CatalogueQuery { StatusUuid = completed.Uuid, TeamUuid = lantern.Uuid };
+
+        var facets = listing.Facets(query);
+
+        listing.Count(query).Should().Be(2);
+        facets.Statuses.Total.Should().Be(2, "with the team alone, two games have a project of it");
+        (facets.Statuses.CountOf(completed.Uuid), facets.Statuses.CountOf(translating.Uuid)).Should().Be((2, 1));
+        facets.Teams.Total.Should().Be(2, "two games have a completed project");
+        (facets.Teams.CountOf(lantern.Uuid), facets.Teams.CountOf(moth.Uuid)).Should().Be((2, 1));
+        (facets.Stores.CountOf(steam.Uuid), facets.Stores.CountOf(gog.Uuid)).Should().Be((1, 1), "only completed projects count for stores");
+        facets.Adult.Should().Be(1);
+        listing.Count(query, new HashSet<Guid> { mixed.Game.Uuid }).Should().Be(1);
+        listing.Facets(query, new HashSet<Guid> { mixed.Game.Uuid }).Teams.CountOf(lantern.Uuid).Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData("Łódź Café", "lodz caf", "Łódź,Caf")]
+    [InlineData("The Dark Pictures: Dark", "dark", "Dark,Dark")]
+    [InlineData("Saga 2", "aga ag", "aga")]
+    [InlineData("Starlight Harbor", "", "")]
+    public void Finds_what_to_highlight_where_the_search_matched(string text, string query, string expected) =>
+        string.Join(',', SearchText.Find(text, query).Select(part => text.Substring(part.Start, part.Length))).Should().Be(expected);
+
+    [Fact]
     public async Task Leaves_adult_games_out_unless_asked_for()
     {
         var listing = await _site.CrawlAsync();

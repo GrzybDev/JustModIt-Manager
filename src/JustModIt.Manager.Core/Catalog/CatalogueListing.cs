@@ -73,6 +73,42 @@ public sealed record CatalogueQuery
     public CatalogueOrder Order { get; init; }
 }
 
+/// <summary>How many games one value of a filter leaves.</summary>
+/// <param name="Id">The value, as a <see cref="CatalogueQuery"/> filters by it.</param>
+/// <param name="Count">The games it leaves.</param>
+public sealed record CatalogueCount(Guid Id, int Count);
+
+/// <summary>What one filter of a query offers, counted as the site's games directory counts it.</summary>
+/// <param name="Total">The games that fit the query without this filter.</param>
+/// <param name="Options">How many of them each value would leave; values none of them has are left out.</param>
+public sealed record CatalogueFacet(int Total, IReadOnlyList<CatalogueCount> Options)
+{
+    public static CatalogueFacet Empty { get; } = new(0, []);
+
+    /// <summary>How many games a value would leave; 0 for a value none of them has.</summary>
+    /// <param name="id">The value.</param>
+    public int CountOf(Guid id) => Options.FirstOrDefault(option => option.Id == id)?.Count ?? 0;
+}
+
+/// <summary>What each filter of a query offers: every filter counted with the others applied and its own left out.</summary>
+public sealed record CatalogueFacets
+{
+    public CatalogueFacet Statuses { get; init; } = CatalogueFacet.Empty;
+
+    public CatalogueFacet Types { get; init; } = CatalogueFacet.Empty;
+
+    public CatalogueFacet Stores { get; init; } = CatalogueFacet.Empty;
+
+    public CatalogueFacet Teams { get; init; } = CatalogueFacet.Empty;
+
+    public CatalogueFacet Platforms { get; init; } = CatalogueFacet.Empty;
+
+    public CatalogueFacet Genres { get; init; } = CatalogueFacet.Empty;
+
+    /// <summary>The adult games that would fit the query with adult content included.</summary>
+    public int Adult { get; init; }
+}
+
 /// <summary>
 /// The whole catalogue as the site lists it, for browsing and, since store ids live on the projects' storefront links,
 /// for finding a detected game's projects.
@@ -122,24 +158,12 @@ public sealed class CatalogueListing
     /// <summary>The listed games that fit the query, in the order it asks for.</summary>
     /// <param name="query">The text, filters and order the player chose.</param>
     /// <param name="names">Orders game names, in the app's language.</param>
-    public IReadOnlyList<ListedGame> Search(CatalogueQuery query, IComparer<string> names)
+    /// <param name="games">Only these games, e.g. those found on this computer; null for all of them.</param>
+    public IReadOnlyList<ListedGame> Search(CatalogueQuery query, IComparer<string> names, IReadOnlySet<Guid>? games = null)
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentNullException.ThrowIfNull(names);
-        var words = SearchText.Fold(query.Text).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        // Folded at the first search only, since the agent reads listings back to build the index, which never searches;
-        // two searches at once may both fold, which is harmless.
-        var texts = _searchTexts ??=
-        [
-            .. Games.Select(listed => new[] { SearchText.Fold(listed.Game.Name) }
-                .Concat(listed.Projects.SelectMany(project => new[] { SearchText.Fold(project.Name), SearchText.Fold(project.Team.Name) }))
-                .ToArray()),
-        ];
-        var found = Games
-            .Select((listed, index) => (Listed: listed, Texts: texts[index]))
-            .Where(candidate => words.All(word => candidate.Texts.Any(text => text.Contains(word, StringComparison.Ordinal))))
-            .Select(candidate => candidate.Listed)
-            .Where(listed => Fits(listed, query));
+        var found = Matching(query.Text, games).Where(listed => Fits(listed, query));
         return query.Order switch
         {
             CatalogueOrder.Popular => [.. found.OrderByDescending(listed => listed.Game.TotalDownloads ?? 0)
@@ -152,8 +176,76 @@ public sealed class CatalogueListing
         };
     }
 
+    /// <summary>How many listed games fit the query.</summary>
+    /// <param name="query">The text and filters the player chose.</param>
+    /// <param name="games">Only these games; null for all of them.</param>
+    public int Count(CatalogueQuery query, IReadOnlySet<Guid>? games = null)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        return Matching(query.Text, games).Count(listed => Fits(listed, query));
+    }
+
+    /// <summary>What each filter of the query offers among the games that match its text.</summary>
+    /// <param name="query">The text and filters the player chose.</param>
+    /// <param name="games">Only these games; null for all of them.</param>
+    public CatalogueFacets Facets(CatalogueQuery query, IReadOnlySet<Guid>? games = null)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var matching = Matching(query.Text, games).ToList();
+
+        CatalogueFacet Facet(CatalogueQuery without, Func<ListedGame, IEnumerable<Guid>> values)
+        {
+            var fitting = matching.Where(listed => Fits(listed, without)).ToList();
+            return new CatalogueFacet(fitting.Count,
+                [.. fitting.SelectMany(listed => values(listed).Distinct()).CountBy(id => id).Select(pair => new CatalogueCount(pair.Key, pair.Value))]);
+        }
+
+        var noStatus = query with { StatusUuid = null };
+        var noType = query with { TypeUuid = null };
+        var noStore = query with { StorefrontUuid = null };
+        return new CatalogueFacets
+        {
+            Statuses = Facet(noStatus, listed => CardProjects(listed, noStatus).Select(project => project.Status?.Uuid).OfType<Guid>()),
+            Types = Facet(noType, listed => CardProjects(listed, noType).SelectMany(project => project.Types.Select(type => type.Uuid))),
+            Stores = Facet(noStore, listed => CardProjects(listed, noStore)
+                .SelectMany(project => project.StorefrontLinks.Select(link => link.Platform?.Uuid).OfType<Guid>())),
+            Teams = Facet(query with { TeamUuid = null }, listed => listed.Projects.Where(IsListed).Select(project => project.Team.Uuid)),
+            Platforms = Facet(query with { PlatformUuid = null }, listed => listed.Game.Platform is { } platform ? [platform.Uuid] : []),
+            Genres = Facet(query with { GenreUuid = null }, listed => listed.Game.Genres.Select(genre => genre.Uuid)),
+            Adult = matching.Count(listed => listed.Game.IsAdult && Fits(listed, query with { IncludeAdult = true })),
+        };
+    }
+
+    /// <summary>The listed projects of a game that fit the query's status, type and store, which its card shows.</summary>
+    /// <param name="listed">The game with its projects.</param>
+    /// <param name="query">The filters the player chose.</param>
+    public static IEnumerable<ProjectSummary> CardProjects(ListedGame listed, CatalogueQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(listed);
+        ArgumentNullException.ThrowIfNull(query);
+        return listed.Projects.Where(project => IsListed(project)
+            && (query.StatusUuid is not { } status || project.Status?.Uuid == status)
+            && (query.TypeUuid is not { } type || project.Types.Any(candidate => candidate.Uuid == type))
+            && (query.StorefrontUuid is not { } store || project.StorefrontLinks.Any(link => link.Platform?.Uuid == store)));
+    }
+
     // The catalogue's lists leave abandoned projects out, though a game's own project list keeps them.
     private static bool IsListed(ProjectSummary project) => project.Status?.IsAbandoned != true;
+
+    private IEnumerable<ListedGame> Matching(string text, IReadOnlySet<Guid>? games)
+    {
+        var words = SearchText.Fold(text).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        // Folded at the first search only, since the agent reads listings back to build the index, which never searches;
+        // two searches at once may both fold, which is harmless.
+        var texts = _searchTexts ??=
+        [
+            .. Games.Select(listed => new[] { SearchText.Fold(listed.Game.Name) }
+                .Concat(listed.Projects.SelectMany(project => new[] { SearchText.Fold(project.Name), SearchText.Fold(project.Team.Name) }))
+                .ToArray()),
+        ];
+        return Games.Where((listed, index) => (games is null || games.Contains(listed.Game.Uuid))
+            && words.All(word => texts[index].Any(candidate => candidate.Contains(word, StringComparison.Ordinal))));
+    }
 
     private static bool Fits(ListedGame listed, CatalogueQuery query)
     {
@@ -164,10 +256,4 @@ public sealed class CatalogueListing
             && CardProjects(listed, query).Any()
             && (query.TeamUuid is not { } team || listed.Projects.Any(project => IsListed(project) && project.Team.Uuid == team));
     }
-
-    private static IEnumerable<ProjectSummary> CardProjects(ListedGame listed, CatalogueQuery query) =>
-        listed.Projects.Where(project => IsListed(project)
-            && (query.StatusUuid is not { } status || project.Status?.Uuid == status)
-            && (query.TypeUuid is not { } type || project.Types.Any(candidate => candidate.Uuid == type))
-            && (query.StorefrontUuid is not { } store || project.StorefrontLinks.Any(link => link.Platform?.Uuid == store)));
 }

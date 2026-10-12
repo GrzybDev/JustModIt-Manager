@@ -1,5 +1,6 @@
 using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Settings;
@@ -29,10 +30,9 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
     {
         GetProjectPage page => await GetProjectPageAsync(page, cancellationToken).ConfigureAwait(false),
         GetCataloguePage page => await GetCataloguePageAsync(page, cancellationToken).ConfigureAwait(false),
-        GetCatalogueFilters => new CatalogueFiltersResult(
-            await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false) is { } listing
-                ? CatalogueFiltersView.From(listing.Reference)
-                : new CatalogueFiltersView()),
+        GetCatalogueFilters => await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false) is { } listing
+            ? new CatalogueFiltersResult(CatalogueFiltersView.From(listing.Reference)) { Facets = listing.Facets(new CatalogueQuery()) }
+            : new CatalogueFiltersResult(new CatalogueFiltersView()),
         GetDetectionReport => new DetectionReportResult(DetectionReportView.From(DetectionReport.From(library.Snapshot),
             (await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false))?.Reference.StorefrontPlatforms ?? [])),
         GetLeftoverBackups => new LeftoverBackups(await engine.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false)),
@@ -78,8 +78,30 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
         {
             IncludeAdult = request.Query.IncludeAdult && settings.Current.IsAdultContentConfirmed(time.GetUtcNow()),
         };
-        var found = listing.Search(query, Text.Comparer);
+        var detected = Detected(listing);
+        var detectedGames = detected.Keys.ToHashSet();
+        var within = request.DetectedOnly ? detectedGames : null;
+        var found = listing.Search(query, Text.Comparer, within);
         var slice = found.Skip(Math.Max(0, request.Offset)).Take(Math.Clamp(request.Count, 0, MaxCataloguePage));
-        return new CataloguePageResult(found.Count, [.. slice.Select(CatalogueGameView.From)], listing.FetchedAt);
+        return new CataloguePageResult(found.Count, [.. slice.Select(listed => CatalogueGameView.From(listed with
+        {
+            Projects = [.. CatalogueListing.CardProjects(listed, query)],
+        }) with
+        {
+            Detected = detected.GetValueOrDefault(listed.Game.Uuid, []),
+        })], listing.FetchedAt)
+        {
+            Facets = listing.Facets(query, within),
+            Detected = listing.Count(query, detectedGames),
+            Unfiltered = listing.Count(new CatalogueQuery { Text = query.Text }),
+        };
     }
+
+    // The catalogue's games that the stores found on this computer, by the store ids their projects link to.
+    private Dictionary<Guid, GameKey[]> Detected(CatalogueListing listing) =>
+        library.Snapshot.Games.Keys
+            .SelectMany(key => listing.Find(key).Select(listed => (listed.Game.Uuid, Key: key)).Distinct())
+            .GroupBy(match => match.Uuid)
+            .ToDictionary(group => group.Key,
+                group => group.Select(match => match.Key).OrderBy(key => key.ToString(), StringComparer.Ordinal).ToArray());
 }

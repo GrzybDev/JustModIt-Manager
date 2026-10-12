@@ -104,6 +104,11 @@ public sealed record ProjectStatusView(Guid Id, string Name)
 
     public bool ShowsProgress { get; init; }
 
+    /// <summary>
+    /// The status keeps releases from the public, as while work has not started or once the game's makers ship the work.
+    /// </summary>
+    public bool HoldsReleasesBack { get; init; }
+
     /// <summary>Maps a project's status.</summary>
     /// <param name="status">The status as the site defines it.</param>
     public static ProjectStatusView From(ProjectStatus status)
@@ -115,6 +120,7 @@ public sealed record ProjectStatusView(Guid Id, string Name)
             IsCompleted = status.IsCompleted,
             IsAbandoned = status.IsAbandoned,
             ShowsProgress = status.ShowsProgress,
+            HoldsReleasesBack = !status.AllowsPublicReleases,
         };
     }
 }

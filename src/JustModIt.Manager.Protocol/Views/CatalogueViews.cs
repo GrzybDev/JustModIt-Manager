@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Games;
 
 namespace JustModIt.Manager.Protocol.Views;
 
@@ -26,6 +27,9 @@ public sealed record CatalogueGameView(Guid Id, string Slug, string Name)
     public string LatestReleaseVersion { get; init; } = "";
 
     public IReadOnlyList<CatalogueProjectView> Projects { get; init; } = [];
+
+    /// <summary>The games found on this computer that are this game, one per store; empty when none is.</summary>
+    public IReadOnlyList<GameKey> Detected { get; init; } = [];
 
     /// <summary>Maps a game of the catalogue's listing.</summary>
     /// <param name="listed">The game with its listed projects.</param>
@@ -60,6 +64,12 @@ public sealed record CatalogueProjectView(Guid Id, string Slug, string Name, Tea
 
     public DateTimeOffset? UpdatedAt { get; init; }
 
+    /// <summary>When the project first went public.</summary>
+    public DateTimeOffset? FirstPublishedAt { get; init; }
+
+    /// <inheritdoc cref="ProjectSummary.CompletedAt"/>
+    public DateOnly? CompletedAt { get; init; }
+
     /// <summary>Maps a project of the catalogue's listing.</summary>
     /// <param name="project">The project as the games list shows it.</param>
     public static CatalogueProjectView From(ProjectSummary project)
@@ -72,6 +82,8 @@ public sealed record CatalogueProjectView(Guid Id, string Slug, string Name, Tea
             Summary = project.Summary,
             Progress = project.PrimaryProgress?.Percentage,
             UpdatedAt = project.UpdatedAt,
+            FirstPublishedAt = project.FirstPublishedAt,
+            CompletedAt = project.CompletedAt,
         };
     }
 }
@@ -79,7 +91,14 @@ public sealed record CatalogueProjectView(Guid Id, string Slug, string Name, Tea
 /// <summary>A value one of the catalogue's filters offers.</summary>
 /// <param name="Id">What a <see cref="CatalogueQuery"/> filters by.</param>
 /// <param name="Name">The value's name in the site's language.</param>
-public sealed record CatalogueOptionView(Guid Id, string Name);
+public sealed record CatalogueOptionView(Guid Id, string Name)
+{
+    /// <summary>The site's colour for a status, as <c>#rrggbb</c>; empty for none.</summary>
+    public string Color { get; init; } = "";
+
+    /// <summary>A team's avatar; empty for none.</summary>
+    public string Avatar { get; init; } = "";
+}
 
 /// <summary>The values the catalogue's filters offer, in the order the site lists them: higher positions first.</summary>
 public sealed record CatalogueFiltersView
@@ -96,7 +115,10 @@ public sealed record CatalogueFiltersView
 
     public IReadOnlyList<CatalogueOptionView> Teams { get; init; } = [];
 
-    /// <summary>Maps the site's lists of platforms, genres, statuses, types, stores and teams.</summary>
+    /// <summary>
+    /// Maps the site's lists of platforms, genres, statuses, types, stores and teams, leaving out what never narrows the
+    /// catalogue, as the site does: the abandoned statuses, which no listed project has, and the usual type.
+    /// </summary>
     /// <param name="reference">The lists the catalogue's listing holds.</param>
     public static CatalogueFiltersView From(CatalogueReference reference)
     {
@@ -105,10 +127,13 @@ public sealed record CatalogueFiltersView
         {
             Platforms = [.. reference.Platforms.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
             Genres = [.. reference.Genres.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
-            Statuses = [.. reference.Statuses.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
-            Types = [.. reference.Types.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
+            Statuses =
+            [
+                .. reference.Statuses.Where(item => !item.IsAbandoned).Select(item => new CatalogueOptionView(item.Uuid, item.Name) { Color = item.Color }),
+            ],
+            Types = [.. reference.Types.Where(item => !item.IsDefault).Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
             Stores = [.. reference.StorefrontPlatforms.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
-            Teams = [.. reference.Teams.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],
+            Teams = [.. reference.Teams.Select(item => new CatalogueOptionView(item.Uuid, item.Name) { Avatar = item.Avatar })],
         };
     }
 }

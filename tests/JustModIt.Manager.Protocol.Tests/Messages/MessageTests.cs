@@ -78,15 +78,27 @@ public sealed class MessageTests
             Error = CatalogueErrorReason.Offline,
         },
         new ProjectPageResult { IsGone = true },
-        new GetCataloguePage(new CatalogueQuery { Text = "example", IncludeAdult = true, Order = CatalogueOrder.Popular }, 0, 50),
+        new GetCataloguePage(new CatalogueQuery { Text = "example", IncludeAdult = true, Order = CatalogueOrder.Popular }, 0, 50, DetectedOnly: true),
         new CataloguePageResult(1,
         [
             new CatalogueGameView(Guid.Parse("66666666-0000-4000-8000-000000000001"), "example-game", "Example Game")
             {
                 Genres = ["Adventure"],
-                Projects = [new CatalogueProjectView(Project, "example-project", "Example Project", new TeamView(Guid.Empty, "lantern-team", "Lantern Team"))],
+                Projects =
+                [
+                    new CatalogueProjectView(Project, "example-project", "Example Project", new TeamView(Guid.Empty, "lantern-team", "Lantern Team"))
+                    {
+                        CompletedAt = new DateOnly(2026, 8, 4),
+                    },
+                ],
+                Detected = [Game],
             },
-        ], Now),
+        ], Now)
+        {
+            Facets = new CatalogueFacets { Statuses = new CatalogueFacet(1, [new CatalogueCount(Project, 1)]), Adult = 2 },
+            Detected = 1,
+            Unfiltered = 3,
+        },
         new GetCatalogueFilters(),
         new CatalogueFiltersResult(new CatalogueFiltersView { Genres = [new CatalogueOptionView(Guid.Empty, "Adventure")] }),
         new GetDetectionReport(),

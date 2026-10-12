@@ -401,18 +401,18 @@
 
         <!-- The grid lies out in rows, so the list virtualises; cards of a row enter one after another. -->
         <ItemsControl x:Name="GameGrid" ItemsSource="{Binding Rows}" IsVisible="{Binding ShowsGames}"
-                      KeyDown="OnGridKeyDown" theme:Motion.Stagger="True">
+                      theme:Motion.Stagger="True">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <VirtualizingStackPanel />
+              <VirtualizingStackPanel CacheLength="1" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="lib:CardRow">
+            <DataTemplate x:DataType="ui:CardRow">
               <ItemsControl ItemsSource="{Binding Items}" Margin="0,0,0,24" theme:Motion.Stagger="True">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
-                    <UniformGrid x:DataType="lib:CardRow" Columns="{Binding Columns}" ColumnSpacing="24" />
+                    <UniformGrid x:DataType="ui:CardRow" Columns="{Binding Columns}" ColumnSpacing="24" />
                   </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.DataTemplates>
