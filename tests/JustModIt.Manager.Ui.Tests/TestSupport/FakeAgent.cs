@@ -13,6 +13,8 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
 {
     public event EventHandler<IReadOnlyList<JobView>>? JobsProgressed;
 
+    public event EventHandler<JobEnded>? JobEnded;
+
     public event EventHandler<NoticeView>? Noticed;
 
     public event EventHandler<NavigationTarget>? NavigationRequested;
@@ -46,6 +48,8 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
     }
 
     public void Progress(params JobView[] jobs) => JobsProgressed?.Invoke(this, jobs);
+
+    public void End(JobEnded ended) => JobEnded?.Invoke(this, ended);
 
     public void Notice(NoticeView notice) => Noticed?.Invoke(this, notice);
 

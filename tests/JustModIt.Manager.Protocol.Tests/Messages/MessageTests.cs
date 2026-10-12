@@ -29,6 +29,8 @@ public sealed class MessageTests
         new StateChanged(AppStateView.From(3, State, Settings, new SiteConfiguration { Name = "Example Site" }, new ActivityView(),
             new AppUpdateView { State = AppUpdateState.Downloading, Version = "1.1.0", Progress = 40 })),
         new JobProgress([JobView.From(RunningJob)]),
+        new JobEnded(JobView.From(RunningJob), JobOutcome.Failed,
+            JobFailureView.From(new JobFailure(JobFailureReason.GameRunning) { Processes = ["example.exe"] })),
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.Failed)
         {
             Game = Game,

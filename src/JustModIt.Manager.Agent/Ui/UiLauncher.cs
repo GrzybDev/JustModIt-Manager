@@ -57,10 +57,10 @@ public sealed partial class UiLauncher : IDisposable
     private DateTimeOffset? _startedAt;
     private bool _isActive;
 
-    /// <summary>Creates the launcher, which forwards every snapshot and job progress to the window from then on.</summary>
+    /// <summary>Creates the launcher, which forwards every snapshot, job progress and job end to the window from then on.</summary>
     /// <param name="starter">Starts the window's process.</param>
     /// <param name="foreground">Lets the window take the foreground.</param>
-    /// <param name="publisher">The snapshots and job progress to forward.</param>
+    /// <param name="publisher">The snapshots, job progress and job ends to forward.</param>
     /// <param name="time">Times how long a started window has to connect.</param>
     /// <param name="logger">Receives the window's starts, connections and closes.</param>
     public UiLauncher(IUiStarter starter, IForegroundHandoff foreground, StatePublisher publisher, TimeProvider time,
@@ -78,6 +78,7 @@ public sealed partial class UiLauncher : IDisposable
         _logger = logger;
         _publisher.Published += OnPublished;
         _publisher.JobsProgressed += OnJobsProgressed;
+        _publisher.JobEnded += OnJobEnded;
     }
 
     /// <summary>The player closed the window; not raised when the agent asked it to close.</summary>
@@ -203,6 +204,7 @@ public sealed partial class UiLauncher : IDisposable
     {
         _publisher.Published -= OnPublished;
         _publisher.JobsProgressed -= OnJobsProgressed;
+        _publisher.JobEnded -= OnJobEnded;
     }
 
     /// <summary>Takes a new window, which gets the newest snapshot at once, then the page that waited for it.</summary>
@@ -284,6 +286,8 @@ public sealed partial class UiLauncher : IDisposable
     }
 
     private void OnPublished(object? sender, AppStateView state) => SendToWindow(new StateChanged(state));
+
+    private void OnJobEnded(object? sender, JobEnded ended) => SendToWindow(ended);
 
     // The publisher gathers reports and sends them at its own pace, so one may come after the state that ended its job or
     // moved it on. The newest state, read under the lock that orders what the window gets, tells which are still news.

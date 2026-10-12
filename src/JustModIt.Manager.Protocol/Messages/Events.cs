@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Protocol.Messages;
@@ -9,6 +10,15 @@ public sealed record StateChanged(AppStateView State) : Message;
 /// <summary>How far the running jobs are, between state changes, at most about ten times a second.</summary>
 /// <param name="Jobs">The jobs whose progress moved since the last time.</param>
 public sealed record JobProgress(IReadOnlyList<JobView> Jobs) : Message;
+
+/// <summary>
+/// A job ended, sent once for each: unlike the coalesced state, it also tells of a job that ended before any state listed
+/// it, and why it failed when no game in the player's list keeps the failure.
+/// </summary>
+/// <param name="Job">The job's last snapshot.</param>
+/// <param name="Outcome">How it ended.</param>
+/// <param name="Failure">Why it failed; null for any other end.</param>
+public sealed record JobEnded(JobView Job, JobOutcome Outcome, JobFailureView? Failure = null) : Message;
 
 /// <summary>A notice for the window to show while it is in front; otherwise the agent shows it from the tray.</summary>
 /// <param name="Notice">What the automation did or found.</param>

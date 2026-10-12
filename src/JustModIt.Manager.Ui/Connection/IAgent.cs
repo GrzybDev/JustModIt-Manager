@@ -45,6 +45,9 @@ public interface IAgent : INotifyPropertyChanged
     /// </summary>
     event EventHandler<IReadOnlyList<JobView>>? JobsProgressed;
 
+    /// <summary>A job ended, with how; it may come before or after the state that no longer lists the job.</summary>
+    event EventHandler<JobEnded>? JobEnded;
+
     /// <summary>The automation did or found something, to show while the window is in front.</summary>
     event EventHandler<NoticeView>? Noticed;
 

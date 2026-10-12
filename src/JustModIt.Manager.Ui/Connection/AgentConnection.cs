@@ -41,6 +41,7 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
         [
             _client.Subscribe<StateChanged>(OnStateChanged),
             _client.Subscribe<JobProgress>(OnJobProgress),
+            _client.Subscribe<JobEnded>(ended => Dispatcher.UIThread.Post(() => JobEnded?.Invoke(this, ended))),
             _client.Subscribe<Notify>(notify => Dispatcher.UIThread.Post(() => Noticed?.Invoke(this, notify.Notice))),
             _client.Subscribe<Navigate>(navigate => Dispatcher.UIThread.Post(() => NavigationRequested?.Invoke(this, navigate.Target))),
             _client.Subscribe<BringToFront>(_ => Dispatcher.UIThread.Post(() => BringToFrontRequested?.Invoke(this, EventArgs.Empty))),
@@ -49,6 +50,8 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
     }
 
     public event EventHandler<IReadOnlyList<JobView>>? JobsProgressed;
+
+    public event EventHandler<JobEnded>? JobEnded;
 
     public event EventHandler<NoticeView>? Noticed;
 

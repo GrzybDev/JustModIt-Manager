@@ -4,6 +4,7 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using Microsoft.Extensions.Logging;
 
@@ -11,14 +12,14 @@ namespace JustModIt.Manager.Agent.Ipc;
 
 /// <summary>
 /// Turns changes of the engine's state, the settings, the catalogue and the agent's status into whole snapshots for the
-/// window and the tray, folding those that arrive meanwhile into the next one, and job progress out at most ten times a
-/// second.
+/// window and the tray, folding those that arrive meanwhile into the next one, job progress out at most ten times a
+/// second, and how each job ended.
 /// </summary>
 /// <param name="coordinator">The engine's state.</param>
 /// <param name="settings">The settings, part of every snapshot.</param>
 /// <param name="catalogue">The catalogue, whose site facts every snapshot carries.</param>
 /// <param name="status">The agent's activity and update status.</param>
-/// <param name="jobs">Reports the jobs' progress.</param>
+/// <param name="jobs">Reports the jobs' progress and ends.</param>
 /// <param name="time">Spaces the progress reports.</param>
 /// <param name="logger">Receives failed listeners.</param>
 public sealed partial class StatePublisher(StateCoordinator coordinator, ISettingsService settings, ICatalogue catalogue,
@@ -46,6 +47,9 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
     /// <summary>Raised with the running jobs whose progress moved since the last time; handlers must return quickly.</summary>
     public event EventHandler<IReadOnlyList<JobView>>? JobsProgressed;
 
+    /// <summary>Raised on the job's thread once for every job that ended; handlers must return quickly.</summary>
+    public event EventHandler<JobEnded>? JobEnded;
+
     public AppStateView Latest => Volatile.Read(ref _latest);
 
     /// <summary>Publishes snapshots and job progress until the agent stops.</summary>
@@ -56,6 +60,7 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
         catalogue.Changed += OnChanged;
         status.Changed += OnChanged;
         jobs.Progressed += OnProgressed;
+        jobs.Finished += OnFinished;
         try
         {
             await Task.WhenAll(WatchCoordinatorAsync(cancellationToken), PublishAsync(cancellationToken), SendProgressAsync(cancellationToken))
@@ -67,6 +72,7 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
             catalogue.Changed -= OnChanged;
             status.Changed -= OnChanged;
             jobs.Progressed -= OnProgressed;
+            jobs.Finished -= OnFinished;
         }
     }
 
@@ -124,6 +130,10 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
 
         _progressed.Writer.TryWrite(true);
     }
+
+    private void OnFinished(object? sender, JobResult result) =>
+        EventRaising.RaiseEach(JobEnded, this, new JobEnded(JobView.From(result.Job), result.Outcome,
+            result.Failure is { } failure ? JobFailureView.From(failure) : null), LogListenerFailed);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "A listener of the app state failed")]
     private partial void LogListenerFailed(Exception exception);
