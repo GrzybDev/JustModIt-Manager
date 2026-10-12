@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:JustModIt.Manager.Ui.Pages.Settings"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:md="using:JustModIt.Manager.Ui.Controls.Markdown"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Settings.ReleaseNotesDialogView"
+             x:DataType="settings:ReleaseNotesDialogViewModel">
+  <Border Classes="dialog" Width="560" AutomationProperties.Name="{Binding Title}">
+    <StackPanel Spacing="20">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+        <Border Classes="iconChip accent" VerticalAlignment="Center">
+          <ui:Icon Data="{x:Static theme:Icons.Sparkles}" />
+        </Border>
+        <TextBlock Grid.Column="1" Classes="dialogTitle" Text="{Binding Title}" VerticalAlignment="Center" />
+      </Grid>
+      <ScrollViewer MaxHeight="380" HorizontalScrollBarVisibility="Disabled">
+        <md:MarkdownView x:Name="Notes" Classes="compact" Margin="0,0,12,0" Document="{Binding Notes}"
+                         LinkCommand="{Binding OpenLinkCommand}" />
+      </ScrollViewer>
+      <Button x:Name="CloseNotes" Classes="outline" HorizontalAlignment="Right" Content="{x:Static loc:Strings.Shell_Close}"
+              Command="{Binding CloseCommand}" />
+    </StackPanel>
+  </Border>
+</UserControl>

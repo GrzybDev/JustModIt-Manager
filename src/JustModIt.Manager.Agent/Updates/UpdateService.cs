@@ -64,7 +64,7 @@ public sealed partial class UpdateService(
     public bool ApplyPending(LaunchArguments start)
     {
         ArgumentNullException.ThrowIfNull(start);
-        if (Pending() is not { } version)
+        if (Pending() is not { } pending)
         {
             return false;
         }
@@ -72,12 +72,12 @@ public sealed partial class UpdateService(
         // The updater starts the old version again when applying fails, so applying at every start would never end.
         if (options.RestartedByUpdater)
         {
-            LogPendingAfterRestart(version);
-            _failedVersion = version;
+            LogPendingAfterRestart(pending.Version);
+            _failedVersion = pending.Version;
             return false;
         }
 
-        LogApplyingPending(version);
+        LogApplyingPending(pending.Version);
         return Apply(start.ToArgs(links));
     }
 
@@ -93,7 +93,7 @@ public sealed partial class UpdateService(
         // A check the player asked for may already have run, since the tray and the pipe work before this starts.
         status.ChangeUpdate(update => update.State != AppUpdateState.Unavailable ? update
             : pending is null ? update with { State = AppUpdateState.Idle }
-            : update with { State = AppUpdateState.Ready, Version = pending });
+            : update with { State = AppUpdateState.Ready, Version = pending.Version, ReleaseNotes = pending.Notes });
         jobs.Finished += OnJobFinished;
         ui.Closed += OnWindowClosed;
         using var stopping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stopping.Token);
@@ -180,25 +180,44 @@ public sealed partial class UpdateService(
             }
 
             status.ChangeUpdate(update => update with { State = AppUpdateState.Checking });
-            var version = await updater.CheckAsync(_stopping.Token).ConfigureAwait(false);
+            var release = await updater.CheckAsync(_stopping.Token).ConfigureAwait(false);
             var now = time.GetUtcNow();
-            if (version is null)
+            if (release is null)
             {
-                status.ChangeUpdate(update => update with { State = AppUpdateState.UpToDate, Version = null, CheckedAt = now });
+                status.ChangeUpdate(update => update with
+                {
+                    State = AppUpdateState.UpToDate,
+                    Version = null,
+                    ReleaseNotes = null,
+                    CheckedAt = now,
+                });
                 return true;
             }
 
             if (!userAsked && !settings.Current.AutoUpdateApp)
             {
-                status.ChangeUpdate(update => update with { State = AppUpdateState.Available, Version = version, CheckedAt = now });
+                status.ChangeUpdate(update => update with
+                {
+                    State = AppUpdateState.Available,
+                    Version = release.Version,
+                    ReleaseNotes = release.Notes,
+                    CheckedAt = now,
+                });
                 return true;
             }
 
-            status.ChangeUpdate(update => update with { State = AppUpdateState.Downloading, Version = version, Progress = 0, CheckedAt = now });
+            status.ChangeUpdate(update => update with
+            {
+                State = AppUpdateState.Downloading,
+                Version = release.Version,
+                ReleaseNotes = release.Notes,
+                Progress = 0,
+                CheckedAt = now,
+            });
             await updater.DownloadAsync(percent => status.ChangeUpdate(update => update with { Progress = percent }), _stopping.Token)
                 .ConfigureAwait(false);
             status.ChangeUpdate(update => update with { State = AppUpdateState.Ready, Progress = null });
-            LogDownloaded(version);
+            LogDownloaded(release.Version);
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
         {
@@ -241,11 +260,11 @@ public sealed partial class UpdateService(
     }
 
     // Null also when the updater cannot tell, since a broken updater must not keep the app from starting.
-    private string? Pending()
+    private AppRelease? Pending()
     {
         try
         {
-            return updater.IsSupported ? updater.PendingVersion : null;
+            return updater.IsSupported ? updater.Pending : null;
         }
         catch (Exception exception)
         {

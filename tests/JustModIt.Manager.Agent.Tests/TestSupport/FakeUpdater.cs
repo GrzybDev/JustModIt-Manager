@@ -16,6 +16,11 @@ internal sealed class FakeUpdater : IAppUpdater
         set => _pendingVersion = value;
     }
 
+    public AppRelease? Pending => PendingVersion is { } version ? new AppRelease(version, Notes) : null;
+
+    /// <summary>The release notes every release of the test carries.</summary>
+    public string? Notes { get; init; }
+
     /// <summary>Reading what was downloaded fails, like a locked packages folder.</summary>
     public bool PendingUnreadable { get; init; }
 
@@ -33,7 +38,7 @@ internal sealed class FakeUpdater : IAppUpdater
 
     public TaskCompletionSource FirstCheckStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public async Task<string?> CheckAsync(CancellationToken cancellationToken)
+    public async Task<AppRelease?> CheckAsync(CancellationToken cancellationToken)
     {
         if (Interlocked.Increment(ref _checks) == 1 && SlowFirstCheck is { } slow)
         {
@@ -41,7 +46,8 @@ internal sealed class FakeUpdater : IAppUpdater
             await slow.Task.WaitAsync(cancellationToken);
         }
 
-        return CheckFails ? throw new HttpRequestException("The test feed is offline.") : Newest;
+        return CheckFails ? throw new HttpRequestException("The test feed is offline.")
+            : Newest is { } newest ? new AppRelease(newest, Notes) : null;
     }
 
     public Task DownloadAsync(Action<int> progress, CancellationToken cancellationToken)

@@ -12,5 +12,6 @@ internal static class SettingsScreen
         ArgumentNullException.ThrowIfNull(ui);
         ui.Pages.Register<SettingsRoute>((_, services) => new SettingsPageViewModel(services));
         ui.Views.Register<SettingsPageViewModel>(() => new SettingsPage());
+        ui.Views.Register<ReleaseNotesDialogViewModel>(() => new ReleaseNotesDialogView());
     }
 }

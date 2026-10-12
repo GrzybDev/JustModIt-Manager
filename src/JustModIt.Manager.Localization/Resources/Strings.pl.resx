@@ -2073,6 +2073,9 @@
   <data name="Settings_UpdateUnavailable" xml:space="preserve">
     <value>Ta kopia aplikacji nie aktualizuje się sama.</value>
   </data>
+  <data name="Settings_WhatsNew" xml:space="preserve">
+    <value>Co nowego w {version}</value>
+  </data>
   <data name="Settings_CheckUpdates" xml:space="preserve">
     <value>Sprawdź aktualizacje</value>
   </data>

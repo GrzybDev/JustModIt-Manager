@@ -395,6 +395,9 @@
                 </StackPanel>
                 <ui:StatusLine x:Name="UpdateStatus" Icon="{Binding UpdateIcon}" Tone="{Binding UpdateTone}" Detail="{Binding UpdateText}"
                                IsBusy="{Binding IsUpdateBusy}" FontSize="13" Foreground="{StaticResource TextBodyBrush}" />
+                <Button x:Name="WhatsNew" Classes="link" FontSize="13" FontWeight="SemiBold" Margin="24,0,0,0" HorizontalAlignment="Left"
+                        Foreground="{StaticResource TextBrush}" Content="{Binding WhatsNewText}" Command="{Binding ShowReleaseNotesCommand}"
+                        IsVisible="{Binding HasReleaseNotes}" />
                 <ProgressBar Classes="thin" Minimum="0" Maximum="100" Value="{Binding UpdateProgress}" MaxWidth="400" HorizontalAlignment="Stretch"
                              IsVisible="{Binding ShowsUpdateProgress}" AutomationProperties.Name="{Binding UpdateText}" Margin="20,2,0,0" />
               </StackPanel>

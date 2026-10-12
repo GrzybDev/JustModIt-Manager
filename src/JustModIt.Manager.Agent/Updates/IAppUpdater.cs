@@ -3,6 +3,11 @@ using Velopack.Sources;
 
 namespace JustModIt.Manager.Agent.Updates;
 
+/// <summary>A version of the app on its update feed.</summary>
+/// <param name="Version">The version.</param>
+/// <param name="Notes">What it changes, in Markdown, as it was packed with it; null when it carries no notes.</param>
+public sealed record AppRelease(string Version, string? Notes);
+
 /// <summary>Where the app's own updates come from and how they are applied.</summary>
 public interface IAppUpdater
 {
@@ -10,12 +15,12 @@ public interface IAppUpdater
     bool IsSupported { get; }
 
     /// <summary>A version downloaded earlier that was not applied yet.</summary>
-    string? PendingVersion { get; }
+    AppRelease? Pending { get; }
 
     /// <summary>Looks for a newer version on the feed.</summary>
     /// <param name="cancellationToken">Stops waiting for the feed.</param>
     /// <returns>The newer version, or null when this is the newest.</returns>
-    Task<string?> CheckAsync(CancellationToken cancellationToken);
+    Task<AppRelease?> CheckAsync(CancellationToken cancellationToken);
 
     /// <summary>Downloads the version <see cref="CheckAsync"/> found.</summary>
     /// <param name="progress">Receives the percentage done.</param>
@@ -51,12 +56,12 @@ internal sealed class VelopackUpdater : IAppUpdater
 
     public bool IsSupported => _manager is not null;
 
-    public string? PendingVersion => _manager?.UpdatePendingRestart?.Version.ToString();
+    public AppRelease? Pending => _manager?.UpdatePendingRestart is { } pending ? Release(pending) : null;
 
-    public async Task<string?> CheckAsync(CancellationToken cancellationToken)
+    public async Task<AppRelease?> CheckAsync(CancellationToken cancellationToken)
     {
         _found = await Manager.CheckForUpdatesAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
-        return _found?.TargetFullRelease.Version.ToString();
+        return _found is null ? null : Release(_found.TargetFullRelease);
     }
 
     public Task DownloadAsync(Action<int> progress, CancellationToken cancellationToken) =>
@@ -67,4 +72,7 @@ internal sealed class VelopackUpdater : IAppUpdater
         Manager.WaitExitThenApplyUpdates(Manager.UpdatePendingRestart, silent: true, restart: true, [.. restartArgs]);
 
     private UpdateManager Manager => _manager ?? throw new InvalidOperationException("This copy of the app cannot update itself.");
+
+    private static AppRelease Release(VelopackAsset asset) =>
+        new(asset.Version.ToString(), string.IsNullOrWhiteSpace(asset.NotesMarkdown) ? null : asset.NotesMarkdown);
 }

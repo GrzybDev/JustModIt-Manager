@@ -14,6 +14,8 @@ namespace JustModIt.Manager.Agent.Tests.Updates;
 
 public sealed class UpdateServiceTests : IAsyncDisposable
 {
+    private const string ReleaseNotes = "## What's new\n\n- The settings show the app's data.";
+
     private static readonly UpdateSchedule Soon = new(_ => TimeSpan.FromMilliseconds(10), TimeSpan.FromHours(4), TimeSpan.FromHours(1));
 
     private readonly FakeUpdater _updater;
@@ -61,23 +63,23 @@ public sealed class UpdateServiceTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task An_update_waits_for_the_window_to_close()
+    public async Task An_update_waits_for_the_window_to_close_which_gets_the_notes_it_carries()
     {
-        await using var agent = Harness(_updater, Soon with { FirstCheck = _ => System.Threading.Timeout.InfiniteTimeSpan });
-        _updater.Newest = "1.1.0";
+        var updater = new FakeUpdater { Newest = "1.1.0", Notes = ReleaseNotes };
+        await using var agent = Harness(updater, Soon with { FirstCheck = _ => System.Threading.Timeout.InfiniteTimeSpan });
         agent.Start();
         var window = await agent.ConnectWindowAsync();
         await window.RequestAsync(new CheckNow());
 
         var ready = await window.StateAsync(state => state.Update.State == AppUpdateState.Ready);
 
-        ready.Update.Version.Should().Be("1.1.0");
+        ready.Update.Should().Match<AppUpdateView>(update => update.Version == "1.1.0" && update.ReleaseNotes == ReleaseNotes);
         await Eventually.HoldsAsync(() => agent.Tray.Menu.Any(item => item.Command == TrayCommands.RestartToUpdate));
         await Task.Delay(200, AgentHarness.Token);
-        _updater.Applied.Task.IsCompleted.Should().BeFalse();
+        updater.Applied.Task.IsCompleted.Should().BeFalse();
 
         await window.Connection.DisposeAsync();
-        (await _updater.Applied.Task.WaitAsync(Timeout, AgentHarness.Token)).Should().Equal("--background");
+        (await updater.Applied.Task.WaitAsync(Timeout, AgentHarness.Token)).Should().Equal("--background");
     }
 
     [Fact]
@@ -246,17 +248,19 @@ public sealed class UpdateServiceTests : IAsyncDisposable
     [Fact]
     public async Task An_update_the_updater_failed_to_apply_waits_for_the_player_instead_of_restarting_again()
     {
-        _updater.PendingVersion = "1.1.0";
-        _agent.Options = _agent.Options with { RestartedByUpdater = true };
-        _agent.Start();
+        var updater = new FakeUpdater { PendingVersion = "1.1.0", Notes = ReleaseNotes };
+        await using var agent = Harness(updater, Soon);
+        agent.Options = agent.Options with { RestartedByUpdater = true };
+        agent.Start();
 
-        await Eventually.HoldsAsync(() => _agent.Tray.Menu.Any(item => item.Command == TrayCommands.RestartToUpdate));
+        await Eventually.HoldsAsync(() => agent.Tray.Menu.Any(item => item.Command == TrayCommands.RestartToUpdate));
         await Task.Delay(200, AgentHarness.Token);
-        _updater.Applied.Task.IsCompleted.Should().BeFalse();
-        _updater.Checks.Should().Be(0, "an update downloaded earlier is ready without looking again");
+        updater.Applied.Task.IsCompleted.Should().BeFalse();
+        updater.Checks.Should().Be(0, "an update downloaded earlier is ready without looking again");
+        (await agent.ServiceAsync<AgentStatus>()).Update.ReleaseNotes.Should().Be(ReleaseNotes, "its notes came with it");
 
-        _agent.Tray.Pick(TrayCommands.RestartToUpdate);
-        (await _updater.Applied.Task.WaitAsync(Timeout, AgentHarness.Token)).Should().BeEmpty();
+        agent.Tray.Pick(TrayCommands.RestartToUpdate);
+        (await updater.Applied.Task.WaitAsync(Timeout, AgentHarness.Token)).Should().BeEmpty();
     }
 
     [Fact]

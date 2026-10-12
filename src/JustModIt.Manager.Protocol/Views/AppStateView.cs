@@ -157,6 +157,9 @@ public sealed record AppUpdateView
     /// <summary>The version found, being downloaded or ready.</summary>
     public string? Version { get; init; }
 
+    /// <summary>What <see cref="Version"/> changes, in Markdown, as the update carries it; null when it carries no notes.</summary>
+    public string? ReleaseNotes { get; init; }
+
     /// <summary>From 0 to 100 while downloading.</summary>
     public int? Progress { get; init; }
 

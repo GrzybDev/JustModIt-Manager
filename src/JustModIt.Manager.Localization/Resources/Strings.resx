@@ -2085,6 +2085,9 @@
   <data name="Settings_UpdateUnavailable" xml:space="preserve">
     <value>This copy of the app does not update itself.</value>
   </data>
+  <data name="Settings_WhatsNew" xml:space="preserve">
+    <value>What's new in {version}</value>
+  </data>
   <data name="Settings_CheckUpdates" xml:space="preserve">
     <value>Check for updates</value>
   </data>

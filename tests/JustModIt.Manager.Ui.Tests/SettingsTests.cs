@@ -15,6 +15,7 @@ using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Controls.Markdown;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Settings;
@@ -487,6 +488,34 @@ public sealed class SettingsTests
         using var ui = await OpenAsync(state);
         ui.Find<TextBlock>("AboutApp").Text.Should().Be(TestApp.PolishApp()[nameof(Strings.Settings_AboutText)])
             .And.NotBe(shared[nameof(Strings.Settings_AboutText)], "an app may say whose it is in texts of its own");
+    }
+
+    [AvaloniaFact]
+    public async Task A_ready_update_shows_what_it_changes_in_a_dialog_from_the_notes_it_carries()
+    {
+        const string notes = "## Nowe funkcje\n\n- Ustawienia pokazują, ile miejsca zajmują dane aplikacji.\n"
+            + "- Pamięć podręczną można wyczyścić.\n\n[Kod źródłowy tej wersji](https://code.example.com/example-app/tree/v0.2.0)";
+        var ready = new AppUpdateView { State = AppUpdateState.Ready, CurrentVersion = "0.1.0", Version = "0.2.0" };
+        using var ui = await OpenAsync(State() with { Update = ready });
+        ui.Find<Button>("WhatsNew").IsVisible.Should().BeFalse("an update without notes has nothing to show");
+
+        ui.Push(State() with { Version = 2, Update = ready with { ReleaseNotes = notes } });
+        var whatsNew = ui.Find<Button>("WhatsNew");
+        whatsNew.Content.Should().Be("Co nowego w 0.2.0");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("settings-about-ready", height: 3200);
+        ui.Click(whatsNew);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ReleaseNotesDialogViewModel { Notes: not null });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("settings-release-notes");
+
+        var dialog = (ReleaseNotesDialogViewModel)ui.Shell.Dialogs.Current!;
+        dialog.Title.Should().Be("Co nowego w 0.2.0");
+        dialog.OpenLinkCommand.Execute(ui.Find<ProseText>().Single(text => text.Links.Count > 0).Links[0]);
+        ui.Links.Opened.Should().Equal(new Uri("https://code.example.com/example-app/tree/v0.2.0"));
+        ui.Click(ui.Find<Button>("CloseNotes"));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Shell.Dialogs.Current.Should().BeNull();
     }
 
     [AvaloniaFact]

@@ -143,6 +143,16 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     [ObservableProperty]
     public partial string CheckText { get; private set; } = Strings.Settings_CheckUpdates;
 
+    /// <summary>What the update found or ready changes, in Markdown; null when it carries no notes.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasReleaseNotes))]
+    public partial string? ReleaseNotes { get; private set; }
+
+    public bool HasReleaseNotes => ReleaseNotes is not null;
+
+    [ObservableProperty]
+    public partial string WhatsNewText { get; private set; } = "";
+
     [ObservableProperty]
     public partial string SiteName { get; private set; } = "";
 
@@ -190,6 +200,15 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     [RelayCommand(CanExecute = nameof(CanCheck))]
     private async Task CheckForUpdatesAsync() => await AgentRequests.SendAsync(_services, new CheckNow()).ConfigureAwait(true);
+
+    [RelayCommand]
+    private async Task ShowReleaseNotesAsync()
+    {
+        if (ReleaseNotes is { } notes)
+        {
+            await _services.Dialogs.ShowAsync(new ReleaseNotesDialogViewModel(WhatsNewText, notes, _services.Links)).ConfigureAwait(true);
+        }
+    }
 
     [RelayCommand]
     private void OpenSite()
@@ -292,6 +311,10 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         CanUpdateApp = update.State != AppUpdateState.Unavailable;
         CanCheck = update.State is not (AppUpdateState.Checking or AppUpdateState.Downloading) && !_services.Agent.State.Activity.IsChecking;
         CheckText = update.State == AppUpdateState.Available ? Strings.Shell_StatusDownload : Strings.Settings_CheckUpdates;
+        WhatsNewText = Text.Format(Strings.Settings_WhatsNew, ("version", version));
+        ReleaseNotes = update.State is AppUpdateState.Available or AppUpdateState.Ready && !string.IsNullOrWhiteSpace(update.ReleaseNotes)
+            ? update.ReleaseNotes
+            : null;
     }
 
     private void OnAgentChanged(object? sender, PropertyChangedEventArgs e)
