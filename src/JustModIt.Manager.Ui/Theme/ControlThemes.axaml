@@ -420,6 +420,43 @@
     </Setter>
   </ControlTheme>
 
+  <!-- A settings row (the Settings board): 16 px between an icon square, the texts and the control, 20 px from the card's
+       sides; the description stops at 640 px so it stays readable on a wide window. -->
+  <ControlTheme x:Key="{x:Type ui:SettingRow}" TargetType="ui:SettingRow">
+    <Setter Property="Padding" Value="20,16" />
+    <Setter Property="BorderBrush" Value="{StaticResource FillBrush}" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}">
+          <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16">
+            <Border Classes="iconChip" VerticalAlignment="Center">
+              <ui:Icon Data="{TemplateBinding Icon}" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Text="{TemplateBinding Title}" FontSize="14" LineHeight="20" FontWeight="SemiBold" TextWrapping="Wrap"
+                         Foreground="{StaticResource TextBrush}" />
+              <TextBlock Classes="caption" Text="{TemplateBinding Description}" MaxWidth="640" HorizontalAlignment="Left"
+                         IsVisible="{TemplateBinding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+            <ContentPresenter Name="PART_ContentPresenter" Grid.Column="2" Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}" VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^.divided">
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="^.stacked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+      <Setter Property="Margin" Value="0,16,0,0" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+  </ControlTheme>
+
   <ControlTheme x:Key="{x:Type ui:EmptyState}" TargetType="ui:EmptyState">
     <Setter Property="Padding" Value="24,40,24,36" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />

@@ -203,6 +203,22 @@ public sealed class MyGamesComposerTests
     }
 
     [Fact]
+    public void Missing_originals_are_known_also_while_the_status_tells_something_else_first()
+    {
+        var record = Record();
+        var running = new ValueList<RunningProcess>([new RunningProcess(1, "ExampleGame", null)]);
+        var game = Compose(Input([Installed()], [Entry(release: Release(ReleaseOne, 1, File(FileOne)))], [record]) with
+        {
+            UnavailableBackups = ImmutableHashSet.Create(record.Id),
+            Running = ImmutableDictionary<GameKey, ValueList<RunningProcess>>.Empty.Add(Game, running),
+        }).Single();
+
+        var install = game.Installs.Single();
+        install.Status.State.Should().Be(MyGameState.GameNotReady);
+        install.BackupsUnavailable.Should().BeTrue();
+    }
+
+    [Fact]
     public void Lists_every_install_with_its_own_status_and_heads_the_game_with_what_matters_most()
     {
         var updatable = Record();

@@ -1,0 +1,404 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:JustModIt.Manager.Ui.Pages.Settings"
+             xmlns:onboarding="using:JustModIt.Manager.Ui.Pages.Onboarding"
+             xmlns:core="using:JustModIt.Manager.Core.Settings"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Settings.SettingsPage"
+             x:DataType="settings:SettingsPageViewModel">
+  <UserControl.Styles>
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Settings/SettingsStyles.axaml" />
+
+    <!-- The marker of the recommended place, in the tile's top right corner. -->
+    <Style Selector="Border.recommended">
+      <Setter Property="Height" Value="20" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Margin" Value="0,-8,-6,0" />
+    </Style>
+    <Style Selector="Border.recommended > TextBlock">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="LineHeight" Value="16" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- The picked folder, shown like a field the player cannot type in. -->
+    <Style Selector="Border.path">
+      <Setter Property="Height" Value="40" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- The app's logo in a square, at the head of the about card. -->
+    <Style Selector="Border.logo">
+      <Setter Property="Width" Value="64" />
+      <Setter Property="Height" Value="64" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.footer">
+      <Setter Property="Background" Value="#05FFFFFF" />
+      <Setter Property="Padding" Value="20,14,20,16" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer Classes="page">
+    <StackPanel Classes="page" Spacing="36" MaxWidth="{StaticResource PageMaxWidth}" theme:Motion.Stagger="True">
+      <ui:PageHeader Title="{Binding Title}" Subtitle="{x:Static loc:Strings.Settings_Subtitle}" />
+
+      <StackPanel Classes="section">
+        <TextBlock Classes="overline" Text="{Binding GeneralHeading}" />
+        <Border Classes="settingsCard">
+          <StackPanel>
+            <ui:SettingRow Icon="{x:Static theme:Icons.Sunrise}" Title="{x:Static loc:Strings.Settings_StartWithSystem}"
+                           Description="{Binding StartWithSystemDescription}">
+              <ToggleSwitch IsChecked="{Binding StartWithSystem}" AutomationProperties.Name="{x:Static loc:Strings.Settings_StartWithSystem}"
+                            AutomationProperties.HelpText="{Binding StartWithSystemDescription}" />
+            </ui:SettingRow>
+            <ui:SettingRow Classes="divided stacked" Icon="{x:Static theme:Icons.PanelBottomClose}"
+                           Title="{x:Static loc:Strings.Settings_CloseBehavior}"
+                           Description="{x:Static loc:Strings.Settings_CloseBehaviorDescription}">
+              <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <RadioButton x:Name="CloseAsk" Theme="{StaticResource ChoiceTile}"
+                             IsChecked="{Binding CloseBehavior, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Ask}}"
+                             AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CloseAsk}"
+                             AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_CloseAskDescription}">
+                  <ui:TileContent Icon="{x:Static theme:Icons.CircleHelp}" Title="{x:Static loc:Strings.Onboarding_CloseAsk}"
+                                  Description="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
+                </RadioButton>
+                <RadioButton x:Name="CloseTray" Grid.Column="1" Theme="{StaticResource ChoiceTile}"
+                             IsChecked="{Binding CloseBehavior, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.MinimizeToTray}}"
+                             AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseToTray}"
+                             AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseToTrayDescription}">
+                  <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static loc:Strings.Shell_CloseToTray}"
+                                  Description="{x:Static loc:Strings.Shell_CloseToTrayDescription}" />
+                </RadioButton>
+                <RadioButton x:Name="CloseExit" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
+                             IsChecked="{Binding CloseBehavior, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Exit}}"
+                             AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseExit}"
+                             AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseExitDescription}">
+                  <ui:TileContent Icon="{x:Static theme:Icons.Power}" Title="{x:Static loc:Strings.Shell_CloseExit}"
+                                  Description="{x:Static loc:Strings.Shell_CloseExitDescription}" />
+                </RadioButton>
+              </Grid>
+            </ui:SettingRow>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.EyeOff}" Title="{x:Static loc:Strings.Settings_BlurAdult}"
+                           Description="{x:Static loc:Strings.Settings_BlurAdultDescription}">
+              <ToggleSwitch IsChecked="{Binding BlurAdultContent}" AutomationProperties.Name="{x:Static loc:Strings.Settings_BlurAdult}"
+                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BlurAdultDescription}" />
+            </ui:SettingRow>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <StackPanel Classes="section">
+        <TextBlock Classes="overline" Text="{Binding ProjectsHeading}" />
+        <Border Classes="settingsCard">
+          <StackPanel>
+            <ui:SettingRow Icon="{x:Static theme:Icons.Download}" Title="{x:Static loc:Strings.Settings_AutoInstall}"
+                           Description="{x:Static loc:Strings.Settings_AutoInstallDescription}">
+              <ToggleSwitch IsChecked="{Binding AutoInstallProjects}" AutomationProperties.Name="{x:Static loc:Strings.Settings_AutoInstall}"
+                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_AutoInstallDescription}" />
+            </ui:SettingRow>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.RefreshCw}" Title="{x:Static loc:Strings.Settings_AutoUpdate}"
+                           Description="{x:Static loc:Strings.Settings_AutoUpdateDescription}">
+              <ToggleSwitch IsChecked="{Binding AutoUpdateProjects}" AutomationProperties.Name="{x:Static loc:Strings.Settings_AutoUpdate}"
+                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_AutoUpdateDescription}" />
+            </ui:SettingRow>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.RotateCcw}" Title="{x:Static loc:Strings.Settings_Reapply}"
+                           Description="{x:Static loc:Strings.Settings_ReapplyDescription}">
+              <ToggleSwitch IsChecked="{Binding ReapplyAfterGameUpdate}" AutomationProperties.Name="{x:Static loc:Strings.Settings_Reapply}"
+                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_ReapplyDescription}" />
+            </ui:SettingRow>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Bell}" Title="{x:Static loc:Strings.Settings_Notifications}"
+                           Description="{x:Static loc:Strings.Settings_NotificationsDescription}">
+              <ToggleSwitch IsChecked="{Binding ShowNotifications}" AutomationProperties.Name="{x:Static loc:Strings.Settings_Notifications}"
+                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_NotificationsDescription}" />
+            </ui:SettingRow>
+            <ui:SettingRow Classes="divided stacked" Icon="{x:Static theme:Icons.ListOrdered}" Title="{x:Static loc:Strings.Settings_Teams}"
+                           Description="{x:Static loc:Strings.Settings_TeamsDescription}">
+              <settings:PreferredTeamsEditor DataContext="{Binding Teams}" Margin="52,0,0,0" />
+            </ui:SettingRow>
+          </StackPanel>
+        </Border>
+        <TextBlock Classes="caption" LineHeight="20" Text="{x:Static loc:Strings.Settings_AutomationNote}" />
+      </StackPanel>
+
+      <StackPanel Classes="section">
+        <TextBlock Classes="overline" Text="{Binding BackupsHeading}" />
+        <Border Classes="settingsCard">
+          <StackPanel>
+            <ui:SettingRow Classes="stacked" Icon="{x:Static theme:Icons.Archive}" Title="{x:Static loc:Strings.Settings_BackupLocation}"
+                           Description="{x:Static loc:Strings.Settings_BackupLocationDescription}">
+              <StackPanel Spacing="16">
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                  <RadioButton x:Name="BackupsInGameFolder" Theme="{StaticResource ChoiceTile}"
+                               IsChecked="{Binding Backups.Location, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.GameFolder}}"
+                               AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupGameFolder}"
+                               AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupGameFolderDescription}">
+                    <Panel>
+                      <ui:TileContent Icon="{x:Static theme:Icons.Folder}" Title="{x:Static loc:Strings.Settings_BackupGameFolder}"
+                                      Description="{x:Static loc:Strings.Settings_BackupGameFolderDescription}" />
+                      <Border Classes="recommended">
+                        <TextBlock Text="{x:Static loc:Strings.Settings_Recommended}" />
+                      </Border>
+                    </Panel>
+                  </RadioButton>
+                  <RadioButton x:Name="BackupsInAppData" Grid.Column="1" Theme="{StaticResource ChoiceTile}"
+                               IsChecked="{Binding Backups.Location, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.AppData}}"
+                               AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupAppData}"
+                               AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupAppDataDescription}">
+                    <ui:TileContent Icon="{x:Static theme:Icons.AppWindow}" Title="{x:Static loc:Strings.Settings_BackupAppData}"
+                                    Description="{x:Static loc:Strings.Settings_BackupAppDataDescription}" />
+                  </RadioButton>
+                  <RadioButton x:Name="BackupsInFolder" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
+                               IsChecked="{Binding Backups.Location, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.CustomFolder}}"
+                               AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupCustom}"
+                               AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupCustomDescription}">
+                    <ui:TileContent Icon="{x:Static theme:Icons.HardDrive}" Title="{x:Static loc:Strings.Settings_BackupCustom}"
+                                    Description="{x:Static loc:Strings.Settings_BackupCustomDescription}" />
+                  </RadioButton>
+                </Grid>
+
+                <StackPanel Spacing="10" IsVisible="{Binding Backups.ShowsFolder}">
+                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                    <TextBlock Text="{x:Static loc:Strings.Settings_BackupFolder}" FontSize="14" FontWeight="Medium" VerticalAlignment="Center"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                    <Border Grid.Column="1" Classes="path">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <ui:Icon Data="{x:Static theme:Icons.HardDrive}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <SelectableTextBlock Grid.Column="1" Text="{Binding Backups.CustomFolder}" FontSize="14" VerticalAlignment="Center"
+                                             Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                      </Grid>
+                    </Border>
+                    <Button x:Name="PickBackupFolder" Grid.Column="2" Classes="outline" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                            Content="{x:Static loc:Strings.Settings_PickFolder}" Command="{Binding Backups.PickFolderCommand}" />
+                  </Grid>
+                  <TextBlock Classes="caption" Text="{Binding Backups.FreeSpace}"
+                             IsVisible="{Binding Backups.FreeSpace, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+                <ui:Callout x:Name="FolderProblem" Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                            Message="{Binding Backups.FolderProblem}"
+                            IsVisible="{Binding Backups.FolderProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </StackPanel>
+            </ui:SettingRow>
+
+            <Border Classes="divider" IsVisible="{Binding Backups.HasDetails}" />
+            <StackPanel Classes="part" Spacing="12" IsVisible="{Binding Backups.HasDetails}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" IsVisible="{Binding Backups.Usage, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <ui:Icon Data="{x:Static theme:Icons.ChartPie}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
+                <TextBlock Grid.Column="1" Classes="body" TextWrapping="Wrap" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Backups.Usage}" />
+              </Grid>
+
+              <ui:Callout x:Name="BackupsElsewhere" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Info}"
+                          Message="{Binding Backups.Elsewhere}"
+                          IsVisible="{Binding Backups.Elsewhere, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <Button x:Name="MoveBackups" Classes="quiet small" Margin="-10,-4,0,0" HorizontalAlignment="Left"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderInput}" Content="{x:Static loc:Strings.Settings_MoveBackups}"
+                        Command="{Binding Backups.MoveCommand}" />
+              </ui:Callout>
+              <ui:Callout x:Name="BackupsStuckElsewhere" Classes="warning" MaxWidth="Infinity" HorizontalAlignment="Stretch"
+                          Icon="{x:Static theme:Icons.Unplug}" Message="{Binding Backups.StuckElsewhere}"
+                          IsVisible="{Binding Backups.StuckElsewhere, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+              <Grid x:Name="MovingBackups" ColumnDefinitions="*,Auto" ColumnSpacing="16" IsVisible="{Binding Backups.IsMoving}">
+                <StackPanel Spacing="8" VerticalAlignment="Center">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <TextBlock FontSize="13" LineHeight="20" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextEmphasisBrush}">
+                      <Run Text="{x:Static loc:Strings.Settings_Moving}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                      <Run Text=" · " Foreground="{StaticResource TextMutedBrush}" />
+                      <Run Text="{Binding Backups.MovingDetail}" />
+                    </TextBlock>
+                    <TextBlock Grid.Column="1" FontSize="13" LineHeight="20" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"
+                               Text="{Binding Backups.MovingPercent}" />
+                  </Grid>
+                  <ProgressBar Minimum="0" Maximum="1" Value="{Binding Backups.MovingFraction}"
+                               IsIndeterminate="{Binding Backups.MovingFraction, Converter={x:Static ObjectConverters.IsNull}}"
+                               AutomationProperties.Name="{x:Static loc:Strings.Settings_Moving}" />
+                </StackPanel>
+                <Button x:Name="StopMoving" Grid.Column="1" Classes="outline" Content="{x:Static loc:Strings.Settings_StopMoving}"
+                        ToolTip.Tip="{x:Static loc:Strings.Settings_StopMovingTip}"
+                        AutomationProperties.HelpText="{x:Static loc:Strings.Settings_StopMovingTip}" Command="{Binding Backups.StopMovingCommand}" />
+              </Grid>
+
+              <ui:Callout x:Name="BackupsUnavailable" Classes="warning" MaxWidth="Infinity" HorizontalAlignment="Stretch"
+                          Icon="{x:Static theme:Icons.Unplug}" Title="{x:Static loc:Strings.Settings_BackupsUnavailableTitle}"
+                          Message="{Binding Backups.Unavailable}"
+                          IsVisible="{Binding Backups.Unavailable, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
+
+            <ui:SettingRow Classes="divided stacked" Icon="{x:Static theme:Icons.Copy}" Title="{x:Static loc:Strings.Settings_Leftovers}"
+                           Description="{x:Static loc:Strings.Settings_LeftoversDescription}" IsVisible="{Binding Backups.HasLeftovers}">
+              <ItemsControl x:Name="Leftovers" ItemsSource="{Binding Backups.Leftovers}" Margin="52,-4,0,0">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Spacing="12" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="settings:LeftoverRow">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                      <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="18" Height="18" Foreground="{StaticResource TextSecondaryBrush}" />
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="{Binding Backup.GameName}" FontSize="14" LineHeight="20" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="caption" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                      </StackPanel>
+                      <Button Grid.Column="2" Classes="danger" ui:ButtonAssist.Icon="{x:Static theme:Icons.Trash}"
+                              Content="{x:Static loc:Strings.Settings_RemoveLeftover}" AutomationProperties.Name="{Binding RemoveName}"
+                              Command="{Binding $parent[UserControl].((settings:SettingsPageViewModel)DataContext).Backups.RemoveLeftoverCommand}"
+                              CommandParameter="{Binding}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ui:SettingRow>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <StackPanel Classes="section" IsVisible="{Binding Folders.HasFolders}">
+        <TextBlock Classes="overline" Text="{Binding LibrariesHeading}" />
+        <Border Classes="settingsCard">
+          <ui:SettingRow Classes="stacked" Icon="{x:Static theme:Icons.FolderPlus}" Title="{x:Static loc:Strings.Settings_AddedFolders}"
+                         Description="{Binding Folders.Description}">
+            <ItemsControl x:Name="AddedFolders" ItemsSource="{Binding Folders.Rows}" Margin="52,-4,0,0">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="12" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="settings:AddedFolderRow">
+                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                    <ui:Icon Data="{x:Static theme:Icons.Folder}" Width="18" Height="18" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <StackPanel Grid.Column="1" Spacing="2">
+                      <TextBlock Text="{Binding Folder.Path}" FontSize="14" LineHeight="20" FontWeight="SemiBold"
+                                 Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:StoreIcon Store="{Binding Folder.Store}" Width="14" Height="14" VerticalAlignment="Center" />
+                        <TextBlock Classes="caption" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                      </StackPanel>
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="quiet" ui:ButtonAssist.Icon="{x:Static theme:Icons.X}"
+                            Content="{x:Static loc:Strings.Settings_RemoveFolder}" AutomationProperties.Name="{Binding RemoveName}"
+                            Command="{Binding $parent[UserControl].((settings:SettingsPageViewModel)DataContext).Folders.RemoveCommand}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ui:SettingRow>
+        </Border>
+      </StackPanel>
+
+      <StackPanel Classes="section">
+        <TextBlock Classes="overline" Text="{Binding CreatorsHeading}" />
+        <Border Classes="settingsCard">
+          <ui:SettingRow Icon="{x:Static theme:Icons.WandSparkles}" Title="{x:Static loc:Strings.Settings_CreatorMode}"
+                         Description="{Binding CreatorModeDescription}">
+            <ToggleSwitch IsChecked="{Binding CreatorMode}" AutomationProperties.Name="{x:Static loc:Strings.Settings_CreatorMode}"
+                          AutomationProperties.HelpText="{Binding CreatorModeDescription}" />
+          </ui:SettingRow>
+        </Border>
+      </StackPanel>
+
+      <StackPanel Classes="section">
+        <TextBlock Classes="overline" Text="{Binding AboutHeading}" />
+        <Border Classes="settingsCard">
+          <StackPanel>
+            <Grid Margin="20" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="18">
+              <Border Classes="logo">
+                <Image Source="{Binding Logo}" Width="44" Height="44" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <TextBlock Text="{Binding ProductName}" FontSize="17" LineHeight="24" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}" />
+                  <TextBlock Text="{Binding VersionText}" FontSize="14" LineHeight="24" Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+                <ui:StatusLine x:Name="UpdateStatus" Icon="{Binding UpdateIcon}" Tone="{Binding UpdateTone}" Detail="{Binding UpdateText}"
+                               IsBusy="{Binding IsUpdateBusy}" FontSize="13" Foreground="{StaticResource TextBodyBrush}" />
+                <ProgressBar Classes="thin" Minimum="0" Maximum="100" Value="{Binding UpdateProgress}" MaxWidth="400" HorizontalAlignment="Stretch"
+                             IsVisible="{Binding ShowsUpdateProgress}" AutomationProperties.Name="{Binding UpdateText}" Margin="20,2,0,0" />
+              </StackPanel>
+              <Button x:Name="CheckForUpdates" Grid.Column="2" Classes="outline" VerticalAlignment="Center"
+                      ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Content="{Binding CheckText}"
+                      Command="{Binding CheckForUpdatesCommand}" IsVisible="{Binding ShowsCheck}" />
+            </Grid>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Sparkles}" Title="{x:Static loc:Strings.Settings_AutoUpdateApp}"
+                           Description="{Binding AutoUpdateAppDescription}">
+              <ToggleSwitch x:Name="AutoUpdateApp" IsChecked="{Binding AutoUpdateApp}" IsEnabled="{Binding CanUpdateApp}"
+                            AutomationProperties.Name="{x:Static loc:Strings.Settings_AutoUpdateApp}"
+                            AutomationProperties.HelpText="{Binding AutoUpdateAppDescription}" />
+            </ui:SettingRow>
+            <Border Classes="divider" />
+            <StackPanel Margin="20,18,20,20" Spacing="12">
+              <TextBlock x:Name="AboutApp" Classes="bodyText" LineHeight="22" MaxWidth="760" HorizontalAlignment="Left"
+                         Text="{x:Static loc:Strings.Settings_AboutText}" />
+              <WrapPanel Margin="-10,0,0,0" ItemSpacing="6" LineSpacing="4">
+                <Button x:Name="OpenSite" Classes="quiet aboutLink" Command="{Binding OpenSiteCommand}" IsVisible="{Binding HasSite}"
+                        AutomationProperties.Name="{Binding SiteName}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ui:Icon Data="{x:Static theme:Icons.Globe}" />
+                    <TextBlock Text="{Binding SiteName}" />
+                    <ui:Icon Classes="trail" Data="{x:Static theme:Icons.ArrowUpRight}" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="OpenSource" Classes="quiet aboutLink" Command="{Binding OpenSourceCommand}" IsVisible="{Binding HasSource}"
+                        AutomationProperties.Name="{x:Static loc:Strings.Settings_SourceCode}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ui:Icon Data="{x:Static theme:Icons.CodeXml}" />
+                    <TextBlock Text="{x:Static loc:Strings.Settings_SourceCode}" />
+                    <ui:Icon Classes="trail" Data="{x:Static theme:Icons.ArrowUpRight}" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="ReportProblem" Classes="quiet aboutLink" Command="{Binding ReportProblemCommand}" IsVisible="{Binding HasIssues}"
+                        AutomationProperties.Name="{x:Static loc:Strings.Settings_ReportProblem}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ui:Icon Data="{x:Static theme:Icons.Bug}" />
+                    <TextBlock Text="{x:Static loc:Strings.Settings_ReportProblem}" />
+                    <ui:Icon Classes="trail" Data="{x:Static theme:Icons.ArrowUpRight}" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="OpenLogs" Classes="quiet aboutLink" Command="{Binding OpenLogsCommand}"
+                        AutomationProperties.Name="{x:Static loc:Strings.Settings_LogsFolder}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ui:Icon Data="{x:Static theme:Icons.ScrollText}" />
+                    <TextBlock Text="{x:Static loc:Strings.Settings_LogsFolder}" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="OpenLicenses" Classes="quiet aboutLink" Command="{Binding OpenLicensesCommand}"
+                        AutomationProperties.Name="{x:Static loc:Strings.Shell_PageLicenses}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ui:Icon Data="{x:Static theme:Icons.Scale}" />
+                    <TextBlock Text="{x:Static loc:Strings.Shell_PageLicenses}" />
+                    <ui:Icon Classes="trail" Data="{x:Static theme:Icons.ChevronRight}" />
+                  </StackPanel>
+                </Button>
+              </WrapPanel>
+            </StackPanel>
+            <Border Classes="divider" />
+            <Border Classes="footer">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="caption" LineHeight="20" Text="{x:Static loc:Strings.Settings_LicenseLine}" />
+                <TextBlock Classes="caption" LineHeight="20" Text="{Binding BrandingLine}" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

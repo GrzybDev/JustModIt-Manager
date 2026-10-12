@@ -73,7 +73,11 @@ public static class TestGames
         ProjectOfferView? offer = null)
     {
         var game = Available(name, id, offer);
-        var install = Install(game.Project!, version, new GameStatusView(state)) with { InstallDirectory = game.Detected!.InstallDirectory };
+        var install = Install(game.Project!, version, new GameStatusView(state)) with
+        {
+            InstallDirectory = game.Detected!.InstallDirectory,
+            BackupsUnavailable = state == MyGameState.BackupsUnavailable,
+        };
         return game with { Status = new GameStatusView(state), Installs = [install] };
     }
 

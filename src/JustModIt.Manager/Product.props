@@ -13,6 +13,8 @@
     <!-- Where the site loads images from: its storage, and the stills of the YouTube films its pages show. -->
     <ManagerImageHosts>storage.bazaspolszczen.pl;i.ytimg.com/vi/</ManagerImageHosts>
     <ManagerUpdateUrl>https://github.com/GrzybDev/JustModIt-Manager</ManagerUpdateUrl>
+    <ManagerSourceUrl>https://github.com/GrzybDev/JustModIt-Manager</ManagerSourceUrl>
+    <ManagerIssuesUrl>https://github.com/GrzybDev/JustModIt-Manager/issues/new</ManagerIssuesUrl>
     <ManagerLanguage>en</ManagerLanguage>
     <ManagerTargetLanguage></ManagerTargetLanguage>
     <ManagerAccentColor>#3B82F6</ManagerAccentColor>

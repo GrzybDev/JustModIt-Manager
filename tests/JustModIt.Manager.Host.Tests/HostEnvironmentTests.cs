@@ -96,6 +96,7 @@ public sealed class HostEnvironmentTests
         {
             AccentColor = "#3B82F6",
             ImageHosts = "images.example.com; posters.example.net/vi/",
+            SourceUrl = "https://code.example.com/example-app",
         }, Build);
 
         var context = environment.WindowContext(options, new LaunchArguments(ProcessRole.Ui, Background: false, Target: null),
@@ -108,6 +109,8 @@ public sealed class HostEnvironmentTests
         context.Site.SiteAddress.Should().Be(new Uri("https://example.com/"));
         context.Site.ApiKey.Should().BeNull("only the agent talks to the API");
         context.ImageHosts.Should().Equal("images.example.com", "posters.example.net/vi/");
+        context.SourceAddress.Should().Be(new Uri("https://code.example.com/example-app"));
+        context.IssuesAddress.Should().BeNull("an app without a place for reports offers none");
         context.ImageCacheDirectory.Should().Be(Path.Combine(environment.Locations.CacheDirectory, "images"));
         context.Codecs.Should().Match(codecs => !OperatingSystem.IsWindows() || codecs is WindowsMediaCodecs, "the site's AVIF stills need them");
         context.SystemMotion.Should().Match(motion => !OperatingSystem.IsWindows() || motion is WindowsSystemMotion);

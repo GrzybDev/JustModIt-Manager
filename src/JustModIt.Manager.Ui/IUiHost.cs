@@ -41,6 +41,12 @@ public sealed record UiContext
     /// </summary>
     public required CatalogueApiOptions Site { get; init; }
 
+    /// <summary>The repository holding the app's source code; null offers no link to it.</summary>
+    public Uri? SourceAddress { get; init; }
+
+    /// <summary>Where players report a problem, which the window gives the app's and the system's version; null offers none.</summary>
+    public Uri? IssuesAddress { get; init; }
+
     /// <summary>Where the window keeps the images it downloaded, so they show again without the network.</summary>
     public required string ImageCacheDirectory { get; init; }
 

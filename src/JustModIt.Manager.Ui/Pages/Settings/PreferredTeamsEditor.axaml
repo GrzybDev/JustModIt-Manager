@@ -1,0 +1,134 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:JustModIt.Manager.Ui.Pages.Settings"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Settings.PreferredTeamsEditor"
+             x:DataType="settings:PreferredTeamsViewModel">
+  <UserControl.Styles>
+    <!-- A team on the list: a row that is dragged by its grip, rises while dragged and moves with Alt and the arrows. -->
+    <Style Selector="Border.teamRow">
+      <Setter Property="Height" Value="44" />
+      <Setter Property="Padding" Value="4,0,6,0" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Focusable" Value="True" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.15" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+          <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.15" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.teamRow:pointerover">
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    </Style>
+    <Style Selector="Border.teamRow.dragged">
+      <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+      <Setter Property="BoxShadow" Value="{StaticResource ElevToast}" />
+    </Style>
+    <Style Selector="Border.grip">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="SizeNorthSouth" />
+    </Style>
+    <Style Selector="Border.grip > ui|Icon">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+    <Style Selector="Border.place">
+      <Setter Property="MinWidth" Value="22" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+    </Style>
+    <Style Selector="Border.place > TextBlock">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ContentPresenter:nth-child(1) Border.place">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftStrongBrush}" />
+    </Style>
+    <Style Selector="ContentPresenter:nth-child(1) Border.place > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Spacing="10">
+    <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_TeamsEmpty}" IsVisible="{Binding IsEmpty}" />
+
+    <ItemsControl x:Name="TeamList" ItemsSource="{Binding Rows}" IsVisible="{Binding !IsEmpty}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Spacing="6" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="settings:TeamRow">
+          <Border Classes="teamRow" AutomationProperties.Name="{Binding AccessibleName}"
+                  AutomationProperties.HelpText="{x:Static loc:Strings.Settings_TeamsHint}">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="10">
+              <Border Classes="grip" ToolTip.Tip="{x:Static loc:Strings.Settings_TeamsHint}">
+                <ui:Icon Data="{x:Static theme:Icons.GripVertical}" />
+              </Border>
+              <Border Grid.Column="1" Classes="place">
+                <TextBlock Text="{Binding Position}" />
+              </Border>
+              <ui:TeamBadge Grid.Column="2" NameText="{Binding Name}" Width="22" Height="22" CornerRadius="6" />
+              <TextBlock Grid.Column="3" Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"
+                         Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+              <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="2">
+                <Button Classes="icon" ToolTip.Tip="{Binding MoveUpName}" IsEnabled="{Binding !IsFirst}"
+                        Command="{Binding $parent[UserControl].((settings:PreferredTeamsViewModel)DataContext).MoveUpCommand}"
+                        CommandParameter="{Binding}">
+                  <ui:Icon Data="{x:Static theme:Icons.ArrowUp}" Width="16" Height="16" />
+                </Button>
+                <Button Classes="icon" ToolTip.Tip="{Binding MoveDownName}" IsEnabled="{Binding !IsLast}"
+                        Command="{Binding $parent[UserControl].((settings:PreferredTeamsViewModel)DataContext).MoveDownCommand}"
+                        CommandParameter="{Binding}">
+                  <ui:Icon Data="{x:Static theme:Icons.ArrowDown}" Width="16" Height="16" />
+                </Button>
+                <Button Classes="icon" ToolTip.Tip="{Binding RemoveName}"
+                        Command="{Binding $parent[UserControl].((settings:PreferredTeamsViewModel)DataContext).RemoveCommand}"
+                        CommandParameter="{Binding}">
+                  <ui:Icon Data="{x:Static theme:Icons.X}" Width="16" Height="16" />
+                </Button>
+              </StackPanel>
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <StackPanel Spacing="8" IsVisible="{Binding CanAdd}">
+      <TextBox x:Name="TeamSearch" Classes="search" MaxWidth="420" HorizontalAlignment="Left" Text="{Binding Query}"
+               PlaceholderText="{x:Static loc:Strings.Settings_TeamsSearch}" AutomationProperties.Name="{x:Static loc:Strings.Settings_TeamsSearch}" />
+      <ItemsControl ItemsSource="{Binding Matches}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel ItemSpacing="6" LineSpacing="6" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="settings:TeamOption">
+            <Button Classes="outline small" ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Content="{Binding Name}"
+                    AutomationProperties.Name="{Binding AddName}"
+                    Command="{Binding $parent[UserControl].((settings:PreferredTeamsViewModel)DataContext).AddCommand}"
+                    CommandParameter="{Binding}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_TeamsNoMatch}" IsVisible="{Binding FindsNone}" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

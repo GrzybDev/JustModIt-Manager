@@ -109,10 +109,12 @@ public static class MyGamesComposer
     {
         var project = InstalledProject(input.Index, offer, record, key, game);
         RepairReason? repair = input.Repairs.TryGetValue(record.Id, out var found) ? found : null;
+        var backupsUnavailable = input.UnavailableBackups.Contains(record.Id);
         return new MyInstall
         {
             Record = record,
-            Status = MyGameStatusRules.Resolve(current, record, project, repair, hasJob, input.UnavailableBackups.Contains(record.Id)),
+            Status = MyGameStatusRules.Resolve(current, record, project, repair, hasJob, backupsUnavailable),
+            BackupsUnavailable = backupsUnavailable,
             Project = project,
             LastFailure = input.Failures.GetValueOrDefault(new FailureKey(key, record.Id)),
         };

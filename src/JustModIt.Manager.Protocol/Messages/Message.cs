@@ -21,6 +21,7 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(UninstallProject), "uninstallProject")]
 [JsonDerivedType(typeof(TestInstallPackage), "testInstallPackage")]
 [JsonDerivedType(typeof(MoveBackups), "moveBackups")]
+[JsonDerivedType(typeof(StopMovingBackups), "stopMovingBackups")]
 [JsonDerivedType(typeof(JobStarted), "jobStarted")]
 [JsonDerivedType(typeof(CancelJob), "cancelJob")]
 [JsonDerivedType(typeof(DismissFailure), "dismissFailure")]

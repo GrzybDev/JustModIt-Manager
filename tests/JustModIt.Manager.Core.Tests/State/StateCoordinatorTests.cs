@@ -621,6 +621,29 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
+    public async Task Stopping_the_moves_lets_the_running_one_finish_and_starts_no_other()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Library.Publish(Installed());
+        app.Engine.Add(Record());
+        app.Engine.Add(Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject)));
+        app.Engine.MoveGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await app.StartAsync();
+        await app.StateAsync(state => state.Games.Sum(game => game.Installs.Count) == 2, "both installs are listed");
+
+        app.Coordinator.MoveBackups(new BackupChoice(BackupLocation.AppData));
+        await app.StateAsync(state => state.Jobs.Any(job => job.Kind == JobKind.MoveBackups) && state.PendingBackupMoves == 0,
+            "one install moves while the other waits for the game, which counts among the jobs and not again as waiting");
+        app.Coordinator.StopMovingBackups();
+        app.Engine.MoveGate.SetResult();
+
+        await app.StateAsync(state => state.Jobs.Count == 0 && state.Games.SelectMany(game => game.Installs)
+            .Count(install => install.Record.Backup.Location == BackupLocation.AppData) == 1, "the running move finishes");
+        await Eventually.SettleAsync();
+        app.Engine.Calls.Count(call => call == "move backups").Should().Be(1, "no other move starts");
+    }
+
+    [Fact]
     public async Task A_slow_reader_gets_the_latest_state_without_the_ones_in_between()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();

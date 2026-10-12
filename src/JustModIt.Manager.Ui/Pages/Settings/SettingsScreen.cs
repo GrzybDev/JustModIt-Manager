@@ -1,6 +1,4 @@
-using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Navigation;
-using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Settings;
 
@@ -12,6 +10,7 @@ internal static class SettingsScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
-        ui.Pages.Register<SettingsRoute>((_, _) => new PlaceholderPageViewModel(Strings.Shell_Settings, Icons.Settings));
+        ui.Pages.Register<SettingsRoute>((_, services) => new SettingsPageViewModel(services));
+        ui.Views.Register<SettingsPageViewModel>(() => new SettingsPage());
     }
 }

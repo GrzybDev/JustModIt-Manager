@@ -157,6 +157,7 @@ internal static class TestStates
                             FileCount = 3,
                         },
                         Status = new MyGameStatus(MyGameState.Busy),
+                        BackupsUnavailable = true,
                         Project = Offer,
                         LastFailure = new FailedAttempt(JobKind.Repair, JobOrigin.Automatic, Now.AddDays(-1),
                             new JobFailure(JobFailureReason.Offline)),

@@ -139,7 +139,9 @@ public sealed class AgentIpcTests : IAsyncDisposable
         var missing = Path.Combine(_agent.Directory, "missing");
         var settings = (await window.StateAsync(state => state.IsLoaded)).Settings;
 
-        (await window.RequestAsync(new ValidateBackupFolder(folder))).Should().Be(new BackupFolderChecked());
+        var accepted = (await window.RequestAsync(new ValidateBackupFolder(folder))).Should().BeOfType<BackupFolderChecked>().Which;
+        accepted.Problem.Should().BeNull();
+        accepted.AvailableBytes.Should().BePositive("an accepted folder comes with the free space on its drive");
         (await window.RequestAsync(new ValidateBackupFolder(missing))).Should().Be(new BackupFolderChecked(BackupFolderProblem.Missing));
         var insideApp = Directory.CreateDirectory(Path.Combine(_agent.Directory, "app", "backups")).FullName;
         (await window.RequestAsync(new ValidateBackupFolder(insideApp)))

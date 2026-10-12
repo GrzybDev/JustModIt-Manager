@@ -138,6 +138,9 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         Post(new BackupsMoveRequested(destination));
     }
 
+    /// <summary>Starts no more moves of backups; a move already running finishes, so no install is left halfway.</summary>
+    public void StopMovingBackups() => Post(new BackupsMoveStopped());
+
     /// <summary>Reads the local data, publishes the first state from it, then keeps the state up to date until cancelled.</summary>
     /// <param name="cancellationToken">Stops the loop.</param>
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -274,6 +277,9 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                     _backupMoves[record.Id] = move.Destination;
                 }
 
+                break;
+            case BackupsMoveStopped:
+                _backupMoves.Clear();
                 break;
             case GoneChecked gone:
                 ApplyGoneCheck(gone);
@@ -845,6 +851,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     private sealed record BackupsChecked(ImmutableHashSet<Guid> Unavailable, IReadOnlyDictionary<Guid, bool> HasBackups) : Trigger;
 
     private sealed record BackupsMoveRequested(BackupChoice Destination) : Trigger;
+
+    private sealed record BackupsMoveStopped : Trigger;
 
     private sealed record FailureDismissed(FailureKey Key) : Trigger;
 

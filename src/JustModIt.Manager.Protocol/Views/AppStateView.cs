@@ -43,6 +43,9 @@ public sealed record AppStateView
     /// <summary>Operations a crash interrupted that could not be finished or undone yet.</summary>
     public IReadOnlyList<RecoveredOperation> PendingRecoveries { get; init; } = [];
 
+    /// <inheritdoc cref="AppState.PendingBackupMoves"/>
+    public int PendingBackupMoves { get; init; }
+
     /// <summary>Makes the snapshot of the engine's state and the agent's own status.</summary>
     /// <param name="version">The snapshot's number among those the agent sent.</param>
     /// <param name="state">The engine's newest state.</param>
@@ -80,6 +83,7 @@ public sealed record AppStateView
             Activity = activity,
             Update = update,
             PendingRecoveries = state.PendingRecoveries,
+            PendingBackupMoves = state.PendingBackupMoves,
         };
     }
 }

@@ -82,6 +82,11 @@ public sealed record MyInstall
     public required MyGameStatus Status { get; init; }
 
     /// <summary>
+    /// The folder holding the install's originals is not there, also while <see cref="Status"/> tells something else first.
+    /// </summary>
+    public bool BackupsUnavailable { get; init; }
+
+    /// <summary>
     /// The installed project as the catalogue has it now, also once it is no longer on offer, since the player chose it and
     /// it keeps its updates; null when the catalogue does not have it.
     /// </summary>

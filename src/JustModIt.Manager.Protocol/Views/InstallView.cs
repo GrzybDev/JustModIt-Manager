@@ -15,6 +15,9 @@ public sealed record InstallView
 
     public required GameStatusView Status { get; init; }
 
+    /// <inheritdoc cref="MyInstall.BackupsUnavailable"/>
+    public bool BackupsUnavailable { get; init; }
+
     /// <inheritdoc cref="MyInstall.Project"/>
     public ProjectOfferView? Project { get; init; }
 
@@ -75,6 +78,7 @@ public sealed record InstallView
         {
             Id = record.Id,
             Status = GameStatusView.From(install.Status),
+            BackupsUnavailable = install.BackupsUnavailable,
             Project = install.Project is { } offer ? ProjectOfferView.From(offer) : null,
             LastFailure = install.LastFailure is { } failure ? FailureView.From(failure) : null,
             NeedsAttention = install.NeedsAttention,

@@ -60,6 +60,7 @@ public sealed class AgentCommands(
         UninstallProject uninstall => Start(new UninstallJobRequest(FindInstall(uninstall.Install).Record)),
         TestInstallPackage test => Start(TestInstall(test)),
         MoveBackups => Done(() => coordinator.MoveBackups(BackupChoice.From(settings.Current))),
+        StopMovingBackups => Done(coordinator.StopMovingBackups),
         RemoveLeftoverBackups remove => await RemoveLeftoverBackupsAsync(remove.RecordIds, cancellationToken).ConfigureAwait(false),
         CancelJob cancel => Done(() => jobs.Cancel(cancel.Job)),
         DismissFailure dismiss => Done(() => coordinator.DismissFailure(dismiss.Game, dismiss.Install)),
@@ -82,7 +83,9 @@ public sealed class AgentCommands(
         OpenFolder open => Open(FolderOf(open)),
         AddLibraryFolder add => await AddLibraryFolderAsync(add.Path, cancellationToken).ConfigureAwait(false),
         RemoveLibraryFolder remove => Done(() => library.RemoveLibraryFolder(new LibraryFolder(StoreOf(remove.Store), remove.Path))),
-        ValidateBackupFolder validate => new BackupFolderChecked(CheckBackupFolder(validate.Folder)),
+        ValidateBackupFolder validate => CheckBackupFolder(validate.Folder) is { } problem
+            ? new BackupFolderChecked(problem)
+            : new BackupFolderChecked(AvailableBytes: volumes.GetAvailableBytes(validate.Folder)),
         ApplyAppUpdate => RestartToUpdate(),
         ExitApp exit => Done(() => _ = lifetime.RequestExitAsync(exit.Mode)),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),

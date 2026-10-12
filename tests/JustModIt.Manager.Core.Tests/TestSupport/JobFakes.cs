@@ -297,6 +297,9 @@ internal sealed class FakeInstallEngine : IInstallEngine
 
     public TaskCompletionSource? VerifyGate { get; set; }
 
+    /// <summary>Holds every move of backups until it completes.</summary>
+    public TaskCompletionSource? MoveGate { get; set; }
+
     public int Verifications => Volatile.Read(ref _verifications);
 
     public InstallRecord Add(InstallRecord record)
@@ -386,13 +389,18 @@ internal sealed class FakeInstallEngine : IInstallEngine
         return OnVerify?.Invoke(recordId) ?? new VerificationResult([]);
     }
 
-    public Task<InstallRecord> MoveBackupsAsync(Guid recordId, BackupChoice destination, IProgress<InstallProgress>? progress,
+    public async Task<InstallRecord> MoveBackupsAsync(Guid recordId, BackupChoice destination, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
         Log("move backups");
+        if (MoveGate is { } gate)
+        {
+            await gate.Task.WaitAsync(cancellationToken);
+        }
+
         var moved = Records[recordId] with { Backup = new BackupFolder(destination.Location, Path.Join("moved", recordId.ToString("N"))) };
         Records[recordId] = moved;
-        return Task.FromResult(moved);
+        return moved;
     }
 
     public Task<InstallRecord?> AdoptMovedAsync(Guid recordId, InstalledGame game, IProgress<InstallProgress>? progress,

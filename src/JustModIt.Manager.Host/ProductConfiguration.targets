@@ -32,6 +32,8 @@
         UpdateUrl = UpdateUrl,
         UpdateChannel = UpdateChannel,
         UpdatePrereleases = UpdatePrereleases,
+        SourceUrl = SourceUrl,
+        IssuesUrl = IssuesUrl,
         Language = Language,
         TargetLanguage = TargetLanguage,
         AccentColor = AccentColor,
@@ -75,6 +77,12 @@ internal static class ProductConfiguration
     public const string UpdateChannel = @"$([MSBuild]::Escape($(ManagerUpdateChannel.Replace('"', '""'))))"%3B
 
     public const bool UpdatePrereleases = $(_UpdatePrereleasesLiteral)%3B
+
+    /// <summary>The repository holding the app's source code, or empty for none.</summary>
+    public const string SourceUrl = @"$([MSBuild]::Escape($(ManagerSourceUrl.Replace('"', '""'))))"%3B
+
+    /// <summary>Where players report a problem, given the app's and the system's version as a body parameter, or empty for nowhere.</summary>
+    public const string IssuesUrl = @"$([MSBuild]::Escape($(ManagerIssuesUrl.Replace('"', '""'))))"%3B
 
     /// <summary>The UI language, an IETF tag, or empty for English.</summary>
     public const string Language = @"$([MSBuild]::Escape($(ManagerLanguage.Replace('"', '""'))))"%3B

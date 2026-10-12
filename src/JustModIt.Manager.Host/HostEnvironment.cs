@@ -110,6 +110,8 @@ internal sealed record HostEnvironment
             Branding = new AppBranding(options.App),
             AccentColor = Product.AccentColor,
             Site = Site(apiKey: null),
+            SourceAddress = Address(Product.SourceUrl),
+            IssuesAddress = Address(Product.IssuesUrl),
             ImageCacheDirectory = Locations.ImageCacheDirectory,
             ImageHosts = Product.ImageHosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             Codecs = OperatingSystem.IsWindows() ? new WindowsMediaCodecs() : null,
@@ -117,6 +119,8 @@ internal sealed record HostEnvironment
             Compose = options.ConfigureUi,
         };
     }
+
+    private static Uri? Address(string url) => Uri.TryCreate(url, UriKind.Absolute, out var address) ? address : null;
 
     private CatalogueApiOptions Site(string? apiKey) =>
         new(new Uri(Product.ApiUrl), Product.SiteUrl.Length > 0 ? new Uri(Product.SiteUrl) : null, Identity.AppId, Version, apiKey);

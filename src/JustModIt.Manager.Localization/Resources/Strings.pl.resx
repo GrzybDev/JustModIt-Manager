@@ -391,7 +391,7 @@
     <value>Instalacja testowa</value>
   </data>
   <data name="Shell_JobMovingBackups" xml:space="preserve">
-    <value>Przenoszenie kopii zapasowych</value>
+    <value>Przenoszenie kopii</value>
   </data>
   <data name="Shell_JobFollowingMove" xml:space="preserve">
     <value>Przenoszenie do nowego folderu gry</value>
@@ -1754,5 +1754,290 @@
   </data>
   <data name="Catalogue_Films" xml:space="preserve">
     <value>{count, plural, one {Film w YouTube} few {# filmy w YouTube} many {# filmów w YouTube} other {# filmu w YouTube}}</value>
+  </data>
+  <data name="Settings_Subtitle" xml:space="preserve">
+    <value>Zmiany działają od razu, bez zapisywania.</value>
+  </data>
+  <data name="Settings_General" xml:space="preserve">
+    <value>Ogólne</value>
+  </data>
+  <data name="Settings_Projects" xml:space="preserve">
+    <value>Projekty</value>
+  </data>
+  <data name="Settings_Backups" xml:space="preserve">
+    <value>Kopie zapasowe</value>
+  </data>
+  <data name="Settings_Libraries" xml:space="preserve">
+    <value>Biblioteki gier</value>
+  </data>
+  <data name="Settings_ForCreators" xml:space="preserve">
+    <value>Dla twórców</value>
+  </data>
+  <data name="Settings_About" xml:space="preserve">
+    <value>O programie</value>
+  </data>
+  <data name="Settings_StartWithSystem" xml:space="preserve">
+    <value>Uruchamiaj razem z systemem</value>
+  </data>
+  <data name="Settings_StartWithSystemDescription" xml:space="preserve">
+    <value>Po zalogowaniu {product} uruchomi się po cichu w zasobniku systemowym i od razu zadba o zainstalowane projekty.</value>
+  </data>
+  <data name="Settings_CloseBehavior" xml:space="preserve">
+    <value>Po zamknięciu okna</value>
+  </data>
+  <data name="Settings_CloseBehaviorDescription" xml:space="preserve">
+    <value>Co dzieje się po zamknięciu okna aplikacji. Całkiem zamknąć ją można też z menu ikony w zasobniku.</value>
+  </data>
+  <data name="Settings_BlurAdult" xml:space="preserve">
+    <value>Rozmywaj grafiki gier dla dorosłych</value>
+  </data>
+  <data name="Settings_BlurAdultDescription" xml:space="preserve">
+    <value>Okładki i zrzuty ekranu gier oznaczonych jako 18+ pozostaną rozmyte, dopóki nie zostaną odsłonięte na stronie gry.</value>
+  </data>
+  <data name="Settings_AutoInstall" xml:space="preserve">
+    <value>Instaluj nowe projekty automatycznie</value>
+  </data>
+  <data name="Settings_AutoInstallDescription" xml:space="preserve">
+    <value>Projekt znaleziony dla jednej z gier zostanie zainstalowany bez pytania. Po wyłączeniu pojawi się tylko powiadomienie, a instalacja poczeka na decyzję.</value>
+  </data>
+  <data name="Settings_AutoUpdate" xml:space="preserve">
+    <value>Aktualizuj projekty automatycznie</value>
+  </data>
+  <data name="Settings_AutoUpdateDescription" xml:space="preserve">
+    <value>Gdy grupa wyda nową wersję zainstalowanego projektu, zostanie ona zainstalowana w miejsce poprzedniej.</value>
+  </data>
+  <data name="Settings_Reapply" xml:space="preserve">
+    <value>Przywracaj projekt po aktualizacji gry</value>
+  </data>
+  <data name="Settings_ReapplyDescription" xml:space="preserve">
+    <value>Jeśli aktualizacja gry nadpisze pliki projektu, projekt zostanie zainstalowany ponownie.</value>
+  </data>
+  <data name="Settings_Notifications" xml:space="preserve">
+    <value>Powiadomienia systemowe</value>
+  </data>
+  <data name="Settings_NotificationsDescription" xml:space="preserve">
+    <value>Powiadomienie pojawi się, gdy projekt zostanie zainstalowany, zaktualizowany albo znaleziony.</value>
+  </data>
+  <data name="Settings_AutomationNote" xml:space="preserve">
+    <value>Automatyczne aktualizacje można też wyłączyć dla pojedynczej gry na jej stronie. Gry uruchomione albo aktualizowane przez sklep pozostają nietknięte.</value>
+  </data>
+  <data name="Settings_Teams" xml:space="preserve">
+    <value>Preferowane grupy</value>
+  </data>
+  <data name="Settings_TeamsDescription" xml:space="preserve">
+    <value>Gdy kilka grup przygotowało projekt dla tej samej gry, a żaden nie został wybrany, automatyczna instalacja bierze projekt grupy najwyżej na tej liście.</value>
+  </data>
+  <data name="Settings_TeamsEmpty" xml:space="preserve">
+    <value>Lista jest pusta, więc gra z projektami kilku grup czeka na wybór.</value>
+  </data>
+  <data name="Settings_TeamsSearch" xml:space="preserve">
+    <value>Szukaj grupy do dodania…</value>
+  </data>
+  <data name="Settings_TeamsNoMatch" xml:space="preserve">
+    <value>Żadna grupa z katalogu nie pasuje.</value>
+  </data>
+  <data name="Settings_TeamsHint" xml:space="preserve">
+    <value>Kolejność zmienia się przeciągnięciem grupy albo klawiszem Alt ze strzałką w górę lub w dół.</value>
+  </data>
+  <data name="Settings_TeamUnknown" xml:space="preserve">
+    <value>Grupa spoza katalogu</value>
+  </data>
+  <data name="Settings_TeamPosition" xml:space="preserve">
+    <value>{team}, miejsce {position} z {count}</value>
+  </data>
+  <data name="Settings_TeamMoveUp" xml:space="preserve">
+    <value>Przesuń grupę {team} wyżej</value>
+  </data>
+  <data name="Settings_TeamMoveDown" xml:space="preserve">
+    <value>Przesuń grupę {team} niżej</value>
+  </data>
+  <data name="Settings_TeamRemove" xml:space="preserve">
+    <value>Usuń grupę {team} z listy</value>
+  </data>
+  <data name="Settings_TeamAdd" xml:space="preserve">
+    <value>Dodaj grupę {team} do listy</value>
+  </data>
+  <data name="Settings_BackupLocation" xml:space="preserve">
+    <value>Gdzie trzymać oryginalne pliki gier</value>
+  </data>
+  <data name="Settings_BackupLocationDescription" xml:space="preserve">
+    <value>Zanim projekt zmieni plik gry, jego oryginał zostaje odłożony. Dzięki temu każdy projekt da się odinstalować, także bez internetu.</value>
+  </data>
+  <data name="Settings_BackupGameFolder" xml:space="preserve">
+    <value>Folder gry</value>
+  </data>
+  <data name="Settings_BackupGameFolderDescription" xml:space="preserve">
+    <value>Ukryty folder obok plików gry, na tym samym dysku. Nawet duże pliki są odkładane od razu, a na dysk systemowy nic nie trafia.</value>
+  </data>
+  <data name="Settings_BackupAppData" xml:space="preserve">
+    <value>Dane aplikacji</value>
+  </data>
+  <data name="Settings_BackupAppDataDescription" xml:space="preserve">
+    <value>Folder danych aplikacji. Obok gier nie powstaje ukryty folder, ale duże pliki są kopiowane, co trwa i zajmuje tam miejsce.</value>
+  </data>
+  <data name="Settings_BackupCustom" xml:space="preserve">
+    <value>Inny folder</value>
+  </data>
+  <data name="Settings_BackupCustomDescription" xml:space="preserve">
+    <value>Dowolny folder na dysku lokalnym, np. na dysku z większą ilością wolnego miejsca.</value>
+  </data>
+  <data name="Settings_Recommended" xml:space="preserve">
+    <value>Zalecane</value>
+  </data>
+  <data name="Settings_BackupFolder" xml:space="preserve">
+    <value>Folder kopii</value>
+  </data>
+  <data name="Settings_PickFolder" xml:space="preserve">
+    <value>Wybierz folder…</value>
+  </data>
+  <data name="Settings_PickBackupFolderTitle" xml:space="preserve">
+    <value>Folder na oryginalne pliki gier</value>
+  </data>
+  <data name="Settings_FreeSpace" xml:space="preserve">
+    <value>Wolne miejsce na dysku {drive} {space}</value>
+  </data>
+  <data name="Settings_BackupFolderProblem" xml:space="preserve">
+    <value>{problem, select, NotFullyQualified {To nie jest pełna ścieżka folderu.} Missing {Ten folder nie istnieje.} NetworkFolder {Folder sieciowy może zniknąć akurat wtedy, gdy grze trzeba przywrócić oryginały, dlatego kopie mogą trafić tylko na dysk lokalny.} NotWritable {Aplikacja nie może zapisywać w tym folderze.} InsideGameFolder {Sklep może usunąć albo sprawdzić folder gry, dlatego kopie nie mogą trafić do jego środka.} InsideAppFolder {Aktualizacje aplikacji zastępują jej folder, dlatego kopie nie mogą trafić do jego środka.} other {Ten folder nie może przechować kopii.}}</value>
+  </data>
+  <data name="Settings_BackupsKept" xml:space="preserve">
+    <value>Oryginalne pliki są zachowane dla {count, plural, one {# gry} few {# gier} many {# gier} other {# gry}}.</value>
+  </data>
+  <data name="Settings_BackupsElsewhere" xml:space="preserve">
+    <value>Kopie {count, plural, one {# gry} few {# gier} many {# gier} other {# gry}} są w poprzednim miejscu: {place}. Nowe kopie trafiają już do nowego miejsca.</value>
+  </data>
+  <data name="Settings_BackupsElsewhereUnavailable" xml:space="preserve">
+    <value>Kopie {count, plural, one {# gry} few {# gier} many {# gier} other {# gry}} są w poprzednim miejscu: {place}. Jest ono teraz niedostępne, więc kopie da się przenieść dopiero, gdy znów będzie dostępne.</value>
+  </data>
+  <data name="Settings_PlaceGameFolders" xml:space="preserve">
+    <value>w folderach gier</value>
+  </data>
+  <data name="Settings_PlaceAppData" xml:space="preserve">
+    <value>w folderze danych aplikacji</value>
+  </data>
+  <data name="Settings_PlaceFolder" xml:space="preserve">
+    <value>w folderze {folder}</value>
+  </data>
+  <data name="Settings_PlaceSeveral" xml:space="preserve">
+    <value>w kilku miejscach</value>
+  </data>
+  <data name="Settings_MoveBackups" xml:space="preserve">
+    <value>Przenieś kopie</value>
+  </data>
+  <data name="Settings_Moving" xml:space="preserve">
+    <value>Przenoszenie kopii w nowe miejsce</value>
+  </data>
+  <data name="Settings_MovingCount" xml:space="preserve">
+    <value>{position} z {total, plural, one {# gry} few {# gier} many {# gier} other {# gier}}</value>
+  </data>
+  <data name="Settings_StopMovingTip" xml:space="preserve">
+    <value>Kopie bieżącej gry zostaną przeniesione do końca, więc nic nie zostanie w połowie.</value>
+  </data>
+  <data name="Settings_BackupsUnavailableTitle" xml:space="preserve">
+    <value>Folder kopii jest niedostępny</value>
+  </data>
+  <data name="Settings_BackupsUnavailable" xml:space="preserve">
+    <value>Dopóki folder {folder} jest niedostępny, projektów {count, plural, one {# gry} few {# gier} many {# gier} other {# gry}} ({games}) nie da się odinstalować ani zaktualizować.</value>
+  </data>
+  <data name="Settings_Leftovers" xml:space="preserve">
+    <value>Kopie gier, których już nie ma</value>
+  </data>
+  <data name="Settings_LeftoversDescription" xml:space="preserve">
+    <value>Te gry odinstalowano w sklepie, więc ich kopie nie są już potrzebne.</value>
+  </data>
+  <data name="Settings_RemoveLeftover" xml:space="preserve">
+    <value>Usuń</value>
+  </data>
+  <data name="Settings_RemoveLeftoverName" xml:space="preserve">
+    <value>Usuń kopie gry {game}</value>
+  </data>
+  <data name="Settings_RemoveLeftoverTitle" xml:space="preserve">
+    <value>Usunąć kopie gry {game}?</value>
+  </data>
+  <data name="Settings_RemoveLeftoverMessage" xml:space="preserve">
+    <value>Oryginalne pliki zachowane w folderze {folder} ({size}) zostaną usunięte. Gry nie ma już na komputerze, więc nie są potrzebne.</value>
+  </data>
+  <data name="Settings_AddedFolders" xml:space="preserve">
+    <value>Foldery dodane ręcznie</value>
+  </data>
+  <data name="Settings_AddedFoldersDescription" xml:space="preserve">
+    <value>Gry ze sklepów są wykrywane bez pomocy. Tu są foldery wskazane w pomocy „{help}”; usunięcie z listy nie rusza zainstalowanych projektów.</value>
+  </data>
+  <data name="Settings_FolderKind" xml:space="preserve">
+    <value>{store, select, steam {Biblioteka Steam} gog {Folder gier z GOG} epic {Folder gry z Epic Games Store} other {{name}}}</value>
+  </data>
+  <data name="Settings_FolderGames" xml:space="preserve">
+    <value>{games, plural, one {# gra} few {# gry} many {# gier} other {# gry}}, w tym z projektem: {projects}</value>
+  </data>
+  <data name="Settings_RemoveFolder" xml:space="preserve">
+    <value>Usuń z listy</value>
+  </data>
+  <data name="Settings_RemoveFolderName" xml:space="preserve">
+    <value>Usuń folder {folder} z listy</value>
+  </data>
+  <data name="Settings_CreatorMode" xml:space="preserve">
+    <value>Tryb twórcy</value>
+  </data>
+  <data name="Settings_CreatorModeDescription" xml:space="preserve">
+    <value>Pokazuje {creator} – narzędzie do tworzenia paczek z własnymi projektami do gier.</value>
+  </data>
+  <data name="Settings_UpdateChecked" xml:space="preserve">
+    <value>Aktualizacje są sprawdzane co 4 godziny, ostatnio {time}.</value>
+  </data>
+  <data name="Settings_UpdateNeverChecked" xml:space="preserve">
+    <value>Aktualizacje są sprawdzane co 4 godziny.</value>
+  </data>
+  <data name="Settings_UpdateChecking" xml:space="preserve">
+    <value>Trwa sprawdzanie, czy jest nowa wersja…</value>
+  </data>
+  <data name="Settings_UpdateDownloading" xml:space="preserve">
+    <value>Pobieranie wersji {version} · {percent}</value>
+  </data>
+  <data name="Settings_UpdateAvailable" xml:space="preserve">
+    <value>Dostępna jest wersja {version}.</value>
+  </data>
+  <data name="Settings_UpdateReady" xml:space="preserve">
+    <value>Wersja {version} jest gotowa i zainstaluje się po ponownym uruchomieniu aplikacji (przycisk w pasku bocznym).</value>
+  </data>
+  <data name="Settings_UpdateFailed" xml:space="preserve">
+    <value>Nie udało się sprawdzić aktualizacji. Kolejna próba za godzinę.</value>
+  </data>
+  <data name="Settings_UpdateUnavailable" xml:space="preserve">
+    <value>Ta kopia aplikacji nie aktualizuje się sama.</value>
+  </data>
+  <data name="Settings_CheckUpdates" xml:space="preserve">
+    <value>Sprawdź aktualizacje</value>
+  </data>
+  <data name="Settings_AutoUpdateApp" xml:space="preserve">
+    <value>Aktualizuj aplikację automatycznie</value>
+  </data>
+  <data name="Settings_AutoUpdateAppDescription" xml:space="preserve">
+    <value>Nowe wersje aplikacji {product} są pobierane w tle i instalowane, gdy aplikacja nie jest używana.</value>
+  </data>
+  <data name="Settings_AboutText" xml:space="preserve">
+    <value>Otwartoźródłowa aplikacja, która wykrywa gry na tym komputerze i instaluje do nich projekty tworzone przez fanów.</value>
+  </data>
+  <data name="Settings_SourceCode" xml:space="preserve">
+    <value>Kod źródłowy</value>
+  </data>
+  <data name="Settings_ReportProblem" xml:space="preserve">
+    <value>Zgłoś problem</value>
+  </data>
+  <data name="Settings_LogsFolder" xml:space="preserve">
+    <value>Folder z logami</value>
+  </data>
+  <data name="Settings_LicenseLine" xml:space="preserve">
+    <value>Kod programu jest wolnym oprogramowaniem na licencji GNU GPL w wersji 3 lub późniejszej (GPL-3.0-or-later) i jest rozpowszechniany bez jakiejkolwiek gwarancji.</value>
+  </data>
+  <data name="Settings_BrandingLine" xml:space="preserve">
+    <value>Zasady używania nazwy i logo aplikacji {product} opisuje strona licencji.</value>
+  </data>
+  <data name="Settings_StopMoving" xml:space="preserve">
+    <value>Anuluj</value>
+  </data>
+  <data name="Settings_IssueVersion" xml:space="preserve">
+    <value>Wersja aplikacji: {version}</value>
+  </data>
+  <data name="Settings_IssueSystem" xml:space="preserve">
+    <value>System: {system}</value>
   </data>
 </root>

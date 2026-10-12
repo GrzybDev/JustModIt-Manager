@@ -483,4 +483,58 @@
   <data name="Catalogue_CompareText" xml:space="preserve">
     <value>{hasStores, select, true {Każde przygotowała inna grupa. Wspólne wersje gry: {stores}.} other {Każde przygotowała inna grupa.}}</value>
   </data>
+  <data name="Settings_Projects" xml:space="preserve">
+    <value>Spolszczenia</value>
+  </data>
+  <data name="Settings_StartWithSystemDescription" xml:space="preserve">
+    <value>Po zalogowaniu {product} uruchomi się po cichu w zasobniku systemowym i od razu zadba o zainstalowane spolszczenia.</value>
+  </data>
+  <data name="Settings_AutoInstall" xml:space="preserve">
+    <value>Instaluj nowe spolszczenia automatycznie</value>
+  </data>
+  <data name="Settings_AutoInstallDescription" xml:space="preserve">
+    <value>Spolszczenie znalezione dla jednej z gier zostanie zainstalowane bez pytania. Po wyłączeniu pojawi się tylko powiadomienie, a instalacja poczeka na decyzję.</value>
+  </data>
+  <data name="Settings_AutoUpdate" xml:space="preserve">
+    <value>Aktualizuj spolszczenia automatycznie</value>
+  </data>
+  <data name="Settings_AutoUpdateDescription" xml:space="preserve">
+    <value>Gdy grupa wyda nową wersję zainstalowanego spolszczenia, zostanie ona zainstalowana w miejsce poprzedniej.</value>
+  </data>
+  <data name="Settings_Reapply" xml:space="preserve">
+    <value>Przywracaj spolszczenie po aktualizacji gry</value>
+  </data>
+  <data name="Settings_ReapplyDescription" xml:space="preserve">
+    <value>Jeśli aktualizacja gry nadpisze spolszczone pliki, spolszczenie zostanie zainstalowane ponownie.</value>
+  </data>
+  <data name="Settings_NotificationsDescription" xml:space="preserve">
+    <value>Powiadomienie pojawi się, gdy spolszczenie zostanie zainstalowane, zaktualizowane albo znalezione.</value>
+  </data>
+  <data name="Settings_TeamsDescription" xml:space="preserve">
+    <value>Gdy kilka grup przygotowało spolszczenie tej samej gry, a żadne nie zostało wybrane, automatyczna instalacja bierze spolszczenie grupy najwyżej na tej liście.</value>
+  </data>
+  <data name="Settings_TeamsEmpty" xml:space="preserve">
+    <value>Lista jest pusta, więc gra ze spolszczeniami kilku grup czeka na wybór.</value>
+  </data>
+  <data name="Settings_BackupLocationDescription" xml:space="preserve">
+    <value>Zanim spolszczenie zmieni plik gry, jego oryginał zostaje odłożony. Dzięki temu każde spolszczenie da się odinstalować, także bez internetu.</value>
+  </data>
+  <data name="Settings_BackupsUnavailable" xml:space="preserve">
+    <value>Dopóki folder {folder} jest niedostępny, spolszczeń {count, plural, one {# gry} few {# gier} many {# gier} other {# gry}} ({games}) nie da się odinstalować ani zaktualizować.</value>
+  </data>
+  <data name="Settings_AddedFoldersDescription" xml:space="preserve">
+    <value>Gry ze sklepów są wykrywane bez pomocy. Tu są foldery wskazane w pomocy „{help}”; usunięcie z listy nie rusza zainstalowanych spolszczeń.</value>
+  </data>
+  <data name="Settings_FolderGames" xml:space="preserve">
+    <value>{games, plural, one {# gra} few {# gry} many {# gier} other {# gry}}, w tym ze spolszczeniem: {projects}</value>
+  </data>
+  <data name="Settings_CreatorModeDescription" xml:space="preserve">
+    <value>Pokazuje {creator} – narzędzie do tworzenia paczek z własnymi tłumaczeniami gier.</value>
+  </data>
+  <data name="Settings_AboutText" xml:space="preserve">
+    <value>Otwartoźródłowa aplikacja Bazy Spolszczeń. Wykrywa gry na tym komputerze i instaluje do nich fanowskie spolszczenia – stworzone przez graczy, dla graczy.</value>
+  </data>
+  <data name="Settings_BrandingLine" xml:space="preserve">
+    <value>Nazwy, logo i ikony Bazy Spolszczeń i Menadżera Spolszczeń nie są objęte tą licencją. © 2026 Marek Grzyb. Wszelkie prawa zastrzeżone.</value>
+  </data>
 </root>

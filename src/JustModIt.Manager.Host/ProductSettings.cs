@@ -34,6 +34,12 @@ public sealed record ProductSettings
 
     public bool UpdatePrereleases { get; init; }
 
+    /// <summary>Empty offers no link to the source code.</summary>
+    public string SourceUrl { get; init; } = "";
+
+    /// <summary>Empty offers no way to report a problem.</summary>
+    public string IssuesUrl { get; init; } = "";
+
     public string Language { get; init; } = "";
 
     public string TargetLanguage { get; init; } = "";

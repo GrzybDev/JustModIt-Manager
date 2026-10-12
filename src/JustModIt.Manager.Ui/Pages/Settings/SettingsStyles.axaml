@@ -1,0 +1,46 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls">
+  <!-- The settings and the pages opened from them (the Settings and Licences boards): sections of an overline and a card,
+       36 px apart; cards of rows split by faint lines. -->
+
+  <Style Selector="StackPanel.section">
+    <Setter Property="Spacing" Value="12" />
+  </Style>
+  <Style Selector="Border.settingsCard">
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Border.settingsCard Border.divider">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+  </Style>
+  <Style Selector="StackPanel.part">
+    <Setter Property="Margin" Value="20,16" />
+  </Style>
+
+  <!-- A quiet link of the about card: an icon, a label and, for a place outside the window, a small arrow after it. -->
+  <Style Selector="Button.aboutLink">
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+  <Style Selector="Button.aboutLink ui|Icon">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Button.aboutLink ui|Icon.trail">
+    <Setter Property="Width" Value="12" />
+    <Setter Property="Height" Value="12" />
+    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.aboutLink TextBlock">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+</Styles>

@@ -31,15 +31,19 @@ public static class TestApp
     public static string RepositoryRoot { get; } = FindRepositoryRoot();
 
     // The platform's English base, its Polish translation and the Polish app's own words over both.
-    private static TextCatalog PolishApp()
+    public static TextCatalog PolishApp() => Polish(Path.Combine("src", "MenadzerSpolszczen", "Resources", "Strings.pl.resx"));
+
+    // The platform's texts alone, as an app without words of its own shows them.
+    public static TextCatalog SharedPolish() => Polish();
+
+    private static TextCatalog Polish(params string[] overrides)
     {
         var texts = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var file in new[]
         {
             Path.Combine("src", "JustModIt.Manager.Localization", "Resources", "Strings.resx"),
             Path.Combine("src", "JustModIt.Manager.Localization", "Resources", "Strings.pl.resx"),
-            Path.Combine("src", "MenadzerSpolszczen", "Resources", "Strings.pl.resx"),
-        })
+        }.Concat(overrides))
         {
             foreach (var data in XDocument.Load(Path.Combine(RepositoryRoot, file)).Root!.Elements("data"))
             {

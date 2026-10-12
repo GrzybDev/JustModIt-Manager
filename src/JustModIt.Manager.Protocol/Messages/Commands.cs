@@ -40,6 +40,9 @@ public sealed record TestInstallPackage(GameKey Game, string PackagePath) : Mess
 /// </summary>
 public sealed record MoveBackups : Message;
 
+/// <summary>Moves no more installs' backups; a move already running finishes, so none is left halfway.</summary>
+public sealed record StopMovingBackups : Message;
+
 /// <summary>The answer to a job request, naming the queued job.</summary>
 /// <param name="JobId">The id that <see cref="JobView.Id"/> and <see cref="CancelJob"/> use.</param>
 public sealed record JobStarted(Guid JobId) : Message;
@@ -147,7 +150,8 @@ public sealed record ValidateBackupFolder(string Folder) : Message;
 
 /// <summary>The answer to <see cref="ValidateBackupFolder"/>.</summary>
 /// <param name="Problem">Null when the folder can be used.</param>
-public sealed record BackupFolderChecked(BackupFolderProblem? Problem = null) : Message;
+/// <param name="AvailableBytes">The free space on the folder's drive; null when the folder is refused or the drive does not tell.</param>
+public sealed record BackupFolderChecked(BackupFolderProblem? Problem = null, long? AvailableBytes = null) : Message;
 
 /// <summary>
 /// Removes the backups that installs forgotten with their game left behind, which only the player may decide; answered

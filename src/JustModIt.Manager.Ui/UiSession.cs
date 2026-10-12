@@ -14,6 +14,7 @@ namespace JustModIt.Manager.Ui;
 public sealed class UiSession : IDisposable
 {
     private readonly IDisposable? _owned;
+    private MainWindow? _window;
 
     private UiSession(UiComposition composition, UiServices services, ShellViewModel shell, IDisposable? owned)
     {
@@ -36,8 +37,9 @@ public sealed class UiSession : IDisposable
     /// <param name="images">Loads the site's images; null for the image cache in the app's cache folder.</param>
     /// <param name="links">Opens addresses outside the window; null for the system's shell.</param>
     /// <param name="clock">The time the pages tell dates against; null for the system's clock.</param>
+    /// <param name="pickers">The pickers of folders and files; null for the window's own.</param>
     public static UiSession Create(Application application, UiContext context, IAgent agent, IImageLoader? images = null,
-        IExternalLinks? links = null, TimeProvider? clock = null)
+        IExternalLinks? links = null, TimeProvider? clock = null, IFilePickers? pickers = null)
     {
         ArgumentNullException.ThrowIfNull(application);
         ArgumentNullException.ThrowIfNull(context);
@@ -50,6 +52,7 @@ public sealed class UiSession : IDisposable
 
         var cache = images is null ? ImageCache.For(context) : null;
         UiServices? services = null;
+        UiSession? session = null;
         var navigator = new Navigator(route => composition.Pages.Create(route, services!));
         services = new UiServices
         {
@@ -61,13 +64,15 @@ public sealed class UiSession : IDisposable
             Context = context,
             Links = links ?? new ShellLinks(context.Loggers.CreateLogger<ShellLinks>()),
             Clock = clock ?? TimeProvider.System,
+            Pickers = pickers ?? new StorageProviderPickers(() => session?._window),
         };
-        return new UiSession(composition, services, new ShellViewModel(services, composition.FirstRun), cache);
+        session = new UiSession(composition, services, new ShellViewModel(services, composition.FirstRun), cache);
+        return session;
     }
 
     /// <summary>Creates the main window, showing the shell.</summary>
     public MainWindow CreateWindow() =>
-        new(Shell, Composition.Views, Services.Context.Branding.CreateIcon(), Services.Context.SystemMotion);
+        _window = new(Shell, Composition.Views, Services.Context.Branding.CreateIcon(), Services.Context.SystemMotion);
 
     public void Dispose()
     {

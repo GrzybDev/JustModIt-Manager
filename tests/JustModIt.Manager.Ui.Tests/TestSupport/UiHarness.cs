@@ -26,14 +26,20 @@ namespace JustModIt.Manager.Ui.Tests.TestSupport;
 public sealed class UiHarness : IDisposable
 {
     public UiHarness(AppStateView? state = null, Action<UiComposition>? compose = null, double width = 1280, double height = 800,
-        NavigationTarget? launch = null)
+        NavigationTarget? launch = null, Func<UiContext, UiContext>? context = null, Func<Message, Message?>? answer = null)
     {
         if (state is not null)
         {
             Agent.Push(state);
         }
 
-        Session = UiSession.Create(Application.Current!, Context(compose, launch), Agent, Images, Links, Clock);
+        if (answer is not null)
+        {
+            Agent.Answer = answer;
+        }
+
+        var built = Context(compose, launch);
+        Session = UiSession.Create(Application.Current!, context is null ? built : context(built), Agent, Images, Links, Clock, Pickers);
         Window = Session.CreateWindow();
         // A click here moves, presses and releases, each after running the dispatcher and a frame; under load that takes
         // longer than a tooltip's delay, and the tooltip, which opens inside the window here, can slide over the pointer
@@ -51,6 +57,9 @@ public sealed class UiHarness : IDisposable
 
     /// <summary>The addresses the window asked to open outside itself.</summary>
     public RecordingLinks Links { get; } = new();
+
+    /// <summary>Answers the window's pickers with what the test chose.</summary>
+    public FakePickers Pickers { get; } = new();
 
     /// <summary>A clock standing at <see cref="TestStates.Now"/>, in UTC.</summary>
     public FakeTimeProvider Clock { get; } = new(TestStates.Now);
@@ -212,4 +221,19 @@ public sealed class RecordingLinks : IExternalLinks
     public List<Uri> Opened { get; } = [];
 
     public void Open(Uri address) => Opened.Add(address);
+}
+
+/// <summary>Answers the window's pickers with what the test chose, as if the player picked it, and records what they asked.</summary>
+public sealed class FakePickers : IFilePickers
+{
+    /// <summary>The folder the player picks; null cancels.</summary>
+    public string? Folder { get; set; }
+
+    public List<string> Asked { get; } = [];
+
+    public Task<string?> PickFolderAsync(string title)
+    {
+        Asked.Add(title);
+        return Task.FromResult(Folder);
+    }
 }

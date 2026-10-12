@@ -49,6 +49,7 @@ public sealed class AppStateViewTests
             ReleaseLabel = "v1",
             VariantName = "Text only",
             BackupLocation = BackupLocation.GameFolder,
+            BackupsUnavailable = true,
             NeedsAttention = true,
         });
         install.Status.State.Should().Be(MyGameState.Busy);
