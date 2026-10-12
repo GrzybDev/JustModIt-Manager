@@ -72,22 +72,26 @@ public sealed class MotionTests
         using var ui = new UiHarness(TestStates.Idle());
         var full = Pages(ui);
         var reduced = Pages(ui);
+        // The animation clock follows real time, and a busy machine may run its frames far apart: only a slide much longer
+        // than the reduced change is sure to be still under way when that change ends.
+        var transition = new PageTransition { Duration = TimeSpan.FromMinutes(1) };
+        using var leaving = new CancellationTokenSource();
         try
         {
-            // Started together, both run on the same frames of the animation clock, which follows real time.
-            var sliding = new PageTransition().Start(full.From, full.To, forward: true, CancellationToken.None);
+            var sliding = transition.Start(full.From, full.To, forward: true, leaving.Token);
             Motion.SetReduced(true);
-            var fading = new PageTransition().Start(reduced.From, reduced.To, forward: true, CancellationToken.None);
+            var fading = transition.Start(reduced.From, reduced.To, forward: true, CancellationToken.None);
             UiHarness.Settle();
-            Offset(full.To).Should().BeGreaterThan(4);
             Offset(reduced.To).Should().Be(0);
 
             await UiHarness.WaitUntilAsync(() => fading.IsCompleted);
-            sliding.IsCompleted.Should().BeFalse("the reduced change is the shorter one");
-            await UiHarness.WaitUntilAsync(() => sliding.IsCompleted);
+            (reduced.To.Opacity, Offset(reduced.To), reduced.From.IsVisible).Should().Be((1, 0, false));
+            sliding.IsCompleted.Should().BeFalse("with reduced motion a change ignores the page's own duration");
+            Offset(full.To).Should().BeGreaterThan(4, "the new page is still sliding into place");
         }
         finally
         {
+            leaving.Cancel();
             Motion.SetReduced(false);
         }
     }
