@@ -118,6 +118,12 @@ public sealed record PlanFinding(FindingKind Kind, string? Path = null)
     /// <summary>A second path the finding is about, e.g. the game file a rename takes.</summary>
     public string? RelatedPath { get; init; }
 
+    /// <summary>
+    /// For a <see cref="FindingKind.GameFileMissing"/>, the file the path most likely means, as the game holds it at that
+    /// point of the package; null when none is near.
+    /// </summary>
+    public string? SuggestedPath { get; init; }
+
     /// <summary>The size of the file the finding is about, e.g. of a whole game file, a patch or the package.</summary>
     public long? Size { get; init; }
 

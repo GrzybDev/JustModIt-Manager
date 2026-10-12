@@ -100,6 +100,24 @@ public sealed class AdvancedPlanTests : IDisposable
         plan.Findings.Single(finding => finding.Kind == FindingKind.RenameOverwritesFile).BlocksBuild.Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData("data/strings.pka", "Data/Strings.pak")]
+    [InlineData("data/font/main.ttf", "Data/fonts/main.ttf")]
+    [InlineData("docs/readme.tx", "docs/readme.txt")]
+    [InlineData("bin/engine.dl", null)]
+    [InlineData("video/intro.bik", null)]
+    public async Task Suggests_the_file_a_mistyped_game_path_most_likely_means_as_the_steps_before_left_the_game(string path,
+        string? suggested)
+    {
+        var plan = await PlanAsync(
+            new CopyFileStep("readme.txt", "docs/readme.txt"),
+            new DeleteFileStep("bin/engine.dll"),
+            new PatchFileStep("strings.pak", path));
+
+        plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
+            finding.Kind == FindingKind.GameFileMissing && finding.StepIndex == 2 && finding.SuggestedPath == suggested);
+    }
+
     [Fact]
     public async Task Reports_a_path_written_twice_in_any_letter_case()
     {

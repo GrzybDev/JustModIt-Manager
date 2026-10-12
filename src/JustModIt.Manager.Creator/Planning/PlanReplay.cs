@@ -190,7 +190,7 @@ internal sealed class PlanReplay
         switch (state.Origin)
         {
             case Origin.Absent:
-                Add(FindingKind.GameFileMissing, operation, path);
+                Add(FindingKind.GameFileMissing, operation, path, NearestTo(path));
                 return null;
             case Origin.Deleted or Origin.RenamedAway:
                 Add(FindingKind.FileRemovedEarlier, operation, path);
@@ -266,8 +266,56 @@ internal sealed class PlanReplay
         }
     }
 
-    private void Add(FindingKind kind, PlannedOperation operation, string path) =>
-        _findings.Add(new PlanFinding(kind, path) { OperationIndex = _index, StepIndex = operation.StepIndex });
+    // A slip in a name is likelier than one in a folder, so a near name in the path's own folder goes first. An operation
+    // can rely only on the files there at its point of the package, which earlier ones may have written or removed.
+    private string? NearestTo(string path)
+    {
+        var folder = GameIndex.DirectoryOf(path);
+        var name = GameIndex.NameOf(path);
+        var written = _overlay.Where(entry => entry.Value.Origin == Origin.Written).Select(entry => entry.Key).ToList();
+        var nearName = _game.FilesIn(folder).Select(file => file.Path)
+            .Concat(written.Where(other => PackagePath.Comparer.Equals(GameIndex.DirectoryOf(other), folder)));
+        var sameName = _game.FoldersWith(name).Select(other => _game.Spell(other.Length == 0 ? name : other + PackagePath.Separator + name))
+            .Concat(written.Where(other => PackagePath.Comparer.Equals(GameIndex.NameOf(other), name)));
+        return Nearest(nearName, GameIndex.NameOf, name, Math.Max(1, name.Length / 4))
+            ?? Nearest(sameName, GameIndex.DirectoryOf, folder, int.MaxValue);
+    }
+
+    private string? Nearest(IEnumerable<string> candidates, Func<string, string> part, string typed, int limit) =>
+        candidates.Where(candidate => StateOf(candidate).Origin is Origin.Game or Origin.Written)
+            .Select(candidate => (Path: candidate, Distance: Distance(part(candidate), typed)))
+            .Where(candidate => candidate.Distance <= limit)
+            .OrderBy(candidate => candidate.Distance)
+            .ThenBy(candidate => candidate.Path, PackagePath.Comparer)
+            .Select(candidate => candidate.Path)
+            .FirstOrDefault();
+
+    // Letter case does not count, as game paths ignore it, and two swapped letters, a frequent slip, count as one edit.
+    private static int Distance(string first, string second)
+    {
+        var a = first.ToUpperInvariant();
+        var b = second.ToUpperInvariant();
+        var edits = new int[a.Length + 1][];
+        for (var i = 0; i <= a.Length; i++)
+        {
+            edits[i] = new int[b.Length + 1];
+            edits[i][0] = i;
+            for (var j = 1; j <= b.Length; j++)
+            {
+                edits[i][j] = i == 0 ? j
+                    : Math.Min(Math.Min(edits[i - 1][j] + 1, edits[i][j - 1] + 1), edits[i - 1][j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1));
+                if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1])
+                {
+                    edits[i][j] = Math.Min(edits[i][j], edits[i - 2][j - 2] + 1);
+                }
+            }
+        }
+
+        return edits[a.Length][b.Length];
+    }
+
+    private void Add(FindingKind kind, PlannedOperation operation, string path, string? suggested = null) =>
+        _findings.Add(new PlanFinding(kind, path) { OperationIndex = _index, StepIndex = operation.StepIndex, SuggestedPath = suggested });
 
     private readonly record struct PathState(Origin Origin, FileReference? Content);
 }
