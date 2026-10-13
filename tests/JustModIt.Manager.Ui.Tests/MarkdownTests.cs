@@ -1,9 +1,31 @@
+using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
+using Avalonia.Media;
+using Avalonia.VisualTree;
 using JustModIt.Manager.Ui.Controls.Markdown;
+using JustModIt.Manager.Ui.Tests.TestSupport;
 
 namespace JustModIt.Manager.Ui.Tests;
 
 public sealed class MarkdownTests
 {
+    [AvaloniaFact]
+    public void Headings_and_paragraphs_take_the_prose_type_and_a_compact_view_a_smaller_one()
+    {
+        var document = MarkdownDocument.Parse("## Lantern Team\n\nThe translation covers every line of the game.");
+        var prose = new MarkdownView { Document = document };
+        var compact = new MarkdownView { Document = document, Classes = { "compact" } };
+        var window = new Window { Content = new StackPanel { Children = { prose, compact } } };
+        window.Show();
+        UiHarness.Settle();
+
+        static IEnumerable<(double, double, FontWeight)> Type(MarkdownView view) =>
+            view.GetVisualDescendants().OfType<ProseText>().Select(text => (text.FontSize, text.LineHeight, text.FontWeight));
+        Type(prose).Should().Equal((17, 24, FontWeight.Bold), (15, 26, FontWeight.Normal));
+        Type(compact).Should().Equal((14, 22, FontWeight.Bold), (14, 22, FontWeight.Normal));
+        window.Close();
+    }
+
     [Fact]
     public void The_sites_markdown_reads_into_blocks_whose_links_lead_only_to_https_and_whose_raw_html_shows_its_text()
     {

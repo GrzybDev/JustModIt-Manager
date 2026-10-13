@@ -200,8 +200,6 @@ public sealed class ProseText : TextBlock
     /// <summary>Creates an empty paragraph that wraps.</summary>
     public ProseText() => TextWrapping = TextWrapping.Wrap;
 
-    protected override Type StyleKeyOverride => typeof(TextBlock);
-
     /// <summary>The addresses of the paragraph's links, in order.</summary>
     public IReadOnlyList<Uri> Links => [.. _links.Select(link => link.Link)];
 
