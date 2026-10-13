@@ -442,6 +442,12 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
             SetFailure(key, null);
         }
 
+        // Set before the state is published, so a catalogue refresh that follows a state indexes that state's games.
+        Volatile.Write(ref _indexRequest, new IndexRequest(
+            [.. _snapshot.Games.Keys],
+            [.. _records.Values.Select(record => InstallSources.ProjectOf(record.Source)).OfType<ProjectLocator>()
+                .Select(_catalogueSnapshot.Index.Locate).Distinct()]));
+
         TaskCompletionSource<AppState> next;
         AppState state;
         lock (_publishGate)
@@ -467,10 +473,6 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
             _next = NewSignal();
         }
 
-        Volatile.Write(ref _indexRequest, new IndexRequest(
-            [.. _snapshot.Games.Keys],
-            [.. _records.Values.Select(record => InstallSources.ProjectOf(record.Source)).OfType<ProjectLocator>()
-                .Select(_catalogueSnapshot.Index.Locate).Distinct()]));
         next.TrySetResult(state);
     }
 
