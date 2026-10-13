@@ -316,7 +316,7 @@
         <Border Classes="editPanel" Margin="20,0,20,20" IsVisible="{Binding IsAdding}" theme:Motion.Enter="True">
           <StackPanel Spacing="12">
             <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddOperation}" />
-            <UniformGrid Columns="2" ColumnSpacing="12" IsVisible="{Binding !IsNamingRename}">
+            <ui:PixelUniformGrid Columns="2" ColumnSpacing="12" IsVisible="{Binding !IsNamingRename}">
               <Button Classes="addTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddDelete}" Command="{Binding AddDeleteCommand}">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
                   <Border Classes="folderChip" Width="36" Height="36">
@@ -341,7 +341,7 @@
                   <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
                 </Grid>
               </Button>
-            </UniformGrid>
+            </ui:PixelUniformGrid>
             <Grid ColumnDefinitions="*,Auto,*,Auto" ColumnSpacing="10" IsVisible="{Binding IsNamingRename}">
               <TextBlock Classes="pathLine" Foreground="{StaticResource TextBrush}" Text="{Binding RenameFrom}" VerticalAlignment="Center" />
               <ui:Icon Grid.Column="1" Data="{x:Static theme:Icons.ArrowRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
@@ -467,7 +467,7 @@
         <Border Classes="divider" />
         <StackPanel Spacing="12" Margin="20,16,20,20">
           <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddStep}" />
-          <UniformGrid Columns="4" ColumnSpacing="12">
+          <ui:PixelUniformGrid Columns="4" ColumnSpacing="12">
             <Button Classes="stepTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddCopy}" Command="{Binding AddStepCommand}"
                     CommandParameter="Copy">
               <StackPanel Spacing="10">
@@ -508,7 +508,7 @@
                 <TextBlock Classes="rowText" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddEarlierText}" />
               </StackPanel>
             </Button>
-          </UniformGrid>
+          </ui:PixelUniformGrid>
         </StackPanel>
       </StackPanel>
     </Border>

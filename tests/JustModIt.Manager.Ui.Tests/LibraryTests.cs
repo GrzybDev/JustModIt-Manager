@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
@@ -179,12 +181,16 @@ public sealed class LibraryTests
     }
 
     [AvaloniaFact]
-    public void The_keyboard_moves_through_the_grid_and_opens_a_game()
+    public void The_grid_keeps_its_last_column_inside_the_page_and_the_keyboard_moves_through_it()
     {
         var games = Enumerable.Range(0, 8).Select(index => Installed($"Lantern Coast {index + 1}", $"610{index}")).ToArray();
         using var ui = new UiHarness(State(games));
         var page = Page(ui);
         page.Columns.Should().Be(5);
+        var grid = ui.Find<ItemsControl>("GameGrid");
+        var right = grid.TranslatePoint(new Point(grid.Bounds.Width, 0), ui.Window)!.Value.X;
+        ui.Find<Button>().Where(button => button.DataContext is GameCardViewModel).Should().OnlyContain(
+            card => card.TranslatePoint(new Point(card.Bounds.Width, 0), ui.Window)!.Value.X <= right, "the last column keeps its border");
         var first = ui.Find<Button>().First(button => button.DataContext is GameCardViewModel);
         first.Focus(NavigationMethod.Tab);
 
@@ -199,6 +205,37 @@ public sealed class LibraryTests
 
         ui.Press(Key.Enter);
         ui.Shell.Navigator.CurrentRoute.Should().Be(new GameRoute(games[0].Key));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(1.0)]
+    [InlineData(1.25)]
+    [InlineData(1.5)]
+    public async Task At_any_display_scale_the_cards_end_on_whole_pixels_inside_the_grid_and_draw_their_borders_alike(double scaling)
+    {
+        var games = Enumerable.Range(0, 5).Select(index => Installed($"Lantern Coast {index + 1}", $"610{index}")).ToArray();
+        using var ui = new UiHarness(State(games));
+        ui.Window.SetRenderScaling(scaling);
+        // Widths whose columns come out whole, and ones whose columns fall between pixels.
+        foreach (var width in new[] { 1280.0, 1281, 1282, 1283, 1284 })
+        {
+            ui.Window.Width = width;
+            await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(700));
+            var grid = ui.Find<ItemsControl>("GameGrid");
+            var right = grid.TranslatePoint(new Point(grid.Bounds.Width, 0), ui.Window)!.Value.X * scaling;
+            var cards = ui.Find<Button>().Where(button => button.DataContext is GameCardViewModel)
+                .Select(card => new Rect(card.TranslatePoint(default, ui.Window)!.Value, card.Bounds.Size) * scaling)
+                .OrderBy(card => card.X)
+                .ToList();
+
+            cards.Should().HaveCount(5).And.OnlyContain(card => IsWhole(card.Left) && IsWhole(card.Right), $"cells start and end on pixels at {width} wide");
+            Math.Round(cards[^1].Right).Should().BeLessThanOrEqualTo(Math.Round(right), "the last column keeps its border inside the grid");
+            using var frame = ui.Window.CaptureRenderedFrame()!;
+            var edges = cards.Select(card => Edges(frame, card.Left, card.Right, card.Bottom - (24 * scaling))).ToList();
+            edges.Should().AllBeEquivalentTo(edges[0], "every card's border is drawn on the same pixels as the first one's");
+        }
+
+        ui.Render(FormattableString.Invariant($"library-grid-{scaling:0.00}"));
     }
 
     [AvaloniaFact]
@@ -282,6 +319,20 @@ public sealed class LibraryTests
     }
 
     private static LibraryPageViewModel Page(UiHarness ui) => (LibraryPageViewModel)ui.Shell.Navigator.Current!;
+
+    private static bool IsWhole(double pixels) => Math.Abs(pixels - Math.Round(pixels)) < 0.001;
+
+    // The pixels across a card's left and right edges on one row, with two of the page and two of the card on each side.
+    private static uint[] Edges(WriteableBitmap frame, double left, double right, double row)
+    {
+        using var pixels = frame.Lock();
+        var line = new uint[pixels.Size.Width];
+        var bytes = new byte[line.Length * 4];
+        System.Runtime.InteropServices.Marshal.Copy(pixels.Address + ((int)Math.Round(row) * pixels.RowBytes), bytes, 0, bytes.Length);
+        Buffer.BlockCopy(bytes, 0, line, 0, bytes.Length);
+        var (start, end) = ((int)Math.Round(left), (int)Math.Round(right));
+        return [.. line[(start - 2)..(start + 3)], .. line[(end - 3)..(end + 2)]];
+    }
 
     private static Button RowAction(UiHarness ui, string game) =>
         ui.Find<Button>().First(button => button.Classes.Contains("rowAction") && button.IsVisible

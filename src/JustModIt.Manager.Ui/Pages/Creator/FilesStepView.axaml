@@ -72,7 +72,7 @@
                   IsVisible="{Binding DroppedFiles}" theme:Motion.Enter="True" />
       <StackPanel Spacing="12">
         <TextBlock Classes="overline" Text="{x:Static creator:CreatorPage.DetectsTitle}" />
-        <UniformGrid Columns="4" ColumnSpacing="12">
+        <ui:PixelUniformGrid Columns="4" ColumnSpacing="12">
           <Border Classes="soft" Padding="16">
             <StackPanel Spacing="10">
               <TextBlock Classes="rowTitle" TextWrapping="Wrap" Text="{x:Static loc:Strings.Creator_DetectsNew}" />
@@ -133,7 +133,7 @@
               <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DetectsMissingText}" />
             </StackPanel>
           </Border>
-        </UniformGrid>
+        </ui:PixelUniformGrid>
       </StackPanel>
     </StackPanel>
 

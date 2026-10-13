@@ -377,8 +377,8 @@
                       AutomationProperties.Name="{x:Static loc:Strings.Library_Loading}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <UniformGrid Columns="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).Columns}" ColumnSpacing="24"
-                           RowSpacing="24" />
+              <ui:PixelUniformGrid Columns="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).Columns}" ColumnSpacing="24"
+                                   RowSpacing="24" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
@@ -412,7 +412,7 @@
               <ItemsControl ItemsSource="{Binding Items}" Margin="0,0,0,24" theme:Motion.Stagger="True">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
-                    <UniformGrid x:DataType="ui:CardRow" Columns="{Binding Columns}" ColumnSpacing="24" />
+                    <ui:PixelUniformGrid x:DataType="ui:CardRow" Columns="{Binding Columns}" ColumnSpacing="24" />
                   </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.DataTemplates>

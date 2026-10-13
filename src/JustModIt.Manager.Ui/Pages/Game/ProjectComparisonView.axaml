@@ -65,7 +65,7 @@
       <ItemsControl Grid.Column="1" ItemsSource="{Binding Choices}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <UniformGrid Rows="1" ColumnSpacing="14" />
+            <ui:PixelUniformGrid Rows="1" ColumnSpacing="14" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>

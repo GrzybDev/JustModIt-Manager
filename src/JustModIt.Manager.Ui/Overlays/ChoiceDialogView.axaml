@@ -14,7 +14,7 @@
       <ItemsControl x:Name="Choices" ItemsSource="{Binding Choices}" Margin="-6">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <UniformGrid Rows="1" />
+            <ui:PixelUniformGrid Rows="1" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>

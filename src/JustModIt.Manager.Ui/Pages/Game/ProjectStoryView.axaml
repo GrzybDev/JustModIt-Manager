@@ -191,7 +191,7 @@
               <ItemsControl ItemsSource="{Binding Details.Credits}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
-                    <UniformGrid Columns="2" ColumnSpacing="20" RowSpacing="16" />
+                    <ui:PixelUniformGrid Columns="2" ColumnSpacing="20" RowSpacing="16" />
                   </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
