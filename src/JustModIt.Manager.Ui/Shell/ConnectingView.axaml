@@ -6,7 +6,8 @@
              xmlns:loc="using:JustModIt.Manager.Localization"
              x:Class="JustModIt.Manager.Ui.Shell.ConnectingView"
              x:DataType="shell:ShellViewModel"
-             Classes="connecting" Classes.shown="{Binding IsConnecting}" IsHitTestVisible="{Binding IsConnecting}">
+             Classes="connecting" Classes.shown="{Binding IsConnecting}" IsHitTestVisible="{Binding IsConnecting}"
+             theme:Motion.Shown="{Binding IsConnecting}">
   <Border Classes="connectingBackdrop">
     <StackPanel Classes="connectingContent" AutomationProperties.LiveSetting="Polite">
       <Panel Classes="connectingArt">

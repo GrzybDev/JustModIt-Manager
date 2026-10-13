@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Localization;
@@ -30,6 +31,7 @@ public sealed class ConnectionTests
         ui.Find<ConnectingView>().Single().Classes.Should().Contain("shown");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(1000));
         ui.Render("connecting");
+        ui.Find<Border>("ContentHost").IsVisible.Should().BeFalse("the pages faded away under the waiting view");
 
         ui.Agent.Link = AgentLink.Incompatible;
         UiHarness.Settle();
@@ -38,7 +40,11 @@ public sealed class ConnectionTests
         ui.Agent.Link = AgentLink.Connected;
         ui.Push(TestStates.Idle());
         ui.Shell.ShowsPages.Should().BeTrue();
-        ui.Find<ConnectingView>().Single().Classes.Should().NotContain("shown");
+        ui.Find<Border>("ContentHost").IsVisible.Should().BeTrue("the pages come back at once and fade in");
+        var waiting = ui.Find<ConnectingView>().Single();
+        waiting.Classes.Should().NotContain("shown");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
+        waiting.IsVisible.Should().BeFalse("a faded view and its loops would go on drawing under the pages, and a screen reader would read it");
     }
 
     [AvaloniaFact]

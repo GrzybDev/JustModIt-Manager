@@ -64,7 +64,8 @@
       </StackPanel>
 
       <!-- Rows rather than docking, so the keyboard reaches the pages first and the tools after them. -->
-      <Grid x:Name="Sidebar" Grid.Row="1" Classes="sidebar" Classes.away="{Binding !ShowsPages}" RowDefinitions="Auto,*,Auto">
+      <Grid x:Name="Sidebar" Grid.Row="1" Classes="sidebar" Classes.away="{Binding !ShowsPages}" theme:Motion.Shown="{Binding ShowsPages}"
+            RowDefinitions="Auto,*,Auto">
         <ItemsControl ItemsSource="{Binding Primary}" AutomationProperties.Name="{x:Static loc:Strings.Shell_Pages}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
@@ -85,7 +86,8 @@
         </StackPanel>
       </Grid>
 
-      <Border x:Name="ContentHost" Grid.Row="1" Grid.Column="1" Classes="contentHost" Classes.away="{Binding !ShowsPages}">
+      <Border x:Name="ContentHost" Grid.Row="1" Grid.Column="1" Classes="contentHost" Classes.away="{Binding !ShowsPages}"
+              theme:Motion.Shown="{Binding ShowsPages}">
         <TransitioningContentControl x:Name="Pages" Content="{Binding Navigator.Current}"
                                      IsTransitionReversed="{Binding Navigator.WentBack}">
           <TransitioningContentControl.PageTransition>

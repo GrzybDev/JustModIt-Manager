@@ -29,6 +29,13 @@ public static class Motion
     public static readonly AttachedProperty<bool> LoopsProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("Loops", typeof(Motion), defaultValue: true, inherits: true);
 
+    /// <summary>
+    /// Whether a part of the window that its style fades in and out is shown. Faded out, it is no longer visible either,
+    /// since a part covered or at no opacity is still drawn, and so are its loops, frame after frame.
+    /// </summary>
+    public static readonly AttachedProperty<bool> ShownProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("Shown", typeof(Motion), defaultValue: true);
+
     /// <summary>The time between two staggered entrances.</summary>
     public static readonly TimeSpan StaggerStep = TimeSpan.FromMilliseconds(40);
 
@@ -50,6 +57,7 @@ public static class Motion
     {
         StaggerProperty.Changed.AddClassHandler<Control>(OnStaggerChanged);
         EnterProperty.Changed.AddClassHandler<Control>(OnEnterChanged);
+        ShownProperty.Changed.AddClassHandler<Control>(OnShownChanged);
         Animation.RegisterCustomAnimator<ITransform, TransformOperationsAnimator>();
     }
 
@@ -108,6 +116,23 @@ public static class Motion
     {
         ArgumentNullException.ThrowIfNull(control);
         control.SetValue(LoopsProperty, value);
+    }
+
+    /// <summary>Reads whether a part of the window that fades in and out is shown.</summary>
+    /// <param name="control">The part.</param>
+    public static bool GetShown(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        return control.GetValue(ShownProperty);
+    }
+
+    /// <summary>Shows a part of the window that fades in and out at once, or lets it go once it has faded out.</summary>
+    /// <param name="control">The part.</param>
+    /// <param name="value">True to show it.</param>
+    public static void SetShown(Control control, bool value)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        control.SetValue(ShownProperty, value);
     }
 
     /// <summary>Follows the system's wish for reduced motion; the window calls it when it starts and comes to the front.</summary>
@@ -188,6 +213,37 @@ public static class Motion
             new Setter(Visual.RenderTransformProperty, TransformOperations.Parse(FormattableString.Invariant($"translateY({offset}px)"))),
         },
     };
+
+    private static void OnShownChanged(Control control, AvaloniaPropertyChangedEventArgs change)
+    {
+        control.PropertyChanged -= OnFading;
+        if (change.NewValue is true)
+        {
+            control.IsVisible = true;
+        }
+        else
+        {
+            control.PropertyChanged += OnFading;
+            HideFaded(control);
+        }
+    }
+
+    private static void OnFading(object? sender, AvaloniaPropertyChangedEventArgs change)
+    {
+        if (change.Property == Visual.OpacityProperty && sender is Control control)
+        {
+            HideFaded(control);
+        }
+    }
+
+    private static void HideFaded(Control control)
+    {
+        if (control.Opacity <= 0)
+        {
+            control.PropertyChanged -= OnFading;
+            control.IsVisible = false;
+        }
+    }
 
     private static void OnEnterChanged(Control control, AvaloniaPropertyChangedEventArgs change)
     {
