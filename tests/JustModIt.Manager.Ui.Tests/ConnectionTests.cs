@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
@@ -73,6 +74,32 @@ public sealed class ConnectionTests
         var answer = pipe.RequestAsync(new ShutdownRequested(ShutdownReason.Update), cancellationToken: TestContext.Current.CancellationToken);
         await UiHarness.WaitUntilAsync(() => answer.IsCompleted && !window.IsVisible);
         (await answer).Should().Be(new ShutdownAnswer(Accepted: true));
+    }
+
+    [AvaloniaFact]
+    public async Task A_window_closing_to_exit_the_app_accepts_the_agents_request_to_close_without_its_own_thread()
+    {
+        var name = $"ExampleApp.UiTests.{Guid.NewGuid():N}";
+        var agent = new TestAgentHandler();
+        await using var server = new PipeServer(name, new Hello(Hello.CurrentProtocolVersion, "0.1.0", ProcessRole.Agent, 4242), agent,
+            NullLogger.Instance, FastRetries);
+        server.Start();
+        await using var connection = new AgentConnection(name, "0.1.0", NullLoggerFactory.Instance, FastRetries);
+        using var session = UiSession.Create(Application.Current!, UiHarness.Context(), connection);
+        var window = session.CreateWindow();
+        window.Show();
+        var pipe = await agent.Connected.Reader.ReadAsync(TestContext.Current.CancellationToken);
+        pipe.Post(new StateChanged(TestStates.Idle() with { Settings = TestStates.Idle().Settings with { CloseBehavior = CloseBehavior.Exit } }));
+        await UiHarness.WaitUntilAsync(() => session.Shell.ShowsPages);
+
+        window.Close();
+        (await agent.Requests.Reader.ReadAsync(TestContext.Current.CancellationToken)).Should().Be(new ExitApp(ExitMode.Now));
+        var answer = pipe.RequestAsync(new ShutdownRequested(ShutdownReason.Exit), cancellationToken: TestContext.Current.CancellationToken);
+
+        // In the app the window's thread ends as the window closes, so here it is held up while the agent waits.
+        SpinWait.SpinUntil(() => answer.IsCompleted, TimeSpan.FromSeconds(5)).Should().BeTrue("the answer does not wait for the window");
+        (await answer).Should().Be(new ShutdownAnswer(Accepted: true));
+        await UiHarness.WaitUntilAsync(() => !window.IsVisible);
     }
 
     [AvaloniaFact]
@@ -194,7 +221,12 @@ public sealed class ConnectionTests
             }
         }
 
-        public ValueTask<Message?> HandleRequestAsync(PipeConnection connection, Message request, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<Message?>(null);
+        public Channel<Message> Requests { get; } = Channel.CreateUnbounded<Message>();
+
+        public ValueTask<Message?> HandleRequestAsync(PipeConnection connection, Message request, CancellationToken cancellationToken)
+        {
+            Requests.Writer.TryWrite(request);
+            return ValueTask.FromResult<Message?>(null);
+        }
     }
 }

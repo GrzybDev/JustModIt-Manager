@@ -38,6 +38,9 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
     /// <summary>The window's reports of being in front or not, in order.</summary>
     public List<bool> Activity { get; } = [];
 
+    /// <summary>The window closes for an exit it asked for and accepts the agent's request to close at once.</summary>
+    public bool ShutdownAccepted { get; private set; }
+
     /// <summary>Answers a request; by default with an empty answer.</summary>
     public Func<Message, Message?> Answer { get; set; } = _ => null;
 
@@ -64,4 +67,6 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
     }
 
     public void ReportActivity(bool isActive) => Activity.Add(isActive);
+
+    public void AcceptShutdown() => ShutdownAccepted = true;
 }

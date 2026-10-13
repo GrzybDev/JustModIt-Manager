@@ -69,4 +69,10 @@ public interface IAgent : INotifyPropertyChanged
     /// <summary>Tells the agent whether the window is in front, which decides where notices go.</summary>
     /// <param name="isActive">Whether the window is in front.</param>
     void ReportActivity(bool isActive);
+
+    /// <summary>
+    /// Accepts the agent's requests to close from now on without asking the window, which is closing for an exit it asked
+    /// the agent for; its thread ends with it and could not answer.
+    /// </summary>
+    void AcceptShutdown();
 }

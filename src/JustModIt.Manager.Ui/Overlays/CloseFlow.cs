@@ -73,7 +73,7 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
     {
         if (agent.State.Jobs.Count == 0)
         {
-            await SendAsync(new ExitApp(ExitMode.Now)).ConfigureAwait(true);
+            await SendExitAsync(ExitMode.Now).ConfigureAwait(true);
             return true;
         }
 
@@ -84,10 +84,17 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
         }).ConfigureAwait(true);
         if (confirmed)
         {
-            await SendAsync(new ExitApp(ExitMode.AfterJobs)).ConfigureAwait(true);
+            await SendExitAsync(ExitMode.AfterJobs).ConfigureAwait(true);
         }
 
         return confirmed;
+    }
+
+    // The agent asks the window to close before it exits, while the window closes on its own already.
+    private Task SendExitAsync(ExitMode mode)
+    {
+        agent.AcceptShutdown();
+        return SendAsync(new ExitApp(mode));
     }
 
     // The window closes either way; an agent that cannot be told keeps running in the tray, as it would without the window.

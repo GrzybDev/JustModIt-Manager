@@ -25,6 +25,7 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
     private AppStateView? _state;
     private bool _flushQueued;
     private bool _isActive;
+    private volatile bool _shutdownAccepted;
 
     /// <summary>Creates the connection, which starts connecting at once.</summary>
     /// <param name="pipeName">The agent's pipe.</param>
@@ -79,6 +80,8 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
         _isActive = isActive;
         _client.Post(new WindowActivity(isActive));
     }
+
+    public void AcceptShutdown() => _shutdownAccepted = true;
 
     public async ValueTask DisposeAsync()
     {
@@ -209,6 +212,11 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
         if (request is not ShutdownRequested shutdown)
         {
             throw new RequestFailedException(ErrorCode.Unsupported);
+        }
+
+        if (_shutdownAccepted)
+        {
+            return new ShutdownAnswer(true);
         }
 
         var accepted = await Dispatcher.UIThread.InvokeAsync(() => ShutdownHandler?.Invoke(shutdown.Reason) ?? Task.FromResult(true))
