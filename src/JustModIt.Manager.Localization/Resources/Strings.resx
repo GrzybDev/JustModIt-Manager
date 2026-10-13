@@ -3063,6 +3063,234 @@
   <data name="Creator_ConfirmNext" xml:space="preserve">
     <value>Next: the package's format and build.</value>
   </data>
+  <data name="Creator_BuildHeading" xml:space="preserve">
+    <value>Build the package</value>
+  </data>
+  <data name="Creator_BuiltHeading" xml:space="preserve">
+    <value>The package is ready</value>
+  </data>
+  <data name="Creator_PackageLead" xml:space="preserve">
+    <value>The format follows from the operations of the previous step. What remains is the package's data, which goes into its description that the app reads.</value>
+  </data>
+  <data name="Creator_ZipLead" xml:space="preserve">
+    <value>The format follows from the operations of the previous step. What remains is the version, which goes into the file's name.</value>
+  </data>
+  <data name="Creator_FormatChosen" xml:space="preserve">
+    <value>Format chosen automatically</value>
+  </data>
+  <data name="Creator_ManifestTitle" xml:space="preserve">
+    <value>Package of the app ({extension})</value>
+  </data>
+  <data name="Creator_ZipTitle" xml:space="preserve">
+    <value>Plain archive (.zip)</value>
+  </data>
+  <data name="Creator_FormatReason" xml:space="preserve">
+    <value>{reason, select, PatchesFiles {The package patches game files.} RenamesFiles {The package renames game files.} DeletesFiles {The package deletes game files.} ReadsAsManifestPackage {A plain archive of these files would look like a damaged package of the app.} CarriesThirdPartyNotices {The package carries another author's tool, whose licence only a package's description can name.} other {The package only adds or overwrites files, so a plain .zip laid out like the game's folder is enough.}}</value>
+  </data>
+  <data name="Creator_ManifestOutcome" xml:space="preserve">
+    <value>Only the app makes such changes: players install the package in one click in the app, not by hand.</value>
+  </data>
+  <data name="Creator_ZipOutcome" xml:space="preserve">
+    <value>The app installs it in one click, and players without it unpack it into the game's folder.</value>
+  </data>
+  <data name="Creator_FormatRules" xml:space="preserve">
+    <value>How the creator picks the format</value>
+  </data>
+  <data name="Creator_ZipRule" xml:space="preserve">
+    <value>Copies of files only, new or overwritten. They can be installed by hand too.</value>
+  </data>
+  <data name="Creator_ManifestRule" xml:space="preserve">
+    <value>A patch, a rename or a deletion of a game file. Only the app installs it.</value>
+  </data>
+  <data name="Creator_ThisPackage" xml:space="preserve">
+    <value>Your package</value>
+  </data>
+  <data name="Creator_Metadata" xml:space="preserve">
+    <value>Package data</value>
+  </data>
+  <data name="Creator_PackageTitle" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Creator_PackageTitleHint" xml:space="preserve">
+    <value>The name the app shows players.</value>
+  </data>
+  <data name="Creator_Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Creator_VersionPrefix" xml:space="preserve">
+    <value>v</value>
+  </data>
+  <data name="Creator_LastRelease" xml:space="preserve">
+    <value>Last release: {version}.</value>
+  </data>
+  <data name="Creator_Authors" xml:space="preserve">
+    <value>Authors</value>
+  </data>
+  <data name="Creator_AddAuthor" xml:space="preserve">
+    <value>Add an author…</value>
+  </data>
+  <data name="Creator_AuthorsHint" xml:space="preserve">
+    <value>The authors go into the package's description.</value>
+  </data>
+  <data name="Creator_AuthorsFromProject" xml:space="preserve">
+    <value>Filled in from the project {project} on the site.</value>
+  </data>
+  <data name="Creator_RemoveAuthor" xml:space="preserve">
+    <value>Remove the author {name}</value>
+  </data>
+  <data name="Creator_ZipMetadata" xml:space="preserve">
+    <value>A plain .zip has no description, so the authors and the changes are given with the release on the site.</value>
+  </data>
+  <data name="Creator_ForGame" xml:space="preserve">
+    <value>For the game</value>
+  </data>
+  <data name="Creator_GameBuild" xml:space="preserve">
+    <value>build {build}</value>
+  </data>
+  <data name="Creator_BuildChecked" xml:space="preserve">
+    <value>The build number is read again right before building, so the package fits the game after an update.</value>
+  </data>
+  <data name="Creator_Build" xml:space="preserve">
+    <value>Build the package</value>
+  </data>
+  <data name="Creator_BuildHint" xml:space="preserve">
+    <value>The save dialog suggests “{name}”. The package may not lie in the game's folder or in the folder with the files.</value>
+  </data>
+  <data name="Creator_PackageName" xml:space="preserve">
+    <value>{game} v{version}</value>
+  </data>
+  <data name="Creator_BuildTitle" xml:space="preserve">
+    <value>Save the package</value>
+  </data>
+  <data name="Creator_ZipFiles" xml:space="preserve">
+    <value>ZIP archives</value>
+  </data>
+  <data name="Creator_PackageFiles" xml:space="preserve">
+    <value>Packages of the app</value>
+  </data>
+  <data name="Creator_BuildingTitle" xml:space="preserve">
+    <value>Building the package</value>
+  </data>
+  <data name="Creator_BuildTarget" xml:space="preserve">
+    <value>Saving to {path}</value>
+  </data>
+  <data name="Creator_BuildStage" xml:space="preserve">
+    <value>{stage, select, Checking {Checking the files} Copying {Packing the files} HashingOriginal {Hashing the original} CreatingPatch {Making a patch} other {Writing the package's description}}</value>
+  </data>
+  <data name="Creator_StopBuildTitle" xml:space="preserve">
+    <value>Stop building the package?</value>
+  </data>
+  <data name="Creator_StopBuild" xml:space="preserve">
+    <value>A stopped build leaves no files behind and keeps an earlier package of the same name.</value>
+  </data>
+  <data name="Creator_StopBuildConfirm" xml:space="preserve">
+    <value>Stop the build</value>
+  </data>
+  <data name="Creator_BuildCancelledTitle" xml:space="preserve">
+    <value>The build was stopped</value>
+  </data>
+  <data name="Creator_BuildCancelled" xml:space="preserve">
+    <value>No file was written, and an earlier package of the same name stays as it was.</value>
+  </data>
+  <data name="Creator_BuildFailedTitle" xml:space="preserve">
+    <value>The package was not built</value>
+  </data>
+  <data name="Creator_BuildFailed" xml:space="preserve">
+    <value>{failure, select, WrongExtension {The file's extension does not fit the package's format.} OutputInGameFolder {The package may not lie in the game's folder; another place is needed.} OutputInAuthorFolder {The package may not lie in the folder with the files; another place is needed.} OtherGame {The game is in another folder than at the comparison, so the files have to be compared again.} GameNotReady {The store is working on the game, so its files are no base for patches now. The build can run once it is done.} FilesChanged {{files, plural, one {{file} changed} other {# files changed}} since the comparison, so the files have to be compared again.} TooManyEntries {The package has more files than the app installs from one package.} TooLarge {The package is larger than the app installs from one package.} ManifestTooLarge {The package's description is too large.} UnacknowledgedFindings {The build found patches that carry most of their files. Once they are accepted, the package can be built again.} other {}}</value>
+  </data>
+  <data name="Creator_BuildWriteFailed" xml:space="preserve">
+    <value>The package could not be written, e.g. because the folder is read-only or the disk is full.</value>
+  </data>
+  <data name="Creator_ZipKind" xml:space="preserve">
+    <value>Plain .zip archive</value>
+  </data>
+  <data name="Creator_ManifestKind" xml:space="preserve">
+    <value>Package of the app</value>
+  </data>
+  <data name="Creator_Reveal" xml:space="preserve">
+    <value>Show in folder</value>
+  </data>
+  <data name="Creator_SiteWarningTitle" xml:space="preserve">
+    <value>The site may not take this package</value>
+  </data>
+  <data name="Creator_Next" xml:space="preserve">
+    <value>What next</value>
+  </data>
+  <data name="Creator_TestTitle" xml:space="preserve">
+    <value>Try the package in the game</value>
+  </data>
+  <data name="Creator_TestText" xml:space="preserve">
+    <value>The package is installed in {game} the way a player installs it. The originals of the changed files go to the backup, and one click undoes the install.</value>
+  </data>
+  <data name="Creator_TestInstall" xml:space="preserve">
+    <value>Install for a test</value>
+  </data>
+  <data name="Creator_TestInstalledTitle" xml:space="preserve">
+    <value>The package is installed in {game} for a test</value>
+  </data>
+  <data name="Creator_TestInstalled" xml:space="preserve">
+    <value>After trying it in the game, undoing the install brings the original files back from the backup. The player's games mark the install as a test, and automatic updates leave it alone.</value>
+  </data>
+  <data name="Creator_Launch" xml:space="preserve">
+    <value>Start the game</value>
+  </data>
+  <data name="Creator_UndoTest" xml:space="preserve">
+    <value>Undo the test install</value>
+  </data>
+  <data name="Creator_TestedTitle" xml:space="preserve">
+    <value>Tried in the game</value>
+  </data>
+  <data name="Creator_TestUndoneAt" xml:space="preserve">
+    <value>The test install was undone {when}.</value>
+  </data>
+  <data name="Creator_TestUndoneTitle" xml:space="preserve">
+    <value>The test install was undone</value>
+  </data>
+  <data name="Creator_TestUndone" xml:space="preserve">
+    <value>{game} has its original files back.</value>
+  </data>
+  <data name="Creator_TestAgain" xml:space="preserve">
+    <value>Install for a test again</value>
+  </data>
+  <data name="Creator_TestFailedTitle" xml:space="preserve">
+    <value>The test install failed</value>
+  </data>
+  <data name="Creator_TestFailed" xml:space="preserve">
+    <value>The game was left as it was.</value>
+  </data>
+  <data name="Creator_UndoTestFailed" xml:space="preserve">
+    <value>The test install could not be undone: {reason}</value>
+  </data>
+  <data name="Creator_PublishTitle" xml:space="preserve">
+    <value>Publish it on the site</value>
+  </data>
+  <data name="Creator_PublishManifest" xml:space="preserve">
+    <value>The file goes up as a new release of the project, marked as one that needs the app. The changes and variants are set on the site.</value>
+  </data>
+  <data name="Creator_PublishZip" xml:space="preserve">
+    <value>The file goes up as a new release of the project. The changes, authors and variants are set on the site.</value>
+  </data>
+  <data name="Creator_OpenDashboard" xml:space="preserve">
+    <value>Open the dashboard on the site</value>
+  </data>
+  <data name="Creator_SaveProjectTitle" xml:space="preserve">
+    <value>Save the project</value>
+  </data>
+  <data name="Creator_SaveProjectText" xml:space="preserve">
+    <value>The next version then starts from here rather than from scratch. “Save” at the top of the page is enough.</value>
+  </data>
+  <data name="Creator_RebuildQuestion" xml:space="preserve">
+    <value>Did the files or the project change?</value>
+  </data>
+  <data name="Creator_Rebuild" xml:space="preserve">
+    <value>Build again</value>
+  </data>
+  <data name="Creator_BuildElsewhere" xml:space="preserve">
+    <value>Save elsewhere…</value>
+  </data>
+  <data name="Creator_RebuildBlocked" xml:space="preserve">
+    <value>Once the test install is undone, the package can be built again or the files compared: the creator would compare them with the files the package changed.</value>
+  </data>
   <data name="Creator_ConfirmBlocked" xml:space="preserve">
     <value>First, {what}.</value>
   </data>

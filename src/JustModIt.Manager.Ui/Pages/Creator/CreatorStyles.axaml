@@ -352,6 +352,18 @@
     <Setter Property="IsVisible" Value="True" />
   </Style>
 
+  <!-- The formats' table: the package's own format stands out. -->
+  <Style Selector="TextBlock.extension">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="22" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+  </Style>
+  <Style Selector="TextBlock.extension.chosen">
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+
   <!-- The drop zone: a dashed frame, red while a folder is dragged over it. -->
   <Style Selector="Border.dropZone">
     <Setter Property="Height" Value="232" />

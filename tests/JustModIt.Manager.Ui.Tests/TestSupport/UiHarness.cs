@@ -246,16 +246,20 @@ public sealed class UiHarness : IDisposable
     }
 }
 
-/// <summary>Records the addresses and clients the window opens instead of starting programs.</summary>
+/// <summary>Records the addresses, clients and folders the window opens instead of starting programs.</summary>
 public sealed class RecordingLinks : IExternalLinks
 {
     public List<Uri> Opened { get; } = [];
 
     public List<ClientLink> Clients { get; } = [];
 
+    public List<string> Folders { get; } = [];
+
     public void Open(Uri address) => Opened.Add(address);
 
     public void Open(ClientLink client) => Clients.Add(client);
+
+    public void OpenFolder(string folder) => Folders.Add(folder);
 }
 
 /// <summary>Answers the window's pickers with what the test chose, as if the player picked it, and records what they asked.</summary>

@@ -1,9 +1,0 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
-             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
-             xmlns:loc="using:JustModIt.Manager.Localization"
-             x:Class="JustModIt.Manager.Ui.Pages.Creator.PendingStepView">
-  <ui:EmptyState Classes="neutral" Icon="{x:Static theme:Icons.WandSparkles}" Title="{x:Static loc:Strings.Shell_PlaceholderTitle}"
-                 Message="{x:Static loc:Strings.Shell_PlaceholderMessage}" />
-</UserControl>

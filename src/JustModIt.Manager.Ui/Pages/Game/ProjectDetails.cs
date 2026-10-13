@@ -149,7 +149,7 @@ public sealed record ProjectDetails
             Credits =
             [
                 .. project.Credits.OrderBy(credit => credit.Position)
-                    .Select(credit => new CreditView(Name(credit), credit.RoleLabel)).Where(credit => credit.Name.Length > 0),
+                    .Select(credit => new CreditView(CreditName(credit), credit.RoleLabel)).Where(credit => credit.Name.Length > 0),
             ],
             Support =
             [
@@ -183,7 +183,8 @@ public sealed record ProjectDetails
         };
     }
 
-    // The site shows the credit's own name, which an older backend may leave empty in favour of the display name.
-    private static string Name(Credit credit) =>
+    /// <summary>A credit's name as the site shows it: its own, which an older backend may leave empty for the display name.</summary>
+    /// <param name="credit">A credit of a project page.</param>
+    internal static string CreditName(Credit credit) =>
         credit.Name.Length > 0 ? credit.Name : credit.DisplayName.Length > 0 ? credit.DisplayName : credit.User?.Display ?? "";
 }

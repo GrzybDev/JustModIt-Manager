@@ -13,6 +13,7 @@ public sealed partial class CreatorSession : ObservableObject
 {
     private readonly CreatorOptions _options;
     private int _plans;
+    private Task? _planning;
 
     /// <summary>Opens a project in the creator.</summary>
     /// <param name="options">The app's limits, rules and extensions.</param>
@@ -70,7 +71,7 @@ public sealed partial class CreatorSession : ObservableObject
 
         Project = changed;
         IsDirty = true;
-        _ = PlanAsync();
+        _planning = PlanAsync();
     }
 
     /// <summary>Takes the folders as compared now, or forgets them.</summary>
@@ -80,7 +81,16 @@ public sealed partial class CreatorSession : ObservableObject
     {
         Comparison = comparison;
         IsConfirmed = false;
-        return PlanAsync();
+        return _planning = PlanAsync();
+    }
+
+    /// <summary>Waits until <see cref="Review"/> covers the project as it is now.</summary>
+    public async Task SettledAsync()
+    {
+        while (_planning is { IsCompleted: false } planning)
+        {
+            await planning.ConfigureAwait(true);
+        }
     }
 
     /// <summary>Records that the project is saved in a file.</summary>

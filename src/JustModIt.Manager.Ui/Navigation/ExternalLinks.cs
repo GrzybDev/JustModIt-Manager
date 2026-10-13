@@ -6,7 +6,10 @@ using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Navigation;
 
-/// <summary>Opens addresses outside the window: the site's pages in the browser, and stores' pages and clients.</summary>
+/// <summary>
+/// Opens addresses and folders outside the window: the site's pages in the browser, stores' pages and clients, and a
+/// folder in the file manager.
+/// </summary>
 public interface IExternalLinks
 {
     /// <summary>Opens an address with the program the system has for it; anything but https and Steam's links is ignored.</summary>
@@ -16,6 +19,10 @@ public interface IExternalLinks
     /// <summary>Starts a store client through its own link.</summary>
     /// <param name="client">The client and its link.</param>
     void Open(ClientLink client);
+
+    /// <summary>Shows a folder in the system's file manager; a path that is not fully qualified is ignored.</summary>
+    /// <param name="folder">The folder's full path.</param>
+    void OpenFolder(string folder);
 }
 
 /// <summary>
@@ -40,8 +47,11 @@ public sealed class ClientLink
     public string Address { get; }
 }
 
-/// <summary>Hands addresses to the system's shell on the thread pool, since starting a program may take a while.</summary>
-/// <param name="logger">Where an address that could not be opened is logged.</param>
+/// <summary>
+/// Hands addresses and folders to the system's shell on the thread pool, since starting a program may take a while, and
+/// a folder on a sleeping drive longer still.
+/// </summary>
+/// <param name="logger">Where an address or folder that could not be opened is logged.</param>
 public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLinks
 {
     public void Open(Uri address)
@@ -50,6 +60,15 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
         if (IsAllowed(address))
         {
             Start(address.AbsoluteUri);
+        }
+    }
+
+    public void OpenFolder(string folder)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        if (Path.IsPathFullyQualified(folder))
+        {
+            Start(folder);
         }
     }
 
@@ -70,21 +89,20 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
         return address.IsAbsoluteUri && (address.Scheme == Uri.UriSchemeHttps || address.Scheme == PageLinks.SteamScheme);
     }
 
-    private void Start(string address) =>
-        _ = Task.Run(() =>
+    private void Start(string target) => _ = Task.Run(() =>
+    {
+        try
         {
-            try
-            {
-                Process.Start(new ProcessStartInfo(address) { UseShellExecute = true })?.Dispose();
-            }
-            catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
-            {
-                LogFailed(logger, address, exception);
-            }
-        });
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
+        {
+            LogFailed(logger, target, exception);
+        }
+    });
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The address {Address} could not be opened")]
-    private static partial void LogFailed(ILogger logger, string address, Exception exception);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Target} could not be opened")]
+    private static partial void LogFailed(ILogger logger, string target, Exception exception);
 }
 
 /// <summary>The site's pages and the stores' pages that the window links to.</summary>
@@ -140,6 +158,10 @@ public static class PageLinks
     /// <param name="teamSlug">The team's slug.</param>
     public static Uri? TeamPage(Uri? site, string teamSlug) =>
         site is null || teamSlug.Length == 0 ? null : new Uri(site, $"teams/{Uri.EscapeDataString(teamSlug)}");
+
+    /// <summary>The site's dashboard, where teams publish releases; null when the app knows no site address.</summary>
+    /// <param name="site">The site's address.</param>
+    public static Uri? Dashboard(Uri? site) => site is null ? null : new Uri(site, "dashboard");
 
     /// <summary>The site's help; with a section, that part of it.</summary>
     /// <param name="site">The site's address.</param>

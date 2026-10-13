@@ -1,0 +1,315 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Creator.PackageStepView"
+             x:DataType="creator:PackageStepViewModel">
+  <StackPanel Spacing="20">
+    <StackPanel Spacing="4">
+      <Panel>
+        <TextBlock Classes="heading" Text="{x:Static loc:Strings.Creator_BuildHeading}" IsVisible="{Binding !IsBuilt}" />
+        <TextBlock Classes="heading" Text="{x:Static loc:Strings.Creator_BuiltHeading}" IsVisible="{Binding IsBuilt}" />
+      </Panel>
+      <TextBlock Classes="lead" Text="{Binding Lead}" IsVisible="{Binding !IsBuilt}" />
+    </StackPanel>
+
+    <!-- Before the build: the format the plan needs and the package's metadata. -->
+    <StackPanel Spacing="20" IsVisible="{Binding !IsBuilt}">
+      <Border Classes="creatorCard" Padding="24">
+        <Grid ColumnDefinitions="56,*" RowDefinitions="Auto,Auto" ColumnSpacing="18" RowSpacing="16">
+          <Border Classes="folderChip" Width="56" Height="56" CornerRadius="14" VerticalAlignment="Top">
+            <ui:Icon Data="{x:Static theme:Icons.Package}" Width="26" Height="26" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="6">
+            <TextBlock Classes="overline" Text="{x:Static creator:PackageStepView.FormatOverline}" />
+            <TextBlock Text="{Binding FormatTitle}" FontSize="20" LineHeight="28" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}" />
+            <TextBlock Classes="bodyL" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding FormatText}" />
+          </StackPanel>
+          <Border Grid.Row="1" Grid.Column="1" CornerRadius="12" BorderThickness="1" BorderBrush="{StaticResource HairlineBrush}"
+                  Background="#05FFFFFF" ClipToBounds="True">
+            <ItemsControl Classes="rows" ItemsSource="{Binding FormatRows}" Grid.IsSharedSizeScope="True"
+                          AutomationProperties.Name="{x:Static loc:Strings.Creator_FormatRules}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="creator:FormatRow">
+                  <Grid ColumnSpacing="12" Margin="14,12">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="Auto" MinWidth="44" SharedSizeGroup="Extension" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="22" Height="22" CornerRadius="999" BorderThickness="1" BorderBrush="#29FFFFFF" VerticalAlignment="Center"
+                            IsVisible="{Binding !IsChosen}" />
+                    <Border Width="22" Height="22" CornerRadius="999" Background="#2922C55E" VerticalAlignment="Center" IsVisible="{Binding IsChosen}">
+                      <ui:Icon Data="{x:Static theme:Icons.Check}" Width="13" Height="13" StrokeThickness="2.5" Classes="successText" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Classes="extension" Classes.chosen="{Binding IsChosen}" Text="{Binding Extension}" />
+                    <TextBlock Grid.Column="2" Classes="rowText" LineHeight="22" Text="{Binding Text}" />
+                    <Border Grid.Column="3" Classes="kind success" IsVisible="{Binding IsChosen}" VerticalAlignment="Center">
+                      <TextBlock Text="{x:Static loc:Strings.Creator_ThisPackage}" />
+                    </Border>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </Grid>
+      </Border>
+
+      <Border Classes="creatorCard" Padding="24,20,24,22">
+        <StackPanel Spacing="18">
+          <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_Metadata}" />
+          <StackPanel Spacing="6" IsVisible="{Binding IsManifest}">
+            <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_PackageTitle}" />
+            <TextBox x:Name="TitleBox" Text="{Binding PackageTitle}" FontSize="14" IsReadOnly="{Binding IsBuilding}"
+                     AutomationProperties.Name="{x:Static loc:Strings.Creator_PackageTitle}" />
+            <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_PackageTitleHint}" />
+          </StackPanel>
+          <Grid ColumnDefinitions="220,*" ColumnSpacing="20">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_Version}" />
+              <TextBox x:Name="VersionBox" Text="{Binding Version}" FontSize="14" IsReadOnly="{Binding IsBuilding}"
+                       AutomationProperties.Name="{x:Static loc:Strings.Creator_Version}">
+                <TextBox.InnerLeftContent>
+                  <TextBlock Text="{x:Static creator:PackageStepView.VersionPrefix}" Margin="12,0,0,0" FontWeight="SemiBold"
+                             VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                </TextBox.InnerLeftContent>
+              </TextBox>
+              <TextBlock Classes="caption" Text="{Binding LastRelease}"
+                         IsVisible="{Binding LastRelease, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6" IsVisible="{Binding IsManifest}">
+              <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_Authors}" />
+              <Border CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource FieldBorderBrush}" Background="{StaticResource FillSubtleBrush}"
+                      Padding="6,5" MinHeight="40">
+                <WrapPanel ItemSpacing="6" LineSpacing="6">
+                  <ItemsControl ItemsSource="{Binding Authors}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel ItemSpacing="6" LineSpacing="6" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <Border Height="28" CornerRadius="999" Padding="10,0,4,0" Background="{StaticResource FillStrongBrush}">
+                          <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="{Binding}" FontSize="13" FontWeight="Medium" VerticalAlignment="Center" />
+                            <Button Classes="icon" Width="22" Height="22" CornerRadius="999" IsEnabled="{Binding !$parent[UserControl].((creator:PackageStepViewModel)DataContext).IsBuilding}"
+                                    ToolTip.Tip="{Binding Converter={x:Static creator:PackageStepView.RemoveAuthorName}}"
+                                    Command="{Binding $parent[UserControl].((creator:PackageStepViewModel)DataContext).RemoveAuthorCommand}"
+                                    CommandParameter="{Binding}">
+                              <ui:Icon Data="{x:Static theme:Icons.X}" Width="13" Height="13" />
+                            </Button>
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBox x:Name="AuthorBox" Text="{Binding NewAuthor}" MinWidth="160" MinHeight="28" Padding="6,0" BorderThickness="0"
+                           Background="Transparent" FontSize="14" IsReadOnly="{Binding IsBuilding}"
+                           PlaceholderText="{x:Static loc:Strings.Creator_AddAuthor}" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddAuthor}">
+                    <TextBox.KeyBindings>
+                      <KeyBinding Gesture="Enter" Command="{Binding AddAuthorCommand}" />
+                    </TextBox.KeyBindings>
+                  </TextBox>
+                </WrapPanel>
+              </Border>
+              <TextBlock Classes="caption" Text="{Binding AuthorsNote}" />
+            </StackPanel>
+          </Grid>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding IsZip}">
+            <ui:Icon Data="{x:Static theme:Icons.Info}" Width="16" Height="16" Margin="0,2,0,0" VerticalAlignment="Top"
+                     Foreground="{StaticResource TextSecondaryBrush}" />
+            <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" Text="{x:Static loc:Strings.Creator_ZipMetadata}" />
+          </Grid>
+          <TextBlock Classes="rowText" Classes.dangerText="True" Text="{Binding MetadataProblem}" IsVisible="{Binding HasMetadataProblem}" />
+          <Border Classes="divider" />
+          <StackPanel Spacing="4">
+            <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_ForGame}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ui:StoreIcon Store="{Binding GameStore}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
+              <TextBlock Text="{Binding GameName}" FontSize="14" LineHeight="22" />
+              <TextBlock Classes="separator" />
+              <TextBlock Text="{Binding GameDetails}" FontSize="14" LineHeight="22" Foreground="{StaticResource TextBodyBrush}" />
+            </StackPanel>
+            <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_BuildChecked}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
+    <!-- The build: its button, then its progress in the same place. -->
+    <WrapPanel IsVisible="{Binding IsReady}" ItemSpacing="20" LineSpacing="16">
+      <Button x:Name="BuildButton" Classes="primary" Content="{x:Static loc:Strings.Creator_Build}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Package}"
+              Command="{Binding BuildCommand}" />
+      <TextBlock Classes="caption" MaxWidth="560" VerticalAlignment="Center" Text="{Binding BuildHint}" />
+    </WrapPanel>
+    <Border x:Name="Building" Classes="creatorCard" Padding="24,20" IsVisible="{Binding IsBuilding}" theme:Motion.Enter="True">
+      <StackPanel Spacing="14">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+          <Border Classes="workChip">
+            <ui:Icon Classes="spin" Data="{x:Static theme:Icons.LoaderCircle}" Width="20" Height="20" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="{x:Static loc:Strings.Creator_BuildingTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextStrongBrush}" />
+            <TextBlock Classes="caption" Text="{Binding BuildTarget}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="outline headerAction" Content="{x:Static creator:CreatorPage.StopText}" Command="{Binding CancelBuildCommand}" />
+        </Grid>
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <TextBlock Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Stage}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Column="1" Classes="meta" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Text="{Binding Percent}" />
+          </Grid>
+          <ProgressBar Maximum="100" Value="{Binding Progress}" AutomationProperties.Name="{x:Static loc:Strings.Creator_BuildingTitle}" />
+          <TextBlock Classes="pathLine" Text="{Binding FileLine}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                Title="{Binding ProblemTitle}" Message="{Binding ProblemText}" IsVisible="{Binding HasProblem}" theme:Motion.Enter="True">
+      <StackPanel Spacing="8">
+        <ItemsControl ItemsSource="{Binding BuildFindings}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="creator:FindingLine">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,0,8">
+                <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextEmphasisBrush}" Text="{Binding Text}" />
+                <Button Grid.Column="1" Classes="outline small" Content="{x:Static loc:Strings.Creator_AcceptWork}" IsVisible="{Binding CanAcknowledge}"
+                        Command="{Binding $parent[UserControl].((creator:PackageStepViewModel)DataContext).AcceptCommand}"
+                        CommandParameter="{Binding AcknowledgementKey}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Classes="primary compact" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_CompareAgain}" IsVisible="{Binding NeedsComparison}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CompareAgainCommand}" />
+      </StackPanel>
+    </ui:Callout>
+
+    <!-- After the build: the package, what the site would say, and what comes next. -->
+    <StackPanel Spacing="20" IsVisible="{Binding IsBuilt}">
+      <Border Classes="creatorCard" Padding="24,20">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+          <Border Classes="kind success" Width="48" Height="48" CornerRadius="12" Padding="0" HorizontalAlignment="Center">
+            <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Width="24" Height="24" HorizontalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+            <WrapPanel ItemSpacing="10">
+              <TextBlock Text="{Binding ResultName}" FontSize="17" LineHeight="24" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}" />
+              <Border Classes="kind" VerticalAlignment="Center">
+                <TextBlock Text="{Binding ResultSize}" />
+              </Border>
+            </WrapPanel>
+            <TextBlock Classes="meta" Text="{Binding ResultDetails}" TextWrapping="Wrap" />
+            <TextBlock Classes="pathLine" Text="{Binding ResultFolder}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                       ToolTip.Tip="{Binding ResultFolder}" />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="outline" Content="{x:Static loc:Strings.Creator_Reveal}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                  Command="{Binding RevealCommand}" />
+        </Grid>
+      </Border>
+
+      <ItemsControl ItemsSource="{Binding SiteWarnings}" IsVisible="{Binding HasSiteWarnings}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <ui:Callout Classes="warning" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.TriangleAlert}"
+                        Title="{x:Static loc:Strings.Creator_SiteWarningTitle}" Message="{Binding}" Margin="0,0,0,8" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <StackPanel Spacing="12">
+        <TextBlock Classes="overline" Text="{x:Static creator:PackageStepView.NextOverline}" />
+        <Border Classes="creatorCard" ClipToBounds="True">
+          <StackPanel>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="20,18">
+              <Panel VerticalAlignment="Top">
+                <Border Classes="number" IsVisible="{Binding !WasTested}">
+                  <TextBlock Text="1" />
+                </Border>
+                <Border Classes="number done" IsVisible="{Binding WasTested}">
+                  <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" />
+                </Border>
+              </Panel>
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="{Binding TestTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
+                <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding TestText}"
+                           Classes.dangerText="{Binding HasTestProblem}" />
+                <StackPanel Spacing="8" Margin="0,10,0,0" IsVisible="{Binding IsTestRunning}">
+                  <TextBlock Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding TestProgress}" />
+                  <ProgressBar Classes="thin" Maximum="1" MaxWidth="420" HorizontalAlignment="Left" Value="{Binding TestFraction}"
+                               IsIndeterminate="{Binding TestFraction, Converter={x:Static ObjectConverters.IsNull}}"
+                               AutomationProperties.Name="{Binding TestProgress}" />
+                </StackPanel>
+                <WrapPanel ItemSpacing="12" LineSpacing="8" Margin="0,10,0,0">
+                  <Button x:Name="TestButton" Classes="primary compact" Content="{x:Static loc:Strings.Creator_TestInstall}" IsVisible="{Binding OffersTestInstall}"
+                          ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding InstallTestCommand}" />
+                  <Button Classes="primary compact" Content="{x:Static loc:Strings.Creator_Launch}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Play}"
+                          Command="{Binding LaunchCommand}">
+                    <Button.IsVisible>
+                      <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding Path="IsTestInstalled" />
+                        <Binding Path="CanLaunch" />
+                      </MultiBinding>
+                    </Button.IsVisible>
+                  </Button>
+                  <Button x:Name="UndoTestButton" Classes="outline" Content="{x:Static loc:Strings.Creator_UndoTest}" IsVisible="{Binding IsTestInstalled}"
+                          ui:ButtonAssist.Icon="{x:Static theme:Icons.RotateCcw}" Command="{Binding UndoTestCommand}" />
+                  <Button Classes="quiet" Content="{x:Static loc:Strings.Creator_TestAgain}" IsVisible="{Binding WasTested}"
+                          ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding InstallTestCommand}" />
+                </WrapPanel>
+              </StackPanel>
+            </Grid>
+            <Border Classes="divider" Opacity="0.6" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="20,18">
+              <Border Classes="number" VerticalAlignment="Top">
+                <TextBlock Text="2" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="{x:Static loc:Strings.Creator_PublishTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
+                <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding PublishText}" />
+                <!-- Once the package was tried in the game, publishing it is the next thing to do. -->
+                <Button Classes="link" Margin="0,10,0,0" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_OpenDashboard}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.ExternalLink}" Command="{Binding OpenSiteCommand}" IsVisible="{Binding !WasTested}" />
+                <Button Classes="primary compact" Margin="0,10,0,0" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_OpenDashboard}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.ExternalLink}" ui:ButtonAssist.IconAfter="True" Command="{Binding OpenSiteCommand}"
+                        IsVisible="{Binding WasTested}" />
+              </StackPanel>
+            </Grid>
+            <StackPanel IsVisible="{Binding ShowsSaveHint}">
+              <Border Classes="divider" Opacity="0.6" />
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="20,18">
+                <Border Classes="number" VerticalAlignment="Top">
+                  <TextBlock Text="3" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <TextBlock Text="{x:Static loc:Strings.Creator_SaveProjectTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
+                  <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{x:Static loc:Strings.Creator_SaveProjectText}" />
+                </StackPanel>
+              </Grid>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <WrapPanel ItemSpacing="12" LineSpacing="8">
+        <TextBlock Classes="meta" FontSize="14" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_RebuildQuestion}" IsVisible="{Binding CanRebuild}" />
+        <Button x:Name="RebuildButton" Classes="quiet" Content="{x:Static loc:Strings.Creator_Rebuild}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
+                IsEnabled="{Binding CanRebuild}" Command="{Binding BuildCommand}" />
+        <Button Classes="quiet" Content="{x:Static loc:Strings.Creator_BuildElsewhere}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                IsVisible="{Binding CanRebuild}" Command="{Binding BuildElsewhereCommand}" />
+        <TextBlock Classes="meta" MaxWidth="640" TextWrapping="Wrap" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_RebuildBlocked}"
+                   IsVisible="{Binding !CanRebuild}" />
+      </WrapPanel>
+    </StackPanel>
+
+    <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0">
+      <Button Classes="outline footerAction" Content="{x:Static loc:Strings.Creator_Back}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}"
+              Command="{Binding BackCommand}" IsEnabled="{Binding !IsBuilding}" />
+    </Grid>
+  </StackPanel>
+</UserControl>

@@ -35,11 +35,14 @@ public sealed class CreatorWorkspace : IDisposable
 
     public string AuthorFolder { get; }
 
+    /// <summary>The site's projects for Lantern Isle, as the agent's catalogue matched them.</summary>
+    public IReadOnlyList<SiteProjectView> LanternProjects { get; set; } = [];
+
     /// <summary>The games the stores report: one ready, one with a package on it, one its store updates.</summary>
     public IReadOnlyList<DetectedGameEntry> Detected =>
     [
         Entry(Ashfall, "Ashfall Chronicles", Path.Combine(Root, "Games", "Ashfall"), GameInstallState.Updating),
-        Entry(Lantern, "Lantern Isle", GameFolder, GameInstallState.Installed),
+        Entry(Lantern, "Lantern Isle", GameFolder, GameInstallState.Installed) with { Projects = LanternProjects },
         Entry(Tidewater, "Tidewater", Path.Combine(Root, "Games", "Tidewater"), GameInstallState.Installed),
     ];
 
@@ -72,7 +75,7 @@ public sealed class CreatorWorkspace : IDisposable
     }
 
     private static DetectedGameEntry Entry(GameKey key, string name, string folder, GameInstallState state) =>
-        new(key, name, new DetectedGameView { InstallDirectory = folder, LibraryId = "library", State = state, BuildId = "18001" });
+        new(key, name, new DetectedGameView { InstallDirectory = folder, LibraryId = "library", State = state, BuildId = "18001", CanLaunch = true });
 
     private static string Write(string folder, string path, string content)
     {

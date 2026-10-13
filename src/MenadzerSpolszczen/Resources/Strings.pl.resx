@@ -641,4 +641,55 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Creator_CheckSteps" xml:space="preserve">
     <value>Menadżer wykona u każdego gracza dokładnie {count, plural, one {ten # krok} few {te # kroki} many {te # kroków} other {te # kroku}}, w tej kolejności. Przed przejściem dalej warto się upewnić, że:</value>
   </data>
+  <data name="Creator_PackageLead" xml:space="preserve">
+    <value>Format wynika z operacji z poprzedniego kroku. Zostały jeszcze dane paczki – trafią do jej opisu, który czyta Menadżer.</value>
+  </data>
+  <data name="Creator_ManifestTitle" xml:space="preserve">
+    <value>Paczka Menadżera ({extension})</value>
+  </data>
+  <data name="Creator_ManifestOutcome" xml:space="preserve">
+    <value>Takie zmiany wykona tylko Menadżer Spolszczeń: gracze zainstalują paczkę jednym kliknięciem w aplikacji, a ze strony Bazy Spolszczeń nie da się jej pobrać do ręcznej instalacji.</value>
+  </data>
+  <data name="Creator_ZipOutcome" xml:space="preserve">
+    <value>Menadżer zainstaluje go jednym kliknięciem, a gracze bez Menadżera rozpakują go do folderu gry i też zagrają po polsku.</value>
+  </data>
+  <data name="Creator_FormatRules" xml:space="preserve">
+    <value>Jak Kreator wybiera format</value>
+  </data>
+  <data name="Creator_ManifestRule" xml:space="preserve">
+    <value>Łatka, zmiana nazwy albo usunięcie pliku gry. Instaluje tylko Menadżer Spolszczeń.</value>
+  </data>
+  <data name="Creator_PackageTitleHint" xml:space="preserve">
+    <value>Nazwa, którą Menadżer pokaże graczom.</value>
+  </data>
+  <data name="Creator_AuthorsFromProject" xml:space="preserve">
+    <value>Uzupełniono z projektu {project} w Bazie Spolszczeń.</value>
+  </data>
+  <data name="Creator_ZipMetadata" xml:space="preserve">
+    <value>Zwykły .zip nie ma opisu paczki, więc autorów i opis zmian podaje się przy wydaniu w Bazie Spolszczeń.</value>
+  </data>
+  <data name="Creator_PackageFiles" xml:space="preserve">
+    <value>Paczki Menadżera</value>
+  </data>
+  <data name="Creator_ManifestKind" xml:space="preserve">
+    <value>Paczka Menadżera</value>
+  </data>
+  <data name="Creator_SiteWarningTitle" xml:space="preserve">
+    <value>Baza Spolszczeń może nie przyjąć tej paczki</value>
+  </data>
+  <data name="Creator_PublishTitle" xml:space="preserve">
+    <value>Opublikuj ją w Bazie Spolszczeń</value>
+  </data>
+  <data name="Creator_PublishManifest" xml:space="preserve">
+    <value>Ten plik dodaje się jako nowe wydanie projektu, z zaznaczonym „Wymaga Menadżera Spolszczeń”. Opis zmian i warianty ustawia się na stronie.</value>
+  </data>
+  <data name="Creator_OpenDashboard" xml:space="preserve">
+    <value>Otwórz panel w Bazie Spolszczeń</value>
+  </data>
+  <data name="Creator_SaveProjectText" xml:space="preserve">
+    <value>Przy następnej wersji spolszczenia praca zacznie się od tego miejsca, a nie od zera. Wystarczy „Zapisz” u góry strony.</value>
+  </data>
+  <data name="Creator_RebuildBlocked" xml:space="preserve">
+    <value>Po cofnięciu instalacji testowej można zbudować paczkę ponownie albo porównać pliki – Kreator porównywałby je z plikami, które zmieniła paczka.</value>
+  </data>
 </root>

@@ -311,7 +311,15 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     private async Task SaveAsAsync() => await SaveProjectAsync(choose: true).ConfigureAwait(true);
 
     [RelayCommand]
-    private void OpenStep(StepItem step) => GoTo(step.Step);
+    private async Task OpenStepAsync(StepItem step)
+    {
+        if (step.Step != Step && Content is { } current && !await current.CanLeaveAsync().ConfigureAwait(true))
+        {
+            return;
+        }
+
+        GoTo(step.Step);
+    }
 
     [RelayCommand]
     private void DismissProblem() => ClearProblem();
@@ -349,7 +357,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         session.PropertyChanged += OnSessionChanged;
         var game = new GameStepViewModel(this, session);
         var files = new FilesStepViewModel(this, session);
-        _steps = [game, files, new ReviewStepViewModel(this, session), new PackageStepViewModel()];
+        _steps = [game, files, new ReviewStepViewModel(this, session), new PackageStepViewModel(this, session)];
         Step = CreatorStep.Game;
         Content = null;
         ShowSession();
@@ -523,19 +531,23 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         }
     }
 
-    // The list lives in the settings, which the agent keeps; a list that could not be updated only misses this file.
-    private void Remember(string path) => _ = SendQuietlyAsync(new RememberCreatorProject(path));
-
-    private async Task SendQuietlyAsync(Message request)
+    /// <summary>Asks the agent for something the creator can do without, so a refusal or a lost connection says nothing.</summary>
+    /// <param name="request">The request.</param>
+    /// <returns>The answer; null when there is none.</returns>
+    internal async Task<Message?> AskQuietlyAsync(Message request)
     {
         try
         {
-            await Agent.RequestAsync(request).ConfigureAwait(true);
+            return await Agent.RequestAsync(request).ConfigureAwait(true);
         }
         catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
         {
+            return null;
         }
     }
+
+    // The list lives in the settings, which the agent keeps; a list that could not be updated only misses this file.
+    private void Remember(string path) => _ = AskQuietlyAsync(new RememberCreatorProject(path));
 
     private static string? FolderOf(CreatorSession session) =>
         session.Path is { } path ? Path.GetDirectoryName(path)

@@ -3051,6 +3051,234 @@
   <data name="Creator_ConfirmNext" xml:space="preserve">
     <value>Dalej: format paczki i budowanie.</value>
   </data>
+  <data name="Creator_BuildHeading" xml:space="preserve">
+    <value>Zbuduj paczkę</value>
+  </data>
+  <data name="Creator_BuiltHeading" xml:space="preserve">
+    <value>Paczka jest gotowa</value>
+  </data>
+  <data name="Creator_PackageLead" xml:space="preserve">
+    <value>Format wynika z operacji z poprzedniego kroku. Zostały jeszcze dane paczki – trafią do jej opisu, który czyta aplikacja.</value>
+  </data>
+  <data name="Creator_ZipLead" xml:space="preserve">
+    <value>Format wynika z operacji z poprzedniego kroku. Została jeszcze wersja – trafi do nazwy pliku.</value>
+  </data>
+  <data name="Creator_FormatChosen" xml:space="preserve">
+    <value>Format wybrany automatycznie</value>
+  </data>
+  <data name="Creator_ManifestTitle" xml:space="preserve">
+    <value>Paczka aplikacji ({extension})</value>
+  </data>
+  <data name="Creator_ZipTitle" xml:space="preserve">
+    <value>Zwykłe archiwum (.zip)</value>
+  </data>
+  <data name="Creator_FormatReason" xml:space="preserve">
+    <value>{reason, select, PatchesFiles {Paczka nakłada łatki na pliki gry.} RenamesFiles {Paczka zmienia nazwy plików gry.} DeletesFiles {Paczka usuwa pliki gry.} ReadsAsManifestPackage {Zwykłe archiwum z tymi plikami wyglądałoby jak uszkodzona paczka aplikacji.} CarriesThirdPartyNotices {Paczka zawiera narzędzie innego autora, a jego licencję może podać tylko opis paczki.} other {Paczka tylko dodaje albo nadpisuje pliki, więc wystarczy zwykły .zip ułożony względem folderu gry.}}</value>
+  </data>
+  <data name="Creator_ManifestOutcome" xml:space="preserve">
+    <value>Takie zmiany wykona tylko aplikacja: gracze zainstalują paczkę jednym kliknięciem, bez ręcznej instalacji.</value>
+  </data>
+  <data name="Creator_ZipOutcome" xml:space="preserve">
+    <value>Aplikacja zainstaluje go jednym kliknięciem, a gracze bez niej rozpakują go do folderu gry.</value>
+  </data>
+  <data name="Creator_FormatRules" xml:space="preserve">
+    <value>Jak kreator wybiera format</value>
+  </data>
+  <data name="Creator_ZipRule" xml:space="preserve">
+    <value>Same kopie plików – nowych albo nadpisanych. Da się je zainstalować także ręcznie.</value>
+  </data>
+  <data name="Creator_ManifestRule" xml:space="preserve">
+    <value>Łatka, zmiana nazwy albo usunięcie pliku gry. Instaluje tylko aplikacja.</value>
+  </data>
+  <data name="Creator_ThisPackage" xml:space="preserve">
+    <value>Twoja paczka</value>
+  </data>
+  <data name="Creator_Metadata" xml:space="preserve">
+    <value>Dane paczki</value>
+  </data>
+  <data name="Creator_PackageTitle" xml:space="preserve">
+    <value>Nazwa</value>
+  </data>
+  <data name="Creator_PackageTitleHint" xml:space="preserve">
+    <value>Nazwa, którą aplikacja pokaże graczom.</value>
+  </data>
+  <data name="Creator_Version" xml:space="preserve">
+    <value>Wersja</value>
+  </data>
+  <data name="Creator_VersionPrefix" xml:space="preserve">
+    <value>v</value>
+  </data>
+  <data name="Creator_LastRelease" xml:space="preserve">
+    <value>Ostatnie wydanie: {version}.</value>
+  </data>
+  <data name="Creator_Authors" xml:space="preserve">
+    <value>Autorzy</value>
+  </data>
+  <data name="Creator_AddAuthor" xml:space="preserve">
+    <value>Dodaj autora…</value>
+  </data>
+  <data name="Creator_AuthorsHint" xml:space="preserve">
+    <value>Autorzy trafią do opisu paczki.</value>
+  </data>
+  <data name="Creator_AuthorsFromProject" xml:space="preserve">
+    <value>Uzupełniono z projektu {project} na stronie.</value>
+  </data>
+  <data name="Creator_RemoveAuthor" xml:space="preserve">
+    <value>Usuń autora {name}</value>
+  </data>
+  <data name="Creator_ZipMetadata" xml:space="preserve">
+    <value>Zwykły .zip nie ma opisu paczki, więc autorów i opis zmian podaje się przy wydaniu na stronie.</value>
+  </data>
+  <data name="Creator_ForGame" xml:space="preserve">
+    <value>Dla gry</value>
+  </data>
+  <data name="Creator_GameBuild" xml:space="preserve">
+    <value>kompilacja {build}</value>
+  </data>
+  <data name="Creator_BuildChecked" xml:space="preserve">
+    <value>Numer kompilacji zostanie sprawdzony jeszcze raz tuż przed budowaniem, żeby paczka pasowała do gry po aktualizacji.</value>
+  </data>
+  <data name="Creator_Build" xml:space="preserve">
+    <value>Zbuduj paczkę</value>
+  </data>
+  <data name="Creator_BuildHint" xml:space="preserve">
+    <value>Okno zapisu podpowie nazwę „{name}”. Paczka nie może leżeć w folderze gry ani w folderze z plikami.</value>
+  </data>
+  <data name="Creator_PackageName" xml:space="preserve">
+    <value>{game} v{version}</value>
+  </data>
+  <data name="Creator_BuildTitle" xml:space="preserve">
+    <value>Zapisz paczkę</value>
+  </data>
+  <data name="Creator_ZipFiles" xml:space="preserve">
+    <value>Archiwa ZIP</value>
+  </data>
+  <data name="Creator_PackageFiles" xml:space="preserve">
+    <value>Paczki aplikacji</value>
+  </data>
+  <data name="Creator_BuildingTitle" xml:space="preserve">
+    <value>Budowanie paczki</value>
+  </data>
+  <data name="Creator_BuildTarget" xml:space="preserve">
+    <value>Zapis do: {path}</value>
+  </data>
+  <data name="Creator_BuildStage" xml:space="preserve">
+    <value>{stage, select, Checking {Sprawdzanie plików} Copying {Pakowanie plików} HashingOriginal {Liczenie skrótu oryginału} CreatingPatch {Tworzenie łatki} other {Zapisywanie opisu paczki}}</value>
+  </data>
+  <data name="Creator_StopBuildTitle" xml:space="preserve">
+    <value>Przerwać budowanie paczki?</value>
+  </data>
+  <data name="Creator_StopBuild" xml:space="preserve">
+    <value>Przerwane budowanie nie zostawia żadnych plików i nie rusza poprzedniej paczki o tej nazwie.</value>
+  </data>
+  <data name="Creator_StopBuildConfirm" xml:space="preserve">
+    <value>Przerwij budowanie</value>
+  </data>
+  <data name="Creator_BuildCancelledTitle" xml:space="preserve">
+    <value>Budowanie przerwane</value>
+  </data>
+  <data name="Creator_BuildCancelled" xml:space="preserve">
+    <value>Nie powstał żaden plik, a poprzednia paczka o tej nazwie została bez zmian.</value>
+  </data>
+  <data name="Creator_BuildFailedTitle" xml:space="preserve">
+    <value>Nie udało się zbudować paczki</value>
+  </data>
+  <data name="Creator_BuildFailed" xml:space="preserve">
+    <value>{failure, select, WrongExtension {Rozszerzenie pliku nie pasuje do formatu paczki.} OutputInGameFolder {Paczka nie może leżeć w folderze gry – potrzebne jest inne miejsce.} OutputInAuthorFolder {Paczka nie może leżeć w folderze z plikami – potrzebne jest inne miejsce.} OtherGame {Gra jest teraz w innym folderze niż przy porównaniu, więc pliki trzeba porównać ponownie.} GameNotReady {Sklep pracuje teraz nad grą, więc jej pliki nie nadają się do zrobienia łatek. Budowanie można powtórzyć, gdy skończy.} FilesChanged {{files, plural, one {Plik {file} zmienił się} few {# pliki zmieniły się} many {# plików zmieniło się} other {# pliku zmieniło się}} od porównania, więc pliki trzeba porównać ponownie.} TooManyEntries {Paczka ma więcej plików, niż aplikacja instaluje z jednej paczki.} TooLarge {Paczka jest większa, niż aplikacja instaluje z jednej paczki.} ManifestTooLarge {Opis paczki jest zbyt duży.} UnacknowledgedFindings {Budowanie znalazło łatki, które niosą większość swoich plików. Po ich zaakceptowaniu można zbudować paczkę ponownie.} other {}}</value>
+  </data>
+  <data name="Creator_BuildWriteFailed" xml:space="preserve">
+    <value>Nie udało się zapisać paczki, np. folder jest tylko do odczytu albo dysk jest pełny.</value>
+  </data>
+  <data name="Creator_ZipKind" xml:space="preserve">
+    <value>Zwykłe archiwum .zip</value>
+  </data>
+  <data name="Creator_ManifestKind" xml:space="preserve">
+    <value>Paczka aplikacji</value>
+  </data>
+  <data name="Creator_Reveal" xml:space="preserve">
+    <value>Pokaż w folderze</value>
+  </data>
+  <data name="Creator_SiteWarningTitle" xml:space="preserve">
+    <value>Strona może nie przyjąć tej paczki</value>
+  </data>
+  <data name="Creator_Next" xml:space="preserve">
+    <value>Co dalej</value>
+  </data>
+  <data name="Creator_TestTitle" xml:space="preserve">
+    <value>Sprawdź paczkę w grze</value>
+  </data>
+  <data name="Creator_TestText" xml:space="preserve">
+    <value>Paczka zostanie zainstalowana w grze {game} tak, jak zrobi to gracz. Oryginały zmienianych plików trafią do kopii zapasowej, a instalację można cofnąć jednym kliknięciem.</value>
+  </data>
+  <data name="Creator_TestInstall" xml:space="preserve">
+    <value>Zainstaluj testowo</value>
+  </data>
+  <data name="Creator_TestInstalledTitle" xml:space="preserve">
+    <value>Paczka jest zainstalowana testowo w grze {game}</value>
+  </data>
+  <data name="Creator_TestInstalled" xml:space="preserve">
+    <value>Po sprawdzeniu w grze wystarczy cofnąć instalację – gra wróci do oryginalnych plików z kopii zapasowej. Na liście gier instalacja jest oznaczona jako testowa, a automatyczne aktualizacje jej nie dotyczą.</value>
+  </data>
+  <data name="Creator_Launch" xml:space="preserve">
+    <value>Uruchom grę</value>
+  </data>
+  <data name="Creator_UndoTest" xml:space="preserve">
+    <value>Cofnij instalację testową</value>
+  </data>
+  <data name="Creator_TestedTitle" xml:space="preserve">
+    <value>Sprawdzone w grze</value>
+  </data>
+  <data name="Creator_TestUndoneAt" xml:space="preserve">
+    <value>Instalację testową cofnięto {when}.</value>
+  </data>
+  <data name="Creator_TestUndoneTitle" xml:space="preserve">
+    <value>Cofnięto instalację testową</value>
+  </data>
+  <data name="Creator_TestUndone" xml:space="preserve">
+    <value>{game} ma z powrotem oryginalne pliki.</value>
+  </data>
+  <data name="Creator_TestAgain" xml:space="preserve">
+    <value>Zainstaluj testowo jeszcze raz</value>
+  </data>
+  <data name="Creator_TestFailedTitle" xml:space="preserve">
+    <value>Instalacja testowa się nie powiodła</value>
+  </data>
+  <data name="Creator_TestFailed" xml:space="preserve">
+    <value>Gra została bez zmian.</value>
+  </data>
+  <data name="Creator_UndoTestFailed" xml:space="preserve">
+    <value>Nie udało się cofnąć instalacji testowej: {reason}</value>
+  </data>
+  <data name="Creator_PublishTitle" xml:space="preserve">
+    <value>Opublikuj ją na stronie</value>
+  </data>
+  <data name="Creator_PublishManifest" xml:space="preserve">
+    <value>Ten plik dodaje się jako nowe wydanie projektu, z zaznaczeniem, że wymaga aplikacji. Opis zmian i warianty ustawia się na stronie.</value>
+  </data>
+  <data name="Creator_PublishZip" xml:space="preserve">
+    <value>Ten plik dodaje się jako nowe wydanie projektu. Opis zmian, autorów i warianty ustawia się na stronie.</value>
+  </data>
+  <data name="Creator_OpenDashboard" xml:space="preserve">
+    <value>Otwórz panel na stronie</value>
+  </data>
+  <data name="Creator_SaveProjectTitle" xml:space="preserve">
+    <value>Zapisz projekt</value>
+  </data>
+  <data name="Creator_SaveProjectText" xml:space="preserve">
+    <value>Przy następnej wersji praca zacznie się od tego miejsca, a nie od zera. Wystarczy „Zapisz” u góry strony.</value>
+  </data>
+  <data name="Creator_RebuildQuestion" xml:space="preserve">
+    <value>Coś się zmieniło w plikach albo w projekcie?</value>
+  </data>
+  <data name="Creator_Rebuild" xml:space="preserve">
+    <value>Zbuduj ponownie</value>
+  </data>
+  <data name="Creator_BuildElsewhere" xml:space="preserve">
+    <value>Zapisz w innym miejscu…</value>
+  </data>
+  <data name="Creator_RebuildBlocked" xml:space="preserve">
+    <value>Po cofnięciu instalacji testowej można zbudować paczkę ponownie albo porównać pliki – kreator porównywałby je z plikami, które zmieniła paczka.</value>
+  </data>
   <data name="Creator_ConfirmBlocked" xml:space="preserve">
     <value>Najpierw trzeba {what}.</value>
   </data>

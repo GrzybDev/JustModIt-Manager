@@ -69,7 +69,13 @@ public sealed record StoreView(string Store)
 
 public sealed record LibraryFolderView(string Store, string Path);
 
-/// <summary>A game a store reported, with the site's cover of it.</summary>
+/// <summary>A project the site has for a game, by the address of its page.</summary>
+/// <param name="ProjectId">The project, whose id stays when its slugs change.</param>
+/// <param name="GameSlug">The game's slug in the site's addresses.</param>
+/// <param name="TeamSlug">The team's slug in the site's addresses.</param>
+public sealed record SiteProjectView(Guid ProjectId, string GameSlug, string TeamSlug);
+
+/// <summary>A game a store reported, with the site's cover of it and the site's projects for it.</summary>
 /// <param name="Key">The game's store and id there.</param>
 /// <param name="Name">As the store names it.</param>
 /// <param name="Game">What the store reports about it.</param>
@@ -78,16 +84,21 @@ public sealed record DetectedGameEntry(GameKey Key, string Name, DetectedGameVie
     /// <summary>The cover of the site's game matched to it, as an absolute address; empty when the site has none.</summary>
     public string Cover { get; init; } = "";
 
+    /// <summary>The site's projects for the game, whatever their status.</summary>
+    public IReadOnlyList<SiteProjectView> Projects { get; init; } = [];
+
     /// <summary>Maps a game of the library's snapshot.</summary>
     /// <param name="game">The game as its store reports it.</param>
-    /// <param name="index">The site's projects matched to the detected games, which give the cover.</param>
+    /// <param name="index">The site's projects matched to the detected games, which give the cover and the projects.</param>
     public static DetectedGameEntry From(InstalledGame game, InstallableIndex index)
     {
         ArgumentNullException.ThrowIfNull(game);
         ArgumentNullException.ThrowIfNull(index);
+        var projects = index.Find(game.Key);
         return new DetectedGameEntry(game.Key, game.Name, DetectedGameView.From(game))
         {
-            Cover = index.Find(game.Key).Select(entry => entry.Game.Cover).FirstOrDefault(cover => cover.Length > 0) ?? "",
+            Cover = projects.Select(entry => entry.Game.Cover).FirstOrDefault(cover => cover.Length > 0) ?? "",
+            Projects = [.. projects.Select(entry => new SiteProjectView(entry.ProjectUuid, entry.Game.Slug, entry.Team.Slug))],
         };
     }
 }

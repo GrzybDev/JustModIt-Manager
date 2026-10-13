@@ -129,6 +129,7 @@ public sealed class MessageTests
                 new DetectedGameView { InstallDirectory = @"D:\Games\Example Game", LibraryId = "steam-library", BuildId = "1412244" })
             {
                 Cover = "https://images.example.com/covers/example-game.png",
+                Projects = [new SiteProjectView(Project, "example-game", "lantern-team")],
             },
         ]),
         new GetLeftoverBackups(),
