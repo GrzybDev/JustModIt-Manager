@@ -31,6 +31,8 @@ public sealed class MessageTests
         new JobProgress([JobView.From(RunningJob)]),
         new JobEnded(JobView.From(RunningJob), JobOutcome.Failed,
             JobFailureView.From(new JobFailure(JobFailureReason.GameRunning) { Processes = ["example.exe"] })),
+        new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded) { KeptFiles = [new KeptFilesView(KeptReason.ChangedSinceInstall, 2)] },
+        new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded) { Forgotten = true },
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.Failed)
         {
             Game = Game,
@@ -157,6 +159,36 @@ public sealed class MessageTests
 
         read.Payload.GetType().Should().Be(Samples[index].GetType());
         FrameCodec.Serialize(read, FrameCodec.DefaultMaxFrameLength).Should().Equal(payload);
+    }
+
+    [Fact]
+    public void A_job_s_end_counts_the_files_its_uninstall_left_by_reason_and_leaves_the_field_out_when_it_left_none()
+    {
+        var uninstalled = new JobResult(RunningJob, JobOutcome.Succeeded)
+        {
+            KeptFiles =
+            [
+                new KeptFile("voice.pak", KeptReason.BackupMissing),
+                new KeptFile("text.pak", KeptReason.ChangedSinceInstall),
+                new KeptFile("readme.txt", KeptReason.ChangedSinceInstall),
+            ],
+        };
+
+        var ended = JobEnded.From(uninstalled);
+        var plain = Json(JobEnded.From(uninstalled with { KeptFiles = [] }));
+
+        ended.KeptFiles.Should().Equal(new KeptFilesView(KeptReason.ChangedSinceInstall, 2), new KeptFilesView(KeptReason.BackupMissing, 1));
+        plain.Should().NotContain("keptFiles", "an end without kept files reads as one from an agent that never sent them");
+        ((JobEnded)((EventFrame)FrameCodec.Deserialize(Encoding.UTF8.GetBytes(plain))).Payload).KeptFiles.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_job_s_end_tells_that_its_uninstall_found_the_install_s_folder_gone()
+    {
+        var forgotten = new JobResult(RunningJob, JobOutcome.Succeeded) { Forgotten = true, RemovedRecord = Guid.NewGuid() };
+
+        JobEnded.From(forgotten).Forgotten.Should().BeTrue();
+        JobEnded.From(forgotten with { Forgotten = false }).Forgotten.Should().BeFalse();
     }
 
     [Fact]

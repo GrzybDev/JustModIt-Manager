@@ -42,6 +42,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private JobView? _job;
     private Guid? _cancelled;
     private NextStep? _result;
+    private Guid? _finished;
+    private JobEnded? _ended;
     private string? _chosenVariant;
     private bool _askedDetected;
 
@@ -56,6 +58,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         Story = new ProjectStory(services);
         _services.Agent.PropertyChanged += OnAgentChanged;
         _services.Agent.JobsProgressed += OnJobsProgressed;
+        _services.Agent.JobEnded += OnJobEnded;
         Refresh();
     }
 
@@ -326,6 +329,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     {
         _services.Agent.PropertyChanged -= OnAgentChanged;
         _services.Agent.JobsProgressed -= OnJobsProgressed;
+        _services.Agent.JobEnded -= OnJobEnded;
         _details?.Cancel();
         _details?.Dispose();
     }
@@ -516,6 +520,23 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         }
     }
 
+    private void OnJobEnded(object? sender, JobEnded ended)
+    {
+        if (ended.Job.Game != _key)
+        {
+            return;
+        }
+
+        _ended = ended;
+        // The state that ends an uninstall may come first, before the agent tells which files it left as they were or that
+        // the install's folder was gone.
+        if (_result is { Kind: StepKind.Removed } && _finished == ended.Job.Id && (ended.KeptFiles is { Count: > 0 } || ended.Forgotten))
+        {
+            _result = Removed(_services.Agent.State.Games.Any(game => game.Key == _key), ended);
+            Compose();
+        }
+    }
+
     private void Refresh()
     {
         var state = _services.Agent.State;
@@ -569,8 +590,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             return;
         }
 
+        _finished = job.Id;
         _result = job.Kind == JobKind.Uninstall
-            ? Removed(game)
+            ? Removed(game is not null, _ended?.Job.Id == job.Id ? _ended : null)
             : new NextStep(StepKind.Done, Tone.Success, Icons.CircleCheck,
                 Text.Format(Strings.GamePage_DoneTitle, ("kind", job.Kind.ToString())), Strings.GamePage_DoneText)
             {
@@ -1051,11 +1073,16 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         };
     }
 
-    private static NextStep Removed(GameView? game)
+    private static NextStep Removed(bool listed, JobEnded? ended)
     {
-        var listed = game is not null;
-        return new NextStep(StepKind.Removed, Tone.Success, Icons.CircleCheck, Strings.GamePage_RemovedTitle,
-            listed ? Strings.GamePage_RemovedText : Text.Format(Strings.GamePage_RemovedGone, ("library", Strings.Shell_Library)))
+        var kept = ended?.KeptFiles ?? [];
+        var outcome = !listed ? Text.Format(Strings.GamePage_RemovedGone, ("library", Strings.Shell_Library))
+            : ended is { Forgotten: true } ? Strings.GamePage_RemovedForgotten
+            : kept.Count > 0 ? Strings.GamePage_RemovedRest
+            : Strings.GamePage_RemovedText;
+        var text = string.Join(" ", kept.Select(files => Text.Format(Strings.GamePage_RemovedKept, ("reason", files.Reason.ToString()),
+            ("count", files.Count))).Append(outcome));
+        return new NextStep(StepKind.Removed, Tone.Success, Icons.CircleCheck, Strings.GamePage_RemovedTitle, text)
         {
             Secondary = listed ? null : Text.Format(Strings.GamePage_BackToLibrary, ("library", Strings.Shell_Library)),
             SecondaryIcon = Icons.ArrowLeft,

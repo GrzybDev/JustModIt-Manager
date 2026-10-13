@@ -1404,6 +1404,15 @@
   <data name="GamePage_RemovedText" xml:space="preserve">
     <value>Przywrócono oryginalne pliki gry.</value>
   </data>
+  <data name="GamePage_RemovedRest" xml:space="preserve">
+    <value>Przywrócono pozostałe oryginalne pliki gry.</value>
+  </data>
+  <data name="GamePage_RemovedKept" xml:space="preserve">
+    <value>{reason, select, ChangedSinceInstall {Zostawiono w obecnej postaci {count, plural, one {# plik zmieniony} few {# pliki zmienione} many {# plików zmienionych} other {# pliku zmienionego}} po instalacji – odinstalowanie nigdy nie nadpisuje pliku zmienionego poza aplikacją.} BackupMissing {Zostawiono w wersji z instalacji {count, plural, one {# plik, bo brakuje kopii zapasowej jego oryginału} few {# pliki, bo brakuje kopii zapasowych ich oryginałów} many {# plików, bo brakuje kopii zapasowych ich oryginałów} other {# pliku, bo brakuje kopii zapasowej jego oryginału}}.} other {Zostawiono w wersji z instalacji {count, plural, one {# plik, bo kopia zapasowa jego oryginału jest uszkodzona} few {# pliki, bo kopie zapasowe ich oryginałów są uszkodzone} many {# plików, bo kopie zapasowe ich oryginałów są uszkodzone} other {# pliku, bo kopia zapasowa jego oryginału jest uszkodzona}}.}}</value>
+  </data>
+  <data name="GamePage_RemovedForgotten" xml:space="preserve">
+    <value>Folderu tej instalacji już nie ma, więc nie przywrócono żadnych plików – usunięto tylko zapis instalacji i jej kopie zapasowe.</value>
+  </data>
   <data name="GamePage_RemovedTitle" xml:space="preserve">
     <value>Odinstalowano projekt</value>
   </data>

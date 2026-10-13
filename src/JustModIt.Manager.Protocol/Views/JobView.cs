@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.State;
 
@@ -105,6 +106,11 @@ public sealed record JobFailureView(JobFailureReason Reason)
         };
     }
 }
+
+/// <summary>How many files an uninstall left as they were for one reason.</summary>
+/// <param name="Reason">Why they stayed as they were.</param>
+/// <param name="Count">How many files.</param>
+public sealed record KeptFilesView(KeptReason Reason, int Count);
 
 /// <summary>A job that did not end well, kept until a later job succeeds or the player dismisses it.</summary>
 /// <param name="Kind">What the job did.</param>

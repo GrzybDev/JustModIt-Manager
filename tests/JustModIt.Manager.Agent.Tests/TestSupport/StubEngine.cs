@@ -12,7 +12,7 @@ internal class StubEngine : IInstallEngine
     public virtual Task<IReadOnlyList<RecoveredOperation>> RecoverAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<RecoveredOperation>>([]);
 
-    public Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken) =>
+    public virtual Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<InstallRecord>>([]);
 
     public Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(CancellationToken cancellationToken) =>
@@ -32,7 +32,7 @@ internal class StubEngine : IInstallEngine
     public Task<PreflightReport> PredictReplacementAsync(Guid recordId, InstallRequest replacement,
         IProgress<InstallProgress>? progress, CancellationToken cancellationToken) => throw new NotSupportedException();
 
-    public Task<UninstallResult> UninstallAsync(Guid recordId, IProgress<InstallProgress>? progress,
+    public virtual Task<UninstallResult> UninstallAsync(Guid recordId, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<VerificationResult> VerifyAsync(Guid recordId, IProgress<InstallProgress>? progress,
@@ -44,7 +44,7 @@ internal class StubEngine : IInstallEngine
     public Task<InstallRecord?> AdoptMovedAsync(Guid recordId, InstalledGame game, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => throw new NotSupportedException();
 
-    public Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken) =>
+    public virtual Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
     public Task<InstalledFiles> LoadFilesAsync(Guid recordId, CancellationToken cancellationToken) =>

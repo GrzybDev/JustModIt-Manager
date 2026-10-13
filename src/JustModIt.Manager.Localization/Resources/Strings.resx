@@ -1416,6 +1416,15 @@
   <data name="GamePage_RemovedText" xml:space="preserve">
     <value>The game's original files are back.</value>
   </data>
+  <data name="GamePage_RemovedRest" xml:space="preserve">
+    <value>The game's other original files are back.</value>
+  </data>
+  <data name="GamePage_RemovedKept" xml:space="preserve">
+    <value>{reason, select, ChangedSinceInstall {{count, plural, one {# file changed after the install was left as it is, since an uninstall never overwrites a file changed outside the app.} other {# files changed after the install were left as they are, since an uninstall never overwrites a file changed outside the app.}}} BackupMissing {{count, plural, one {# file was left as the install wrote it, since the backup of its original is missing.} other {# files were left as the install wrote them, since the backups of their originals are missing.}}} other {{count, plural, one {# file was left as the install wrote it, since the backup of its original is damaged.} other {# files were left as the install wrote them, since the backups of their originals are damaged.}}}}</value>
+  </data>
+  <data name="GamePage_RemovedForgotten" xml:space="preserve">
+    <value>The install's folder is gone, so no files were put back; only the app's record of the install and its backups were removed.</value>
+  </data>
   <data name="GamePage_RemovedTitle" xml:space="preserve">
     <value>Project uninstalled</value>
   </data>

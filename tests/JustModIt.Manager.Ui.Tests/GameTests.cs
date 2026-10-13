@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Localization;
@@ -113,6 +114,65 @@ public sealed class GameTests
         page.Step!.Kind.Should().Be(StepKind.Removed);
         ui.Click(ui.Find<Button>("SecondaryButton"));
         ui.Shell.Navigator.CurrentRoute.Should().Be(new LibraryRoute());
+    }
+
+    [AvaloniaFact]
+    public async Task An_uninstall_says_which_files_it_left_as_they_were_whether_its_end_or_the_state_comes_first()
+    {
+        var installed = Installed("Ember Hollow", "4100", offer: Ember);
+        var available = Available("Ember Hollow", "4100", Ember);
+        using var ui = Open(State(installed), installed);
+        var page = Page(ui);
+        var first = Job(installed, JobKind.Uninstall, JobStage.Uninstalling);
+
+        ui.Push(State(Busy(installed, first)) with { Version = 5 });
+        ui.Agent.End(new JobEnded(first, JobOutcome.Succeeded) { KeptFiles = [new KeptFilesView(KeptReason.ChangedSinceInstall, 2)] });
+        ui.Push(State(available) with { Version = 6 });
+
+        page.Step!.Kind.Should().Be(StepKind.Removed);
+        page.Step.Text.Should().Be("Zostawiono w obecnej postaci 2 pliki zmienione po instalacji – odinstalowanie nigdy nie nadpisuje pliku "
+            + "zmienionego poza aplikacją. Przywrócono pozostałe oryginalne pliki gry.");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-removed-kept");
+
+        var second = first with { Id = Guid.NewGuid() };
+        ui.Push(State(Busy(installed, second)) with { Version = 7 });
+        ui.Push(State(available) with { Version = 8 });
+        page.Step!.Text.Should().Be("Przywrócono oryginalne pliki gry.");
+        ui.Agent.End(new JobEnded(second, JobOutcome.Succeeded)
+        {
+            KeptFiles = [new KeptFilesView(KeptReason.ChangedSinceInstall, 1), new KeptFilesView(KeptReason.BackupMissing, 5)],
+        });
+        page.Step!.Text.Should().Be("Zostawiono w obecnej postaci 1 plik zmieniony po instalacji – odinstalowanie nigdy nie nadpisuje pliku "
+            + "zmienionego poza aplikacją. Zostawiono w wersji z instalacji 5 plików, bo brakuje kopii zapasowych ich oryginałów. "
+            + "Przywrócono pozostałe oryginalne pliki gry.", "the agent may tell which files stayed after the state ended the job");
+    }
+
+    [AvaloniaFact]
+    public async Task An_uninstall_whose_folder_was_gone_says_it_put_no_files_back_whether_its_end_or_the_state_comes_first()
+    {
+        const string forgotten = "Folderu tej instalacji już nie ma, więc nie przywrócono żadnych plików – usunięto tylko zapis instalacji "
+            + "i jej kopie zapasowe.";
+        var installed = Installed("Ember Hollow", "4100", offer: Ember);
+        var available = Available("Ember Hollow", "4100", Ember);
+        using var ui = Open(State(installed), installed);
+        var page = Page(ui);
+        var first = Job(installed, JobKind.Uninstall, JobStage.Uninstalling);
+
+        ui.Push(State(Busy(installed, first)) with { Version = 5 });
+        ui.Agent.End(new JobEnded(first, JobOutcome.Succeeded) { Forgotten = true });
+        ui.Push(State(available) with { Version = 6 });
+
+        page.Step!.Kind.Should().Be(StepKind.Removed);
+        page.Step.Text.Should().Be(forgotten, "the store still reports the game, in another folder");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-removed-forgotten");
+
+        var second = first with { Id = Guid.NewGuid() };
+        ui.Push(State(Busy(installed, second)) with { Version = 7 });
+        ui.Push(State(available) with { Version = 8 });
+        ui.Agent.End(new JobEnded(second, JobOutcome.Succeeded) { Forgotten = true });
+        page.Step!.Text.Should().Be(forgotten, "the agent may tell that the folder was gone after the state ended the job");
     }
 
     [AvaloniaFact]

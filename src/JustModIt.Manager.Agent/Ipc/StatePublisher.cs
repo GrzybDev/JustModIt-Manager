@@ -132,8 +132,7 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
     }
 
     private void OnFinished(object? sender, JobResult result) =>
-        EventRaising.RaiseEach(JobEnded, this, new JobEnded(JobView.From(result.Job), result.Outcome,
-            result.Failure is { } failure ? JobFailureView.From(failure) : null), LogListenerFailed);
+        EventRaising.RaiseEach(JobEnded, this, Protocol.Messages.JobEnded.From(result), LogListenerFailed);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "A listener of the app state failed")]
     private partial void LogListenerFailed(Exception exception);
