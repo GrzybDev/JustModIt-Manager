@@ -13,6 +13,7 @@ using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Shell;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
@@ -210,8 +211,38 @@ public sealed class UiHarness : IDisposable
         // Without an agent the window closes without asking what closing it means.
         Agent.Link = AgentLink.Connecting;
         Window.Close();
+        Settle();
+        // A page keeping unsaved work asks first. Left open, the window goes on animating, and the headless session runs
+        // the frames left over while it sets the next test up, without the fonts; so the work is let go, and the question
+        // has left before the test ends.
+        var until = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (Shell.Dialogs.Current is { } question && DateTime.UtcNow < until)
+        {
+            LetGo(question);
+            Thread.Sleep(16);
+            Settle();
+        }
+
         Session.Dispose();
         Settle();
+    }
+
+    private static void LetGo(DialogViewModel question)
+    {
+        switch (question)
+        {
+            case { IsClosing: true }:
+                break;
+            case ChoiceDialogViewModel choice when choice.Choices.FirstOrDefault(option => option.IsDanger) is { } letGo:
+                choice.ChooseCommand.Execute(letGo);
+                break;
+            case ConfirmDialogViewModel confirm:
+                confirm.ConfirmCommand.Execute(null);
+                break;
+            default:
+                question.Cancel();
+                break;
+        }
     }
 }
 
@@ -235,19 +266,28 @@ public sealed class FakePickers : IFilePickers
 
     public List<string> Asked { get; } = [];
 
+    /// <summary>The file the player opens; null cancels.</summary>
+    public string? File { get; set; }
+
     /// <summary>The file the player saves to; null cancels.</summary>
     public string? SaveFile { get; set; }
 
     /// <summary>The names the save pickers suggested, in order.</summary>
     public List<string> Suggested { get; } = [];
 
-    public Task<string?> PickFolderAsync(string title)
+    public Task<string?> PickFolderAsync(string title, string? startIn = null)
     {
         Asked.Add(title);
         return Task.FromResult(Folder);
     }
 
-    public Task<string?> PickSaveFileAsync(string title, string suggestedName, FileKind kind)
+    public Task<string?> PickFileAsync(string title, FileKind? kind = null, string? startIn = null)
+    {
+        Asked.Add(title);
+        return Task.FromResult(File);
+    }
+
+    public Task<string?> PickSaveFileAsync(string title, string suggestedName, FileKind kind, string? startIn = null)
     {
         Asked.Add(title);
         Suggested.Add(suggestedName);

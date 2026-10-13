@@ -14,7 +14,7 @@ namespace JustModIt.Manager.Agent.Ipc;
 
 /// <summary>What the window reads beyond the state: project pages, the catalogue, detection details and the app's own data.</summary>
 /// <param name="catalogue">Reads project pages and the catalogue's listing.</param>
-/// <param name="library">The snapshot the detection report comes from.</param>
+/// <param name="library">The snapshot the detection report and the detected games come from.</param>
 /// <param name="engine">Finds leftover backups.</param>
 /// <param name="settings">Tells whether the player confirmed being an adult.</param>
 /// <param name="storage">Measures the app's own folders.</param>
@@ -38,6 +38,12 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
             : new CatalogueFiltersResult(new CatalogueFiltersView()),
         GetDetectionReport => new DetectionReportResult(DetectionReportView.From(DetectionReport.From(library.Snapshot),
             (await catalogue.GetListingAsync(cancellationToken).ConfigureAwait(false))?.Reference.StorefrontPlatforms ?? [])),
+        GetDetectedGames => new DetectedGames(
+        [
+            .. library.Snapshot.Games.Values
+                .OrderBy(game => game.Name, Text.Comparer)
+                .Select(game => DetectedGameEntry.From(game, catalogue.Current.Index)),
+        ]),
         GetLeftoverBackups => new LeftoverBackups(await engine.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false)),
         GetAppDataUsage => storage.Measure(),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),

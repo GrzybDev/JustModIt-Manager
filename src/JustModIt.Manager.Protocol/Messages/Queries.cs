@@ -86,6 +86,16 @@ public sealed record GetDetectionReport : Query;
 public sealed record DetectionReportResult(DetectionReportView Report) : Message;
 
 /// <summary>
+/// Asks for every game the stores reported, also those the player's games leave out, as the package creator offers
+/// them; answered with <see cref="DetectedGames"/>.
+/// </summary>
+public sealed record GetDetectedGames : Query;
+
+/// <summary>The answer to <see cref="GetDetectedGames"/>.</summary>
+/// <param name="Games">The games of the library's last scan, by name.</param>
+public sealed record DetectedGames(IReadOnlyList<DetectedGameEntry> Games) : Message;
+
+/// <summary>
 /// Asks for the backups that installs forgotten with their game left behind, with their size; answered with
 /// <see cref="LeftoverBackups"/>.
 /// </summary>

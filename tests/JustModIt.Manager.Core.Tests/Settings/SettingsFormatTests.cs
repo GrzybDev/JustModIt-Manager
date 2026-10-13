@@ -39,6 +39,7 @@ public sealed class SettingsFormatTests : IDisposable
             PreferredTeams = [Guid.Parse("5a6b7c8d-0000-4000-8000-000000000002"), Guid.Parse("5a6b7c8d-0000-4000-8000-000000000001")],
             AdultContentConfirmedUntil = new DateTimeOffset(2026, 9, 2, 18, 30, 0, TimeSpan.FromHours(2)),
             RevealedAdultGames = [Guid.Parse("7c8d9e0f-0000-4000-8000-000000000003")],
+            RecentCreatorProjects = [Rooted("Second.exampleproj"), Rooted("First.exampleproj")],
         }
             .WithGame(Witcher, preferences => preferences with
             {
@@ -259,6 +260,16 @@ public sealed class SettingsFormatTests : IDisposable
             """);
 
         (await LoadAsync())!.LibraryFolders.Should().Equal(new LibraryFolder(StoreId.Steam, Rooted("SteamLibrary")));
+    }
+
+    [Fact]
+    public async Task Recent_projects_keep_the_newest_five_full_paths_each_once()
+    {
+        var paths = Enumerable.Range(1, 7).Select(number => Rooted($"Project {number}.exampleproj")).ToList();
+        var json = string.Join(", ", paths.Prepend(paths[0]).Select(path => $"\"{path.Replace("\\", "\\\\", StringComparison.Ordinal)}\""));
+        _directory.Write("settings.json", $$"""{ "recentCreatorProjects": [ "relative.exampleproj", 7, {{json}} ] }""");
+
+        (await LoadAsync())!.RecentCreatorProjects.Should().Equal(paths.Take(AppSettings.MaxRecentCreatorProjects));
     }
 
     public void Dispose() => _directory.Dispose();

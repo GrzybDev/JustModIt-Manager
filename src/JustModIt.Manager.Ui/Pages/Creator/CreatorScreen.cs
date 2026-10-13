@@ -1,6 +1,4 @@
-using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Navigation;
-using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
@@ -12,6 +10,11 @@ internal static class CreatorScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
-        ui.Pages.Register<CreatorRoute>((_, _) => new PlaceholderPageViewModel(Strings.Shell_Creator, Icons.WandSparkles));
+        ui.Pages.Register<CreatorRoute>((_, services) => new CreatorPageViewModel(services));
+        ui.Views.Register<CreatorPageViewModel>(() => new CreatorPage());
+        ui.Views.Register<GameStepViewModel>(() => new GameStepView());
+        ui.Views.Register<FilesStepViewModel>(() => new FilesStepView());
+        ui.Views.Register<ReviewStepViewModel>(() => new PendingStepView());
+        ui.Views.Register<PackageStepViewModel>(() => new PendingStepView());
     }
 }

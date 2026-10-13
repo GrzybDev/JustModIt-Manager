@@ -63,6 +63,7 @@ public sealed class MessageTests
         new HideGame(Game, IsHidden: true),
         new ConfirmAdultContent(),
         new RevealAdultPictures(Project),
+        new RememberCreatorProject(@"C:\Work\Example.exampleproj"),
         new LaunchGame(Game),
         new OpenFolder(AppFolder.Game, Game),
         new OpenFolder(AppFolder.InstallBackups, Install: RecordId),
@@ -121,6 +122,15 @@ public sealed class MessageTests
         }), [new StorefrontPlatform { Uuid = Guid.Empty, Name = "Steam", Provider = "steam", InstallHint = "Open **Properties**." }])),
         new GetAppDataUsage(),
         new AppDataUsage(@"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp", 317_718_528, 224_395_264, 90_177_536, 3_355_443),
+        new GetDetectedGames(),
+        new DetectedGames(
+        [
+            new DetectedGameEntry(Game, "Example Game",
+                new DetectedGameView { InstallDirectory = @"D:\Games\Example Game", LibraryId = "steam-library", BuildId = "1412244" })
+            {
+                Cover = "https://images.example.com/covers/example-game.png",
+            },
+        ]),
         new GetLeftoverBackups(),
         new LeftoverBackups([new LeftoverBackup(RecordId, FailedGame, "Other Game", @"E:\Backups\ExampleApp\gog-1", 4096)]),
     ];

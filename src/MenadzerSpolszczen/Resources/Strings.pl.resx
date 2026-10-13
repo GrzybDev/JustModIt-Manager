@@ -575,4 +575,37 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Shell_UncleanExitTitle" xml:space="preserve">
     <value>{product} został nieoczekiwanie zamknięty</value>
   </data>
+  <data name="Creator_Subtitle" xml:space="preserve">
+    <value>Z przetłumaczonych plików powstanie paczka, którą gracze zainstalują jednym kliknięciem.</value>
+  </data>
+  <data name="Creator_StartTitle" xml:space="preserve">
+    <value>Przygotuj spolszczenie bez pisania kodu</value>
+  </data>
+  <data name="Creator_StartText" xml:space="preserve">
+    <value>Wystarczy wskazać grę i folder z przetłumaczonymi plikami. Kreator sam porówna je z grą, pokaże, co paczka zrobi u gracza, i wybierze format: zwykły .zip albo paczkę Menadżera {extension}.</value>
+  </data>
+  <data name="Creator_HowGame" xml:space="preserve">
+    <value>Wykryta gra, bez spolszczeń i modów.</value>
+  </data>
+  <data name="Creator_StepFiles" xml:space="preserve">
+    <value>Twoje pliki</value>
+  </data>
+  <data name="Creator_CleanGame" xml:space="preserve">
+    <value>Bez spolszczeń i modów, w takiej wersji, jaką mają gracze. Pliki tłumaczone wprost w folderze gry najlepiej najpierw skopiować w bezpieczne miejsce – sprawdzenie plików gry w sklepie je nadpisze.</value>
+  </data>
+  <data name="Creator_GameInstalled" xml:space="preserve">
+    <value>{hasVersion, select, true {Zainstalowane spolszczenie {project} {version}} other {Zainstalowane spolszczenie {project}}}</value>
+  </data>
+  <data name="Creator_ToFiles" xml:space="preserve">
+    <value>Dalej: Twoje pliki</value>
+  </data>
+  <data name="Creator_FilesLead" xml:space="preserve">
+    <value>Folder z przetłumaczonymi plikami, ułożonymi tak jak w folderze gry. Wystarczą pliki dodane albo zmienione – reszta gry zostaje bez zmian.</value>
+  </data>
+  <data name="Creator_Detects" xml:space="preserve">
+    <value>Co Kreator wykryje sam</value>
+  </data>
+  <data name="Creator_Nothing" xml:space="preserve">
+    <value>Paczka byłaby pusta. Najczęściej znaczy to, że spolszczenie wgrano już ręcznie do folderu gry. Po skopiowaniu plików w bezpieczne miejsce i przywróceniu oryginału (sprawdzeniem plików gry w sklepie) można porównać pliki ponownie.</value>
+  </data>
 </root>

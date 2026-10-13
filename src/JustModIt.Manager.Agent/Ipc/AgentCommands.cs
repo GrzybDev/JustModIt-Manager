@@ -85,6 +85,7 @@ public sealed class AgentCommands(
             current.WithGame(hide.Game, preferences => preferences with { IsHidden = hide.IsHidden }))),
         ConfirmAdultContent => Done(() => settings.Update(current => current.ConfirmAdultContent(time.GetUtcNow()))),
         RevealAdultPictures reveal => Done(() => settings.Update(current => current.RevealAdultPictures(reveal.Game))),
+        RememberCreatorProject remember => Remember(remember.Path),
         LaunchGame launch => Launch(library.Snapshot.Find(launch.Game)),
         OpenFolder open => Open(FolderOf(open)),
         AddLibraryFolder add => await AddLibraryFolderAsync(add.Path, cancellationToken).ConfigureAwait(false),
@@ -125,6 +126,13 @@ public sealed class AgentCommands(
 
         return automation.AutoUpdate is { } update ? current.ChooseAutoUpdate(automation.Game, update) : current;
     }
+
+    private Message? Remember(string project) => Path.IsPathFullyQualified(project)
+        ? Done(() => settings.Update(current => current with
+        {
+            RecentCreatorProjects = AppSettings.RecentProjects([project, .. current.RecentCreatorProjects]),
+        }))
+        : throw Invalid("The project path is not fully qualified.");
 
     private MyGame Find(GameKey game) => coordinator.Current.Find(game) ?? throw Invalid("The game is not among the player's games.");
 

@@ -27,6 +27,9 @@ public enum BackupLocation
 /// <summary>The app's settings, compared by value, so an update that changes nothing can be recognised.</summary>
 public sealed record AppSettings
 {
+    /// <summary>How many project files <see cref="RecentCreatorProjects"/> keeps.</summary>
+    public const int MaxRecentCreatorProjects = 5;
+
     public static AppSettings Default { get; } = new();
 
     /// <summary>Start quietly into the tray when the user signs in.</summary>
@@ -89,6 +92,9 @@ public sealed record AppSettings
     /// <summary>Adult games by their uuid on the site whose pictures the player chose to see unveiled.</summary>
     public ValueList<Guid> RevealedAdultGames { get; init; }
 
+    /// <summary>The package creator's project files opened or saved last, newest first, fully qualified.</summary>
+    public ValueList<string> RecentCreatorProjects { get; init; }
+
     /// <summary>The player's choices for a game, or the defaults.</summary>
     /// <param name="key">The game's store and store id.</param>
     public GamePreferences GetGame(GameKey key) => Games.TryGetValue(key, out var preferences) ? preferences : GamePreferences.Default;
@@ -106,6 +112,15 @@ public sealed record AppSettings
     /// <summary>The settings with the player's age confirmed for a day.</summary>
     /// <param name="now">The current time.</param>
     public AppSettings ConfirmAdultContent(DateTimeOffset now) => this with { AdultContentConfirmedUntil = now.AddDays(1) };
+
+    /// <summary>The project files to keep as the recent ones: fully qualified, each once, at most as many as kept.</summary>
+    /// <param name="paths">Newest first.</param>
+    public static ValueList<string> RecentProjects(IEnumerable<string> paths) =>
+    [
+        .. paths.Where(path => path.Length > 0 && Path.IsPathFullyQualified(path))
+            .Distinct(PathComparison.Comparer)
+            .Take(MaxRecentCreatorProjects),
+    ];
 
     /// <summary>Whether the player's confirmed age still holds.</summary>
     /// <param name="now">The current time.</param>

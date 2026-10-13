@@ -1,0 +1,226 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Creator.FilesStepView"
+             x:DataType="creator:FilesStepViewModel">
+  <StackPanel Spacing="20">
+    <Border Classes="soft" Padding="10,10,12,10">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+        <Border Classes="smallCover">
+          <Panel>
+            <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+            <ui:RemoteImage Source="{Binding Page.Game.Cover}" />
+          </Panel>
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+          <TextBlock Classes="rowTitle" Text="{Binding Page.Game.Name}" />
+          <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="6">
+            <ui:StoreIcon Store="{Binding Page.Game.Key.Store.Value}" Width="13" Height="13" Foreground="{StaticResource TextSecondaryBrush}" />
+            <TextBlock Grid.Column="1" Classes="pathLine" Text="{Binding Page.GameStoreName}" />
+            <TextBlock Grid.Column="2" Classes="separator" />
+            <TextBlock Grid.Column="3" Classes="pathLine" Text="{Binding Page.Game.Game.InstallDirectory}"
+                       ToolTip.Tip="{Binding Page.Game.Game.InstallDirectory}" />
+          </Grid>
+        </StackPanel>
+        <Button Grid.Column="2" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_ChangeGame}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}" Command="{Binding ChangeGameCommand}" />
+      </Grid>
+    </Border>
+
+    <StackPanel Spacing="4">
+      <TextBlock Classes="heading" Text="{x:Static loc:Strings.Creator_FilesTitle}" />
+      <TextBlock Classes="lead" Text="{x:Static loc:Strings.Creator_FilesLead}" />
+    </StackPanel>
+
+    <!-- No folder yet: drop one or pick it. -->
+    <StackPanel Spacing="16" IsVisible="{Binding ShowsDropZone}">
+      <Border x:Name="DropZone" Classes="dropZone" Classes.over="{Binding IsDragOver}" DragDrop.AllowDrop="True"
+              AutomationProperties.Name="{x:Static loc:Strings.Creator_DropZone}">
+        <Panel>
+          <Rectangle Classes="dropFrame" Margin="-24" />
+          <StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Border Classes="dropChip">
+              <ui:Icon Data="{x:Static theme:Icons.FolderDown}" Width="26" Height="26" />
+            </Border>
+            <StackPanel Spacing="4">
+              <Panel>
+                <TextBlock Text="{x:Static loc:Strings.Creator_DropTitle}" FontSize="17" LineHeight="24" FontWeight="Bold"
+                           Foreground="{StaticResource TextStrongBrush}" TextAlignment="Center" IsVisible="{Binding !IsDragOver}" />
+                <TextBlock Text="{x:Static loc:Strings.Creator_DropOverTitle}" FontSize="17" LineHeight="24" FontWeight="Bold"
+                           Foreground="{StaticResource TextStrongBrush}" TextAlignment="Center" IsVisible="{Binding IsDragOver}" />
+              </Panel>
+              <Panel>
+                <TextBlock Classes="bodyText" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_DropText}"
+                           IsVisible="{Binding !IsDragOver}" />
+                <TextBlock Classes="bodyText" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_DropOverText}"
+                           IsVisible="{Binding IsDragOver}" />
+              </Panel>
+            </StackPanel>
+            <Button x:Name="PickFolderButton" Classes="primary compact" HorizontalAlignment="Center" Margin="0,4,0,0"
+                    Content="{x:Static loc:Strings.Creator_PickFolder}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                    Command="{Binding PickFolderCommand}" />
+          </StackPanel>
+        </Panel>
+      </Border>
+      <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                  Title="{Binding ProblemTitle}" Message="{Binding ProblemText}" IsVisible="{Binding HasProblem}" theme:Motion.Enter="True" />
+      <ui:Callout MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Info}"
+                  Title="{x:Static loc:Strings.Creator_DroppedFilesTitle}" Message="{x:Static loc:Strings.Creator_DroppedFiles}"
+                  IsVisible="{Binding DroppedFiles}" theme:Motion.Enter="True" />
+      <StackPanel Spacing="12">
+        <TextBlock Classes="overline" Text="{x:Static creator:CreatorPage.DetectsTitle}" />
+        <UniformGrid Columns="4" ColumnSpacing="12">
+          <Border Classes="soft" Padding="16">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="rowTitle" TextWrapping="Wrap" Text="{x:Static loc:Strings.Creator_DetectsNew}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
+                <Border Classes="kind">
+                  <StackPanel>
+                    <ui:Icon Data="{x:Static theme:Icons.Copy}" />
+                    <TextBlock Text="{x:Static loc:Strings.Creator_KindCopy}" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+              <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DetectsNewText}" />
+            </StackPanel>
+          </Border>
+          <Border Classes="soft" Padding="16">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="rowTitle" TextWrapping="Wrap" Text="{x:Static loc:Strings.Creator_DetectsChanged}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
+                <Border Classes="kind">
+                  <StackPanel>
+                    <ui:Icon Data="{x:Static theme:Icons.FileDiff}" />
+                    <TextBlock Text="{x:Static loc:Strings.Creator_KindPatch}" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+              <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DetectsChangedText}" />
+            </StackPanel>
+          </Border>
+          <Border Classes="soft" Padding="16">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="rowTitle" TextWrapping="Wrap" Text="{x:Static loc:Strings.Creator_DetectsRenamed}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
+                <Border Classes="kind">
+                  <StackPanel>
+                    <ui:Icon Data="{x:Static theme:Icons.FilePen}" />
+                    <TextBlock Text="{x:Static loc:Strings.Creator_KindRename}" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+              <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DetectsRenamedText}" />
+            </StackPanel>
+          </Border>
+          <Border Classes="soft" Padding="16">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="rowTitle" TextWrapping="Wrap" Text="{x:Static loc:Strings.Creator_DetectsMissing}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
+                <Border Classes="kind danger">
+                  <StackPanel>
+                    <ui:Icon Data="{x:Static theme:Icons.FileX}" />
+                    <TextBlock Text="{x:Static loc:Strings.Creator_KindDelete}" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+              <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DetectsMissingText}" />
+            </StackPanel>
+          </Border>
+        </UniformGrid>
+      </StackPanel>
+    </StackPanel>
+
+    <!-- The folder given, and what became of it. -->
+    <StackPanel Spacing="16" IsVisible="{Binding ShowsFolder}">
+      <Border Classes="creatorCard" Padding="14,14,16,14" BorderBrush="{StaticResource BorderBrush}" CornerRadius="12">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+          <Border Classes="folderChip">
+            <ui:Icon Data="{x:Static theme:Icons.Folder}" Width="18" Height="18" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <TextBlock Classes="rowTitle" FontSize="15" Text="{Binding FolderName}" />
+            <TextBlock Classes="pathLine" Text="{Binding FolderPath}" ToolTip.Tip="{Binding FolderPath}" />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_ChangeFolder}"
+                  ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding ChangeFolderCommand}"
+                  IsVisible="{Binding !IsComparing}" />
+        </Grid>
+      </Border>
+
+      <Border x:Name="Comparing" Classes="creatorCard" Padding="24,20" IsVisible="{Binding IsComparing}" theme:Motion.Enter="True">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+            <Border Classes="workChip">
+              <ui:Icon Classes="spin" Data="{x:Static theme:Icons.LoaderCircle}" Width="20" Height="20" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Text="{x:Static loc:Strings.Creator_ComparingTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold"
+                         Foreground="{StaticResource TextStrongBrush}" />
+              <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_ComparingText}" />
+            </StackPanel>
+            <Button x:Name="CancelButton" Grid.Column="2" Classes="outline headerAction" Content="{x:Static creator:CreatorPage.StopText}"
+                    Command="{Binding CancelCommand}" />
+          </Grid>
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <TextBlock Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Stage}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="1" Classes="meta" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Text="{Binding Percent}" />
+            </Grid>
+            <ProgressBar Maximum="100" Value="{Binding Progress}" IsIndeterminate="{Binding IsIndeterminate}"
+                         AutomationProperties.Name="{x:Static loc:Strings.Creator_ComparingTitle}" />
+            <TextBlock Classes="pathLine" Text="{Binding FileLine}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsComparing}">
+        <ui:Icon Data="{x:Static theme:Icons.Info}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
+        <TextBlock Classes="meta" Text="{x:Static loc:Strings.Creator_ReadOnlyNote}" VerticalAlignment="Center" />
+      </StackPanel>
+
+      <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                  Title="{Binding ProblemTitle}" Message="{Binding ProblemText}" IsVisible="{Binding IsStopped}" theme:Motion.Enter="True">
+        <Button Classes="primary compact" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_CompareAgain}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CompareAgainCommand}" />
+      </ui:Callout>
+
+      <StackPanel Spacing="8" IsVisible="{Binding HasNothingToPackage}">
+        <ui:Callout Classes="warning" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.TriangleAlert}"
+                    Title="{Binding NothingTitle}" Message="{Binding NothingText}" theme:Motion.Enter="True">
+          <Button x:Name="CompareAgainButton" Classes="primary compact" HorizontalAlignment="Left"
+                  Content="{x:Static loc:Strings.Creator_CompareAgain}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
+                  Command="{Binding CompareAgainCommand}" />
+        </ui:Callout>
+        <Button Classes="quiet" HorizontalAlignment="Left" Margin="-12,0,0,0" Content="{Binding IdenticalCount}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}" Classes.expanded="{Binding ShowsIdentical}"
+                Command="{Binding ToggleIdenticalCommand}" IsVisible="{Binding HasIdentical}" />
+        <ItemsControl ItemsSource="{Binding IdenticalFiles}" IsVisible="{Binding ShowsIdentical}" Margin="28,0,0,0">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="pathLine" Text="{Binding}" Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <ui:Callout Classes="success" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleCheck}"
+                  Title="{Binding Summary}" IsVisible="{Binding IsCompared}">
+        <Button Classes="quiet small" HorizontalAlignment="Left" Margin="-12,0,0,0" Content="{x:Static loc:Strings.Creator_CompareAgain}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CompareAgainCommand}" />
+      </ui:Callout>
+    </StackPanel>
+
+    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4,0,0">
+      <Button Classes="outline footerAction" Content="{x:Static loc:Strings.Creator_Back}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}"
+              Command="{Binding BackCommand}" />
+      <Button Grid.Column="2" Classes="primary" Content="{x:Static loc:Strings.Creator_ToReview}" IsVisible="{Binding IsCompared}"
+              ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowRight}" ui:ButtonAssist.IconAfter="True" Command="{Binding ContinueCommand}" />
+    </Grid>
+  </StackPanel>
+</UserControl>

@@ -1,0 +1,293 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls">
+  <!-- The package creator (the Kreator boards): a step bar under the page's head, raised cards of radius 16 for each
+       part of a step, soft rows of radius 12 for lists, and the step's actions at the end of its content. -->
+
+  <!-- The head's actions are 36 px, a step smaller than the page's own. -->
+  <Style Selector="Button.headerAction">
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Padding" Value="14,0" />
+  </Style>
+  <Style Selector="Button.headerAction.quiet">
+    <Setter Property="Padding" Value="12,0" />
+  </Style>
+  <Style Selector="Button.footerAction">
+    <Setter Property="Height" Value="44" />
+  </Style>
+  <Style Selector="Ellipse.unsaved">
+    <Setter Property="Width" Value="7" />
+    <Setter Property="Height" Value="7" />
+    <Setter Property="Fill" Value="{StaticResource WarningTextBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.separator">
+    <Setter Property="Text" Value="·" />
+    <Setter Property="Margin" Value="2,0" />
+    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- A number in a ring: the steps and the how-it-works list. -->
+  <Style Selector="Border.number">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="#2EFFFFFF" />
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.2" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.number TextBlock">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.number.current">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.number.done">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="#2922C55E" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource SuccessTextBrush}" />
+  </Style>
+
+  <!-- The step bar: each step is a link once it can be opened, joined to the next by a line that turns green once done. -->
+  <Style Selector="Button.step">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="999" />
+  </Style>
+  <Style Selector="Button.step:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.step:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.step:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.step TextBlock.stepTitle">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.step.done TextBlock.stepTitle, Button.step.available TextBlock.stepTitle">
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+  <Style Selector="Button.step:pointerover:not(:disabled) TextBlock.stepTitle">
+    <Setter Property="TextDecorations" Value="Underline" />
+  </Style>
+  <Style Selector="Button.step.current TextBlock.stepTitle">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+  <Style Selector="Border.stepLine">
+    <Setter Property="Height" Value="2" />
+    <Setter Property="MinWidth" Value="24" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Background" Value="#1FFFFFFF" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.3" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.stepLine.done">
+    <Setter Property="Background" Value="#734ADE80" />
+  </Style>
+
+  <!-- A raised part of a step, and a soft row inside or beside one. -->
+  <Style Selector="Border.creatorCard">
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+  </Style>
+  <Style Selector="Border.soft">
+    <Setter Property="Background" Value="#08FFFFFF" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+  </Style>
+  <Style Selector="TextBlock.heading">
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="LineHeight" Value="28" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="LetterSpacing" Value="-0.2" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.lead">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="LineHeight" Value="24" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="MaxWidth" Value="820" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.rowTitle">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="TextBlock.rowText">
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LineHeight" Value="19" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.pathLine">
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LineHeight" Value="18" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="Border.smallCover">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="42" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+    <Setter Property="BoxShadow" Value="0 0 0 1 #14FFFFFF" />
+  </Style>
+  <Style Selector="Border.cover">
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="60" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+    <Setter Property="BoxShadow" Value="0 0 0 1 #14FFFFFF" />
+  </Style>
+
+  <!-- An operation's kind: a 24 px chip with its icon. -->
+  <Style Selector="Border.kind">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Padding" Value="8,0,10,0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+  <Style Selector="Border.kind > StackPanel">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="6" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.kind ui|Icon">
+    <Setter Property="Width" Value="13" />
+    <Setter Property="Height" Value="13" />
+  </Style>
+  <Style Selector="Border.kind TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Border.kind.danger">
+    <Setter Property="Background" Value="#29EF4444" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+  <Style Selector="Border.kind.success">
+    <Setter Property="Background" Value="#2922C55E" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource SuccessTextBrush}" />
+  </Style>
+  <Style Selector="Border.kind.warning">
+    <Setter Property="Background" Value="#29F59E0B" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="Border.kind.neutral">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource NeutralTextBrush}" />
+  </Style>
+
+  <!-- A choice of a game: a row with its cover that turns to the accent once chosen; a game that cannot be chosen keeps
+       its full colour and says why in its own. -->
+  <Style Selector="RadioButton.gameChoice">
+    <Setter Property="Padding" Value="12,12,14,12" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.gameBlocked">
+    <Setter Property="Padding" Value="12,12,14,12" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="#08FFFFFF" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+  </Style>
+  <Style Selector="Border.gameBlocked.installed">
+    <Setter Property="BorderBrush" Value="{StaticResource WarningEdgeBrush}" />
+  </Style>
+  <Style Selector="Border.chosenMark">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Background" Value="#38D4213D" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="RadioButton:checked Border.chosenMark">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+
+  <!-- The drop zone: a dashed frame, red while a folder is dragged over it. -->
+  <Style Selector="Border.dropZone">
+    <Setter Property="Height" Value="232" />
+    <Setter Property="Padding" Value="24" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Background" Value="#05FFFFFF" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.dropZone.over">
+    <Setter Property="Background" Value="#1AD4213D" />
+  </Style>
+  <Style Selector="Rectangle.dropFrame">
+    <Setter Property="Stroke" Value="#2EFFFFFF" />
+    <Setter Property="StrokeThickness" Value="2" />
+    <Setter Property="StrokeDashArray" Value="4,3" />
+    <Setter Property="RadiusX" Value="16" />
+    <Setter Property="RadiusY" Value="16" />
+  </Style>
+  <Style Selector="Border.dropZone.over Rectangle.dropFrame">
+    <Setter Property="Stroke" Value="#E6FF6467" />
+  </Style>
+  <Style Selector="Border.dropChip">
+    <Setter Property="Width" Value="56" />
+    <Setter Property="Height" Value="56" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.dropZone.over Border.dropChip">
+    <Setter Property="Background" Value="#2ED4213D" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.workChip">
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="40" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="#2ED4213D" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.folderChip">
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="40" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+</Styles>

@@ -32,6 +32,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string LibraryFolders = "libraryFolders";
     private const string AdultContentConfirmedUntil = "adultContentConfirmedUntil";
     private const string RevealedAdultGames = "revealedAdultGames";
+    private const string RecentCreatorProjects = "recentCreatorProjects";
 
     // Version 0 stored the inverse of BlurAdultContent and named the automation after the only kind of project it knew.
     private const string LegacyShowAdultContent = "showAdultContent";
@@ -54,7 +55,8 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
         AutoUpdateApp, ShowNotifications, BlurAdultContent, CreatorMode, OnboardingCompleted, OnboardingStep,
         TrayNoticeShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
-        AdultContentConfirmedUntil, RevealedAdultGames, LegacyShowAdultContent, LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
+        AdultContentConfirmedUntil, RevealedAdultGames, RecentCreatorProjects, LegacyShowAdultContent,
+        LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
 
     public AppSettings Read(JsonElement root, int version)
     {
@@ -91,6 +93,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             LibraryFolders = ReadLibraryFolders(root.GetOrNull(LibraryFolders, JsonValueKind.Array)),
             AdultContentConfirmedUntil = root.GetDateTimeOffsetOrNull(AdultContentConfirmedUntil),
             RevealedAdultGames = ReadIds(root.GetOrNull(RevealedAdultGames, JsonValueKind.Array)),
+            RecentCreatorProjects = ReadPaths(root.GetOrNull(RecentCreatorProjects, JsonValueKind.Array)),
         };
     }
 
@@ -145,6 +148,13 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteEndArray();
         writer.WriteIfSet(AdultContentConfirmedUntil, document.AdultContentConfirmedUntil);
         WriteIds(writer, RevealedAdultGames, document.RevealedAdultGames);
+        writer.WriteStartArray(RecentCreatorProjects);
+        foreach (var project in document.RecentCreatorProjects)
+        {
+            writer.WriteStringValue(project);
+        }
+
+        writer.WriteEndArray();
     }
 
     private static void WriteIds(Utf8JsonWriter writer, string name, ValueList<Guid> ids)
@@ -197,6 +207,11 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
                 .Where(uuid => uuid != Guid.Empty)
                 .Distinct()]
             : [];
+
+    private static ValueList<string> ReadPaths(JsonElement? paths) =>
+        AppSettings.RecentProjects(paths is { } entries
+            ? entries.EnumerateArray().Where(path => path.ValueKind == JsonValueKind.String).Select(path => path.GetString()!)
+            : []);
 
     private static ValueList<LibraryFolder> ReadLibraryFolders(JsonElement? folders)
     {

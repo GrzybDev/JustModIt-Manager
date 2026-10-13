@@ -39,6 +39,12 @@ public sealed record SettingsView
     /// <inheritdoc cref="AppSettings.PreferredTeams"/>
     public IReadOnlyList<Guid> PreferredTeams { get; init; } = [];
 
+    /// <summary>
+    /// The package creator's project files opened or saved last, newest first; only
+    /// <see cref="Messages.RememberCreatorProject"/> changes them, so a settings change never drops one.
+    /// </summary>
+    public IReadOnlyList<string> RecentCreatorProjects { get; init; } = [];
+
     /// <summary>Takes the values the window shows from the settings.</summary>
     /// <param name="settings">The current settings.</param>
     public static SettingsView From(AppSettings settings)
@@ -60,6 +66,7 @@ public sealed record SettingsView
             BackupLocation = settings.BackupLocation,
             CustomBackupFolder = settings.CustomBackupFolder,
             PreferredTeams = [.. settings.PreferredTeams],
+            RecentCreatorProjects = [.. settings.RecentCreatorProjects],
         };
     }
 

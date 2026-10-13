@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
@@ -67,6 +68,29 @@ public sealed record StoreView(string Store)
 }
 
 public sealed record LibraryFolderView(string Store, string Path);
+
+/// <summary>A game a store reported, with the site's cover of it.</summary>
+/// <param name="Key">The game's store and id there.</param>
+/// <param name="Name">As the store names it.</param>
+/// <param name="Game">What the store reports about it.</param>
+public sealed record DetectedGameEntry(GameKey Key, string Name, DetectedGameView Game)
+{
+    /// <summary>The cover of the site's game matched to it, as an absolute address; empty when the site has none.</summary>
+    public string Cover { get; init; } = "";
+
+    /// <summary>Maps a game of the library's snapshot.</summary>
+    /// <param name="game">The game as its store reports it.</param>
+    /// <param name="index">The site's projects matched to the detected games, which give the cover.</param>
+    public static DetectedGameEntry From(InstalledGame game, InstallableIndex index)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(index);
+        return new DetectedGameEntry(game.Key, game.Name, DetectedGameView.From(game))
+        {
+            Cover = index.Find(game.Key).Select(entry => entry.Game.Cover).FirstOrDefault(cover => cover.Length > 0) ?? "",
+        };
+    }
+}
 
 /// <summary>What detection found on this machine, store by store, for a player whose game is missing.</summary>
 /// <param name="Stores">What each store integration found.</param>

@@ -2379,4 +2379,340 @@
   <data name="Shell_ReportFailed" xml:space="preserve">
     <value>Nie udało się zapisać raportu.</value>
   </data>
+  <data name="Creator_Subtitle" xml:space="preserve">
+    <value>Z gotowych plików powstanie paczka, którą gracze zainstalują jednym kliknięciem.</value>
+  </data>
+  <data name="Creator_StartTitle" xml:space="preserve">
+    <value>Przygotuj paczkę bez pisania kodu</value>
+  </data>
+  <data name="Creator_StartText" xml:space="preserve">
+    <value>Wystarczy wskazać grę i folder z plikami. Kreator sam porówna je z grą, pokaże, co paczka zrobi u gracza, i wybierze format: zwykły .zip albo paczkę {extension}.</value>
+  </data>
+  <data name="Creator_ProjectHint" xml:space="preserve">
+    <value>Projekt ({extension}) to wersja robocza – można go zapisać i dokończyć później.</value>
+  </data>
+  <data name="Creator_HowItWorks" xml:space="preserve">
+    <value>Jak to działa</value>
+  </data>
+  <data name="Creator_HowGame" xml:space="preserve">
+    <value>Wykryta gra, bez modów i innych zmian.</value>
+  </data>
+  <data name="Creator_HowFiles" xml:space="preserve">
+    <value>Folder z plikami ułożonymi jak w grze.</value>
+  </data>
+  <data name="Creator_HowReview" xml:space="preserve">
+    <value>Kreator sam wykrywa kopie, łatki i zmiany nazw – do przejrzenia albo ułożenia ręcznie.</value>
+  </data>
+  <data name="Creator_HowPackage" xml:space="preserve">
+    <value>Kreator wybiera .zip albo {extension}, buduje paczkę i instaluje ją testowo.</value>
+  </data>
+  <data name="Creator_Recent" xml:space="preserve">
+    <value>Ostatnie projekty</value>
+  </data>
+  <data name="Creator_RecentChanged" xml:space="preserve">
+    <value>Zmieniony {when}</value>
+  </data>
+  <data name="Creator_RecentMissing" xml:space="preserve">
+    <value>Nie ma już tego pliku</value>
+  </data>
+  <data name="Creator_New" xml:space="preserve">
+    <value>Nowy projekt</value>
+  </data>
+  <data name="Creator_Open" xml:space="preserve">
+    <value>Otwórz projekt…</value>
+  </data>
+  <data name="Creator_OpenShort" xml:space="preserve">
+    <value>Otwórz…</value>
+  </data>
+  <data name="Creator_Save" xml:space="preserve">
+    <value>Zapisz</value>
+  </data>
+  <data name="Creator_SaveAs" xml:space="preserve">
+    <value>Zapisz jako…</value>
+  </data>
+  <data name="Creator_StateNew" xml:space="preserve">
+    <value>niezapisany</value>
+  </data>
+  <data name="Creator_StateChanged" xml:space="preserve">
+    <value>niezapisane zmiany</value>
+  </data>
+  <data name="Creator_StateSaved" xml:space="preserve">
+    <value>zapisany</value>
+  </data>
+  <data name="Creator_AdvancedMode" xml:space="preserve">
+    <value>Tryb zaawansowany</value>
+  </data>
+  <data name="Creator_DismissProblem" xml:space="preserve">
+    <value>Zamknij</value>
+  </data>
+  <data name="Creator_ProjectFiles" xml:space="preserve">
+    <value>Projekty kreatora</value>
+  </data>
+  <data name="Creator_ProjectFallbackName" xml:space="preserve">
+    <value>Projekt</value>
+  </data>
+  <data name="Creator_OpenTitle" xml:space="preserve">
+    <value>Otwórz projekt</value>
+  </data>
+  <data name="Creator_SaveTitle" xml:space="preserve">
+    <value>Zapisz projekt</value>
+  </data>
+  <data name="Creator_OpenFailedTitle" xml:space="preserve">
+    <value>Nie udało się otworzyć projektu</value>
+  </data>
+  <data name="Creator_OpenFailed" xml:space="preserve">
+    <value>{reason, select, NewerVersion {Ten projekt zapisała nowsza wersja aplikacji {product}. Otworzy się po jej aktualizacji.} Damaged {Plik jest uszkodzony albo nie jest projektem kreatora.} other {Nie udało się odczytać pliku – mógł zostać usunięty albo jest otwarty w innym programie.}}</value>
+  </data>
+  <data name="Creator_SaveFailedTitle" xml:space="preserve">
+    <value>Nie udało się zapisać projektu</value>
+  </data>
+  <data name="Creator_SaveFailed" xml:space="preserve">
+    <value>Nie udało się zapisać pliku, np. folder jest tylko do odczytu albo dysk jest pełny. Pomóc może zapisanie projektu w innym miejscu.</value>
+  </data>
+  <data name="Creator_GameGoneTitle" xml:space="preserve">
+    <value>Nie wykryto gry z projektu</value>
+  </data>
+  <data name="Creator_GameGone" xml:space="preserve">
+    <value>Gry {game} nie ma wśród wykrytych gier. Można ją wybrać ponownie, gdy sklep ją zgłosi.</value>
+  </data>
+  <data name="Creator_UnsavedTitle" xml:space="preserve">
+    <value>Zapisać projekt?</value>
+  </data>
+  <data name="Creator_UnsavedMessage" xml:space="preserve">
+    <value>Projekt „{project}” ma niezapisane zmiany.</value>
+  </data>
+  <data name="Creator_UnsavedNew" xml:space="preserve">
+    <value>Nowy projekt nie został jeszcze zapisany.</value>
+  </data>
+  <data name="Creator_UnsavedSave" xml:space="preserve">
+    <value>Zapisz</value>
+  </data>
+  <data name="Creator_UnsavedSaveDescription" xml:space="preserve">
+    <value>Zmiany trafią do pliku projektu.</value>
+  </data>
+  <data name="Creator_UnsavedDiscard" xml:space="preserve">
+    <value>Odrzuć zmiany</value>
+  </data>
+  <data name="Creator_UnsavedDiscardDescription" xml:space="preserve">
+    <value>Zmiany od ostatniego zapisu przepadną.</value>
+  </data>
+  <data name="Creator_Steps" xml:space="preserve">
+    <value>Kroki kreatora</value>
+  </data>
+  <data name="Creator_StepGame" xml:space="preserve">
+    <value>Gra</value>
+  </data>
+  <data name="Creator_StepFiles" xml:space="preserve">
+    <value>Pliki</value>
+  </data>
+  <data name="Creator_StepReview" xml:space="preserve">
+    <value>Sprawdzenie</value>
+  </data>
+  <data name="Creator_StepPackage" xml:space="preserve">
+    <value>Paczka</value>
+  </data>
+  <data name="Creator_StepName" xml:space="preserve">
+    <value>Krok {number}: {title} – {state, select, Current {bieżący} Done {ukończony} Locked {niedostępny} other {dostępny}}</value>
+  </data>
+  <data name="Creator_StepLocked" xml:space="preserve">
+    <value>Najpierw trzeba ukończyć krok „{step}”.</value>
+  </data>
+  <data name="Creator_Back" xml:space="preserve">
+    <value>Wstecz</value>
+  </data>
+  <data name="Creator_GameTitle" xml:space="preserve">
+    <value>Wybierz grę</value>
+  </data>
+  <data name="Creator_GameLead" xml:space="preserve">
+    <value>Kreator porówna z nią pliki, a gotową paczkę zainstaluje w niej testowo – tak, jak zrobi to gracz.</value>
+  </data>
+  <data name="Creator_CleanGameTitle" xml:space="preserve">
+    <value>Gra musi być czysta</value>
+  </data>
+  <data name="Creator_CleanGame" xml:space="preserve">
+    <value>Bez modów i innych zmian, w takiej wersji, jaką mają gracze. Pliki zmieniane wprost w folderze gry najlepiej najpierw skopiować w bezpieczne miejsce – sprawdzenie plików gry w sklepie je nadpisze.</value>
+  </data>
+  <data name="Creator_SearchGames" xml:space="preserve">
+    <value>Szukaj gry…</value>
+  </data>
+  <data name="Creator_GameCount" xml:space="preserve">
+    <value>{count, plural, one {# gra wykryta na tym komputerze} few {# gry wykryte na tym komputerze} many {# gier wykrytych na tym komputerze} other {# gry wykrytej na tym komputerze}}</value>
+  </data>
+  <data name="Creator_CheckNow" xml:space="preserve">
+    <value>Sprawdź teraz</value>
+  </data>
+  <data name="Creator_NoGames" xml:space="preserve">
+    <value>Żadna gra nie pasuje do wyszukiwania</value>
+  </data>
+  <data name="Creator_GameInstalled" xml:space="preserve">
+    <value>{hasVersion, select, true {Zainstalowany projekt {project} {version}} other {Zainstalowany projekt {project}}}</value>
+  </data>
+  <data name="Creator_GameTestInstalled" xml:space="preserve">
+    <value>Jest na niej instalacja testowa paczki</value>
+  </data>
+  <data name="Creator_UninstallFirst" xml:space="preserve">
+    <value>Przed zrobieniem paczki trzeba je odinstalować w sekcji</value>
+  </data>
+  <data name="Creator_GameNotReady" xml:space="preserve">
+    <value>{state}. Grę można wybrać, gdy będzie gotowa.</value>
+  </data>
+  <data name="Creator_MissingGame" xml:space="preserve">
+    <value>Nie widzisz swojej gry?</value>
+  </data>
+  <data name="Creator_MissingGameLink" xml:space="preserve">
+    <value>Zobacz, co znalazły sklepy</value>
+  </data>
+  <data name="Creator_ToFiles" xml:space="preserve">
+    <value>Dalej: pliki</value>
+  </data>
+  <data name="Creator_ChangeGame" xml:space="preserve">
+    <value>Zmień grę</value>
+  </data>
+  <data name="Creator_FilesTitle" xml:space="preserve">
+    <value>Wskaż folder z plikami</value>
+  </data>
+  <data name="Creator_FilesLead" xml:space="preserve">
+    <value>Folder z plikami ułożonymi tak jak w folderze gry. Wystarczą pliki dodane albo zmienione – reszta gry zostaje bez zmian.</value>
+  </data>
+  <data name="Creator_DropZone" xml:space="preserve">
+    <value>Folder z plikami</value>
+  </data>
+  <data name="Creator_DropTitle" xml:space="preserve">
+    <value>Przeciągnij tu folder z plikami</value>
+  </data>
+  <data name="Creator_DropText" xml:space="preserve">
+    <value>Albo wybierz go z dysku. Pliki ułożone jak w grze, np. data/strings.bin.</value>
+  </data>
+  <data name="Creator_DropOverTitle" xml:space="preserve">
+    <value>Upuść folder, żeby porównać go z grą</value>
+  </data>
+  <data name="Creator_DropOverText" xml:space="preserve">
+    <value>Porównanie zacznie się od razu. Pliki gry są tylko odczytywane.</value>
+  </data>
+  <data name="Creator_PickFolder" xml:space="preserve">
+    <value>Wybierz folder…</value>
+  </data>
+  <data name="Creator_PickFolderTitle" xml:space="preserve">
+    <value>Folder z plikami</value>
+  </data>
+  <data name="Creator_GameFolderTitle" xml:space="preserve">
+    <value>To jest folder gry</value>
+  </data>
+  <data name="Creator_InsideGameTitle" xml:space="preserve">
+    <value>Ten folder leży w folderze gry albo go zawiera</value>
+  </data>
+  <data name="Creator_GameFolder" xml:space="preserve">
+    <value>Kreator potrzebuje osobnego folderu z samymi zmienionymi plikami. Po skopiowaniu ich do nowego folderu poza grą, z zachowaniem podfolderów (np. data/strings.bin), można je porównać.</value>
+  </data>
+  <data name="Creator_DroppedFilesTitle" xml:space="preserve">
+    <value>Potrzebny jest folder, nie pojedyncze pliki</value>
+  </data>
+  <data name="Creator_DroppedFiles" xml:space="preserve">
+    <value>Kreator porównuje cały folder ułożony jak gra. Wystarczy upuścić folder, w którym leżą pliki.</value>
+  </data>
+  <data name="Creator_Detects" xml:space="preserve">
+    <value>Co kreator wykryje sam</value>
+  </data>
+  <data name="Creator_DetectsNew" xml:space="preserve">
+    <value>Nowy plik</value>
+  </data>
+  <data name="Creator_DetectsNewText" xml:space="preserve">
+    <value>Gra go nie ma, więc trafi do niej w całości.</value>
+  </data>
+  <data name="Creator_DetectsChanged" xml:space="preserve">
+    <value>Zmieniony plik gry</value>
+  </data>
+  <data name="Creator_DetectsChangedText" xml:space="preserve">
+    <value>Paczka zapisze tylko różnice (łatka xdelta), bez pliku gry.</value>
+  </data>
+  <data name="Creator_DetectsRenamed" xml:space="preserve">
+    <value>Plik gry pod nową nazwą</value>
+  </data>
+  <data name="Creator_DetectsRenamedText" xml:space="preserve">
+    <value>Np. oryginalna biblioteka pod inną nazwą. Bez kopii w paczce.</value>
+  </data>
+  <data name="Creator_DetectsMissing" xml:space="preserve">
+    <value>Plik, którego brakuje</value>
+  </data>
+  <data name="Creator_DetectsMissingText" xml:space="preserve">
+    <value>Tylko po potwierdzeniu. Domyślnie plik zostaje w grze.</value>
+  </data>
+  <data name="Creator_KindCopy" xml:space="preserve">
+    <value>Kopia</value>
+  </data>
+  <data name="Creator_KindPatch" xml:space="preserve">
+    <value>Łatka</value>
+  </data>
+  <data name="Creator_KindRename" xml:space="preserve">
+    <value>Zmiana nazwy</value>
+  </data>
+  <data name="Creator_KindDelete" xml:space="preserve">
+    <value>Usunięcie</value>
+  </data>
+  <data name="Creator_ChangeFolder" xml:space="preserve">
+    <value>Zmień folder</value>
+  </data>
+  <data name="Creator_ComparingTitle" xml:space="preserve">
+    <value>Porównywanie plików z grą</value>
+  </data>
+  <data name="Creator_ComparingText" xml:space="preserve">
+    <value>Po porównaniu otworzy się sprawdzenie operacji.</value>
+  </data>
+  <data name="Creator_CompareListing" xml:space="preserve">
+    <value>Wyszukiwanie plików</value>
+  </data>
+  <data name="Creator_CompareStage" xml:space="preserve">
+    <value>{stage, select, ListingFiles {Wyszukiwanie plików} Comparing {Porównywanie plików} other {Szukanie plików gry pod nową nazwą}}</value>
+  </data>
+  <data name="Creator_BytesOf" xml:space="preserve">
+    <value>{done} z {total}</value>
+  </data>
+  <data name="Creator_FileOf" xml:space="preserve">
+    <value>Plik {number} z {count}</value>
+  </data>
+  <data name="Creator_ReadOnlyNote" xml:space="preserve">
+    <value>Pliki gry są tylko odczytywane: najpierw porównywane są rozmiary, a skróty SHA-256 liczone tylko tam, gdzie rozmiar się zgadza.</value>
+  </data>
+  <data name="Creator_CompareCancelledTitle" xml:space="preserve">
+    <value>Porównanie przerwane</value>
+  </data>
+  <data name="Creator_CompareCancelled" xml:space="preserve">
+    <value>Nic nie zostało zmienione. Porównanie można uruchomić ponownie w każdej chwili.</value>
+  </data>
+  <data name="Creator_CompareFailedTitle" xml:space="preserve">
+    <value>Nie udało się odczytać plików</value>
+  </data>
+  <data name="Creator_CompareFailed" xml:space="preserve">
+    <value>Nie udało się odczytać pliku z folderu albo z gry, np. bo używa go inny program. Po jego zamknięciu można porównać pliki ponownie.</value>
+  </data>
+  <data name="Creator_BlockTitle" xml:space="preserve">
+    <value>{reason, select, GameFolderMissing {Nie ma folderu gry} AuthorFolderMissing {Nie ma folderu z plikami} GameFolder {To jest folder gry} FoldersOverlap {Ten folder leży w folderze gry albo go zawiera} GameHasInstall {Na grze jest zainstalowana paczka} other {Plikami gry zarządza inna aplikacja}}</value>
+  </data>
+  <data name="Creator_Block" xml:space="preserve">
+    <value>{reason, select, GameFolderMissing {Folderu gry ({path}) już nie ma. Sklep mógł przenieść albo odinstalować grę.} AuthorFolderMissing {Folderu {path} już nie ma. Mógł zostać przeniesiony albo mieć zmienioną nazwę.} GameFolder {Kreator potrzebuje osobnego folderu z samymi zmienionymi plikami, poza grą.} FoldersOverlap {Kreator potrzebuje osobnego folderu z samymi zmienionymi plikami, poza grą.} GameHasInstall {Jej pliki zostałyby porównane tak, jakby należały do gry. Po jej odinstalowaniu można porównać pliki.} other {{app} trzyma swoje pliki w {path}, które zostałyby porównane tak, jakby należały do gry. Po ich usunięciu z gry można porównać pliki.}}</value>
+  </data>
+  <data name="Creator_CompareAgain" xml:space="preserve">
+    <value>Porównaj ponownie</value>
+  </data>
+  <data name="Creator_NothingTitle" xml:space="preserve">
+    <value>Pliki niczym się nie różnią od plików gry</value>
+  </data>
+  <data name="Creator_Nothing" xml:space="preserve">
+    <value>Paczka byłaby pusta. Najczęściej znaczy to, że zmiany wgrano już ręcznie do folderu gry. Po skopiowaniu plików w bezpieczne miejsce i przywróceniu oryginału (sprawdzeniem plików gry w sklepie) można porównać pliki ponownie.</value>
+  </data>
+  <data name="Creator_EmptyFolderTitle" xml:space="preserve">
+    <value>Folder nie zawiera plików</value>
+  </data>
+  <data name="Creator_EmptyFolder" xml:space="preserve">
+    <value>Paczka byłaby pusta. W folderze powinny leżeć pliki ułożone jak w grze.</value>
+  </data>
+  <data name="Creator_IdenticalCount" xml:space="preserve">
+    <value>{count, plural, one {# plik taki sam jak w grze} few {# pliki takie same jak w grze} many {# plików takich samych jak w grze} other {# pliku takiego samego jak w grze}}</value>
+  </data>
+  <data name="Creator_Compared" xml:space="preserve">
+    <value>{count, plural, one {Porównano # plik z grą} few {Porównano # pliki z grą} many {Porównano # plików z grą} other {Porównano # pliku z grą}}</value>
+  </data>
+  <data name="Creator_ToReview" xml:space="preserve">
+    <value>Dalej: sprawdzenie</value>
+  </data>
 </root>

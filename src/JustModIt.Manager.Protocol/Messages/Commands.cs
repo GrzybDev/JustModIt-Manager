@@ -113,6 +113,10 @@ public sealed record ConfirmAdultContent : Message;
 /// <param name="Game">The game's uuid on the site.</param>
 public sealed record RevealAdultPictures(Guid Game) : Message;
 
+/// <summary>Puts a project file of the package creator first among the recent ones that the settings keep.</summary>
+/// <param name="Path">The project file, fully qualified.</param>
+public sealed record RememberCreatorProject(string Path) : Message;
+
 /// <summary>
 /// Starts the game through its store, or opens its page in a store client that starts games only from there; refused as
 /// unsupported for a store the app has no link for.

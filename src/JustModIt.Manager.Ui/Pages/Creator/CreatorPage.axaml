@@ -1,0 +1,196 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Creator.CreatorPage"
+             x:DataType="creator:CreatorPageViewModel">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenProjectCommand}" />
+  </UserControl.KeyBindings>
+  <UserControl.Styles>
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Creator/CreatorStyles.axaml" />
+    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(2)">
+      <Setter Property="Grid.Column" Value="1" />
+    </Style>
+    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(3)">
+      <Setter Property="Grid.Column" Value="2" />
+    </Style>
+    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(4)">
+      <Setter Property="Grid.Column" Value="3" />
+    </Style>
+    <Style Selector="ItemsControl.recentRows > ContentPresenter:not(:nth-child(1))">
+      <Setter Property="BorderBrush" Value="#0FFFFFFF" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="Button.recent">
+      <Setter Property="Height" Value="NaN" />
+      <Setter Property="Padding" Value="14,10,16,10" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.recent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#08FFFFFF" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer Classes="page" x:Name="Scroller">
+    <StackPanel Classes="page" Spacing="20" MaxWidth="{StaticResource PageMaxWidth}">
+      <StackPanel Spacing="4">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+          <TextBlock Classes="pageTitle" Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasProject}">
+            <Button x:Name="NewButton" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_New}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding NewProjectCommand}" />
+            <Button x:Name="OpenButton" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_OpenShort}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding OpenProjectCommand}" />
+            <Button x:Name="SaveButton" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_Save}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.Save}" Command="{Binding SaveCommand}" />
+          </StackPanel>
+        </Grid>
+        <TextBlock Classes="subtitle" Text="{x:Static loc:Strings.Creator_Subtitle}" IsVisible="{Binding !HasProject}" />
+        <StackPanel x:Name="ProjectLine" Orientation="Horizontal" Spacing="8" Margin="0,2,0,0" MinHeight="24"
+                    IsVisible="{Binding HasProject}" TextElement.FontSize="13">
+          <ui:Icon Data="{x:Static theme:Icons.File}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
+          <TextBlock Text="{Binding ProjectName}" FontWeight="SemiBold" Foreground="{StaticResource TextEmphasisBrush}"
+                     VerticalAlignment="Center" />
+          <TextBlock Classes="separator" />
+          <Ellipse Classes="unsaved" IsVisible="{Binding IsUnsaved}" />
+          <TextBlock Text="{Binding SaveState}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+          <TextBlock Classes="separator" />
+          <Button x:Name="SaveAsButton" Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_SaveAs}"
+                  Command="{Binding SaveAsCommand}" VerticalAlignment="Center" />
+          <Border Classes="kind" Margin="6,0,0,0" IsVisible="{Binding IsAdvanced}" VerticalAlignment="Center">
+            <StackPanel>
+              <ui:Icon Data="{x:Static theme:Icons.ListOrdered}" />
+              <TextBlock Text="{x:Static loc:Strings.Creator_AdvancedMode}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </StackPanel>
+
+      <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                  Title="{Binding ProblemTitle}" Message="{Binding ProblemText}" IsVisible="{Binding HasProblem}"
+                  theme:Motion.Enter="True">
+        <Button Classes="quiet small" Content="{x:Static loc:Strings.Creator_DismissProblem}" HorizontalAlignment="Left"
+                Margin="-12,0,0,0" Command="{Binding DismissProblemCommand}" />
+      </ui:Callout>
+
+      <!-- The start: without a project, the one red button starts one. -->
+      <StackPanel x:Name="Start" Spacing="22" IsVisible="{Binding !HasProject}">
+        <Border Classes="creatorCard" Padding="28,24,24,24">
+          <Grid x:Name="StartGrid" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="32">
+            <StackPanel Spacing="16" Margin="0,6,0,0">
+              <TextBlock Text="{x:Static loc:Strings.Creator_StartTitle}" FontSize="24" LineHeight="32" FontWeight="Bold"
+                         LetterSpacing="-0.24" Foreground="{StaticResource TextStrongBrush}" TextWrapping="Wrap" />
+              <TextBlock Classes="bodyL" MaxWidth="520" HorizontalAlignment="Left" Text="{Binding StartText}" />
+              <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
+                <Button x:Name="StartNew" Classes="primary" Content="{x:Static loc:Strings.Creator_New}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding NewProjectCommand}" />
+                <Button x:Name="StartOpen" Classes="outline" Height="48" Content="{x:Static loc:Strings.Creator_Open}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding OpenProjectCommand}" />
+              </StackPanel>
+              <TextBlock Classes="caption" MaxWidth="520" HorizontalAlignment="Left" Text="{Binding ProjectHint}" />
+            </StackPanel>
+            <Border x:Name="HowItWorksBox" Grid.Column="1" Width="404" Classes="soft" Padding="20">
+              <StackPanel Spacing="14">
+                <TextBlock Classes="overline" Text="{x:Static creator:CreatorPage.HowItWorksTitle}" />
+                <ItemsControl ItemsSource="{Binding HowItWorks}" theme:Motion.Stagger="True">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="12" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="creator:HowItWorksStep">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border Classes="number" VerticalAlignment="Top">
+                          <TextBlock Text="{Binding Number}" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="2">
+                          <TextBlock Classes="rowTitle" Text="{Binding Title}" />
+                          <TextBlock Classes="rowText" Text="{Binding Text}" />
+                        </StackPanel>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </Border>
+
+        <StackPanel Spacing="12" IsVisible="{Binding HasRecent}">
+          <TextBlock Classes="overline" Text="{x:Static creator:CreatorPage.RecentTitle}" />
+          <Border Classes="creatorCard" ClipToBounds="True">
+            <ItemsControl x:Name="RecentList" Classes="recentRows" ItemsSource="{Binding Recent}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="creator:RecentProject">
+                  <Button Classes="recent" AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Path}"
+                          Command="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).OpenRecentCommand}"
+                          CommandParameter="{Binding}">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
+                      <Border Classes="folderChip" Width="28" Height="28" CornerRadius="6">
+                        <ui:Icon Data="{x:Static theme:Icons.File}" Width="14" Height="14" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Classes="rowTitle" Text="{Binding Name}" />
+                        <TextBlock Classes="pathLine" Text="{Binding Path}" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="2" Classes="meta" Text="{Binding Changed}" VerticalAlignment="Center" />
+                      <ui:Icon Grid.Column="3" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </StackPanel>
+      </StackPanel>
+
+      <!-- The steps of a project. -->
+      <ItemsControl x:Name="StepBar" ItemsSource="{Binding Steps}" IsVisible="{Binding HasProject}"
+                    AutomationProperties.Name="{x:Static loc:Strings.Creator_Steps}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <Grid ColumnDefinitions="*,*,*,Auto" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="creator:StepItem">
+            <Grid ColumnDefinitions="Auto,*">
+              <Button Classes="step" Classes.current="{Binding IsCurrent}" Classes.done="{Binding IsDone}"
+                      Classes.available="{Binding CanOpen}" IsEnabled="{Binding CanOpen}" ToolTip.Tip="{Binding Tip}"
+                      ToolTip.ShowOnDisabled="True" AutomationProperties.Name="{Binding AccessibleName}"
+                      Command="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).OpenStepCommand}"
+                      CommandParameter="{Binding}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Border Classes="number" Classes.current="{Binding IsCurrent}" Classes.done="{Binding IsDone}">
+                    <Panel>
+                      <TextBlock Text="{Binding Number}" IsVisible="{Binding !IsDone}" />
+                      <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" IsVisible="{Binding IsDone}" />
+                    </Panel>
+                  </Border>
+                  <TextBlock Classes="stepTitle" Text="{Binding Title}" />
+                </StackPanel>
+              </Button>
+              <Border Grid.Column="1" Classes="stepLine" Classes.done="{Binding IsDone}" Margin="14,0" IsVisible="{Binding !IsLast}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <TransitioningContentControl x:Name="StepContent" Content="{Binding Content}" IsTransitionReversed="{Binding IsGoingBack}"
+                                   IsVisible="{Binding HasProject}">
+        <TransitioningContentControl.PageTransition>
+          <theme:PageTransition IsHorizontal="True" Offset="28" />
+        </TransitioningContentControl.PageTransition>
+      </TransitioningContentControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
