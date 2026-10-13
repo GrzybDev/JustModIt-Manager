@@ -211,7 +211,7 @@
     <value>Tłumaczę gry</value>
   </data>
   <data name="Onboarding_ReadyLead" xml:space="preserve">
-    <value>Po kliknięciu „{start}” w Moich grach pojawią się spolszczenia pasujące do gier z tego komputera.</value>
+    <value>Po kliknięciu „{start}” w „Moich grach” pojawią się spolszczenia pasujące do gier z tego komputera.</value>
   </data>
   <data name="Onboarding_Matched" xml:space="preserve">
     <value>{count, plural, one {Spolszczenia są dostępne dla # gry} few {Spolszczenia są dostępne dla # gier} many {Spolszczenia są dostępne dla # gier} other {Spolszczenia są dostępne dla # gry}}</value>
@@ -220,10 +220,10 @@
     <value>Na razie brak spolszczeń pasujących do wykrytych gier.</value>
   </data>
   <data name="Onboarding_SiteUnavailable" xml:space="preserve">
-    <value>Nie udało się połączyć z Bazą Spolszczeń; pasujące spolszczenia pojawią się w Moich grach później.</value>
+    <value>Nie udało się połączyć z Bazą Spolszczeń; pasujące spolszczenia pojawią się w „Moich grach” później.</value>
   </data>
   <data name="Library_Subtitle" xml:space="preserve">
-    <value>Gry wykryte na tym komputerze i pasujące do nich spolszczenia.</value>
+    <value>Gry wykryte na tym komputerze i spolszczenia, które do nich pasują.</value>
   </data>
   <data name="Library_OfflineTitle" xml:space="preserve">
     <value>Brak połączenia z Bazą Spolszczeń</value>

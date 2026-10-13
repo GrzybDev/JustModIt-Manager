@@ -9,7 +9,7 @@ public sealed partial class ProjectStoryView : UserControl
 {
     /// <summary>The description's toggle: more while it is folded, less once it is open.</summary>
     public static readonly IValueConverter MoreOrLess =
-        new FuncValueConverter<bool, string>(open => open ? Strings.Library_ShowLess : Strings.GamePage_ShowMore);
+        new FuncValueConverter<bool, string>(open => open ? Strings.GamePage_ShowLess : Strings.GamePage_ShowMore);
 
     /// <summary>A support link's label from its platform's name.</summary>
     public static readonly IValueConverter SupportText =

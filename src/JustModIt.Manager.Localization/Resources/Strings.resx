@@ -1453,7 +1453,10 @@
     <value>Show in “{library}”</value>
   </data>
   <data name="GamePage_ShowMore" xml:space="preserve">
-    <value>Show more</value>
+    <value>Read it all</value>
+  </data>
+  <data name="GamePage_ShowLess" xml:space="preserve">
+    <value>Fold the description</value>
   </data>
   <data name="GamePage_Speed" xml:space="preserve">
     <value>{speed}/s</value>

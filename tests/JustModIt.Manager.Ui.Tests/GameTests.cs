@@ -341,7 +341,7 @@ public sealed class GameTests
         ui.Links.Opened.Should().Equal(new Uri("https://example.com/games/ember-hollow/lantern-team"), new Uri("steam://nav/games/details/4100"));
 
         ui.Push(State(game with { IsHidden = true, Preferences = game.Preferences with { IsHidden = true } }));
-        page.HideText.Should().Be("Pokaż w „Moje gry”");
+        page.HideText.Should().Be("Pokaż w „Moich grach”");
     }
 
     [AvaloniaFact]
@@ -352,7 +352,7 @@ public sealed class GameTests
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render("game-missing");
         ui.Find<Button>("OpenCatalogueGame").IsEffectivelyVisible.Should().BeFalse("a game gone has nothing in the catalogue to wait for");
-        ui.Click(ui.Find<Button>().Single(button => button.IsEffectivelyVisible && button.Content is "Wróć do „Moje gry”"));
+        ui.Click(ui.Find<Button>().Single(button => button.IsEffectivelyVisible && button.Content is "Wróć do „Moich gier”"));
         ui.Shell.Navigator.CurrentRoute.Should().Be(new LibraryRoute());
 
         var meridian = SteamKey("4300");

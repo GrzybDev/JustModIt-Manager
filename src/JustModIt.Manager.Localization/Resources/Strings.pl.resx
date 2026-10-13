@@ -694,7 +694,7 @@
     <value>Wszystko gotowe</value>
   </data>
   <data name="Onboarding_ReadyLead" xml:space="preserve">
-    <value>Po kliknięciu „{start}” w Moich grach pojawią się projekty pasujące do gier z tego komputera.</value>
+    <value>Po kliknięciu „{start}” w „Moich grach” pojawią się projekty pasujące do gier z tego komputera.</value>
   </data>
   <data name="Onboarding_ThisComputer" xml:space="preserve">
     <value>Na tym komputerze</value>
@@ -727,7 +727,7 @@
     <value>Na razie brak projektów pasujących do wykrytych gier.</value>
   </data>
   <data name="Onboarding_SiteUnavailable" xml:space="preserve">
-    <value>Nie udało się połączyć ze stroną; pasujące projekty pojawią się w Moich grach później.</value>
+    <value>Nie udało się połączyć ze stroną; pasujące projekty pojawią się w „Moich grach” później.</value>
   </data>
   <data name="Onboarding_ChosenSettings" xml:space="preserve">
     <value>Wybrane ustawienia</value>
@@ -769,7 +769,7 @@
     <value>Każde z tych ustawień można później zmienić w Ustawieniach.</value>
   </data>
   <data name="Library_Subtitle" xml:space="preserve">
-    <value>Gry wykryte na tym komputerze i pasujące do nich projekty.</value>
+    <value>Gry wykryte na tym komputerze i projekty, które do nich pasują.</value>
   </data>
   <data name="Library_Search" xml:space="preserve">
     <value>Szukaj gry lub grupy</value>
@@ -1108,7 +1108,7 @@
     <value>Aktualizuj automatycznie</value>
   </data>
   <data name="GamePage_BackToLibrary" xml:space="preserve">
-    <value>Wróć do „{library}”</value>
+    <value>Wróć do „Moich gier”</value>
   </data>
   <data name="GamePage_BackupsStay" xml:space="preserve">
     <value>Kopia oryginalnych plików nadal zajmuje miejsce na dysku {drive}</value>
@@ -1255,7 +1255,7 @@
     <value>Nie wykryto tej gry</value>
   </data>
   <data name="GamePage_Hidden" xml:space="preserve">
-    <value>Ukryta w „{library}”</value>
+    <value>Ukryta w „Moich grach”</value>
   </data>
   <data name="GamePage_Hide" xml:space="preserve">
     <value>Ukryj grę</value>
@@ -1312,7 +1312,7 @@
     <value>Najnowsza wersja nie ma paczki dla tej wersji gry. Pasująca zainstaluje się sama, gdy grupa ją wyda.</value>
   </data>
   <data name="GamePage_NotFoundText" xml:space="preserve">
-    <value>Tej gry nie ma teraz w „{library}”. Mogła zostać odinstalowana albo sklep przestał ją zgłaszać.</value>
+    <value>Tej gry nie ma teraz w „Moich grach”. Mogła zostać odinstalowana albo sklep przestał ją zgłaszać.</value>
   </data>
   <data name="GamePage_NotFoundTitle" xml:space="preserve">
     <value>Nie znaleziono tej gry</value>
@@ -1399,7 +1399,7 @@
     <value>Nie można teraz zainstalować projektu</value>
   </data>
   <data name="GamePage_RemovedGone" xml:space="preserve">
-    <value>Gra zniknie z „{library}” po wyjściu z tej strony.</value>
+    <value>Gra zniknie z „Moich gier” po wyjściu z tej strony.</value>
   </data>
   <data name="GamePage_RemovedText" xml:space="preserve">
     <value>Przywrócono oryginalne pliki gry.</value>
@@ -1438,10 +1438,13 @@
     <value>Warto zajrzeć do uwag od grupy poniżej.</value>
   </data>
   <data name="GamePage_Show" xml:space="preserve">
-    <value>Pokaż w „{library}”</value>
+    <value>Pokaż w „Moich grach”</value>
   </data>
   <data name="GamePage_ShowMore" xml:space="preserve">
-    <value>Pokaż więcej</value>
+    <value>Czytaj całość</value>
+  </data>
+  <data name="GamePage_ShowLess" xml:space="preserve">
+    <value>Zwiń opis</value>
   </data>
   <data name="GamePage_Speed" xml:space="preserve">
     <value>{speed}/s</value>
