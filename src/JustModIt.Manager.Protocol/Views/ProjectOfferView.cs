@@ -146,11 +146,14 @@ public sealed record ReleaseView(Guid Id, int Version)
     public static ReleaseView From(Release release)
     {
         ArgumentNullException.ThrowIfNull(release);
+        // The site dates a release by its creation, on its pages and as a game's newest release, until it tells when the
+        // release first went public.
+        var released = release.FirstPublishedAt ?? release.CreatedAt;
         return new ReleaseView(release.Uuid, release.Version)
         {
             Name = release.Name,
-            Date = release.FirstPublishedAt ?? release.UpdatedAt,
-            DateKind = release.FirstPublishedAt is null ? ReleaseDateKind.Updated : ReleaseDateKind.Released,
+            Date = released ?? release.UpdatedAt,
+            DateKind = released is null ? ReleaseDateKind.Updated : ReleaseDateKind.Released,
         };
     }
 }

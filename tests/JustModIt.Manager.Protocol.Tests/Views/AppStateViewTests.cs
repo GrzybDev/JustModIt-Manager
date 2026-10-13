@@ -87,11 +87,15 @@ public sealed class AppStateViewTests
     }
 
     [Fact]
-    public void A_release_without_a_known_publication_shows_when_it_last_changed_never_when_it_was_created()
+    public void A_release_came_out_when_the_site_created_it_unless_the_site_tells_when_it_went_public()
     {
-        var release = new Release { Uuid = ReleaseTwo, Version = 2, CreatedAt = Now.AddYears(-1), UpdatedAt = Now.AddDays(-3) };
+        var release = new Release { Uuid = ReleaseTwo, Version = 2, CreatedAt = Now.AddDays(-20), UpdatedAt = Now.AddDays(-3) };
 
-        ReleaseView.From(release).Should().Be(new ReleaseView(ReleaseTwo, 2) { Date = Now.AddDays(-3), DateKind = ReleaseDateKind.Updated });
+        ReleaseView.From(release).Should().Be(new ReleaseView(ReleaseTwo, 2) { Date = Now.AddDays(-20), DateKind = ReleaseDateKind.Released },
+            "the site's pages and its newest release of a game date it so");
+        ReleaseView.From(release with { FirstPublishedAt = Now.AddDays(-10) }).Date.Should().Be(Now.AddDays(-10));
+        ReleaseView.From(release with { CreatedAt = null }).Should().Be(
+            new ReleaseView(ReleaseTwo, 2) { Date = Now.AddDays(-3), DateKind = ReleaseDateKind.Updated });
     }
 
     [Fact]
