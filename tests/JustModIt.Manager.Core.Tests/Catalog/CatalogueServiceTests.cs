@@ -3,6 +3,7 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Tests.Catalog.TestSupport;
 using JustModIt.Manager.Core.Tests.TestSupport;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Core.Tests.Catalog;
@@ -34,6 +35,21 @@ public sealed class CatalogueServiceTests : IDisposable
         service.Current.Should().BeSameAs(snapshot);
         _directory.Files().Should().BeEquivalentTo(
             "listing.json", "index.json", "site.json", Path.Combine("projects", "50d8a47a-0000-4000-8000-000000000003.json"));
+    }
+
+    [Fact]
+    public async Task The_log_tells_what_a_refresh_before_the_first_scan_and_the_index_after_it_were_built_for()
+    {
+        var log = new LogLines();
+        var service = Create(log);
+
+        await service.RefreshAsync(new IndexRequest([], []), Token);
+        await service.RebuildIndexAsync(new IndexRequest([Starlight, Clockwork], []), Token);
+
+        log.Lines.Where(line => line.Level == LogLevel.Information).Select(line => line.Message).Should().SatisfyRespectively(
+            refreshed => refreshed.Should().MatchRegex(
+                @"^Refreshed the catalogue in \d+ ms \(games on the site: 4; projects for the 0 detected games and 0 installs: 0\)$"),
+            indexed => indexed.Should().Be("Indexed the saved catalogue for 2 detected games and 0 installs (projects: 3)"));
     }
 
     [Fact]
@@ -278,12 +294,12 @@ public sealed class CatalogueServiceTests : IDisposable
         _directory.Dispose();
     }
 
-    private CatalogueService Create()
+    private CatalogueService Create(ILogger<CatalogueService>? logger = null)
     {
         var cache = new CatalogueCache(_directory.Path, _site.Time, NullLogger<CatalogueCache>.Instance);
         var pages = new ProjectPageCache(_site.Api, cache, _site.Time, NullLogger<ProjectPageCache>.Instance);
         var service = new CatalogueService(new CatalogueCrawler(_site.Api, _site.Time), new CrawlIndexSource(pages, _site.Time), pages,
-            cache, NullLogger<CatalogueService>.Instance);
+            cache, logger ?? NullLogger<CatalogueService>.Instance);
         service.Changed += (_, snapshot) => _announced.Add(snapshot);
         return service;
     }
@@ -298,4 +314,17 @@ public sealed class CatalogueServiceTests : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task<WeakReference<CatalogueListing>> WeakListingAsync(CatalogueService service) =>
         new((await service.GetListingAsync(Token))!);
+
+    private sealed class LogLines : ILogger<CatalogueService>
+    {
+        public List<(LogLevel Level, string Message)> Lines { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Lines.Add((logLevel, formatter(state, exception)));
+    }
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using JustModIt.Manager.Core.Games;
 using Microsoft.Extensions.Logging;
 
@@ -56,7 +57,7 @@ public sealed record IndexRequest(IReadOnlyCollection<GameKey> Games, IReadOnlyC
 /// <param name="indexSource">Builds the installable index.</param>
 /// <param name="pages">Serves project pages, reusing saved ones while current.</param>
 /// <param name="cache">Keeps the catalogue on disk for offline use.</param>
-/// <param name="logger">Logs failed refreshes, saves and listeners.</param>
+/// <param name="logger">Logs refreshes, failed saves and listeners.</param>
 public sealed partial class CatalogueService(
     CatalogueCrawler crawler,
     IIndexSource indexSource,
@@ -99,6 +100,8 @@ public sealed partial class CatalogueService(
         return Enqueue(async () =>
         {
             var before = Current;
+            var started = Stopwatch.GetTimestamp();
+            LogRefreshing();
             Publish(before with { State = CatalogueState.Refreshing });
             try
             {
@@ -115,8 +118,15 @@ public sealed partial class CatalogueService(
                 Volatile.Write(ref _listing, new WeakReference<CatalogueListing>(listing));
                 await cache.SaveListingAsync(listing, cancellationToken).ConfigureAwait(false);
                 await cache.SaveSiteAsync(listing.Reference.Site, listing.FetchedAt, cancellationToken).ConfigureAwait(false);
-                return await BuildIndexAsync(before with { Site = listing.Reference.Site }, request, listing, readNow: true,
+                var refreshed = await BuildIndexAsync(before with { Site = listing.Reference.Site }, request, listing, readNow: true,
                     cancellationToken).ConfigureAwait(false);
+                if (refreshed.State == CatalogueState.Fresh)
+                {
+                    LogRefreshed((long)Stopwatch.GetElapsedTime(started).TotalMilliseconds, listing.Games.Count, refreshed.Index.Entries.Count,
+                        request.Games.Count, request.InstalledProjects.Count);
+                }
+
+                return refreshed;
             }
             catch
             {
@@ -186,6 +196,11 @@ public sealed partial class CatalogueService(
         }
 
         await cache.SaveIndexAsync(index, cancellationToken).ConfigureAwait(false);
+        if (!readNow)
+        {
+            LogReindexed(index.Entries.Count, request.Games.Count, request.InstalledProjects.Count);
+        }
+
         return Publish(readNow
             ? basis with { State = CatalogueState.Fresh, Index = index, FetchedAt = listing.FetchedAt, Failure = null, RetryAfter = null }
             // An index built offline from saved pages must not hide that the last refresh failed.
@@ -234,6 +249,18 @@ public sealed partial class CatalogueService(
         await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ForceYielding);
         return await operation().ConfigureAwait(false);
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Refreshing the catalogue")]
+    private partial void LogRefreshing();
+
+    // The first refresh may run before the stores were scanned, so the line says which games and installs it indexed.
+    [LoggerMessage(Level = LogLevel.Information, Message = "Refreshed the catalogue in {Milliseconds} ms (games on the site: {Games}; "
+        + "projects for the {Detected} detected games and {Installed} installs: {Projects})")]
+    private partial void LogRefreshed(long milliseconds, int games, int projects, int detected, int installed);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Indexed the saved catalogue for {Detected} detected games and {Installed} installs (projects: {Projects})")]
+    private partial void LogReindexed(int projects, int detected, int installed);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The catalogue could not be refreshed ({Reason})")]
     private partial void LogRefreshFailed(CatalogueErrorReason reason, Exception exception);
