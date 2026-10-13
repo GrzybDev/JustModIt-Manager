@@ -16,7 +16,6 @@ internal static class Screens
     /// <param name="ui">Where the window is put together.</param>
     public static void Register(UiComposition ui)
     {
-        PlaceholderPageViewModel.RegisterView(ui);
         OnboardingScreen.Register(ui);
         LibraryScreen.Register(ui);
         GameScreen.Register(ui);

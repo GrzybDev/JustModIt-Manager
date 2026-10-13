@@ -414,12 +414,6 @@
   <data name="Shell_StartAgent" xml:space="preserve">
     <value>Uruchom ją ponownie</value>
   </data>
-  <data name="Shell_PlaceholderTitle" xml:space="preserve">
-    <value>Wkrótce</value>
-  </data>
-  <data name="Shell_PlaceholderMessage" xml:space="preserve">
-    <value>Ta część okna pojawi się w kolejnej wersji.</value>
-  </data>
   <data name="Shell_PageGame" xml:space="preserve">
     <value>Gra</value>
   </data>
