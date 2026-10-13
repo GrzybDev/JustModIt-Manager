@@ -2715,4 +2715,358 @@
   <data name="Creator_ToReview" xml:space="preserve">
     <value>Dalej: sprawdzenie</value>
   </data>
+  <data name="Creator_ReviewTitle" xml:space="preserve">
+    <value>Sprawdź, co paczka zrobi u gracza</value>
+  </data>
+  <data name="Creator_ReviewLead" xml:space="preserve">
+    <value>{count, plural, one {Porównano # plik z grą {game}} few {Porównano # pliki z grą {game}} many {Porównano # plików z grą {game}} other {Porównano # pliku z grą {game}}} i ułożono z nich operacje w kolejności, w jakiej wykona je aplikacja. Można zmienić rodzaj operacji, wykluczyć plik albo dodać operację.</value>
+  </data>
+  <data name="Creator_RulesTitle" xml:space="preserve">
+    <value>Zasady publikowania</value>
+  </data>
+  <data name="Creator_RulesLead" xml:space="preserve">
+    <value>Strona przyjmuje tylko pracę autora: bez plików gry, cracków i bibliotek sklepu.</value>
+  </data>
+  <data name="Creator_RulesMet" xml:space="preserve">
+    <value>Spełnione</value>
+  </data>
+  <data name="Creator_RulesErrors" xml:space="preserve">
+    <value>{count, plural, one {# błąd} few {# błędy} many {# błędów} other {# błędu}}</value>
+  </data>
+  <data name="Creator_RulesQuestions" xml:space="preserve">
+    <value>{count, plural, one {# pytanie} few {# pytania} many {# pytań} other {# pytania}}</value>
+  </data>
+  <data name="Creator_RulesMetTitle" xml:space="preserve">
+    <value>Paczka spełnia zasady publikowania</value>
+  </data>
+  <data name="Creator_RulesClean" xml:space="preserve">
+    <value>W paczce nie ma plików .exe, bibliotek sklepu, zabezpieczeń, cracków ani kopii plików gry.</value>
+  </data>
+  <data name="Creator_RuleTitle" xml:space="preserve">
+    <value>{kind, select, StoreLibrary {{path} to biblioteka sklepu albo zabezpieczenia} CircumventionFile {{path} wygląda na plik cracka albo emulatora sklepu} CopyOfGameFile {{path} to kopia pliku gry {related}} WholeGameExecutable {{path} to cały plik .exe gry} WholeGameFile {{path} zastąpi plik gry w całości} WholeGameArchive {{path} zastąpi archiwum gry albo duży plik ({size})} ThirdPartyTool {{path} należy do narzędzia {tool}} AddedLibrary {{path} to biblioteka DLL} LargePatch {Łatka {path} jest prawie tak duża jak plik ({size})} other {{path}}}</value>
+  </data>
+  <data name="Creator_RuleText" xml:space="preserve">
+    <value>{kind, select, StoreLibrary {Paczka nie może zmieniać, podmieniać ani usuwać bibliotek sklepu ani zabezpieczeń – strona nie przyjmie takiej paczki. Plik, który nie jest częścią pracy, wystarczy wykluczyć.} CircumventionFile {Strona nie przyjmuje plików, które omijają zabezpieczenia gry, więc plik trzeba wykluczyć z paczki.} CopyOfGameFile {Paczka nie może zawierać plików gry. Plik trzeba wykluczyć z paczki.} WholeGameExecutable {Plik .exe gry może się zmienić tylko łatką, którą kreator zrobi z tego samego pliku.} WholeGameFile {Strona przyjmuje cały plik tylko wtedy, gdy w całości jest pracą autora; w innym razie wystarczy łatka.} WholeGameArchive {Cały plik archiwum niesie dużą część zasobów gry. Strona przyjmie go tylko wtedy, gdy w całości jest pracą autora; zwykle wystarczy łatka.} ThirdPartyTool {Strona przyjmuje narzędzia innych autorów z ich licencją i adresem kodu źródłowego.} AddedLibrary {Strona przyjmuje własny kod autora oraz narzędzia innych autorów z licencją i kodem źródłowym.} LargePatch {Taka łatka niesie większość pliku, np. zaszyfrowanego albo spakowanego archiwum. Strona przyjmie ją tylko wtedy, gdy plik jest pracą autora.} other {}}</value>
+  </data>
+  <data name="Creator_Exclude" xml:space="preserve">
+    <value>Wyklucz z paczki</value>
+  </data>
+  <data name="Creator_Accept" xml:space="preserve">
+    <value>Akceptuję</value>
+  </data>
+  <data name="Creator_AcceptWork" xml:space="preserve">
+    <value>To moja praca</value>
+  </data>
+  <data name="Creator_Accepted" xml:space="preserve">
+    <value>Przyjęte</value>
+  </data>
+  <data name="Creator_ToolLicense" xml:space="preserve">
+    <value>Licencja</value>
+  </data>
+  <data name="Creator_ToolSource" xml:space="preserve">
+    <value>Kod źródłowy</value>
+  </data>
+  <data name="Creator_ToolSourcePlaceholder" xml:space="preserve">
+    <value>https://…</value>
+  </data>
+  <data name="Creator_ToolHint" xml:space="preserve">
+    <value>Licencja i adres kodu źródłowego trafią do opisu paczki, żeby gracze wiedzieli, skąd jest narzędzie.</value>
+  </data>
+  <data name="Creator_LibraryQuestion" xml:space="preserve">
+    <value>Skąd jest ten plik?</value>
+  </data>
+  <data name="Creator_LibraryOwnCode" xml:space="preserve">
+    <value>To mój kod</value>
+  </data>
+  <data name="Creator_LibraryThirdParty" xml:space="preserve">
+    <value>Narzędzie innego autora</value>
+  </data>
+  <data name="Creator_OperationsTitle" xml:space="preserve">
+    <value>Operacje w kolejności wykonania</value>
+  </data>
+  <data name="Creator_CountOperations" xml:space="preserve">
+    <value>{count, plural, one {# operacja} few {# operacje} many {# operacji} other {# operacji}}</value>
+  </data>
+  <data name="Creator_CountSteps" xml:space="preserve">
+    <value>{count, plural, one {# krok} few {# kroki} many {# kroków} other {# kroku}}</value>
+  </data>
+  <data name="Creator_CountRenames" xml:space="preserve">
+    <value>{count, plural, one {# zmiana nazwy} few {# zmiany nazwy} many {# zmian nazwy} other {# zmiany nazwy}}</value>
+  </data>
+  <data name="Creator_CountPatches" xml:space="preserve">
+    <value>{count, plural, one {# łatka} few {# łatki} many {# łatek} other {# łatki}}</value>
+  </data>
+  <data name="Creator_CountCopies" xml:space="preserve">
+    <value>{count, plural, one {# kopia} few {# kopie} many {# kopii} other {# kopii}}</value>
+  </data>
+  <data name="Creator_CountDeletes" xml:space="preserve">
+    <value>{count, plural, one {# usunięcie} few {# usunięcia} many {# usunięć} other {# usunięcia}}</value>
+  </data>
+  <data name="Creator_CountExcluded" xml:space="preserve">
+    <value>{count, plural, one {# plik wykluczony} few {# pliki wykluczone} many {# plików wykluczonych} other {# pliku wykluczonego}}</value>
+  </data>
+  <data name="Creator_KindKept" xml:space="preserve">
+    <value>Zostaje w grze</value>
+  </data>
+  <data name="Creator_KindExcluded" xml:space="preserve">
+    <value>Wykluczony</value>
+  </data>
+  <data name="Creator_ToggleGroup" xml:space="preserve">
+    <value>Zwiń albo pokaż nowe pliki</value>
+  </data>
+  <data name="Creator_NewFilesIn" xml:space="preserve">
+    <value>Nowe pliki w</value>
+  </data>
+  <data name="Creator_NewFilesReason" xml:space="preserve">
+    <value>Gra nie ma tych plików, więc trafią do niej w całości.</value>
+  </data>
+  <data name="Creator_GroupCount" xml:space="preserve">
+    <value>({count, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}})</value>
+  </data>
+  <data name="Creator_GroupRange" xml:space="preserve">
+    <value>operacje {first}–{last}</value>
+  </data>
+  <data name="Creator_Why" xml:space="preserve">
+    <value>{reason, select, NewFile {Gra nie ma tego pliku, więc trafi do niej w całości.} ChangedFile {Zmieniony plik gry: paczka zapisze tylko różnice, a nie cały plik.} ReplacedFile {Cały plik zastąpi plik gry.} OriginalRenamedAway {Ten plik zajmie miejsce oryginału, któremu operacja {number} zmieniła nazwę.} RenamedGameFile {Plik {name} ma tę samą treść co oryginalny {from}, więc paczka zmieni nazwę pliku gry zamiast pakować jego kopię.} RemovedFile {Paczka usunie ten plik u graczy; oryginał trafi do kopii zapasowej.} AddedStep {Operacja dodana ręcznie.} other {}}</value>
+  </data>
+  <data name="Creator_Finding" xml:space="preserve">
+    <value>{kind, select, EmptyPackage {Paczka niczego nie zmienia.} InvalidPath {Ścieżka „{path}” jest pusta albo nieprawidłowa.} PathEscapesFolder {Ścieżka „{path}” wychodzi poza folder gry.} ReservedPath {„{path}” leży w folderze aplikacji albo sklepu w grze, a tam paczka nie może zapisywać.} DuplicatePath {Paczka zapisuje „{path}” drugi raz, więc pierwszy zapis przepadnie.} ConflictingOperations {Ta operacja cofa wcześniejszą, np. usuwa plik zapisany przez paczkę albo zmienia nazwę pliku na tę samą: „{path}”.} PathConflict {W miejscu „{path}” jest folder tam, gdzie paczka potrzebuje pliku, albo plik tam, gdzie potrzebuje folderu.} AuthorFileMissing {W folderze z plikami nie ma „{path}” – pliki można porównać ponownie.} GameFileMissing {Nie ma pliku „{path}” w grze ani w krokach przed tym.} FileRemovedEarlier {Wcześniejsza operacja usunęła już „{path}” albo zmieniła jego nazwę.} RenameOverwritesFile {Zmiana nazwy zastąpi plik gry „{path}”.} RenamedFileNotReplaced {Po zmianie nazwy w grze zabraknie pliku „{related}”, bo paczka nie zapisuje niczego w jego miejscu.} TooManyFiles {Paczka ma więcej plików, niż aplikacja instaluje z jednej paczki.} PackageTooLarge {Paczka jest większa, niż aplikacja instaluje z jednej paczki.} MissingTitle {Paczka aplikacji potrzebuje nazwy.} MissingVersion {Paczka aplikacji potrzebuje wersji.} LargerThanSiteTakes {Paczka ma {size}, czyli więcej, niż strona przyjmuje jako plik wydania.} FormatNotOnSite {Strona nie przyjmuje plików wydań w tym formacie.} other {„{path}” jest niezgodne z zasadami strony.}}</value>
+  </data>
+  <data name="Creator_FindingSuggestion" xml:space="preserve">
+    <value>{finding} Czy chodziło o {path}?</value>
+  </data>
+  <data name="Creator_BreaksRules" xml:space="preserve">
+    <value>Niezgodne z zasadami</value>
+  </data>
+  <data name="Creator_Restore" xml:space="preserve">
+    <value>Przywróć</value>
+  </data>
+  <data name="Creator_ExcludedReason" xml:space="preserve">
+    <value>Nie trafi do paczki.</value>
+  </data>
+  <data name="Creator_MissingReason" xml:space="preserve">
+    <value>{root, select, true {Nie ma go w folderze z plikami, choć są tam pozostałe pliki z głównego folderu gry.} other {Nie ma go w {folder} w folderze z plikami, choć są tam pozostałe pliki gry z tego folderu.}} Paczka usunie go u graczy tylko po potwierdzeniu.</value>
+  </data>
+  <data name="Creator_MissingQuestion" xml:space="preserve">
+    <value>Co z nim zrobić?</value>
+  </data>
+  <data name="Creator_Choice" xml:space="preserve">
+    <value>{choice, select, Copy {{difference, select, Changed {Cały plik} other {Kopia}}} Patch {Łatka} Rename {Zmiana nazwy} Delete {Usuń u graczy} other {{difference, select, Missing {Zostaw w grze} other {Wyklucz z paczki}}}}</value>
+  </data>
+  <data name="Creator_EditQuestion" xml:space="preserve">
+    <value>Co paczka ma zrobić z tym plikiem?</value>
+  </data>
+  <data name="Creator_Default" xml:space="preserve">
+    <value>domyślnie</value>
+  </data>
+  <data name="Creator_EditText" xml:space="preserve">
+    <value>{difference, select, Changed {Łatka zawiera tylko to, czym plik różni się od oryginału, więc paczka nie zawiera pliku gry. Zadziała u graczy z taką samą wersją pliku – aplikacja sprawdzi to przed instalacją.} New {Gra nie ma tego pliku, więc trafi do niej w całości.} other {Plik ma tę samą treść co plik gry {from}, więc wystarczy zmienić nazwę pliku gry zamiast pakować jego kopię.}}</value>
+  </data>
+  <data name="Creator_WholeFileNote" xml:space="preserve">
+    <value>Cały plik pasuje tylko wtedy, gdy w całości jest pracą autora – strona poprosi wtedy o potwierdzenie, bo nie przyjmuje plików gry.</value>
+  </data>
+  <data name="Creator_ExpectedFolder" xml:space="preserve">
+    <value>Gra trzyma plik o tej nazwie w folderze {folder}, a tutaj go nie odczyta.</value>
+  </data>
+  <data name="Creator_Done" xml:space="preserve">
+    <value>Gotowe</value>
+  </data>
+  <data name="Creator_EditOperation" xml:space="preserve">
+    <value>Zmień operację</value>
+  </data>
+  <data name="Creator_RemoveOperation" xml:space="preserve">
+    <value>Usuń operację</value>
+  </data>
+  <data name="Creator_IdenticalLeftOut" xml:space="preserve">
+    <value>{count, plural, one {# plik jest taki sam jak w grze – nie trafi do paczki} few {# pliki są takie same jak w grze – nie trafią do paczki} many {# plików jest takich samych jak w grze – nie trafią do paczki} other {# pliku jest takiego samego jak w grze – nie trafi do paczki}}</value>
+  </data>
+  <data name="Creator_AddOperation" xml:space="preserve">
+    <value>Dodaj operację</value>
+  </data>
+  <data name="Creator_AddDelete" xml:space="preserve">
+    <value>Usuń plik gry…</value>
+  </data>
+  <data name="Creator_AddDeleteText" xml:space="preserve">
+    <value>Paczka usunie go u graczy. Oryginał trafi do kopii zapasowej, więc cofnięcie instalacji go przywróci.</value>
+  </data>
+  <data name="Creator_AddRename" xml:space="preserve">
+    <value>Zmień nazwę pliku gry…</value>
+  </data>
+  <data name="Creator_AddRenameText" xml:space="preserve">
+    <value>Np. żeby nowa biblioteka zajęła miejsce oryginału.</value>
+  </data>
+  <data name="Creator_AddConfirm" xml:space="preserve">
+    <value>Dodaj</value>
+  </data>
+  <data name="Creator_AddNote" xml:space="preserve">
+    <value>Plik wybiera się z folderu gry {game}. Kopie i łatki biorą się z folderu z plikami – żeby je dodać, wystarczy dołożyć plik do folderu i porównać pliki ponownie.</value>
+  </data>
+  <data name="Creator_PickGameFileTitle" xml:space="preserve">
+    <value>Plik gry</value>
+  </data>
+  <data name="Creator_PickFileTitle" xml:space="preserve">
+    <value>Plik z folderu z plikami</value>
+  </data>
+  <data name="Creator_AdvancedHintTitle" xml:space="preserve">
+    <value>Własna kolejność kroków?</value>
+  </data>
+  <data name="Creator_AdvancedHint" xml:space="preserve">
+    <value> W trybie zaawansowanym można samodzielnie ustalić kolejność i ścieżki, np. nałożyć łatkę na plik po zmianie jego nazwy.</value>
+  </data>
+  <data name="Creator_ToAdvancedButton" xml:space="preserve">
+    <value>Tryb zaawansowany…</value>
+  </data>
+  <data name="Creator_ToAdvancedTitle" xml:space="preserve">
+    <value>Przejść do trybu zaawansowanego?</value>
+  </data>
+  <data name="Creator_ToAdvanced" xml:space="preserve">
+    <value>Wykryte operacje staną się listą kroków do ułożenia po swojemu: kopie, łatki, zmiany nazw i usunięcia w dowolnej kolejności. Paczka będzie robić dokładnie to samo co teraz. Do trybu prostego można wrócić w każdej chwili, ale wtedy kreator ułoży operacje od nowa z porównania plików.</value>
+  </data>
+  <data name="Creator_ToAdvancedConfirm" xml:space="preserve">
+    <value>Przejdź do trybu zaawansowanego</value>
+  </data>
+  <data name="Creator_ToSimpleTitle" xml:space="preserve">
+    <value>Wrócić do trybu prostego?</value>
+  </data>
+  <data name="Creator_ToSimple" xml:space="preserve">
+    <value>Kreator ułoży operacje od nowa z porównania plików. Ręczne zmiany kolejności i ścieżek przepadną.</value>
+  </data>
+  <data name="Creator_ToSimpleConfirm" xml:space="preserve">
+    <value>Wróć i ułóż od nowa</value>
+  </data>
+  <data name="Creator_ToSimpleButton" xml:space="preserve">
+    <value>Wróć do trybu prostego</value>
+  </data>
+  <data name="Creator_StepsTitle" xml:space="preserve">
+    <value>Ułóż kroki paczki</value>
+  </data>
+  <data name="Creator_StepsLead" xml:space="preserve">
+    <value>Aplikacja wykona je u gracza jeden po drugim, a każdy krok widzi pliki gry takie, jakie zostawiły kroki przed nim – można np. najpierw zmienić nazwę pliku, a potem nałożyć na niego łatkę.</value>
+  </data>
+  <data name="Creator_StepsCardTitle" xml:space="preserve">
+    <value>Kroki paczki</value>
+  </data>
+  <data name="Creator_StepSteps" xml:space="preserve">
+    <value>Kroki paczki</value>
+  </data>
+  <data name="Creator_StepsInOrder" xml:space="preserve">
+    <value>Kroki są w porządku</value>
+  </data>
+  <data name="Creator_StepsProblems" xml:space="preserve">
+    <value>Do poprawienia: {count, plural, one {# problem} few {# problemy} many {# problemów} other {# problemu}}</value>
+  </data>
+  <data name="Creator_StepDragTip" xml:space="preserve">
+    <value>Przeciągnij, aby zmienić kolejność</value>
+  </data>
+  <data name="Creator_StepDrag" xml:space="preserve">
+    <value>Przeciągnij krok {number}, aby zmienić kolejność</value>
+  </data>
+  <data name="Creator_StepMoveUp" xml:space="preserve">
+    <value>Przesuń krok {number} wyżej</value>
+  </data>
+  <data name="Creator_StepMoveDown" xml:space="preserve">
+    <value>Przesuń krok {number} niżej</value>
+  </data>
+  <data name="Creator_StepRemove" xml:space="preserve">
+    <value>Usuń krok {number}</value>
+  </data>
+  <data name="Creator_PickFile" xml:space="preserve">
+    <value>Wybierz plik</value>
+  </data>
+  <data name="Creator_StepSource" xml:space="preserve">
+    <value>Twój plik</value>
+  </data>
+  <data name="Creator_StepCopyTo" xml:space="preserve">
+    <value>Zapisz w grze jako</value>
+  </data>
+  <data name="Creator_StepPatchOf" xml:space="preserve">
+    <value>Plik gry do zmiany</value>
+  </data>
+  <data name="Creator_StepGameFile" xml:space="preserve">
+    <value>Plik w grze</value>
+  </data>
+  <data name="Creator_StepNewName" xml:space="preserve">
+    <value>Nowa nazwa</value>
+  </data>
+  <data name="Creator_RenamesWritten" xml:space="preserve">
+    <value>Ten krok zmieni nazwę pliku {name} zapisanego w kroku {number}, a nie oryginału gry, który ten krok wcześniej nadpisze.</value>
+  </data>
+  <data name="Creator_MoveBefore" xml:space="preserve">
+    <value>Przenieś przed krok {number}</value>
+  </data>
+  <data name="Creator_FixPath" xml:space="preserve">
+    <value>Popraw na {name}</value>
+  </data>
+  <data name="Creator_AddStep" xml:space="preserve">
+    <value>Dodaj krok na końcu listy</value>
+  </data>
+  <data name="Creator_AddCopy" xml:space="preserve">
+    <value>Skopiuj plik</value>
+  </data>
+  <data name="Creator_AddCopyText" xml:space="preserve">
+    <value>Plik z folderu trafi do gry w całości.</value>
+  </data>
+  <data name="Creator_AddPatch" xml:space="preserve">
+    <value>Nałóż łatkę</value>
+  </data>
+  <data name="Creator_AddPatchText" xml:space="preserve">
+    <value>Zmieni plik gry w plik z folderu, zapisując tylko różnice.</value>
+  </data>
+  <data name="Creator_AddRenameStep" xml:space="preserve">
+    <value>Zmień nazwę</value>
+  </data>
+  <data name="Creator_AddDeleteStep" xml:space="preserve">
+    <value>Usuń plik</value>
+  </data>
+  <data name="Creator_AddEarlierText" xml:space="preserve">
+    <value>Pliku gry albo pliku z wcześniejszego kroku.</value>
+  </data>
+  <data name="Creator_CheckTitle" xml:space="preserve">
+    <value>Sprawdź, czy wszystko się zgadza</value>
+  </data>
+  <data name="Creator_CheckOperations" xml:space="preserve">
+    <value>Aplikacja wykona u każdego gracza dokładnie {count, plural, one {tę # operację} few {te # operacje} many {te # operacji} other {te # operacji}}, w tej kolejności. Przed przejściem dalej warto się upewnić, że:</value>
+  </data>
+  <data name="Creator_CheckSteps" xml:space="preserve">
+    <value>Aplikacja wykona u każdego gracza dokładnie {count, plural, one {ten # krok} few {te # kroki} many {te # kroków} other {te # kroku}}, w tej kolejności. Przed przejściem dalej warto się upewnić, że:</value>
+  </data>
+  <data name="Creator_CheckPlaces" xml:space="preserve">
+    <value>każdy plik trafia tam, gdzie gra go szuka,</value>
+  </data>
+  <data name="Creator_CheckRename" xml:space="preserve">
+    <value>zmiana nazwy dotyczy właściwego pliku gry,</value>
+  </data>
+  <data name="Creator_CheckNothingExtra" xml:space="preserve">
+    <value>w paczce nie ma nic zbędnego – np. notatek albo kopii roboczych.</value>
+  </data>
+  <data name="Creator_CheckStepFiles" xml:space="preserve">
+    <value>każdy krok działa na właściwym pliku – po zmianach z kroków przed nim,</value>
+  </data>
+  <data name="Creator_CheckRenameOrder" xml:space="preserve">
+    <value>zmiana nazwy stoi przed krokiem, który zapisuje plik pod starą nazwą,</value>
+  </data>
+  <data name="Creator_Confirm" xml:space="preserve">
+    <value>Wszystko się zgadza</value>
+  </data>
+  <data name="Creator_ConfirmNext" xml:space="preserve">
+    <value>Dalej: format paczki i budowanie.</value>
+  </data>
+  <data name="Creator_ConfirmBlocked" xml:space="preserve">
+    <value>Najpierw trzeba {what}.</value>
+  </data>
+  <data name="Creator_BlockedRules" xml:space="preserve">
+    <value>{case, select, errors {poprawić {errors, plural, one {błąd} few {{errors} błędy} many {{errors} błędów} other {{errors} błędu}}} questions {odpowiedzieć na {questions, plural, one {pytanie} few {{questions} pytania} many {{questions} pytań} other {{questions} pytania}}} other {poprawić {errors, plural, one {błąd} few {{errors} błędy} many {{errors} błędów} other {{errors} błędu}} i odpowiedzieć na {questions, plural, one {pytanie} few {{questions} pytania} many {{questions} pytań} other {{questions} pytania}}}} w „Zasadach publikowania” na górze strony</value>
+  </data>
+  <data name="Creator_BlockedAt" xml:space="preserve">
+    <value>poprawić {count, plural, one {problem} few {# problemy} many {# problemów} other {# problemu}} {advanced, select, true {{places, plural, one {w kroku} other {w krokach}}} other {{places, plural, one {w operacji} other {w operacjach}}}} {numbers}</value>
+  </data>
+  <data name="Creator_BlockedMarked" xml:space="preserve">
+    <value>rozwiązać {count, plural, one {problem zaznaczony wyżej} few {# problemy zaznaczone wyżej} many {# problemów zaznaczonych wyżej} other {# problemu zaznaczonego wyżej}}</value>
+  </data>
+  <data name="Creator_ListNext" xml:space="preserve">
+    <value>{list}, {item}</value>
+  </data>
+  <data name="Creator_ListLast" xml:space="preserve">
+    <value>{list} i {item}</value>
+  </data>
 </root>

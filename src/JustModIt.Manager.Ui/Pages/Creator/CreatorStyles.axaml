@@ -146,6 +146,16 @@
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
   </Style>
+  <!-- The page's styles win over the theme's, so a row text in a tone takes the tone here too. -->
+  <Style Selector="TextBlock.rowText.successText">
+    <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.rowText.warningText">
+    <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.rowText.dangerText">
+    <Setter Property="Foreground" Value="{StaticResource DangerTextStrongBrush}" />
+  </Style>
   <Style Selector="TextBlock.pathLine">
     <Setter Property="FontWeight" Value="Normal" />
     <Setter Property="FontSize" Value="13" />
@@ -208,6 +218,109 @@
   <Style Selector="Border.kind.neutral">
     <Setter Property="Background" Value="{StaticResource FillBrush}" />
     <Setter Property="TextElement.Foreground" Value="{StaticResource NeutralTextBrush}" />
+  </Style>
+
+  <!-- The rules' chip turns green once the package meets them. -->
+  <Style Selector="Border.iconChip.success">
+    <Setter Property="Background" Value="#2922C55E" />
+  </Style>
+  <Style Selector="Border.iconChip.success > ui|Icon">
+    <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+  </Style>
+
+  <!-- Lists of operations, steps and rules: rows split by faint lines. -->
+  <Style Selector="ItemsControl.rows > ContentPresenter">
+    <Setter Property="BorderBrush" Value="#0FFFFFFF" />
+  </Style>
+  <Style Selector="ItemsControl.rows > ContentPresenter:not(:nth-child(1))">
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <!-- A step with a problem: a faint red row, its number in red and the path the problem is about framed in red. -->
+  <Style Selector="Border.stepRow">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.stepRow.problem">
+    <Setter Property="Background" Value="#0FEF4444" />
+  </Style>
+  <Style Selector="Border.number.problem">
+    <Setter Property="BorderBrush" Value="#80F87171" />
+    <Setter Property="Background" Value="#24EF4444" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+  <Style Selector="TextBox.faulty">
+    <Setter Property="BorderBrush" Value="#B3F87171" />
+  </Style>
+  <Style Selector="TextBox.faulty:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="#B3F87171" />
+  </Style>
+  <Style Selector="Border.editPanel">
+    <Setter Property="Padding" Value="18,16" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+  </Style>
+  <Style Selector="Button.groupToggle">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+  </Style>
+  <Style Selector="Button.groupToggle ui|Icon">
+    <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.groupToggle.expanded ui|Icon">
+    <Setter Property="RenderTransform" Value="rotate(0deg)" />
+  </Style>
+  <Style Selector="Border.grip">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Cursor" Value="SizeNorthSouth" />
+  </Style>
+  <Style Selector="Button.addTile, Button.stepTile">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="#08FFFFFF" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Button.addTile">
+    <Setter Property="Padding" Value="12,14,14,14" />
+  </Style>
+  <Style Selector="Button.stepTile">
+    <Setter Property="Padding" Value="14,16,14,14" />
+  </Style>
+  <Style Selector="Button.addTile:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.stepTile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+  </Style>
+  <!-- The call to check: the one red button of the step on a card tinted by the accent from the top. -->
+  <Style Selector="Border.checkCard">
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Border.checkGlow">
+    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="Opacity" Value="0.55" />
+    <Setter Property="Background">
+      <LinearGradientBrush StartPoint="50%,0%" EndPoint="50%,60%">
+        <GradientStop Offset="0" Color="{DynamicResource AccentSoftColor}" />
+        <GradientStop Offset="1" Color="#00000000" />
+      </LinearGradientBrush>
+    </Setter>
   </Style>
 
   <!-- A choice of a game: a row with its cover that turns to the accent once chosen; a game that cannot be chosen keeps

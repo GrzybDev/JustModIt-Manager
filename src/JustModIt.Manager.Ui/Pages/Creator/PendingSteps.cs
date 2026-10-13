@@ -1,19 +1,5 @@
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
-/// <summary>The third step: the operations of the package for the author to check.</summary>
-public sealed class ReviewStepViewModel : ICreatorStepView
-{
-    public void OnShown()
-    {
-    }
-
-    public Task<bool> CanLeaveAsync() => Task.FromResult(true);
-
-    public void Dispose()
-    {
-    }
-}
-
 /// <summary>The last step: the package's format and metadata, its build and a test install.</summary>
 public sealed class PackageStepViewModel : ICreatorStepView
 {

@@ -45,7 +45,10 @@ public sealed partial class StepItem(CreatorStep step, string title) : Observabl
 
     public int Number { get; } = (int)step + 1;
 
-    public string Title { get; } = title;
+    /// <summary>Its name; the check of an advanced project is named after the steps the author lays out there.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AccessibleName))]
+    public partial string Title { get; set; } = title;
 
     public bool IsLast => Step == CreatorStep.Package;
 
@@ -346,7 +349,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         session.PropertyChanged += OnSessionChanged;
         var game = new GameStepViewModel(this, session);
         var files = new FilesStepViewModel(this, session);
-        _steps = [game, files, new ReviewStepViewModel(), new PackageStepViewModel()];
+        _steps = [game, files, new ReviewStepViewModel(this, session), new PackageStepViewModel()];
         Step = CreatorStep.Game;
         Content = null;
         ShowSession();
@@ -441,6 +444,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
             : session.IsDirty ? Strings.Creator_StateChanged
             : Strings.Creator_StateSaved;
         IsAdvanced = session.Project.Mode == CreatorMode.Advanced;
+        Steps[(int)CreatorStep.Review].Title = IsAdvanced ? Strings.Creator_StepSteps : Strings.Creator_StepReview;
     }
 
     private void RefreshSteps()

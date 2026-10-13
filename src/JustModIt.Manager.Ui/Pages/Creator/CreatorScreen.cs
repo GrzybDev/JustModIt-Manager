@@ -14,7 +14,7 @@ internal static class CreatorScreen
         ui.Views.Register<CreatorPageViewModel>(() => new CreatorPage());
         ui.Views.Register<GameStepViewModel>(() => new GameStepView());
         ui.Views.Register<FilesStepViewModel>(() => new FilesStepView());
-        ui.Views.Register<ReviewStepViewModel>(() => new PendingStepView());
+        ui.Views.Register<ReviewStepViewModel>(() => new ReviewStepView());
         ui.Views.Register<PackageStepViewModel>(() => new PendingStepView());
     }
 }

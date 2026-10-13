@@ -1,0 +1,590 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Creator.ReviewStepView"
+             x:DataType="creator:ReviewStepViewModel">
+  <UserControl.Resources>
+    <!-- A finding at an operation or a step, with a way to accept it where the rules allow. -->
+    <DataTemplate x:Key="FindingTemplate" x:DataType="creator:FindingLine">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,6,0,0">
+        <ui:Icon Data="{Binding Icon}" Width="14" Height="14" Margin="0,3,0,0" VerticalAlignment="Top"
+                 Classes.dangerText="{Binding Tone, Converter={x:Static creator:ReviewStepView.IsDanger}}"
+                 Classes.warningText="{Binding Tone, Converter={x:Static creator:ReviewStepView.IsWarning}}" />
+        <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" Text="{Binding Text}"
+                   Classes.dangerText="{Binding Tone, Converter={x:Static creator:ReviewStepView.IsDanger}}"
+                   Classes.warningText="{Binding Tone, Converter={x:Static creator:ReviewStepView.IsWarning}}" />
+        <Button Grid.Column="2" Classes="outline small" Content="{x:Static loc:Strings.Creator_Accept}" IsVisible="{Binding CanAcknowledge}"
+                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).AcceptCommand}"
+                CommandParameter="{Binding AcknowledgementKey}" />
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <StackPanel Spacing="20">
+    <StackPanel Spacing="4">
+      <Panel>
+        <TextBlock Classes="heading" Text="{x:Static loc:Strings.Creator_ReviewTitle}" IsVisible="{Binding IsSimple}" />
+        <TextBlock Classes="heading" Text="{x:Static loc:Strings.Creator_StepsTitle}" IsVisible="{Binding IsAdvanced}" />
+      </Panel>
+      <TextBlock Classes="lead" Text="{Binding Lead}" />
+    </StackPanel>
+
+    <!-- The site's hosting rules. -->
+    <ui:Callout Classes="success" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.ShieldCheck}"
+                Title="{x:Static loc:Strings.Creator_RulesMetTitle}" Message="{x:Static loc:Strings.Creator_RulesClean}"
+                IsVisible="{Binding !HasRules}" />
+    <Border Classes="creatorCard" ClipToBounds="True" IsVisible="{Binding HasRules}">
+      <StackPanel>
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Margin="20,14,16,14">
+          <Border Classes="iconChip" Classes.success="{Binding RulesMet}"
+                  Classes.danger="{Binding RulesTone, Converter={x:Static creator:ReviewStepView.IsDanger}}"
+                  Classes.warning="{Binding RulesTone, Converter={x:Static creator:ReviewStepView.IsWarning}}">
+            <ui:Icon Data="{x:Static theme:Icons.ShieldCheck}" />
+          </Border>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center">
+            <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_RulesTitle}" />
+            <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_RulesLead}" />
+          </StackPanel>
+          <Border Grid.Column="2" Classes="kind" VerticalAlignment="Center"
+                  Classes.success="{Binding RulesMet}"
+                  Classes.danger="{Binding RulesTone, Converter={x:Static creator:ReviewStepView.IsDanger}}"
+                  Classes.warning="{Binding RulesTone, Converter={x:Static creator:ReviewStepView.IsWarning}}">
+            <StackPanel>
+              <ui:Icon Data="{x:Static theme:Icons.Check}" IsVisible="{Binding RulesMet}" />
+              <TextBlock Text="{Binding RulesState}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+        <Border Classes="divider" />
+        <ItemsControl x:Name="RuleRows" Classes="rows" ItemsSource="{Binding Rules}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="creator:RuleRow">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="20,16">
+                <ui:Icon Data="{Binding Icon}" Width="18" Height="18" Margin="0,2,0,0" VerticalAlignment="Top"
+                         Classes.dangerText="{Binding Tone, Converter={x:Static creator:ReviewStepView.IsDanger}}"
+                         Classes.warningText="{Binding Tone, Converter={x:Static creator:ReviewStepView.IsWarning}}"
+                         Classes.successText="{Binding Tone, Converter={x:Static creator:ReviewStepView.IsSuccess}}" />
+                <StackPanel Grid.Column="1" Spacing="2">
+                  <TextBlock Text="{Binding Title}" FontSize="14" LineHeight="22" FontWeight="SemiBold" TextWrapping="Wrap"
+                             Foreground="{StaticResource TextBrush}" />
+                  <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Text}" />
+                  <Button Classes="outline headerAction" HorizontalAlignment="Left" Margin="0,12,0,0" IsVisible="{Binding CanExclude}"
+                          Content="{x:Static loc:Strings.Creator_Exclude}" ui:ButtonAssist.Icon="{x:Static theme:Icons.CircleMinus}"
+                          Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ExcludeRuleCommand}"
+                          CommandParameter="{Binding}" />
+                  <Panel Margin="0,12,0,0" IsVisible="{Binding IsAccept}">
+                    <Button Classes="outline headerAction" HorizontalAlignment="Left" IsVisible="{Binding !IsAccepted}"
+                            Content="{x:Static loc:Strings.Creator_AcceptWork}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).AcceptRuleCommand}"
+                            CommandParameter="{Binding}" />
+                    <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsAccepted}">
+                      <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" Classes="successText" />
+                      <TextBlock Classes="rowText" Classes.successText="True" Text="{x:Static loc:Strings.Creator_Accepted}" />
+                    </StackPanel>
+                  </Panel>
+                  <WrapPanel Margin="0,12,0,0" IsVisible="{Binding IsLibrary}" ItemSpacing="10" LineSpacing="8">
+                    <TextBlock Classes="rowText" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
+                               Text="{x:Static loc:Strings.Creator_LibraryQuestion}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <RadioButton Theme="{StaticResource ChoicePill}" Content="{x:Static loc:Strings.Creator_LibraryOwnCode}"
+                                   IsChecked="{Binding !IsThirdParty, Mode=OneWay}" GroupName="{Binding Key}"
+                                   Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MarkOwnCodeCommand}"
+                                   CommandParameter="{Binding}" />
+                      <RadioButton Theme="{StaticResource ChoicePill}" Content="{x:Static loc:Strings.Creator_LibraryThirdParty}"
+                                   IsChecked="{Binding IsThirdParty, Mode=OneWay}" GroupName="{Binding Key}"
+                                   Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MarkThirdPartyCommand}"
+                                   CommandParameter="{Binding}" />
+                    </StackPanel>
+                  </WrapPanel>
+                  <StackPanel Spacing="12" Margin="0,12,0,0" IsVisible="{Binding NeedsNotice}">
+                    <Grid ColumnSpacing="12">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="*" MaxWidth="508" />
+                      </Grid.ColumnDefinitions>
+                      <StackPanel Spacing="6">
+                        <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}"
+                                   Text="{x:Static loc:Strings.Creator_ToolLicense}" />
+                        <TextBox Text="{Binding License}" FontSize="14" AutomationProperties.Name="{x:Static loc:Strings.Creator_ToolLicense}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Spacing="6">
+                        <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}"
+                                   Text="{x:Static loc:Strings.Creator_ToolSource}" />
+                        <TextBox Text="{Binding Source}" FontSize="14" PlaceholderText="{x:Static loc:Strings.Creator_ToolSourcePlaceholder}"
+                                 AutomationProperties.Name="{x:Static loc:Strings.Creator_ToolSource}" />
+                      </StackPanel>
+                    </Grid>
+                    <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_ToolHint}" />
+                  </StackPanel>
+                </StackPanel>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="20,16" IsVisible="{Binding RulesMet}">
+          <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Width="18" Height="18" Classes="successText" VerticalAlignment="Top" />
+          <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}"
+                     Text="{x:Static loc:Strings.Creator_RulesClean}" />
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- Simple mode: the operations the comparison derived, in the order they run. -->
+    <Border Classes="creatorCard" ClipToBounds="True" IsVisible="{Binding IsSimple}">
+      <StackPanel>
+        <WrapPanel Margin="20,12,16,12" MinHeight="36">
+          <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_OperationsTitle}" Margin="0,0,12,0" VerticalAlignment="Center" />
+          <TextBlock Classes="meta" Text="{Binding Counts}" VerticalAlignment="Center" />
+        </WrapPanel>
+        <Border Classes="divider" />
+        <ItemsControl x:Name="OperationRows" Classes="rows" ItemsSource="{Binding Operations}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <VirtualizingStackPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.DataTemplates>
+            <DataTemplate DataType="creator:OperationGroup">
+              <Grid ColumnDefinitions="28,136,*,84,76" ColumnSpacing="14" Margin="20,14,16,12">
+                <Button Classes="icon groupToggle" Classes.expanded="{Binding IsExpanded}" ToolTip.Tip="{x:Static loc:Strings.Creator_ToggleGroup}"
+                        Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ToggleGroupCommand}"
+                        CommandParameter="{Binding}" VerticalAlignment="Top" Width="28" Height="28">
+                  <ui:Icon Data="{x:Static theme:Icons.ChevronDown}" Width="16" Height="16" />
+                </Button>
+                <Border Grid.Column="1" Classes="kind" Margin="0,2,0,0">
+                  <StackPanel>
+                    <ui:Icon Data="{x:Static theme:Icons.Copy}" />
+                    <TextBlock Text="{x:Static loc:Strings.Creator_KindCopy}" />
+                  </StackPanel>
+                </Border>
+                <StackPanel Grid.Column="2" Spacing="2">
+                  <WrapPanel>
+                    <TextBlock FontSize="14" LineHeight="22" FontWeight="SemiBold" Text="{x:Static loc:Strings.Creator_NewFilesIn}" Margin="0,0,4,0" />
+                    <TextBlock FontSize="14" LineHeight="22" FontWeight="SemiBold" Foreground="{StaticResource TextEmphasisBrush}"
+                               Text="{Binding Folder}" Margin="0,0,6,0" />
+                    <TextBlock FontSize="14" LineHeight="22" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding Count}" Margin="0,0,8,0" />
+                    <TextBlock FontSize="13" LineHeight="22" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding Range}"
+                               IsVisible="{Binding !IsExpanded}" />
+                  </WrapPanel>
+                  <TextBlock Classes="rowText" LineHeight="20" Text="{x:Static loc:Strings.Creator_NewFilesReason}" />
+                </StackPanel>
+                <TextBlock Grid.Column="3" Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Size}"
+                           HorizontalAlignment="Right" Margin="0,1,0,0" />
+              </Grid>
+            </DataTemplate>
+            <DataTemplate DataType="creator:OperationRow">
+              <Grid ColumnDefinitions="28,136,*,84,76" ColumnSpacing="14" Margin="20,14,16,14">
+                <Border Classes="number" VerticalAlignment="Top">
+                  <TextBlock Text="{Binding Number}" />
+                </Border>
+                <Border Grid.Column="1" Classes="kind" Margin="0,2,0,0" IsVisible="{Binding ShowsKind}"
+                        Classes.danger="{Binding KindTone, Converter={x:Static creator:ReviewStepView.IsDanger}}"
+                        Classes.neutral="{Binding IsExcluded}">
+                  <StackPanel>
+                    <ui:Icon Data="{Binding KindIcon}" />
+                    <TextBlock Text="{Binding KindText}" />
+                  </StackPanel>
+                </Border>
+                <StackPanel Grid.Column="2" Spacing="2">
+                  <WrapPanel>
+                    <StackPanel Orientation="Horizontal" IsVisible="{Binding IsRename}">
+                      <TextBlock FontSize="14" LineHeight="22" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding FromFolder}" />
+                      <TextBlock FontSize="14" LineHeight="22" FontWeight="SemiBold" Text="{Binding FromName}" />
+                      <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" Margin="6,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                    </StackPanel>
+                    <TextBlock FontSize="14" LineHeight="22" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding Folder}" />
+                    <TextBlock FontSize="14" LineHeight="22" FontWeight="SemiBold" Text="{Binding Name}"
+                               Foreground="{StaticResource TextBrush}" Classes.secondaryText="{Binding IsExcluded}" />
+                  </WrapPanel>
+                  <Border Classes="kind danger" IsVisible="{Binding BreaksRules}" Margin="0,4,0,2">
+                    <StackPanel>
+                      <ui:Icon Data="{x:Static theme:Icons.CircleX}" />
+                      <TextBlock Text="{x:Static loc:Strings.Creator_BreaksRules}" />
+                    </StackPanel>
+                  </Border>
+                  <WrapPanel>
+                    <TextBlock Classes="rowText" LineHeight="20" Text="{Binding Reason}" Margin="0,0,10,0"
+                               IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <Button Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_Restore}" IsVisible="{Binding IsExcluded}"
+                            ui:ButtonAssist.Icon="{x:Static theme:Icons.Undo}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RestoreCommand}"
+                            CommandParameter="{Binding}" />
+                  </WrapPanel>
+                  <ItemsControl ItemsSource="{Binding Findings}" ItemTemplate="{StaticResource FindingTemplate}" IsVisible="{Binding HasFindings}" />
+                  <WrapPanel IsVisible="{Binding IsDecision}" Margin="0,10,0,0">
+                    <TextBlock Classes="rowText" Text="{x:Static loc:Strings.Creator_MissingQuestion}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <ItemsControl ItemsSource="{Binding Choices}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" Spacing="8" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="creator:ChoiceOption">
+                          <RadioButton Theme="{StaticResource ChoicePill}" Content="{Binding Title}" IsChecked="{Binding IsChecked, Mode=OneWay}"
+                                       GroupName="{Binding $parent[ContentPresenter].((creator:OperationRow)DataContext).Key}"
+                                       Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ChooseCommand}"
+                                       CommandParameter="{Binding}" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </WrapPanel>
+                  <Border Classes="editPanel" IsVisible="{Binding IsEditing}" Margin="0,12,0,0" theme:Motion.Enter="True">
+                    <StackPanel Spacing="12">
+                      <WrapPanel>
+                        <TextBlock Classes="rowText" Text="{x:Static loc:Strings.Creator_EditQuestion}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <ItemsControl ItemsSource="{Binding Choices}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="creator:ChoiceOption">
+                              <RadioButton Theme="{StaticResource ChoicePill}" IsChecked="{Binding IsChecked, Mode=OneWay}"
+                                           AutomationProperties.Name="{Binding Title}"
+                                           GroupName="{Binding $parent[ContentPresenter].((creator:OperationRow)DataContext).Key}"
+                                           Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ChooseCommand}"
+                                           CommandParameter="{Binding}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                  <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                                  <TextBlock Text="{x:Static loc:Strings.Creator_Default}" FontSize="12" VerticalAlignment="Center"
+                                             Foreground="{StaticResource TextSecondaryBrush}" IsVisible="{Binding IsDefault}" />
+                                </StackPanel>
+                              </RadioButton>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </WrapPanel>
+                      <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{Binding EditText}" />
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding HasEditNote}">
+                        <ui:Icon Data="{x:Static theme:Icons.Info}" Width="16" Height="16" Margin="0,2,0,0" VerticalAlignment="Top"
+                                 Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" Text="{Binding EditNote}" />
+                      </Grid>
+                      <Button Classes="outline headerAction" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_Done}"
+                              ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}"
+                              Command="{Binding ToggleEditCommand}" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+                <TextBlock Grid.Column="3" Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Size}"
+                           HorizontalAlignment="Right" Margin="0,1,0,0" />
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,0,0">
+                  <Button Classes="icon" Classes.expanded="{Binding IsEditing}" ToolTip.Tip="{x:Static loc:Strings.Creator_EditOperation}"
+                          IsVisible="{Binding CanEdit}" Command="{Binding ToggleEditCommand}">
+                    <ui:Icon Data="{x:Static theme:Icons.Pencil}" Width="16" Height="16" />
+                  </Button>
+                  <Button Classes="icon" ToolTip.Tip="{x:Static loc:Strings.Creator_Exclude}" IsVisible="{Binding CanExclude}"
+                          Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ExcludeCommand}"
+                          CommandParameter="{Binding}">
+                    <ui:Icon Data="{x:Static theme:Icons.CircleMinus}" Width="16" Height="16" />
+                  </Button>
+                  <Button Classes="icon" ToolTip.Tip="{x:Static loc:Strings.Creator_RemoveOperation}" IsVisible="{Binding CanRemove}"
+                          Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RemoveCommand}"
+                          CommandParameter="{Binding}">
+                    <ui:Icon Data="{x:Static theme:Icons.X}" Width="16" Height="16" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.DataTemplates>
+        </ItemsControl>
+        <Border Classes="divider" />
+        <Grid ColumnDefinitions="*,Auto" Margin="8,8,12,8">
+          <Button Classes="quiet" HorizontalAlignment="Left" Content="{Binding IdenticalCount}" IsVisible="{Binding HasIdentical}"
+                  ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}" Classes.expanded="{Binding ShowsIdentical}"
+                  Command="{Binding ToggleIdenticalCommand}" />
+          <Button Grid.Column="1" x:Name="AddOperationButton" Classes="quiet" Content="{x:Static loc:Strings.Creator_AddOperation}"
+                  ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Classes.expanded="{Binding IsAdding}" Command="{Binding ToggleAddingCommand}" />
+        </Grid>
+        <ItemsControl ItemsSource="{Binding IdenticalFiles}" IsVisible="{Binding ShowsIdentical}" Margin="44,0,20,12">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <VirtualizingStackPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="pathLine" Text="{Binding}" Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Classes="editPanel" Margin="20,0,20,20" IsVisible="{Binding IsAdding}" theme:Motion.Enter="True">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddOperation}" />
+            <UniformGrid Columns="2" ColumnSpacing="12" IsVisible="{Binding !IsNamingRename}">
+              <Button Classes="addTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddDelete}" Command="{Binding AddDeleteCommand}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                  <Border Classes="folderChip" Width="36" Height="36">
+                    <ui:Icon Data="{x:Static theme:Icons.FileX}" Width="18" Height="18" />
+                  </Border>
+                  <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddDelete}" />
+                    <TextBlock Classes="rowText" Text="{x:Static loc:Strings.Creator_AddDeleteText}" />
+                  </StackPanel>
+                  <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
+                </Grid>
+              </Button>
+              <Button Classes="addTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddRename}" Command="{Binding AddRenameCommand}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                  <Border Classes="folderChip" Width="36" Height="36">
+                    <ui:Icon Data="{x:Static theme:Icons.FilePen}" Width="18" Height="18" />
+                  </Border>
+                  <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddRename}" />
+                    <TextBlock Classes="rowText" Text="{x:Static loc:Strings.Creator_AddRenameText}" />
+                  </StackPanel>
+                  <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
+                </Grid>
+              </Button>
+            </UniformGrid>
+            <Grid ColumnDefinitions="*,Auto,*,Auto" ColumnSpacing="10" IsVisible="{Binding IsNamingRename}">
+              <TextBlock Classes="pathLine" Foreground="{StaticResource TextBrush}" Text="{Binding RenameFrom}" VerticalAlignment="Center" />
+              <ui:Icon Grid.Column="1" Data="{x:Static theme:Icons.ArrowRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
+              <TextBox Grid.Column="2" Text="{Binding RenameTo}" FontSize="14" AutomationProperties.Name="{x:Static loc:Strings.Creator_StepNewName}" />
+              <Button Grid.Column="3" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_AddConfirm}"
+                      ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding ConfirmRenameCommand}" />
+            </Grid>
+            <TextBlock Classes="rowText" LineHeight="20" Text="{Binding AddNote}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Border>
+
+    <!-- Advanced mode: the author's steps, in order. -->
+    <Border Classes="creatorCard" ClipToBounds="True" IsVisible="{Binding IsAdvanced}">
+      <StackPanel>
+        <Grid ColumnDefinitions="*,Auto" Margin="20,12,16,12" MinHeight="36">
+          <WrapPanel VerticalAlignment="Center">
+            <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_StepsCardTitle}" Margin="0,0,12,0" VerticalAlignment="Center" />
+            <Border Classes="kind" Classes.success="{Binding StepsInOrder}" Classes.danger="{Binding !StepsInOrder}" Margin="0,0,12,0"
+                    VerticalAlignment="Center">
+              <StackPanel>
+                <ui:Icon Data="{x:Static theme:Icons.Check}" IsVisible="{Binding StepsInOrder}" />
+                <ui:Icon Data="{x:Static theme:Icons.CircleX}" IsVisible="{Binding !StepsInOrder}" />
+                <TextBlock Text="{Binding StepsState}" />
+              </StackPanel>
+            </Border>
+            <TextBlock Classes="meta" Text="{Binding Counts}" VerticalAlignment="Center" />
+          </WrapPanel>
+          <Button Grid.Column="1" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_ToSimpleButton}"
+                  ui:ButtonAssist.Icon="{x:Static theme:Icons.Undo}" Command="{Binding ToSimpleCommand}" />
+        </Grid>
+        <Border Classes="divider" />
+        <ItemsControl x:Name="StepRows" Classes="rows" ItemsSource="{Binding Steps}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <VirtualizingStackPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="creator:StepRow">
+              <Border Classes="stepRow" Classes.problem="{Binding HasProblem}" Padding="10,12,16,14">
+                <StackPanel Spacing="10">
+                  <Grid ColumnDefinitions="20,28,124,*,104" ColumnSpacing="12">
+                    <Border Classes="grip" AutomationProperties.Name="{Binding DragName}" ToolTip.Tip="{x:Static loc:Strings.Creator_StepDragTip}"
+                            VerticalAlignment="Center" Background="Transparent">
+                      <ui:Icon Data="{x:Static theme:Icons.GripVertical}" Width="16" Height="16" Foreground="{StaticResource TextMutedBrush}" />
+                    </Border>
+                    <Border Grid.Column="1" Classes="number" Classes.problem="{Binding HasProblem}" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Number}" />
+                    </Border>
+                    <Border Grid.Column="2" Classes="kind" VerticalAlignment="Bottom" Margin="0,0,0,8"
+                            Classes.danger="{Binding KindTone, Converter={x:Static creator:ReviewStepView.IsDanger}}">
+                      <StackPanel>
+                        <ui:Icon Data="{Binding KindIcon}" />
+                        <TextBlock Text="{Binding KindText}" />
+                      </StackPanel>
+                    </Border>
+                    <Grid Grid.Column="3" ColumnDefinitions="*,Auto,*" ColumnSpacing="10">
+                      <StackPanel Spacing="4" Grid.ColumnSpan="{Binding HasSecond, Converter={x:Static creator:ReviewStepView.SpanWhenAlone}}">
+                        <TextBlock Classes="rowTitle" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding FirstLabel}" />
+                        <TextBox Text="{Binding First}" FontSize="14" AutomationProperties.Name="{Binding FirstLabel}"
+                                 Classes.faulty="{Binding IsFirstFaulty}">
+                          <TextBox.InnerRightContent>
+                            <Button Classes="icon" Width="32" Height="32" Margin="0,0,4,0" ToolTip.Tip="{x:Static loc:Strings.Creator_PickFile}"
+                                    IsVisible="{Binding PicksAuthorFile}"
+                                    Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).PickSourceCommand}"
+                                    CommandParameter="{Binding}">
+                              <ui:Icon Data="{x:Static theme:Icons.FolderOpen}" Width="16" Height="16" />
+                            </Button>
+                          </TextBox.InnerRightContent>
+                        </TextBox>
+                      </StackPanel>
+                      <ui:Icon Grid.Column="1" Data="{x:Static theme:Icons.ArrowRight}" Width="16" Height="16" Margin="0,22,0,0"
+                               Foreground="{StaticResource TextSecondaryBrush}" IsVisible="{Binding HasSecond}" />
+                      <StackPanel Grid.Column="2" Spacing="4" IsVisible="{Binding HasSecond}">
+                        <TextBlock Classes="rowTitle" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding SecondLabel}" />
+                        <TextBox Text="{Binding Second}" FontSize="14" AutomationProperties.Name="{Binding SecondLabel}"
+                                 Classes.faulty="{Binding IsSecondFaulty}" />
+                      </StackPanel>
+                    </Grid>
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                Margin="0,0,0,4">
+                      <Button Classes="icon" ToolTip.Tip="{Binding MoveUpName}" IsEnabled="{Binding CanMoveUp}"
+                              Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MoveUpCommand}"
+                              CommandParameter="{Binding}">
+                        <ui:Icon Data="{x:Static theme:Icons.ArrowUp}" Width="16" Height="16" />
+                      </Button>
+                      <Button Classes="icon" ToolTip.Tip="{Binding MoveDownName}" IsEnabled="{Binding CanMoveDown}"
+                              Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MoveDownCommand}"
+                              CommandParameter="{Binding}">
+                        <ui:Icon Data="{x:Static theme:Icons.ArrowDown}" Width="16" Height="16" />
+                      </Button>
+                      <Button Classes="icon" ToolTip.Tip="{Binding RemoveName}"
+                              Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RemoveStepCommand}"
+                              CommandParameter="{Binding}">
+                        <ui:Icon Data="{x:Static theme:Icons.Trash}" Width="16" Height="16" />
+                      </Button>
+                    </StackPanel>
+                  </Grid>
+                  <StackPanel Margin="196,0,0,0" IsVisible="{Binding HasFindings}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                      <ItemsControl ItemsSource="{Binding Findings}" ItemTemplate="{StaticResource FindingTemplate}" />
+                      <Button Grid.Column="1" Classes="outline small" VerticalAlignment="Bottom" Content="{Binding SuggestionText}"
+                              ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}" IsVisible="{Binding HasSuggestion}"
+                              Command="{Binding UseSuggestionCommand}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,6,0,0"
+                          IsVisible="{Binding MoveBefore, Converter={x:Static ObjectConverters.IsNotNull}}">
+                      <ui:Icon Data="{x:Static theme:Icons.CircleX}" Width="14" Height="14" Margin="0,3,0,0" VerticalAlignment="Top" Classes="dangerText" />
+                      <TextBlock Grid.Column="1" Classes="rowText dangerText" LineHeight="20" Text="{Binding MoveBeforeText}" />
+                      <Button Grid.Column="2" Classes="outline small" Content="{Binding MoveBeforeAction}"
+                              ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUp}"
+                              Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MoveBeforeCommand}"
+                              CommandParameter="{Binding}" />
+                    </Grid>
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Classes="divider" />
+        <StackPanel Spacing="12" Margin="20,16,20,20">
+          <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddStep}" />
+          <UniformGrid Columns="4" ColumnSpacing="12">
+            <Button Classes="stepTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddCopy}" Command="{Binding AddStepCommand}"
+                    CommandParameter="Copy">
+              <StackPanel Spacing="10">
+                <Border Classes="folderChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
+                  <ui:Icon Data="{x:Static theme:Icons.Copy}" Width="22" Height="22" />
+                </Border>
+                <TextBlock Classes="rowTitle" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddCopy}" />
+                <TextBlock Classes="rowText" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddCopyText}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="stepTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddPatch}" Command="{Binding AddStepCommand}"
+                    CommandParameter="Patch">
+              <StackPanel Spacing="10">
+                <Border Classes="folderChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
+                  <ui:Icon Data="{x:Static theme:Icons.FileDiff}" Width="22" Height="22" />
+                </Border>
+                <TextBlock Classes="rowTitle" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddPatch}" />
+                <TextBlock Classes="rowText" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddPatchText}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="stepTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddRenameStep}" Command="{Binding AddStepCommand}"
+                    CommandParameter="Rename">
+              <StackPanel Spacing="10">
+                <Border Classes="folderChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
+                  <ui:Icon Data="{x:Static theme:Icons.FilePen}" Width="22" Height="22" />
+                </Border>
+                <TextBlock Classes="rowTitle" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddRenameStep}" />
+                <TextBlock Classes="rowText" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddEarlierText}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="stepTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddDeleteStep}" Command="{Binding AddStepCommand}"
+                    CommandParameter="Delete">
+              <StackPanel Spacing="10">
+                <Border Classes="folderChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
+                  <ui:Icon Data="{x:Static theme:Icons.FileX}" Width="22" Height="22" />
+                </Border>
+                <TextBlock Classes="rowTitle" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddDeleteStep}" />
+                <TextBlock Classes="rowText" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddEarlierText}" />
+              </StackPanel>
+            </Button>
+          </UniformGrid>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <ItemsControl ItemsSource="{Binding Problems}" IsVisible="{Binding HasProblems}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="creator:FindingLine">
+          <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                      Message="{Binding Text}" Margin="0,0,0,8" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Border Classes="soft" Padding="18,14,16,14" IsVisible="{Binding IsSimple}">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+        <Border Classes="folderChip" Width="36" Height="36">
+          <ui:Icon Data="{x:Static theme:Icons.ListOrdered}" Width="18" Height="18" />
+        </Border>
+        <TextBlock Grid.Column="1" Classes="bodyText" VerticalAlignment="Center">
+          <Run Text="{x:Static loc:Strings.Creator_AdvancedHintTitle}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+          <Run Text="{x:Static loc:Strings.Creator_AdvancedHint}" />
+        </TextBlock>
+        <Button Grid.Column="2" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_ToAdvancedButton}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.ListOrdered}" Command="{Binding ToAdvancedCommand}" />
+      </Grid>
+    </Border>
+
+    <!-- The call to check everything before the package is built. -->
+    <Border Classes="checkCard">
+      <Panel>
+        <Border Classes="checkGlow" />
+        <StackPanel Spacing="16" Margin="24">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+            <Border Classes="workChip" CornerRadius="12">
+              <ui:Icon Data="{x:Static theme:Icons.ListChecks}" Width="20" Height="20" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <TextBlock Text="{x:Static loc:Strings.Creator_CheckTitle}" FontSize="18" LineHeight="26" FontWeight="Bold"
+                         Foreground="{StaticResource TextStrongBrush}" />
+              <TextBlock Classes="bodyL" Text="{Binding CheckText}" />
+            </StackPanel>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Checklist}" Margin="54,0,0,0">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <ui:Icon Data="{x:Static theme:Icons.Check}" Width="16" Height="16" Margin="0,2,0,0" VerticalAlignment="Top"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+                  <TextBlock Grid.Column="1" Classes="bodyText" Foreground="{StaticResource TextEmphasisBrush}" Text="{Binding}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <WrapPanel Margin="54,0,0,0">
+            <Button x:Name="ConfirmButton" Classes="primary" Content="{x:Static loc:Strings.Creator_Confirm}" Margin="0,0,16,0"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}" Command="{Binding ConfirmCommand}" />
+            <TextBlock Classes="meta" Text="{x:Static loc:Strings.Creator_ConfirmNext}" VerticalAlignment="Center" IsVisible="{Binding CanConfirm}" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" MaxWidth="520" VerticalAlignment="Center" IsVisible="{Binding !CanConfirm}">
+              <ui:Icon Data="{x:Static theme:Icons.Info}" Width="16" Height="16" Margin="0,2,0,0" VerticalAlignment="Top"
+                       Foreground="{StaticResource DangerTextStrongBrush}" />
+              <TextBlock Grid.Column="1" Classes="meta" Foreground="{StaticResource DangerTextStrongBrush}" Text="{Binding ConfirmBlocked}"
+                         TextWrapping="Wrap" />
+            </Grid>
+          </WrapPanel>
+        </StackPanel>
+      </Panel>
+    </Border>
+
+    <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0">
+      <Button Classes="outline footerAction" Content="{x:Static loc:Strings.Creator_Back}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}"
+              Command="{Binding BackCommand}" />
+    </Grid>
+  </StackPanel>
+</UserControl>

@@ -2727,4 +2727,358 @@
   <data name="Creator_ToReview" xml:space="preserve">
     <value>Next: check</value>
   </data>
+  <data name="Creator_ReviewTitle" xml:space="preserve">
+    <value>Check what the package does for players</value>
+  </data>
+  <data name="Creator_ReviewLead" xml:space="preserve">
+    <value>{count, plural, one {# file was compared with {game}} other {# files were compared with {game}}} and arranged into operations in the order the app runs them. An operation can change its kind, a file can be left out and operations can be added.</value>
+  </data>
+  <data name="Creator_RulesTitle" xml:space="preserve">
+    <value>Publishing rules</value>
+  </data>
+  <data name="Creator_RulesLead" xml:space="preserve">
+    <value>The site takes the author's own work only: no game files, cracks or store libraries.</value>
+  </data>
+  <data name="Creator_RulesMet" xml:space="preserve">
+    <value>Met</value>
+  </data>
+  <data name="Creator_RulesErrors" xml:space="preserve">
+    <value>{count, plural, one {# error} other {# errors}}</value>
+  </data>
+  <data name="Creator_RulesQuestions" xml:space="preserve">
+    <value>{count, plural, one {# question} other {# questions}}</value>
+  </data>
+  <data name="Creator_RulesMetTitle" xml:space="preserve">
+    <value>The package meets the publishing rules</value>
+  </data>
+  <data name="Creator_RulesClean" xml:space="preserve">
+    <value>The package holds no .exe files, store libraries, copy protection, cracks or copies of game files.</value>
+  </data>
+  <data name="Creator_RuleTitle" xml:space="preserve">
+    <value>{kind, select, StoreLibrary {{path} is a library of a store or its copy protection} CircumventionFile {{path} looks like a file of a crack or a store emulator} CopyOfGameFile {{path} is a copy of the game file {related}} WholeGameExecutable {{path} is the game's whole executable} WholeGameFile {{path} replaces a game file whole} WholeGameArchive {{path} replaces a game archive or a large file ({size})} ThirdPartyTool {{path} belongs to {tool}} AddedLibrary {{path} is a DLL library} LargePatch {The patch of {path} is almost as large as the file ({size})} other {{path}}}</value>
+  </data>
+  <data name="Creator_RuleText" xml:space="preserve">
+    <value>{kind, select, StoreLibrary {A package may not change, replace or delete libraries of a store or its copy protection, and the site does not take one that does. A file that is not part of the work can be left out.} CircumventionFile {The site does not take files that get around a game's copy protection, so the file has to be left out.} CopyOfGameFile {A package may not carry game files. The file has to be left out of the package.} WholeGameExecutable {A game's executable may change through a patch only, which the creator makes from the same file.} WholeGameFile {The site takes a whole file only when it is wholly the author's work; otherwise a patch is the way.} WholeGameArchive {A whole archive carries a large share of the game's assets. The site takes it only when it is wholly the author's work; a patch is usually enough.} ThirdPartyTool {The site takes other authors' tools with their licence and the address of their source code.} AddedLibrary {The site takes the author's own code and other authors' tools with their licence and source code.} LargePatch {Such a patch carries most of the file, e.g. of an encrypted or packed archive. The site takes it only when the file is the author's work.} other {}}</value>
+  </data>
+  <data name="Creator_Exclude" xml:space="preserve">
+    <value>Leave out of the package</value>
+  </data>
+  <data name="Creator_Accept" xml:space="preserve">
+    <value>Accept</value>
+  </data>
+  <data name="Creator_AcceptWork" xml:space="preserve">
+    <value>It is my own work</value>
+  </data>
+  <data name="Creator_Accepted" xml:space="preserve">
+    <value>Accepted</value>
+  </data>
+  <data name="Creator_ToolLicense" xml:space="preserve">
+    <value>Licence</value>
+  </data>
+  <data name="Creator_ToolSource" xml:space="preserve">
+    <value>Source code</value>
+  </data>
+  <data name="Creator_ToolSourcePlaceholder" xml:space="preserve">
+    <value>https://…</value>
+  </data>
+  <data name="Creator_ToolHint" xml:space="preserve">
+    <value>The licence and the address of the source code go into the package's description, so players know where the tool comes from.</value>
+  </data>
+  <data name="Creator_LibraryQuestion" xml:space="preserve">
+    <value>Where is this file from?</value>
+  </data>
+  <data name="Creator_LibraryOwnCode" xml:space="preserve">
+    <value>It is my own code</value>
+  </data>
+  <data name="Creator_LibraryThirdParty" xml:space="preserve">
+    <value>Another author's tool</value>
+  </data>
+  <data name="Creator_OperationsTitle" xml:space="preserve">
+    <value>Operations in the order they run</value>
+  </data>
+  <data name="Creator_CountOperations" xml:space="preserve">
+    <value>{count, plural, one {# operation} other {# operations}}</value>
+  </data>
+  <data name="Creator_CountSteps" xml:space="preserve">
+    <value>{count, plural, one {# step} other {# steps}}</value>
+  </data>
+  <data name="Creator_CountRenames" xml:space="preserve">
+    <value>{count, plural, one {# rename} other {# renames}}</value>
+  </data>
+  <data name="Creator_CountPatches" xml:space="preserve">
+    <value>{count, plural, one {# patch} other {# patches}}</value>
+  </data>
+  <data name="Creator_CountCopies" xml:space="preserve">
+    <value>{count, plural, one {# copy} other {# copies}}</value>
+  </data>
+  <data name="Creator_CountDeletes" xml:space="preserve">
+    <value>{count, plural, one {# deletion} other {# deletions}}</value>
+  </data>
+  <data name="Creator_CountExcluded" xml:space="preserve">
+    <value>{count, plural, one {# file left out} other {# files left out}}</value>
+  </data>
+  <data name="Creator_KindKept" xml:space="preserve">
+    <value>Stays in the game</value>
+  </data>
+  <data name="Creator_KindExcluded" xml:space="preserve">
+    <value>Left out</value>
+  </data>
+  <data name="Creator_ToggleGroup" xml:space="preserve">
+    <value>Fold or show the new files</value>
+  </data>
+  <data name="Creator_NewFilesIn" xml:space="preserve">
+    <value>New files in</value>
+  </data>
+  <data name="Creator_NewFilesReason" xml:space="preserve">
+    <value>The game does not have these files, so they go in whole.</value>
+  </data>
+  <data name="Creator_GroupCount" xml:space="preserve">
+    <value>({count, plural, one {# file} other {# files}})</value>
+  </data>
+  <data name="Creator_GroupRange" xml:space="preserve">
+    <value>operations {first}–{last}</value>
+  </data>
+  <data name="Creator_Why" xml:space="preserve">
+    <value>{reason, select, NewFile {The game does not have this file, so it goes in whole.} ChangedFile {A changed game file: the package keeps only the differences, not the whole file.} ReplacedFile {The whole file replaces the game's.} OriginalRenamedAway {This file takes the place of the original that operation {number} renamed.} RenamedGameFile {{name} has the same content as the original {from}, so the package renames the game's file instead of carrying a copy.} RemovedFile {The package deletes this file for players; the original goes to the backup.} AddedStep {An operation added by hand.} other {}}</value>
+  </data>
+  <data name="Creator_Finding" xml:space="preserve">
+    <value>{kind, select, EmptyPackage {The package changes nothing.} InvalidPath {The path “{path}” is empty or not valid.} PathEscapesFolder {The path “{path}” leads out of the game's folder.} ReservedPath {“{path}” is in the app's or a store's folder in the game, where a package may not write.} DuplicatePath {The package writes “{path}” a second time, so the first write is lost.} ConflictingOperations {This operation undoes an earlier one, e.g. deletes a file the package wrote or renames a file to its own name: “{path}”.} PathConflict {At “{path}” there is a folder where the package needs a file, or a file where it needs a folder.} AuthorFileMissing {The folder with the files has no “{path}”; the files can be compared again.} GameFileMissing {There is no “{path}” in the game or in the steps before this one.} FileRemovedEarlier {An earlier operation already deleted or renamed “{path}”.} RenameOverwritesFile {The rename replaces the game file “{path}”.} RenamedFileNotReplaced {After the rename the game lacks “{related}”, as the package writes nothing in its place.} TooManyFiles {The package has more files than the app installs from one package.} PackageTooLarge {The package is larger than the app installs from one package.} MissingTitle {A package of the app needs a name.} MissingVersion {A package of the app needs a version.} LargerThanSiteTakes {The package has {size}, more than the site takes as a release file.} FormatNotOnSite {The site takes no release files of this format.} other {“{path}” is against the site's rules.}}</value>
+  </data>
+  <data name="Creator_FindingSuggestion" xml:space="preserve">
+    <value>{finding} Was {path} meant?</value>
+  </data>
+  <data name="Creator_BreaksRules" xml:space="preserve">
+    <value>Against the rules</value>
+  </data>
+  <data name="Creator_Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="Creator_ExcludedReason" xml:space="preserve">
+    <value>Left out of the package.</value>
+  </data>
+  <data name="Creator_MissingReason" xml:space="preserve">
+    <value>{root, select, true {It is not in the folder with the files, although the other files of the game's main folder are.} other {It is not in {folder} of the folder with the files, although the game's other files of that folder are.}} The package deletes it for players only once that is confirmed.</value>
+  </data>
+  <data name="Creator_MissingQuestion" xml:space="preserve">
+    <value>What happens to it?</value>
+  </data>
+  <data name="Creator_Choice" xml:space="preserve">
+    <value>{choice, select, Copy {{difference, select, Changed {Whole file} other {Copy}}} Patch {Patch} Rename {Rename} Delete {Delete for players} other {{difference, select, Missing {Keep in the game} other {Leave out of the package}}}}</value>
+  </data>
+  <data name="Creator_EditQuestion" xml:space="preserve">
+    <value>What does the package do with this file?</value>
+  </data>
+  <data name="Creator_Default" xml:space="preserve">
+    <value>default</value>
+  </data>
+  <data name="Creator_EditText" xml:space="preserve">
+    <value>{difference, select, Changed {A patch holds only what differs from the original, so the package carries no game file. It works for players with the same version of the file, which the app checks before installing.} New {The game does not have this file, so it goes in whole.} other {The file has the same content as the game's {from}, so renaming the game's file is enough instead of carrying a copy.}}</value>
+  </data>
+  <data name="Creator_WholeFileNote" xml:space="preserve">
+    <value>A whole file fits only when it is wholly the author's work; the site then asks to confirm it, as it takes no game files.</value>
+  </data>
+  <data name="Creator_ExpectedFolder" xml:space="preserve">
+    <value>The game keeps a file of this name in {folder} and does not read it here.</value>
+  </data>
+  <data name="Creator_Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Creator_EditOperation" xml:space="preserve">
+    <value>Change the operation</value>
+  </data>
+  <data name="Creator_RemoveOperation" xml:space="preserve">
+    <value>Remove the operation</value>
+  </data>
+  <data name="Creator_IdenticalLeftOut" xml:space="preserve">
+    <value>{count, plural, one {# file is the same as in the game and stays out of the package} other {# files are the same as in the game and stay out of the package}}</value>
+  </data>
+  <data name="Creator_AddOperation" xml:space="preserve">
+    <value>Add an operation</value>
+  </data>
+  <data name="Creator_AddDelete" xml:space="preserve">
+    <value>Delete a game file…</value>
+  </data>
+  <data name="Creator_AddDeleteText" xml:space="preserve">
+    <value>The package deletes it for players. The original goes to the backup, so undoing the install brings it back.</value>
+  </data>
+  <data name="Creator_AddRename" xml:space="preserve">
+    <value>Rename a game file…</value>
+  </data>
+  <data name="Creator_AddRenameText" xml:space="preserve">
+    <value>E.g. so that a new library takes the original's place.</value>
+  </data>
+  <data name="Creator_AddConfirm" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Creator_AddNote" xml:space="preserve">
+    <value>The file comes from the folder of {game}. Copies and patches come from the folder with the files: to add one, the file goes into that folder and the files are compared again.</value>
+  </data>
+  <data name="Creator_PickGameFileTitle" xml:space="preserve">
+    <value>Game file</value>
+  </data>
+  <data name="Creator_PickFileTitle" xml:space="preserve">
+    <value>File of the folder with the files</value>
+  </data>
+  <data name="Creator_AdvancedHintTitle" xml:space="preserve">
+    <value>Steps in an order of one's own?</value>
+  </data>
+  <data name="Creator_AdvancedHint" xml:space="preserve">
+    <value> Advanced mode sets the order and the paths by hand, e.g. to patch a file after renaming it.</value>
+  </data>
+  <data name="Creator_ToAdvancedButton" xml:space="preserve">
+    <value>Advanced mode…</value>
+  </data>
+  <data name="Creator_ToAdvancedTitle" xml:space="preserve">
+    <value>Switch to advanced mode?</value>
+  </data>
+  <data name="Creator_ToAdvanced" xml:space="preserve">
+    <value>The detected operations become a list of steps to arrange freely: copies, patches, renames and deletions in any order. The package does exactly what it does now. Simple mode can come back at any time, but the creator then arranges the operations again from the comparison.</value>
+  </data>
+  <data name="Creator_ToAdvancedConfirm" xml:space="preserve">
+    <value>Switch to advanced mode</value>
+  </data>
+  <data name="Creator_ToSimpleTitle" xml:space="preserve">
+    <value>Go back to simple mode?</value>
+  </data>
+  <data name="Creator_ToSimple" xml:space="preserve">
+    <value>The creator arranges the operations again from the comparison. The order and paths set by hand are lost.</value>
+  </data>
+  <data name="Creator_ToSimpleConfirm" xml:space="preserve">
+    <value>Go back and arrange again</value>
+  </data>
+  <data name="Creator_ToSimpleButton" xml:space="preserve">
+    <value>Back to simple mode</value>
+  </data>
+  <data name="Creator_StepsTitle" xml:space="preserve">
+    <value>Arrange the package's steps</value>
+  </data>
+  <data name="Creator_StepsLead" xml:space="preserve">
+    <value>The app runs them for players one after another, each seeing the game's files as the steps before it left them: e.g. a file can be renamed first and then patched.</value>
+  </data>
+  <data name="Creator_StepsCardTitle" xml:space="preserve">
+    <value>The package's steps</value>
+  </data>
+  <data name="Creator_StepSteps" xml:space="preserve">
+    <value>Package steps</value>
+  </data>
+  <data name="Creator_StepsInOrder" xml:space="preserve">
+    <value>The steps are in order</value>
+  </data>
+  <data name="Creator_StepsProblems" xml:space="preserve">
+    <value>To fix: {count, plural, one {# problem} other {# problems}}</value>
+  </data>
+  <data name="Creator_StepDragTip" xml:space="preserve">
+    <value>Drag to change the order</value>
+  </data>
+  <data name="Creator_StepDrag" xml:space="preserve">
+    <value>Drag step {number} to change the order</value>
+  </data>
+  <data name="Creator_StepMoveUp" xml:space="preserve">
+    <value>Move step {number} up</value>
+  </data>
+  <data name="Creator_StepMoveDown" xml:space="preserve">
+    <value>Move step {number} down</value>
+  </data>
+  <data name="Creator_StepRemove" xml:space="preserve">
+    <value>Remove step {number}</value>
+  </data>
+  <data name="Creator_PickFile" xml:space="preserve">
+    <value>Choose file</value>
+  </data>
+  <data name="Creator_StepSource" xml:space="preserve">
+    <value>Your file</value>
+  </data>
+  <data name="Creator_StepCopyTo" xml:space="preserve">
+    <value>Save in the game as</value>
+  </data>
+  <data name="Creator_StepPatchOf" xml:space="preserve">
+    <value>Game file to change</value>
+  </data>
+  <data name="Creator_StepGameFile" xml:space="preserve">
+    <value>File in the game</value>
+  </data>
+  <data name="Creator_StepNewName" xml:space="preserve">
+    <value>New name</value>
+  </data>
+  <data name="Creator_RenamesWritten" xml:space="preserve">
+    <value>This step renames the {name} written in step {number}, not the game's original, which that step overwrites first.</value>
+  </data>
+  <data name="Creator_MoveBefore" xml:space="preserve">
+    <value>Move before step {number}</value>
+  </data>
+  <data name="Creator_FixPath" xml:space="preserve">
+    <value>Change to {name}</value>
+  </data>
+  <data name="Creator_AddStep" xml:space="preserve">
+    <value>Add a step at the end of the list</value>
+  </data>
+  <data name="Creator_AddCopy" xml:space="preserve">
+    <value>Copy a file</value>
+  </data>
+  <data name="Creator_AddCopyText" xml:space="preserve">
+    <value>A file of the folder goes into the game whole.</value>
+  </data>
+  <data name="Creator_AddPatch" xml:space="preserve">
+    <value>Apply a patch</value>
+  </data>
+  <data name="Creator_AddPatchText" xml:space="preserve">
+    <value>Turns a game file into the folder's file, keeping only the differences.</value>
+  </data>
+  <data name="Creator_AddRenameStep" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Creator_AddDeleteStep" xml:space="preserve">
+    <value>Delete a file</value>
+  </data>
+  <data name="Creator_AddEarlierText" xml:space="preserve">
+    <value>Of the game or of an earlier step.</value>
+  </data>
+  <data name="Creator_CheckTitle" xml:space="preserve">
+    <value>Check that everything is right</value>
+  </data>
+  <data name="Creator_CheckOperations" xml:space="preserve">
+    <value>The app runs exactly {count, plural, one {this # operation} other {these # operations}} for every player, in this order. Before going on, it is worth making sure that:</value>
+  </data>
+  <data name="Creator_CheckSteps" xml:space="preserve">
+    <value>The app runs exactly {count, plural, one {this # step} other {these # steps}} for every player, in this order. Before going on, it is worth making sure that:</value>
+  </data>
+  <data name="Creator_CheckPlaces" xml:space="preserve">
+    <value>every file goes where the game looks for it,</value>
+  </data>
+  <data name="Creator_CheckRename" xml:space="preserve">
+    <value>the rename takes the right game file,</value>
+  </data>
+  <data name="Creator_CheckNothingExtra" xml:space="preserve">
+    <value>the package holds nothing extra, such as notes or working copies.</value>
+  </data>
+  <data name="Creator_CheckStepFiles" xml:space="preserve">
+    <value>every step works on the right file, as the steps before it left it,</value>
+  </data>
+  <data name="Creator_CheckRenameOrder" xml:space="preserve">
+    <value>a rename comes before the step that writes the file under its old name,</value>
+  </data>
+  <data name="Creator_Confirm" xml:space="preserve">
+    <value>Everything is right</value>
+  </data>
+  <data name="Creator_ConfirmNext" xml:space="preserve">
+    <value>Next: the package's format and build.</value>
+  </data>
+  <data name="Creator_ConfirmBlocked" xml:space="preserve">
+    <value>First, {what}.</value>
+  </data>
+  <data name="Creator_BlockedRules" xml:space="preserve">
+    <value>{case, select, errors {fix {errors, plural, one {the error} other {the {errors} errors}}} questions {answer {questions, plural, one {the question} other {the {questions} questions}}} other {fix {errors, plural, one {the error} other {the {errors} errors}} and answer {questions, plural, one {the question} other {the {questions} questions}}}} under “Publishing rules” at the top of the page</value>
+  </data>
+  <data name="Creator_BlockedAt" xml:space="preserve">
+    <value>fix {count, plural, one {the problem} other {the # problems}} in {advanced, select, true {{places, plural, one {step} other {steps}}} other {{places, plural, one {operation} other {operations}}}} {numbers}</value>
+  </data>
+  <data name="Creator_BlockedMarked" xml:space="preserve">
+    <value>solve {count, plural, one {the problem marked above} other {the # problems marked above}}</value>
+  </data>
+  <data name="Creator_ListNext" xml:space="preserve">
+    <value>{list}, {item}</value>
+  </data>
+  <data name="Creator_ListLast" xml:space="preserve">
+    <value>{list} and {item}</value>
+  </data>
 </root>
