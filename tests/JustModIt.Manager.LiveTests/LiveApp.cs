@@ -9,8 +9,9 @@ internal static class LiveApp
 {
     private const string Version = "0.0.0-live";
 
+    // Names of their own, so the tests never take an installed copy's or a development build's installs for theirs.
     public static AppIdentity Identity { get; } = new(ProductConfiguration.AppId, ProductConfiguration.VendorId,
-        ProductConfiguration.AppSlug, ProductConfiguration.IsDevelopmentBuild);
+        ProductConfiguration.AppSlug, isDevelopmentBuild: true, ProductConfiguration.DevelopmentName);
 
     public static CatalogueApiOptions ApiOptions { get; } = new(new Uri(ProductConfiguration.ApiUrl),
         new Uri(ProductConfiguration.SiteUrl), ProductConfiguration.AppId, Version, ProductConfiguration.ApiKey);
@@ -21,5 +22,5 @@ internal static class LiveApp
         ProductConfiguration.PackageExtension, ProductConfiguration.CreatorProjectExtension);
 
     /// <summary>Where the live tests keep their data folders, their work and the downloads they keep across runs.</summary>
-    public static string TestFolder => Path.Combine(Path.GetTempPath(), Identity.InstanceName + ".LiveTests");
+    public static string TestFolder => Path.Combine(Path.GetTempPath(), Identity.InstanceName);
 }

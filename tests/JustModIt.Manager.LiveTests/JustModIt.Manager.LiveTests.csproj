@@ -3,6 +3,10 @@
   <Import Project="..\..\src\MenadzerSpolszczen\Product.props" />
   <Import Project="..\..\src\JustModIt.Manager.Host\ProductConfiguration.targets" />
 
+  <PropertyGroup>
+    <ManagerDevelopmentName>LiveTests</ManagerDevelopmentName>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\JustModIt.Manager.Core\JustModIt.Manager.Core.csproj" />
     <ProjectReference Include="..\..\src\JustModIt.Manager.Creator\JustModIt.Manager.Creator.csproj" />

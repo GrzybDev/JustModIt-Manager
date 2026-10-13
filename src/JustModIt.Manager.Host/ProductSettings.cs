@@ -54,8 +54,11 @@ public sealed record ProductSettings
 
     public bool IsDevelopmentBuild { get; init; }
 
+    /// <summary>What a development build adds to its names, e.g. "Dev".</summary>
+    public string DevelopmentName { get; init; } = "Dev";
+
     /// <summary>A development build registers autostart and the link scheme, which otherwise only an installed copy does.</summary>
     public bool DevelopmentShellIntegration { get; init; }
 
-    public AppIdentity Identity => new(AppId, VendorId, AppSlug, IsDevelopmentBuild);
+    public AppIdentity Identity => new(AppId, VendorId, AppSlug, IsDevelopmentBuild, DevelopmentName);
 }

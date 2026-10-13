@@ -4,10 +4,10 @@
 Measures how much memory the agent keeps while it sits in the tray.
 
 .DESCRIPTION
-Publishes the app with NativeAOT as a development build with a vendor id of its own, so it never meets an installed copy
-and starts from an empty data folder, removed afterwards. It reads the agent's memory once the first library scan and
-catalogue refresh are saved, a minute later and after -IdleMinutes, and stops every process it started. It fails when
-the agent loaded the window's native libraries.
+Publishes the app with NativeAOT as a development build with a vendor id and a development name of its own, so it never
+meets an installed copy or the developer's own build and starts from an empty data folder, removed afterwards. It reads
+the agent's memory once the first library scan and catalogue refresh are saved, a minute later and after -IdleMinutes,
+and stops every process it started. It fails when the agent loaded the window's native libraries.
 
 The agent reads the real store libraries and site, read-only: the first-run setup is not finished, so nothing is
 downloaded or installed.
@@ -37,6 +37,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path -Parent $PSScriptRoot
 $vendor = 'JustModIt.Manager.Footprint'
+$developmentName = 'Footprint'
 
 $project = Get-ChildItem (Join-Path $root "src\$App") -Filter '*.csproj' -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $project -or -not (Test-Path (Join-Path $project.DirectoryName 'Product.props'))) {
@@ -54,14 +55,14 @@ if (-not (Get-Command 'vswhere' -ErrorAction SilentlyContinue) -and (Test-Path (
 if (-not $NoPublish) {
     if (Test-Path $OutputDir) { Remove-Item $OutputDir -Recurse -Force }
     & dotnet publish $project.FullName -c Release -r win-x64 -o $OutputDir -p:ManagerDevelopmentBuild=true "-p:ManagerVendorId=$vendor" `
-        -nologo -v:q
+        "-p:ManagerDevelopmentName=$developmentName" -nologo -v:q
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit code $LASTEXITCODE." }
 }
 
 $exe = Get-ChildItem $OutputDir -Filter '*.exe' | Select-Object -First 1
 if (-not $exe) { throw "$OutputDir holds no published app." }
 
-$data = Join-Path $env:LOCALAPPDATA "$vendor\$($exe.BaseName).Dev"
+$data = Join-Path $env:LOCALAPPDATA "$vendor\$($exe.BaseName).$developmentName"
 $index = Join-Path $data 'cache\catalogue\index.json'
 $library = Join-Path $data 'state\library.json'
 if (Test-Path $data) { Remove-Item $data -Recurse -Force }
