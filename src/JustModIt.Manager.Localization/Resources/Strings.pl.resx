@@ -1464,6 +1464,9 @@
   <data name="GamePage_TeamFacts" xml:space="preserve">
     <value>Grupa · {members, plural, one {# osoba} few {# osoby} many {# osób} other {# osoby}}</value>
   </data>
+  <data name="GamePage_TeamFactsProjects" xml:space="preserve">
+    <value>Grupa · {members, plural, one {# osoba} few {# osoby} many {# osób} other {# osoby}} · {projects, plural, one {# projekt} few {# projekty} many {# projektów} other {# projektu}}</value>
+  </data>
   <data name="GamePage_TeamLine" xml:space="preserve">
     <value>Projekt grupy</value>
   </data>

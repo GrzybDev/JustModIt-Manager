@@ -39,6 +39,7 @@ public static class TestPages
             "slug": "{{project.Team.Slug}}",
             "name": "{{project.Team.Name}}",
             "member_count": 3,
+            "project_count": 12,
             "donation_methods": [
               { "uuid": "31111111-2222-4333-8444-555555555555", "platform": { "uuid": "41111111-2222-4333-8444-555555555555", "name": "Tip Jar", "is_link": true }, "value": "https://tips.example.com/lantern-team" }
             ]

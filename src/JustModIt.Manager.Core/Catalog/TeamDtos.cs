@@ -29,6 +29,9 @@ public sealed record Team
 
     public int MemberCount { get; init; }
 
+    /// <summary>The team's public projects; 0 when the site does not say.</summary>
+    public int ProjectCount { get; init; }
+
     public bool HasPublicProject { get; init; }
 
     public string DonationMessage { get; init => field = value ?? ""; } = "";

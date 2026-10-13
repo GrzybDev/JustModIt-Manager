@@ -101,6 +101,9 @@ public sealed record ProjectDetails
 
     public int TeamMembers { get; init; }
 
+    /// <summary>The team's public projects; 0 when the site does not say.</summary>
+    public int TeamProjects { get; init; }
+
     /// <summary>The release players can download; null when there is none.</summary>
     public ReleaseView? Release { get; init; }
 
@@ -160,6 +163,7 @@ public sealed record ProjectDetails
                     .Select(method => new SupportLink(method.Platform, method.Address!)),
             ],
             TeamMembers = project.Team.MemberCount,
+            TeamProjects = project.Team.ProjectCount,
             Release = project.PublicRelease is { } release ? ReleaseView.From(release) : null,
             Variants = project.PublicRelease is { } shown ? ReleaseSelector.VariantNames(shown) : [],
             HasFile = project.Status?.AllowsPublicReleases != false && project.PublicRelease?.Files.Any(file => file.IsReady) == true,

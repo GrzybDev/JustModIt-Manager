@@ -72,7 +72,13 @@ public sealed partial class ProjectStory(UiServices services) : ObservableObject
 
     public bool HasSupport => Details is { Support.Count: > 0 };
 
-    public string TeamFacts => Details is { } details ? Text.Format(Strings.GamePage_TeamFacts, ("members", details.TeamMembers)) : "";
+    public string TeamFacts => Details switch
+    {
+        null => "",
+        { TeamProjects: > 0 } details => Text.Format(Strings.GamePage_TeamFactsProjects, ("members", details.TeamMembers),
+            ("projects", details.TeamProjects)),
+        { } details => Text.Format(Strings.GamePage_TeamFacts, ("members", details.TeamMembers)),
+    };
 
     /// <summary>The credits' heading, in capitals as an overline is set.</summary>
     public static string CreditsTitle => Strings.GamePage_Credits.ToUpper(Text.Culture);

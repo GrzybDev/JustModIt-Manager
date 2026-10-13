@@ -278,7 +278,7 @@ public sealed class GameTests
         page.Summary.Should().StartWith("Latarnik wraca");
         page.Details!.Gallery.Should().HaveCount(3);
         page.Details.Credits.Select(credit => credit.Name).Should().Equal("Ada Lantern", "Olek Tide");
-        page.Story.TeamFacts.Should().Be("Grupa · 3 osoby");
+        page.Story.TeamFacts.Should().Be("Grupa · 3 osoby · 12 projektów");
         ui.Images.Backdrops.Should().Contain(backdrop => backdrop.Recipe.Artwork == $"https://images.example.com/backgrounds/{Ember.GameSlug}.png");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
         ui.Render("game-full", height: 2200);
