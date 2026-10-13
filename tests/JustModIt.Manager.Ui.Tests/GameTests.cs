@@ -4,9 +4,11 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Controls;
@@ -343,14 +345,76 @@ public sealed class GameTests
     }
 
     [AvaloniaFact]
-    public async Task A_game_no_longer_listed_says_so_with_one_way_back()
+    public async Task A_game_no_longer_listed_says_so_and_one_on_this_computer_says_it_waits_for_a_project()
     {
         using var ui = Open(State(), Available("Ember Hollow", "4100"));
         Page(ui).IsMissing.Should().BeTrue();
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render("game-missing");
+        ui.Find<Button>("OpenCatalogueGame").IsEffectivelyVisible.Should().BeFalse("a game gone has nothing in the catalogue to wait for");
         ui.Click(ui.Find<Button>().Single(button => button.IsEffectivelyVisible && button.Content is "Wróć do „Moje gry”"));
         ui.Shell.Navigator.CurrentRoute.Should().Be(new LibraryRoute());
+
+        var meridian = SteamKey("4300");
+        var found = new DetectedGameView { InstallDirectory = @"D:\Games\Iron Meridian", LibraryId = "library" };
+        var detected = new DetectedGameEntry(meridian, "Iron Meridian", found)
+        {
+            Projects = [new SiteProjectView(Guid.NewGuid(), "iron-meridian", "lantern-team")],
+        };
+        var copper = SteamKey("4400");
+        var otherStores = new DetectedGameEntry(copper, "Copper Vale", found with { InstallDirectory = @"D:\Games\Copper Vale" })
+        {
+            Projects = [new SiteProjectView(Guid.NewGuid(), "copper-vale", "lantern-team")],
+            Unavailable = SelectionUnavailability.OtherStores,
+        };
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([detected, otherStores]) : null;
+        ui.Shell.Navigator.Navigate(new GameRoute(meridian));
+        var page = Page(ui);
+        await UiHarness.WaitUntilAsync(() => page.HasCatalogueGame);
+        (page.MissingTitle, page.MissingText).Should().Be(("Ta gra czeka na spolszczenie",
+            "Gra jest na tym komputerze. Gdy grupa wyda spolszczenie, pojawi się w „Moich grach”."));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-waiting");
+        ui.Click(ui.Find<Button>().Single(button => button.Name == "OpenCatalogueGame" && button.IsEffectivelyVisible));
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new CatalogueGameRoute("iron-meridian"));
+
+        ui.Shell.Navigator.Navigate(new GameRoute(copper));
+        var unfit = Page(ui);
+        await UiHarness.WaitUntilAsync(() => unfit.HasCatalogueGame);
+        (unfit.MissingTitle, unfit.MissingText).Should().Be(("Ta wersja gry czeka na spolszczenie",
+            "Gra jest na tym komputerze, ale spolszczenie nie ma jeszcze pliku dla tej wersji gry."),
+            "a completed project made only for other versions of the game is not on its way");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-waiting-file");
+    }
+
+    [AvaloniaFact]
+    public async Task In_english_a_game_gone_and_a_game_that_waits_name_the_games_list_in_their_texts()
+    {
+        var waiting = new DetectedGameEntry(SteamKey("4300"), "Iron Meridian",
+            new DetectedGameView { InstallDirectory = @"D:\Games\Iron Meridian", LibraryId = "library" })
+        {
+            Projects = [new SiteProjectView(Guid.NewGuid(), "iron-meridian", "lantern-team")],
+        };
+        Text.Use(TextCatalog.Base);
+        try
+        {
+            using var ui = Open(State(), Available("Ember Hollow", "4100"));
+            Page(ui).MissingText.Should()
+                .Be("This game is not in “My games” now. It may have been uninstalled, or its store stopped reporting it.");
+
+            ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([waiting]) : null;
+            ui.Shell.Navigator.Navigate(new GameRoute(waiting.Key));
+            var page = Page(ui);
+            await UiHarness.WaitUntilAsync(() => page.HasCatalogueGame);
+
+            (page.MissingTitle, page.MissingText).Should().Be(("This game is waiting for a project",
+                "The game is on this computer. Once the team releases the project, it shows in “My games”."));
+        }
+        finally
+        {
+            Text.Use(TestApp.PolishApp());
+        }
     }
 
     [AvaloniaFact]

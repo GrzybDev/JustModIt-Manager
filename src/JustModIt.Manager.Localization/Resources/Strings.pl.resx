@@ -1317,6 +1317,18 @@
   <data name="GamePage_NotFoundTitle" xml:space="preserve">
     <value>Nie znaleziono tej gry</value>
   </data>
+  <data name="GamePage_WaitingTitle" xml:space="preserve">
+    <value>Ta gra czeka na projekt</value>
+  </data>
+  <data name="GamePage_WaitingFileTitle" xml:space="preserve">
+    <value>Ta wersja gry czeka na projekt</value>
+  </data>
+  <data name="GamePage_WaitingFileText" xml:space="preserve">
+    <value>{reason, select, UnsupportedFormat {Gra jest na tym komputerze, ale plik projektu dla tej wersji gry ma format, którego aplikacja nie instaluje.} other {Gra jest na tym komputerze, ale projekt nie ma jeszcze pliku dla tej wersji gry.}}</value>
+  </data>
+  <data name="GamePage_OpenInCatalogue" xml:space="preserve">
+    <value>Otwórz w katalogu</value>
+  </data>
   <data name="GamePage_NotInCatalogueText" xml:space="preserve">
     <value>Nie będzie więc nowych wersji ani opisu. Odinstalowanie nadal działa, także bez internetu.</value>
   </data>

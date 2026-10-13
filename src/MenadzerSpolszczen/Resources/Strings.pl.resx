@@ -414,6 +414,15 @@
   <data name="GamePage_Update" xml:space="preserve">
     <value>Zaktualizuj spolszczenie</value>
   </data>
+  <data name="GamePage_WaitingTitle" xml:space="preserve">
+    <value>Ta gra czeka na spolszczenie</value>
+  </data>
+  <data name="GamePage_WaitingFileTitle" xml:space="preserve">
+    <value>Ta wersja gry czeka na spolszczenie</value>
+  </data>
+  <data name="GamePage_WaitingFileText" xml:space="preserve">
+    <value>{reason, select, UnsupportedFormat {Gra jest na tym komputerze, ale plik spolszczenia dla tej wersji gry ma format, którego aplikacja nie instaluje.} other {Gra jest na tym komputerze, ale spolszczenie nie ma jeszcze pliku dla tej wersji gry.}}</value>
+  </data>
   <data name="GamePage_UpdateTitle" xml:space="preserve">
     <value>Jest nowa wersja spolszczenia</value>
   </data>

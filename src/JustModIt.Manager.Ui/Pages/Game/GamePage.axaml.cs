@@ -33,8 +33,6 @@ public sealed partial class GamePage : UserControl
         };
     }
 
-    public static string NotFoundText => Text.Format(Strings.GamePage_NotFoundText, ("library", Strings.Shell_Library));
-
     public static string BackText => Text.Format(Strings.GamePage_BackToLibrary, ("library", Strings.Shell_Library));
 
     protected override void OnDataContextChanged(EventArgs e)

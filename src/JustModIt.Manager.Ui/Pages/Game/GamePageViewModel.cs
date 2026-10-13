@@ -43,6 +43,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private Guid? _cancelled;
     private NextStep? _result;
     private string? _chosenVariant;
+    private bool _askedDetected;
 
     /// <summary>Creates the page of a game, which follows the agent's state from then on.</summary>
     /// <param name="services">The window's services.</param>
@@ -68,6 +69,20 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
     [ObservableProperty]
     public partial bool IsMissing { get; private set; }
+
+    /// <summary>Why the game is not in the list: gone, or on this computer and waiting for a project to install.</summary>
+    [ObservableProperty]
+    public partial string MissingTitle { get; private set; } = Strings.GamePage_NotFoundTitle;
+
+    [ObservableProperty]
+    public partial string MissingText { get; private set; } = Text.Format(Strings.GamePage_NotFoundText, ("library", Strings.Shell_Library));
+
+    /// <summary>The catalogue's game of a game waiting for a project; null when the site lists none.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCatalogueGame))]
+    public partial string? CatalogueGame { get; private set; }
+
+    public bool HasCatalogueGame => CatalogueGame is not null;
 
     [ObservableProperty]
     public partial string Name { get; private set; } = "";
@@ -368,6 +383,37 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private void BackToLibrary() => _services.Navigator.Navigate(new LibraryRoute());
 
     [RelayCommand]
+    private void OpenCatalogueGame()
+    {
+        if (CatalogueGame is { } slug)
+        {
+            _services.Navigator.Navigate(new CatalogueGameRoute(slug));
+        }
+    }
+
+    // A game the stores report stays off the list while no project for it can be installed.
+    private async Task FindDetectedAsync()
+    {
+        Message? answer;
+        try
+        {
+            answer = await _services.Agent.RequestAsync(new GetDetectedGames()).ConfigureAwait(true);
+        }
+        catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
+        {
+            return;
+        }
+
+        if (answer is DetectedGames detected && detected.Games.FirstOrDefault(entry => entry.Key == _key) is { } game)
+        {
+            (MissingTitle, MissingText) = game.Unavailable is { } reason
+                ? (Strings.GamePage_WaitingFileTitle, Text.Format(Strings.GamePage_WaitingFileText, ("reason", reason.ToString())))
+                : (Strings.GamePage_WaitingTitle, Text.Format(Strings.Catalogue_HereWaits, ("library", Strings.Shell_Library)));
+            CatalogueGame = game.Projects.Count > 0 ? game.Projects[0].GameSlug : null;
+        }
+    }
+
+    [RelayCommand]
     private async Task ChooseVariantAsync(VariantChoice variant)
     {
         _chosenVariant = variant.Name;
@@ -488,6 +534,11 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             if (!IsMissing)
             {
                 Compose();
+            }
+            else if (!_askedDetected)
+            {
+                _askedDetected = true;
+                _ = FindDetectedAsync();
             }
 
             OnPropertyChanged(nameof(Title));

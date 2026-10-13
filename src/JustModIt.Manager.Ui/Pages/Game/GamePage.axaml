@@ -750,11 +750,15 @@
       </Panel>
     </ScrollViewer>
 
-    <ui:EmptyState x:Name="Missing" Icon="{x:Static theme:Icons.Gamepad}" Title="{x:Static loc:Strings.GamePage_NotFoundTitle}"
-                   Message="{x:Static game:GamePage.NotFoundText}" IsVisible="{Binding IsMissing}" VerticalAlignment="Center"
-                   theme:Motion.Enter="True">
-      <Button Classes="outline" Content="{x:Static game:GamePage.BackText}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}"
-              Command="{Binding BackToLibraryCommand}" />
+    <ui:EmptyState x:Name="Missing" Icon="{x:Static theme:Icons.Gamepad}" Title="{Binding MissingTitle}" Message="{Binding MissingText}"
+                   IsVisible="{Binding IsMissing}" VerticalAlignment="Center" theme:Motion.Enter="True">
+      <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+        <Button Classes="outline" Content="{x:Static game:GamePage.BackText}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}"
+                Command="{Binding BackToLibraryCommand}" />
+        <Button x:Name="OpenCatalogueGame" Classes="outline" Content="{x:Static loc:Strings.GamePage_OpenInCatalogue}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.Library}" Command="{Binding OpenCatalogueGameCommand}"
+                IsVisible="{Binding HasCatalogueGame}" />
+      </StackPanel>
     </ui:EmptyState>
   </Panel>
 </UserControl>

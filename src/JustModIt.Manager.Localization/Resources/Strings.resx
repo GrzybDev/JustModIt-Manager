@@ -1329,6 +1329,18 @@
   <data name="GamePage_NotFoundTitle" xml:space="preserve">
     <value>This game is not here</value>
   </data>
+  <data name="GamePage_WaitingTitle" xml:space="preserve">
+    <value>This game is waiting for a project</value>
+  </data>
+  <data name="GamePage_WaitingFileTitle" xml:space="preserve">
+    <value>This version of the game is waiting for a project</value>
+  </data>
+  <data name="GamePage_WaitingFileText" xml:space="preserve">
+    <value>{reason, select, UnsupportedFormat {The game is on this computer, but the project's file for this version of the game comes in a format the app does not install.} other {The game is on this computer, but the project has no file for this version of the game yet.}}</value>
+  </data>
+  <data name="GamePage_OpenInCatalogue" xml:space="preserve">
+    <value>Open in the catalogue</value>
+  </data>
   <data name="GamePage_NotInCatalogueText" xml:space="preserve">
     <value>So there will be no new versions or description. Uninstalling still works, also without the internet.</value>
   </data>

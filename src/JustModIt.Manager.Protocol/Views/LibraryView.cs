@@ -87,6 +87,12 @@ public sealed record DetectedGameEntry(GameKey Key, string Name, DetectedGameVie
     /// <summary>The site's projects for the game, whatever their status.</summary>
     public IReadOnlyList<SiteProjectView> Projects { get; init; } = [];
 
+    /// <summary>
+    /// Why a completed project's public release has no package the app installs on the game, such as files made only for
+    /// other store versions; null when one has a package for it, or none has a public release with ready files.
+    /// </summary>
+    public SelectionUnavailability? Unavailable { get; init; }
+
     /// <summary>Maps a game of the library's snapshot.</summary>
     /// <param name="game">The game as its store reports it.</param>
     /// <param name="index">The site's projects matched to the detected games, which give the cover and the projects.</param>
@@ -95,12 +101,20 @@ public sealed record DetectedGameEntry(GameKey Key, string Name, DetectedGameVie
         ArgumentNullException.ThrowIfNull(game);
         ArgumentNullException.ThrowIfNull(index);
         var projects = index.Find(game.Key);
+        var completed = projects.Where(entry => entry.Status is { IsCompleted: true })
+            .Select(entry => ReleaseSelector.Select(entry, game.Key, game.Platform))
+            .ToList();
         return new DetectedGameEntry(game.Key, game.Name, DetectedGameView.From(game))
         {
             Cover = projects.Select(entry => entry.Game.Cover).FirstOrDefault(cover => cover.Length > 0) ?? "",
             Projects = [.. projects.Select(entry => new SiteProjectView(entry.ProjectUuid, entry.Game.Slug, entry.Team.Slug))],
+            Unavailable = completed.Exists(selection => selection.IsInstallable) ? null
+                : completed.Select(selection => selection.Unavailable).FirstOrDefault(HasUnfitFiles),
         };
     }
+
+    private static bool HasUnfitFiles(SelectionUnavailability? reason) =>
+        reason is SelectionUnavailability.UnsupportedFormat or SelectionUnavailability.OtherStores or SelectionUnavailability.OtherSystems;
 }
 
 /// <summary>What detection found on this machine, store by store, for a player whose game is missing.</summary>
