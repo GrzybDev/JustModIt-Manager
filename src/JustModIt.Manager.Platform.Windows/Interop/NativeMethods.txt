@@ -107,6 +107,11 @@ MFVideoFormat_H264
 MFVideoFormat_RGB32
 MFVideoFormat_VP90
 
+// Window frames
+AdjustWindowRectExForDpi
+GetDpiForWindow
+GetWindowLong
+
 // Anything else
 AllowSetForegroundWindow
 SystemParametersInfo

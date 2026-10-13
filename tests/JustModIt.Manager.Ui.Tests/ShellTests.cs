@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
@@ -75,8 +76,11 @@ public sealed class ShellTests
     [AvaloniaFact]
     public async Task The_smallest_window_keeps_the_sidebar_and_its_status_in_view()
     {
-        using var ui = new UiHarness(TestStates.Idle(creatorMode: true).With(TestStates.Job()), width: 960, height: 600);
+        using var ui = new UiHarness(TestStates.Idle(creatorMode: true).With(TestStates.Job()), width: 960, height: 600,
+            context: context => context with { WindowFrames = new TitleBar(31) });
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        (ui.Window.MinWidth, ui.Window.MinHeight).Should().Be((960, 569),
+            "the system adds its own title bar to the smallest window, which draws its title bar inside its content");
 
         var window = new Rect(ui.Window.Bounds.Size);
         foreach (var control in NavigationButtons(ui).Cast<Control>().Append(ui.Find<StatusCard>().Single()))
@@ -118,4 +122,9 @@ public sealed class ShellTests
         [.. ui.Find<Button>().Where(button => button.Classes.Contains("nav") && button.IsEffectivelyVisible)];
 
     private static string Name(Control control) => ControlAutomationPeer.CreatePeerForElement(control).GetName();
+
+    private sealed class TitleBar(int height) : IWindowFrames
+    {
+        public int TitleBarHeight(nint window) => height;
+    }
 }

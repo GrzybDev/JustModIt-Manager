@@ -21,6 +21,8 @@ public sealed partial class MainWindow : Window
 {
     private readonly ShellViewModel? _shell;
     private readonly ISystemMotion? _systemMotion;
+    private readonly IWindowFrames? _frames;
+    private readonly double _smallestHeight;
     private bool _closeDecided;
 
     /// <summary>Creates the window without a shell, as the XAML designer does.</summary>
@@ -31,13 +33,17 @@ public sealed partial class MainWindow : Window
     /// <param name="views">The views of the pages and dialogs.</param>
     /// <param name="icon">The window's icon; null for the system's default.</param>
     /// <param name="systemMotion">The system's wish for reduced motion, read whenever the window comes to the front; null for none.</param>
-    public MainWindow(ShellViewModel shell, IDataTemplate views, WindowIcon? icon, ISystemMotion? systemMotion)
+    /// <param name="frames">The system's frame around windows, which the smallest size makes up for; null for none.</param>
+    public MainWindow(ShellViewModel shell, IDataTemplate views, WindowIcon? icon, ISystemMotion? systemMotion, IWindowFrames? frames = null)
         : this()
     {
         ArgumentNullException.ThrowIfNull(shell);
         ArgumentNullException.ThrowIfNull(views);
         _shell = shell;
         _systemMotion = systemMotion;
+        _frames = frames;
+        _smallestHeight = MinHeight;
+        ScalingChanged += (_, _) => FitSmallestSize();
         DataTemplates.Add(views);
         Icon = icon;
         DataContext = shell;
@@ -96,6 +102,7 @@ public sealed partial class MainWindow : Window
     {
         base.OnOpened(e);
         UpdateMotion();
+        FitSmallestSize();
     }
 
     protected override void OnClosed(EventArgs e)
@@ -171,6 +178,15 @@ public sealed partial class MainWindow : Window
         Classes.Set("reducedMotion", Motion.IsReduced);
         Classes.Set("loops", loops);
         Motion.SetLoops(this, loops);
+    }
+
+    // The system keeps a window at least its smallest size plus a title bar, which this window draws inside its own content.
+    private void FitSmallestSize()
+    {
+        if (_frames is not null && TryGetPlatformHandle() is { } handle)
+        {
+            MinHeight = _smallestHeight - _frames.TitleBarHeight(handle.Handle) / RenderScaling;
+        }
     }
 
     private void OnMinimize(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

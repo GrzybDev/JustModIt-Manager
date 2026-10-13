@@ -65,6 +65,9 @@ public sealed record UiContext
     /// <summary>The system's wish for reduced motion, which the window follows; null where the system has none.</summary>
     public ISystemMotion? SystemMotion { get; init; }
 
+    /// <summary>The system's frame around windows, which the window's smallest size makes up for; null where it adds none.</summary>
+    public IWindowFrames? WindowFrames { get; init; }
+
     /// <summary>The app's own views, pages, styles and resources, added after the shared ones so they win.</summary>
     public Action<UiComposition>? Compose { get; init; }
 }

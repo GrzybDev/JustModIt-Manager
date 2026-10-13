@@ -121,6 +121,7 @@ internal sealed record HostEnvironment
             ImageHosts = Product.ImageHosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             Codecs = OperatingSystem.IsWindows() ? new WindowsMediaCodecs() : null,
             SystemMotion = OperatingSystem.IsWindows() ? new WindowsSystemMotion() : null,
+            WindowFrames = OperatingSystem.IsWindows() ? new WindowsWindowFrames() : null,
             Compose = options.ConfigureUi,
         };
     }
