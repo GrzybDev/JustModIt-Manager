@@ -223,7 +223,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OffersTestInstall), nameof(IsTestInstalled), nameof(IsTestRunning), nameof(WasTested),
-        nameof(CanRebuild))]
+        nameof(CanRebuild), nameof(FinishText))]
     public partial TestInstallState Test { get; private set; }
 
     public bool OffersTestInstall => Test is TestInstallState.None or TestInstallState.Failed;
@@ -260,7 +260,14 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     /// <summary>The project has changes the author has not saved, which the next steps remind of.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FinishNumber))]
     public partial bool ShowsSaveHint { get; private set; }
+
+    /// <summary>The place of the last next step, which follows the reminder to save while it shows.</summary>
+    public string FinishNumber => (ShowsSaveHint ? 4 : 3).ToString(Text.Culture);
+
+    /// <summary>What finishing the project does, or that a test package in the game has to go first.</summary>
+    public string FinishText => Text.Format(Strings.Creator_FinishText, ("blocked", CanRebuild ? "false" : "true"));
 
     /// <summary>The installed test package of the game; null while there is none.</summary>
     private InstallView? TestInstall =>
@@ -449,6 +456,9 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             _page.Services.Links.Open(dashboard);
         }
     }
+
+    [RelayCommand]
+    private Task FinishAsync() => _page.FinishAsync();
 
     [RelayCommand]
     private void Back() => _page.GoTo(CreatorStep.Review);

@@ -453,6 +453,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Push(State(null, installed: true));
         package.Test.Should().Be(TestInstallState.Installed);
         package.CanRebuild.Should().BeFalse("the creator would compare the files with those the package changed");
+        ui.Find<Button>().Single(button => button.Name == "FinishButton").IsEnabled.Should().BeFalse("the test package goes first");
         await RenderAsync(ui, "creator-test-installed", 1400);
 
         ui.Click(Button(ui, Strings.Creator_Launch));
@@ -469,6 +470,40 @@ public sealed class CreatorPackageTests : IDisposable
         await RenderAsync(ui, "creator-tested", 1400);
         ui.Click(Button(ui, Strings.Creator_OpenDashboard));
         ui.Links.Opened.Should().Equal(new Uri("https://example.com/dashboard"));
+    }
+
+    [AvaloniaFact]
+    public async Task Finishing_the_project_asks_about_unsaved_work_and_brings_the_creator_back_to_its_start()
+    {
+        _work.Author("data/strings.bin", "strings of the original game");
+        using var ui = await OpenAsync();
+        var package = await PackageAsync(ui);
+        ui.Pickers.SaveFile = Output("Lantern Isle.zip");
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        var page = Page(ui);
+        await RenderAsync(ui, "creator-built-finish", 1700);
+
+        ui.Click(Button(ui, Strings.Creator_Finish));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
+        ui.Shell.Dialogs.CancelCurrent();
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null);
+        page.HasProject.Should().BeTrue("dismissing the question keeps the work");
+        ui.Click(Button(ui, Strings.Creator_Finish));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+        ui.Click(Button(ui, Strings.Creator_UnsavedDiscard));
+        await UiHarness.WaitUntilAsync(() => !page.HasProject);
+
+        ui.Shell.Navigator.Navigate(new LibraryRoute());
+        ui.Shell.Navigator.Navigate(new CreatorRoute());
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Shell.Navigator.Current.Should().BeSameAs(page);
+        page.HasProject.Should().BeFalse("the creator opens on its start rather than on the finished project");
+        ui.Click(Button(ui, Strings.Creator_New));
+        await UiHarness.WaitUntilAsync(() => page.Content is GameStepViewModel);
+        ui.Shell.Dialogs.Current.Should().BeNull();
+        (page.Session!.Project.AuthorFolder, page.Game).Should().Be(("", null), "the new project starts without the earlier folders");
     }
 
     [AvaloniaFact]

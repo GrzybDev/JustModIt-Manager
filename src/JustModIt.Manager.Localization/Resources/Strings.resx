@@ -3306,6 +3306,15 @@
   <data name="Creator_SaveProjectText" xml:space="preserve">
     <value>The next version then starts from here rather than from scratch. “Save” at the top of the page is enough.</value>
   </data>
+  <data name="Creator_FinishTitle" xml:space="preserve">
+    <value>Finish the project</value>
+  </data>
+  <data name="Creator_FinishText" xml:space="preserve">
+    <value>{blocked, select, true {Once the test install is undone, the creator can go back to its start, to a new project or a saved one.} other {The creator goes back to its start, where a new project begins or a saved one opens.}}</value>
+  </data>
+  <data name="Creator_Finish" xml:space="preserve">
+    <value>Finish</value>
+  </data>
   <data name="Creator_RebuildQuestion" xml:space="preserve">
     <value>Did the files or the project change?</value>
   </data>

@@ -284,6 +284,20 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         return true;
     }
 
+    /// <summary>Closes the project, asking first about unsaved work, so the creator shows its start again.</summary>
+    internal async Task FinishAsync()
+    {
+        if (!await CanCloseProjectAsync().ConfigureAwait(true))
+        {
+            return;
+        }
+
+        Release();
+        ClearProblem();
+        (Session, Content, Game, Step) = (null, null, null, CreatorStep.Game);
+        ShowRecent();
+    }
+
     [RelayCommand]
     private async Task NewProjectAsync()
     {

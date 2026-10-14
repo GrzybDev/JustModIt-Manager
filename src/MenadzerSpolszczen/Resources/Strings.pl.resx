@@ -698,6 +698,9 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Creator_SaveProjectText" xml:space="preserve">
     <value>Przy następnej wersji spolszczenia praca zacznie się od tego miejsca, a nie od zera. Wystarczy „Zapisz” u góry strony.</value>
   </data>
+  <data name="Creator_FinishText" xml:space="preserve">
+    <value>{blocked, select, true {Po cofnięciu instalacji testowej Kreator może wrócić do początku, do nowego projektu albo zapisanego.} other {Kreator wróci do początku, gdzie można zacząć nowy projekt albo otworzyć zapisany.}}</value>
+  </data>
   <data name="Creator_RebuildBlocked" xml:space="preserve">
     <value>Po cofnięciu instalacji testowej można zbudować paczkę ponownie albo porównać pliki – Kreator porównywałby je z plikami, które zmieniła paczka.</value>
   </data>
