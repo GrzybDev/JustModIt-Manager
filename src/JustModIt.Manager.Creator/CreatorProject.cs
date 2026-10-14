@@ -61,15 +61,22 @@ public sealed record ToolNotice(string ToolId, string License, string SourceUrl)
     public bool IsComplete => ThirdPartyNotice.IsValidText(License) && ThirdPartyNotice.IsValidSourceUrl(SourceUrl);
 }
 
-/// <summary>A library the package adds that the author says is another author's tool rather than their own code.</summary>
+/// <summary>
+/// The licence and the source code of a library the package adds: another author's tool, which needs them, or the author's
+/// own code, which carries them when the author adds them.
+/// </summary>
 /// <param name="Path">The library's game path.</param>
 /// <param name="License">The licence text; empty until the author gives it.</param>
 /// <param name="SourceUrl">An http(s) address of the library's source code; empty until the author gives it.</param>
-public sealed record LibraryNotice(string Path, string License, string SourceUrl)
+/// <param name="Name">What the package's description calls it, e.g. the tool it belongs to; empty names it after its file.</param>
+/// <param name="IsOwn">The library is the author's own code rather than another author's tool.</param>
+public sealed record LibraryNotice(string Path, string License, string SourceUrl, string Name = "",
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool IsOwn = false)
 {
     /// <summary>Whether the package's manifest can carry it.</summary>
     [JsonIgnore]
-    public bool IsComplete => ThirdPartyNotice.IsValidText(License) && ThirdPartyNotice.IsValidSourceUrl(SourceUrl);
+    public bool IsComplete => ThirdPartyNotice.IsValidText(License) && ThirdPartyNotice.IsValidSourceUrl(SourceUrl)
+        && (string.IsNullOrWhiteSpace(Name) || ThirdPartyNotice.IsValidText(Name));
 }
 
 /// <summary>
@@ -100,7 +107,10 @@ public sealed record CreatorProject
 
     public ValueList<ToolNotice> ToolNotices { get; init; }
 
-    /// <summary>The added libraries the author called other authors' tools; any other one is the author's own code.</summary>
+    /// <summary>
+    /// The added libraries the author called other authors' tools, and those of the author's own code the author gave a
+    /// licence; any other one is the author's own code without them.
+    /// </summary>
     public ValueList<LibraryNotice> LibraryNotices { get; init; }
 
     /// <summary>Keys of warnings the author has read and accepted (<see cref="PlanFinding.AcknowledgementKey"/>).</summary>
@@ -158,13 +168,13 @@ public sealed record CreatorProject
         };
     }
 
-    /// <summary>The notice the author gave for an added library; null for one that is the author's own code.</summary>
+    /// <summary>The notice the author gave for an added library; null for the author's own code without one.</summary>
     /// <param name="path">The library's game path.</param>
     public LibraryNotice? LibraryNoticeOf(string path) =>
         LibraryNotices.FirstOrDefault(notice => PackagePath.Comparer.Equals(notice.Path, path));
 
     /// <summary>A copy of the project with an added library's notice, replacing the notice of the same library.</summary>
-    /// <param name="notice">The library as another author's tool, with what the author gave of its licence and source.</param>
+    /// <param name="notice">The library, with what the author gave of its licence and source.</param>
     public CreatorProject WithLibraryNotice(LibraryNotice notice)
     {
         ArgumentNullException.ThrowIfNull(notice);
@@ -172,7 +182,7 @@ public sealed record CreatorProject
         return without with { LibraryNotices = without.LibraryNotices.Add(notice) };
     }
 
-    /// <summary>A copy of the project in which an added library is the author's own code.</summary>
+    /// <summary>A copy of the project in which an added library is the author's own code without a licence.</summary>
     /// <param name="path">The library's game path.</param>
     public CreatorProject WithoutLibraryNotice(string path) => LibraryNoticeOf(path) is null
         ? this

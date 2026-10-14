@@ -4,6 +4,7 @@
              xmlns:ui="using:JustModIt.Manager.Ui.Controls"
              xmlns:theme="using:JustModIt.Manager.Ui.Theme"
              xmlns:loc="using:JustModIt.Manager.Localization"
+             xmlns:pkg="using:JustModIt.Manager.Core.Packages"
              x:Class="JustModIt.Manager.Ui.Pages.Creator.ReviewStepView"
              x:DataType="creator:ReviewStepViewModel">
   <UserControl.Resources>
@@ -99,18 +100,29 @@
                                    CommandParameter="{Binding}" />
                     </StackPanel>
                   </WrapPanel>
+                  <Button Classes="link" FontSize="13" Margin="0,10,0,0" HorizontalAlignment="Left" IsVisible="{Binding OffersNotice}"
+                          Content="{x:Static loc:Strings.Creator_LibraryAddNotice}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}"
+                          Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).AddLibraryNoticeCommand}"
+                          CommandParameter="{Binding}" />
                   <StackPanel Spacing="12" Margin="0,12,0,0" IsVisible="{Binding NeedsNotice}">
-                    <Grid ColumnSpacing="12">
+                    <Grid ColumnSpacing="12" RowDefinitions="Auto,Auto">
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="200" />
                         <ColumnDefinition Width="*" MaxWidth="508" />
                       </Grid.ColumnDefinitions>
-                      <StackPanel Spacing="6">
+                      <StackPanel Grid.ColumnSpan="2" Spacing="6" Margin="0,0,0,12" IsVisible="{Binding IsLibrary}">
+                        <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}"
+                                   Text="{x:Static loc:Strings.Creator_LibraryName}" />
+                        <TextBox Text="{Binding LibraryName}" FontSize="14" PlaceholderText="{Binding FileName}"
+                                 MaxLength="{x:Static pkg:ThirdPartyNotice.MaxTextLength}"
+                                 AutomationProperties.Name="{x:Static loc:Strings.Creator_LibraryName}" />
+                      </StackPanel>
+                      <StackPanel Grid.Row="1" Spacing="6">
                         <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}"
                                    Text="{x:Static loc:Strings.Creator_ToolLicense}" />
                         <TextBox Text="{Binding License}" FontSize="14" AutomationProperties.Name="{x:Static loc:Strings.Creator_ToolLicense}" />
                       </StackPanel>
-                      <StackPanel Grid.Column="1" Spacing="6">
+                      <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
                         <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}"
                                    Text="{x:Static loc:Strings.Creator_ToolSource}" />
                         <TextBox Text="{Binding Source}" FontSize="14" PlaceholderText="{x:Static loc:Strings.Creator_ToolSourcePlaceholder}"
@@ -118,6 +130,10 @@
                       </StackPanel>
                     </Grid>
                     <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_ToolHint}" />
+                    <Button Classes="link" FontSize="13" HorizontalAlignment="Left" IsVisible="{Binding CanRemoveNotice}"
+                            Content="{x:Static loc:Strings.Creator_LibraryRemoveNotice}" ui:ButtonAssist.Icon="{x:Static theme:Icons.X}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RemoveLibraryNoticeCommand}"
+                            CommandParameter="{Binding}" />
                   </StackPanel>
                 </StackPanel>
               </Grid>

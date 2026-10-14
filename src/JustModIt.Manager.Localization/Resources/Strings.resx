@@ -2814,6 +2814,15 @@
   <data name="Creator_LibraryThirdParty" xml:space="preserve">
     <value>Another author's tool</value>
   </data>
+  <data name="Creator_LibraryAddNotice" xml:space="preserve">
+    <value>Add its licence and source code</value>
+  </data>
+  <data name="Creator_LibraryRemoveNotice" xml:space="preserve">
+    <value>Remove the licence</value>
+  </data>
+  <data name="Creator_LibraryName" xml:space="preserve">
+    <value>Name</value>
+  </data>
   <data name="Creator_OperationsTitle" xml:space="preserve">
     <value>Operations in the order they run</value>
   </data>
@@ -3109,7 +3118,7 @@
     <value>Plain archive (.zip)</value>
   </data>
   <data name="Creator_FormatReason" xml:space="preserve">
-    <value>{reason, select, PatchesFiles {The package patches game files.} RenamesFiles {The package renames game files.} DeletesFiles {The package deletes game files.} ReadsAsManifestPackage {A plain archive of these files would look like a damaged package of the app.} CarriesThirdPartyNotices {The package carries another author's tool, whose licence only a package's description can name.} other {The package only adds or overwrites files, so a plain .zip laid out like the game's folder is enough.}}</value>
+    <value>{reason, select, PatchesFiles {The package patches game files.} RenamesFiles {The package renames game files.} DeletesFiles {The package deletes game files.} ReadsAsManifestPackage {A plain archive of these files would look like a damaged package of the app.} CarriesThirdPartyNotices {The package gives the licence and source code of a tool or library it carries, which only a package's description can hold.} other {The package only adds or overwrites files, so a plain .zip laid out like the game's folder is enough.}}</value>
   </data>
   <data name="Creator_ManifestOutcome" xml:space="preserve">
     <value>Only the app makes such changes: players install the package in one click in the app, not by hand.</value>

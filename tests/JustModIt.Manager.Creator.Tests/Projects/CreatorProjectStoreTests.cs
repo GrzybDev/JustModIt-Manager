@@ -37,7 +37,11 @@ public sealed class CreatorProjectStoreTests : IDisposable
             ],
             Metadata = new PackageMetadata { Title = "Example package", Version = "2.0", Authors = ["Example Team"] },
             ToolNotices = [new ToolNotice("bepinex", "LGPL-2.1", "https://example.com/loader")],
-            LibraryNotices = [new LibraryNotice("bin/hook.dll", "MIT", "")],
+            LibraryNotices =
+            [
+                new LibraryNotice("bin/hook.dll", "MIT", ""),
+                new LibraryNotice("bin/subtitles.dll", "MIT", "https://example.com/subtitles", "Example Subtitles", IsOwn: true),
+            ],
             Acknowledged = ["whole-game-file:data/fonts.bin:1234"],
         };
 
@@ -60,6 +64,11 @@ public sealed class CreatorProjectStoreTests : IDisposable
             Choices = Choices(("data/fonts.bin", FileChoice.Skip)),
             ExtraSteps = [new DeleteFileStep("movies/intro.bik")],
             ToolNotices = [new ToolNotice("bepinex", "LGPL-2.1", "https://example.com/loader")],
+            LibraryNotices =
+            [
+                new LibraryNotice("bin/hook.dll", "MIT", "https://example.com/hook", "hook.dll"),
+                new LibraryNotice("bin/subtitles.dll", "MIT", "https://example.com/subtitles", "Example Subtitles", IsOwn: true),
+            ],
         };
 
         await CreatorProjectStore.SaveAsync(project, ProjectPath, TestContext.Current.CancellationToken);
@@ -74,6 +83,8 @@ public sealed class CreatorProjectStoreTests : IDisposable
         root.GetProperty("extraSteps")[0].GetProperty("type").GetString().Should().Be("delete");
         root.GetProperty("thirdParty")[0].EnumerateObject().Select(property => property.Name).Should()
             .Equal("toolId", "license", "sourceUrl");
+        root.GetProperty("libraries").EnumerateArray().Select(library => string.Join(",", library.EnumerateObject().Select(property => property.Name)))
+            .Should().Equal("path,license,sourceUrl,name", "path,license,sourceUrl,name,isOwn");
         root.TryGetProperty("game", out _).Should().BeFalse();
         root.TryGetProperty("steps", out _).Should().BeFalse();
     }

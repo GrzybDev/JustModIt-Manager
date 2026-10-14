@@ -2802,6 +2802,15 @@
   <data name="Creator_LibraryThirdParty" xml:space="preserve">
     <value>Narzędzie innego autora</value>
   </data>
+  <data name="Creator_LibraryAddNotice" xml:space="preserve">
+    <value>Dodaj licencję i kod źródłowy</value>
+  </data>
+  <data name="Creator_LibraryRemoveNotice" xml:space="preserve">
+    <value>Usuń licencję</value>
+  </data>
+  <data name="Creator_LibraryName" xml:space="preserve">
+    <value>Nazwa</value>
+  </data>
   <data name="Creator_OperationsTitle" xml:space="preserve">
     <value>Operacje w kolejności wykonania</value>
   </data>
@@ -3097,7 +3106,7 @@
     <value>Zwykłe archiwum (.zip)</value>
   </data>
   <data name="Creator_FormatReason" xml:space="preserve">
-    <value>{reason, select, PatchesFiles {Paczka nakłada łatki na pliki gry.} RenamesFiles {Paczka zmienia nazwy plików gry.} DeletesFiles {Paczka usuwa pliki gry.} ReadsAsManifestPackage {Zwykłe archiwum z tymi plikami wyglądałoby jak uszkodzona paczka aplikacji.} CarriesThirdPartyNotices {Paczka zawiera narzędzie innego autora, a jego licencję może podać tylko opis paczki.} other {Paczka tylko dodaje albo nadpisuje pliki, więc wystarczy zwykły .zip ułożony względem folderu gry.}}</value>
+    <value>{reason, select, PatchesFiles {Paczka nakłada łatki na pliki gry.} RenamesFiles {Paczka zmienia nazwy plików gry.} DeletesFiles {Paczka usuwa pliki gry.} ReadsAsManifestPackage {Zwykłe archiwum z tymi plikami wyglądałoby jak uszkodzona paczka aplikacji.} CarriesThirdPartyNotices {Paczka podaje licencję i kod źródłowy dołączonego narzędzia albo biblioteki, a zmieści je tylko opis paczki.} other {Paczka tylko dodaje albo nadpisuje pliki, więc wystarczy zwykły .zip ułożony względem folderu gry.}}</value>
   </data>
   <data name="Creator_ManifestOutcome" xml:space="preserve">
     <value>Takie zmiany wykona tylko aplikacja: gracze zainstalują paczkę jednym kliknięciem, bez ręcznej instalacji.</value>

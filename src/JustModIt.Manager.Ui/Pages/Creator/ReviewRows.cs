@@ -199,7 +199,8 @@ public sealed partial class RuleRow(string key) : ObservableObject, IReviewRow
     public string Key { get; } = key;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsError), nameof(IsAccept), nameof(IsTool), nameof(IsLibrary), nameof(NeedsNotice))]
+    [NotifyPropertyChangedFor(nameof(IsError), nameof(IsAccept), nameof(IsTool), nameof(IsLibrary), nameof(NeedsNotice),
+        nameof(OffersNotice), nameof(CanRemoveNotice))]
     public partial RuleKind Kind { get; set; }
 
     public bool IsError => Kind == RuleKind.Error;
@@ -212,11 +213,21 @@ public sealed partial class RuleRow(string key) : ObservableObject, IReviewRow
 
     /// <summary>The author said the library is another author's tool.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(NeedsNotice))]
+    [NotifyPropertyChangedFor(nameof(CanRemoveNotice))]
     public partial bool IsThirdParty { get; set; }
 
-    /// <summary>The row asks for the tool's licence and source.</summary>
-    public bool NeedsNotice => IsTool || (IsLibrary && IsThirdParty);
+    /// <summary>The project holds the library's licence and source, as far as the author gave them.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NeedsNotice), nameof(OffersNotice), nameof(CanRemoveNotice))]
+    public partial bool HasNotice { get; set; }
+
+    /// <summary>The row asks for the tool's or the library's licence and source.</summary>
+    public bool NeedsNotice => IsTool || (IsLibrary && HasNotice);
+
+    /// <summary>The author's own library, which may carry a licence and source once the author adds them.</summary>
+    public bool OffersNotice => IsLibrary && !HasNotice;
+
+    public bool CanRemoveNotice => IsLibrary && HasNotice && !IsThirdParty;
 
     [ObservableProperty]
     public partial string Title { get; set; } = "";
@@ -246,6 +257,13 @@ public sealed partial class RuleRow(string key) : ObservableObject, IReviewRow
     /// <summary>The library's game path, for a library's row.</summary>
     public string Path { get; set; } = "";
 
+    /// <summary>The library's file name, which names its notice until the author names the tool.</summary>
+    public string FileName => CreatorWording.GameIndexName(Path);
+
+    /// <summary>What the package's description calls the library.</summary>
+    [ObservableProperty]
+    public partial string LibraryName { get; set; } = "";
+
     [ObservableProperty]
     public partial string License { get; set; } = "";
 
@@ -255,8 +273,10 @@ public sealed partial class RuleRow(string key) : ObservableObject, IReviewRow
     [ObservableProperty]
     public partial bool IsComplete { get; set; }
 
-    /// <summary>Called when the author typed the tool's licence or source.</summary>
+    /// <summary>Called when the author typed the tool's licence or source, or the library's name.</summary>
     public Action<RuleRow>? Edited { get; set; }
+
+    partial void OnLibraryNameChanged(string value) => Edited?.Invoke(this);
 
     partial void OnLicenseChanged(string value) => Edited?.Invoke(this);
 

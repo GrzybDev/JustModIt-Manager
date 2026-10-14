@@ -72,7 +72,7 @@ public static class CreatorPlanner
     }
 
     // The site takes another author's code only with its licence and source, so no plain acknowledgement stands in for
-    // them, and the author's own library needs neither.
+    // them. The author's own library needs neither, but once the author adds them they are taken whole, as a tool's.
     private static PlanFinding Acknowledge(PlanFinding finding, CreatorProject project) => finding switch
     {
         { Kind: FindingKind.AddedLibrary } => project.LibraryNoticeOf(finding.Path!) is { } library
@@ -102,10 +102,10 @@ public static class CreatorPlanner
             }
             : null;
 
-    // The notice names the library's file, which is all the creator knows of the tool.
+    // The library's file is all the creator knows of the tool, so it names the notice unless the author names the tool.
     private static ThirdPartyNotice NoticeOf(string path, LibraryNotice library) => new()
     {
-        Name = GameIndex.NameOf(path),
+        Name = string.IsNullOrWhiteSpace(library.Name) ? GameIndex.NameOf(path) : library.Name.Trim(),
         License = library.License.Trim(),
         SourceUrl = library.SourceUrl.Trim(),
         Paths = [path],

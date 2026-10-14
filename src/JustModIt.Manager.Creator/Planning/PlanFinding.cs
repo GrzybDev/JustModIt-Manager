@@ -87,7 +87,8 @@ public enum FindingKind
 
     /// <summary>
     /// The package adds a library that no rule names, which is the author's own code unless the author says it is another
-    /// author's tool (<see cref="LibraryNotice"/>); only then does it need the tool's licence and source.
+    /// author's tool (<see cref="LibraryNotice"/>); a tool needs its licence and source, which the author's own code may
+    /// carry too.
     /// </summary>
     AddedLibrary,
 

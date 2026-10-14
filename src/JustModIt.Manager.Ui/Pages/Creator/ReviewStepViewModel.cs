@@ -216,12 +216,30 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
         _session.Describe(project => keys.Aggregate(project, (changed, key) => changed.Acknowledge(key)));
     }
 
+    // Whose code a library is changes only the answer: a name, licence and source typed for it stay.
     [RelayCommand]
-    private void MarkOwnCode(RuleRow rule) => _session.Describe(project => project.WithoutLibraryNotice(rule.Path));
+    private void MarkOwnCode(RuleRow rule) => _session.Describe(project => project.LibraryNoticeOf(rule.Path) switch
+    {
+        null or { IsOwn: true } => project,
+        { License.Length: 0, SourceUrl.Length: 0 } notice when notice.Name.Length == 0 || notice.Name == rule.FileName
+            => project.WithoutLibraryNotice(rule.Path),
+        var notice => project.WithLibraryNotice(notice with { IsOwn = true }),
+    });
 
     [RelayCommand]
-    private void MarkThirdParty(RuleRow rule) => _session.Describe(project =>
-        project.LibraryNoticeOf(rule.Path) is null ? project.WithLibraryNotice(new LibraryNotice(rule.Path, "", "")) : project);
+    private void MarkThirdParty(RuleRow rule) => _session.Describe(project => project.LibraryNoticeOf(rule.Path) switch
+    {
+        { IsOwn: false } => project,
+        null => project.WithLibraryNotice(new LibraryNotice(rule.Path, "", "", rule.FileName)),
+        var notice => project.WithLibraryNotice(notice with { IsOwn = false }),
+    });
+
+    [RelayCommand]
+    private void AddLibraryNotice(RuleRow rule) =>
+        _session.Describe(project => project.WithLibraryNotice(new LibraryNotice(rule.Path, "", "", rule.FileName, IsOwn: true)));
+
+    [RelayCommand]
+    private void RemoveLibraryNotice(RuleRow rule) => _session.Describe(project => project.WithoutLibraryNotice(rule.Path));
 
     [RelayCommand]
     private void ToggleAdding()
@@ -468,8 +486,8 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
         {
             (kept.Findings, kept.Kind, kept.Title, kept.Text, kept.Tone, kept.Icon) =
                 (fresh.Findings, fresh.Kind, fresh.Title, fresh.Text, fresh.Tone, fresh.Icon);
-            (kept.CanExclude, kept.IsAccepted, kept.IsThirdParty, kept.ToolId, kept.Path) =
-                (fresh.CanExclude, fresh.IsAccepted, fresh.IsThirdParty, fresh.ToolId, fresh.Path);
+            (kept.CanExclude, kept.IsAccepted, kept.IsThirdParty, kept.HasNotice, kept.ToolId, kept.Path) =
+                (fresh.CanExclude, fresh.IsAccepted, fresh.IsThirdParty, fresh.HasNotice, fresh.ToolId, fresh.Path);
         }
     }
 
@@ -485,7 +503,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
             _ when finding.Severity == FindingSeverity.Error => RuleKind.Error,
             _ => RuleKind.Accept,
         };
-        var thirdParty = kind == RuleKind.Library && _session.Project.LibraryNoticeOf(finding.Path!) is not null;
+        var notice = kind == RuleKind.Library ? _session.Project.LibraryNoticeOf(finding.Path!) : null;
         return new RuleRow(key)
         {
             Findings = findings,
@@ -494,14 +512,15 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
             Text = CreatorWording.RuleText(finding),
             Tone = kind == RuleKind.Error ? RowTone.Danger
                 : blocks ? RowTone.Warning
-                : kind == RuleKind.Library && !thirdParty ? RowTone.Neutral
+                : kind == RuleKind.Library && notice is null ? RowTone.Neutral
                 : RowTone.Success,
             Icon = kind == RuleKind.Error ? Icons.CircleX
                 : blocks || kind == RuleKind.Library ? Icons.FileCode
                 : Icons.CircleCheck,
             CanExclude = kind == RuleKind.Error && findings.All(CanExclude),
             IsAccepted = !blocks,
-            IsThirdParty = thirdParty,
+            IsThirdParty = notice is { IsOwn: false },
+            HasNotice = notice is not null,
             ToolId = finding.ToolId ?? "",
             Path = finding.Path ?? "",
         };
@@ -511,17 +530,18 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
     private void ShowNotice(RuleRow row)
     {
         row.Edited = null;
-        var (license, source, complete) = row.IsTool
+        var (name, license, source, complete) = row.IsTool
             ? _session.Project.ToolNotices.FirstOrDefault(notice => notice.ToolId == row.ToolId) is { } tool
-                ? (tool.License, tool.SourceUrl, tool.IsComplete)
-                : ("", "", false)
+                ? ("", tool.License, tool.SourceUrl, tool.IsComplete)
+                : ("", "", "", false)
             : _session.Project.LibraryNoticeOf(row.Path) is { } library
-                ? (library.License, library.SourceUrl, library.IsComplete)
-                : ("", "", false);
-        (row.License, row.Source, row.IsComplete) = (license, source, complete);
+                ? (library.Name, library.License, library.SourceUrl, library.IsComplete)
+                : ("", "", "", false);
+        (row.LibraryName, row.License, row.Source, row.IsComplete) = (name, license, source, complete);
         row.Edited = row.IsTool
             ? edited => _session.Describe(project => project.WithToolNotice(new ToolNotice(edited.ToolId, edited.License, edited.Source)))
-            : edited => _session.Describe(project => project.WithLibraryNotice(new LibraryNotice(edited.Path, edited.License, edited.Source)));
+            : edited => _session.Describe(project => project.WithLibraryNotice(
+                new LibraryNotice(edited.Path, edited.License, edited.Source, edited.LibraryName, IsOwn: !edited.IsThirdParty)));
     }
 
     private bool CanExclude(PlanFinding finding) =>

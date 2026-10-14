@@ -2,6 +2,7 @@ using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
@@ -136,8 +137,40 @@ public sealed class CreatorReviewTests : IDisposable
         await UiHarness.WaitUntilAsync(() => review.CanConfirm);
         Page(ui).Session!.Review!.Plan.ThirdPartyNotices.Should().ContainSingle().Which.Paths.Should().Equal("dx11/lantern_loc.dll");
         ui.Click(Pill(ui, Strings.Creator_LibraryOwnCode));
+        await UiHarness.WaitUntilAsync(() => !library.IsThirdParty);
+        Page(ui).Session!.Project.LibraryNotices.Should().Equal(
+            new LibraryNotice("dx11/lantern_loc.dll", "MIT", "https://code.example.com/lantern-hook", "lantern_loc.dll", IsOwn: true));
+        ui.Click(Button(ui, Strings.Creator_LibraryRemoveNotice));
         await UiHarness.WaitUntilAsync(() => !library.NeedsNotice);
         Page(ui).Session!.Project.LibraryNotices.Should().BeEmpty();
+    }
+
+    [AvaloniaFact]
+    public async Task The_author_s_own_library_may_carry_a_licence_and_source_which_the_package_names_like_a_tool_s()
+    {
+        using var ui = await OpenAsync();
+        var review = await ReviewAsync(ui);
+        var library = review.Rules.Should().ContainSingle().Subject;
+
+        ui.Click(Button(ui, Strings.Creator_LibraryAddNotice));
+        await UiHarness.WaitUntilAsync(() => library.NeedsNotice);
+        library.IsThirdParty.Should().BeFalse();
+        review.CanConfirm.Should().BeFalse("a licence once added is given whole");
+        Box(ui, Strings.Creator_LibraryName).Text.Should().Be("lantern_loc.dll", "the tool is named after its file until the author names it");
+        Box(ui, Strings.Creator_LibraryName).Text = "Lantern Streamer";
+        library.License = "GPL-3.0-or-later";
+        library.Source = "https://code.example.com/lantern-streamer";
+        await UiHarness.WaitUntilAsync(() => review.CanConfirm);
+        await RenderAsync(ui, "creator-review-library-own-licence", 1900);
+
+        Page(ui).Session!.Project.LibraryNotices.Should().Equal(new LibraryNotice("dx11/lantern_loc.dll", "GPL-3.0-or-later",
+            "https://code.example.com/lantern-streamer", "Lantern Streamer", IsOwn: true));
+        Page(ui).Session!.Review!.Plan.ThirdPartyNotices.Should().ContainSingle().Which.Should().BeEquivalentTo(new ThirdPartyNotice
+        {
+            Name = "Lantern Streamer", License = "GPL-3.0-or-later", SourceUrl = "https://code.example.com/lantern-streamer",
+            Paths = ["dx11/lantern_loc.dll"],
+        });
+        Pill(ui, Strings.Creator_LibraryOwnCode).IsChecked.Should().BeTrue();
     }
 
     [AvaloniaFact]
@@ -341,6 +374,9 @@ public sealed class CreatorReviewTests : IDisposable
 
     private static RadioButton Pill(UiHarness ui, string name) =>
         ui.Find<RadioButton>().First(pill => pill.IsEffectivelyVisible && ControlAutomationPeer.CreatePeerForElement(pill).GetName() == name);
+
+    private static TextBox Box(UiHarness ui, string name) =>
+        ui.Find<TextBox>().First(box => box.IsEffectivelyVisible && ControlAutomationPeer.CreatePeerForElement(box).GetName() == name);
 
     // The dialog's scrim takes the clicks meant for the page until the dialog has faded out.
     private static async Task Answer(UiHarness ui, string confirm)

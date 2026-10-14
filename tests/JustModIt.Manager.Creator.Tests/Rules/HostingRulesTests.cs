@@ -205,6 +205,7 @@ public sealed class HostingRulesTests : IDisposable
         var own = await PlanAsync(Project);
         var asked = await PlanAsync(Project.WithLibraryNotice(new LibraryNotice("plugins/hook.dll", "MIT", "")));
         var named = await PlanAsync(Project.WithLibraryNotice(new LibraryNotice("plugins/hook.dll", " MIT ", Source)));
+        var titled = await PlanAsync(Project.WithLibraryNotice(new LibraryNotice("plugins/hook.dll", "MIT", Source, " Example Hook ")));
         var ownAgain = await PlanAsync(Project.WithLibraryNotice(new LibraryNotice("plugins/hook.dll", "MIT", Source))
             .WithoutLibraryNotice("plugins/HOOK.dll"));
 
@@ -217,6 +218,7 @@ public sealed class HostingRulesTests : IDisposable
         {
             Name = "hook.DLL", License = "MIT", SourceUrl = Source, Paths = ["plugins/hook.DLL"],
         });
+        titled.ThirdPartyNotices.Should().ContainSingle().Which.Name.Should().Be("Example Hook", "the author named the tool");
         ownAgain.Should().BeEquivalentTo(own);
     }
 
