@@ -406,7 +406,32 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task A_file_changed_since_the_comparison_fails_the_build_and_offers_a_new_one()
+    public async Task A_build_that_fails_after_a_good_one_shows_the_good_one_as_an_earlier_package()
+    {
+        using var ui = await OpenAsync();
+        var package = await PackageAsync(ui);
+        package.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        _work.Author("data/extra/credits.txt", "credits of the author's work, with one more name");
+
+        ui.Click(Button(ui, Strings.Creator_Rebuild));
+        await UiHarness.WaitUntilAsync(() => package.HasProblem && !package.IsBuilding);
+
+        ui.Find<TextBlock>().Single(text => text.IsEffectivelyVisible && text.Classes.Contains("heading")).Text
+            .Should().Be(Strings.Creator_BuildHeading, "the package is not ready while its build failed");
+        package.ResultName.Should().Be("Lantern Isle v1.0.examplemod");
+        package.EarlierText.Should().StartWith(Strings.Creator_EarlierPackage.ToUpper(Text.Culture));
+        ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == package.EarlierText);
+        Shows(ui, Strings.Creator_TestInstall).Should().BeFalse("only a package the last build made is tried in the game");
+        Shows(ui, Strings.Creator_Build).Should().BeFalse("comparing the files again is the way on");
+        await RenderAsync(ui, "creator-rebuild-failed", 1700);
+    }
+
+    [AvaloniaFact]
+    public async Task A_file_changed_since_the_comparison_fails_the_build_until_a_new_comparison_lets_it_build()
     {
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
@@ -423,6 +448,15 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_CompareAgain));
         await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review && Page(ui).Session!.Review is not null);
         Page(ui).Session!.IsConfirmed.Should().BeFalse("a new comparison asks for a new check");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Click(Button(ui, Strings.Creator_Confirm));
+        await UiHarness.WaitUntilAsync(() => Page(ui).Content is PackageStepViewModel);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        (package.NeedsComparison, package.HasProblem).Should().Be((false, false), "the files were compared again");
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        ui.Pickers.Suggested.Should().ContainSingle("the build goes where the failed one was going");
     }
 
     [AvaloniaFact]

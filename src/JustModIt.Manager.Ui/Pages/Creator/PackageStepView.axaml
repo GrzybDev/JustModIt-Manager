@@ -207,29 +207,34 @@
       </StackPanel>
     </ui:Callout>
 
-    <!-- After the build: the package, what the site would say, and what comes next. -->
-    <StackPanel Spacing="20" IsVisible="{Binding IsBuilt}">
-      <Border Classes="creatorCard" Padding="24,20">
-        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
-          <Border Classes="kind success" Width="48" Height="48" CornerRadius="12" Padding="0" HorizontalAlignment="Center">
-            <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Width="24" Height="24" HorizontalAlignment="Center" />
-          </Border>
-          <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-            <WrapPanel ItemSpacing="10">
-              <TextBlock Text="{Binding ResultName}" FontSize="17" LineHeight="24" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}" />
-              <Border Classes="kind" VerticalAlignment="Center">
-                <TextBlock Text="{Binding ResultSize}" />
-              </Border>
-            </WrapPanel>
-            <TextBlock Classes="meta" Text="{Binding ResultDetails}" TextWrapping="Wrap" />
-            <TextBlock Classes="pathLine" Text="{Binding ResultFolder}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
-                       ToolTip.Tip="{Binding ResultFolder}" />
-          </StackPanel>
-          <Button Grid.Column="2" Classes="outline" Content="{x:Static loc:Strings.Creator_Reveal}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
-                  Command="{Binding RevealCommand}" />
-        </Grid>
-      </Border>
+    <!-- The package: the one just built, or after a failed build the earlier one, said to be earlier. -->
+    <Border Classes="creatorCard" Padding="24,20" IsVisible="{Binding ShowsPackage}">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+        <Border Classes="kind" Classes.success="{Binding IsBuilt}" Width="48" Height="48" CornerRadius="12" Padding="0" HorizontalAlignment="Center">
+          <Panel HorizontalAlignment="Center">
+            <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Width="24" Height="24" IsVisible="{Binding IsBuilt}" />
+            <ui:Icon Data="{x:Static theme:Icons.Clock}" Width="24" Height="24" IsVisible="{Binding HasEarlierPackage}" />
+          </Panel>
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+          <TextBlock Classes="overline" Text="{Binding EarlierText}" IsVisible="{Binding HasEarlierPackage}" />
+          <WrapPanel ItemSpacing="10">
+            <TextBlock Text="{Binding ResultName}" FontSize="17" LineHeight="24" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}" />
+            <Border Classes="kind" VerticalAlignment="Center">
+              <TextBlock Text="{Binding ResultSize}" />
+            </Border>
+          </WrapPanel>
+          <TextBlock Classes="meta" Text="{Binding ResultDetails}" TextWrapping="Wrap" />
+          <TextBlock Classes="pathLine" Text="{Binding ResultFolder}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                     ToolTip.Tip="{Binding ResultFolder}" />
+        </StackPanel>
+        <Button Grid.Column="2" Classes="outline" Content="{x:Static loc:Strings.Creator_Reveal}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                Command="{Binding RevealCommand}" />
+      </Grid>
+    </Border>
 
+    <!-- After the build: what the site would say, and what comes next. -->
+    <StackPanel Spacing="20" IsVisible="{Binding IsBuilt}">
       <ItemsControl ItemsSource="{Binding SiteWarnings}" IsVisible="{Binding HasSiteWarnings}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="x:String">

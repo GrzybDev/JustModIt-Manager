@@ -3090,6 +3090,9 @@
   <data name="Creator_BuiltHeading" xml:space="preserve">
     <value>The package is ready</value>
   </data>
+  <data name="Creator_EarlierPackage" xml:space="preserve">
+    <value>A package from an earlier build</value>
+  </data>
   <data name="Creator_PackageLead" xml:space="preserve">
     <value>The format follows from the operations of the previous step. What remains is the package's data, which goes into its description that the app reads.</value>
   </data>

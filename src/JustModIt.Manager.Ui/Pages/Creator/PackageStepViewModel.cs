@@ -23,7 +23,7 @@ namespace JustModIt.Manager.Ui.Pages.Creator;
 /// <summary>Where the last step stands.</summary>
 public enum PackageState
 {
-    /// <summary>The format and the metadata, before a build.</summary>
+    /// <summary>The format and the metadata, before a build or after one that failed.</summary>
     Ready,
     Building,
     Built,
@@ -70,6 +70,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private bool _lostTrack;
     private string _testNote = "";
     private (GameKey? Key, string Folder) _game;
+    private DateTimeOffset _builtAt;
 
     /// <summary>Creates the step for a project.</summary>
     /// <param name="page">The creator.</param>
@@ -86,7 +87,8 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsReady), nameof(IsBuilding), nameof(IsBuilt), nameof(ShowsBuild))]
+    [NotifyPropertyChangedFor(nameof(IsReady), nameof(IsBuilding), nameof(IsBuilt), nameof(ShowsBuild), nameof(HasEarlierPackage),
+        nameof(ShowsPackage), nameof(EarlierText))]
     public partial PackageState State { get; private set; }
 
     public bool IsReady => State == PackageState.Ready;
@@ -168,6 +170,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     /// <summary>The files changed since the comparison, which the author has to compare again before building.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsBuild))]
     public partial bool NeedsComparison { get; private set; }
 
     /// <summary>Warnings only the build found, which the author accepts before building again.</summary>
@@ -180,8 +183,10 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     /// <summary>The author accepted every warning of the last build, which the next build takes.</summary>
     public bool AcceptedAll => HasBuildFindings && BuildFindings.All(line => line.IsAccepted);
 
-    /// <summary>The build's button, which a failure with warnings to accept replaces with the way through them.</summary>
-    public bool ShowsBuild => IsReady && !HasBuildFindings;
+    /// <summary>
+    /// The build's button, which a failed build replaces with its own way on: the warnings to accept, or comparing again.
+    /// </summary>
+    public bool ShowsBuild => IsReady && !HasBuildFindings && !NeedsComparison;
 
     [ObservableProperty]
     public partial string BuildTarget { get; private set; } = "";
@@ -200,7 +205,17 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     /// <summary>The package built last; empty before a build.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasEarlierPackage), nameof(ShowsPackage))]
     public partial string OutputPath { get; private set; } = "";
+
+    /// <summary>A build failed or stopped after an earlier one, whose package is still there but is not this build's.</summary>
+    public bool HasEarlierPackage => IsReady && OutputPath.Length > 0;
+
+    public bool ShowsPackage => IsBuilt || HasEarlierPackage;
+
+    /// <summary>That the package shown is an earlier build's, and when it was built.</summary>
+    public string EarlierText => GameWording.Join(
+        [Strings.Creator_EarlierPackage, HasEarlierPackage ? Formats.RelativeTime(_builtAt, _page.Services.Clock) : ""]).ToUpper(Text.Culture);
 
     [ObservableProperty]
     public partial string ResultName { get; private set; } = "";
@@ -564,6 +579,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             result.Kind == PackageKind.Manifest ? string.Join(", ", metadata.Authors) : "",
         ]);
         ResultFolder = Path.GetDirectoryName(result.OutputPath) ?? "";
+        _builtAt = _page.Services.Clock.GetUtcNow();
         SiteWarnings = [.. result.Findings.Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
             .Select(finding => CreatorWording.Finding(finding))];
         if (Test is TestInstallState.Undone or TestInstallState.Failed)
@@ -578,7 +594,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private void Fail(string title, string text)
     {
         (ProblemTitle, ProblemText) = (title, text);
-        State = OutputPath.Length > 0 ? PackageState.Built : PackageState.Ready;
+        State = PackageState.Ready;
     }
 
     // The next build asks for a place again rather than going back to one the build refused or could not write to.
@@ -614,6 +630,12 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         {
             _game = (project.Game?.Key, project.GameFolder);
             Forget();
+        }
+
+        // The files compared anew are what the failed build asked for, so its failure no longer stands in the way.
+        if (e.PropertyName == nameof(CreatorSession.Comparison) && _session.Comparison is not null && NeedsComparison)
+        {
+            (NeedsComparison, ProblemTitle, ProblemText) = (false, "", "");
         }
 
         Show();

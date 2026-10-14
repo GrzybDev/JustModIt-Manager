@@ -3078,6 +3078,9 @@
   <data name="Creator_BuiltHeading" xml:space="preserve">
     <value>Paczka jest gotowa</value>
   </data>
+  <data name="Creator_EarlierPackage" xml:space="preserve">
+    <value>Paczka z wcześniejszego budowania</value>
+  </data>
   <data name="Creator_PackageLead" xml:space="preserve">
     <value>Format wynika z operacji z poprzedniego kroku. Zostały jeszcze dane paczki – trafią do jej opisu, który czyta aplikacja.</value>
   </data>
