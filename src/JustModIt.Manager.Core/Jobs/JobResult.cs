@@ -60,8 +60,11 @@ public sealed record JobResult(JobSnapshot Job, JobOutcome Outcome)
     /// <summary>The release the job installed or tried to install.</summary>
     public Guid? ReleaseId { get; init; }
 
-    /// <summary>The package the job downloaded; kept while a retry may need it, so retrying counts no new download.</summary>
-    public Guid? PackageFileId { get; init; }
+    /// <summary>
+    /// The packages the job downloaded, by the downloads they came from; kept while a retry may need them, so retrying
+    /// counts no new download.
+    /// </summary>
+    public ValueList<Guid> PackageFileIds { get; init; }
 
     public bool IsSuccess => Outcome == JobOutcome.Succeeded;
 

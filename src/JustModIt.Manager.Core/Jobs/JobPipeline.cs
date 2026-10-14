@@ -139,7 +139,7 @@ internal sealed partial class JobPipeline(
     private async Task<JobResult> ReplaceAsync(JobContext job, InstallRecord record, InstalledGame game, ProjectLocator project,
         string? variantName, bool fallBackToDefault)
     {
-        if (record.Source?.ReleaseFileUuid is { } installedFile)
+        foreach (var installedFile in record.PackageFileIds)
         {
             job.Protect(installedFile);
         }
@@ -319,6 +319,66 @@ internal sealed partial class JobPipeline(
     private async Task<PreparedPackage> PrepareAsync(JobContext job, InstalledGame game, ProjectLocator project, string? variantName,
         bool fallBackToDefault)
     {
+        for (var attempt = 1; ; attempt++)
+        {
+            var (detail, release, variant, files) = await PlanAsync(job, game, project, variantName, fallBackToDefault).ConfigureAwait(false);
+            var locator = new ReleaseLocator(detail.Team.Slug, detail.Slug, release.Uuid);
+            foreach (var file in files)
+            {
+                job.Protect(file.Uuid);
+                if (file.CopiedFrom is { } original)
+                {
+                    job.Protect(original);
+                }
+            }
+
+            job.PackageFileIds = [.. files.Select(file => file.Uuid)];
+            job.ReleaseId = release.Uuid;
+            IReadOnlyList<DownloadedPackage> downloaded;
+            try
+            {
+                // Only a backend that says which add-ons a release has gives a release's files in one request.
+                downloaded = await DownloadAsync(job, new ReleaseDownload(locator, [.. files.Select(file =>
+                    PackageRequest.For(new ReleaseFileLocator(locator.TeamSlug, locator.ProjectSlug, release.Uuid, file.Uuid), file))],
+                    ResolveTogether: release.Features is not null)).ConfigureAwait(false);
+            }
+            catch (CatalogueException exception) when (exception.Reason == CatalogueErrorReason.InvalidSelection && attempt == 1)
+            {
+                // Nothing was counted; a file was most likely replaced since the page was read, so it is read and planned again.
+                LogSelectionRefused(job.Game);
+                continue;
+            }
+
+            job.PackageFileIds = [.. files.Select((file, index) => downloaded[index].CopyOf ?? file.Uuid)];
+            var source = new InstallSource
+            {
+                ProjectId = detail.Uuid.ToString("D"),
+                ProjectSlug = detail.Slug,
+                ProjectName = detail.Name,
+                GameSlug = detail.Game.Slug,
+                GameName = detail.Game.Name,
+                TeamSlug = detail.Team.Slug,
+                TeamName = detail.Team.Name,
+                ReleaseId = release.Uuid.ToString("D"),
+                ReleaseLabel = release.NameRaw.Length > 0 ? release.NameRaw : null,
+                ReleaseVersion = release.Version > 0 ? release.Version : null,
+                ReleasePublishedAt = release.FirstPublishedAt,
+                ReleaseFileId = files[0].Uuid.ToString("D"),
+                VariantName = variant.Name,
+                CoverUrl = CoverOf(detail),
+            };
+            return new PreparedPackage([.. files.Select((file, index) => new InstallPart(downloaded[index].Path)
+            {
+                ReleaseFileId = file.Uuid.ToString("D"),
+                CachedFileId = downloaded[index].CopyOf?.ToString("D"),
+            })], release.Uuid, source);
+        }
+    }
+
+    // The files to install, the base's first, from the project's page as the site has it now.
+    private async Task<(ProjectPage Page, Release Release, ReleaseVariant Variant, IReadOnlyList<ReleaseFile> Files)> PlanAsync(
+        JobContext job, InstalledGame game, ProjectLocator project, string? variantName, bool fallBackToDefault)
+    {
         job.Enter(JobStage.Preparing);
         // The release and file ids must be the site's current ones.
         var page = await catalogue.GetProjectPageAsync(project, PageFreshness.Fresh, job.Token).ConfigureAwait(false);
@@ -342,41 +402,29 @@ internal sealed partial class JobPipeline(
 
         var variant = Choose(selection, variantName, fallBackToDefault)
             ?? throw new JobFailedException(new JobFailure(JobFailureReason.NoPackage) { Unavailability = UnavailabilityOf(selection, variantName) });
-        var release = selection.Release;
-        var file = variant.Package!;
-        job.Protect(file.Uuid);
-        job.PackageFileId = file.Uuid;
-        job.ReleaseId = release.Uuid;
-        var downloaded = await DownloadAsync(job, PackageRequest.For(new ReleaseFileLocator(detail.Team.Slug, detail.Slug, release.Uuid,
-            file.Uuid), file)).ConfigureAwait(false);
-        var source = new InstallSource
-        {
-            ProjectId = detail.Uuid.ToString("D"),
-            ProjectSlug = detail.Slug,
-            ProjectName = detail.Name,
-            GameSlug = detail.Game.Slug,
-            GameName = detail.Game.Name,
-            TeamSlug = detail.Team.Slug,
-            TeamName = detail.Team.Name,
-            ReleaseId = release.Uuid.ToString("D"),
-            ReleaseLabel = release.NameRaw.Length > 0 ? release.NameRaw : null,
-            ReleaseVersion = release.Version > 0 ? release.Version : null,
-            ReleasePublishedAt = release.FirstPublishedAt,
-            ReleaseFileId = file.Uuid.ToString("D"),
-            VariantName = variant.Name,
-            CoverUrl = CoverOf(detail),
-        };
-        return new PreparedPackage([new InstallPart(downloaded.Path) { ReleaseFileId = file.Uuid.ToString("D") }], release.Uuid, source);
+        return (detail, selection.Release, variant, [variant.Package!]);
     }
 
-    private async Task<DownloadedPackage> DownloadAsync(JobContext job, PackageRequest request)
+    private async Task<IReadOnlyList<DownloadedPackage>> DownloadAsync(JobContext job, ReleaseDownload download)
     {
-        // A kept package is handed out without waiting for another game's download.
-        if (await downloader.FindCachedAsync(request, job.Token).ConfigureAwait(false) is { } cached)
+        // Kept packages are handed out without waiting for another game's download.
+        var kept = new List<DownloadedPackage>();
+        foreach (var file in download.Files)
         {
-            return cached;
+            if (await downloader.FindCachedAsync(file, job.Token).ConfigureAwait(false) is not { } cached)
+            {
+                break;
+            }
+
+            kept.Add(cached);
         }
 
+        if (kept.Count == download.Files.Count)
+        {
+            return kept;
+        }
+
+        // Held for the whole set, so its files arrive one after another under one bar.
         if (!await downloadSlot.WaitAsync(0, job.Token).ConfigureAwait(false))
         {
             job.Wait(JobWaitReason.Download, []);
@@ -386,7 +434,7 @@ internal sealed partial class JobPipeline(
         try
         {
             job.Enter(JobStage.Downloading);
-            return await downloader.DownloadAsync(request, job.DownloadProgress, job.Token).ConfigureAwait(false);
+            return await downloader.DownloadReleaseAsync(download, job.DownloadProgress, job.Token).ConfigureAwait(false);
         }
         finally
         {
@@ -514,6 +562,10 @@ internal sealed partial class JobPipeline(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The store's last change to {Game} lies far in the future; the quiet period is skipped")]
     private partial void LogClockSkew(GameKey game);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "The site refused the files of the release for {Game} asked for together; reading the release again")]
+    private partial void LogSelectionRefused(GameKey game);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Game} came into use right before it was to change; waiting again")]
     private partial void LogInUse(GameKey game);

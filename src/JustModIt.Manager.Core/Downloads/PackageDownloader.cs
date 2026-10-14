@@ -12,8 +12,8 @@ using Microsoft.Extensions.Logging;
 namespace JustModIt.Manager.Core.Downloads;
 
 /// <summary>
-/// Downloads release files one at a time into one folder, each named after its file uuid, under which its content never
-/// changes, so a verified download stays valid for as long as it is kept.
+/// Downloads release files one release at a time into one folder, each named after its file uuid, under which its content
+/// never changes, so a verified download stays valid for as long as it is kept.
 /// </summary>
 public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
 {
@@ -81,16 +81,35 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (await FindCachedAsync(request, cancellationToken).ConfigureAwait(false) is { } cached)
+        var download = new ReleaseDownload(request.Locator.Release, [request], ResolveTogether: false);
+        return (await DownloadReleaseAsync(download, progress, cancellationToken).ConfigureAwait(false))[0];
+    }
+
+    public async Task<IReadOnlyList<DownloadedPackage>> DownloadReleaseAsync(ReleaseDownload download, IProgress<DownloadProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(download);
+        var kept = new List<DownloadedPackage>();
+        foreach (var request in download.Files)
         {
-            progress?.Report(new DownloadProgress(cached.Size, cached.Size));
-            return cached;
+            if (await FindCachedAsync(request, cancellationToken).ConfigureAwait(false) is not { } cached)
+            {
+                break;
+            }
+
+            kept.Add(cached);
+        }
+
+        if (kept.Count == download.Files.Count)
+        {
+            ReportDone(kept, progress);
+            return kept;
         }
 
         await _slot.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            return await DownloadOnceAsync(request, progress, cancellationToken).ConfigureAwait(false);
+            return await DownloadOnceAsync(download, progress, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -106,7 +125,8 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
         try
         {
             var files = PackageFiles.For(_directory, _packageExtension, request);
-            return await FindVerifiedAsync(files, request, forgetUnverified: false, cancellationToken).ConfigureAwait(false);
+            return await FindVerifiedAsync(files, request, forgetUnverified: false, cancellationToken).ConfigureAwait(false)
+                ?? await FindOriginalAsync(request, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -160,58 +180,147 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
 
     public void Dispose() => _slot.Dispose();
 
-    private async Task<DownloadedPackage> DownloadOnceAsync(PackageRequest request, IProgress<DownloadProgress>? progress,
+    // Every address the files lack is asked for before any byte is fetched, so the set takes one request and a stop while
+    // fetching keeps them all for the next attempt.
+    private async Task<IReadOnlyList<DownloadedPackage>> DownloadOnceAsync(ReleaseDownload download, IProgress<DownloadProgress>? progress,
         CancellationToken cancellationToken)
     {
-        var files = PackageFiles.For(_directory, _packageExtension, request);
-        if (await FindVerifiedAsync(files, request, forgetUnverified: true, cancellationToken).ConfigureAwait(false) is { } cached)
+        var packages = new DownloadedPackage?[download.Files.Count];
+        var missing = new List<PendingDownload>();
+        for (var index = 0; index < download.Files.Count; index++)
         {
-            progress?.Report(new DownloadProgress(cached.Size, cached.Size));
-            return cached;
+            var request = download.Files[index];
+            var files = PackageFiles.For(_directory, _packageExtension, request);
+            packages[index] = await FindVerifiedAsync(files, request, forgetUnverified: true, cancellationToken).ConfigureAwait(false)
+                ?? await FindOriginalAsync(request, cancellationToken).ConfigureAwait(false);
+            if (packages[index] is null)
+            {
+                missing.Add(await PendingAsync(index, request, files, cancellationToken).ConfigureAwait(false));
+            }
         }
 
+        EnsureSpace(missing.Sum(pending => Math.Max(0, (pending.Request.Size ?? 0) - (pending.Resume?.Offset ?? 0))));
+        await ResolveAsync(download, [.. missing.Where(pending => pending.Address is null)], cancellationToken).ConfigureAwait(false);
+        var total = missing.TrueForAll(pending => pending.Request.Size is not null)
+            ? missing.Sum(pending => pending.Request.Size!.Value)
+            : (long?)null;
+        long done = 0;
+        foreach (var pending in missing)
+        {
+            var before = done;
+            // The bar covers every file to fetch, so it never moves back between them.
+            var reported = progress is null || missing.Count == 1 ? progress
+                : new InlineProgress<DownloadProgress>(report => progress.Report(new DownloadProgress(before + report.BytesReceived, total)));
+            var package = await FetchPendingAsync(download, pending, reported, cancellationToken).ConfigureAwait(false);
+            packages[pending.Index] = package;
+            done += package.Size;
+        }
+
+        if (missing.Count == 0)
+        {
+            ReportDone(packages!, progress);
+        }
+
+        return [.. packages.OfType<DownloadedPackage>()];
+    }
+
+    private async Task<PendingDownload> PendingAsync(int index, PackageRequest request, PackageFiles files, CancellationToken cancellationToken)
+    {
         Directory.CreateDirectory(_directory);
-        using var hashes = new PackageHashes(request.Sha256.Length > 0);
         var record = await ReadRecordAsync(files.PartialRecord, cancellationToken).ConfigureAwait(false) ?? new DownloadRecord();
         var resume = FindResumePoint(files, record, request.Size);
         if (resume is null)
         {
             TryDelete(files.Partial);
         }
-        else
-        {
-            // Before any request: reading a large partial from a slow disk would leave a connection idle until it drops.
-            await HashPrefixAsync(files.Partial, resume, hashes, progress, cancellationToken).ConfigureAwait(false);
-        }
 
         // The site counts every request for an address, so a resume, even after a restart, fetches from the saved one.
-        var address = SavedAddress(record);
-        var resolvedNow = false;
-        while (true)
+        return new PendingDownload(index, request, files, resume) { Record = record, Address = SavedAddress(record) };
+    }
+
+    private async Task ResolveAsync(ReleaseDownload download, IReadOnlyList<PendingDownload> pending, CancellationToken cancellationToken)
+    {
+        if (pending.Count == 0)
         {
-            EnsureSpace(request.Size - (resume?.Offset ?? 0));
-            if (address is null)
+            return;
+        }
+
+        if (download.ResolveTogether)
+        {
+            var addresses = await _api.ResolveDownloadsAsync(download.Release, [.. pending.Select(file => file.Request.Locator.FileUuid)],
+                cancellationToken).ConfigureAwait(false);
+            foreach (var file in pending)
             {
-                address = await _api.ResolveDownloadAsync(request.Locator, cancellationToken).ConfigureAwait(false);
-                resolvedNow = true;
-                record = record with { Address = address.AbsoluteUri, ResolvedAt = _time.GetUtcNow() };
-                // The site has counted the download by now; losing the address would make the next attempt count again.
-                await WriteRecordAsync(files.PartialRecord, record, CancellationToken.None).ConfigureAwait(false);
+                await SaveAddressAsync(file, addresses[file.Request.Locator.FileUuid]).ConfigureAwait(false);
             }
 
+            return;
+        }
+
+        foreach (var file in pending)
+        {
+            await SaveAddressAsync(file, await _api.ResolveDownloadAsync(file.Request.Locator, cancellationToken).ConfigureAwait(false))
+                .ConfigureAwait(false);
+        }
+    }
+
+    // The site has counted the download by now; losing the address would make the next attempt count again.
+    private Task SaveAddressAsync(PendingDownload pending, Uri address)
+    {
+        pending.Address = address;
+        pending.ResolvedNow = true;
+        pending.Record = pending.Record with { Address = address.AbsoluteUri, ResolvedAt = _time.GetUtcNow() };
+        return WriteRecordAsync(pending.Files.PartialRecord, pending.Record, CancellationToken.None);
+    }
+
+    private async Task<DownloadedPackage> FetchPendingAsync(ReleaseDownload download, PendingDownload pending,
+        IProgress<DownloadProgress>? progress, CancellationToken cancellationToken)
+    {
+        using var hashes = new PackageHashes(pending.Request.Sha256.Length > 0);
+        if (pending.Resume is { } resume)
+        {
+            // Right before its own request: reading a large partial from a slow disk would leave a connection idle until it
+            // drops.
+            await HashPrefixAsync(pending.Files.Partial, resume, hashes, progress, cancellationToken).ConfigureAwait(false);
+        }
+
+        while (true)
+        {
             try
             {
-                return await FetchAsync(address, files, record, resume, hashes, request, progress, cancellationToken)
-                    .ConfigureAwait(false);
+                return await FetchAsync(pending.Address!, pending.Files, pending.Record, pending.Resume, hashes, pending.Request, progress,
+                    cancellationToken).ConfigureAwait(false);
             }
-            catch (CatalogueException exception) when (!resolvedNow
+            catch (CatalogueException exception) when (!pending.ResolvedNow
                 && exception.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.Gone)
             {
-                // The saved address no longer serves the file: it moved, or a signed address expired. A new one counts again.
-                LogAddressExpired(request.Locator.FileUuid, (int)exception.StatusCode!);
-                address = null;
+                // The saved address no longer serves the file: it moved, or a signed address expired. A new one counts again
+                // when the file is a base file.
+                LogAddressExpired(pending.Request.Locator.FileUuid, (int)exception.StatusCode!);
+                await ResolveAsync(download, [pending], cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    // A copy has the bytes of the file it copies, so the original's kept download serves for it, never deleted from here.
+    private async Task<DownloadedPackage?> FindOriginalAsync(PackageRequest request, CancellationToken cancellationToken)
+    {
+        if (request is not { CopiedFrom: { } original, Size: not null })
+        {
+            return null;
+        }
+
+        var asOriginal = request with { Locator = request.Locator with { FileUuid = original } };
+        return await FindVerifiedAsync(PackageFiles.For(_directory, _packageExtension, asOriginal), asOriginal, forgetUnverified: false,
+            cancellationToken).ConfigureAwait(false) is { } kept
+            ? kept with { CopyOf = original }
+            : null;
+    }
+
+    private static void ReportDone(IReadOnlyCollection<DownloadedPackage> packages, IProgress<DownloadProgress>? progress)
+    {
+        var size = packages.Sum(package => package.Size);
+        progress?.Report(new DownloadProgress(size, size));
     }
 
     private async Task<DownloadedPackage> FetchAsync(Uri address, PackageFiles files, DownloadRecord record, ResumePoint? resume,
@@ -532,6 +641,21 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
     private partial void LogDeleteFailed(string file, Exception exception);
 
     private sealed record ResumePoint(long Offset, long Size, EntityTagHeaderValue ETag);
+
+    /// <summary>A file of a set that is not kept yet, with what a resume and its request need.</summary>
+    /// <param name="Index">Its place in the set.</param>
+    /// <param name="Request">The file and what to verify it against.</param>
+    /// <param name="Files">Where its download goes.</param>
+    /// <param name="Resume">Where a partial download resumes; null to fetch it whole.</param>
+    private sealed record PendingDownload(int Index, PackageRequest Request, PackageFiles Files, ResumePoint? Resume)
+    {
+        public required DownloadRecord Record { get; set; }
+
+        public Uri? Address { get; set; }
+
+        /// <summary>The address was asked for in this attempt, so a refusal of it is no expired address.</summary>
+        public bool ResolvedNow { get; set; }
+    }
 
     private sealed record PackageFiles(string Package, string Record, string Partial, string PartialRecord)
     {

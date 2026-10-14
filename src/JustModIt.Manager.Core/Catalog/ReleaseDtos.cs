@@ -37,8 +37,17 @@ public sealed record Release
     /// <summary>Null when the site does not know, which never means the release's creation.</summary>
     public DateTimeOffset? FirstPublishedAt { get; init; }
 
-    /// <summary>Includes files whose upload has not finished; see <see cref="ReleaseFile.IsReady"/>.</summary>
+    /// <summary>
+    /// The base's files, those every install of the release takes, including files whose upload has not finished; see
+    /// <see cref="ReleaseFile.IsReady"/>.
+    /// </summary>
     public IReadOnlyList<ReleaseFile> Files { get; init => field = value ?? []; } = [];
+
+    /// <summary>
+    /// The release's optional add-ons in the order they install; null from a backend that does not say, which also has no
+    /// endpoint that gives the files of a release together.
+    /// </summary>
+    public IReadOnlyList<ReleaseFeature>? Features { get; init; }
 
     /// <summary>The file the site offers first; never an app-only package.</summary>
     public ReleaseFile? DefaultFile { get; init; }
@@ -48,17 +57,52 @@ public sealed record Release
     public DateTimeOffset? UpdatedAt { get; init; }
 }
 
-/// <summary>
-/// One downloadable package; files sharing a <see cref="Name"/> are packages of one variant, made for different stores or
-/// systems.
-/// </summary>
+/// <summary>An optional part of a release, with packages of its own.</summary>
+public sealed record ReleaseFeature
+{
+    public required Guid Uuid { get; init; }
+
+    /// <summary>The add-on's name as a slug, which stays when it is renamed and carries over to the project's next release.</summary>
+    public required string Key { get; init; }
+
+    public required string Name { get; init; }
+
+    /// <summary>Plain text.</summary>
+    public string Description { get; init => field = value ?? ""; } = "";
+
+    public int Position { get; init; }
+
+    /// <summary>Whether the add-on comes with the release unless the player says otherwise.</summary>
+    public bool IsDefault { get; init; }
+
+    /// <summary>Add-ons sharing it exclude each other, and it is the caption of the choice; empty for none.</summary>
+    public string Group { get; init => field = value ?? ""; } = "";
+
+    /// <summary>Includes files whose upload has not finished; see <see cref="ReleaseFile.IsReady"/>.</summary>
+    public IReadOnlyList<ReleaseFile> Files { get; init => field = value ?? []; } = [];
+}
+
+/// <summary>One downloadable package of a release's base or of one of its add-ons, made for some stores or systems.</summary>
 public sealed record ReleaseFile
 {
     private const string ReadyStatus = "ready";
 
     public required Guid Uuid { get; init; }
 
+    /// <summary>
+    /// The base files of a release from before add-ons that share it are packages of one variant; empty for an add-on's
+    /// files.
+    /// </summary>
     public required string Name { get; init; }
+
+    /// <summary>The add-on the file belongs to; null for a base file.</summary>
+    public Guid? FeatureUuid { get; init; }
+
+    /// <summary>
+    /// The file this one copies, with the same bytes, as the project's next release takes over an earlier one's add-ons;
+    /// null for a file uploaded itself.
+    /// </summary>
+    public Guid? CopiedFrom { get; init; }
 
     public string Description { get; init => field = value ?? ""; } = "";
 
@@ -127,9 +171,31 @@ public sealed record ReleaseFileMirror
 /// <param name="ProjectSlug">The project's slug within the team.</param>
 /// <param name="ReleaseUuid">The release the file belongs to.</param>
 /// <param name="FileUuid">The file to download.</param>
-public readonly record struct ReleaseFileLocator(string TeamSlug, string ProjectSlug, Guid ReleaseUuid, Guid FileUuid);
+public readonly record struct ReleaseFileLocator(string TeamSlug, string ProjectSlug, Guid ReleaseUuid, Guid FileUuid)
+{
+    /// <summary>The release the file belongs to.</summary>
+    public ReleaseLocator Release => new(TeamSlug, ProjectSlug, ReleaseUuid);
+}
+
+/// <summary>What the release's download endpoint needs to name a release.</summary>
+/// <param name="TeamSlug">The slug of the team that made the project.</param>
+/// <param name="ProjectSlug">The project's slug within the team.</param>
+/// <param name="ReleaseUuid">The release.</param>
+public readonly record struct ReleaseLocator(string TeamSlug, string ProjectSlug, Guid ReleaseUuid);
 
 internal sealed record DownloadLink
 {
+    public string DownloadUrl { get; init => field = value ?? ""; } = "";
+}
+
+internal sealed record ReleaseDownloadLinks
+{
+    public IReadOnlyList<ReleaseDownloadLink> Files { get; init => field = value ?? []; } = [];
+}
+
+internal sealed record ReleaseDownloadLink
+{
+    public Guid Uuid { get; init; }
+
     public string DownloadUrl { get; init => field = value ?? ""; } = "";
 }

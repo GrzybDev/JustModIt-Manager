@@ -6,17 +6,21 @@ namespace JustModIt.Manager.Core.Catalog;
 /// <summary>Turns failed requests into typed catalogue errors.</summary>
 internal static class CatalogueErrors
 {
+    private const string InvalidSelectionCode = "invalid_selection";
+
     /// <summary>The error for a response with a failure status.</summary>
     /// <param name="response">The response, whose Retry-After is kept.</param>
     /// <param name="operation">The request as the logs name it, e.g. <c>GET games/v1/</c>.</param>
     /// <param name="time">The clock that turns a Retry-After date into a delay.</param>
     /// <param name="serverDetail">The server's own explanation, in the site's language; it goes to the logs only.</param>
+    /// <param name="serverCode">The machine-readable code the server gave the error, if any.</param>
     public static CatalogueException ForStatus(HttpResponseMessage response, string operation, TimeProvider time,
-        string? serverDetail = null)
+        string? serverDetail = null, string? serverCode = null)
     {
         var status = response.StatusCode;
         var reason = status switch
         {
+            HttpStatusCode.BadRequest when serverCode == InvalidSelectionCode => CatalogueErrorReason.InvalidSelection,
             HttpStatusCode.NotFound or HttpStatusCode.Gone => CatalogueErrorReason.NotFound,
             HttpStatusCode.TooManyRequests => CatalogueErrorReason.RateLimited,
             HttpStatusCode.ServiceUnavailable => CatalogueErrorReason.Maintenance,

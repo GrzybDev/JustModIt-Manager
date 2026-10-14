@@ -196,6 +196,12 @@ internal sealed class FakeDownloader : IPackageDownloader
 
     public ConcurrentQueue<(IReadOnlySet<Guid> Keep, bool KeepPartial)> Prunes { get; } = new();
 
+    /// <summary>The releases whose files were downloaded together, one entry per request for their addresses.</summary>
+    public ConcurrentQueue<ReleaseDownload> Releases { get; } = new();
+
+    /// <summary>Fails the next downloads of a release's files, one each, before anything is fetched.</summary>
+    public ConcurrentQueue<Exception> ReleaseFailures { get; } = new();
+
     public ConcurrentDictionary<Guid, TaskCompletionSource> Gates { get; } = new();
 
     public Exception? Failure { get; set; }
@@ -232,10 +238,30 @@ internal sealed class FakeDownloader : IPackageDownloader
         return new DownloadedPackage(PathOf(request.Locator.FileUuid, request.Format), 1024, "", null, request.Format, FromCache: false);
     }
 
+    public async Task<IReadOnlyList<DownloadedPackage>> DownloadReleaseAsync(ReleaseDownload download, IProgress<DownloadProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        Releases.Enqueue(download);
+        if (ReleaseFailures.TryDequeue(out var failure))
+        {
+            throw failure;
+        }
+
+        var packages = new List<DownloadedPackage>();
+        foreach (var file in download.Files)
+        {
+            packages.Add(await DownloadAsync(file, progress, cancellationToken));
+        }
+
+        return packages;
+    }
+
     public Task<DownloadedPackage?> FindCachedAsync(PackageRequest request, CancellationToken cancellationToken) =>
         Task.FromResult(Cached.ContainsKey(request.Locator.FileUuid)
             ? new DownloadedPackage(PathOf(request.Locator.FileUuid, request.Format), 1024, "", null, request.Format, FromCache: true)
-            : null);
+            : request.CopiedFrom is { } original && Cached.ContainsKey(original)
+                ? new DownloadedPackage(PathOf(original, request.Format), 1024, "", null, request.Format, FromCache: true) { CopyOf = original }
+                : null);
 
     public Task<int> PruneAsync(IReadOnlySet<Guid> keep, bool keepPartial, CancellationToken cancellationToken)
     {

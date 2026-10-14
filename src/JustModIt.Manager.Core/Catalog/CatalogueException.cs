@@ -19,6 +19,11 @@ public enum CatalogueErrorReason
 
     /// <summary>The site no longer lets the release be downloaded: staff hid it, or the team or its status holds it back.</summary>
     ReleaseUnavailable,
+
+    /// <summary>
+    /// The site refused the files asked for together, e.g. one replaced since the release was read, and counted nothing.
+    /// </summary>
+    InvalidSelection,
 }
 
 /// <summary>A failed request to the site's API or storage, with an English message meant for the logs only.</summary>

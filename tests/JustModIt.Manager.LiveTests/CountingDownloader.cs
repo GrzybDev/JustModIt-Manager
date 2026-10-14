@@ -22,6 +22,21 @@ internal sealed class CountingDownloader(IPackageDownloader inner) : IPackageDow
         return await inner.DownloadAsync(request, progress, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<DownloadedPackage>> DownloadReleaseAsync(ReleaseDownload download, IProgress<DownloadProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        foreach (var file in download.Files)
+        {
+            if (await inner.FindCachedAsync(file, cancellationToken).ConfigureAwait(false) is null)
+            {
+                Interlocked.Increment(ref _fromSite);
+                break;
+            }
+        }
+
+        return await inner.DownloadReleaseAsync(download, progress, cancellationToken).ConfigureAwait(false);
+    }
+
     public Task<DownloadedPackage?> FindCachedAsync(PackageRequest request, CancellationToken cancellationToken) =>
         inner.FindCachedAsync(request, cancellationToken);
 

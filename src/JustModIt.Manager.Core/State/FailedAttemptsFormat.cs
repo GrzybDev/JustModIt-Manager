@@ -58,7 +58,7 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
             writer.WriteString("at", attempt.At);
             writer.WriteBoolean("lostPrevious", attempt.LostPrevious);
             writer.WriteIfSet("releaseId", attempt.ReleaseId);
-            writer.WriteIfSet("packageFileId", attempt.PackageFileId);
+            writer.WriteStringsIfAny("packageFileIds", [.. attempt.PackageFileIds.Select(file => file.ToString("D"))]);
             if (attempt.Failure is { } failure)
             {
                 writer.WriteStartObject("failure");
@@ -89,9 +89,15 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
         {
             LostPrevious = entry.GetBooleanOrNull("lostPrevious") ?? false,
             ReleaseId = entry.GetGuidOrNull("releaseId"),
-            PackageFileId = entry.GetGuidOrNull("packageFileId"),
+            PackageFileIds = PackageFileIdsOf(entry),
         });
     }
+
+    // Earlier versions kept a single package.
+    private static ValueList<Guid> PackageFileIdsOf(JsonElement entry) =>
+        entry.GetGuidOrNull("packageFileId") is { } single
+            ? [single]
+            : [.. entry.GetStrings("packageFileIds").Select(id => Guid.TryParse(id, out var file) ? file : (Guid?)null).OfType<Guid>()];
 
     private static JobFailure ReadFailure(JsonElement failure, JobFailureReason reason) => new(reason)
     {

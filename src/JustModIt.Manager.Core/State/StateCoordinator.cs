@@ -775,9 +775,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         }
 
         _pruneWanted = false;
-        var keep = _records.Values.Select(record => record.Source?.ReleaseFileUuid)
-            .Concat(_failures.Values.Select(failure => failure.PackageFileId))
-            .OfType<Guid>()
+        var keep = _records.Values.SelectMany(record => record.PackageFileIds)
+            .Concat(_failures.Values.SelectMany(failure => failure.PackageFileIds))
             .ToHashSet();
         _ = PruneAsync(keep);
     }

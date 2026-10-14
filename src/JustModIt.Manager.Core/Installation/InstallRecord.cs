@@ -56,6 +56,16 @@ public sealed record InstallRecord
     /// <summary>A package the package creator installed to try it out; it has no release to update to.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsTest { get; init; }
+
+    /// <summary>
+    /// The downloads the install's packages came from, which stay kept so that putting the install back downloads, and
+    /// counts, nothing.
+    /// </summary>
+    [JsonIgnore]
+    public IEnumerable<Guid> PackageFileIds =>
+        Parts is { } parts
+            ? parts.Select(part => Guid.TryParse(part.CachedFileId ?? part.ReleaseFileId, out var file) ? file : (Guid?)null).OfType<Guid>()
+            : Source?.ReleaseFileUuid is { } single ? [single] : [];
 }
 
 public sealed record BackupFolder(BackupLocation Location, string Directory);

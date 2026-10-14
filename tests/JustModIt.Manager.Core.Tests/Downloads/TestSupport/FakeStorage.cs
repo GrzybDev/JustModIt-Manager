@@ -8,12 +8,13 @@ namespace JustModIt.Manager.Core.Tests.Downloads.TestSupport;
 internal sealed record StorageRequest(Uri Uri, RangeHeaderValue? Range, RangeConditionHeaderValue? IfRange);
 
 /// <summary>
-/// Serves one object like the site's storage: a strong ETag with the MD5 of the bytes, and ranges honoured while
-/// If-Range still names the stored object.
+/// Serves objects like the site's storage: a strong ETag with the MD5 of the bytes, and ranges honoured while If-Range
+/// still names the stored object; one object for every address unless others are stored at their own.
 /// </summary>
 internal sealed class FakeStorage : HttpMessageHandler
 {
     private readonly ConcurrentQueue<StorageRequest> _requests = new();
+    private readonly ConcurrentDictionary<string, byte[]> _objects = new(StringComparer.Ordinal);
     private readonly ConcurrentQueue<Func<HttpResponseMessage?>> _next = new();
     private int _running;
 
@@ -45,6 +46,11 @@ internal sealed class FakeStorage : HttpMessageHandler
         Content = content;
         ETag = $"\"{Md5Of(content)}\"";
     }
+
+    /// <summary>Serves an object of its own at an address.</summary>
+    /// <param name="path">The address's path.</param>
+    /// <param name="content">The object's bytes.</param>
+    public void Store(string path, byte[] content) => _objects[path] = content;
 
     /// <summary>Answers the next request with <paramref name="respond"/> instead of the object.</summary>
     /// <param name="respond">Gives the response, or null to serve the object after all.</param>
@@ -93,12 +99,15 @@ internal sealed class FakeStorage : HttpMessageHandler
 
     private HttpResponseMessage Serve(HttpRequestMessage request)
     {
+        var (content, etag) = _objects.TryGetValue(request.RequestUri!.AbsolutePath, out var stored)
+            ? (stored, $"\"{Md5Of(stored)}\"")
+            : (Content, ETag);
         long from = 0;
         var partial = false;
         if (request.Headers.Range?.Ranges.FirstOrDefault()?.From is { } start
-            && (request.Headers.IfRange?.EntityTag is not { } tag || tag.Tag == ETag))
+            && (request.Headers.IfRange?.EntityTag is not { } tag || tag.Tag == etag))
         {
-            if (start >= Content.Length)
+            if (start >= content.Length)
             {
                 return new HttpResponseMessage(HttpStatusCode.RequestedRangeNotSatisfiable) { Content = new ByteArrayContent([]) };
             }
@@ -107,21 +116,21 @@ internal sealed class FakeStorage : HttpMessageHandler
             partial = true;
         }
 
-        var body = new BodyStream(Content, (int)from, DropAfter, StallAfter, BeforeChunk);
+        var body = new BodyStream(content, (int)from, DropAfter, StallAfter, BeforeChunk);
         DropAfter = null;
         StallAfter = null;
         var response = new HttpResponseMessage(partial ? HttpStatusCode.PartialContent : HttpStatusCode.OK)
         {
             Content = new StreamContent(body),
         };
-        response.Content.Headers.ContentLength = Content.Length - from;
+        response.Content.Headers.ContentLength = content.Length - from;
         response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
         if (partial)
         {
-            response.Content.Headers.ContentRange = new ContentRangeHeaderValue(from, Content.Length - 1, Content.Length);
+            response.Content.Headers.ContentRange = new ContentRangeHeaderValue(from, content.Length - 1, content.Length);
         }
 
-        response.Headers.ETag = EntityTagHeaderValue.Parse(ETag);
+        response.Headers.ETag = EntityTagHeaderValue.Parse(etag);
         response.Headers.AcceptRanges.Add("bytes");
         return response;
     }

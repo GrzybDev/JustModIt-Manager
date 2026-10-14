@@ -63,8 +63,8 @@ internal sealed class JobContext
 
     public Task Execution { get; set; } = Task.CompletedTask;
 
-    /// <summary>The package the job downloaded for what it installs.</summary>
-    public Guid? PackageFileId { get; set; }
+    /// <summary>The packages the job downloaded for what it installs, by the downloads they came from.</summary>
+    public ValueList<Guid> PackageFileIds { get; set; }
 
     public Guid? ReleaseId { get; set; }
 
@@ -164,7 +164,7 @@ internal sealed class JobContext
     {
         Failure = failure,
         CancelledByPlayer = outcome == JobOutcome.Cancelled && CancelledByPlayer,
-        PackageFileId = PackageFileId,
+        PackageFileIds = PackageFileIds,
         ReleaseId = ReleaseId,
     };
 

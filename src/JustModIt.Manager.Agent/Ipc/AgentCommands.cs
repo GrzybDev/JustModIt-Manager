@@ -193,7 +193,7 @@ public sealed class AgentCommands(
     private async Task<Message?> ClearCacheAsync(CancellationToken cancellationToken)
     {
         var installed = coordinator.Current.Games.SelectMany(game => game.Installs)
-            .Select(install => install.Record.Source?.ReleaseFileUuid).OfType<Guid>().ToHashSet();
+            .SelectMany(install => install.Record.PackageFileIds).ToHashSet();
         return await storage.ClearCacheAsync(installed, cancellationToken).ConfigureAwait(false)
             ? null
             : throw new RequestFailedException(ErrorCode.Failed, "A job is running.");

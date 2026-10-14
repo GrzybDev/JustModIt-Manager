@@ -156,6 +156,52 @@ public sealed class CatalogueApiClientTests
     }
 
     [Fact]
+    public async Task Resolves_the_files_of_a_release_with_one_request_to_the_exact_path()
+    {
+        var voices = Guid.Parse("a0000000-0000-4000-8000-000000000002");
+        var handler = FakeHttpHandler.Sequence(() => FakeHttpHandler.Json($$"""
+            {"files": [
+              {"uuid": "{{voices:D}}", "download_url": "https://storage.example.com/voices.zip", "download_filename": "voices.zip", "size": 5},
+              {"uuid": "{{File.FileUuid:D}}", "download_url": "https://storage.example.com/base.zip", "download_filename": "base.zip", "size": 9}
+            ]}
+            """));
+        using var client = Client(handler);
+
+        var addresses = await client.ResolveDownloadsAsync(File.Release, [File.FileUuid, voices], Token);
+
+        addresses.Should().BeEquivalentTo(new Dictionary<Guid, Uri>
+        {
+            [File.FileUuid] = new("https://storage.example.com/base.zip"),
+            [voices] = new("https://storage.example.com/voices.zip"),
+        });
+        handler.Paths.Should().Equal("/projects/v1/teams/lantern-works/starlight-harbor/releases/f3713421-0000-4000-8000-000000000032/download/"
+            + "?files=a0000000-0000-4000-8000-000000000001,a0000000-0000-4000-8000-000000000002");
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.BadRequest, """{"detail": "Pick at most one file of each part.", "code": "invalid_selection"}""",
+        CatalogueErrorReason.InvalidSelection)]
+    [InlineData(HttpStatusCode.BadRequest, """{"detail": "Bad request."}""", CatalogueErrorReason.BadRequest)]
+    [InlineData(HttpStatusCode.Forbidden, """{"detail": "You do not have permission to perform this action."}""",
+        CatalogueErrorReason.ReleaseUnavailable)]
+    [InlineData(HttpStatusCode.NotFound, """{"detail": "Not found."}""", CatalogueErrorReason.ReleaseUnavailable)]
+    [InlineData(HttpStatusCode.ServiceUnavailable, """{"detail": "Maintenance."}""", CatalogueErrorReason.Maintenance)]
+    [InlineData(HttpStatusCode.OK, """{"files": [{"uuid": "a0000000-0000-4000-8000-000000000001", "download_url": "/base.zip"}]}""",
+        CatalogueErrorReason.InvalidResponse)]
+    [InlineData(HttpStatusCode.OK, """{"files": []}""", CatalogueErrorReason.InvalidResponse)]
+    public async Task Words_what_stops_the_files_of_a_release_and_never_asks_twice(HttpStatusCode status, string body,
+        CatalogueErrorReason reason)
+    {
+        var handler = new FakeHttpHandler(_ => FakeHttpHandler.Json(body, status));
+        using var client = Client(handler);
+
+        var error = await Catching(client.ResolveDownloadsAsync(File.Release, [File.FileUuid], Token));
+
+        error.Reason.Should().Be(reason);
+        handler.Requests.Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task Never_repeats_a_download_request_that_may_have_reached_the_server()
     {
         var failing = FakeHttpHandler.Sequence(() => FakeHttpHandler.Text(HttpStatusCode.ServiceUnavailable, "<html/>", "text/html"));

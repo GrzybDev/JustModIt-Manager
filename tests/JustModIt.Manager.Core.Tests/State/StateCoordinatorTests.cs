@@ -6,6 +6,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Core.Tests.Jobs;
@@ -309,7 +310,7 @@ public sealed class StateCoordinatorTests
         var failed = await app.GameAsync(game => game.LastFailure is not null, "the failure shows");
         var failure = failed.Find(Game)!.LastFailure!;
         failure.Failure!.Reason.Should().Be(JobFailureReason.Offline);
-        failure.PackageFileId.Should().Be(FileOne);
+        failure.PackageFileIds.Should().Equal(FileOne);
         failed.Find(Game)!.NeedsAttention.Should().BeTrue();
         await Eventually.HoldsAsync(() => app.Failures.Stored?.Failures.ContainsKey(new FailureKey(Game, null)) == true,
             "the failure is saved");
@@ -416,6 +417,55 @@ public sealed class StateCoordinatorTests
 
         await Eventually.HoldsAsync(() => !app.Downloader.Cached.ContainsKey(stale), "the old download is removed");
         app.Downloader.Cached.Keys.Should().BeEquivalentTo([FileOne, FileTwo]);
+    }
+
+    [Fact]
+    public async Task Keeps_the_download_of_a_failed_job_at_every_later_prune_too()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        app.Library.Publish(Installed(), Installed(OtherGame));
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: Release(ReleaseOne, 1, File(FileOne))),
+            Entry(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), OtherGame));
+        app.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), OtherGame));
+        await app.StartAsync();
+        app.Engine.NextInstalls.Enqueue((_, _, _) => throw new InstallBlockedException([new MissingFileIssue("data/strings.pak")]));
+        await app.RunJobAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject), null));
+        await Eventually.HoldsAsync(() => app.Downloader.Prunes.Count == 1, "the downloads are pruned after the failed job");
+        var stale = Guid.NewGuid();
+        app.Downloader.Cached[stale] = true;
+
+        await app.RunJobAsync(JobsHarness.Install());
+
+        await Eventually.HoldsAsync(() => !app.Downloader.Cached.ContainsKey(stale), "the old download is removed");
+        app.Downloader.Cached.Keys.Should().BeEquivalentTo([FileOne, FileTwo], "a retry of the failed job must not count a new download");
+    }
+
+    [Fact]
+    public async Task Keeps_the_download_of_every_package_of_an_install_by_the_download_it_came_from()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        var otherFile = Guid.NewGuid();
+        app.Engine.Add(Record() with
+        {
+            Parts =
+            [
+                new InstalledPart(new InstalledPackage(PackageKind.Zip, "base.zip"), ReleaseFileId: FileOne.ToString("D")),
+                new InstalledPart(new InstalledPackage(PackageKind.Manifest, "voices.examplemod"), "voices", "Voices",
+                    VoiceFile.ToString("D"), FileTwo.ToString("D")),
+            ],
+        });
+        app.Library.Publish(Installed(), Installed(OtherGame));
+        app.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(otherFile)), OtherGame));
+        foreach (var file in new[] { FileOne, FileTwo, VoiceFile })
+        {
+            app.Downloader.Cached[file] = true;
+        }
+
+        await app.StartAsync();
+        await app.RunJobAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject), null));
+
+        await Eventually.HoldsAsync(() => !app.Downloader.Cached.ContainsKey(VoiceFile), "a copy's own file, never downloaded, goes");
+        app.Downloader.Cached.Keys.Should().BeEquivalentTo([FileOne, FileTwo, otherFile]);
     }
 
     [Fact]

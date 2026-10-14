@@ -92,24 +92,28 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
 
     public async Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, CancellationToken cancellationToken)
     {
-        var path = $"projects/v1/teams/{Segment(file.TeamSlug)}/{Segment(file.ProjectSlug)}/releases/{file.ReleaseUuid:D}/files/{file.FileUuid:D}/download/";
-        byte[] json;
-        try
+        var path = $"{ReleasePath(file.Release)}files/{file.FileUuid:D}/download/";
+        var json = await GetDownloadAsync(path, cancellationToken).ConfigureAwait(false);
+        return AddressOf(path, Parse(path, () => JsonSerializer.Deserialize(json, Json.DownloadLink)).DownloadUrl);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, Uri>> ResolveDownloadsAsync(ReleaseLocator release, IReadOnlyList<Guid> files,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+        if (files.Count == 0)
         {
-            json = await GetBytesAsync(path, counted: true, cancellationToken).ConfigureAwait(false);
-        }
-        catch (CatalogueException exception) when (exception.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
-        {
-            throw new CatalogueException(CatalogueErrorReason.ReleaseUnavailable, exception.Message, exception, exception.StatusCode);
+            throw new ArgumentException("At least one file is needed.", nameof(files));
         }
 
-        var link = Parse(path, () => JsonSerializer.Deserialize(json, Json.DownloadLink));
-        // The bytes are verified against a checksum that comes over the same connection, so only TLS protects them;
-        // plain http is accepted only from a development backend that is itself plain http.
-        return Uri.TryCreate(link.DownloadUrl, UriKind.Absolute, out var url)
-            && (url.Scheme == Uri.UriSchemeHttps || (url.Scheme == Uri.UriSchemeHttp && _apiAddress.Scheme == Uri.UriSchemeHttp))
-                ? url
-                : throw new CatalogueException(CatalogueErrorReason.InvalidResponse, $"GET {path} returned an unusable download address.");
+        var path = $"{ReleasePath(release)}download/?files={string.Join(',', files.Select(file => file.ToString("D")))}";
+        var json = await GetDownloadAsync(path, cancellationToken).ConfigureAwait(false);
+        var links = Parse(path, () => JsonSerializer.Deserialize(json, Json.ReleaseDownloadLinks)).Files
+            .GroupBy(link => link.Uuid)
+            .ToDictionary(link => link.Key, link => link.First().DownloadUrl);
+        return files.ToDictionary(file => file, file => links.TryGetValue(file, out var address)
+            ? AddressOf(path, address)
+            : throw new CatalogueException(CatalogueErrorReason.InvalidResponse, $"GET {path} returned no address for file {file:D}."));
     }
 
     /// <summary>
@@ -158,6 +162,30 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
         return Uri.EscapeDataString(slug);
     }
 
+    private static string ReleasePath(ReleaseLocator release) =>
+        $"projects/v1/teams/{Segment(release.TeamSlug)}/{Segment(release.ProjectSlug)}/releases/{release.ReleaseUuid:D}/";
+
+    // The site counts these requests, and answers for a release nobody may download any more as for one that is gone.
+    private async Task<byte[]> GetDownloadAsync(string path, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await GetBytesAsync(path, counted: true, cancellationToken).ConfigureAwait(false);
+        }
+        catch (CatalogueException exception) when (exception.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
+        {
+            throw new CatalogueException(CatalogueErrorReason.ReleaseUnavailable, exception.Message, exception, exception.StatusCode);
+        }
+    }
+
+    // The bytes are verified against a checksum that comes over the same connection, so only TLS protects them; plain http
+    // is accepted only from a development backend that is itself plain http.
+    private Uri AddressOf(string path, string address) =>
+        Uri.TryCreate(address, UriKind.Absolute, out var url)
+        && (url.Scheme == Uri.UriSchemeHttps || (url.Scheme == Uri.UriSchemeHttp && _apiAddress.Scheme == Uri.UriSchemeHttp))
+            ? url
+            : throw new CatalogueException(CatalogueErrorReason.InvalidResponse, $"GET {path} returned an unusable download address.");
+
     private static string PageQuery(int page)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(page, 1);
@@ -198,8 +226,9 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
                 .ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                throw CatalogueErrors.ForStatus(response, operation, _time,
-                    await ReadDetailAsync(response.Content, cancellationToken).ConfigureAwait(false));
+                var body = await CatalogueErrors.ReadJsonAsync(response.Content, cancellationToken).ConfigureAwait(false);
+                throw CatalogueErrors.ForStatus(response, operation, _time, DetailOf(body),
+                    body is { ValueKind: JsonValueKind.Object } error ? error.GetTextOrNull("code") : null);
             }
 
             // Cloudflare answers for a failing origin with its own HTML page, sometimes with a success status.
@@ -218,8 +247,6 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
         }
     }
 
-    private static async Task<string?> ReadDetailAsync(HttpContent content, CancellationToken cancellationToken) =>
-        await CatalogueErrors.ReadJsonAsync(content, cancellationToken).ConfigureAwait(false) is { } body
-            ? (body.ValueKind == JsonValueKind.Object ? body.GetTextOrNull("detail") : null) ?? body.GetRawText()
-            : null;
+    private static string? DetailOf(JsonElement? body) =>
+        body is { } error ? (error.ValueKind == JsonValueKind.Object ? error.GetTextOrNull("detail") : null) ?? error.GetRawText() : null;
 }

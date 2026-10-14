@@ -20,6 +20,7 @@ namespace JustModIt.Manager.Core.Catalog;
 [JsonSerializable(typeof(IReadOnlyList<StorefrontPlatform>))]
 [JsonSerializable(typeof(SiteConfiguration))]
 [JsonSerializable(typeof(DownloadLink))]
+[JsonSerializable(typeof(ReleaseDownloadLinks))]
 [JsonSerializable(typeof(ApiKeyDetails))]
 [JsonSerializable(typeof(JsonElement))]
 [JsonSerializable(typeof(ListingData))]

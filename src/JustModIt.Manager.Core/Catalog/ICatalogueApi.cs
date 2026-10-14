@@ -67,4 +67,19 @@ public interface ICatalogueApi
     /// <param name="file">The release file to download.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The storage addresses of files one install of a release takes, at most one per part, in one request, which the site
+    /// counts as one download when it includes a base file and not at all otherwise; like a single file's, it is asked for
+    /// right before the bytes are needed and never repeated once it may have reached the server.
+    /// </summary>
+    /// <param name="release">The release the files belong to.</param>
+    /// <param name="files">The files to download.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>Each file's address, by its uuid.</returns>
+    /// <exception cref="CatalogueException">
+    /// With <see cref="CatalogueErrorReason.InvalidSelection"/> when the release no longer has such files.
+    /// </exception>
+    Task<IReadOnlyDictionary<Guid, Uri>> ResolveDownloadsAsync(ReleaseLocator release, IReadOnlyList<Guid> files,
+        CancellationToken cancellationToken);
 }

@@ -33,7 +33,7 @@ public sealed class JobRunnerTests
         source.CoverUrl.Should().Be(new Uri("https://images.example.com/covers/example-game.jpg"));
         jobs.Engine.Installs.Single().Backup.Location.Should().Be(BackupLocation.GameFolder);
         result.ReleaseId.Should().Be(ReleaseOne);
-        result.PackageFileId.Should().Be(FileOne);
+        result.PackageFileIds.Should().Equal(FileOne);
         jobs.Stages(result.Job.Id).Should().Equal(JobStage.Queued, JobStage.Preparing, JobStage.Downloading, JobStage.Checking,
             JobStage.Installing);
         jobs.Results.Should().ContainSingle().Which.Should().BeSameAs(result);

@@ -39,7 +39,7 @@ public sealed class FailedAttemptsFormatTests : IDisposable
             {
                 LostPrevious = true,
                 ReleaseId = ReleaseTwo,
-                PackageFileId = FileTwo,
+                PackageFileIds = [FileTwo, VoiceFile],
             })
             .Add(new FailureKey(Game, null), new FailedAttempt(JobKind.Install, JobOrigin.User, Now.AddHours(-1), null))
             .Add(new FailureKey(OtherGame, null), new FailedAttempt(JobKind.Install, JobOrigin.User, Now.AddHours(-2), null))));
@@ -47,6 +47,17 @@ public sealed class FailedAttemptsFormatTests : IDisposable
         await Store().SaveAsync(failures, TestContext.Current.CancellationToken);
 
         (await Store().LoadAsync(TestContext.Current.CancellationToken)).Should().Be(failures);
+    }
+
+    [Fact]
+    public void Reads_the_single_package_that_earlier_versions_kept()
+    {
+        using var json = JsonDocument.Parse($$"""
+            {"games": [{ "game": "steam:1000", "kind": "Update", "at": "2026-09-23T12:00:00+00:00", "packageFileId": "{{FileOne:D}}" }]}
+            """);
+
+        FailedAttemptsFormat.Instance.Read(json.RootElement, 1).Failures.Should().ContainSingle().Which.Value.PackageFileIds.Should()
+            .Equal(FileOne);
     }
 
     [Fact]

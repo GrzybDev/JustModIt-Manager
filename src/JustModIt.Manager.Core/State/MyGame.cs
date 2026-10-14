@@ -128,8 +128,8 @@ public sealed record FailedAttempt(JobKind Kind, JobOrigin Origin, DateTimeOffse
 
     public Guid? ReleaseId { get; init; }
 
-    /// <summary>The package the job downloaded, kept so that trying again counts no new download.</summary>
-    public Guid? PackageFileId { get; init; }
+    /// <summary>The packages the job downloaded, by the downloads they came from, kept so that trying again counts no new download.</summary>
+    public ValueList<Guid> PackageFileIds { get; init; }
 
     /// <summary>What to keep of a job that failed or lost the installed release; null for any other end.</summary>
     /// <param name="result">How the job ended.</param>
@@ -143,7 +143,7 @@ public sealed record FailedAttempt(JobKind Kind, JobOrigin Origin, DateTimeOffse
             {
                 LostPrevious = result.LostPrevious,
                 ReleaseId = result.ReleaseId,
-                PackageFileId = result.PackageFileId,
+                PackageFileIds = result.PackageFileIds,
             }
             : null;
     }
