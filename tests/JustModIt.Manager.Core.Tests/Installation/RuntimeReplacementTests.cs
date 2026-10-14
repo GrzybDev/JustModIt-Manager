@@ -199,7 +199,7 @@ public sealed class RuntimeReplacementTests : IAsyncDisposable
         Play(_harness);
         var broken = _harness.ManifestPackage(Software().Operation(new CopyOperation("tool/settings.cfg", "files/tool/settings.cfg", 3,
             new string('0', 64))).Entry("files/tool/settings.cfg", "bad"));
-        await _harness.Engine.UninstallAsync(first.Record.Id, broken, null, InstallHarness.Token);
+        await _harness.Engine.UninstallAsync(first.Record.Id, [broken], null, InstallHarness.Token);
         var failed = () => _harness.InstallAsync(broken);
         await failed.Should().ThrowAsync<Exception>();
 
@@ -221,7 +221,7 @@ public sealed class RuntimeReplacementTests : IAsyncDisposable
         _harness.Probe.BuildId = "43";
         var broken = _harness.ManifestPackage(new TestPackage().Operation(new CopyOperation("tool/settings.cfg", "files/tool/settings.cfg", 3,
             new string('0', 64))).Entry("files/tool/settings.cfg", "bad"));
-        (await _harness.Engine.UninstallAsync(first.Record.Id, broken, null, InstallHarness.Token)).KeptFiles
+        (await _harness.Engine.UninstallAsync(first.Record.Id, [broken], null, InstallHarness.Token)).KeptFiles
             .Should().Equal(new KeptFile(List, KeptReason.GameUpdatedSinceInstall));
         var failed = () => _harness.InstallAsync(broken);
         await failed.Should().ThrowAsync<Exception>();
@@ -251,7 +251,7 @@ public sealed class RuntimeReplacementTests : IAsyncDisposable
         _harness.WriteGameFile(List, Rewritten);
         var broken = _harness.ManifestPackage(Software().Operation(new CopyOperation("tool/settings.cfg", "files/tool/settings.cfg", 3,
             new string('0', 64))).Entry("files/tool/settings.cfg", "bad"));
-        await _harness.Engine.UninstallAsync(first.Record.Id, broken, null, InstallHarness.Token);
+        await _harness.Engine.UninstallAsync(first.Record.Id, [broken], null, InstallHarness.Token);
         var failed = () => _harness.InstallAsync(broken);
         await failed.Should().ThrowAsync<Exception>();
 
@@ -270,7 +270,7 @@ public sealed class RuntimeReplacementTests : IAsyncDisposable
     {
         var first = await InstallAsync(Software());
         Play(_harness);
-        await _harness.Engine.UninstallAsync(first.Record.Id, _harness.ManifestPackage(Software()), null, InstallHarness.Token);
+        await _harness.Engine.UninstallAsync(first.Record.Id, [_harness.ManifestPackage(Software())], null, InstallHarness.Token);
 
         await InstallAsync(new TestPackage().Copy("readme.txt", "Changed"));
 
@@ -287,7 +287,7 @@ public sealed class RuntimeReplacementTests : IAsyncDisposable
         var package = _harness.ManifestPackage(replacement);
         var request = _harness.Request(package) with { Game = _harness.Game with { BuildId = build } };
         (await _harness.Engine.PredictReplacementAsync(installed.Record.Id, request, null, InstallHarness.Token)).Issues.Should().BeEmpty();
-        await _harness.Engine.UninstallAsync(installed.Record.Id, package, null, InstallHarness.Token);
+        await _harness.Engine.UninstallAsync(installed.Record.Id, [package], null, InstallHarness.Token);
         return await _harness.Engine.InstallAsync(request, null, InstallHarness.Token);
     }
 
@@ -297,6 +297,7 @@ public sealed class RuntimeReplacementTests : IAsyncDisposable
         var path = Path.Join(_harness.InstallsDirectory, installed.Record.Id.ToString("N"), "record.json");
         var record = JsonNode.Parse(await File.ReadAllTextAsync(path, InstallHarness.Token))!.AsObject();
         record.Remove("gameVersion").Should().BeTrue();
+        record.Remove("parts");
         await File.WriteAllTextAsync(path, record.ToJsonString(), InstallHarness.Token);
     }
 

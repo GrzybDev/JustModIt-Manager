@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "id": "2a8f35a3-5086-4e4e-9618-d0b34b7363a4",
+  "game": "steam:1000",
+  "gameName": "Example Game",
+  "installDirectory": "{root}\\Game",
+  "gameVolume": "VOLUME-GAMES",
+  "gameBuildId": "42",
+  "gameVersion": {
+    "buildId": "42"
+  },
+  "installedAt": "2026-09-23T12:00:00+00:00",
+  "package": {
+    "kind": "Zip",
+    "fileName": "911512470b3e45e8ad380921a4ff6a7b.zip"
+  },
+  "parts": [
+    {
+      "package": {
+        "kind": "Zip",
+        "fileName": "911512470b3e45e8ad380921a4ff6a7b.zip"
+      },
+      "releaseFileId": "file-1"
+    },
+    {
+      "package": {
+        "kind": "Manifest",
+        "fileName": "1bdbd6380548498793ac9b8811533163.examplemod",
+        "manifestId": "6f0c9f8e-3b1a-4a55-9d0e-2f5b1c7a9e10",
+        "title": "Example package",
+        "version": "1.0",
+        "thirdPartyNotices": [
+          {
+            "name": "Example Loader",
+            "license": "MIT",
+            "sourceUrl": "https://example.com/loader/source"
+          }
+        ]
+      },
+      "featureKey": "voices",
+      "featureName": "Example voices",
+      "releaseFileId": "file-voices"
+    }
+  ],
+  "source": {
+    "projectId": "project-1",
+    "projectSlug": "example-project",
+    "projectName": "Example Project",
+    "gameSlug": "example-game",
+    "gameName": "Example Game",
+    "teamSlug": "example-team",
+    "teamName": "Example Team",
+    "releaseId": "release-1",
+    "releaseLabel": "v1.2",
+    "releaseVersion": 3,
+    "releaseFileId": "file-1",
+    "variantName": "Text only",
+    "coverUrl": "https://images.example.com/covers/example-game.jpg",
+    "coverPath": "cache/images/example-game.jpg"
+  },
+  "backup": {
+    "location": "AppData",
+    "directory": "{root}\\AppData\\backups\\steam-1000\\2a8f35a350864e4e9618d0b34b7363a4"
+  },
+  "fileCount": 3
+}

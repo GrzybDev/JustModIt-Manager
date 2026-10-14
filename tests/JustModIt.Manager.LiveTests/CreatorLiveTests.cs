@@ -61,7 +61,7 @@ public sealed class CreatorLiveTests : IDisposable
             steps.OfType<CopyStep>().Should().NotContain(copy => copy.Sha256 == original, "the package never carries the original");
         }
 
-        var installed = await engine.RunAsync(new TestInstallJobRequest(game.Key, game.Name, built.OutputPath), Token);
+        var installed = await engine.RunAsync(new TestInstallJobRequest(game.Key, game.Name, [built.OutputPath]), Token);
 
         installed.Outcome.Should().Be(JobOutcome.Succeeded, $"{installed.Failure}");
         installed.Installed!.IsTest.Should().BeTrue();

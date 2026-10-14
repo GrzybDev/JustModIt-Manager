@@ -1,0 +1,6 @@
+{"type":"started","formatVersion":1,"kind":"Install","recordId":"1f8801ab-1a78-4f2d-bd9b-1fc0e7e9e942","gameDirectory":"{root}\\Game","stagingDirectory":"{root}\\Game\\.example-app\\staging\\1f8801ab1a784f2dbd9b1fc0e7e9e942","backupDirectory":"{root}\\AppData\\backups\\steam-1000\\1f8801ab1a784f2dbd9b1fc0e7e9e942","gameVolume":"VOLUME-GAMES"}
+{"type":"absent","path":"data/new.txt"}
+{"type":"written","path":"data/new.txt","content":{"size":3,"sha256":"18fdd549b2ed367ac0c74cbec1214644728515b30edbcb78e7d322757a7c8359"}}
+{"type":"directory","path":"data/lang"}
+{"type":"absent","path":"data/lang/voice.txt"}
+{"type":"written","path":"data/lang/voice.txt","content":{"size":5,"sha256":"87bf2bc08589f0bd4a078db145c34ad5e14b8fda53c3ae65b78601294913df95"}}

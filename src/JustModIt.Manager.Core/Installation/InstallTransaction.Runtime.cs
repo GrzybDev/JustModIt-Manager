@@ -186,7 +186,7 @@ internal sealed partial class InstallTransaction
         {
             Runtime = true,
             OriginalUncertain = entry.Original is { } original
-                && RuntimeOriginals.IsUncertain(file.Declaration, original, inheritedUncertainty, _plan.Runtime.IsTargetBuild),
+                && RuntimeOriginals.IsUncertain(file.Declaration, original, inheritedUncertainty, file.IsTargetBuild),
             Taken = origin is { KeepsOriginal: true } && entry.Original is not null ? origin.From.Taken : null,
             InheritedFrom = origin?.From.From.Record.Id,
         };

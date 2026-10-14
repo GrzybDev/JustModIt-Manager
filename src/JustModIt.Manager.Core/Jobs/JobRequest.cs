@@ -75,12 +75,15 @@ public sealed record RestoreJobRequest(ReplacementMarker Marker) : RecordJobRequ
     public override JobKind Kind => Marker.Kind;
 }
 
-/// <summary>A package file the package creator built, installed on a detected game to try it out.</summary>
+/// <summary>
+/// Package files the package creator built, installed on a detected game as one install to try them out, each of them
+/// needed.
+/// </summary>
 /// <param name="Game">The game to install on.</param>
 /// <param name="GameName">The game's name, shown with the job.</param>
-/// <param name="PackagePath">The package file's full path.</param>
-/// <param name="Source">What the creator knows about the package, shown with the install.</param>
-public sealed record TestInstallJobRequest(GameKey Game, string GameName, string PackagePath, InstallSource? Source = null)
+/// <param name="PackagePaths">The package files' full paths, in the order they install.</param>
+/// <param name="Source">What the creator knows about the packages, shown with the install.</param>
+public sealed record TestInstallJobRequest(GameKey Game, string GameName, IReadOnlyList<string> PackagePaths, InstallSource? Source = null)
     : JobRequest(Game, GameName, JobOrigin.User)
 {
     public override JobKind Kind => JobKind.TestInstall;

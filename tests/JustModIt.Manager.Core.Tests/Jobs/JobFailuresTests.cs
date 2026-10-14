@@ -188,6 +188,7 @@ public sealed class JobFailuresTests
         nameof(UnsafePathIssue) => new UnsafePathIssue("../a"),
         nameof(PathConflictIssue) => new PathConflictIssue("a"),
         nameof(MissingFileIssue) => new MissingFileIssue("a"),
+        nameof(NewerAppRequiredIssue) => new NewerAppRequiredIssue(PackageError.UnsupportedCapability) { Part = 1 },
         nameof(FileMismatchIssue) => new FileMismatchIssue("a", AlreadyPatched: false),
         nameof(OtherGameIssue) => new OtherGameIssue([new PackageTarget(StoreId.Steam, "3000")]),
         nameof(FileLockedIssue) => new FileLockedIssue("a", []),

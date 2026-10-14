@@ -26,7 +26,7 @@ public sealed partial class InstallEngine
         return EnqueueAsync(() => PredictCoreAsync(recordId, replacement, progress, cancellationToken), cancellationToken);
     }
 
-    public Task<UninstallResult> UninstallAsync(Guid recordId, string? replacedBy, IProgress<InstallProgress>? progress,
+    public Task<UninstallResult> UninstallAsync(Guid recordId, IReadOnlyList<string>? replacedBy, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) =>
         EnqueueAsync(() => UninstallCoreAsync(recordId, replacedBy, progress, cancellationToken), cancellationToken);
 
@@ -169,32 +169,37 @@ public sealed partial class InstallEngine
     private async Task<PreflightReport> PredictCoreAsync(Guid recordId, InstallRequest replacement,
         IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
-        var package = await _packages.OpenAsync(replacement.PackagePath, cancellationToken).ConfigureAwait(false);
+        var package = await OpenAsync(replacement, cancellationToken).ConfigureAwait(false);
         await using (package.ConfigureAwait(false))
         {
             var (record, files) = await LoadAsync(recordId, cancellationToken).ConfigureAwait(false);
             var game = OpenGame(record.InstallDirectory);
-            // The paths the new package declares go over as they are, so it finds them as they are now.
-            var handedOver = DeclaredBy(package, game);
-            var plan = (await Uninstaller.PlanAsync(record, files, game, handedOver, progress: null, cancellationToken).ConfigureAwait(false))
-                .With(await RuntimeUndo.PlanAsync(record, files, game, handedOver, replacement.Game, progress: null, cancellationToken)
-                .ConfigureAwait(false));
-            var afterUninstall = plan.Steps.ToDictionary(step => step.Path, Uninstaller.AfterUndo, PathComparison.Comparer);
-            var left = plan.Left.Count > 0
-                ? new KeptFilesRecord(_leftovers.FolderOf(recordId), record, KeptFilesRecordOf(plan.Left, files, game))
-                : null;
             var records = await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false);
-            var (report, _, _) = await CheckAsync(package, game, replacement, Guid.NewGuid(), records, replacing: recordId,
-                path => afterUninstall.TryGetValue(path, out var file) ? file : SimulatedFile.OnDisk(path), left, progress,
-                cancellationToken).ConfigureAwait(false);
+            var id = Guid.NewGuid();
+            var (report, _, _, _) = await CheckLeavingOutAsync(package, replacement.Parts, async (included, hashes) =>
+            {
+                // The paths the new packages declare go over as they are, so they find them as they are now.
+                var handedOver = DeclaredBy(included, game);
+                var plan = (await Uninstaller.PlanAsync(record, files, game, handedOver, progress: null, cancellationToken)
+                        .ConfigureAwait(false))
+                    .With(await RuntimeUndo.PlanAsync(record, files, game, handedOver, replacement.Game, progress: null, cancellationToken)
+                        .ConfigureAwait(false));
+                var afterUninstall = plan.Steps.ToDictionary(step => step.Path, Uninstaller.AfterUndo, PathComparison.Comparer);
+                var left = plan.Left.Count > 0
+                    ? new KeptFilesRecord(_leftovers.FolderOf(recordId), record, KeptFilesRecordOf(plan.Left, files, game))
+                    : null;
+                return await CheckAsync(included, game, replacement, id, records, replacing: recordId,
+                    path => afterUninstall.TryGetValue(path, out var file) ? file : SimulatedFile.OnDisk(path), left, hashes, progress,
+                    cancellationToken).ConfigureAwait(false);
+            }).ConfigureAwait(false);
             return BackupsUnavailable(record, files) is { } unavailable
                 ? report with { Issues = report.Issues.Add(unavailable) }
                 : report;
         }
     }
 
-    private async Task<UninstallResult> UninstallCoreAsync(Guid recordId, string? replacedBy, IProgress<InstallProgress>? progress,
-        CancellationToken cancellationToken)
+    private async Task<UninstallResult> UninstallCoreAsync(Guid recordId, IReadOnlyList<string>? replacedBy,
+        IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
         var folder = _store.FolderOf(recordId);
         var (record, files) = await LoadAsync(recordId, cancellationToken).ConfigureAwait(false);
@@ -300,18 +305,20 @@ public sealed partial class InstallEngine
         };
     }
 
-    private async Task<IReadOnlySet<string>> DeclaredByAsync(string? packagePath, GameFolder game, CancellationToken cancellationToken)
+    private async Task<IReadOnlySet<string>> DeclaredByAsync(IReadOnlyList<string>? packagePaths, GameFolder game,
+        CancellationToken cancellationToken)
     {
-        if (packagePath is null)
+        var declared = new HashSet<string>(PathComparison.Comparer);
+        foreach (var path in packagePaths ?? [])
         {
-            return new HashSet<string>(PathComparison.Comparer);
+            var package = await _packages.OpenAsync(path, cancellationToken).ConfigureAwait(false);
+            await using (package.ConfigureAwait(false))
+            {
+                declared.UnionWith(DeclaredBy(package, game));
+            }
         }
 
-        var package = await _packages.OpenAsync(packagePath, cancellationToken).ConfigureAwait(false);
-        await using (package.ConfigureAwait(false))
-        {
-            return DeclaredBy(package, game);
-        }
+        return declared;
     }
 
     private static HashSet<string> DeclaredBy(IPackage package, GameFolder game) =>

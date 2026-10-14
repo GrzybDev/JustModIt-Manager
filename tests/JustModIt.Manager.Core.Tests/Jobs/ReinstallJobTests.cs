@@ -28,6 +28,23 @@ public sealed class ReinstallJobTests
     }
 
     [Fact]
+    public async Task An_update_hands_the_files_the_software_changes_only_to_the_packages_its_prediction_keeps()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var record = jobs.Installed();
+        jobs.PublishReleaseTwo();
+        jobs.Engine.Prediction = new PreflightReport([], [])
+        {
+            LeftOut = [new LeftOutPart(0, new InstallPart(jobs.Downloader.PathOf(FileTwo)), PartLeftOutReason.NewerApp)],
+        };
+
+        var result = await jobs.RunAsync(new UpdateJobRequest(record));
+
+        result.Outcome.Should().Be(JobOutcome.Succeeded);
+        jobs.Engine.ReplacedBy.Should().ContainSingle().Which.Should().BeEmpty("a package left out takes nothing over");
+    }
+
+    [Fact]
     public async Task An_update_asks_for_the_project_where_the_site_last_showed_it()
     {
         await using var jobs = await JobsHarness.CreateAsync();
@@ -167,7 +184,7 @@ public sealed class ReinstallJobTests
         result.RestoredPrevious.Should().BeTrue();
         result.RemovedRecord.Should().Be(record.Id);
         result.Installed!.Source!.ReleaseFileId.Should().Be(FileOne.ToString("D"));
-        jobs.Engine.Installs.Last().PackagePath.Should().Be(jobs.Downloader.PathOf(FileOne));
+        jobs.Engine.Installs.Last().Parts.Single().PackagePath.Should().Be(jobs.Downloader.PathOf(FileOne));
         jobs.Downloader.Downloads.Should().NotContain(FileOne, "the previous package was kept for exactly this");
         jobs.Stages(result.Job.Id).Should().EndWith(JobStage.RestoringPrevious);
     }

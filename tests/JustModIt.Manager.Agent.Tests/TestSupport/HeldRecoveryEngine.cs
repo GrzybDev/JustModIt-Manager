@@ -18,7 +18,7 @@ internal sealed class HeldRecoveryEngine : StubEngine
     /// <param name="agent">A started agent composed with a held engine, so the job runs until it is released.</param>
     public static async Task<JobHandle> StartJobAsync(AgentHarness agent) =>
         (await agent.ServiceAsync<JobRunner>()).Start(new TestInstallJobRequest(new GameKey(StoreId.Steam, "1000"), "Example Game",
-            Path.Combine(agent.Directory, "example.zip")));
+            [Path.Combine(agent.Directory, "example.zip")]));
 
     public override async Task<IReadOnlyList<RecoveredOperation>> RecoverAsync(CancellationToken cancellationToken)
     {

@@ -64,7 +64,7 @@ public sealed class ProjectReplacementTests
         jobs.Catalogue.Add(OtherProjectPage());
 
         var automatic = await jobs.RunAsync(InstallOtherProject(JobOrigin.Automatic));
-        var test = await jobs.RunAsync(new TestInstallJobRequest(Game, "Example Game", Path.Join("packages", "trial.zip")));
+        var test = await jobs.RunAsync(new TestInstallJobRequest(Game, "Example Game", [Path.Join("packages", "trial.zip")]));
 
         automatic.Failure!.Reason.Should().Be(JobFailureReason.OtherProjectInstalled);
         test.Failure!.Reason.Should().Be(JobFailureReason.OtherProjectInstalled);

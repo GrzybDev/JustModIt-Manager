@@ -77,13 +77,13 @@ public sealed class JobsWithEngineTests
         jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
 
         var update = await jobs.RunAsync(new UpdateJobRequest(installed));
-        var test = await jobs.RunAsync(new TestInstallJobRequest(Game, "Example Game", otherGame));
+        var test = await jobs.RunAsync(new TestInstallJobRequest(Game, "Example Game", [otherGame]));
 
         update.Failure!.Reason.Should().Be(JobFailureReason.OtherGame);
         update.RemovedPrevious.Should().BeFalse();
         test.Failure!.Reason.Should().Be(JobFailureReason.OtherGame);
         game.ReadGameFile("readme.txt").Should().Be("Release one");
-        (await game.Engine.LoadRecordsAsync(Token)).Should().Equal(installed);
+        (await game.Engine.LoadRecordsAsync(Token)).Should().BeEquivalentTo([installed]);
     }
 
     [Fact]
@@ -190,7 +190,7 @@ public sealed class JobsWithEngineTests
         var installed = await InstallReleaseOneAsync(game, jobs);
         RuntimeFileTests.Play(game);
         // The stop came after the old uninstall handed the files over and before the new install.
-        await game.Engine.UninstallAsync(installed.Id, two, null, Token);
+        await game.Engine.UninstallAsync(installed.Id, [two], null, Token);
 
         var restore = await RestoreAtStartAsync(game, installed);
 
@@ -213,7 +213,7 @@ public sealed class JobsWithEngineTests
         var installed = await InstallReleaseOneAsync(game, jobs);
         RuntimeFileTests.Play(game);
         UpdateGame(game, jobs);
-        (await game.Engine.UninstallAsync(installed.Id, two, null, Token)).KeptFiles.Should().ContainSingle();
+        (await game.Engine.UninstallAsync(installed.Id, [two], null, Token)).KeptFiles.Should().ContainSingle();
 
         var restore = await RestoreAtStartAsync(game, installed, build: "43");
 

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Tests.TestSupport;
 
 namespace JustModIt.Manager.Core.Tests.Installation;
@@ -28,6 +29,38 @@ public sealed class RecoveryTests
         var uninstalled = await engine.UninstallAsync(record.Id, null, null, InstallHarness.Token);
 
         recovered.Should().ContainSingle().Which.Outcome.Should().Be(RecoveryOutcome.RolledBack);
+        uninstalled.KeptFiles.Should().BeEmpty();
+        harness.Snapshot().Should().BeEquivalentTo(before);
+        harness.AppFiles().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Undoes_an_install_of_several_packages_and_an_unfinished_one_written_by_the_previous_version()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The saved files hold Windows paths.");
+        await using var harness = new InstallHarness();
+        var before = harness.Snapshot();
+        var saved = Path.Join(AppContext.BaseDirectory, "Installation", "Fixtures", "v1-parts");
+        TreeCopy.Copy(Path.Join(saved, "Game"), harness.GameRoot);
+        TreeCopy.Copy(Path.Join(saved, "AppData"), harness.AppData);
+        // Git keeps no empty folder, and the cut install had backed up nothing into its own.
+        Directory.CreateDirectory(Path.Join(harness.AppData, "backups", "steam-1000", "1f8801ab1a784f2dbd9b1fc0e7e9e942"));
+        var root = JsonEncodedText.Encode(Path.GetDirectoryName(harness.GameRoot)!).ToString();
+        foreach (var file in Directory.EnumerateFiles(harness.InstallsDirectory, "*", SearchOption.AllDirectories))
+        {
+            await File.WriteAllTextAsync(file, (await File.ReadAllTextAsync(file, InstallHarness.Token)).Replace("{root}", root,
+                StringComparison.Ordinal), InstallHarness.Token);
+        }
+
+        var engine = harness.CreateEngine();
+        var recovered = await engine.RecoverAsync(InstallHarness.Token);
+        var record = (await engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which;
+        var uninstalled = await engine.UninstallAsync(record.Id, null, null, InstallHarness.Token);
+
+        recovered.Should().ContainSingle().Which.Outcome.Should().Be(RecoveryOutcome.RolledBack);
+        record.Parts!.Select(part => (part.Package.Kind, part.FeatureKey, part.ReleaseFileId)).Should().Equal(
+            (PackageKind.Zip, null, "file-1"), (PackageKind.Manifest, "voices", "file-voices"));
+        record.Parts![1].Package.ThirdPartyNotices.Should().ContainSingle().Which.Name.Should().Be("Example Loader");
         uninstalled.KeptFiles.Should().BeEmpty();
         harness.Snapshot().Should().BeEquivalentTo(before);
         harness.AppFiles().Should().BeEmpty();

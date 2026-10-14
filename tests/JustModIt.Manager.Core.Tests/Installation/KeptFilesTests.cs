@@ -106,7 +106,7 @@ public sealed class KeptFilesTests : IAsyncDisposable
     {
         var first = await InstallAsync(Software());
         Play(_harness);
-        await _harness.Engine.UninstallAsync(first.Record.Id, _harness.ManifestPackage(Software()), null, InstallHarness.Token);
+        await _harness.Engine.UninstallAsync(first.Record.Id, [_harness.ManifestPackage(Software())], null, InstallHarness.Token);
         Directory.Move(first.Record.Backup.Directory, first.Record.Backup.Directory + " on an unplugged drive");
 
         var blocked = await _harness.InstallBlockedAsync(_harness.ManifestPackage(Software()));
@@ -160,7 +160,7 @@ public sealed class KeptFilesTests : IAsyncDisposable
     {
         var first = await InstallAsync(new TestPackage().Copy("tool/loader.dll", "loader").Copy("tool/list_original.dat", "Shipped copy"));
 
-        await _harness.Engine.UninstallAsync(first.Record.Id, _harness.ManifestPackage(Software()), null, InstallHarness.Token);
+        await _harness.Engine.UninstallAsync(first.Record.Id, [_harness.ManifestPackage(Software())], null, InstallHarness.Token);
 
         (await _harness.KeptFilesAsync()).Should().ContainKey(first.Record.Id);
         (await _harness.Engine.FindLeftoverBackupsAsync(InstallHarness.Token)).Should().BeEmpty();

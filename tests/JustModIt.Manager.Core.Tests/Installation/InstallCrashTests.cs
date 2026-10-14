@@ -101,7 +101,7 @@ public abstract class InstallCrashTests(string location)
         var first = await harness.InstallAsync(harness.ManifestPackage(RuntimeFileTests.Software()));
         RuntimeFileTests.Play(harness);
         var package = harness.ManifestPackage(second);
-        await harness.Engine.UninstallAsync(first.Record.Id, package, null, InstallHarness.Token);
+        await harness.Engine.UninstallAsync(first.Record.Id, [package], null, InstallHarness.Token);
         return package;
     }
 }

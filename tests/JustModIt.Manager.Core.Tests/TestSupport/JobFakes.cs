@@ -281,6 +281,9 @@ internal sealed class FakeInstallEngine : IInstallEngine
 
     public Func<Guid, CancellationToken, Task<UninstallResult>>? OnUninstall { get; set; }
 
+    /// <summary>The packages each uninstall was told replace the install, in order; null for a plain uninstall.</summary>
+    public ConcurrentQueue<IReadOnlyList<string>?> ReplacedBy { get; } = new();
+
     public PreflightReport Prediction { get; set; } = new([], []);
 
     public IReadOnlyList<GameManagedByOtherAppIssue> OtherApps { get; set; } = [];
@@ -323,7 +326,7 @@ internal sealed class FakeInstallEngine : IInstallEngine
     public Task<InstallResult> InstallAsync(InstallRequest request, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        Log("install " + Path.GetFileName(request.PackagePath));
+        Log("install " + string.Join(" + ", request.Parts.Select(part => Path.GetFileName(part.PackagePath))));
         Installs.Enqueue(request);
         if (NextInstalls.TryDequeue(out var install))
         {
@@ -344,7 +347,9 @@ internal sealed class FakeInstallEngine : IInstallEngine
             GameName = request.Game.Name,
             InstallDirectory = request.Game.InstallDirectory,
             InstalledAt = TestProjects.Now,
-            Package = new InstalledPackage(PackageKind.Zip, Path.GetFileName(request.PackagePath)),
+            Package = new InstalledPackage(PackageKind.Zip, Path.GetFileName(request.Parts[0].PackagePath)),
+            Parts = [.. request.Parts.Select(part => new InstalledPart(new InstalledPackage(PackageKind.Zip, Path.GetFileName(part.PackagePath)),
+                part.FeatureKey, part.FeatureName, part.ReleaseFileId, part.CachedFileId))],
             Source = request.Source,
             Backup = new BackupFolder(request.Backup.Location, Path.Join(request.Game.InstallDirectory, ".example-app", "backups")),
             FileCount = 2,
@@ -362,10 +367,11 @@ internal sealed class FakeInstallEngine : IInstallEngine
         return Task.FromResult(Prediction);
     }
 
-    public Task<UninstallResult> UninstallAsync(Guid recordId, string? replacedBy, IProgress<InstallProgress>? progress,
+    public Task<UninstallResult> UninstallAsync(Guid recordId, IReadOnlyList<string>? replacedBy, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
         Log("uninstall");
+        ReplacedBy.Enqueue(replacedBy);
         if (OnUninstall is { } uninstall)
         {
             return uninstall(recordId, cancellationToken);

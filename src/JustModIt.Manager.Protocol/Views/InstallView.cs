@@ -100,7 +100,8 @@ public sealed record InstallView
             BackupLocation = record.Backup.Location,
             BackupDirectory = record.Backup.Directory,
             IsTest = record.IsTest,
-            ThirdPartyNotices = [.. record.Package.ThirdPartyNotices?.Select(ThirdPartyNoticeView.From) ?? []],
+            ThirdPartyNotices = [.. (record.Parts?.Select(part => part.Package) ?? [record.Package])
+                .SelectMany(package => package.ThirdPartyNotices ?? []).Select(ThirdPartyNoticeView.From).Distinct()],
         };
     }
 }

@@ -2,6 +2,7 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Protocol.Views;
@@ -24,6 +25,23 @@ public sealed class AppStateViewTests
         view.Activity.IsChecking.Should().BeTrue();
         view.Update.Should().Be(new AppUpdateView { State = AppUpdateState.Ready, Version = "1.1.0" });
         view.Jobs.Should().ContainSingle().Which.Should().BeEquivalentTo(view.Games[0].Job);
+    }
+
+    [Fact]
+    public void An_install_of_several_packages_names_what_every_package_carries_from_others_once()
+    {
+        var install = State.Games[0].Installs[0];
+        var loader = install.Record.Package.ThirdPartyNotices![0];
+        var tool = new ThirdPartyNotice { Name = "Example Tool", License = "Apache-2.0", SourceUrl = "https://example.com/tool/source" };
+        var addOn = new InstalledPackage(PackageKind.Manifest, "add-on.examplemod", ThirdPartyNotices: [loader with { Paths = ["voices/loader.dll"] }, tool]);
+        var parts = install with
+        {
+            Record = install.Record with { Parts = [new InstalledPart(install.Record.Package), new InstalledPart(addOn, "voices", "Voices")] },
+        };
+
+        InstallView.From(parts).ThirdPartyNotices.Should().Equal(
+            new ThirdPartyNoticeView("Example Loader", "MIT", "https://example.com/loader/source"),
+            new ThirdPartyNoticeView("Example Tool", "Apache-2.0", "https://example.com/tool/source"));
     }
 
     [Fact]

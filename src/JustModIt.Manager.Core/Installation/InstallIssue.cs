@@ -5,7 +5,14 @@ using JustModIt.Manager.Core.Packages;
 namespace JustModIt.Manager.Core.Installation;
 
 /// <summary>A reason an operation was refused before anything changed, with game-relative paths unless named otherwise.</summary>
-public abstract record InstallIssue;
+public abstract record InstallIssue
+{
+    /// <summary>
+    /// The optional part of an install whose own check raised the issue, counted from 0, which the install then leaves out;
+    /// null for an issue of a part the install needs or of the game as a whole.
+    /// </summary>
+    public int? Part { get; init; }
+}
 
 /// <summary>The game's folder is not there.</summary>
 /// <param name="Directory">A full path.</param>
@@ -78,6 +85,10 @@ public sealed record PathConflictIssue(string Path) : InstallIssue;
 /// <param name="Targets">The games the package names.</param>
 public sealed record OtherGameIssue(ValueList<PackageTarget> Targets) : InstallIssue;
 
+/// <summary>Only a newer version of the app can install an optional part of the install.</summary>
+/// <param name="Error">Why its package was refused.</param>
+public sealed record NewerAppRequiredIssue(PackageError Error) : InstallIssue;
+
 /// <summary>A file the package patches or renames does not exist.</summary>
 /// <param name="Path">The missing file.</param>
 public sealed record MissingFileIssue(string Path) : InstallIssue;
@@ -134,6 +145,39 @@ public sealed record OtherGameBuildWarning(string PackageBuildId, string? GameBu
 public sealed record PreflightReport(ValueList<InstallIssue> Issues, ValueList<InstallWarning> Warnings)
 {
     public bool CanProceed => Issues.Count == 0;
+
+    /// <summary>The optional parts the install goes without, since their own checks failed on the game.</summary>
+    public ValueList<LeftOutPart> LeftOut { get; init; }
+}
+
+public enum PartLeftOutReason
+{
+    /// <summary>The part does not fit the game as it is, e.g. it patches a file of another version of the game.</summary>
+    GameVersion,
+
+    /// <summary>Only a newer version of the app can install the part.</summary>
+    NewerApp,
+
+    /// <summary>The part would change a file that another project's install owns.</summary>
+    OtherInstall,
+}
+
+/// <summary>An optional part an install goes without.</summary>
+/// <param name="Index">Its place among the install's parts, counted from 0.</param>
+/// <param name="Part">The part as the install was asked for it.</param>
+/// <param name="Reason">Why its own check failed on the game.</param>
+public sealed record LeftOutPart(int Index, InstallPart Part, PartLeftOutReason Reason)
+{
+    /// <summary>Why a part's issues leave it out; a newer app is named first, since the part's steps were never read.</summary>
+    /// <param name="issues">The issues the part's own check raised.</param>
+    public static PartLeftOutReason ReasonOf(IEnumerable<InstallIssue> issues)
+    {
+        ArgumentNullException.ThrowIfNull(issues);
+        var found = issues.ToList();
+        return found.Exists(issue => issue is NewerAppRequiredIssue) ? PartLeftOutReason.NewerApp
+            : found.TrueForAll(issue => issue is FileOwnedByOtherInstallIssue) ? PartLeftOutReason.OtherInstall
+            : PartLeftOutReason.GameVersion;
+    }
 }
 
 /// <summary>An operation was refused before anything changed.</summary>

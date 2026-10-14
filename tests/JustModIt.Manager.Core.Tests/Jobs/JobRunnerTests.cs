@@ -522,12 +522,24 @@ public sealed class JobRunnerTests
     {
         await using var jobs = await JobsHarness.CreateAsync();
 
-        var result = await jobs.RunAsync(new TestInstallJobRequest(Game, "Example Game", Path.Join("creator", "build.examplemod")));
+        var result = await jobs.RunAsync(new TestInstallJobRequest(Game, "Example Game", [Path.Join("creator", "build.examplemod")]));
 
         result.Installed!.IsTest.Should().BeTrue();
         jobs.Engine.Installs.Single().IsTest.Should().BeTrue();
         jobs.Catalogue.PageRequests.Should().BeEmpty();
         jobs.Downloader.Downloads.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Packages_tried_together_install_in_order_as_one_install_that_needs_each_of_them()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        string[] packages = [Path.Join("creator", "base.zip"), Path.Join("creator", "add-on.examplemod")];
+
+        var result = await jobs.RunAsync(new TestInstallJobRequest(Game, "Example Game", packages));
+
+        result.Outcome.Should().Be(JobOutcome.Succeeded);
+        jobs.Engine.Installs.Single().Parts.Should().Equal(new InstallPart(packages[0]), new InstallPart(packages[1]));
     }
 
     [Fact]

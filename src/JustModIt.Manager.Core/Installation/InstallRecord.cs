@@ -38,7 +38,13 @@ public sealed record InstallRecord
 
     public required DateTimeOffset InstalledAt { get; init; }
 
+    /// <summary>The first package of the install, a release's base, which older versions of the app show.</summary>
     public required InstalledPackage Package { get; init; }
+
+    /// <summary>
+    /// Every package the install came from, in the order they installed; null in records written before installs had parts.
+    /// </summary>
+    public IReadOnlyList<InstalledPart>? Parts { get; init; }
 
     public InstallSource? Source { get; init; }
 
@@ -75,6 +81,15 @@ public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? M
             package.RuntimeFiles.Count > 0 ? [.. package.RuntimeFiles.Select(file => file.Path)] : null);
     }
 }
+
+/// <summary>One package an install came from.</summary>
+/// <param name="Package">What the install keeps of the package.</param>
+/// <param name="FeatureKey">The add-on it installed, by its key in the release; null for the base.</param>
+/// <param name="FeatureName">The add-on's name when it was installed, shown offline.</param>
+/// <param name="ReleaseFileId">The release file the package is; null for a package the package creator built.</param>
+/// <param name="CachedFileId">The download the package was taken from, when that is another file whose copy it is.</param>
+public sealed record InstalledPart(InstalledPackage Package, string? FeatureKey = null, string? FeatureName = null,
+    string? ReleaseFileId = null, string? CachedFileId = null);
 
 /// <summary>Where a package came from on the site, supplied by the caller so an install can be shown offline.</summary>
 public sealed record InstallSource

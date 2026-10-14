@@ -24,7 +24,7 @@ public sealed class AdoptionTests : IAsyncDisposable
         adopted!.InstallDirectory.Should().Be(PathCanonicalizer.Canonicalize(moved));
         adopted.Backup.Directory.Should().StartWith(adopted.InstallDirectory);
         Snapshot(moved).Should().BeEquivalentTo(before, "following a move changes nothing in the game");
-        (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().Be(adopted);
+        (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().BeEquivalentTo(adopted);
         var uninstalled = await _harness.Engine.UninstallAsync(installed.Id, null, null, InstallHarness.Token);
         uninstalled.KeptFiles.Should().BeEmpty();
         File.ReadAllText(Path.Join(moved, "readme.txt")).Should().Be("Read me");

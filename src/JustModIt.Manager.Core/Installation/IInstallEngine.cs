@@ -19,35 +19,47 @@ public interface IInstallEngine
     /// <param name="cancellationToken">Stops the check.</param>
     Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken);
 
-    /// <summary>Everything that would stop the install, and what to tell the player, without changing anything.</summary>
-    /// <param name="request">The package and the game.</param>
+    /// <summary>
+    /// Everything that would stop the install, what to tell the player and the optional parts it would go without, without
+    /// changing anything.
+    /// </summary>
+    /// <param name="request">The packages and the game.</param>
     /// <param name="progress">Reports the check.</param>
     /// <param name="cancellationToken">Stops the check.</param>
-    /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
+    /// <exception cref="InvalidPackageException">
+    /// A package is malformed or unsafe, or one the install needs was made for a newer app.
+    /// </exception>
     /// <exception cref="InstallBlockedException">The game folder is gone.</exception>
     Task<PreflightReport> CheckInstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken);
 
-    /// <summary>Installs a package as one journaled operation, backing up every original it replaces.</summary>
-    /// <param name="request">The package and the game.</param>
+    /// <summary>
+    /// Installs packages as one journaled operation, backing up every original they replace, without the optional parts
+    /// whose own checks fail on the game.
+    /// </summary>
+    /// <param name="request">The packages and the game.</param>
     /// <param name="progress">Reports the check and the install.</param>
     /// <param name="cancellationToken">Stops the install; what it changed by then is undone.</param>
-    /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
+    /// <exception cref="InvalidPackageException">
+    /// A package is malformed or unsafe, or one the install needs was made for a newer app.
+    /// </exception>
     /// <exception cref="InstallBlockedException">Refused before any change.</exception>
     /// <exception cref="InstallFailedException">Failed part-way; the changes were undone unless it says otherwise.</exception>
     Task<InstallResult> InstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Whether a package would install once the given install is uninstalled, as an update or repair needs to know before
-    /// it removes anything; files the install touched count as the uninstall will leave them, all others as they are, and
-    /// the files the uninstall would leave for later count as kept.
+    /// Whether packages would install once the given install is uninstalled, and without which optional parts, as an update
+    /// or repair needs to know before it removes anything; files the install touched count as the uninstall will leave
+    /// them, all others as they are, and the files the uninstall would leave for later count as kept.
     /// </summary>
     /// <param name="recordId">The install to be replaced.</param>
-    /// <param name="replacement">The package to install in its place.</param>
+    /// <param name="replacement">The packages to install in its place.</param>
     /// <param name="progress">Reports the check.</param>
     /// <param name="cancellationToken">Stops the check.</param>
-    /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
+    /// <exception cref="InvalidPackageException">
+    /// A package is malformed or unsafe, or one the install needs was made for a newer app.
+    /// </exception>
     /// <exception cref="InstallBlockedException">The install cannot be read or its game folder is gone.</exception>
     Task<PreflightReport> PredictReplacementAsync(Guid recordId, InstallRequest replacement, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken);
@@ -58,13 +70,13 @@ public interface IInstallEngine
     /// </summary>
     /// <param name="recordId">The install's record id.</param>
     /// <param name="replacedBy">
-    /// The package that replaces the install, whose declared files are handed over to it as they are; null for a plain
+    /// The packages that replace the install, whose declared files are handed over to them as they are; null for a plain
     /// uninstall.
     /// </param>
     /// <param name="progress">Reports the uninstall.</param>
     /// <param name="cancellationToken">Stops the uninstall; what it changed by then is undone.</param>
     /// <exception cref="InstallBlockedException">Refused before any change.</exception>
-    Task<UninstallResult> UninstallAsync(Guid recordId, string? replacedBy, IProgress<InstallProgress>? progress,
+    Task<UninstallResult> UninstallAsync(Guid recordId, IReadOnlyList<string>? replacedBy, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken);
 
     /// <summary>Checks an install's files against what it installed.</summary>

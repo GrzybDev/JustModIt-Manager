@@ -19,14 +19,10 @@ internal sealed record InstallPlan(
     long BytesTotal,
     RuntimePlan Runtime);
 
-/// <summary>The files the package's software changes while the game runs, as the check placed them.</summary>
+/// <summary>The files the packages' software changes while the game runs, as the check placed them.</summary>
 /// <param name="Files">The declared files, one per file.</param>
-/// <param name="IsTargetBuild">
-/// The game is the very build a manifest target names, so its store's files are the originals the package names.
-/// </param>
 /// <param name="Inherited">Entries of kept-files records the install takes over, by full path.</param>
-internal sealed record RuntimePlan(IReadOnlyList<DeclaredFile> Files, bool IsTargetBuild,
-    IReadOnlyDictionary<string, InheritedFile> Inherited);
+internal sealed record RuntimePlan(IReadOnlyList<DeclaredFile> Files, IReadOnlyDictionary<string, InheritedFile> Inherited);
 
 /// <summary>Everything an install needs to know before its first change, gathered so every problem is reported at once.</summary>
 /// <param name="locks">Tells which files are in use, and by whom.</param>
@@ -37,8 +33,11 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
     /// <summary>Room for the journal, the record and file system overhead on top of the files themselves.</summary>
     internal const long SpaceMargin = 64L << 20;
 
-    /// <summary>Checks a package against the game without changing anything.</summary>
-    /// <param name="package">The opened package.</param>
+    /// <summary>
+    /// Checks the packages of an install against the game without changing anything, marking each problem that an optional
+    /// package's own steps, declarations or targets raise with that package.
+    /// </summary>
+    /// <param name="package">The opened packages.</param>
     /// <param name="game">The game folder.</param>
     /// <param name="installation">The game as its store reports it.</param>
     /// <param name="backup">Where the install would keep the originals.</param>
@@ -46,26 +45,46 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
     /// <param name="keptRecords">The game's kept-files records, which the install takes over, is refused by or drops.</param>
     /// <param name="knownIssues">Problems the caller found already.</param>
     /// <param name="baseline">What a path holds before the install, when that is not the file on disk; null for the disk.</param>
+    /// <param name="knownHashes">Hashes an earlier check of the game took, reused for files unchanged since.</param>
     /// <param name="progress">Reports the check.</param>
     /// <param name="cancellationToken">Stops the check.</param>
     /// <returns>Every problem and warning, and the plan the install follows when it can go ahead.</returns>
-    public async Task<(PreflightReport Report, InstallPlan Plan)> CheckAsync(IPackage package, GameFolder game,
+    public async Task<(PreflightReport Report, InstallPlan Plan)> CheckAsync(CompositePackage package, GameFolder game,
         InstalledGame installation, BackupFolder backup, IReadOnlyDictionary<string, Guid> owners,
         IReadOnlyList<KeptFilesRecord> keptRecords, IEnumerable<InstallIssue> knownIssues, Func<string, SimulatedFile?>? baseline,
-        IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
+        IReadOnlyDictionary<string, DiskHash>? knownHashes, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
         var tracker = new ProgressTracker(progress, InstallStage.Checking, package.Steps.Count,
             InstallSimulation.BytesToHash(package.Steps));
         var simulation = new InstallSimulation(game, tracker, baseline);
-        await simulation.RunAsync(package.Steps, cancellationToken).ConfigureAwait(false);
-        simulation.Declare(package.RuntimeFiles);
-        var kept = await KeptFiles.CheckAsync(keptRecords, game, simulation, cancellationToken).ConfigureAwait(false);
-
+        simulation.Reuse(knownHashes ?? new Dictionary<string, DiskHash>());
         var issues = knownIssues.ToList();
+        var warnings = new List<InstallWarning>();
+        foreach (var part in package.Parts)
+        {
+            simulation.Part = part.IsOptional ? part.Index : null;
+            if (part.Package is { } opened)
+            {
+                await simulation.RunAsync(opened.Steps, cancellationToken).ConfigureAwait(false);
+                CheckTargets(opened.Manifest, installation, simulation.Part, issues, warnings);
+            }
+            else
+            {
+                issues.Add(new NewerAppRequiredIssue(part.Refusal!.Value) { Part = part.Index });
+            }
+        }
+
+        // Declared after every step, so a declared file any step touches counts as that step's.
+        foreach (var part in package.Parts.Where(part => part.Package is not null))
+        {
+            simulation.Part = part.IsOptional ? part.Index : null;
+            simulation.Declare(part.Package!.RuntimeFiles, IsTargetBuild(part.Package.Manifest, installation));
+        }
+
+        simulation.Part = null;
+        var kept = await KeptFiles.CheckAsync(keptRecords, game, simulation, cancellationToken).ConfigureAwait(false);
         issues.AddRange(simulation.Issues);
-        issues.AddRange(simulation.Touched
-            .Where(touched => owners.ContainsKey(touched.Value))
-            .Select(touched => new FileOwnedByOtherInstallIssue(touched.Key, owners[touched.Value])));
+        issues.AddRange(OwnerIssues(simulation, owners));
         issues.AddRange(kept.Issues);
         issues.AddRange(AccessIssues(locks.Probe([.. simulation.Originals.Keys, .. simulation.RuntimeOriginals.Keys], cancellationToken),
             [game.Root, .. simulation.TargetDirectories], game));
@@ -75,7 +94,6 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
         var originalBytes = simulation.Originals.Values.Sum();
         // Originals of declared files are copied even where originals move, since the software goes on using them.
         var runtimeBytes = simulation.RuntimeOriginals.Values.Sum() + kept.CopiedBytes;
-        var warnings = new List<InstallWarning>();
         // A renamed original reaches its new name as a copy, since the original itself moves to the backup folder.
         CheckSpace(game.Root, newBytes + (movesOriginals ? simulation.RenamedOriginalBytes + runtimeBytes : 0), issues);
         if (!movesOriginals && originalBytes + runtimeBytes > 0)
@@ -87,7 +105,6 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
             }
         }
 
-        CheckTargets(package.Manifest, installation, issues, warnings);
         // Moved originals are hashed unless the check already did, and renamed ones are copied to their new name;
         // copied originals are written and read back. New content is written once.
         var hashed = simulation.Originals.Where(original => simulation.Hashes.ContainsKey(original.Key))
@@ -95,9 +112,32 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
         var bytesTotal = newBytes + 2 * runtimeBytes + (movesOriginals
             ? originalBytes - hashed + simulation.RenamedOriginalBytes
             : 2 * originalBytes);
-        var runtime = new RuntimePlan(simulation.Declared, IsTargetBuild(package.Manifest, installation), kept.Inherited);
-        return (new PreflightReport([.. issues], [.. warnings]),
+        var runtime = new RuntimePlan(simulation.Declared, kept.Inherited);
+        return (new PreflightReport([.. issues], [.. warnings.Distinct()]),
             new InstallPlan(simulation.Paths, simulation.Hashes, movesOriginals, bytesTotal, runtime));
+    }
+
+    // A file another install owns is the issue of each optional part that touches it, unless a part the install needs does.
+    private static IEnumerable<InstallIssue> OwnerIssues(InstallSimulation simulation, IReadOnlyDictionary<string, Guid> owners)
+    {
+        foreach (var (relative, path) in simulation.Touched)
+        {
+            if (!owners.TryGetValue(path, out var owner))
+            {
+                continue;
+            }
+
+            if (simulation.OptionalPartsTouching(path) is not { } parts)
+            {
+                yield return new FileOwnedByOtherInstallIssue(relative, owner);
+                continue;
+            }
+
+            foreach (var part in parts)
+            {
+                yield return new FileOwnedByOtherInstallIssue(relative, owner) { Part = part };
+            }
+        }
     }
 
     // On the very build the package was made on, the store's files are known, so a declared file unlike them was changed.
@@ -107,7 +147,7 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
 
     // Only another id in the game's own store is certainly another game; another store's version or another build only
     // warns, since patches check every file they change anyway.
-    private static void CheckTargets(PackageManifest? manifest, InstalledGame game, List<InstallIssue> issues,
+    private static void CheckTargets(PackageManifest? manifest, InstalledGame game, int? part, List<InstallIssue> issues,
         List<InstallWarning> warnings)
     {
         if (manifest is null || manifest.Targets.Count == 0)
@@ -122,7 +162,7 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
         }
         else if (sameStore.FirstOrDefault(target => target.Id == game.Key.StoreGameId) is not { } target)
         {
-            issues.Add(new OtherGameIssue([.. manifest.Targets]));
+            issues.Add(new OtherGameIssue([.. manifest.Targets]) { Part = part });
         }
         else if (target.BuildId is { } build && build != game.BuildId)
         {

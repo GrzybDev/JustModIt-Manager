@@ -250,6 +250,16 @@ internal sealed class InstallHarness : IAsyncDisposable
 
     public InstallRequest Request(string package, BackupChoice? backup = null) => new(Game, package, backup ?? Backup, Source);
 
+    /// <summary>A request to install several packages as one install, as a release's base and its add-ons install.</summary>
+    /// <param name="parts">The packages in the order they install.</param>
+    public InstallRequest Request(params InstallPart[] parts) => new(Game, parts, Backup, Source);
+
+    /// <summary>An add-on's package, which the install may go without.</summary>
+    /// <param name="package">The package file's path.</param>
+    /// <param name="key">The add-on's key in the release.</param>
+    public static InstallPart AddOn(string package, string key = "voices") =>
+        new(package) { IsOptional = true, FeatureKey = key, FeatureName = "Example " + key, ReleaseFileId = "file-" + key };
+
     public Task<InstallResult> InstallAsync(string package, IProgress<InstallProgress>? progress = null,
         CancellationToken cancellationToken = default) =>
         Engine.InstallAsync(Request(package), progress, cancellationToken == default ? Token : cancellationToken);

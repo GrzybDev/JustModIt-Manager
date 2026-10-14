@@ -27,7 +27,7 @@ public sealed class BackupTests
 
         moved.Backup.Location.Should().Be(harness.Choice(to).Location);
         Directory.Exists(result.Record.Backup.Directory).Should().BeFalse();
-        (await harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().Be(moved);
+        (await harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().BeEquivalentTo(moved);
         await BackupsShouldHoldTheOriginalsAsync(harness);
         (await harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
         harness.Snapshot().Should().BeEquivalentTo(before);
@@ -127,7 +127,7 @@ public sealed class BackupTests
         (await move.Should().ThrowAsync<InstallBlockedException>()).Which.Issues.Should().ContainSingle()
             .Which.Should().BeOfType<RecoveryPendingIssue>();
 
-        (await harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().Be(result.Record);
+        (await harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().BeEquivalentTo(result.Record);
         Directory.EnumerateFileSystemEntries(harness.CustomFolder).Should().BeEmpty();
     }
 

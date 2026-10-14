@@ -155,7 +155,7 @@ public sealed class AgentCommands(
     {
         var game = library.Snapshot.Find(request.Game) ?? throw Invalid("No store reports the game.");
         return Path.IsPathFullyQualified(request.PackagePath)
-            ? new TestInstallJobRequest(game.Key, game.Name, request.PackagePath)
+            ? new TestInstallJobRequest(game.Key, game.Name, [request.PackagePath])
             : throw Invalid("The package path is not fully qualified.");
     }
 

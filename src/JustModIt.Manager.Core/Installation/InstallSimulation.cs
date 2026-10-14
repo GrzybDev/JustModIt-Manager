@@ -38,7 +38,12 @@ internal sealed record DiskHash(long Size, DateTime LastWriteTimeUtc, string Sha
 /// <param name="FullPath">The resolved full path.</param>
 /// <param name="RelativePath">The game-relative path in its spelling on disk.</param>
 /// <param name="TouchedByStep">A step of the package copies, renames or deletes the file as well.</param>
-internal sealed record DeclaredFile(RuntimeFile Declaration, string FullPath, string RelativePath, bool TouchedByStep);
+/// <param name="IsTargetBuild">
+/// The game is the very build a target of the declaring package's manifest names, so its store's files are the originals
+/// the package names.
+/// </param>
+internal sealed record DeclaredFile(RuntimeFile Declaration, string FullPath, string RelativePath, bool TouchedByStep,
+    bool IsTargetBuild);
 
 /// <summary>
 /// Plays a package's steps over the game folder without changing it, only hashing patch sources, so a wrong game version
@@ -55,7 +60,14 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
     private readonly Dictionary<string, SimulatedFile?> _overlay = new(PathComparison.Comparer);
     private readonly HashSet<string> _createdDirectories = new(PathComparison.Comparer);
 
+    // Who touches each full path: a part the install needs, and the optional parts.
+    private readonly HashSet<string> _touchedByRequired = new(PathComparison.Comparer);
+    private readonly Dictionary<string, SortedSet<int>> _touchedByOptional = new(PathComparison.Comparer);
+
     public List<InstallIssue> Issues { get; } = [];
+
+    /// <summary>The optional part whose steps or declarations are played now; the issues they raise carry it.</summary>
+    public int? Part { get; set; }
 
     /// <summary>The full path of every game-relative path the steps use.</summary>
     public Dictionary<string, string> Paths { get; } = new(PackagePath.Comparer);
@@ -118,11 +130,12 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
     }
 
     /// <summary>
-    /// Places the files the package declares on the folder as the steps leave it, collecting their problems in
+    /// Places the files a package declares on the folder as the steps leave it, collecting their problems in
     /// <see cref="Issues"/>; a declared file a step touches counts as that step's.
     /// </summary>
     /// <param name="files">The package's declarations.</param>
-    public void Declare(IReadOnlyList<RuntimeFile> files)
+    /// <param name="isTargetBuild">The game is the very build a target of the package's manifest names.</param>
+    public void Declare(IReadOnlyList<RuntimeFile> files, bool isTargetBuild)
     {
         var declared = new HashSet<string>(PathComparison.Comparer);
         foreach (var file in files)
@@ -142,6 +155,7 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
                 }
 
                 Touched[game.RelativePathOf(path)] = path;
+                NoteToucher(path);
                 if (StateOf(path) is { } current)
                 {
                     RuntimeOriginals[path] = current.Size;
@@ -153,13 +167,34 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
                 }
             }
 
-            Declared.Add(new DeclaredFile(file, path, game.RelativePathOf(path), byStep));
+            Declared.Add(new DeclaredFile(file, path, game.RelativePathOf(path), byStep, isTargetBuild));
         }
     }
 
     /// <summary>Whether a step of the package touches a file.</summary>
     /// <param name="fullPath">The file's resolved full path.</param>
     public bool IsTouched(string fullPath) => _overlay.ContainsKey(fullPath);
+
+    /// <summary>The optional parts that touch a path.</summary>
+    /// <param name="fullPath">The resolved full path.</param>
+    /// <returns>Null when a part the install needs touches the path as well; otherwise the optional parts, in order.</returns>
+    public IReadOnlyCollection<int>? OptionalPartsTouching(string fullPath) =>
+        _touchedByRequired.Contains(fullPath) ? null
+        : _touchedByOptional.TryGetValue(fullPath, out var parts) ? parts
+        : [];
+
+    /// <summary>Lets the check reuse hashes an earlier check of the game took of files that have not changed since.</summary>
+    /// <param name="hashes">The earlier check's hashes.</param>
+    public void Reuse(IReadOnlyDictionary<string, DiskHash> hashes)
+    {
+        foreach (var (path, hash) in hashes)
+        {
+            if (hash.ForUnchanged(path) is not null)
+            {
+                Hashes[path] = hash;
+            }
+        }
+    }
 
     private void Copy(CopyStep step)
     {
@@ -184,7 +219,7 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
         progress.StartFile(step.Path);
         if (Touch(target, step.Path) is not { } current)
         {
-            Issues.Add(new MissingFileIssue(step.Path));
+            Raise(new MissingFileIssue(step.Path));
             return;
         }
 
@@ -192,7 +227,7 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
         {
             var alreadyPatched = await HasContentAsync(current, step.TargetSize, step.TargetSha256, cancellationToken)
                 .ConfigureAwait(false);
-            Issues.Add(new FileMismatchIssue(step.Path, alreadyPatched));
+            Raise(new FileMismatchIssue(step.Path, alreadyPatched));
             return;
         }
 
@@ -209,7 +244,7 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
 
         if (StateOf(source) is null)
         {
-            Issues.Add(new MissingFileIssue(step.From));
+            Raise(new MissingFileIssue(step.From));
             return;
         }
 
@@ -241,7 +276,7 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
 
         if (IsDirectory(target))
         {
-            Issues.Add(new PathConflictIssue(step.Path));
+            Raise(new PathConflictIssue(step.Path));
             return;
         }
 
@@ -258,7 +293,7 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
 
         if (game.TryResolve(path) is not { } full)
         {
-            Issues.Add(new UnsafePathIssue(path));
+            Raise(new UnsafePathIssue(path));
             return null;
         }
 
@@ -281,8 +316,27 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
             }
         }
 
+        NoteToucher(path);
         return current;
     }
+
+    private void NoteToucher(string path)
+    {
+        if (Part is not { } part)
+        {
+            _touchedByRequired.Add(path);
+        }
+        else if (!_touchedByOptional.TryGetValue(path, out var parts))
+        {
+            _touchedByOptional[path] = [part];
+        }
+        else
+        {
+            parts.Add(part);
+        }
+    }
+
+    private void Raise(InstallIssue issue) => Issues.Add(Part is { } part ? issue with { Part = part } : issue);
 
     // Folders an earlier step creates count as folders, so a later file cannot take their place.
     private void PlanParents(string path)
@@ -310,7 +364,7 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
         var blocked = IsDirectory(path) || AncestorIsFile(path);
         if (blocked)
         {
-            Issues.Add(new PathConflictIssue(relativePath));
+            Raise(new PathConflictIssue(relativePath));
         }
 
         return !blocked;

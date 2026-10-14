@@ -95,6 +95,7 @@ internal static class JobFailures
             InstallNotFoundIssue => JobFailureReason.InstallNotFound,
             UnreadableInstallIssue => JobFailureReason.UnreadableInstall,
             UnsafePathIssue => JobFailureReason.InvalidPackage,
+            NewerAppRequiredIssue => JobFailureReason.AppUpdateRequired,
             _ => (JobFailureReason?)null,
         }).FirstOrDefault(reason => reason is not null);
         if (simple is { } reason)

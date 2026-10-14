@@ -36,7 +36,7 @@ public sealed class JobProgressTests : IAsyncDisposable
         var window = await _agent.ConnectWindowAsync();
         await window.StateAsync(state => state.IsLoaded);
         var job = (await _agent.ServiceAsync<JobRunner>()).Start(new TestInstallJobRequest(Game, "Example Game",
-            Path.Combine(_agent.Directory, "example.zip")));
+            [Path.Combine(_agent.Directory, "example.zip")]));
 
         await window.NextAsync<JobProgress>(progress => progress.Jobs.Any(report => report.Id == job.Job.Id));
         _engine.Finish.TrySetResult();

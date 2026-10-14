@@ -96,7 +96,7 @@ public sealed class ReplacementMarkerTests
         restore.Installed!.Source!.ReleaseFileId.Should().Be(FileOne.ToString("D"));
         restore.Job.Should().BeEquivalentTo(new { Kind = JobKind.Update, Origin = JobOrigin.Automatic, InstallId = record.Id },
             options => options.ExcludingMissingMembers());
-        jobs.Engine.Installs.Single().PackagePath.Should().Be(jobs.Downloader.PathOf(FileOne));
+        jobs.Engine.Installs.Single().Parts.Single().PackagePath.Should().Be(jobs.Downloader.PathOf(FileOne));
         jobs.Downloader.Downloads.Should().BeEmpty("the previous package was kept for exactly this");
         jobs.Stages(restore.Job.Id).Should().NotContain(JobStage.Waiting).And.EndWith(JobStage.RestoringPrevious);
         jobs.MarkerFiles.Should().BeEmpty();

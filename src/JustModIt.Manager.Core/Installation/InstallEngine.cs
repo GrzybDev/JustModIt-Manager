@@ -11,7 +11,14 @@ using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Core.Installation;
 
-public sealed record InstallResult(InstallRecord Record, ValueList<InstallWarning> Warnings);
+/// <summary>A committed install and what to tell the player about it.</summary>
+/// <param name="Record">The install's record.</param>
+/// <param name="Warnings">What the check found that did not stop the install.</param>
+public sealed record InstallResult(InstallRecord Record, ValueList<InstallWarning> Warnings)
+{
+    /// <summary>The optional parts the install went without, since their own checks failed on the game.</summary>
+    public ValueList<LeftOutPart> LeftOut { get; init; }
+}
 
 /// <summary>
 /// Installs, uninstalls, verifies and recovers packages one operation at a time on a single background queue, so no two
@@ -82,14 +89,16 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(request);
         return EnqueueAsync(async () =>
         {
-            var package = await _packages.OpenAsync(request.PackagePath, cancellationToken).ConfigureAwait(false);
+            var package = await OpenAsync(request, cancellationToken).ConfigureAwait(false);
             await using (package.ConfigureAwait(false))
             {
                 var game = OpenGame(request.Game.InstallDirectory);
                 var records = await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false);
-                var (report, _, _) = await CheckAsync(package, game, request, Guid.NewGuid(), records, replacing: null, baseline: null,
-                    left: null, progress, cancellationToken).ConfigureAwait(false);
-                return report;
+                var id = Guid.NewGuid();
+                var checkedParts = await CheckLeavingOutAsync(package, request.Parts, (included, hashes) => CheckAsync(included, game,
+                    request, id, records, replacing: null, baseline: null, left: null, hashes, progress, cancellationToken))
+                    .ConfigureAwait(false);
+                return checkedParts.Report;
             }
         }, cancellationToken);
     }
@@ -127,28 +136,29 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     private async Task<InstallResult> InstallCoreAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
-        var package = await _packages.OpenAsync(request.PackagePath, cancellationToken).ConfigureAwait(false);
+        var package = await OpenAsync(request, cancellationToken).ConfigureAwait(false);
         await using (package.ConfigureAwait(false))
         {
             var game = OpenGame(request.Game.InstallDirectory);
             using var gameLock = Lock(game);
             var records = await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false);
             var id = Guid.NewGuid();
-            var (report, plan, backup) = await CheckAsync(package, game, request, id, records, replacing: null, baseline: null,
-                left: null, progress, cancellationToken).ConfigureAwait(false);
+            var (report, plan, backup, parts) = await CheckLeavingOutAsync(package, request.Parts, (included, hashes) =>
+                CheckAsync(included, game, request, id, records, replacing: null, baseline: null, left: null, hashes, progress,
+                    cancellationToken)).ConfigureAwait(false);
             if (!report.CanProceed)
             {
                 throw new InstallBlockedException(report.Issues);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var record = await RunInstallAsync(request, package, game, id, backup, plan, progress, cancellationToken)
+            var record = await RunInstallAsync(request, parts, game, id, backup, plan, progress, cancellationToken)
                 .ConfigureAwait(false);
-            return new InstallResult(record, report.Warnings);
+            return new InstallResult(record, report.Warnings) { LeftOut = report.LeftOut };
         }
     }
 
-    private async Task<InstallRecord> RunInstallAsync(InstallRequest request, IPackage package, GameFolder game, Guid id,
+    private async Task<InstallRecord> RunInstallAsync(InstallRequest request, CompositePackage package, GameFolder game, Guid id,
         BackupFolder backup, InstallPlan plan, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
         var folder = _store.FolderOf(id);
@@ -175,7 +185,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
                 GameBuildId = request.Game.BuildId,
                 GameVersion = GameVersion.Of(request.Game),
                 InstalledAt = _time.GetUtcNow(),
-                Package = InstalledPackage.From(package),
+                Package = InstalledPackage.From(package.Parts[0].Package!),
+                Parts = [.. package.Parts.Select(part => InstalledPartOf(part, request.Parts[part.Index]))],
                 Source = request.Source,
                 Backup = backup,
                 FileCount = files.Files.Count(file => file.Change != FileChange.Unchanged),
@@ -274,10 +285,54 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             game?.StagingDirectory(recordId) ?? string.Empty, _hook, progress, _logger, cancellationToken).ConfigureAwait(false);
     }
 
+    private static InstalledPart InstalledPartOf(CompositePart part, InstallPart requested) =>
+        new(InstalledPackage.From(part.Package!), requested.FeatureKey, requested.FeatureName, requested.ReleaseFileId,
+            requested.CachedFileId);
+
+    // An install of optional parts alone could end up installing nothing.
+    private Task<CompositePackage> OpenAsync(InstallRequest request, CancellationToken cancellationToken) =>
+        request.Parts.Any(part => !part.IsOptional)
+            ? CompositePackage.OpenAsync(_packages, [.. request.Parts.Select(part => (part.PackagePath, part.IsOptional))], cancellationToken)
+            : throw new ArgumentException("An install needs a package it cannot go without.", nameof(request));
+
+    // An optional part whose own check fails is left out and the rest checked again without it, so it never holds back the
+    // parts the install is for; any other issue refuses the install as a whole, without the optional parts' issues.
+    private static async Task<CheckedParts> CheckLeavingOutAsync(CompositePackage package, IReadOnlyList<InstallPart> requested,
+        Func<CompositePackage, IReadOnlyDictionary<string, DiskHash>?, Task<(PreflightReport Report, InstallPlan Plan, BackupFolder Backup)>>
+            check)
+    {
+        var leftOut = new List<LeftOutPart>();
+        var included = package;
+        IReadOnlyDictionary<string, DiskHash>? hashes = null;
+        while (true)
+        {
+            var (report, plan, backup) = await check(included, hashes).ConfigureAwait(false);
+            var ofParts = report.Issues.Where(issue => issue.Part is not null).ToList();
+            if (ofParts.Count == 0 || ofParts.Count < report.Issues.Count)
+            {
+                var issues = ofParts.Count == 0 ? report.Issues : [.. report.Issues.Where(issue => issue.Part is null)];
+                return new CheckedParts(report with { Issues = issues, LeftOut = [.. leftOut] }, plan, backup, included);
+            }
+
+            leftOut.AddRange(ofParts.GroupBy(issue => issue.Part!.Value)
+                .Select(issues => new LeftOutPart(issues.Key, requested[issues.Key], LeftOutPart.ReasonOf(issues))));
+            included = package.Without(leftOut.Select(part => part.Index).ToHashSet());
+            hashes = plan.Hashes;
+        }
+    }
+
+    /// <summary>What the check before an install found, with the packages it goes ahead with.</summary>
+    /// <param name="Report">Every problem and warning, and the optional parts left out.</param>
+    /// <param name="Plan">The plan the install follows when it can go ahead.</param>
+    /// <param name="Backup">Where the install keeps the originals.</param>
+    /// <param name="Parts">The packages without the ones left out.</param>
+    private sealed record CheckedParts(PreflightReport Report, InstallPlan Plan, BackupFolder Backup, CompositePackage Parts);
+
     // Left is the kept-files record a replaced install's uninstall will write, which the install that follows meets.
-    private async Task<(PreflightReport Report, InstallPlan Plan, BackupFolder Backup)> CheckAsync(IPackage package, GameFolder game,
-        InstallRequest request, Guid recordId, IReadOnlyList<RecordLoad> records, Guid? replacing, Func<string, SimulatedFile?>? baseline,
-        KeptFilesRecord? left, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
+    private async Task<(PreflightReport Report, InstallPlan Plan, BackupFolder Backup)> CheckAsync(CompositePackage package,
+        GameFolder game, InstallRequest request, Guid recordId, IReadOnlyList<RecordLoad> records, Guid? replacing,
+        Func<string, SimulatedFile?>? baseline, KeptFilesRecord? left, IReadOnlyDictionary<string, DiskHash>? hashes,
+        IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
         var installation = request.Game;
         var issues = PendingOn(game.Root);
@@ -298,8 +353,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         }
 
         var preflight = new InstallPreflight(_locks, _volumes, _options.SlowBackupCopyBytes);
-        var (report, plan) = await preflight.CheckAsync(package, game, installation, backup, owners, kept, issues, baseline, progress,
-            cancellationToken).ConfigureAwait(false);
+        var (report, plan) = await preflight.CheckAsync(package, game, installation, backup, owners, kept, issues, baseline, hashes,
+            progress, cancellationToken).ConfigureAwait(false);
         var others = _ownership.OtherApps(game.Root, plan.Paths.Values);
         // Asked last, because hashing the files of a large package takes long enough for the store to start an update.
         var probe = await _games.ProbeAsync(installation.Key, cancellationToken).ConfigureAwait(false);
