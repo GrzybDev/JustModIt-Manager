@@ -632,6 +632,22 @@ public sealed class GameTests
     }
 
     [AvaloniaFact]
+    public void The_game_is_offered_to_start_only_while_no_job_runs_on_it()
+    {
+        var game = Installed("Ember Hollow", "4100", offer: Ember);
+        using var ui = Open(State(game), game);
+        var page = Page(ui);
+        page.CanLaunch.Should().BeTrue();
+
+        ui.Push(State(Busy(game, Job(game, JobKind.Update, JobStage.Installing))) with { Version = 3 });
+        page.CanLaunch.Should().BeFalse("the job would wait for the game to exit");
+        ui.Find<Button>().Should().NotContain(button => Equals(button.Content, Strings.GamePage_Launch) && button.IsEffectivelyVisible);
+
+        ui.Push(State(game) with { Version = 4 });
+        page.CanLaunch.Should().BeTrue();
+    }
+
+    [AvaloniaFact]
     public void Hiding_launching_opening_the_folder_and_the_site_send_their_commands()
     {
         var game = Installed("Ember Hollow", "4100", offer: Ember);

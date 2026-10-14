@@ -723,7 +723,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         StoreName = store;
         StorePage = PageLinks.StorePage(game.Key);
         StoreLinkName = Text.Format(Strings.GamePage_OpenInStore, ("game", game.Name), ("store", store));
-        CanLaunch = game.Detected is { CanLaunch: true };
+        // Like uninstalling, starting the game waits for the job, which a running game would hold up.
+        CanLaunch = game.Detected is { CanLaunch: true } && _job is null;
         HasFolder = game.Detected is not null;
         FolderPath = game.Detected?.InstallDirectory ?? "";
         Build = install?.Status.Update == UpdateState.NotForThisGame || game.Project?.Unavailable is SelectionUnavailability.OtherStores
