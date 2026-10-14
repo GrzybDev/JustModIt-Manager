@@ -160,6 +160,8 @@ public sealed class UndetectedTests
     {
         var ui = new UiHarness(state, answer: answer ?? (request => request is GetDetectionReport ? new DetectionReportResult(report) : null));
         ui.Shell.Navigator.Open([new LibraryRoute(), new UndetectedGamesRoute()]);
+        // The stores' tips are parsed off the UI thread, which a busy machine stretches, and their sections enter once they are in.
+        await UiHarness.WaitUntilAsync(() => !Page(ui).IsLoading);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
         return ui;
     }
