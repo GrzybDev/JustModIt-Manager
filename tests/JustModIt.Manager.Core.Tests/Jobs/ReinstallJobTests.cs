@@ -258,6 +258,32 @@ public sealed class ReinstallJobTests
         result.RemovedRecord.Should().Be(record.Id);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_failed_update_tells_the_files_its_uninstall_left_only_when_the_previous_release_did_not_come_back(bool restores)
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var record = jobs.Installed();
+        jobs.PublishReleaseTwo();
+        jobs.Engine.OnUninstall = (id, token) =>
+        {
+            jobs.Engine.Records.TryRemove(id, out _);
+            return Task.FromResult(new UninstallResult([new KeptFile("tool/list.dat", KeptReason.GameUpdatedSinceInstall)]));
+        };
+        jobs.Engine.NextInstalls.Enqueue((_, _, _) => throw new InstallFailedException(rolledBack: true, new InvalidOperationException("Odd.")));
+        if (!restores)
+        {
+            jobs.Engine.NextInstalls.Enqueue((_, _, _) => throw new InstallBlockedException([new FileLockedIssue("data/strings.pak", ["Viewer"])]));
+        }
+
+        var result = await jobs.RunAsync(new UpdateJobRequest(record));
+
+        result.RestoredPrevious.Should().Be(restores);
+        result.KeptFiles.Should().Equal(restores ? [] : [new KeptFile("tool/list.dat", KeptReason.GameUpdatedSinceInstall)],
+            "the release put back takes over what its uninstall left");
+    }
+
     [Fact]
     public async Task An_install_without_a_known_project_cannot_be_updated()
     {

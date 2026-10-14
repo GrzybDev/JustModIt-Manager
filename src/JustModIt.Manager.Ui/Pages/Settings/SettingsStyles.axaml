@@ -22,6 +22,50 @@
     <Setter Property="Margin" Value="20,16" />
   </Style>
 
+  <!-- Kept copies: rows split by faint lines, each with its game's cover, and for an uninstall's copies a note on why. -->
+  <Style Selector="Border.leftover">
+    <Setter Property="Padding" Value="0,14" />
+    <Setter Property="BorderBrush" Value="#0FFFFFFF" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="ContentPresenter:nth-child(1) > Border.leftover">
+    <Setter Property="Padding" Value="0,12,0,14" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Border.leftoverCover">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="42" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+    <Setter Property="BoxShadow" Value="0 0 0 1 #1AFFFFFF" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Border.keptNote">
+    <Setter Property="Padding" Value="16,12,16,14" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource WarningEdgeBrush}" />
+  </Style>
+  <Style Selector="Border.keptNote.advice">
+    <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource InfoEdgeBrush}" />
+  </Style>
+  <Style Selector="ui|Icon.warningMark">
+    <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="ui|Icon.adviceMark">
+    <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}" />
+  </Style>
+  <Style Selector="Button.keptCheck">
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Padding" Value="14,0" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+
   <!-- A quiet link of the about card: an icon, a label and, for a place outside the window, a small arrow after it. -->
   <Style Selector="Button.aboutLink">
     <Setter Property="Height" Value="36" />

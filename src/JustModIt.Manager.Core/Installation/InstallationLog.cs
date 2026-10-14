@@ -115,6 +115,12 @@ internal static partial class InstallationLog
     [LoggerMessage(Level = LogLevel.Information, Message = "Removed {Count} leftover backups of install {RecordId}")]
     public static partial void LeftoverBackupsRemoved(this ILogger logger, Guid recordId, int count);
 
+    /// <summary>Logs a kept-files record dropped since its copies went with a game folder that is gone for good.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="recordId">The uninstalled install's record id.</param>
+    [LoggerMessage(Level = LogLevel.Information, Message = "Dropped the kept files of install {RecordId}, whose game folder is gone for good")]
+    public static partial void KeptFilesDropped(this ILogger logger, Guid recordId);
+
     /// <summary>Logs an install that followed its game to the folder the store moved it to.</summary>
     /// <param name="logger">The logger to write to.</param>
     /// <param name="recordId">The install's record id.</param>

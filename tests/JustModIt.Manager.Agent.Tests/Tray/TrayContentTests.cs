@@ -3,6 +3,7 @@ using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Protocol.Views;
@@ -109,6 +110,20 @@ public sealed class TrayContentTests
     public void A_notice_about_one_of_several_installs_on_a_game_names_its_project(NoticeKind kind, JobKind? job, string title,
         string message) =>
         NoticeTexts.For(new AutomationNotice(kind) { Game = Game, GameName = "Example Game", ProjectName = "Example Project", Job = job })
+            .Should().Be((title, message));
+
+    [Theory]
+    [InlineData(KeptReason.GameUpdatedSinceInstall, null, "The files of Example Game need a check",
+        "The game was updated while the project was installed, so files its software changed stay as they are; copies of their originals are "
+        + "kept. Checking the game's files in its store brings the game's own back.")]
+    [InlineData(KeptReason.OriginalUnknown, null, "The files of Example Game need a check",
+        "Files the project's software changed are as they were before it was installed, but had been changed already then. Checking the "
+        + "game's files in its store brings the game's own back.")]
+    [InlineData(KeptReason.BackupDamaged, "Example Project", "The files of Example Game need a check after Example Project",
+        "Some files stay as the project left them, since copies of their originals are missing or damaged. Checking the game's files in its "
+        + "store brings the game's own back.")]
+    public void A_store_check_is_advised_by_the_most_pressing_reason(KeptReason reason, string? project, string title, string message) =>
+        NoticeTexts.For(new AutomationNotice(NoticeKind.StoreCheckAdvised) { Game = Game, GameName = "Example Game", ProjectName = project, Kept = reason })
             .Should().Be((title, message));
 
     [Fact]

@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Automation;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Localization;
@@ -166,6 +167,35 @@ public sealed class OverlayTests
 
         ui.Click(ui.Find<Button>().Last(button => button.IsEffectivelyVisible && Name(button) == Strings.Toast_ShowGame));
         ui.Shell.Navigator.CurrentRoute.Should().Be(new GameRoute(TestStates.Ember));
+    }
+
+    [AvaloniaFact]
+    public async Task A_store_check_notice_leads_to_the_settings_unless_the_game_s_page_says_it()
+    {
+        using var ui = new UiHarness(TestStates.Idle());
+        var notice = new NoticeView(NoticeKind.StoreCheckAdvised)
+        {
+            Game = TestStates.Ember,
+            GameName = "Ember Hollow",
+            Kept = KeptReason.GameUpdatedSinceInstall,
+        };
+
+        ui.Agent.Notice(notice);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
+
+        var toast = ui.Shell.Toasts.Items.Should().ContainSingle().Which;
+        (toast.Title, toast.IsWarning).Should().Be(("Pliki zostały bez zmian", true));
+        toast.Message.Should().Be("Ember Hollow – gra dostała aktualizację, gdy spolszczenie było zainstalowane, więc pliki zmieniane przez jego "
+            + "oprogramowanie zostały bez zmian, a kopie ich oryginałów zachowano. Oryginalne pliki przywróci sprawdzenie spójności plików gry "
+            + "w Steam.");
+        ui.Render("toast-store-check");
+        ui.Click(ui.Find<Button>().Last(button => button.IsEffectivelyVisible && Name(button) == Strings.Toast_ShowSettings));
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new SettingsRoute(), "the kept copies are listed there");
+
+        ui.Shell.Navigator.Navigate(new GameRoute(TestStates.Ember));
+        ui.Agent.Notice(notice);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Shell.Toasts.Items.Should().BeEmpty("the game's page in front says the same in its step");
     }
 
     [AvaloniaFact]

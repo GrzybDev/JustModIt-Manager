@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 
 namespace JustModIt.Manager.Protocol.Views;
@@ -31,6 +32,9 @@ public sealed record NoticeView(NoticeKind Kind)
     /// <summary>The originals a forgotten install kept outside the game folder stay, listed among the leftover backups.</summary>
     public bool KeptBackups { get; init; }
 
+    /// <inheritdoc cref="AutomationNotice.Kept"/>
+    public KeptReason? Kept { get; init; }
+
     /// <summary>The games a summary is about.</summary>
     public IReadOnlyList<GameKey> Games { get; init; } = [];
 
@@ -57,6 +61,7 @@ public sealed record NoticeView(NoticeKind Kind)
             Failure = notice.Failure is { } failure ? JobFailureView.From(failure) : null,
             OffersTargetLanguage = notice.OffersTargetLanguage,
             KeptBackups = notice.KeptBackups,
+            Kept = notice.Kept,
             Games = [.. notice.Games],
             Updates = [.. notice.Updates],
             Repairs = [.. notice.Repairs],

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
@@ -59,7 +60,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private readonly CreatorPageViewModel _page;
     private readonly CreatorSession _session;
 
-    private readonly Dictionary<Guid, (JobOutcome Outcome, JobFailureView? Failure)> _ended = [];
+    private readonly Dictionary<Guid, (JobOutcome Outcome, JobFailureView? Failure, IReadOnlyList<KeptFilesView>? Kept)> _ended = [];
     private GameKey? _hintsFor;
     private ProjectHints? _hints;
     private CancellationTokenSource? _building;
@@ -70,6 +71,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private Guid? _undoJob;
     private bool _lostTrack;
     private string _testNote = "";
+    private (Guid Job, ToastViewModel Toast)? _undone;
     private (GameKey? Key, string Folder) _game;
     private DateTimeOffset _builtAt;
 
@@ -655,7 +657,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     {
         (OutputPath, _target, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings) = ("", null, "", "", "", "", []);
         (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings, BuildTarget) = ("", "", false, [], [], "");
-        (_testJob, _undoJob, _lostTrack, _testNote, HasTestProblem) = (null, null, false, "", false);
+        (_testJob, _undoJob, _undone, _lostTrack, _testNote, HasTestProblem) = (null, null, null, false, "", false);
         _ended.Clear();
         Test = TestInstallState.None;
         State = PackageState.Ready;
@@ -678,7 +680,15 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     {
         if (ended.Job.Game == _page.Game?.Key)
         {
-            _ended[ended.Job.Id] = (ended.Outcome, ended.Failure);
+            _ended[ended.Job.Id] = (ended.Outcome, ended.Failure, ended.KeptFiles);
+            // The state may have ended the undo first, before the agent told which files it left.
+            if (_undone is { } undone && undone.Job == ended.Job.Id && ended.KeptFiles is { Count: > 0 } kept)
+            {
+                _page.Services.Toasts.Dismiss(undone.Toast);
+                _undone = (undone.Job, UndoneToast(kept));
+                _page.Services.Toasts.Show(_undone.Value.Toast);
+            }
+
             ShowTest();
         }
     }
@@ -930,9 +940,28 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         _undoJob = null;
         _testNote = Text.Format(Strings.Creator_TestUndoneAt, ("when", Formats.RelativeTime(_page.Services.Clock.GetUtcNow(),
             _page.Services.Clock)));
-        _page.Services.Toasts.Show(new ToastViewModel(ToastTone.Success, Icons.CircleCheck, Strings.Creator_TestUndoneTitle,
-            Text.Format(Strings.Creator_TestUndone, ("game", _page.Game?.Name ?? ""))));
+        _undone = (job, UndoneToast(ended ? end.Kept : null));
+        _page.Services.Toasts.Show(_undone.Value.Toast);
         return TestInstallState.Undone;
+    }
+
+    // Says which files the undo left as the package's software changed them, by the most pressing reason.
+    private ToastViewModel UndoneToast(IReadOnlyList<KeptFilesView>? kept)
+    {
+        var game = _page.Game?.Name ?? "";
+        if (KeptReasons.MostPressing(kept?.Select(files => files.Reason) ?? []) is not { } reason)
+        {
+            return new ToastViewModel(ToastTone.Success, Icons.CircleCheck, Strings.Creator_TestUndoneTitle,
+                Text.Format(Strings.Creator_TestUndone, ("game", game)));
+        }
+
+        var told = KeptReasons.CaseOf(reason);
+        var text = Text.Format(Strings.Creator_TestUndoneKept, ("game", game), ("reason", told),
+            ("count", kept!.Where(files => KeptReasons.CaseOf(files.Reason) == told).Sum(files => files.Count)),
+            ("store", _page.Game is { } detected ? GameWording.StoreName(detected.Key.Store) : ""));
+        return reason == KeptReason.OriginalUnknown
+            ? new ToastViewModel(ToastTone.Info, Icons.Info, Strings.Creator_TestUndoneTitle, text)
+            : new ToastViewModel(ToastTone.Warning, Icons.TriangleAlert, Strings.Creator_TestUndoneTitle, text);
     }
 
     // A job that ended while the agent was out of reach was never reported; once a state no longer lists it, what the job
@@ -948,7 +977,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         {
             if (job is { } id && !_ended.ContainsKey(id) && !IsListed(id))
             {
-                _ended[id] = (succeeded ? JobOutcome.Succeeded : JobOutcome.Failed, null);
+                _ended[id] = (succeeded ? JobOutcome.Succeeded : JobOutcome.Failed, null, null);
             }
         }
 

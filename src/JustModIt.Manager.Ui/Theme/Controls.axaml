@@ -212,6 +212,23 @@
     <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
   </Style>
 
+  <!-- Game files listed in a frame, as wide as their longest path and no wider than the line. -->
+  <Style Selector="ui|PathList">
+    <Setter Property="Padding" Value="12,8,14,8" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="Background" Value="#80030712" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+
+  <!-- The link that unfolds such a list, at the end of the line that counts its files. -->
+  <Style Selector="Button.filesToggle">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+
   <!-- A link inside a sentence or a fact line: no box, only its text, brighter under the pointer. -->
   <Style Selector="Button.inlineLink">
     <Setter Property="Height" Value="NaN" />

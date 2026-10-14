@@ -237,6 +237,15 @@
   <data name="NoticeForgottenKeepingBackups" xml:space="preserve">
     <value>Folderu gry już nie ma, więc zainstalowany w nim projekt usunięto z listy. Kopie oryginalnych plików zostały zachowane i można je usunąć w ustawieniach.</value>
   </data>
+  <data name="NoticeStoreCheckAdvisedTitle" xml:space="preserve">
+    <value>Pliki gry {game} wymagają sprawdzenia</value>
+  </data>
+  <data name="NoticeStoreCheckAdvisedProjectTitle" xml:space="preserve">
+    <value>Pliki gry {game} wymagają sprawdzenia po projekcie „{project}”</value>
+  </data>
+  <data name="NoticeStoreCheckAdvised" xml:space="preserve">
+    <value>{reason, select, GameUpdated {Gra dostała aktualizację, gdy projekt był zainstalowany, więc pliki zmieniane przez jego oprogramowanie zostały bez zmian, a kopie ich oryginałów zachowano.} OriginalUnknown {Pliki zmieniane przez oprogramowanie projektu mają postać sprzed jego instalacji, ale już wtedy były zmienione.} other {Część plików została w wersji projektu, bo kopie ich oryginałów zniknęły albo są uszkodzone.}} Oryginalne pliki przywróci sprawdzenie spójności plików gry w jej sklepie.</value>
+  </data>
   <data name="NoticeUpdateAvailableProjectTitle" xml:space="preserve">
     <value>Aktualizacja projektu „{project}” ({game})</value>
   </data>
@@ -468,6 +477,9 @@
   <data name="Toast_ShowGame" xml:space="preserve">
     <value>Pokaż grę</value>
   </data>
+  <data name="Toast_ShowSettings" xml:space="preserve">
+    <value>Pokaż ustawienia</value>
+  </data>
   <data name="Toast_ProjectOfGame" xml:space="preserve">
     <value>{project} ({game})</value>
   </data>
@@ -536,6 +548,12 @@
   </data>
   <data name="Toast_ForgottenKeepingBackups" xml:space="preserve">
     <value>{game} – folderu gry już nie ma; kopie zapasowe zostały i można je usunąć w ustawieniach.</value>
+  </data>
+  <data name="Toast_StoreCheckAdvisedTitle" xml:space="preserve">
+    <value>Pliki zostały bez zmian</value>
+  </data>
+  <data name="Toast_StoreCheckAdvised" xml:space="preserve">
+    <value>{game} – {reason, select, GameUpdated {gra dostała aktualizację, gdy projekt był zainstalowany, więc pliki zmieniane przez jego oprogramowanie zostały bez zmian, a kopie ich oryginałów zachowano} OriginalUnknown {pliki zmieniane przez oprogramowanie projektu mają postać sprzed jego instalacji, ale już wtedy były zmienione} other {część plików została w wersji projektu, bo kopie ich oryginałów zniknęły albo są uszkodzone}}. Oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.</value>
   </data>
   <data name="Toast_PreviousReleaseLostTitle" xml:space="preserve">
     <value>Aktualizacja się nie powiodła</value>
@@ -1404,17 +1422,26 @@
   <data name="GamePage_RemovedText" xml:space="preserve">
     <value>Przywrócono oryginalne pliki gry.</value>
   </data>
-  <data name="GamePage_RemovedRest" xml:space="preserve">
-    <value>Przywrócono pozostałe oryginalne pliki gry.</value>
-  </data>
   <data name="GamePage_RemovedKept" xml:space="preserve">
-    <value>{reason, select, ChangedSinceInstall {Zostawiono w obecnej postaci {count, plural, one {# plik zmieniony} few {# pliki zmienione} many {# plików zmienionych} other {# pliku zmienionego}} po instalacji – odinstalowanie nigdy nie nadpisuje pliku zmienionego poza aplikacją.} BackupMissing {Zostawiono w wersji z instalacji {count, plural, one {# plik, bo brakuje kopii zapasowej jego oryginału} few {# pliki, bo brakuje kopii zapasowych ich oryginałów} many {# plików, bo brakuje kopii zapasowych ich oryginałów} other {# pliku, bo brakuje kopii zapasowej jego oryginału}}.} GameUpdatedSinceInstall {Zostawiono w obecnej postaci {count, plural, one {# plik zmieniany} few {# pliki zmieniane} many {# plików zmienianych} other {# pliku zmienianego}} podczas gry przez oprogramowanie projektu, bo w międzyczasie gra dostała aktualizację; {count, plural, one {kopię jego oryginału zachowano} other {kopie ich oryginałów zachowano}}.} OriginalUnknown {Przywrócono postać sprzed instalacji {count, plural, one {# pliku zmienianego} few {# plików zmienianych} many {# plików zmienianych} other {# pliku zmienianego}} podczas gry przez oprogramowanie projektu, ale nie musiała to być postać dostarczona przez sklep; oryginalne pliki przywróci sprawdzenie spójności plików gry w jej sklepie.} other {Zostawiono w wersji z instalacji {count, plural, one {# plik, bo kopia zapasowa jego oryginału jest uszkodzona} few {# pliki, bo kopie zapasowe ich oryginałów są uszkodzone} many {# plików, bo kopie zapasowe ich oryginałów są uszkodzone} other {# pliku, bo kopia zapasowa jego oryginału jest uszkodzona}}.}}</value>
+    <value>{reason, select, GameUpdated {Przywrócono oryginalne pliki gry poza plikami, które oprogramowanie projektu zmieniało podczas gry: w międzyczasie gra dostała aktualizację, więc zostały bez zmian, a kopie ich oryginałów zachowano. Oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.} OriginalUnknown {Przywrócono oryginalne pliki gry. Pliki zmieniane przez oprogramowanie projektu mają postać sprzed instalacji tego wydania, ale już wtedy były zmienione; oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.} Backup {Przywrócono oryginalne pliki gry poza {count, plural, one {# plikiem, który został w wersji projektu, bo kopia jego oryginału zniknęła albo jest uszkodzona} few {# plikami, które zostały w wersji projektu, bo kopie ich oryginałów zniknęły albo są uszkodzone} many {# plikami, które zostały w wersji projektu, bo kopie ich oryginałów zniknęły albo są uszkodzone} other {# pliku, który został w wersji projektu, bo kopia jego oryginału zniknęła albo jest uszkodzona}}. Oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.} other {Przywrócono oryginalne pliki gry. {count, plural, one {# plik zmieniony po instalacji przez aktualizację gry został w wersji z aktualizacji.} few {# pliki zmienione po instalacji przez aktualizację gry zostały w wersji z aktualizacji.} many {# plików zmienionych po instalacji przez aktualizację gry zostało w wersji z aktualizacji.} other {# pliku zmienionego po instalacji przez aktualizację gry zostało w wersji z aktualizacji.}}}}</value>
   </data>
   <data name="GamePage_RemovedForgotten" xml:space="preserve">
     <value>Folderu tej instalacji już nie ma, więc nie przywrócono żadnych plików – usunięto tylko zapis instalacji i jej kopie zapasowe.</value>
   </data>
   <data name="GamePage_RemovedTitle" xml:space="preserve">
     <value>Odinstalowano projekt</value>
+  </data>
+  <data name="GamePage_CheckFiles" xml:space="preserve">
+    <value>Sprawdź spójność plików w {store}</value>
+  </data>
+  <data name="GamePage_RuntimeShow" xml:space="preserve">
+    <value>Pokaż pliki</value>
+  </data>
+  <data name="GamePage_RuntimeHide" xml:space="preserve">
+    <value>Ukryj pliki</value>
+  </data>
+  <data name="GamePage_RuntimeFiles" xml:space="preserve">
+    <value>Pliki zmieniane podczas gry</value>
   </data>
   <data name="GamePage_Repair" xml:space="preserve">
     <value>Napraw projekt</value>
@@ -1978,10 +2005,10 @@
     <value>Dopóki folder {folder} jest niedostępny, projektów {count, plural, one {# gry} few {# gier} many {# gier} other {# gry}} ({games}) nie da się odinstalować ani zaktualizować.</value>
   </data>
   <data name="Settings_Leftovers" xml:space="preserve">
-    <value>Kopie gier, których już nie ma</value>
+    <value>Zachowane kopie</value>
   </data>
   <data name="Settings_LeftoversDescription" xml:space="preserve">
-    <value>Te gry odinstalowano w sklepie, więc ich kopie nie są już potrzebne.</value>
+    <value>Kopie gier odinstalowanych w sklepie oraz kopie oryginałów plików, które odinstalowanie zostawiło w postaci zmienionej przez oprogramowanie projektu.</value>
   </data>
   <data name="Settings_RemoveLeftover" xml:space="preserve">
     <value>Usuń</value>
@@ -1994,6 +2021,18 @@
   </data>
   <data name="Settings_RemoveLeftoverMessage" xml:space="preserve">
     <value>Oryginalne pliki zachowane w folderze {folder} ({size}) zostaną usunięte. Gry nie ma już na komputerze, więc nie są potrzebne.</value>
+  </data>
+  <data name="Settings_KeptLead" xml:space="preserve">
+    <value>{reason, select, GameUpdated {Gra dostała aktualizację, gdy projekt „{project}” był zainstalowany, więc odinstalowanie zostawiło pliki zmieniane przez jego oprogramowanie bez zmian i zachowało kopie ich oryginałów.} Backup {Odinstalowanie projektu „{project}” zostawiło pliki zmieniane przez jego oprogramowanie bez zmian, bo części kopii oryginałów brakuje albo są uszkodzone; zachowano kopie, które są w porządku.} Changed {Odinstalowanie projektu „{project}” zostawiło pliki zmieniane przez jego oprogramowanie bez zmian, bo w miejscu jednego z nich jest teraz dowiązanie albo folder; zachowano kopie ich oryginałów.} OriginalUnknown {Pliki zmieniane podczas gry przez projekt „{project}” mają postać sprzed jego instalacji, ale już wtedy były zmienione.} other {Zachowano kopie plików sprzed instalacji projektu „{project}”, bo jego zastąpienie nie zostało dokończone.}}</value>
+  </data>
+  <data name="Settings_KeptAdvice" xml:space="preserve">
+    <value>Sprawdzenie spójności plików gry w {store} przywróci jej własne pliki; potem kopie można usunąć.</value>
+  </data>
+  <data name="Settings_KeptFiles" xml:space="preserve">
+    <value>{count, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}</value>
+  </data>
+  <data name="Settings_RemoveKeptMessage" xml:space="preserve">
+    <value>Kopie ({size}) zostaną usunięte. Najlepiej po sprawdzeniu spójności plików gry w {store} albo gdy gra działa poprawnie.</value>
   </data>
   <data name="Settings_AddedFolders" xml:space="preserve">
     <value>Foldery dodane ręcznie</value>
@@ -3290,6 +3329,9 @@
   </data>
   <data name="Creator_TestUndone" xml:space="preserve">
     <value>{game} ma z powrotem oryginalne pliki.</value>
+  </data>
+  <data name="Creator_TestUndoneKept" xml:space="preserve">
+    <value>{reason, select, GameUpdated {{game} ma z powrotem oryginalne pliki poza plikami zmienionymi przez oprogramowanie z paczki: gra dostała aktualizację w trakcie testu, więc zostały bez zmian, a kopie ich oryginałów zachowano. Oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.} OriginalUnknown {{game} ma z powrotem oryginalne pliki; pliki zmieniane przez oprogramowanie z paczki mają postać sprzed testu, ale już wtedy były zmienione. Oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.} Backup {{game} ma z powrotem oryginalne pliki poza {count, plural, one {# plikiem, którego kopia oryginału zniknęła albo jest uszkodzona} few {# plikami, których kopie oryginałów zniknęły albo są uszkodzone} many {# plikami, których kopie oryginałów zniknęły albo są uszkodzone} other {# pliku, którego kopia oryginału zniknęła albo jest uszkodzona}}. Oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.} other {{game} ma z powrotem oryginalne pliki poza {count, plural, one {# plikiem zmienionym} few {# plikami zmienionymi} many {# plikami zmienionymi} other {# pliku zmienionego}} przez aktualizację gry w trakcie testu.}}</value>
   </data>
   <data name="Creator_TestAgain" xml:space="preserve">
     <value>Zainstaluj testowo jeszcze raz</value>

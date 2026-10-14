@@ -149,7 +149,11 @@ public sealed class BackupTests
         outcome.Should().Be(ForgetOutcome.ForgottenKeepingBackups);
         (await restarted.LoadRecordsAsync(InstallHarness.Token)).Should().BeEmpty();
         leftovers.Should().Equal(new LeftoverBackup(result.Record.Id, TestProjects.Game, "Example Game",
-            result.Record.Backup.Directory, "original library".Length + "Read me".Length + "video".Length));
+            result.Record.Backup.Directory, "original library".Length + "Read me".Length + "video".Length)
+        {
+            GameDirectory = result.Record.InstallDirectory,
+            Cover = result.Record.Source?.CoverUrl,
+        });
         removed.Should().BeTrue();
         Directory.EnumerateFiles(result.Record.Backup.Directory).Should().Equal(stray);
         (await restarted.FindLeftoverBackupsAsync(InstallHarness.Token)).Should().BeEmpty();

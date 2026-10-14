@@ -32,6 +32,10 @@ public sealed class MessageTests
         new JobEnded(JobView.From(RunningJob), JobOutcome.Failed,
             JobFailureView.From(new JobFailure(JobFailureReason.GameRunning) { Processes = ["example.exe"] })),
         new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded) { KeptFiles = [new KeptFilesView(KeptReason.ChangedSinceInstall, 2)] },
+        new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded)
+        {
+            KeptFiles = [new KeptFilesView(KeptReason.GameUpdatedSinceInstall, 1), new KeptFilesView(KeptReason.OriginalUnknown, 1)],
+        },
         new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded) { Forgotten = true },
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.Failed)
         {
@@ -42,6 +46,12 @@ public sealed class MessageTests
             Failure = new JobFailure(JobFailureReason.NotEnoughSpace) { RequiredBytes = 2048, AvailableBytes = 1024 },
         })),
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.AvailableSummary) { Games = [Game, FailedGame], Updates = [FailedGame] })),
+        new Notify(NoticeView.From(new AutomationNotice(NoticeKind.StoreCheckAdvised)
+        {
+            Game = Game,
+            GameName = "Example Game",
+            Kept = KeptReason.GameUpdatedSinceInstall,
+        })),
         new WindowActivity(IsActive: true),
         new InstallProject(Game, Project, "Text only"),
         new UpdateProject(RecordId),
@@ -135,7 +145,18 @@ public sealed class MessageTests
             },
         ]),
         new GetLeftoverBackups(),
-        new LeftoverBackups([new LeftoverBackup(RecordId, FailedGame, "Other Game", @"E:\Backups\ExampleApp\gog-1", 4096)]),
+        new LeftoverBackups(
+        [
+            new LeftoverBackup(RecordId, FailedGame, "Other Game", @"E:\Backups\ExampleApp\gog-1", 4096),
+            new LeftoverBackup(new Guid("6c1f3a2e-8d4b-4f0a-9e5c-2b7d1a3c4e5f"), Game, "Example Game",
+                @"D:\Games\Example Game\.example-app\backups\6c1f3a2e8d4b4f0a9e5c2b7d1a3c4e5f", 96)
+            {
+                GameDirectory = @"D:\Games\Example Game",
+                Cover = new Uri("https://images.example.com/covers/example-game.png"),
+                Kept = new KeptFilesSummary(KeptReason.GameUpdatedSinceInstall, ["data/list.dat"], 1, "Example Project",
+                    new DateTimeOffset(2026, 10, 12, 18, 0, 0, TimeSpan.Zero)),
+            },
+        ]),
     ];
 
     public static TheoryData<int> SampleIndexes => [.. Enumerable.Range(0, Samples.Length)];

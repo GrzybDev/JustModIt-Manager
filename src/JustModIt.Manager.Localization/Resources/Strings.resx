@@ -247,6 +247,15 @@
   <data name="NoticeForgottenKeepingBackups" xml:space="preserve">
     <value>The game's folder is gone, so the project installed in it was removed from the list. The backed-up original files are kept and can be removed in the settings.</value>
   </data>
+  <data name="NoticeStoreCheckAdvisedTitle" xml:space="preserve">
+    <value>The files of {game} need a check</value>
+  </data>
+  <data name="NoticeStoreCheckAdvisedProjectTitle" xml:space="preserve">
+    <value>The files of {game} need a check after {project}</value>
+  </data>
+  <data name="NoticeStoreCheckAdvised" xml:space="preserve">
+    <value>{reason, select, GameUpdated {The game was updated while the project was installed, so files its software changed stay as they are; copies of their originals are kept.} OriginalUnknown {Files the project's software changed are as they were before it was installed, but had been changed already then.} other {Some files stay as the project left them, since copies of their originals are missing or damaged.}} Checking the game's files in its store brings the game's own back.</value>
+  </data>
   <data name="NoticeUpdateAvailableProjectTitle" xml:space="preserve">
     <value>Update for {project} ({game})</value>
     <comment>Used instead of NoticeUpdateAvailableTitle when the game holds several projects.</comment>
@@ -480,6 +489,9 @@
   <data name="Toast_ShowGame" xml:space="preserve">
     <value>Show the game</value>
   </data>
+  <data name="Toast_ShowSettings" xml:space="preserve">
+    <value>Show the settings</value>
+  </data>
   <data name="Toast_ProjectOfGame" xml:space="preserve">
     <value>{project} ({game})</value>
   </data>
@@ -548,6 +560,12 @@
   </data>
   <data name="Toast_ForgottenKeepingBackups" xml:space="preserve">
     <value>{game} – the game's folder is gone; its backups stay and can be removed in the settings.</value>
+  </data>
+  <data name="Toast_StoreCheckAdvisedTitle" xml:space="preserve">
+    <value>Files left as they were</value>
+  </data>
+  <data name="Toast_StoreCheckAdvised" xml:space="preserve">
+    <value>{game} – {reason, select, GameUpdated {the game was updated while the project was installed, so files its software changed stay as they are; copies of their originals are kept} OriginalUnknown {files the project's software changed are as they were before it was installed, but had been changed already then} other {some files stay as the project left them, since copies of their originals are missing or damaged}}. Checking the game's files in {store} brings the game's own back.</value>
   </data>
   <data name="Toast_PreviousReleaseLostTitle" xml:space="preserve">
     <value>The update failed</value>
@@ -1416,17 +1434,26 @@
   <data name="GamePage_RemovedText" xml:space="preserve">
     <value>The game's original files are back.</value>
   </data>
-  <data name="GamePage_RemovedRest" xml:space="preserve">
-    <value>The game's other original files are back.</value>
-  </data>
   <data name="GamePage_RemovedKept" xml:space="preserve">
-    <value>{reason, select, ChangedSinceInstall {{count, plural, one {# file changed after the install was left as it is, since an uninstall never overwrites a file changed outside the app.} other {# files changed after the install were left as they are, since an uninstall never overwrites a file changed outside the app.}}} BackupMissing {{count, plural, one {# file was left as the install wrote it, since the backup of its original is missing.} other {# files were left as the install wrote them, since the backups of their originals are missing.}}} GameUpdatedSinceInstall {{count, plural, one {# file that the project's software changed while the game ran was left as it is, since the game was updated meanwhile; a copy of its original is kept.} other {# files that the project's software changed while the game ran were left as they are, since the game was updated meanwhile; copies of their originals are kept.}}} OriginalUnknown {{count, plural, one {# file that the project's software changed while the game ran is back as it was before the install, which may not be the file the game's store ships;} other {# files that the project's software changed while the game ran are back as they were before the install, which may not be the files the game's store ships;}} checking the game's files in its store brings the game's own back.} other {{count, plural, one {# file was left as the install wrote it, since the backup of its original is damaged.} other {# files were left as the install wrote them, since the backups of their originals are damaged.}}}}</value>
+    <value>{reason, select, GameUpdated {The game's original files are back, except the files the project's software changed while the game ran: the game was updated meanwhile, so they stay as they are and copies of their originals are kept. Checking the game's files in {store} brings the game's own back.} OriginalUnknown {The game's original files are back. The files the project's software changed are as they were before this release was installed, but they had been changed already then; checking the game's files in {store} brings the game's own back.} Backup {The game's original files are back, except {count, plural, one {# file, which stays as the project left it, since the copy of its original went missing or got damaged} other {# files, which stay as the project left them, since the copies of their originals went missing or got damaged}}. Checking the game's files in {store} brings the game's own back.} other {The game's original files are back. {count, plural, one {# file that an update of the game changed after the install stays as the update left it.} other {# files that an update of the game changed after the install stay as the update left them.}}}}</value>
   </data>
   <data name="GamePage_RemovedForgotten" xml:space="preserve">
     <value>The install's folder is gone, so no files were put back; only the app's record of the install and its backups were removed.</value>
   </data>
   <data name="GamePage_RemovedTitle" xml:space="preserve">
     <value>Project uninstalled</value>
+  </data>
+  <data name="GamePage_CheckFiles" xml:space="preserve">
+    <value>Check the files in {store}</value>
+  </data>
+  <data name="GamePage_RuntimeShow" xml:space="preserve">
+    <value>Show the files</value>
+  </data>
+  <data name="GamePage_RuntimeHide" xml:space="preserve">
+    <value>Hide the files</value>
+  </data>
+  <data name="GamePage_RuntimeFiles" xml:space="preserve">
+    <value>Files changed while the game runs</value>
   </data>
   <data name="GamePage_Repair" xml:space="preserve">
     <value>Repair project</value>
@@ -1990,10 +2017,10 @@
     <value>Until {folder} is available again, the projects of {count, plural, one {# game} other {# games}} ({games}) cannot be uninstalled or updated.</value>
   </data>
   <data name="Settings_Leftovers" xml:space="preserve">
-    <value>Backups of games that are gone</value>
+    <value>Kept backups</value>
   </data>
   <data name="Settings_LeftoversDescription" xml:space="preserve">
-    <value>These games were uninstalled in their store, so their backups are no longer needed.</value>
+    <value>Backups of games uninstalled in their store, and copies of the originals of files that uninstalling left as a project's software changed them.</value>
   </data>
   <data name="Settings_RemoveLeftover" xml:space="preserve">
     <value>Remove</value>
@@ -2006,6 +2033,18 @@
   </data>
   <data name="Settings_RemoveLeftoverMessage" xml:space="preserve">
     <value>The original files kept in {folder} ({size}) are deleted. The game is no longer installed, so nothing needs them.</value>
+  </data>
+  <data name="Settings_KeptLead" xml:space="preserve">
+    <value>{reason, select, GameUpdated {The game was updated while {project} was installed, so uninstalling left the files its software changed as they are and kept copies of their originals.} Backup {Uninstalling {project} left the files its software changed as they are, since copies of some originals went missing or got damaged; the sound copies are kept.} Changed {Uninstalling {project} left the files its software changed as they are, since a link or a folder now stands at one of them; copies of their originals are kept.} OriginalUnknown {The files {project} changed while the game ran are as they were before it was installed, but they had been changed already then.} other {Copies of files from before {project} was installed are kept, since replacing it did not finish.}}</value>
+  </data>
+  <data name="Settings_KeptAdvice" xml:space="preserve">
+    <value>Checking the game's files in {store} brings the game's own back; after that the copies can go.</value>
+  </data>
+  <data name="Settings_KeptFiles" xml:space="preserve">
+    <value>{count, plural, one {# file} other {# files}}</value>
+  </data>
+  <data name="Settings_RemoveKeptMessage" xml:space="preserve">
+    <value>The copies ({size}) are deleted. Best once the game's files were checked in {store}, or the game works as it should.</value>
   </data>
   <data name="Settings_AddedFolders" xml:space="preserve">
     <value>Folders added by hand</value>
@@ -3302,6 +3341,9 @@
   </data>
   <data name="Creator_TestUndone" xml:space="preserve">
     <value>{game} has its original files back.</value>
+  </data>
+  <data name="Creator_TestUndoneKept" xml:space="preserve">
+    <value>{reason, select, GameUpdated {{game} has its original files back, except the files the package's software changed: the game was updated during the test, so they stay as they are and copies of their originals are kept. Checking the game's files in {store} brings the game's own back.} OriginalUnknown {{game} has its original files back; the files the package's software changed are as they were before the test, but they had been changed already then. Checking the game's files in {store} brings the game's own back.} Backup {{game} has its original files back, except {count, plural, one {# file whose original's copy is missing or damaged} other {# files whose originals' copies are missing or damaged}}. Checking the game's files in {store} brings the game's own back.} other {{game} has its original files back, except {count, plural, one {# file} other {# files}} that an update of the game changed during the test.}}</value>
   </data>
   <data name="Creator_TestAgain" xml:space="preserve">
     <value>Install for a test again</value>

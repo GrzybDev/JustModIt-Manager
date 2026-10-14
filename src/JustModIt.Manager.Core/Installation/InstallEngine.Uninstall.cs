@@ -15,7 +15,32 @@ namespace JustModIt.Manager.Core.Installation;
 /// <param name="GameName">The game's name, for the settings page.</param>
 /// <param name="Directory">The folder that holds the originals.</param>
 /// <param name="Bytes">The originals' total size.</param>
-public sealed record LeftoverBackup(Guid RecordId, GameKey Game, string GameName, string Directory, long Bytes);
+public sealed record LeftoverBackup(Guid RecordId, GameKey Game, string GameName, string Directory, long Bytes)
+{
+    /// <summary>The game's folder the install was in.</summary>
+    public string GameDirectory { get; init; } = "";
+
+    /// <summary>The cover of the install's project; null when its record names none.</summary>
+    public Uri? Cover { get; init; }
+
+    /// <summary>What an uninstall left in the game, for copies of that kind; null for a forgotten install's backups.</summary>
+    public KeptFilesSummary? Kept { get; init; }
+}
+
+/// <summary>The files an uninstall left as a package's software changed them, whose originals' copies it kept.</summary>
+/// <param name="Reason">
+/// Why it left them, the most pressing reason when there are several; null for files a replacement that did not finish handed
+/// over.
+/// </param>
+/// <param name="Paths">The files, game-relative, at most <see cref="MaxPaths"/> of them.</param>
+/// <param name="FileCount">How many files it left, also beyond those listed.</param>
+/// <param name="ProjectName">The uninstalled install's project; null when its record names none.</param>
+/// <param name="KeptAt">When the uninstall left them.</param>
+public sealed record KeptFilesSummary(KeptReason? Reason, IReadOnlyList<string> Paths, int FileCount, string? ProjectName,
+    DateTimeOffset KeptAt)
+{
+    public const int MaxPaths = 80;
+}
 
 public sealed partial class InstallEngine
 {
@@ -53,10 +78,33 @@ public sealed partial class InstallEngine
             foreach (var load in await _leftovers.LoadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 // A record still among the installs belongs to an uninstall that has not committed, or was undone.
-                if (load.Record is { } record && !_store.FolderOf(record.Id).HasRecord
-                    && await SizeOfLeftoversAsync(load.Folder, record, cancellationToken).ConfigureAwait(false) is { } bytes)
+                if (load.Record is not { } record || _store.FolderOf(record.Id).HasRecord
+                    || await LoadLeftoverFilesAsync(load.Folder, record, cancellationToken).ConfigureAwait(false) is not { } files)
                 {
-                    leftovers.Add(new LeftoverBackup(record.Id, record.Game, record.GameName, record.Backup.Directory, bytes));
+                    continue;
+                }
+
+                if (files.KeptAt is not null && record.Backup.Location == BackupLocation.GameFolder
+                    && await IsGoneForGoodAsync(record, cancellationToken).ConfigureAwait(false))
+                {
+                    // Its copies went with the game's folder, so nothing is left to show or to remove.
+                    InstallRecordStore.DeleteFolder(load.Folder);
+                    _logger.KeptFilesDropped(record.Id);
+                    continue;
+                }
+
+                if (await SizeOfLeftoversAsync(files, record, cancellationToken).ConfigureAwait(false) is { } bytes)
+                {
+                    leftovers.Add(new LeftoverBackup(record.Id, record.Game, record.GameName, record.Backup.Directory, bytes)
+                    {
+                        GameDirectory = record.InstallDirectory,
+                        Cover = record.Source?.CoverUrl,
+                        Kept = files.KeptAt is { } keptAt
+                            ? new KeptFilesSummary(KeptReasons.MostPressing(files.Files.Select(file => file.Kept).OfType<KeptReason>()),
+                                [.. files.Files.Take(KeptFilesSummary.MaxPaths).Select(file => file.Path)], files.Files.Count,
+                                record.Source?.ProjectName, keptAt)
+                            : null,
+                    });
                 }
             }
 
@@ -137,28 +185,36 @@ public sealed partial class InstallEngine
         }
     }
 
-    // Null while their folder is not there or does not answer, or their list cannot be read or names no copies, as a
-    // kept-files record holding only notes of a replacement does.
-    private async Task<long?> SizeOfLeftoversAsync(InstallFolder folder, InstallRecord record, CancellationToken cancellationToken)
+    // Null when the list cannot be read.
+    private async Task<InstalledFiles?> LoadLeftoverFilesAsync(InstallFolder folder, InstallRecord record, CancellationToken cancellationToken)
     {
         try
         {
-            var files = await InstallRecordStore.LoadFilesAsync(folder, cancellationToken).ConfigureAwait(false);
-            if (!BackupFolders.KeepsOriginals(files))
-            {
-                return null;
-            }
-
-            var directory = record.Backup.Directory;
-            return await _folderChecks.ReadAsync(directory, _ => Task.FromResult(BackupFolders.IsAvailable(directory)
-                ? files.Files.Select(file => file.Backup is { } name ? new FileInfo(Path.Join(directory, name)) : null)
-                    .Sum(file => file is { Exists: true } ? file.Length : 0)
-                : (long?)null), cancellationToken).ConfigureAwait(false);
+            return await InstallRecordStore.LoadFilesAsync(folder, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidDataException exception)
         {
             _logger.UnreadableFileList(record.Id, exception);
             return null;
+        }
+    }
+
+    // Null while their folder is not there or does not answer, or their list names no copies, as a kept-files record holding
+    // only notes of a replacement does.
+    private async Task<long?> SizeOfLeftoversAsync(InstalledFiles files, InstallRecord record, CancellationToken cancellationToken)
+    {
+        if (!BackupFolders.KeepsOriginals(files))
+        {
+            return null;
+        }
+
+        var directory = record.Backup.Directory;
+        try
+        {
+            return await _folderChecks.ReadAsync(directory, _ => Task.FromResult(BackupFolders.IsAvailable(directory)
+                ? files.Files.Select(file => file.Backup is { } name ? new FileInfo(Path.Join(directory, name)) : null)
+                    .Sum(file => file is { Exists: true } ? file.Length : 0)
+                : (long?)null), cancellationToken).ConfigureAwait(false);
         }
         catch (TimeoutException)
         {

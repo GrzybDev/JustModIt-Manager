@@ -151,8 +151,55 @@ public sealed class KeptFilesTests : IAsyncDisposable
         var listed = await _harness.Engine.FindLeftoverBackupsAsync(InstallHarness.Token);
 
         beforeCommit.Should().BeEmpty("an uninstall that has not committed may still be undone");
-        listed.Should().Equal(new LeftoverBackup(result.Record.Id, result.Record.Game, result.Record.GameName,
-            result.Record.Backup.Directory, 13));
+        var kept = listed.Should().ContainSingle().Which.Kept;
+        kept!.KeptAt.Should().Be(_harness.Time.GetUtcNow());
+        listed.Should().BeEquivalentTo([new LeftoverBackup(result.Record.Id, result.Record.Game, result.Record.GameName,
+            result.Record.Backup.Directory, 13)
+        {
+            GameDirectory = _harness.GameRoot,
+            Cover = InstallHarness.Source.CoverUrl,
+            Kept = new KeptFilesSummary(KeptReason.GameUpdatedSinceInstall, [List], 1, "Example Project", kept.KeptAt),
+        }]);
+    }
+
+    [Fact]
+    public async Task Kept_copies_that_went_with_a_game_folder_gone_for_good_are_dropped()
+    {
+        await using var harness = WithList(new InstallHarness());
+        var result = await harness.InstallAsync(harness.ManifestPackage(Software()));
+        Play(harness);
+        harness.Probe.BuildId = "43";
+        (await harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().ContainSingle();
+        TreeCopy.Delete(harness.GameRoot);
+
+        (await harness.Engine.FindLeftoverBackupsAsync(InstallHarness.Token)).Should().BeEmpty();
+
+        Directory.Exists(Path.Join(harness.LeftoversDirectory, result.Record.Id.ToString("N"))).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Kept_copies_outside_a_game_folder_gone_for_good_stay_listed_with_their_size()
+    {
+        var removed = await KeepListAsync();
+        TreeCopy.Delete(_harness.GameRoot);
+
+        var listed = await _harness.Engine.FindLeftoverBackupsAsync(InstallHarness.Token);
+
+        listed.Should().ContainSingle().Which.Should().Match<LeftoverBackup>(kept =>
+            kept.RecordId == removed && kept.Bytes == 13 && kept.Kept != null, "the copies in the app's data are all that is left to remove");
+    }
+
+    [Theory]
+    [InlineData(KeptReason.GameUpdatedSinceInstall, KeptReason.OriginalUnknown)]
+    [InlineData(KeptReason.OriginalUnknown, KeptReason.BackupMissing)]
+    [InlineData(KeptReason.OriginalUnknown, KeptReason.BackupDamaged)]
+    [InlineData(KeptReason.BackupMissing, KeptReason.ChangedSinceInstall)]
+    public void A_game_update_or_a_doubted_original_is_told_before_a_lost_copy_and_that_before_a_changed_file(KeptReason first,
+        KeptReason second)
+    {
+        KeptReasons.MostPressing([second, first]).Should().Be(first);
+        KeptReasons.MostPressing([first, second]).Should().Be(first);
+        KeptReasons.MostPressing([]).Should().BeNull();
     }
 
     [Fact]

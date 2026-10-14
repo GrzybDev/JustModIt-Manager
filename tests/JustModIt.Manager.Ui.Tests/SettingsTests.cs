@@ -15,6 +15,7 @@ using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Controls.Markdown;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
@@ -336,6 +337,71 @@ public sealed class SettingsTests
     }
 
     [AvaloniaFact]
+    public async Task Kept_copies_are_listed_with_the_backups_of_games_that_are_gone_and_offer_steam_s_check()
+    {
+        var leftovers = KeptCopies();
+        using var ui = await OpenAsync(State(), answer: request => request switch
+        {
+            GetLeftoverBackups => new LeftoverBackups([.. leftovers]),
+            _ => null,
+        });
+        var backups = Page(ui).Backups;
+        var rows = backups.Leftovers.ToDictionary(row => row.Backup.GameName);
+
+        var updated = rows["Ember Hollow"];
+        updated.Detail.Should().Be("Ember Hollow PL · 1 plik · 96,0\u00A0KB");
+        updated.Lead.Should().Be("Gra dostała aktualizację, gdy spolszczenie „Ember Hollow PL” było zainstalowane, więc odinstalowanie zostawiło "
+            + "pliki zmieniane przez jego oprogramowanie bez zmian i zachowało kopie ich oryginałów.");
+        updated.Advice.Should().Be("Sprawdzenie spójności plików gry w Steam przywróci jej własne pliki; potem kopie można usunąć.");
+        (updated.IsAdvice, updated.AreFilesShown).Should().Be((false, false));
+        var doubted = rows["Glass Orchard"];
+        (doubted.IsAdvice, doubted.HasCheckFiles).Should().Be((true, false), "a doubted original only advises, and GOG has no link");
+        doubted.Advice.Should().Be("Sprawdzenie spójności plików gry w GOG przywróci jej własne pliki; potem kopie można usunąć.");
+        rows["Tidewatch"].IsKept.Should().BeFalse();
+
+        ui.Find<ItemsControl>("Leftovers").BringIntoView();
+        UiHarness.Settle();
+        var toggle = ui.Find<Button>().First(button => button.DataContext == updated && button.Classes.Contains("filesToggle"));
+        AutomationProperties.GetName(toggle).Should().Be("Pokaż pliki");
+        ui.Click(toggle);
+        updated.AreFilesShown.Should().BeTrue();
+        AutomationProperties.GetName(toggle).Should().Be("Ukryj pliki");
+        ui.Find<PathList>().Single(list => list.IsEffectivelyVisible).Paths.Should().Equal("data/list.dat");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("settings-kept");
+        ui.Unnamed().Should().BeEmpty();
+
+        ui.Click(ui.Find<Button>().Single(button => button.DataContext == updated && button.Classes.Contains("keptCheck")));
+        ui.Links.Opened.Should().Equal(new Uri("steam://validate/4100"));
+
+        ui.Click(ui.Find<Button>().Single(button => AutomationProperties.GetName(button) == "Usuń kopie gry Ember Hollow"));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ((ConfirmDialogViewModel)ui.Shell.Dialogs.Current!).Message.Should().Be("Kopie (96,0\u00A0KB) zostaną usunięte. Najlepiej po "
+            + "sprawdzeniu spójności plików gry w Steam albo gdy gra działa poprawnie.");
+        ui.Render("settings-kept-confirm");
+        ui.Shell.Dialogs.CancelCurrent();
+    }
+
+    [AvaloniaFact]
+    public async Task Kept_copies_keep_their_note_and_steam_s_check_whole_in_the_smallest_window()
+    {
+        using var ui = await OpenAsync(State(), width: 960, height: 600, answer: request => request switch
+        {
+            GetLeftoverBackups => new LeftoverBackups([.. KeptCopies()]),
+            _ => null,
+        });
+        var updated = Page(ui).Backups.Leftovers.Single(row => row.Backup.GameName == "Ember Hollow");
+        updated.AreFilesShown = true;
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        var check = ui.Find<Button>().Single(button => button.DataContext == updated && button.Classes.Contains("keptCheck"));
+        check.BringIntoView();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(200));
+
+        check.TranslatePoint(new Point(check.Bounds.Width, 0), ui.Window)!.Value.X.Should().BeLessThan(960 - 16);
+        ui.Render("settings-kept-minimum");
+    }
+
+    [AvaloniaFact]
     public async Task Preferred_teams_are_added_from_the_catalogue_and_reordered_with_buttons_keys_or_the_pointer()
     {
         var state = State(settings => settings with { PreferredTeams = [Lanterns.Id, Owls.Id] }) with
@@ -556,6 +622,28 @@ public sealed class SettingsTests
     };
 
     private static SettingsPageViewModel Page(UiHarness ui) => (SettingsPageViewModel)ui.Shell.Navigator.Current!;
+
+    // A forgotten install's backups, and copies two uninstalls kept: one after a game update, one of doubted originals on GOG.
+    private static List<LeftoverBackup> KeptCopies() =>
+    [
+        new(Guid.NewGuid(), SteamKey("4400"), "Tidewatch", @"E:\Game backups\ExampleApp\steam-4400", 39_845_888)
+        {
+            Cover = new Uri(Cover("tidewatch")),
+        },
+        new(Guid.NewGuid(), SteamKey("4100"), "Ember Hollow", @"D:\Games\Ember Hollow\.example-app\backups\1", 98_304)
+        {
+            GameDirectory = @"D:\Games\Ember Hollow",
+            Cover = new Uri(Cover("ember-hollow")),
+            Kept = new KeptFilesSummary(KeptReason.GameUpdatedSinceInstall, ["data/list.dat"], 1, "Ember Hollow PL", TestStates.Now.AddDays(-1)),
+        },
+        new(Guid.NewGuid(), new GameKey(StoreId.Gog, "1207658930"), "Glass Orchard", @"D:\Games\Glass Orchard\.example-app\backups\2",
+            1_468_006)
+        {
+            GameDirectory = @"D:\Games\Glass Orchard",
+            Kept = new KeptFilesSummary(KeptReason.OriginalUnknown, ["bin/loader.cfg", "data/cache/list.dat"], 2, "Glass Orchard PL",
+                TestStates.Now.AddDays(-2)),
+        },
+    ];
 
     private static ToggleSwitch Toggle(UiHarness ui, string name) =>
         ui.Find<ToggleSwitch>().Single(toggle => AutomationProperties.GetName(toggle) == name);

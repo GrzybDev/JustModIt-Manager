@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Localization;
@@ -381,6 +382,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private void OpenHelp() => Open(PageLinks.Help(_services.Context.Site.SiteAddress));
 
     [RelayCommand]
+    private void CheckFiles() => Open(Step?.CheckFiles);
+
+    [RelayCommand]
     private void OpenStatuses() =>
         Open(PageLinks.Help(_services.Context.Site.SiteAddress, Details?.StatusSlug is { Length: > 0 } slug ? "status-" + slug : "project-statuses"));
 
@@ -656,7 +660,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             AreChangesOpen = false;
         }
 
-        Step = step;
+        Step = step is null ? null : step with { IsCompact = IsCompact };
         ChangesToggle = AreChangesOpen ? Strings.GamePage_ChangesHide : Strings.GamePage_ChangesShow;
         ChangesTitle = Text.Format(Strings.GamePage_ChangesTitle, ("version", GameWording.Version(project?.Release)));
         OnPropertyChanged(nameof(ShowsChangesSection));
@@ -843,7 +847,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         SavedFiles = install is null ? "" : Formats.Number(install.FileCount);
     }
 
-    // A result keeps the step that comes next as its action, as cancelling leaves the way things were.
+    // A cancel keeps the step that comes next as its action, as cancelling leaves the way things were; closing an uninstall's
+    // result shows that step instead.
     private NextStep? NextStep(GameView game, AppStateView state, InstallView? install, ProjectOfferView? project, string store)
     {
         if (_job is { } job)
@@ -855,7 +860,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         return _result switch
         {
             null => next,
-            { Kind: StepKind.Cancelled or StepKind.Removed } result when next is { Primary: not null } => result with
+            { Kind: StepKind.Cancelled } result when next is { Primary: not null } => result with
             {
                 Primary = next.Primary,
                 PrimaryIcon = next.PrimaryIcon,
@@ -1074,6 +1079,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             failure.LostPrevious ? Strings.GamePage_LostTitle : Text.Format(Strings.GamePage_FailedTitle, ("kind", failure.Kind.ToString())),
             reason + kept)
         {
+            CheckFiles = failure.Failure?.Reason == JobFailureReason.KeptFilesPending ? PageLinks.ValidateFiles(_key) : null,
+            CheckFilesLabel = CheckFilesLabel(),
             Meta = Formats.RelativeTime(failure.At, _services.Clock),
             OffersHelp = true,
             Primary = request is null ? null : Strings.Library_Retry,
@@ -1095,23 +1102,38 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         };
     }
 
-    private static NextStep Removed(bool listed, JobEnded? ended)
+    // Told by the most pressing reason the uninstall left files for; its tone says whether the player has anything to do.
+    private NextStep Removed(bool listed, JobEnded? ended)
     {
         var kept = ended?.KeptFiles ?? [];
-        var outcome = !listed ? Text.Format(Strings.GamePage_RemovedGone, ("library", Strings.Shell_Library))
-            : ended is { Forgotten: true } ? Strings.GamePage_RemovedForgotten
-            : kept.Count > 0 ? Strings.GamePage_RemovedRest
-            : Strings.GamePage_RemovedText;
-        var text = string.Join(" ", kept.Select(files => Text.Format(Strings.GamePage_RemovedKept, ("reason", files.Reason.ToString()),
-            ("count", files.Count))).Append(outcome));
-        return new NextStep(StepKind.Removed, Tone.Success, Icons.CircleCheck, Strings.GamePage_RemovedTitle, text)
+        var reason = ended is { Forgotten: true } ? null : KeptReasons.MostPressing(kept.Select(files => files.Reason));
+        var told = KeptReasons.CaseOf(reason);
+        var text = ended is { Forgotten: true } ? Strings.GamePage_RemovedForgotten
+            : reason is null ? Strings.GamePage_RemovedText
+            : Text.Format(Strings.GamePage_RemovedKept, ("reason", told), ("store", GameWording.StoreName(_key.Store)),
+                ("count", kept.Where(files => KeptReasons.CaseOf(files.Reason) == told).Sum(files => files.Count)));
+        if (!listed)
         {
+            text += " " + Text.Format(Strings.GamePage_RemovedGone, ("library", Strings.Shell_Library));
+        }
+
+        var advises = reason is { } most && KeptReasons.AdvisesStoreCheck(most);
+        var (tone, icon) = ended is { Forgotten: true } ? (Tone.Neutral, Icons.Folder)
+            : reason == KeptReason.OriginalUnknown ? (Tone.Info, Icons.Info)
+            : advises ? (Tone.Warning, Icons.TriangleAlert)
+            : (Tone.Success, Icons.CircleCheck);
+        return new NextStep(StepKind.Removed, tone, icon, Strings.GamePage_RemovedTitle, text)
+        {
+            CheckFiles = advises ? PageLinks.ValidateFiles(_key) : null,
+            CheckFilesLabel = CheckFilesLabel(),
             Secondary = listed ? null : Text.Format(Strings.GamePage_BackToLibrary, ("library", Strings.Shell_Library)),
             SecondaryIcon = Icons.ArrowLeft,
             SecondaryGoesBack = !listed,
             CanDismiss = listed,
         };
     }
+
+    private string CheckFilesLabel() => Text.Format(Strings.GamePage_CheckFiles, ("store", GameWording.StoreName(_key.Store)));
 
     private static NextStep Outlined(StepKind kind, Tone tone, Geometry icon, string title, string text) =>
         new(kind, tone, icon, title, text)

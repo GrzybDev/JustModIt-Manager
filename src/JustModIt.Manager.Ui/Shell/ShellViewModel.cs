@@ -4,6 +4,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -184,9 +185,19 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private void OnNavigationRequested(object? sender, NavigationTarget target) =>
         Navigator.Open(AgentLinks.RoutesFor(target, Agent.State.Settings.CreatorMode));
 
-    private void OnNoticed(object? sender, NoticeView notice) => Toasts.Show(NoticeToasts.Create(notice, about =>
-        Navigator.Open(AgentLinks.RoutesFor(new GameTarget(about.Game!.Value.Store.Value, about.Game.Value.StoreGameId),
-            Agent.State.Settings.CreatorMode))));
+    private void OnNoticed(object? sender, NoticeView notice)
+    {
+        // The game's page in front says the same in its step.
+        if (notice is { Kind: NoticeKind.StoreCheckAdvised, Game: { } game } && Navigator.CurrentRoute == new GameRoute(game))
+        {
+            return;
+        }
+
+        Toasts.Show(NoticeToasts.Create(notice,
+            about => Navigator.Open(AgentLinks.RoutesFor(new GameTarget(about.Game!.Value.Store.Value, about.Game.Value.StoreGameId),
+                Agent.State.Settings.CreatorMode)),
+            () => Navigator.Navigate(new SettingsRoute())));
+    }
 
     private void ApplyLink()
     {

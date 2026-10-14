@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.State;
@@ -601,6 +602,63 @@ public sealed class CreatorPackageTests : IDisposable
         package.Test.Should().Be(TestInstallState.Undone);
         package.HasTestProblem.Should().BeFalse();
         _ui.Shell.Toasts.Items.Should().ContainSingle().Which.Title.Should().Be(Strings.Creator_TestUndoneTitle);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Undoing_a_test_that_left_files_says_so_whether_its_end_or_the_state_comes_first(bool endFirst)
+    {
+        var package = await TestedPackageAsync();
+        _ui!.Click(Button(_ui, Strings.Creator_TestInstall));
+        _ui.Push(State(null, installed: true));
+        _ui.Click(Button(_ui, Strings.Creator_UndoTest));
+        var end = new JobEnded(Job(UndoJob, JobKind.Uninstall, JobStage.Uninstalling), JobOutcome.Succeeded)
+        {
+            KeptFiles = [new KeptFilesView(KeptReason.GameUpdatedSinceInstall, 1), new KeptFilesView(KeptReason.BackupMissing, 2)],
+        };
+        if (endFirst)
+        {
+            _ui.Agent.End(end);
+        }
+
+        _ui.Push(State(null, installed: false));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        if (!endFirst)
+        {
+            _ui.Agent.End(end);
+            await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        }
+
+        package.Test.Should().Be(TestInstallState.Undone);
+        var toast = _ui.Shell.Toasts.Items.Should().ContainSingle("an end that comes after the state replaces what the state alone told").Which;
+        toast.IsWarning.Should().BeTrue();
+        toast.Message.Should().Be("Lantern Isle ma z powrotem oryginalne pliki poza plikami zmienionymi przez oprogramowanie z paczki: gra "
+            + "dostała aktualizację w trakcie testu, więc zostały bez zmian, a kopie ich oryginałów zachowano. Oryginalne pliki przywróci "
+            + "sprawdzenie spójności plików gry w Steam.");
+        if (endFirst)
+        {
+            await RenderAsync(_ui, "creator-undone-kept", 800);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task An_undone_test_whose_files_may_only_not_have_been_the_store_s_says_so_as_information()
+    {
+        var package = await TestedPackageAsync();
+        _ui!.Click(Button(_ui, Strings.Creator_TestInstall));
+        _ui.Push(State(null, installed: true));
+        _ui.Click(Button(_ui, Strings.Creator_UndoTest));
+        _ui.Agent.End(new JobEnded(Job(UndoJob, JobKind.Uninstall, JobStage.Uninstalling), JobOutcome.Succeeded)
+        {
+            KeptFiles = [new KeptFilesView(KeptReason.OriginalUnknown, 2)],
+        });
+        _ui.Push(State(null, installed: false));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+
+        package.Test.Should().Be(TestInstallState.Undone);
+        _ui.Shell.Toasts.Items.Should().ContainSingle().Which.Tone.Should().Be(ToastTone.Info,
+            "the files are as they were before the test, only perhaps not the store's");
     }
 
     [AvaloniaFact]

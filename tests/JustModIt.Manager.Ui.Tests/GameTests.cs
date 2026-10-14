@@ -131,22 +131,132 @@ public sealed class GameTests
         ui.Push(State(available) with { Version = 6 });
 
         page.Step!.Kind.Should().Be(StepKind.Removed);
-        page.Step.Text.Should().Be("Zostawiono w obecnej postaci 2 pliki zmienione po instalacji – odinstalowanie nigdy nie nadpisuje pliku "
-            + "zmienionego poza aplikacją. Przywrócono pozostałe oryginalne pliki gry.");
+        page.Step.Text.Should().Be("Przywrócono oryginalne pliki gry. 2 pliki zmienione po instalacji przez aktualizację gry zostały w wersji "
+            + "z aktualizacji.");
+        (page.Step.Tone, page.Step.HasCheckFiles).Should().Be((Tone.Success, false), "the files are the store's own, so nothing is to do");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
-        ui.Render("game-removed-kept");
+        ui.Render("removed-2-changed-after-install");
 
         var second = first with { Id = Guid.NewGuid() };
         ui.Push(State(Busy(installed, second)) with { Version = 7 });
         ui.Push(State(available) with { Version = 8 });
         page.Step!.Text.Should().Be("Przywrócono oryginalne pliki gry.");
+        page.Step.Primary.Should().BeNull("closing the result shows the step that comes next");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("removed-1-nothing-left");
         ui.Agent.End(new JobEnded(second, JobOutcome.Succeeded)
         {
             KeptFiles = [new KeptFilesView(KeptReason.ChangedSinceInstall, 1), new KeptFilesView(KeptReason.BackupMissing, 5)],
         });
-        page.Step!.Text.Should().Be("Zostawiono w obecnej postaci 1 plik zmieniony po instalacji – odinstalowanie nigdy nie nadpisuje pliku "
-            + "zmienionego poza aplikacją. Zostawiono w wersji z instalacji 5 plików, bo brakuje kopii zapasowych ich oryginałów. "
-            + "Przywrócono pozostałe oryginalne pliki gry.", "the agent may tell which files stayed after the state ended the job");
+        page.Step!.Text.Should().Be("Przywrócono oryginalne pliki gry poza 5 plikami, które zostały w wersji spolszczenia, bo kopie ich "
+            + "oryginałów zniknęły albo są uszkodzone. Oryginalne pliki przywróci sprawdzenie spójności plików gry w Steam.",
+            "the agent may tell which files stayed after the state ended the job, and a lost copy says more than a changed file");
+        page.Step.Tone.Should().Be(Tone.Warning);
+
+        ui.Click(ui.Find<Button>("DismissStep"));
+        page.Step!.Kind.Should().Be(StepKind.Install);
+    }
+
+    [AvaloniaFact]
+    public async Task An_uninstall_after_a_game_update_says_the_files_stay_and_offers_steam_s_check()
+    {
+        var installed = Installed("Ember Hollow", "4100", offer: Ember);
+        var available = Available("Ember Hollow", "4100", Ember);
+        using var ui = Open(State(installed), installed);
+        var page = Page(ui);
+        var job = Job(installed, JobKind.Uninstall, JobStage.Uninstalling);
+
+        ui.Push(State(Busy(installed, job)) with { Version = 5 });
+        ui.Agent.End(new JobEnded(job, JobOutcome.Succeeded)
+        {
+            KeptFiles = [new KeptFilesView(KeptReason.GameUpdatedSinceInstall, 1), new KeptFilesView(KeptReason.OriginalUnknown, 1)],
+        });
+        ui.Push(State(available) with { Version = 6 });
+
+        page.Step!.Text.Should().Be("Przywrócono oryginalne pliki gry poza plikami, które oprogramowanie spolszczenia zmieniało podczas gry: "
+            + "w międzyczasie gra dostała aktualizację, więc zostały bez zmian, a kopie ich oryginałów zachowano. Oryginalne pliki przywróci "
+            + "sprawdzenie spójności plików gry w Steam.");
+        page.Step.Tone.Should().Be(Tone.Warning);
+        var check = ui.Find<Button>("CheckFilesButton");
+        check.IsEffectivelyVisible.Should().BeTrue();
+        AutomationProperties.GetName(check).Should().Be("Sprawdź spójność plików w Steam");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("removed-3-game-updated");
+        ui.Click(check);
+        ui.Links.Opened.Should().Equal(new Uri("steam://validate/4100"));
+
+        var doubted = job with { Id = Guid.NewGuid() };
+        ui.Push(State(Busy(installed, doubted)) with { Version = 7 });
+        ui.Agent.End(new JobEnded(doubted, JobOutcome.Succeeded) { KeptFiles = [new KeptFilesView(KeptReason.OriginalUnknown, 2)] });
+        ui.Push(State(available) with { Version = 8 });
+        page.Step!.Text.Should().Be("Przywrócono oryginalne pliki gry. Pliki zmieniane przez oprogramowanie spolszczenia mają postać sprzed "
+            + "instalacji tego wydania, ale już wtedy były zmienione; oryginalne pliki przywróci sprawdzenie spójności plików gry w Steam.");
+        (page.Step.Tone, page.Step.HasCheckFiles).Should().Be((Tone.Info, true), "nothing was held back, so it only advises");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("removed-4-original-unknown");
+    }
+
+    [AvaloniaFact]
+    public async Task At_the_smallest_window_the_removed_step_leads_the_panel_with_steam_s_check_under_its_text()
+    {
+        var installed = Installed("Ember Hollow", "4100", offer: Ember);
+        using var ui = new UiHarness(State(installed), width: 960, height: 600);
+        ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(installed.Key)]);
+        UiHarness.Settle();
+        var page = Page(ui);
+        var job = Job(installed, JobKind.Uninstall, JobStage.Uninstalling);
+
+        ui.Push(State(Busy(installed, job)) with { Version = 5 });
+        ui.Agent.End(new JobEnded(job, JobOutcome.Succeeded) { KeptFiles = [new KeptFilesView(KeptReason.GameUpdatedSinceInstall, 1)] });
+        ui.Push(State(Available("Ember Hollow", "4100", Ember)) with { Version = 6 });
+
+        page.IsCompact.Should().BeTrue();
+        var check = ui.Find<Button>().Single(button => button.Name == "CheckFilesUnder" && button.IsEffectivelyVisible);
+        check.TranslatePoint(new Point(0, check.Bounds.Height), ui.Window)!.Value.Y.Should().BeLessThan(600);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
+        ui.Render("removed-6-minimum");
+    }
+
+    [AvaloniaFact]
+    public async Task A_game_of_another_store_is_told_its_store_s_check_without_a_button()
+    {
+        var installed = Installed("Ember Hollow", "4100", offer: Ember) with { Key = new GameKey(StoreId.Gog, "1207658930") };
+        using var ui = Open(State(installed), installed);
+        var page = Page(ui);
+        var job = Job(installed, JobKind.Uninstall, JobStage.Uninstalling);
+
+        ui.Push(State(Busy(installed, job)) with { Version = 5 });
+        ui.Agent.End(new JobEnded(job, JobOutcome.Succeeded) { KeptFiles = [new KeptFilesView(KeptReason.BackupDamaged, 1)] });
+        ui.Push(State(installed with { Installs = [] }) with { Version = 6 });
+
+        page.Step!.Text.Should().EndWith("Oryginalne pliki przywróci sprawdzenie spójności plików gry w GOG.");
+        page.Step.HasCheckFiles.Should().BeFalse("only Steam starts its check from a link");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Find<Button>().Where(button => button.Name is "CheckFilesButton" or "CheckFilesUnder").Should().OnlyContain(button => !button.IsEffectivelyVisible);
+    }
+
+    [AvaloniaFact]
+    public async Task An_install_refused_for_kept_files_says_what_comes_first_and_offers_steam_s_check()
+    {
+        var game = Available("Ember Hollow", "4100", Ember) with
+        {
+            LastFailure = new FailureView(JobKind.Install, JobOrigin.User, TestStates.Now.AddMinutes(-3),
+                new JobFailureView(JobFailureReason.KeptFilesPending) { Files = ["data/list.dat"] }),
+            NeedsAttention = true,
+        };
+        using var ui = Open(State(game), game);
+        var page = Page(ui);
+
+        page.Step!.Kind.Should().Be(StepKind.Failed);
+        page.Step.Text.Should().Be("Pliki zachowane po wcześniejszym odinstalowaniu wciąż mają zawartość zostawioną przez jego oprogramowanie, "
+            + "więc najpierw trzeba sprawdzić spójność plików gry w Steam.");
+        page.Step.Primary.Should().NotBeNull("the install can be tried again once the files were checked");
+        var check = ui.Find<Button>("CheckFilesUnder");
+        check.IsEffectivelyVisible.Should().BeTrue("the step's own button stands beside it");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("kept-files-pending");
+        ui.Click(check);
+        ui.Links.Opened.Should().Equal(new Uri("steam://validate/4100"));
     }
 
     [AvaloniaFact]
@@ -166,8 +276,9 @@ public sealed class GameTests
 
         page.Step!.Kind.Should().Be(StepKind.Removed);
         page.Step.Text.Should().Be(forgotten, "the store still reports the game, in another folder");
+        page.Step.Tone.Should().Be(Tone.Neutral, "no files were put back");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
-        ui.Render("game-removed-forgotten");
+        ui.Render("removed-5-forgotten");
 
         var second = first with { Id = Guid.NewGuid() };
         ui.Push(State(Busy(installed, second)) with { Version = 7 });
@@ -247,6 +358,7 @@ public sealed class GameTests
         page.Step.Text.Should().Be("Odinstalowanie zainstalowanej wersji spolszczenia zostawiłoby pliki zmienione przez jego oprogramowanie tak, "
             + "jak są, a nowe paczki zapisują te same pliki, więc najpierw trzeba odinstalować spolszczenie, potem sprawdzić spójność plików "
             + "gry w Steam i zainstalować je ponownie. Wersja 1 została bez zmian.");
+        page.Step.CheckFiles.Should().BeNull("checking the files first would only bring the refusal back");
     }
 
     [AvaloniaFact]

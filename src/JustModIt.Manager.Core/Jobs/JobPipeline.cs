@@ -185,6 +185,8 @@ internal sealed partial class JobPipeline(
                     RemovedPrevious = true,
                     RestoredPrevious = restored is not null,
                     Installed = restored,
+                    // The release put back takes over what the uninstall left, so only a lost one leaves files for the player.
+                    KeptFiles = restored is null ? removed.KeptFiles : [],
                     RemovedRecord = record.Id,
                 };
             }

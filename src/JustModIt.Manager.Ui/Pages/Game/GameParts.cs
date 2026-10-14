@@ -83,6 +83,12 @@ public sealed record NextStep(StepKind Kind, Tone Tone, Geometry Icon, string Ti
     /// <summary>The outlined button leads back to the player's games.</summary>
     public bool SecondaryGoesBack { get; init; }
 
+    /// <summary>The store's check of the game's files, which a button starts, where the step advises it; null for none.</summary>
+    public Uri? CheckFiles { get; init; }
+
+    /// <summary>The label of the button that starts <see cref="CheckFiles"/>, naming the store.</summary>
+    public string CheckFilesLabel { get; init; } = "";
+
     /// <summary>The step can be closed, e.g. a result; what closing sends, if anything, is <see cref="DismissRequest"/>.</summary>
     public bool CanDismiss { get; init; }
 
@@ -97,6 +103,17 @@ public sealed record NextStep(StepKind Kind, Tone Tone, Geometry Icon, string Ti
     public bool HasPrimary => Primary is not null;
 
     public bool HasSecondary => Secondary is not null;
+
+    public bool HasCheckFiles => CheckFiles is not null;
+
+    /// <summary>The step leads a panel in a short window, so a button it adds goes under its text.</summary>
+    public bool IsCompact { get; init; }
+
+    /// <summary>The check's button stands where the step's buttons go, since the step has none of its own.</summary>
+    public bool ChecksBeside => HasCheckFiles && !HasPrimary && !HasSecondary && !IsCompact;
+
+    /// <summary>The check's button stands under the text, beside the step's own buttons or in a short window.</summary>
+    public bool ChecksUnder => HasCheckFiles && !ChecksBeside;
 
     public bool HasMeta => Meta.Length > 0 || MetaWarning.Length > 0 || OffersChanges || OffersHelp;
 

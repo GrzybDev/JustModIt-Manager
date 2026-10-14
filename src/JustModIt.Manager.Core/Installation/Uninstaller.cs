@@ -30,6 +30,46 @@ public enum KeptReason
 
 public sealed record KeptFile(string Path, KeptReason Reason);
 
+/// <summary>How the reasons an uninstall left files for rank when the player is told only one.</summary>
+public static class KeptReasons
+{
+    /// <summary>The reason to tell first: a game update, then a doubted original, then a lost copy, then a changed file.</summary>
+    /// <param name="reasons">The reasons of the files left; empty for none.</param>
+    /// <returns>The most pressing reason; null when there is none.</returns>
+    public static KeptReason? MostPressing(IEnumerable<KeptReason> reasons)
+    {
+        ArgumentNullException.ThrowIfNull(reasons);
+        return reasons.Select(reason => (KeptReason?)reason).MinBy(reason => Rank(reason!.Value));
+    }
+
+    /// <summary>Whether the store's check of the game's files brings back what the uninstall could not.</summary>
+    /// <param name="reason">Why a file was left.</param>
+    public static bool AdvisesStoreCheck(KeptReason reason) => reason != KeptReason.ChangedSinceInstall;
+
+    /// <summary>
+    /// The case a text selects to word a reason: <c>GameUpdated</c>, <c>OriginalUnknown</c>, <c>Backup</c> for a copy missing
+    /// or damaged, <c>Changed</c>, or <c>HandedOver</c> for files a replacement that did not finish handed over.
+    /// </summary>
+    /// <param name="reason">Why files were left; null for files handed over.</param>
+    public static string CaseOf(KeptReason? reason) => reason switch
+    {
+        KeptReason.GameUpdatedSinceInstall => "GameUpdated",
+        KeptReason.OriginalUnknown => "OriginalUnknown",
+        KeptReason.BackupMissing or KeptReason.BackupDamaged => "Backup",
+        KeptReason.ChangedSinceInstall => "Changed",
+        _ => "HandedOver",
+    };
+
+    private static int Rank(KeptReason reason) => reason switch
+    {
+        KeptReason.GameUpdatedSinceInstall => 0,
+        KeptReason.OriginalUnknown => 1,
+        KeptReason.BackupDamaged => 2,
+        KeptReason.BackupMissing => 3,
+        _ => 4,
+    };
+}
+
 public sealed record UninstallResult(ValueList<KeptFile> KeptFiles);
 
 internal enum UndoAction

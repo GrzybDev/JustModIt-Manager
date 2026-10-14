@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.State;
 
@@ -44,6 +45,12 @@ public enum NoticeKind
     /// The game's folder is gone for good, so the app forgot the install on it; see <see cref="AutomationNotice.KeptBackups"/>.
     /// </summary>
     Forgotten,
+
+    /// <summary>
+    /// An uninstall left files the package's software changed as they are, or put back originals that may not be the store's,
+    /// so the store's check of the game's files is advised; see <see cref="AutomationNotice.Kept"/>.
+    /// </summary>
+    StoreCheckAdvised,
 }
 
 /// <summary>Something the automation did or found, for the app to tell the player in its own words.</summary>
@@ -77,6 +84,9 @@ public sealed record AutomationNotice(NoticeKind Kind)
 
     /// <summary>The originals a forgotten install kept outside the game folder stay, listed among the leftover backups.</summary>
     public bool KeptBackups { get; init; }
+
+    /// <summary>Why the uninstall left files as they were, the most pressing reason when there are several.</summary>
+    public KeptReason? Kept { get; init; }
 
     /// <summary>The games a summary is about.</summary>
     public ValueList<GameKey> Games { get; init; }

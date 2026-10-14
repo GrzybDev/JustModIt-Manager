@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Automation;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Localization;
 
@@ -42,6 +43,8 @@ public static class NoticeTexts
                 notice.ProjectName is null ? Strings.NoticePreviousReleaseLost : Strings.NoticePreviousReleaseLostProject),
             NoticeKind.Forgotten => (InstallTitle(Strings.NoticeForgottenTitle, Strings.NoticeForgottenProjectTitle),
                 notice.KeptBackups ? Strings.NoticeForgottenKeepingBackups : Strings.NoticeForgotten),
+            NoticeKind.StoreCheckAdvised => (InstallTitle(Strings.NoticeStoreCheckAdvisedTitle, Strings.NoticeStoreCheckAdvisedProjectTitle),
+                Text.Format(Strings.NoticeStoreCheckAdvised, ("reason", KeptReasons.CaseOf(notice.Kept)))),
             _ => (InstallTitle(Strings.NoticeFailedTitle, Strings.NoticeFailedProjectTitle),
                 notice.Failure?.Reason == JobFailureReason.ReleaseUnavailable ? Strings.NoticeReleaseUnavailable : Strings.NoticeFailed),
         };

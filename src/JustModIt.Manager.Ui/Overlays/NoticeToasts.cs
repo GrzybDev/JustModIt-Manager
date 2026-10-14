@@ -1,5 +1,6 @@
 using Avalonia.Media;
 using JustModIt.Manager.Core.Automation;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Pages.Library;
@@ -9,17 +10,20 @@ namespace JustModIt.Manager.Ui.Overlays;
 
 /// <summary>
 /// The automation's notices as the window shows them while it is in front: a short title of what happened and the game
-/// it happened to in the line below, with a way to the game when there is something to do there.
+/// it happened to in the line below, with a way to the game when there is something to do there, or to the settings when
+/// the copies an uninstall kept wait there.
 /// </summary>
 public static class NoticeToasts
 {
     /// <summary>The notification of a notice.</summary>
     /// <param name="notice">A typed notice of the automation.</param>
     /// <param name="showGame">Opens the game a notice is about.</param>
-    public static ToastViewModel Create(NoticeView notice, Action<NoticeView> showGame)
+    /// <param name="showSettings">Opens the settings, where kept copies are listed.</param>
+    public static ToastViewModel Create(NoticeView notice, Action<NoticeView> showGame, Action showSettings)
     {
         ArgumentNullException.ThrowIfNull(notice);
         ArgumentNullException.ThrowIfNull(showGame);
+        ArgumentNullException.ThrowIfNull(showSettings);
         var subject = notice.ProjectName is { } project
             ? Text.Format(Strings.Toast_ProjectOfGame, ("project", project), ("game", notice.GameName ?? ""))
             : notice.GameName ?? "";
@@ -48,12 +52,20 @@ public static class NoticeToasts
                 notice.KeptBackups ? About(Strings.Toast_ForgottenKeepingBackups) : About(Strings.Toast_Forgotten), false),
             NoticeKind.PreviousReleaseLost => (ToastTone.Danger, Icons.CircleX, Strings.Toast_PreviousReleaseLostTitle,
                 About(Strings.Toast_PreviousReleaseLost), true),
+            NoticeKind.StoreCheckAdvised => (ToastTone.Warning, Icons.TriangleAlert, Strings.Toast_StoreCheckAdvisedTitle,
+                About(Strings.Toast_StoreCheckAdvised, ("reason", KeptReasons.CaseOf(notice.Kept)),
+                    ("store", notice.Game is { } checkedGame ? GameWording.StoreName(checkedGame.Store) : "")), false),
             _ => (ToastTone.Danger, Icons.CircleX,
                 Text.Format(Strings.Toast_FailedTitle, ("job", notice.Job?.ToString() ?? "")),
                 About(Strings.Toast_Failed, ("reason", notice.Game is { } game
                     ? GameWording.FailureReason(notice.Failure, game.Store, notice.GameName ?? "")
                     : "")), true),
         };
+
+        if (notice.Kind == NoticeKind.StoreCheckAdvised)
+        {
+            return new ToastViewModel(tone, icon, title, message) { ActionText = Strings.Toast_ShowSettings, Action = showSettings };
+        }
 
         return new ToastViewModel(tone, icon, title, message)
         {

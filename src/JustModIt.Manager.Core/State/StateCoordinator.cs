@@ -333,6 +333,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
 
         if (result.RemovedRecord is { } removed)
         {
+            AdviseStoreCheck(result, removed);
             _records.Remove(removed);
             _verifications.Forget(removed);
         }
@@ -376,6 +377,27 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         }
 
         _pruneWanted = true;
+    }
+
+    // Once per job, while the removed install is still known; files handed over to a replacement are never among those left,
+    // and a test install's undo is the package creator's to tell.
+    private void AdviseStoreCheck(JobResult result, Guid removed)
+    {
+        var game = result.Job.Game;
+        if (KeptReasons.MostPressing(result.KeptFiles.Select(file => file.Reason).Where(KeptReasons.AdvisesStoreCheck)) is not { } reason
+            || !_records.TryGetValue(removed, out var record) || record.IsTest || _current.GetGame(game).IsHidden)
+        {
+            return;
+        }
+
+        var listed = Current.Find(game);
+        _notices.Writer.TryWrite(new AutomationNotice(NoticeKind.StoreCheckAdvised)
+        {
+            Game = game,
+            GameName = listed?.Name ?? record.GameName,
+            ProjectName = AutomationNotice.ProjectNameFor(listed, removed),
+            Kept = reason,
+        });
     }
 
     private void ApplyGoneCheck(GoneChecked gone)

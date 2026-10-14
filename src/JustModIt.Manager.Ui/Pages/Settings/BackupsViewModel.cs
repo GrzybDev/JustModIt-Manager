@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,17 +10,77 @@ using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Settings;
 
-/// <summary>Backups that installs forgotten with their game left outside it, which only the player removes.</summary>
-/// <param name="Backup">The leftover as the agent lists it.</param>
-/// <param name="Detail">Its size and folder.</param>
-/// <param name="RemoveName">What its remove button does, for screen readers.</param>
-public sealed record LeftoverRow(LeftoverBackup Backup, string Detail, string RemoveName);
+/// <summary>
+/// Copies kept for the player, which only the player removes: the backups an install forgotten with its game left outside it,
+/// or the originals of files an uninstall left as a package's software changed them.
+/// </summary>
+public sealed partial class LeftoverRow : ObservableObject
+{
+    /// <summary>Creates a row of copies the agent listed.</summary>
+    /// <param name="backup">The copies as the agent lists them.</param>
+    /// <param name="detail">Their size and folder, or for an uninstall's copies their project, file count and size.</param>
+    /// <param name="removeName">What the remove button does, for screen readers.</param>
+    public LeftoverRow(LeftoverBackup backup, string detail, string removeName)
+    {
+        ArgumentNullException.ThrowIfNull(backup);
+        Backup = backup;
+        Detail = detail;
+        RemoveName = removeName;
+    }
+
+    public LeftoverBackup Backup { get; }
+
+    public string Detail { get; }
+
+    public string RemoveName { get; }
+
+    public string Cover => Backup.Cover?.AbsoluteUri ?? "";
+
+    public bool HasCover => Backup.Cover is not null;
+
+    /// <summary>The copies are of files an uninstall left, which a note under the row explains.</summary>
+    public bool IsKept => Backup.Kept is not null;
+
+    /// <summary>Why the uninstall left the files.</summary>
+    public string Lead { get; init; } = "";
+
+    /// <summary>What brings the game's own files back.</summary>
+    public string Advice { get; init; } = "";
+
+    /// <summary>The note only advises, since the originals were doubted rather than held back.</summary>
+    public bool IsAdvice { get; init; }
+
+    /// <summary>The files the uninstall left, game-relative.</summary>
+    public IReadOnlyList<string> Paths { get; init; } = [];
+
+    /// <summary>The store's check of the game's files; null for a store without one.</summary>
+    public Uri? CheckFiles { get; init; }
+
+    public string CheckFilesLabel { get; init; } = "";
+
+    public bool HasCheckFiles => CheckFiles is not null;
+
+    /// <summary>The game's store, whose mark the check's button shows.</summary>
+    public string Store => Backup.Game.Store.Value;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FilesToggle), nameof(FilesToggleIcon))]
+    public partial bool AreFilesShown { get; set; }
+
+    public string FilesToggle => AreFilesShown ? Strings.GamePage_RuntimeHide : Strings.GamePage_RuntimeShow;
+
+    public Geometry FilesToggleIcon => AreFilesShown ? Icons.ChevronUp : Icons.ChevronDown;
+
+    [RelayCommand]
+    private void ToggleFiles() => AreFilesShown = !AreFilesShown;
+}
 
 /// <summary>
 /// Where the games' original files are kept: the choice of place, a folder the player picked, moving the backups made in
@@ -222,12 +283,24 @@ public sealed partial class BackupsViewModel : ObservableObject
     private async Task StopMovingAsync() => await AgentRequests.SendAsync(_services, new StopMovingBackups()).ConfigureAwait(true);
 
     [RelayCommand]
+    private void CheckFiles(LeftoverRow row)
+    {
+        if (row.CheckFiles is { } check)
+        {
+            _services.Links.Open(check);
+        }
+    }
+
+    [RelayCommand]
     private async Task RemoveLeftoverAsync(LeftoverRow row)
     {
         var backup = row.Backup;
+        var size = Formats.FileSize(backup.Bytes);
         if (!await _services.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(
                 Text.Format(Strings.Settings_RemoveLeftoverTitle, ("game", backup.GameName)),
-                Text.Format(Strings.Settings_RemoveLeftoverMessage, ("folder", backup.Directory), ("size", Formats.FileSize(backup.Bytes))),
+                backup.Kept is null
+                    ? Text.Format(Strings.Settings_RemoveLeftoverMessage, ("folder", backup.Directory), ("size", size))
+                    : Text.Format(Strings.Settings_RemoveKeptMessage, ("size", size), ("store", GameWording.StoreName(backup.Game.Store))),
                 Strings.Settings_RemoveLeftover, Icons.Trash, DialogTone.Danger)
             {
                 ConfirmIcon = Icons.Trash,
@@ -293,8 +366,7 @@ public sealed partial class BackupsViewModel : ObservableObject
                 Leftovers.Clear();
                 foreach (var backup in found.Backups.OrderBy(backup => backup.GameName, Text.Comparer))
                 {
-                    Leftovers.Add(new LeftoverRow(backup, GameWording.Join([Formats.FileSize(backup.Bytes), backup.Directory]),
-                        Text.Format(Strings.Settings_RemoveLeftoverName, ("game", backup.GameName))));
+                    Leftovers.Add(Row(backup));
                 }
 
                 HasLeftovers = Leftovers.Count > 0;
@@ -304,6 +376,27 @@ public sealed partial class BackupsViewModel : ObservableObject
         catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
         {
         }
+    }
+
+    private static LeftoverRow Row(LeftoverBackup backup)
+    {
+        var removeName = Text.Format(Strings.Settings_RemoveLeftoverName, ("game", backup.GameName));
+        if (backup.Kept is not { } kept)
+        {
+            return new LeftoverRow(backup, GameWording.Join([Formats.FileSize(backup.Bytes), backup.Directory]), removeName);
+        }
+
+        var store = GameWording.StoreName(backup.Game.Store);
+        return new LeftoverRow(backup, GameWording.Join([kept.ProjectName ?? "",
+            Text.Format(Strings.Settings_KeptFiles, ("count", kept.FileCount)), Formats.FileSize(backup.Bytes)]), removeName)
+        {
+            Lead = Text.Format(Strings.Settings_KeptLead, ("reason", KeptReasons.CaseOf(kept.Reason)), ("project", kept.ProjectName ?? "")),
+            Advice = Text.Format(Strings.Settings_KeptAdvice, ("store", store)),
+            IsAdvice = kept.Reason == KeptReason.OriginalUnknown,
+            Paths = kept.Paths,
+            CheckFiles = PageLinks.ValidateFiles(backup.Game),
+            CheckFilesLabel = Text.Format(Strings.GamePage_CheckFiles, ("store", store)),
+        };
     }
 
     // The agent counts the games whose move waits apart from those whose move runs, one job per game.

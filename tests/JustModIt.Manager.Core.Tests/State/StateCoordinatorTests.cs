@@ -596,6 +596,49 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
+    public async Task An_uninstall_that_kept_or_doubted_files_the_software_changed_advises_the_store_s_check_once()
+    {
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        var record = app.Engine.Add(Record());
+        LeaveFiles(app, new KeptFile("tool/list.dat", KeptReason.OriginalUnknown), new KeptFile("data/strings.pak", KeptReason.ChangedSinceInstall),
+            new KeptFile("tool/state.dat", KeptReason.GameUpdatedSinceInstall));
+        await app.StartAsync();
+
+        await app.RunJobAsync(new UninstallJobRequest(record));
+
+        (await app.NoticeAsync()).Should().BeEquivalentTo(new
+        {
+            Kind = NoticeKind.StoreCheckAdvised,
+            Game = (GameKey?)Game,
+            GameName = record.GameName,
+            ProjectName = (string?)null,
+            Kept = (KeptReason?)KeptReason.GameUpdatedSinceInstall,
+        });
+        await Eventually.SettleAsync();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("a file changed after the install")]
+    [InlineData("a test install")]
+    [InlineData("a hidden game")]
+    public async Task An_uninstall_advises_no_store_check_for(string what)
+    {
+        var settings = what == "a hidden game" ? AppSettings.Default.WithGame(Game, preferences => preferences with { IsHidden = true }) : null;
+        await using var app = new CoordinatorHarness(settings).WithGameAndProject();
+        var record = app.Engine.Add(Record() with { IsTest = what == "a test install" });
+        LeaveFiles(app, new KeptFile("data/strings.pak", what == "a file changed after the install"
+            ? KeptReason.ChangedSinceInstall
+            : KeptReason.GameUpdatedSinceInstall));
+        await app.StartAsync();
+
+        await app.RunJobAsync(new UninstallJobRequest(record));
+
+        await Eventually.SettleAsync();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse("a changed file is the store's own, and a test or a hidden game is told elsewhere");
+    }
+
+    [Fact]
     public async Task Moves_the_backups_of_every_install_when_the_player_picks_another_place()
     {
         await using var app = new CoordinatorHarness().WithGameAndProject();
@@ -791,4 +834,11 @@ public sealed class StateCoordinatorTests
         latest.IsCompletedSuccessfully.Should().BeTrue();
         (await latest).Version.Should().BeGreaterThanOrEqualTo(shown.Version);
     }
+
+    private static void LeaveFiles(CoordinatorHarness app, params KeptFile[] kept) =>
+        app.Engine.OnUninstall = (id, token) =>
+        {
+            app.Engine.Records.TryRemove(id, out _);
+            return Task.FromResult(new UninstallResult([.. kept]));
+        };
 }

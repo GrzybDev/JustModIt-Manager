@@ -119,6 +119,16 @@ public static class PageLinks
             : null;
 
     /// <summary>
+    /// Steam's check of a game's files, which its client starts at once and which brings back every file Steam ships; null for
+    /// a game of another store, which offers no such link.
+    /// </summary>
+    /// <param name="game">The game.</param>
+    public static Uri? ValidateFiles(Core.Games.GameKey game) =>
+        game.Store == Core.Games.StoreId.Steam && int.TryParse(game.StoreGameId, out var id)
+            ? new Uri(FormattableString.Invariant($"{SteamScheme}://validate/{id}"))
+            : null;
+
+    /// <summary>
     /// The client that detection found for a store, opened on its library: the store's own where it is there, otherwise
     /// Heroic; null when it found none.
     /// </summary>
