@@ -44,9 +44,10 @@ public sealed partial class ChoiceOption(FileChoice choice, string title, bool i
 /// <param name="Text">What it is about, as a sentence.</param>
 /// <param name="Tone">Its colour.</param>
 /// <param name="AcknowledgementKey">The key that accepts it; null for one that cannot be accepted.</param>
-public sealed record FindingLine(string Text, RowTone Tone, string? AcknowledgementKey = null)
+/// <param name="IsAccepted">The author accepted it, which the line says in place of the way to accept it.</param>
+public sealed record FindingLine(string Text, RowTone Tone, string? AcknowledgementKey = null, bool IsAccepted = false)
 {
-    public bool CanAcknowledge => AcknowledgementKey is not null;
+    public bool CanAcknowledge => AcknowledgementKey is not null && !IsAccepted;
 
     public Geometry Icon => Tone == RowTone.Danger ? Theme.Icons.CircleX : Theme.Icons.TriangleAlert;
 }

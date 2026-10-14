@@ -141,10 +141,12 @@
     </StackPanel>
 
     <!-- The build: its button, then its progress in the same place. -->
-    <WrapPanel IsVisible="{Binding IsReady}" ItemSpacing="20" LineSpacing="16">
+    <WrapPanel IsVisible="{Binding ShowsBuild}" ItemSpacing="20" LineSpacing="16">
       <Button x:Name="BuildButton" Classes="primary" Content="{x:Static loc:Strings.Creator_Build}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Package}"
               Command="{Binding BuildCommand}" />
       <TextBlock Classes="caption" MaxWidth="560" VerticalAlignment="Center" Text="{Binding BuildHint}" />
+      <Button Classes="quiet" Content="{x:Static loc:Strings.Creator_BuildElsewhere}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+              IsVisible="{Binding ReusesTarget}" Command="{Binding BuildElsewhereCommand}" />
     </WrapPanel>
     <Border x:Name="Building" Classes="creatorCard" Padding="24,20" IsVisible="{Binding IsBuilding}" theme:Motion.Enter="True">
       <StackPanel Spacing="14">
@@ -176,17 +178,32 @@
         <ItemsControl ItemsSource="{Binding BuildFindings}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="creator:FindingLine">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,0,8">
-                <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextEmphasisBrush}" Text="{Binding Text}" />
-                <Button Grid.Column="1" Classes="outline small" Content="{x:Static loc:Strings.Creator_AcceptWork}" IsVisible="{Binding CanAcknowledge}"
-                        Command="{Binding $parent[UserControl].((creator:PackageStepViewModel)DataContext).AcceptCommand}"
-                        CommandParameter="{Binding AcknowledgementKey}" />
-              </Grid>
+              <Border Classes="buildFinding" Classes.accepted="{Binding IsAccepted}" Margin="0,0,0,4">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                  <Panel VerticalAlignment="Center">
+                    <ui:Icon Data="{x:Static theme:Icons.TriangleAlert}" Width="16" Height="16" Classes="warningText" IsVisible="{Binding !IsAccepted}" />
+                    <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Width="16" Height="16" Classes="successText" IsVisible="{Binding IsAccepted}" />
+                  </Panel>
+                  <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" VerticalAlignment="Center" Foreground="{StaticResource TextEmphasisBrush}"
+                             Text="{Binding Text}" />
+                  <Button Grid.Column="2" Classes="outline small" Content="{x:Static loc:Strings.Creator_AcceptWork}" IsVisible="{Binding CanAcknowledge}"
+                          Command="{Binding $parent[UserControl].((creator:PackageStepViewModel)DataContext).AcceptCommand}"
+                          CommandParameter="{Binding AcknowledgementKey}" />
+                  <Border Grid.Column="2" Classes="kind success" VerticalAlignment="Center" IsVisible="{Binding IsAccepted}" theme:Motion.Enter="True">
+                    <StackPanel>
+                      <ui:Icon Data="{x:Static theme:Icons.Check}" />
+                      <TextBlock Text="{x:Static loc:Strings.Creator_Accepted}" />
+                    </StackPanel>
+                  </Border>
+                </Grid>
+              </Border>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <Button Classes="primary compact" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_CompareAgain}" IsVisible="{Binding NeedsComparison}"
                 ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CompareAgainCommand}" />
+        <Button Classes="primary compact" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_Rebuild}" IsVisible="{Binding AcceptedAll}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding BuildCommand}" theme:Motion.Enter="True" />
       </StackPanel>
     </ui:Callout>
 

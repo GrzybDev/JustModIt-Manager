@@ -63,7 +63,8 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private ProjectHints? _hints;
     private CancellationTokenSource? _building;
     private Task? _build;
-    private string _builtAs = "";
+    private (string Path, string Name)? _target;
+    private IReadOnlyList<(PlanFinding Finding, PlannedOperation? Operation)> _buildFindings = [];
     private Guid? _testJob;
     private Guid? _undoJob;
     private bool _lostTrack;
@@ -85,7 +86,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsReady), nameof(IsBuilding), nameof(IsBuilt))]
+    [NotifyPropertyChangedFor(nameof(IsReady), nameof(IsBuilding), nameof(IsBuilt), nameof(ShowsBuild))]
     public partial PackageState State { get; private set; }
 
     public bool IsReady => State == PackageState.Ready;
@@ -151,6 +152,10 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     [ObservableProperty]
     public partial string BuildHint { get; private set; } = "";
 
+    /// <summary>The next build goes where the last one of the same name went, which the author may change.</summary>
+    [ObservableProperty]
+    public partial bool ReusesTarget { get; private set; }
+
     /// <summary>Why the last build failed; empty when it did not.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasProblem))]
@@ -167,10 +172,16 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     /// <summary>Warnings only the build found, which the author accepts before building again.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasBuildFindings))]
+    [NotifyPropertyChangedFor(nameof(HasBuildFindings), nameof(AcceptedAll), nameof(ShowsBuild))]
     public partial IReadOnlyList<FindingLine> BuildFindings { get; private set; } = [];
 
     public bool HasBuildFindings => BuildFindings.Count > 0;
+
+    /// <summary>The author accepted every warning of the last build, which the next build takes.</summary>
+    public bool AcceptedAll => HasBuildFindings && BuildFindings.All(line => line.IsAccepted);
+
+    /// <summary>The build's button, which a failure with warnings to accept replaces with the way through them.</summary>
+    public bool ShowsBuild => IsReady && !HasBuildFindings;
 
     [ObservableProperty]
     public partial string BuildTarget { get; private set; } = "";
@@ -349,8 +360,8 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         // A package of another version or format goes to a file of its own, so building it keeps the earlier package.
         var extension = _page.Options.ExtensionFor(plan.Format.Kind);
         var name = SuggestedName(game, extension);
-        var path = !askWhere && OutputPath.Length > 0 && name == _builtAs
-            ? OutputPath
+        var path = !askWhere && _target is { } target && target.Name == name
+            ? target.Path
             : await _page.Services.Pickers.PickSaveFileAsync(Strings.Creator_BuildTitle, name,
                 new FileKind(plan.Format.Kind == PackageKind.Zip ? Strings.Creator_ZipFiles : Strings.Creator_PackageFiles, extension),
                 OutputFolder()).ConfigureAwait(true);
@@ -451,7 +462,8 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private async Task BuildAsync(PackagePlan plan, DetectedGameEntry game, string path, string name)
     {
         using var building = _building = new CancellationTokenSource();
-        (ProblemTitle, ProblemText, NeedsComparison, BuildFindings) = ("", "", false, []);
+        _target = (path, name);
+        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings) = ("", "", false, [], []);
         (Stage, Percent, Progress, FileLine) = (Text.Format(Strings.Creator_BuildStage, ("stage", nameof(BuildStage.Checking))), "", 0, "");
         BuildTarget = Text.Format(Strings.Creator_BuildTarget, ("path", path));
         State = PackageState.Building;
@@ -470,7 +482,6 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             var result = await new PackageBuilder(new XDelta3Patcher(), _page.Options, fileSystem: _page.FileSystem)
                 .BuildAsync(plan.Confirm(), request, new LatestProgress<BuildProgress>(Show), building.Token)
                 .ConfigureAwait(true);
-            _builtAs = name;
             Built(result);
         }
         catch (OperationCanceledException) when (building.IsCancellationRequested)
@@ -480,8 +491,13 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         catch (PackageBuildException failed)
         {
             NeedsComparison = failed.Failure is BuildFailure.FilesChanged or BuildFailure.OtherGame;
-            BuildFindings = [.. failed.Findings.Where(finding => finding.BlocksBuild)
-                .Select(finding => new FindingLine(ReviewLine(finding), RowTone.Warning, finding.AcknowledgementKey))];
+            _buildFindings = [.. failed.Findings.Where(finding => finding.BlocksBuild)
+                .Select(finding => (finding, finding.OperationIndex is { } index ? plan.Operations[index] : null))];
+            if (failed.Failure is BuildFailure.WrongExtension or BuildFailure.OutputInGameFolder or BuildFailure.OutputInAuthorFolder)
+            {
+                ForgetTarget();
+            }
+
             Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_BuildFailed, ("failure", failed.Failure.ToString()),
                 ("files", failed.Paths.Count), ("file", failed.Paths.Count > 0 ? failed.Paths[0] : "")));
         }
@@ -492,6 +508,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
+            ForgetTarget();
             Fail(Strings.Creator_BuildFailedTitle, Strings.Creator_BuildWriteFailed);
         }
         finally
@@ -500,6 +517,8 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             {
                 _building = null;
             }
+
+            Show();
         }
     }
 
@@ -552,6 +571,9 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         State = OutputPath.Length > 0 ? PackageState.Built : PackageState.Ready;
     }
 
+    // The next build asks for a place again rather than going back to one the build refused or could not write to.
+    private void ForgetTarget() => _target = null;
+
     private void Show(BuildProgress progress)
     {
         if (State != PackageState.Building)
@@ -591,8 +613,8 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     // other files, so its package is built anew, and a test install never takes the other copy's package.
     private void Forget()
     {
-        (OutputPath, _builtAs, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings) = ("", "", "", "", "", "", []);
-        (ProblemTitle, ProblemText, NeedsComparison, BuildFindings, BuildTarget) = ("", "", false, [], "");
+        (OutputPath, _target, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings) = ("", null, "", "", "", "", []);
+        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings, BuildTarget) = ("", "", false, [], [], "");
         (_testJob, _undoJob, _lostTrack, _testNote, HasTestProblem) = (null, null, false, "", false);
         _ended.Clear();
         Test = TestInstallState.None;
@@ -631,6 +653,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     private void Show()
     {
+        ShowBuildFindings();
         if (_session.Review?.Plan is not { } plan)
         {
             return;
@@ -662,11 +685,37 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
                 GameWording.StoreName(game.Key.Store),
                 game.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "",
             ]);
-            BuildHint = Text.Format(Strings.Creator_BuildHint, ("name", SuggestedName(game, _page.Options.ExtensionFor(format.Kind))));
+            var name = SuggestedName(game, _page.Options.ExtensionFor(format.Kind));
+            ReusesTarget = _target is { } target && target.Name == name;
+            BuildHint = ReusesTarget
+                ? Text.Format(Strings.Creator_BuildTo, ("name", Path.GetFileName(_target!.Value.Path)))
+                : Text.Format(Strings.Creator_BuildHint, ("name", name));
         }
 
         ShowsSaveHint = _session.IsDirty || _session.Path is null;
         PublishText = IsManifest ? Strings.Creator_PublishManifest : Strings.Creator_PublishZip;
+    }
+
+    // A warning the author accepted stays in the list, marked, so the click shows what it did and the build can go on. One
+    // about a patch the plan no longer makes, e.g. of a file left out or changed since, goes, and with the last the failure.
+    private void ShowBuildFindings()
+    {
+        if (_session.Review?.Plan is { } plan && _buildFindings.Any(found => !Makes(plan, found.Operation)))
+        {
+            _buildFindings = [.. _buildFindings.Where(found => Makes(plan, found.Operation))];
+            if (_buildFindings.Count == 0)
+            {
+                (ProblemTitle, ProblemText) = ("", "");
+            }
+        }
+
+        var acknowledged = _session.Project.Acknowledged;
+        List<FindingLine> lines = [.. _buildFindings.Select(found => new FindingLine(ReviewLine(found.Finding), RowTone.Warning,
+            found.Finding.AcknowledgementKey, found.Finding.AcknowledgementKey is { } key && acknowledged.Contains(key)))];
+        if (!lines.SequenceEqual(BuildFindings))
+        {
+            BuildFindings = lines;
+        }
     }
 
     private void ShowMetadata(PackageMetadata metadata)
@@ -893,9 +942,14 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     }
 
     private string? OutputFolder() =>
-        OutputPath.Length > 0 ? Path.GetDirectoryName(OutputPath)
+        _target is { } target ? Path.GetDirectoryName(target.Path)
         : _session.Path is { } project ? Path.GetDirectoryName(project)
         : Path.GetDirectoryName(_session.Project.AuthorFolder);
+
+    private static bool Makes(PackagePlan plan, PlannedOperation? operation) =>
+        operation is null || plan.Operations.Any(planned => planned.Kind == operation.Kind
+            && PackagePath.Comparer.Equals(planned.Path, operation.Path) && planned.Original == operation.Original
+            && planned.SourceFile == operation.SourceFile);
 
     private static string ReviewLine(PlanFinding finding) =>
         ReviewStepViewModel.IsHosting(finding.Kind) ? CreatorWording.RuleTitle(finding) : CreatorWording.Finding(finding);

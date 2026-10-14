@@ -3177,6 +3177,9 @@
   <data name="Creator_BuildHint" xml:space="preserve">
     <value>The save dialog suggests “{name}”. The package may not lie in the game's folder or in the folder with the files.</value>
   </data>
+  <data name="Creator_BuildTo" xml:space="preserve">
+    <value>The package goes to the same place as at the last build: “{name}”.</value>
+  </data>
   <data name="Creator_PackageName" xml:space="preserve">
     <value>{game} v{version}</value>
   </data>

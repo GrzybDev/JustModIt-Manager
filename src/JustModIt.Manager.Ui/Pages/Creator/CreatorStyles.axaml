@@ -220,6 +220,25 @@
     <Setter Property="TextElement.Foreground" Value="{StaticResource NeutralTextBrush}" />
   </Style>
 
+  <!-- A warning only the build found, tinted green once the author accepted it. -->
+  <Style Selector="Border.buildFinding">
+    <Setter Property="Padding" Value="10,6" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.2" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.buildFinding.accepted">
+    <Setter Property="Background" Value="#1F22C55E" />
+    <Setter Property="BorderBrush" Value="#4022C55E" />
+  </Style>
+
   <!-- The rules' chip turns green once the package meets them. -->
   <Style Selector="Border.iconChip.success">
     <Setter Property="Background" Value="#2922C55E" />

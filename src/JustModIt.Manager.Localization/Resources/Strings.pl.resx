@@ -3165,6 +3165,9 @@
   <data name="Creator_BuildHint" xml:space="preserve">
     <value>Okno zapisu podpowie nazwę „{name}”. Paczka nie może leżeć w folderze gry ani w folderze z plikami.</value>
   </data>
+  <data name="Creator_BuildTo" xml:space="preserve">
+    <value>Paczka trafi w to samo miejsce co przy poprzednim budowaniu: „{name}”.</value>
+  </data>
   <data name="Creator_PackageName" xml:space="preserve">
     <value>{game} v{version}</value>
   </data>

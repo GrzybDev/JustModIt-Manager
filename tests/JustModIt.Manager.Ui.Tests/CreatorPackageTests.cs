@@ -118,9 +118,11 @@ public sealed class CreatorPackageTests : IDisposable
         package.IsReady.Should().BeTrue();
         File.Exists(output).Should().BeFalse();
         Directory.EnumerateFiles(Output("")).Should().BeEmpty("a stopped build leaves no temporary file either");
+        package.BuildHint.Should().Be(Text.Format(Strings.Creator_BuildTo, ("name", "Lantern Isle v0.9.examplemod")));
 
         ui.Click(Button(ui, Strings.Creator_Build));
         await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        ui.Pickers.Suggested.Should().ContainSingle("the build goes on where the stopped one was going");
         using var zip = ZipFile.OpenRead(output);
         zip.GetEntry("manifest.json").Should().NotBeNull();
         package.ResultDetails.Should().Contain("Example Team");
@@ -297,7 +299,82 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task A_patch_carrying_most_of_its_file_stops_the_build_until_it_is_accepted()
+    public async Task A_place_the_build_refuses_is_asked_for_again_rather_than_taken_by_the_next_build()
+    {
+        using var ui = await OpenAsync();
+        var package = await PackageAsync(ui);
+        package.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        ui.Pickers.SaveFile = Path.Combine(_work.GameFolder, "Lantern Isle v1.0.examplemod");
+
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.HasProblem && !package.IsBuilding);
+
+        package.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.OutputInGameFolder)),
+            ("files", 0), ("file", "")));
+        package.BuildHint.Should().Be(Text.Format(Strings.Creator_BuildHint, ("name", "Lantern Isle v1.0.examplemod")),
+            "nothing was built where the author pointed");
+        ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        ui.Pickers.Suggested.Should().HaveCount(2, "the refused place is asked for again");
+        package.OutputPath.Should().Be(Output("Lantern Isle v1.0.examplemod"));
+    }
+
+    [AvaloniaFact]
+    public async Task A_place_the_build_cannot_write_to_is_asked_for_again_rather_than_taken_by_the_next_build()
+    {
+        using var ui = await OpenAsync();
+        var package = await PackageAsync(ui);
+        package.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        await File.WriteAllTextAsync(Output("Archive"), "a file where the package's folder would be", TestContext.Current.CancellationToken);
+        ui.Pickers.SaveFile = Path.Combine(Output("Archive"), "Lantern Isle v1.0.examplemod");
+
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.HasProblem && !package.IsBuilding);
+
+        package.ProblemText.Should().Be(Strings.Creator_BuildWriteFailed);
+        package.BuildHint.Should().Be(Text.Format(Strings.Creator_BuildHint, ("name", "Lantern Isle v1.0.examplemod")),
+            "nothing was written where the author pointed");
+        ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        ui.Pickers.Suggested.Should().HaveCount(2, "the place the build could not write to is asked for again");
+        package.OutputPath.Should().Be(Output("Lantern Isle v1.0.examplemod"));
+    }
+
+    [AvaloniaFact]
+    public async Task A_warning_of_the_build_about_a_file_left_out_since_no_longer_holds_the_build_back()
+    {
+        _work.Game("data/voices.pak", Noise(1, 1_200_000));
+        _work.Author("data/voices.pak", Noise(2, 1_200_000));
+        using var ui = await OpenAsync();
+        var package = await PackageAsync(ui);
+        package.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.HasBuildFindings && !package.IsBuilding);
+
+        var page = Page(ui);
+        page.GoTo(CreatorStep.Review);
+        var review = (ReviewStepViewModel)page.Content!;
+        review.ExcludeCommand.Execute(review.Operations.OfType<OperationRow>().Single(row => row.Entry?.File.Path == "data/voices.pak"));
+        await UiHarness.WaitUntilAsync(() => page.Session!.Review!.Plan.Operations.All(operation => operation.Path != "data/voices.pak"));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Click(Button(ui, Strings.Creator_Confirm));
+        await UiHarness.WaitUntilAsync(() => page.Content is PackageStepViewModel);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        (package.HasBuildFindings, package.HasProblem).Should().Be((false, false), "the patch the build warned about is no longer made");
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        page.Session!.Project.Acknowledged.Should().BeEmpty();
+    }
+
+    [AvaloniaFact]
+    public async Task A_patch_carrying_most_of_its_file_stops_the_build_until_it_is_accepted_and_then_builds_where_it_was_going()
     {
         _work.Game("data/voices.pak", Noise(1, 1_200_000));
         _work.Author("data/voices.pak", Noise(2, 1_200_000));
@@ -313,13 +390,19 @@ public sealed class CreatorPackageTests : IDisposable
         package.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.UnacknowledgedFindings)),
             ("files", 0), ("file", "")));
         File.Exists(Output("Lantern Isle.examplemod")).Should().BeFalse();
+        Shows(ui, Strings.Creator_Build).Should().BeFalse("the way on goes through the patches the build found");
         await RenderAsync(ui, "creator-build-findings", 1500);
         ui.Click(Button(ui, Strings.Creator_AcceptWork));
-        await UiHarness.WaitUntilAsync(() => Page(ui).Session!.Project.Acknowledged.Count == 1);
 
-        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => Shows(ui, Strings.Creator_Rebuild));
+        Page(ui).Session!.Project.Acknowledged.Should().ContainSingle();
+        Shows(ui, Strings.Creator_AcceptWork).Should().BeFalse();
+        ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == Strings.Creator_Accepted);
+        await RenderAsync(ui, "creator-build-findings-accepted", 1500);
+        ui.Click(Button(ui, Strings.Creator_Rebuild));
         await UiHarness.WaitUntilAsync(() => package.IsBuilt);
         File.Exists(Output("Lantern Isle.examplemod")).Should().BeTrue();
+        ui.Pickers.Suggested.Should().ContainSingle("the package goes where the author said before the build stopped");
     }
 
     [AvaloniaFact]
