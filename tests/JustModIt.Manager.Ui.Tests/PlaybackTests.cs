@@ -99,7 +99,7 @@ public sealed class PlaybackTests
         clip.ClipSource = Clip;
         clip.Classes.Should().Contain(":loading");
         // Holding the UI thread while the clip's first frames show hands them all over at once.
-        SpinWait.SpinUntil(() => clip.Player is { Frames: > 2 }, TimeSpan.FromSeconds(5)).Should().BeTrue();
+        SpinWait.SpinUntil(() => clip.Player is { Frames: > 2 }, UiHarness.TimeLimit).Should().BeTrue();
 
         await UiHarness.WaitUntilAsync(() => clip.Bounds.Size == new Size(400, 100));
         clip.Classes.Should().Contain(":loaded");

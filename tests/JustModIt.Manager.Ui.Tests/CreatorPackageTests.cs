@@ -54,7 +54,7 @@ public sealed class CreatorPackageTests : IDisposable
         var output = Output("Lantern Isle v1.2.zip");
         ui.Pickers.SaveFile = output;
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
 
         ui.Pickers.Suggested.Should().Equal("Lantern Isle v1.2.zip");
         using (var zip = ZipFile.OpenRead(output))
@@ -117,7 +117,7 @@ public sealed class CreatorPackageTests : IDisposable
 
         ui.Click(Button(ui, CreatorPage.StopText));
         files.Reads.Set();
-        await UiHarness.WaitUntilAsync(() => package.HasProblem);
+        await BuildEndedAsync(package);
         package.ProblemTitle.Should().Be(Strings.Creator_BuildCancelledTitle);
         package.IsReady.Should().BeTrue();
         File.Exists(output).Should().BeFalse();
@@ -125,7 +125,7 @@ public sealed class CreatorPackageTests : IDisposable
         package.BuildHint.Should().Be(Text.Format(Strings.Creator_BuildTo, ("name", "Lantern Isle v0.9.examplemod")));
 
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         ui.Pickers.Suggested.Should().ContainSingle("the build goes on where the stopped one was going");
         using var zip = ZipFile.OpenRead(output);
         zip.GetEntry("manifest.json").Should().NotBeNull();
@@ -213,17 +213,19 @@ public sealed class CreatorPackageTests : IDisposable
         var first = Output("Lantern Isle v1.0.examplemod");
         ui.Pickers.SaveFile = first;
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         var built = File.GetLastWriteTimeUtc(first);
 
         ui.Click(Button(ui, Strings.Creator_Rebuild));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt && File.GetLastWriteTimeUtc(first) != built);
+        await BuiltAsync(package);
+        File.GetLastWriteTimeUtc(first).Should().NotBe(built, "the package is written again");
         package.Version = "1.1";
         await UiHarness.WaitUntilAsync(() => Page(ui).Session!.Project.Metadata.Version == "1.1");
         var second = Output("Lantern Isle v1.1.examplemod");
         ui.Pickers.SaveFile = second;
         ui.Click(Button(ui, Strings.Creator_Rebuild));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt && package.OutputPath == second);
+        await BuiltAsync(package);
+        package.OutputPath.Should().Be(second);
 
         ui.Pickers.Suggested.Should().Equal("Lantern Isle v1.0.examplemod", "Lantern Isle v1.1.examplemod");
         File.Exists(first).Should().BeTrue("the package of the earlier version stays");
@@ -258,7 +260,7 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
         ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
 
         await using var built = await new PackageReader().OpenAsync(ui.Pickers.SaveFile, TestContext.Current.CancellationToken);
         built.Manifest!.Requires.Should().Contain(PackageCapabilities.RuntimeFiles);
@@ -284,7 +286,7 @@ public sealed class CreatorPackageTests : IDisposable
         var steam = Output("Lantern Isle (Steam) v1.0.examplemod");
         ui.Pickers.SaveFile = steam;
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         var built = File.GetLastWriteTimeUtc(steam);
         ui.Click(Button(ui, Strings.Creator_TestInstall));
         ui.Agent.End(new JobEnded(Job(InstallJob, JobKind.TestInstall, JobStage.Checking), JobOutcome.Failed,
@@ -308,7 +310,7 @@ public sealed class CreatorPackageTests : IDisposable
         var other = Output("Lantern Isle (GOG) v1.0.examplemod");
         ui.Pickers.SaveFile = other;
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         ui.Pickers.Suggested.Should().Equal(["Lantern Isle (Steam) v1.0.examplemod", "Lantern Isle (GOG) v1.0.examplemod"],
             "each copy's package is named after its store and goes where the author says, not over the other one");
         File.GetLastWriteTimeUtc(steam).Should().Be(built);
@@ -333,7 +335,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
 
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
 
         package.SiteWarnings.Should().HaveCount(2);
         package.SiteWarnings[1].Should().Be(CreatorWording.Finding(new PlanFinding(FindingKind.FormatNotOnSite)));
@@ -350,7 +352,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Pickers.SaveFile = Path.Combine(_work.GameFolder, "Lantern Isle v1.0.examplemod");
 
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.HasProblem && !package.IsBuilding);
+        await BuildEndedAsync(package);
 
         package.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.OutputInGameFolder)),
             ("files", 0), ("file", "")));
@@ -358,7 +360,7 @@ public sealed class CreatorPackageTests : IDisposable
             "nothing was built where the author pointed");
         ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         ui.Pickers.Suggested.Should().HaveCount(2, "the refused place is asked for again");
         package.OutputPath.Should().Be(Output("Lantern Isle v1.0.examplemod"));
     }
@@ -374,14 +376,14 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Pickers.SaveFile = Path.Combine(Output("Archive"), "Lantern Isle v1.0.examplemod");
 
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.HasProblem && !package.IsBuilding);
+        await BuildEndedAsync(package);
 
         package.ProblemText.Should().Be(Strings.Creator_BuildWriteFailed);
         package.BuildHint.Should().Be(Text.Format(Strings.Creator_BuildHint, ("name", "Lantern Isle v1.0.examplemod")),
             "nothing was written where the author pointed");
         ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         ui.Pickers.Suggested.Should().HaveCount(2, "the place the build could not write to is asked for again");
         package.OutputPath.Should().Be(Output("Lantern Isle v1.0.examplemod"));
     }
@@ -397,7 +399,10 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.HasBuildFindings && !package.IsBuilding);
+        await BuildEndedAsync(package);
+        package.HasBuildFindings.Should().BeTrue();
+        package.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.UnacknowledgedFindings)),
+            ("files", 0), ("file", "")));
 
         var page = Page(ui);
         page.GoTo(CreatorStep.Review);
@@ -411,7 +416,7 @@ public sealed class CreatorPackageTests : IDisposable
 
         (package.HasBuildFindings, package.HasProblem).Should().Be((false, false), "the patch the build warned about is no longer made");
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         page.Session!.Project.Acknowledged.Should().BeEmpty();
     }
 
@@ -427,8 +432,9 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
 
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.HasBuildFindings);
+        await BuildEndedAsync(package);
 
+        package.HasBuildFindings.Should().BeTrue();
         package.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.UnacknowledgedFindings)),
             ("files", 0), ("file", "")));
         File.Exists(Output("Lantern Isle.examplemod")).Should().BeFalse();
@@ -442,7 +448,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == Strings.Creator_Accepted);
         await RenderAsync(ui, "creator-build-findings-accepted", 1500);
         ui.Click(Button(ui, Strings.Creator_Rebuild));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         File.Exists(Output("Lantern Isle.examplemod")).Should().BeTrue();
         ui.Pickers.Suggested.Should().ContainSingle("the package goes where the author said before the build stopped");
     }
@@ -456,11 +462,11 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
         ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         _work.Author("data/extra/credits.txt", "credits of the author's work, with one more name");
 
         ui.Click(Button(ui, Strings.Creator_Rebuild));
-        await UiHarness.WaitUntilAsync(() => package.HasProblem && !package.IsBuilding);
+        await BuildEndedAsync(package);
 
         ui.Find<TextBlock>().Single(text => text.IsEffectivelyVisible && text.Classes.Contains("heading")).Text
             .Should().Be(Strings.Creator_BuildHeading, "the package is not ready while its build failed");
@@ -483,7 +489,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
 
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.HasProblem);
+        await BuildEndedAsync(package);
 
         package.NeedsComparison.Should().BeTrue();
         package.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FilesChanged)),
@@ -498,7 +504,7 @@ public sealed class CreatorPackageTests : IDisposable
 
         (package.NeedsComparison, package.HasProblem).Should().Be((false, false), "the files were compared again");
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         ui.Pickers.Suggested.Should().ContainSingle("the build goes where the failed one was going");
     }
 
@@ -513,7 +519,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
 
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.HasProblem);
+        await BuildEndedAsync(package);
 
         package.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FilesChanged)),
             ("files", 1), ("file", "data/strings.bin")));
@@ -528,7 +534,7 @@ public sealed class CreatorPackageTests : IDisposable
         var output = Output("Lantern Isle.zip");
         ui.Pickers.SaveFile = output;
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         ui.Agent.Answer = request => request switch
         {
             TestInstallPackage => new JobStarted(InstallJob),
@@ -575,7 +581,7 @@ public sealed class CreatorPackageTests : IDisposable
         var output = Output("Lantern Isle.zip");
         ui.Pickers.SaveFile = output;
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         ui.Agent.Answer = request => request is TestInstallPackage ? new JobStarted(InstallJob) : _work.Answer(request);
         var main = Output("Lantern Isle main.zip");
         ui.Pickers.File = main;
@@ -605,7 +611,7 @@ public sealed class CreatorPackageTests : IDisposable
         var package = await PackageAsync(ui);
         ui.Pickers.SaveFile = Output("Lantern Isle.zip");
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         var page = Page(ui);
         await RenderAsync(ui, "creator-built-finish", 1700);
 
@@ -776,7 +782,7 @@ public sealed class CreatorPackageTests : IDisposable
 
         ui.Pickers.SaveFile = Output("Lantern Isle.zip");
         ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Unnamed().Should().BeEmpty();
     }
@@ -797,7 +803,7 @@ public sealed class CreatorPackageTests : IDisposable
         var package = await PackageAsync(_ui);
         _ui.Pickers.SaveFile = Output("Lantern Isle.zip");
         _ui.Click(Button(_ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        await BuiltAsync(package);
         _ui.Agent.Answer = request => request switch
         {
             TestInstallPackage => new JobStarted(InstallJob),
@@ -836,6 +842,17 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitUntilAsync(() => page.Content is PackageStepViewModel);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         return (PackageStepViewModel)page.Content!;
+    }
+
+    // A build is waited for until it ends, however it ends, so one that fails says why at once rather than once the wait for a
+    // built package runs out, and one that never ends says where it stopped.
+    private static Task BuildEndedAsync(PackageStepViewModel package) =>
+        UiHarness.WaitUntilAsync(() => !package.BuildCommand.IsRunning, () => $"the build is at {package.Stage} {package.FileLine}");
+
+    private static async Task BuiltAsync(PackageStepViewModel package)
+    {
+        await BuildEndedAsync(package);
+        (package.State, package.ProblemText).Should().Be((PackageState.Built, ""));
     }
 
     private AppStateView State(JobView? job, bool installed) => TestStates.Idle(creatorMode: true) with

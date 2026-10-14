@@ -124,7 +124,7 @@ public sealed class HeldFileSystem(string folder) : IFileSystem
     {
         if (path.StartsWith(folder, StringComparison.OrdinalIgnoreCase))
         {
-            Reads.Wait(TimeSpan.FromSeconds(10));
+            Reads.Wait(UiHarness.TimeLimit);
         }
 
         return _inner.OpenRead(path, share);

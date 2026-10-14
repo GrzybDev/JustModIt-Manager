@@ -22,7 +22,7 @@ public sealed class ImageTests : IDisposable
     {
         _server.Dispose();
         // A moving picture's frames keep its file open until the player's loop ends on the thread pool, after the window closed.
-        var until = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        var until = DateTime.UtcNow + UiHarness.TimeLimit;
         while (Directory.Exists(_folder))
         {
             try

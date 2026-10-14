@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -74,6 +75,9 @@ public sealed class UiHarness : IDisposable
     public static string RendersDirectory =>
         Environment.GetEnvironmentVariable("UI_RENDERS") is { Length: > 0 } folder ? folder : Path.Combine(AppContext.BaseDirectory, "renders");
 
+    /// <summary>How long a test waits for the window, or for work it started off the UI thread, before it fails.</summary>
+    public static TimeSpan TimeLimit { get; } = TimeSpan.FromSeconds(30);
+
     /// <summary>A context of an invented app whose logo is the generic app's.</summary>
     public static UiContext Context(Action<UiComposition>? compose = null, NavigationTarget? launch = null)
     {
@@ -117,15 +121,20 @@ public sealed class UiHarness : IDisposable
         }
     }
 
-    /// <summary>Waits until a condition holds, keeping the dispatcher going, and fails after five seconds.</summary>
-    public static async Task WaitUntilAsync(Func<bool> condition)
+    /// <summary>Waits until a condition holds, keeping the dispatcher going, and fails after <see cref="TimeLimit"/>.</summary>
+    /// <param name="condition">What the window, or the work the test started off the UI thread, has to get to.</param>
+    /// <param name="state">What the window shows instead, for the timeout's message.</param>
+    public static async Task WaitUntilAsync(Func<bool> condition, Func<string>? state = null)
     {
-        var until = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        // Most waits are for work off the UI thread (plans, comparisons, builds, the disk), which a busy machine stretches to
+        // seconds, while a passing wait ends as soon as its condition holds.
+        var clock = Stopwatch.StartNew();
         while (!condition())
         {
-            if (DateTime.UtcNow > until)
+            if (clock.Elapsed > TimeLimit)
             {
-                throw new TimeoutException("The window did not get there in time.");
+                var shown = state is null ? "" : $": {state()}";
+                throw new TimeoutException($"The window did not get there in time{shown}.");
             }
 
             await Task.Delay(10);
