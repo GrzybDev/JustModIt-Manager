@@ -38,7 +38,10 @@ public sealed class ProjectLoadException : Exception
 /// </summary>
 public static class CreatorProjectStore
 {
-    public const int CurrentFormatVersion = 3;
+    public const int CurrentFormatVersion = 4;
+
+    // Format 3 lacks only what format 4 added, so it reads as format 4.
+    private const int FirstDocumentVersion = 3;
 
     private const string FormatVersionProperty = "formatVersion";
     private const long MaxLength = 16 << 20;
@@ -104,6 +107,9 @@ public static class CreatorProjectStore
             ThirdParty = project.ToolNotices.Count > 0 ? [.. project.ToolNotices] : null,
             Libraries = project.LibraryNotices.Count > 0 ? [.. project.LibraryNotices] : null,
             Acknowledged = project.Acknowledged.Count > 0 ? [.. project.Acknowledged] : null,
+            RuntimeFiles = project.RuntimeFiles.Count > 0
+                ? [.. project.RuntimeFiles.Select(file => new RuntimeFileDocument(file.Path, Word(file.Kind)))]
+                : null,
         };
         using var buffer = new MemoryStream();
         using (var writer = new Utf8JsonWriter(buffer, WriterOptions))
@@ -136,7 +142,7 @@ public static class CreatorProjectStore
                     throw new ProjectLoadException(ProjectLoadError.NewerVersion);
                 case PrototypeProject.FormatVersion:
                     return PrototypeProject.Read(root);
-                case < CurrentFormatVersion:
+                case < FirstDocumentVersion:
                     throw new ProjectLoadException(ProjectLoadError.Damaged);
             }
 
@@ -176,6 +182,7 @@ public static class CreatorProjectStore
         ToolNotices = Items(document.ThirdParty),
         LibraryNotices = Items(document.Libraries),
         Acknowledged = [.. Items(document.Acknowledged).Distinct(StringComparer.Ordinal)],
+        RuntimeFiles = [.. Items(document.RuntimeFiles).Select(file => new RuntimeFileChoice(file.Path, Member<RuntimeFileKind>(file.Kind)))],
     };
 
     private static TEnum Member<TEnum>(string text)

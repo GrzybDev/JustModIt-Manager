@@ -283,6 +283,66 @@ public sealed partial class RuleRow(string key) : ObservableObject, IReviewRow
     partial void OnSourceChanged(string value) => Edited?.Invoke(this);
 }
 
+/// <summary>A file the package's software writes while the game runs, in the check's card of such files.</summary>
+/// <param name="key">What the row stands for: the file's path.</param>
+public sealed partial class RuntimeRow(string key) : ObservableObject, IReviewRow
+{
+    public string Key { get; } = key;
+
+    /// <summary>The file's game path, which the plan declares.</summary>
+    public string Path { get; set; } = "";
+
+    /// <summary>A file of the comparison the author chose to declare; removing it takes the choice back.</summary>
+    public ReviewEntry? Entry { get; set; }
+
+    [ObservableProperty]
+    public partial string Folder { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string Name { get; set; } = "";
+
+    /// <summary>How the file stands to the game, as its chip says it.</summary>
+    [ObservableProperty]
+    public partial string State { get; set; } = "";
+
+    [ObservableProperty]
+    public partial Geometry StateIcon { get; set; } = Theme.Icons.Copy;
+
+    [ObservableProperty]
+    public partial bool IsFromChoice { get; set; }
+
+    /// <summary>Why the package does not carry the file, for one chosen among the compared files; empty otherwise.</summary>
+    [ObservableProperty]
+    public partial string Reason { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string RemoveName { get; set; } = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFindings))]
+    public partial IReadOnlyList<FindingLine> Findings { get; set; } = [];
+
+    public bool HasFindings => Findings.Count > 0;
+
+    /// <summary>Something keeps the file from being declared, which tints the row.</summary>
+    [ObservableProperty]
+    public partial bool HasProblem { get; set; }
+
+    /// <summary>The game already holds a file the software creates, which the store's check, its folder and a new comparison fix.</summary>
+    [ObservableProperty]
+    public partial bool OffersFixes { get; set; }
+
+    /// <summary>The game file a mistyped path most likely means; empty when there is none to offer.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSuggestion))]
+    public partial string Suggestion { get; set; } = "";
+
+    public bool HasSuggestion => Suggestion.Length > 0;
+
+    [ObservableProperty]
+    public partial string SuggestionText { get; set; } = "";
+}
+
 /// <summary>A step of an advanced project, its paths edited in place.</summary>
 /// <param name="key">What the row stands for.</param>
 public sealed partial class StepRow(string key) : ObservableObject, IReviewRow

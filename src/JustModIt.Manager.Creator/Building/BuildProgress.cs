@@ -11,6 +11,10 @@ public enum BuildStage
     HashingOriginal,
 
     CreatingPatch,
+
+    /// <summary>Hashing the game's own files that the package's software changes while the game runs, for the manifest.</summary>
+    HashingRuntimeFiles,
+
     WritingManifest,
 }
 

@@ -529,6 +529,171 @@
       </StackPanel>
     </Border>
 
+    <!-- The files the package's software writes while the game runs, in both modes. -->
+    <Border x:Name="RuntimeCard" Classes="creatorCard" ClipToBounds="True">
+      <StackPanel>
+        <Button x:Name="RuntimeHeader" Classes="cardHeader" Classes.open="{Binding IsRuntimeOpen}" Command="{Binding ToggleRuntimeCommand}"
+                AutomationProperties.Name="{x:Static loc:Strings.Creator_RuntimeTitle}">
+          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+            <Border Classes="iconChip" Classes.danger="{Binding HasRuntimeProblems}">
+              <ui:Icon Data="{x:Static theme:Icons.RefreshCw}" />
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{x:Static loc:Strings.Creator_RuntimeTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold"
+                         Foreground="{StaticResource TextBrush}" />
+              <TextBlock Classes="caption" Text="{Binding RuntimeCount}"
+                         IsVisible="{Binding RuntimeCount, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+            <Border Grid.Column="2" Classes="kind danger" VerticalAlignment="Center" IsVisible="{Binding HasRuntimeProblems}">
+              <TextBlock Text="{Binding RuntimeProblems}" />
+            </Border>
+            <ui:Icon Grid.Column="3" Classes="cardChevron" Data="{x:Static theme:Icons.ChevronDown}" Width="16" Height="16"
+                     VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+          </Grid>
+        </Button>
+        <StackPanel IsVisible="{Binding IsRuntimeOpen}" theme:Motion.Enter="True">
+          <StackPanel Spacing="10" Margin="20,16">
+            <TextBlock Classes="bodyText" MaxWidth="820" HorizontalAlignment="Left" FontSize="14" LineHeight="22"
+                       Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_RuntimeLead}" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" MaxWidth="820" HorizontalAlignment="Left">
+              <ui:Icon Data="{x:Static theme:Icons.Info}" Width="14" Height="14" Margin="0,3,0,0" VerticalAlignment="Top"
+                       Foreground="{StaticResource TextSecondaryBrush}" />
+              <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" Text="{x:Static loc:Strings.Creator_RuntimeNote}" />
+            </Grid>
+            <Border x:Name="RuntimePrompt" Classes="runtimePrompt" IsVisible="{Binding ShowsRuntimePrompt}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <ui:Icon Data="{x:Static theme:Icons.CircleHelp}" Width="18" Height="18" Margin="0,1,0,0" VerticalAlignment="Top"
+                         Foreground="{StaticResource InfoTextBrush}" />
+                <TextBlock Grid.Column="1" FontSize="14" LineHeight="21" FontWeight="Medium" TextWrapping="Wrap"
+                           Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_RuntimePrompt}" />
+              </Grid>
+            </Border>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding HasRuntimeNotice}">
+              <ui:Icon Data="{x:Static theme:Icons.TriangleAlert}" Width="14" Height="14" Margin="0,3,0,0" VerticalAlignment="Top" Classes="warningText" />
+              <TextBlock Grid.Column="1" Classes="rowText warningText" LineHeight="20" Text="{Binding RuntimeNotice}" />
+            </Grid>
+          </StackPanel>
+          <ItemsControl x:Name="RuntimeRows" Classes="runtimeRows" ItemsSource="{Binding RuntimeRows}" IsVisible="{Binding HasRuntimeRows}"
+                        AutomationProperties.Name="{x:Static loc:Strings.GamePage_RuntimeFiles}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="creator:RuntimeRow">
+                <Border Classes="runtimeRow" Classes.problem="{Binding HasProblem}">
+                  <Grid ColumnDefinitions="28,*,32" RowDefinitions="Auto,Auto" ColumnSpacing="14">
+                    <Border Classes="number" Classes.problem="{Binding HasProblem}" VerticalAlignment="Top">
+                      <ui:Icon Data="{x:Static theme:Icons.File}" Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="6" Margin="0,3,0,0">
+                      <TextBlock Classes="monoPath" TextWrapping="Wrap">
+                        <Run Text="{Binding Folder}" Foreground="{StaticResource TextSecondaryBrush}" /><Run Text="{Binding Name}" />
+                      </TextBlock>
+                      <WrapPanel ItemSpacing="6" LineSpacing="6">
+                        <Border Classes="kind" IsVisible="{Binding State, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                          <StackPanel>
+                            <ui:Icon Data="{Binding StateIcon}" />
+                            <TextBlock Text="{Binding State}" />
+                          </StackPanel>
+                        </Border>
+                        <Border Classes="kind" IsVisible="{Binding IsFromChoice}">
+                          <StackPanel>
+                            <ui:Icon Data="{x:Static theme:Icons.Folder}" />
+                            <TextBlock Text="{x:Static loc:Strings.Creator_RuntimeFromFolder}" />
+                          </StackPanel>
+                        </Border>
+                      </WrapPanel>
+                      <TextBlock Classes="rowText" LineHeight="20" Text="{Binding Reason}"
+                                 IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="icon" VerticalAlignment="Top" Margin="0,-2,0,0" ToolTip.Tip="{Binding RemoveName}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RemoveRuntimeCommand}"
+                            CommandParameter="{Binding}">
+                      <ui:Icon Data="{x:Static theme:Icons.X}" Width="16" Height="16" />
+                    </Button>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Spacing="10" Margin="0,4,0,0" IsVisible="{Binding HasFindings}">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                        <ItemsControl ItemsSource="{Binding Findings}" ItemTemplate="{StaticResource FindingTemplate}" />
+                        <Button Grid.Column="1" Classes="outline small" VerticalAlignment="Bottom" Content="{Binding SuggestionText}"
+                                ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}" IsVisible="{Binding HasSuggestion}"
+                                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).UseRuntimeSuggestionCommand}"
+                                CommandParameter="{Binding}" />
+                      </Grid>
+                      <WrapPanel ItemSpacing="8" LineSpacing="8" Margin="22,0,0,0" IsVisible="{Binding OffersFixes}">
+                        <Button Classes="outline fixAction" AutomationProperties.Name="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CheckFilesLabel}"
+                                IsVisible="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CanCheckFiles}"
+                                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CheckFilesCommand}">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ui:StoreIcon Store="steam" Width="16" Height="16" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CheckFilesLabel}" VerticalAlignment="Center" />
+                            <ui:Icon Data="{x:Static theme:Icons.ArrowUpRight}" Width="14" Height="14" VerticalAlignment="Center"
+                                     Foreground="{StaticResource TextSecondaryBrush}" />
+                          </StackPanel>
+                        </Button>
+                        <Button Classes="outline fixAction" Content="{x:Static loc:Strings.Creator_Reveal}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ShowRuntimeFileCommand}"
+                                CommandParameter="{Binding}" />
+                        <Button Classes="outline fixAction" Content="{x:Static loc:Strings.Creator_CompareAgain}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
+                                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CompareAgainCommand}" />
+                      </WrapPanel>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border Classes="runtimeAdd" IsVisible="{Binding !IsTypingRuntime}">
+            <ui:PixelUniformGrid Columns="2" ColumnSpacing="12">
+              <Button x:Name="AddRuntimeChanges" Classes="addTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddRuntimeChanges}"
+                      Command="{Binding AddRuntimeChangesCommand}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                  <Border Classes="folderChip" Width="36" Height="36">
+                    <ui:Icon Data="{x:Static theme:Icons.FilePen}" Width="18" Height="18" />
+                  </Border>
+                  <TextBlock Grid.Column="1" Classes="rowTitle" FontSize="14" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_AddRuntimeChanges}" />
+                  <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
+                </Grid>
+              </Button>
+              <Button x:Name="AddRuntimeCreates" Classes="addTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddRuntimeCreates}"
+                      Command="{Binding StartRuntimePathCommand}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                  <Border Classes="folderChip" Width="36" Height="36">
+                    <ui:Icon Data="{x:Static theme:Icons.FileDiff}" Width="18" Height="18" />
+                  </Border>
+                  <TextBlock Grid.Column="1" Classes="rowTitle" FontSize="14" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_AddRuntimeCreates}" />
+                  <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
+                </Grid>
+              </Button>
+            </ui:PixelUniformGrid>
+          </Border>
+          <Border x:Name="RuntimeTyping" Classes="runtimeAdd typing" IsVisible="{Binding IsTypingRuntime}" theme:Motion.Enter="True">
+            <StackPanel Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ui:Icon Data="{x:Static theme:Icons.FileDiff}" Width="14" Height="14" VerticalAlignment="Center"
+                         Foreground="{StaticResource TextEmphasisBrush}" />
+                <TextBlock FontSize="13" LineHeight="18" VerticalAlignment="Center">
+                  <Run Text="{x:Static loc:Strings.Creator_AddRuntimeCreates}" FontWeight="SemiBold" Foreground="{StaticResource TextEmphasisBrush}" />
+                  <Run Text=" · " Foreground="{StaticResource TextMutedBrush}" />
+                  <Run Text="{x:Static loc:Strings.Creator_RuntimePathName}" Foreground="{StaticResource TextSecondaryBrush}" />
+                </TextBlock>
+              </StackPanel>
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                <TextBox x:Name="RuntimePath" Classes="monoField" Text="{Binding RuntimePath}" Classes.faulty="{Binding HasRuntimePathProblem}"
+                         AutomationProperties.Name="{x:Static loc:Strings.Creator_RuntimePathName}" />
+                <Button Grid.Column="1" x:Name="ConfirmRuntimePath" Classes="outline" Height="40" Content="{x:Static loc:Strings.Creator_RuntimeAdd}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding ConfirmRuntimePathCommand}" />
+                <Button Grid.Column="2" Classes="icon large" ToolTip.Tip="{x:Static loc:Strings.Creator_RuntimeCancel}"
+                        Command="{Binding CancelRuntimePathCommand}">
+                  <ui:Icon Data="{x:Static theme:Icons.X}" Width="16" Height="16" />
+                </Button>
+              </Grid>
+              <Grid x:Name="RuntimePathError" ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding HasRuntimePathProblem}">
+                <ui:Icon Data="{x:Static theme:Icons.CircleX}" Width="14" Height="14" Margin="0,3,0,0" VerticalAlignment="Top" Classes="dangerText" />
+                <TextBlock Grid.Column="1" Classes="rowText dangerText" LineHeight="20" Text="{Binding RuntimePathProblem}" />
+              </Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
     <ItemsControl ItemsSource="{Binding Problems}" IsVisible="{Binding HasProblems}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="creator:FindingLine">

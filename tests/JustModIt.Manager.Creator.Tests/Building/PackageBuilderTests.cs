@@ -112,6 +112,72 @@ public sealed class PackageBuilderTests : IDisposable
     }
 
     [Fact]
+    public async Task Records_how_the_game_ships_the_files_its_software_changes_while_the_game_runs()
+    {
+        var list = Workspace.Bytes(3000, 21);
+        _workspace.Game("data/list.idx", list);
+        _workspace.Author("tools/streamer.exe", "a program that rewrites the list");
+        var plan = await PlanAsync(Project
+            .WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile))
+            .WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile)));
+        var reports = new List<BuildProgress>();
+
+        var result = await BuildAsync(plan, "example.examplemod", progress: new InlineProgress<BuildProgress>(reports.Add));
+
+        await using var package = await new PackageReader().OpenAsync(result.OutputPath, TestContext.Current.CancellationToken);
+        package.Manifest!.Requires.Should().Equal("op:copy", PackageCapabilities.RuntimeFiles);
+        package.Manifest.RuntimeFiles.Should().BeEquivalentTo(
+        [
+            new RuntimeFile("data/list.idx", [new FileContent(list.Length, Convert.ToHexStringLower(SHA256.HashData(list)))]),
+            new RuntimeFile("data/list_original.idx"),
+        ]);
+        package.Steps.Select(Describe).Should().Equal("copy tools/streamer.exe");
+        reports.Should().Contain(report => report.Stage == BuildStage.HashingRuntimeFiles);
+        reports[^1].BytesDone.Should().Be(reports[^1].BytesTotal);
+    }
+
+    [Fact]
+    public async Task Refuses_before_writing_a_runtime_file_the_game_rewrote_since_the_comparison()
+    {
+        var list = _workspace.Game("data/list.idx", Workspace.Bytes(3000, 21));
+        _workspace.Author("tools/streamer.exe", "a program that rewrites the list");
+        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile)));
+        var compared = File.GetLastWriteTimeUtc(list);
+        _workspace.Game("data/list.idx", Workspace.Bytes(3000, 22));
+        File.SetLastWriteTimeUtc(list, compared.AddMinutes(1));
+        var stages = new List<BuildStage>();
+
+        var build = () => BuildAsync(plan, "example.examplemod", progress: new InlineProgress<BuildProgress>(report => stages.Add(report.Stage)));
+
+        var failure = (await build.Should().ThrowAsync<PackageBuildException>()).Which;
+        failure.Failure.Should().Be(BuildFailure.FilesChanged);
+        failure.Paths.Should().Equal(Path.GetFullPath(list));
+        stages.Should().Equal([BuildStage.Checking], "a file of the same size is caught by its time before anything is written");
+        Directory.GetFileSystemEntries(_workspace.OutputDirectory).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Refuses_a_runtime_file_the_game_changes_while_the_package_is_built()
+    {
+        var list = _workspace.Game("data/list.idx", Workspace.Bytes(3000, 21));
+        _workspace.Author("tools/streamer.exe", "a program that rewrites the list");
+        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile)));
+
+        var build = () => BuildAsync(plan, "example.examplemod", progress: new InlineProgress<BuildProgress>(report =>
+        {
+            if (report.Stage == BuildStage.Copying)
+            {
+                File.WriteAllBytes(list, Workspace.Bytes(2500, 22));
+            }
+        }));
+
+        var failure = (await build.Should().ThrowAsync<PackageBuildException>()).Which;
+        failure.Failure.Should().Be(BuildFailure.FilesChanged);
+        failure.Paths.Should().Equal(Path.GetFullPath(list));
+        Directory.GetFileSystemEntries(_workspace.OutputDirectory).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Warns_after_the_build_when_the_site_would_not_take_the_package()
     {
         _workspace.Author("files/extra.txt", "text");

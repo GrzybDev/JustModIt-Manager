@@ -97,6 +97,36 @@ public enum FindingKind
 
     /// <summary>The site takes no files of the package's extension, or none that install through the app.</summary>
     FormatNotOnSite,
+
+    /// <summary>
+    /// The game already has a file the package's software creates, so it probably ran the software before, and the file
+    /// would be taken for the game's own.
+    /// </summary>
+    RuntimeFileInGame,
+
+    /// <summary>
+    /// Undoing a test left a game file the package's software changes as the software wrote it, so the game no longer has
+    /// the file its store ships.
+    /// </summary>
+    RuntimeFileKept,
+
+    /// <summary>An operation patches a file the software rewrites while the game runs, which a patch cannot rely on.</summary>
+    RuntimeFilePatched,
+
+    /// <summary>More files changed while the game runs than a manifest names.</summary>
+    TooManyRuntimePaths,
+
+    /// <summary>Files are declared as changed while the game runs, yet the package carries no program that could change them.</summary>
+    RuntimeWithoutCode,
+
+    /// <summary>A program changes while the game runs, which the app's checks then leave out; needs an acknowledgement.</summary>
+    RuntimeCode,
+
+    /// <summary>A game file that may hold the player's settings would come back as it was; needs an acknowledgement.</summary>
+    RuntimeSettings,
+
+    /// <summary>A save of the game would come back as it was, losing the player's progress.</summary>
+    RuntimeSave,
 }
 
 public enum FindingSeverity
@@ -112,7 +142,8 @@ public sealed record PlanFinding(FindingKind Kind, string? Path = null)
 {
     public FindingSeverity Severity => Kind is FindingKind.RenameOverwritesFile or FindingKind.RenamedFileNotReplaced
         or FindingKind.WholeGameFile or FindingKind.WholeGameArchive or FindingKind.LargePatch or FindingKind.ThirdPartyTool
-        or FindingKind.AddedLibrary or FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite
+        or FindingKind.AddedLibrary or FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite or FindingKind.RuntimeWithoutCode
+        or FindingKind.RuntimeCode or FindingKind.RuntimeSettings
         ? FindingSeverity.Warning
         : FindingSeverity.Error;
 
@@ -136,6 +167,9 @@ public sealed record PlanFinding(FindingKind Kind, string? Path = null)
 
     /// <summary>The author's step it is about; see <see cref="PlannedOperation.StepIndex"/>.</summary>
     public int? StepIndex { get; init; }
+
+    /// <summary>The file changed while the game runs it is about, by its place in <see cref="PackagePlan.RuntimeFiles"/>.</summary>
+    public int? RuntimeIndex { get; init; }
 
     /// <summary>When set, the warning blocks the build until the author acknowledges this key.</summary>
     public string? AcknowledgementKey { get; init; }

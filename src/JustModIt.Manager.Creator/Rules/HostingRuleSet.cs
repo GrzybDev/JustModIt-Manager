@@ -35,6 +35,12 @@ public sealed record HostingRuleSet
     /// <summary>Extensions of libraries of code, which a package adds either as the author's own or as another author's tool.</summary>
     public required IReadOnlyList<string> LibraryExtensions { get; init; }
 
+    /// <summary>Names of the game's saves and their folders, which the package's software may not be said to change.</summary>
+    public IReadOnlyList<string> SaveNames { get; init; } = [];
+
+    /// <summary>Extensions of files that may hold the player's settings, which uninstalling would bring back as they were.</summary>
+    public IReadOnlyList<string> SettingsExtensions { get; init; } = [];
+
     /// <summary>From this size on, a whole game file counts like an archive.</summary>
     public required long LargeFileBytes { get; init; }
 

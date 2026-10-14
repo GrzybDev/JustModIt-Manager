@@ -33,7 +33,28 @@ public enum FileChoice
 
     /// <summary>Leaves the file out.</summary>
     Skip,
+
+    /// <summary>
+    /// Leaves the file out of the package and declares it as one the package's software writes while the game runs, so the
+    /// app copies it before the install and undoes its changes.
+    /// </summary>
+    Runtime,
 }
+
+/// <summary>How a file the package's software writes while the game runs stands to the game.</summary>
+public enum RuntimeFileKind
+{
+    /// <summary>The game has the file, which the software rewrites; the package names how the game ships it.</summary>
+    ChangesGameFile,
+
+    /// <summary>The game has no such file; the software creates it.</summary>
+    CreatesFile,
+}
+
+/// <summary>A game file the author declared as one the package's software writes while the game runs.</summary>
+/// <param name="Path">The game-relative path.</param>
+/// <param name="Kind">Whether the game has the file or the software creates it.</param>
+public sealed record RuntimeFileChoice(string Path, RuntimeFileKind Kind);
 
 /// <summary>The game a project is made for, as its store identifies it.</summary>
 /// <param name="Key">The store and the game's id there.</param>
@@ -116,6 +137,12 @@ public sealed record CreatorProject
     /// <summary>Keys of warnings the author has read and accepted (<see cref="PlanFinding.AcknowledgementKey"/>).</summary>
     public ValueList<string> Acknowledged { get; init; }
 
+    /// <summary>
+    /// The game files the author declared as ones the package's software writes while the game runs, in both modes; files
+    /// of the comparison declared with <see cref="FileChoice.Runtime"/> come on top in simple mode.
+    /// </summary>
+    public ValueList<RuntimeFileChoice> RuntimeFiles { get; init; }
+
     /// <summary>A copy of the project with the author's choice for a reviewed file.</summary>
     /// <param name="entry">The file as the review lists it.</param>
     /// <param name="choice">One of the entry's choices; its detected one clears the author's choice.</param>
@@ -147,6 +174,22 @@ public sealed record CreatorProject
     /// <summary>A copy of the project without one of its extra steps.</summary>
     /// <param name="index">The step's position in <see cref="ExtraSteps"/>.</param>
     public CreatorProject WithoutExtraStep(int index) => this with { ExtraSteps = new(ExtraSteps.Items.RemoveAt(index)) };
+
+    /// <summary>A copy of the project that declares a file its software writes, replacing a declaration of the same path.</summary>
+    /// <param name="file">The file and how it stands to the game.</param>
+    public CreatorProject WithRuntimeFile(RuntimeFileChoice file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        var without = WithoutRuntimeFile(file.Path);
+        return without with { RuntimeFiles = without.RuntimeFiles.Add(file) };
+    }
+
+    /// <summary>A copy of the project that no longer declares a file as one its software writes.</summary>
+    /// <param name="path">The file's game path.</param>
+    public CreatorProject WithoutRuntimeFile(string path) =>
+        RuntimeFiles.Any(file => PackagePath.Comparer.Equals(file.Path, path))
+            ? this with { RuntimeFiles = RuntimeFiles.RemoveAll(file => PackagePath.Comparer.Equals(file.Path, path)) }
+            : this;
 
     /// <summary>A copy of the project that records a warning as acknowledged.</summary>
     /// <param name="key">The warning's <see cref="PlanFinding.AcknowledgementKey"/>.</param>
@@ -199,6 +242,7 @@ public sealed record CreatorProject
             Steps = [.. plan.Operations.Select(ToStep)],
             Choices = default,
             ExtraSteps = default,
+            RuntimeFiles = [.. plan.RuntimeFiles.Select(file => new RuntimeFileChoice(file.Path, file.Kind))],
         };
     }
 

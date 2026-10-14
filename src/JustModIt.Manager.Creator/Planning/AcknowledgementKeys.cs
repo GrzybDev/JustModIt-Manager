@@ -20,6 +20,8 @@ internal static class AcknowledgementKeys
         FindingKind.LargePatch => "large-patch",
         FindingKind.ThirdPartyTool => "third-party",
         FindingKind.AddedLibrary => "third-party-library",
+        FindingKind.RuntimeCode => "runtime-code",
+        FindingKind.RuntimeSettings => "runtime-settings",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "The finding needs no acknowledgement."),
     };
 }

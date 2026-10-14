@@ -56,7 +56,7 @@ public sealed class SimplePlanTests : IDisposable
             (OperationKind.Copy, null, "data/strings_xx.txt", OperationReason.NewFile),
             (OperationKind.Copy, null, "dx11/engine_x64.dll", OperationReason.OriginalRenamedAway));
         review.Plan.Operations[2].Replaces.Should().BeNull();
-        Entry(review, "dx11/engine_x64.dll").Choices.Should().Equal(FileChoice.Copy, FileChoice.Skip);
+        Entry(review, "dx11/engine_x64.dll").Choices.Should().Equal(FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip);
         review.Plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
             finding.Kind == FindingKind.AddedLibrary && finding.Path == "dx11/engine_x64.dll" && !finding.BlocksBuild);
     }
@@ -73,7 +73,7 @@ public sealed class SimplePlanTests : IDisposable
         var edited = await ReviewAsync(Project.WithChoice(Entry(review, "bin/engine_o.dll"), FileChoice.Skip));
 
         edited.Plan.Operations.Should().ContainSingle().Which.Kind.Should().Be(OperationKind.Patch);
-        Entry(edited, "bin/engine.dll").Choices.Should().Equal(FileChoice.Patch, FileChoice.Copy, FileChoice.Skip);
+        Entry(edited, "bin/engine.dll").Choices.Should().Equal(FileChoice.Patch, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip);
     }
 
     [Fact]

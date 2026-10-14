@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Collections.Frozen;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace JustModIt.Manager.Core.Packages;
 
@@ -15,7 +16,7 @@ public enum PackagePathCheck
 /// Game-relative, '/'-separated paths as packages and install records hold them, by Windows rules on every OS, because
 /// packages are made for games that mostly run on Windows.
 /// </summary>
-public static class PackagePath
+public static partial class PackagePath
 {
     public const char Separator = '/';
 
@@ -113,6 +114,17 @@ public static class PackagePath
     public static string FromFullPath(string root, string fullPath) =>
         Path.GetRelativePath(root, fullPath).Replace(Path.DirectorySeparatorChar, Separator);
 
+    /// <summary>
+    /// Whether a segment of the path is an 8.3 short name, such as <c>LIST_O~1.DAT</c>, which a file not created yet would keep
+    /// as it is given, so it would never meet the file's long name.
+    /// </summary>
+    /// <param name="path">A game-relative path with '/' separators.</param>
+    public static bool HasShortName(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return path.Split(Separator).Any(ShortName().IsMatch);
+    }
+
     /// <summary>The first segment, e.g. <c>data</c> for <c>data/lang/text.txt</c>.</summary>
     /// <param name="path">A game-relative path with '/' separators.</param>
     public static string FirstSegment(string path)
@@ -121,4 +133,7 @@ public static class PackagePath
         var separator = path.IndexOf(Separator, StringComparison.Ordinal);
         return separator < 0 ? path : path[..separator];
     }
+
+    [GeneratedRegex(@"^[^~]{1,6}~[0-9]+(\.[^.]{0,3})?$", RegexOptions.CultureInvariant)]
+    private static partial Regex ShortName();
 }

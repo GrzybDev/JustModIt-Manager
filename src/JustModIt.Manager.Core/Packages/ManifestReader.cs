@@ -1,12 +1,11 @@
 using System.Globalization;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Text.Unicode;
 using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Packages;
 
-internal static partial class ManifestReader
+internal static class ManifestReader
 {
     private const string FormatVersionProperty = "formatVersion";
     private const string RequiresProperty = "requires";
@@ -153,9 +152,7 @@ internal static partial class ManifestReader
 
     private static RuntimeFile Checked(RuntimeFile file)
     {
-        // A file the software has not created yet keeps the spelling it is given, so a short name would never meet the
-        // file's long name.
-        if (!PackagePath.IsValid(file.Path) || file.Path.Split(PackagePath.Separator).Any(ShortName().IsMatch))
+        if (!PackagePath.IsValid(file.Path) || PackagePath.HasShortName(file.Path))
         {
             throw new InvalidPackageException(PackageError.InvalidPath, file.Path);
         }
@@ -185,7 +182,4 @@ internal static partial class ManifestReader
     }
 
     private static InvalidPackageException Invalid(string detail) => new(PackageError.InvalidManifest, detail);
-
-    [GeneratedRegex(@"^[^~]{1,6}~[0-9]+(\.[^.]{0,3})?$", RegexOptions.CultureInvariant)]
-    private static partial Regex ShortName();
 }

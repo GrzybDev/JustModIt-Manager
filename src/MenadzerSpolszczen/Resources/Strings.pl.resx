@@ -639,7 +639,7 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
     <value>{case, select, errors {poprawić {errors, plural, one {błąd} few {{errors} błędy} many {{errors} błędów} other {{errors} błędu}}} questions {odpowiedzieć na {questions, plural, one {pytanie} few {{questions} pytania} many {{questions} pytań} other {{questions} pytania}}} other {poprawić {errors, plural, one {błąd} few {{errors} błędy} many {{errors} błędów} other {{errors} błędu}} i odpowiedzieć na {questions, plural, one {pytanie} few {{questions} pytania} many {{questions} pytań} other {{questions} pytania}}}} w „Zasadach Bazy Spolszczeń” na górze strony</value>
   </data>
   <data name="Creator_RuleText" xml:space="preserve">
-    <value>{kind, select, StoreLibrary {Paczka nie może zmieniać, podmieniać ani usuwać bibliotek sklepu ani zabezpieczeń – Baza Spolszczeń nie przyjmie takiej paczki. Plik, który nie jest częścią spolszczenia, wystarczy wykluczyć.} CircumventionFile {Baza Spolszczeń nie przyjmuje plików, które omijają zabezpieczenia gry, więc plik trzeba wykluczyć z paczki.} CopyOfGameFile {Paczka nie może zawierać plików gry. Plik trzeba wykluczyć z paczki.} WholeGameExecutable {Plik .exe gry może się zmienić tylko łatką, którą Kreator zrobi z tego samego pliku.} WholeGameFile {Baza Spolszczeń przyjmuje cały plik tylko wtedy, gdy w całości jest pracą autora; w innym razie wystarczy łatka.} WholeGameArchive {Cały plik archiwum niesie dużą część zasobów gry. Baza Spolszczeń przyjmie go tylko wtedy, gdy w całości jest pracą autora; zwykle wystarczy łatka.} ThirdPartyTool {Baza Spolszczeń przyjmuje narzędzia innych autorów z ich licencją i adresem kodu źródłowego.} AddedLibrary {Baza Spolszczeń przyjmuje własny kod autora oraz narzędzia innych autorów z licencją i kodem źródłowym.} LargePatch {Taka łatka niesie większość pliku, np. zaszyfrowanego albo spakowanego archiwum. Baza Spolszczeń przyjmie ją tylko wtedy, gdy plik jest pracą autora.} other {}}</value>
+    <value>{kind, select, StoreLibrary {Paczka nie może zmieniać, podmieniać ani usuwać bibliotek sklepu ani zabezpieczeń – Baza Spolszczeń nie przyjmie takiej paczki. Plik, który nie jest częścią spolszczenia, wystarczy wykluczyć.} CircumventionFile {Baza Spolszczeń nie przyjmuje plików, które omijają zabezpieczenia gry, więc plik trzeba wykluczyć z paczki.} CopyOfGameFile {Paczka nie może zawierać plików gry. Plik trzeba wykluczyć z paczki.} WholeGameExecutable {Plik .exe gry może się zmienić tylko łatką, którą Kreator zrobi z tego samego pliku.} WholeGameFile {Baza Spolszczeń przyjmuje cały plik tylko wtedy, gdy w całości jest pracą autora; w innym razie wystarczy łatka.} WholeGameArchive {Cały plik archiwum niesie dużą część zasobów gry. Baza Spolszczeń przyjmie go tylko wtedy, gdy w całości jest pracą autora; zwykle wystarczy łatka.} ThirdPartyTool {Baza Spolszczeń przyjmuje narzędzia innych autorów z ich licencją i adresem kodu źródłowego.} AddedLibrary {Baza Spolszczeń przyjmuje własny kod autora oraz narzędzia innych autorów z licencją i kodem źródłowym.} LargePatch {Taka łatka niesie większość pliku, np. zaszyfrowanego albo spakowanego archiwum. Baza Spolszczeń przyjmie ją tylko wtedy, gdy plik jest pracą autora.} RuntimeCode {Menadżer nie sprawdzałby zmian tego programu, więc nie zauważy aktualizacji gry, która go podmieni, a sprawdzenie paczki przez Bazę Spolszczeń nie obejmuje kodu zapisanego podczas gry. Potwierdzenie oznacza, że tak ma być.} RuntimeSettings {Odinstalowanie przywróci ten plik w postaci sprzed instalacji, więc ustawienia zmienione przez gracza, gdy paczka była zainstalowana, przepadną. Potwierdzenie oznacza, że plik zapisuje oprogramowanie z paczki.} RuntimeSave {Odinstalowanie przywróciłoby stary zapis i przepadłyby postępy gracza, więc zapisu stanu gry nie można dodać do listy.} other {}}</value>
   </data>
   <data name="Creator_EditText" xml:space="preserve">
     <value>{difference, select, Changed {Łatka zawiera tylko to, czym plik różni się od oryginału, więc paczka nie zawiera pliku gry. Zadziała u graczy z taką samą wersją pliku – Menadżer sprawdzi to przed instalacją.} New {Gra nie ma tego pliku, więc trafi do niej w całości.} other {Plik ma tę samą treść co plik gry {from}, więc wystarczy zmienić nazwę pliku gry zamiast pakować jego kopię.}}</value>
@@ -672,7 +672,7 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
     <value>Jak Kreator wybiera format</value>
   </data>
   <data name="Creator_ManifestRule" xml:space="preserve">
-    <value>Łatka, zmiana nazwy albo usunięcie pliku gry. Instaluje tylko Menadżer Spolszczeń.</value>
+    <value>Łatka, zmiana nazwy albo usunięcie pliku gry lub pliki zmieniane podczas gry. Instaluje tylko Menadżer Spolszczeń.</value>
   </data>
   <data name="Creator_PackageTitleHint" xml:space="preserve">
     <value>Nazwa, którą Menadżer pokaże graczom.</value>
@@ -727,5 +727,11 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   </data>
   <data name="GamePage_RuntimeLine" xml:space="preserve">
     <value>Podczas gry oprogramowanie spolszczenia zmienia też pliki w folderze gry; odinstalowanie cofnie i te zmiany.</value>
+  </data>
+  <data name="Creator_RuntimeLead" xml:space="preserve">
+    <value>Pliki, które oprogramowanie z paczki zapisuje w folderze gry podczas gry, np. lista, którą nadpisuje, kopia pliku gry, którą sobie zostawia, albo dziennik. Menadżer skopiuje je przed instalacją, pominie przy sprawdzaniu plików i cofnie ich zmiany razem z resztą paczki.</value>
+  </data>
+  <data name="Creator_RuntimeWhy" xml:space="preserve">
+    <value>Paczka nie zawiera tego pliku – zapisuje go podczas gry oprogramowanie z paczki, a Menadżer cofnie te zmiany.</value>
   </data>
 </root>

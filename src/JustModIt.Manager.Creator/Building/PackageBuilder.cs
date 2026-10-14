@@ -50,7 +50,9 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
     {
         var output = CheckRequest(plan, request);
         var payload = plan.Operations.Where(operation => operation.HasPayload).ToList();
-        var tracker = new Tracker(progress, payload.Count, payload.Sum(PlannedBytes));
+        var originals = plan.RuntimeFiles.Select(file => file.GameFile).OfType<FileReference>().ToList();
+        var tracker = new Tracker(progress, payload.Count + originals.Count,
+            payload.Sum(PlannedBytes) + originals.Sum(original => original.Stamp.Size));
         tracker.Checking();
         CheckFiles(plan);
         if (plan.Format.EntryCount(plan.Operations) > options.Limits.MaxEntries)
@@ -113,6 +115,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
     {
         var changed = plan.Operations
             .SelectMany(operation => new[] { operation.SourceFile, operation.Original })
+            .Concat(plan.RuntimeFiles.Select(file => file.GameFile))
             .OfType<FileReference>()
             .DistinctBy(file => file.FullPath, PathComparison.Comparer)
             .Where(file => !file.Stamp.Matches(_fileSystem.GetEntry(file.FullPath)))
@@ -148,8 +151,9 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
 
             if (plan.Format.Kind == PackageKind.Manifest)
             {
+                var runtime = await run.RuntimeFilesAsync(cancellationToken).ConfigureAwait(false);
                 tracker.Manifest();
-                manifest = CreateManifest(plan, request, createdAt, operations);
+                manifest = CreateManifest(plan, request, createdAt, operations, runtime);
                 await run.WriteManifestAsync(manifest, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -174,7 +178,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
     }
 
     private PackageManifest CreateManifest(PackagePlan plan, BuildRequest request, DateTimeOffset createdAt,
-        List<PackageOperation> operations) => new()
+        List<PackageOperation> operations, List<RuntimeFile> runtime) => new()
     {
         Id = Guid.NewGuid(),
         Title = plan.Metadata.Title.Trim(),
@@ -185,8 +189,9 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
         Targets = request.Game is { } game
             ? [new PackageTarget(game.Key.Store, game.Key.StoreGameId, string.IsNullOrWhiteSpace(game.BuildId) ? null : game.BuildId)]
             : [],
-        Requires = PackageCapabilities.Of(operations),
+        Requires = PackageCapabilities.Of(operations, declaresFiles: runtime.Count > 0),
         ThirdPartyNotices = plan.ThirdPartyNotices.Count > 0 ? [.. plan.ThirdPartyNotices] : null,
+        RuntimeFiles = runtime.Count > 0 ? runtime : null,
         Operations = operations,
     };
 
@@ -215,6 +220,39 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
                 default:
                     return await PatchAsync(operation, index, cancellationToken).ConfigureAwait(false);
             }
+        }
+
+        // The game's own files the software changes are named as the author's game holds them, which is how its store ships
+        // them once the author checked the game's files.
+        public async Task<List<RuntimeFile>> RuntimeFilesAsync(CancellationToken cancellationToken)
+        {
+            var runtime = new List<RuntimeFile>(plan.RuntimeFiles.Count);
+            foreach (var file in plan.RuntimeFiles)
+            {
+                if (file.GameFile is not { } game)
+                {
+                    runtime.Add(new RuntimeFile(file.Path));
+                    continue;
+                }
+
+                tracker.StartFile(file.Path, game.Stamp.Size);
+                long done = 0;
+                var bytes = new InlineProgress<long>(read => tracker.Report(BuildStage.HashingRuntimeFiles, done += read));
+                var source = fileSystem.OpenRead(game.FullPath, FileShare.Read);
+                await using (source.ConfigureAwait(false))
+                {
+                    var (size, sha256) = await FileHash.CopyAndComputeAsync(source, Stream.Null, HashAlgorithmName.SHA256, bytes,
+                        cancellationToken).ConfigureAwait(false);
+                    if (size != game.Stamp.Size)
+                    {
+                        throw new PackageBuildException(BuildFailure.FilesChanged, [game.FullPath]);
+                    }
+
+                    runtime.Add(new RuntimeFile(file.Path, [new FileContent(size, sha256)]));
+                }
+            }
+
+            return runtime;
         }
 
         public async Task WriteManifestAsync(PackageManifest manifest, CancellationToken cancellationToken)

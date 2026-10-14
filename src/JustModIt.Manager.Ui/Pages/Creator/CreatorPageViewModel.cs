@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
@@ -454,7 +455,11 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         RefreshSteps();
     }
 
-    partial void OnGameChanged(DetectedGameEntry? value) => RefreshSteps();
+    partial void OnGameChanged(DetectedGameEntry? value)
+    {
+        RefreshSteps();
+        _ = ReadKeptPathsAsync();
+    }
 
     private void ShowSession()
     {
@@ -545,6 +550,27 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads again the game's paths that the agent keeps for an undone test, of the game in its folder as the store reports
+    /// it now; a lost connection keeps those read before.
+    /// </summary>
+    internal async Task ReadKeptPathsAsync()
+    {
+        if (Session is not { } session || Game is not { } game)
+        {
+            return;
+        }
+
+        if (await AskQuietlyAsync(new GetLeftoverBackups()).ConfigureAwait(true) is LeftoverBackups found && Session == session
+            && Game?.Key == game.Key)
+        {
+            await session.UseKeptPathsAsync(found.Backups
+                .Where(backup => backup.Game == game.Key && backup.Kept is not null
+                    && PathComparison.AreSame(backup.GameDirectory, game.Game.InstallDirectory))
+                .SelectMany(backup => backup.Kept!.Paths)).ConfigureAwait(true);
         }
     }
 

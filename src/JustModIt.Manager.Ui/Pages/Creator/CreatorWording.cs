@@ -1,5 +1,6 @@
 using Avalonia.Media;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
@@ -115,6 +116,7 @@ internal static class CreatorWording
         ("related", finding.RelatedPath ?? ""),
         ("size", finding.Size is { } size ? Formats.FileSize(size) : ""),
         ("tool", tool),
+        ("files", RuntimeFile.MaxPerPackage),
     ];
 
     // The creator reports the game's own folder as an overlap too, but it is the likelier slip and gets words of its own.

@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
@@ -45,6 +46,12 @@ public sealed partial class CreatorSession : ObservableObject
     [ObservableProperty]
     public partial CreatorReview? Review { get; private set; }
 
+    /// <summary>
+    /// The game's paths that an undone test left as the package's software wrote them, by the agent's records; the plan refuses
+    /// to take their content for the game's own.
+    /// </summary>
+    public IReadOnlySet<string> KeptPaths { get; private set; } = new HashSet<string>(PackagePath.Comparer);
+
     /// <summary>The author checked the operations of the plan, which any change to them takes back.</summary>
     [ObservableProperty]
     public partial bool IsConfirmed { get; set; }
@@ -84,6 +91,21 @@ public sealed partial class CreatorSession : ObservableObject
         return _planning = PlanAsync();
     }
 
+    /// <summary>Takes the game's paths that the agent keeps for an undone test, planning again when they changed.</summary>
+    /// <param name="paths">The game-relative paths.</param>
+    /// <returns>Completes once the plan over them is there.</returns>
+    public Task UseKeptPathsAsync(IEnumerable<string> paths)
+    {
+        var kept = new HashSet<string>(paths, PackagePath.Comparer);
+        if (kept.SetEquals(KeptPaths))
+        {
+            return Task.CompletedTask;
+        }
+
+        KeptPaths = kept;
+        return _planning = PlanAsync();
+    }
+
     /// <summary>Waits until <see cref="Review"/> covers the project as it is now.</summary>
     public async Task SettledAsync()
     {
@@ -112,7 +134,8 @@ public sealed partial class CreatorSession : ObservableObject
         }
 
         var project = Project;
-        var review = await Task.Run(() => CreatorPlanner.Plan(comparison, project, _options)).ConfigureAwait(true);
+        var kept = KeptPaths;
+        var review = await Task.Run(() => CreatorPlanner.Plan(comparison, project, _options, kept)).ConfigureAwait(true);
         if (plan == _plans)
         {
             Review = review;

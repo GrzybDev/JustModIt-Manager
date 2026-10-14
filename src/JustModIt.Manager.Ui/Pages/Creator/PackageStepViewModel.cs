@@ -690,6 +690,11 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             }
 
             ShowTest();
+            // An undone test may have left files as the package's software wrote them, which the plan has to know.
+            if (ended.Job.Kind == JobKind.Uninstall)
+            {
+                _ = _page.ReadKeptPathsAsync();
+            }
         }
     }
 

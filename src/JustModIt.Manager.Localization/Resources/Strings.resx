@@ -2833,10 +2833,10 @@
     <value>The package holds no .exe files, store libraries, copy protection, cracks or copies of game files.</value>
   </data>
   <data name="Creator_RuleTitle" xml:space="preserve">
-    <value>{kind, select, StoreLibrary {{path} is a library of a store or its copy protection} CircumventionFile {{path} looks like a file of a crack or a store emulator} CopyOfGameFile {{path} is a copy of the game file {related}} WholeGameExecutable {{path} is the game's whole executable} WholeGameFile {{path} replaces a game file whole} WholeGameArchive {{path} replaces a game archive or a large file ({size})} ThirdPartyTool {{path} belongs to {tool}} AddedLibrary {{path} is a DLL library} LargePatch {The patch of {path} is almost as large as the file ({size})} other {{path}}}</value>
+    <value>{kind, select, StoreLibrary {{path} is a library of a store or its copy protection} CircumventionFile {{path} looks like a file of a crack or a store emulator} CopyOfGameFile {{path} is a copy of the game file {related}} WholeGameExecutable {{path} is the game's whole executable} WholeGameFile {{path} replaces a game file whole} WholeGameArchive {{path} replaces a game archive or a large file ({size})} ThirdPartyTool {{path} belongs to {tool}} AddedLibrary {{path} is a DLL library} LargePatch {The patch of {path} is almost as large as the file ({size})} RuntimeCode {{path} is program code that changes while the game runs} RuntimeSettings {{path} may hold the player's settings} RuntimeSave {{path} looks like a save of the game} other {{path}}}</value>
   </data>
   <data name="Creator_RuleText" xml:space="preserve">
-    <value>{kind, select, StoreLibrary {A package may not change, replace or delete libraries of a store or its copy protection, and the site does not take one that does. A file that is not part of the work can be left out.} CircumventionFile {The site does not take files that get around a game's copy protection, so the file has to be left out.} CopyOfGameFile {A package may not carry game files. The file has to be left out of the package.} WholeGameExecutable {A game's executable may change through a patch only, which the creator makes from the same file.} WholeGameFile {The site takes a whole file only when it is wholly the author's work; otherwise a patch is the way.} WholeGameArchive {A whole archive carries a large share of the game's assets. The site takes it only when it is wholly the author's work; a patch is usually enough.} ThirdPartyTool {The site takes other authors' tools with their licence and the address of their source code.} AddedLibrary {The site takes the author's own code and other authors' tools with their licence and source code.} LargePatch {Such a patch carries most of the file, e.g. of an encrypted or packed archive. The site takes it only when the file is the author's work.} other {}}</value>
+    <value>{kind, select, StoreLibrary {A package may not change, replace or delete libraries of a store or its copy protection, and the site does not take one that does. A file that is not part of the work can be left out.} CircumventionFile {The site does not take files that get around a game's copy protection, so the file has to be left out.} CopyOfGameFile {A package may not carry game files. The file has to be left out of the package.} WholeGameExecutable {A game's executable may change through a patch only, which the creator makes from the same file.} WholeGameFile {The site takes a whole file only when it is wholly the author's work; otherwise a patch is the way.} WholeGameArchive {A whole archive carries a large share of the game's assets. The site takes it only when it is wholly the author's work; a patch is usually enough.} ThirdPartyTool {The site takes other authors' tools with their licence and the address of their source code.} AddedLibrary {The site takes the author's own code and other authors' tools with their licence and source code.} LargePatch {Such a patch carries most of the file, e.g. of an encrypted or packed archive. The site takes it only when the file is the author's work.} RuntimeCode {The app would leave changes of this program out of its checks, so a game update that replaces it goes unnoticed, and the site's review of what a package carries does not cover code written while the game runs. Accepting says this is meant.} RuntimeSettings {Uninstalling puts this file back as it was before the install, so settings the player changed while the package was installed are lost. Accepting says the package's software writes the file.} RuntimeSave {Uninstalling would bring back an old save and lose the player's progress, so a save cannot be on the list.} other {}}</value>
   </data>
   <data name="Creator_Exclude" xml:space="preserve">
     <value>Leave out of the package</value>
@@ -2929,7 +2929,7 @@
     <value>{reason, select, NewFile {The game does not have this file, so it goes in whole.} ChangedFile {A changed game file: the package keeps only the differences, not the whole file.} ReplacedFile {The whole file replaces the game's.} OriginalRenamedAway {This file takes the place of the original that operation {number} renamed.} RenamedGameFile {{name} has the same content as the original {from}, so the package renames the game's file instead of carrying a copy.} RemovedFile {The package deletes this file for players; the original goes to the backup.} AddedStep {An operation added by hand.} other {}}</value>
   </data>
   <data name="Creator_Finding" xml:space="preserve">
-    <value>{kind, select, EmptyPackage {The package changes nothing.} InvalidPath {The path “{path}” is empty or not valid.} PathEscapesFolder {The path “{path}” leads out of the game's folder.} ReservedPath {“{path}” is in the app's or a store's folder in the game, where a package may not write.} DuplicatePath {The package writes “{path}” a second time, so the first write is lost.} ConflictingOperations {This operation undoes an earlier one, e.g. deletes a file the package wrote or renames a file to its own name: “{path}”.} PathConflict {At “{path}” there is a folder where the package needs a file, or a file where it needs a folder.} AuthorFileMissing {The folder with the files has no “{path}”; the files can be compared again.} GameFileMissing {There is no “{path}” in the game or in the steps before this one.} FileRemovedEarlier {An earlier operation already deleted or renamed “{path}”.} RenameOverwritesFile {The rename replaces the game file “{path}”.} RenamedFileNotReplaced {After the rename the game lacks “{related}”, as the package writes nothing in its place.} TooManyFiles {The package has more files than the app installs from one package.} PackageTooLarge {The package is larger than the app installs from one package.} MissingTitle {A package of the app needs a name.} MissingVersion {A package of the app needs a version.} LargerThanSiteTakes {The package has {size}, more than the site takes as a release file.} FormatNotOnSite {The site takes no release files of this format.} other {“{path}” is against the site's rules.}}</value>
+    <value>{kind, select, EmptyPackage {The package changes nothing.} InvalidPath {The path “{path}” is empty or not valid.} PathEscapesFolder {The path “{path}” leads out of the game's folder.} ReservedPath {“{path}” is in the app's or a store's folder in the game, where a package may not write.} DuplicatePath {The package writes “{path}” a second time, so the first write is lost.} ConflictingOperations {This operation undoes an earlier one, e.g. deletes a file the package wrote or renames a file to its own name: “{path}”.} PathConflict {At “{path}” there is a folder where the package needs a file, or a file where it needs a folder.} AuthorFileMissing {The folder with the files has no “{path}”; the files can be compared again.} GameFileMissing {There is no “{path}” in the game or in the steps before this one.} FileRemovedEarlier {An earlier operation already deleted or renamed “{path}”.} RenameOverwritesFile {The rename replaces the game file “{path}”.} RenamedFileNotReplaced {After the rename the game lacks “{related}”, as the package writes nothing in its place.} TooManyFiles {The package has more files than the app installs from one package.} PackageTooLarge {The package is larger than the app installs from one package.} MissingTitle {A package of the app needs a name.} MissingVersion {A package of the app needs a version.} LargerThanSiteTakes {The package has {size}, more than the site takes as a release file.} FormatNotOnSite {The site takes no release files of this format.} RuntimeFileInGame {The game already has “{path}”, which the package's software creates, so it was probably started with that software before. The game's files are best checked in its store, this file removed and the files compared again.} RuntimeFileKept {Undoing a test left “{path}” as the package's software changed it, so the game no longer has the file its store ships. Checking the game's files in its store, removing the kept copies and comparing the files again fixes it.} RuntimeFilePatched {“{path}” changes while the game runs, so a patch, which needs the file as its store ships it, cannot change it; the package can carry the whole file instead.} TooManyRuntimePaths {The list holds at most {files, plural, one {# file} other {# files}}.} RuntimeWithoutCode {The package carries no program, and only a program from the package changes files while the game runs. Files the game changes itself stay off the list.} other {“{path}” is against the site's rules.}}</value>
   </data>
   <data name="Creator_FindingSuggestion" xml:space="preserve">
     <value>{finding} Was {path} meant?</value>
@@ -2950,7 +2950,7 @@
     <value>What happens to it?</value>
   </data>
   <data name="Creator_Choice" xml:space="preserve">
-    <value>{choice, select, Copy {{difference, select, Changed {Whole file} other {Copy}}} Patch {Patch} Rename {Rename} Delete {Delete for players} other {{difference, select, Missing {Keep in the game} other {Leave out of the package}}}}</value>
+    <value>{choice, select, Copy {{difference, select, Changed {Whole file} other {Copy}}} Patch {Patch} Rename {Rename} Delete {Delete for players} Runtime {Changes while the game runs} other {{difference, select, Missing {Keep in the game} other {Leave out of the package}}}}</value>
   </data>
   <data name="Creator_EditQuestion" xml:space="preserve">
     <value>What does the package do with this file?</value>
@@ -3175,7 +3175,7 @@
     <value>Plain archive (.zip)</value>
   </data>
   <data name="Creator_FormatReason" xml:space="preserve">
-    <value>{reason, select, PatchesFiles {The package patches game files.} RenamesFiles {The package renames game files.} DeletesFiles {The package deletes game files.} ReadsAsManifestPackage {A plain archive of these files would look like a damaged package of the app.} CarriesThirdPartyNotices {The package gives the licence and source code of a tool or library it carries, which only a package's description can hold.} other {The package only adds or overwrites files, so a plain .zip laid out like the game's folder is enough.}}</value>
+    <value>{reason, select, PatchesFiles {The package patches game files.} RenamesFiles {The package renames game files.} DeletesFiles {The package deletes game files.} ReadsAsManifestPackage {A plain archive of these files would look like a damaged package of the app.} CarriesThirdPartyNotices {The package gives the licence and source code of a tool or library it carries, which only a package's description can hold.} DeclaresRuntimeFiles {The package names files its software changes while the game runs, which only a package's description can hold.} other {The package only adds or overwrites files, so a plain .zip laid out like the game's folder is enough.}}</value>
   </data>
   <data name="Creator_ManifestOutcome" xml:space="preserve">
     <value>Only the app makes such changes: players install the package in one click in the app, not by hand.</value>
@@ -3190,7 +3190,7 @@
     <value>Copies of files only, new or overwritten. They can be installed by hand too.</value>
   </data>
   <data name="Creator_ManifestRule" xml:space="preserve">
-    <value>A patch, a rename or a deletion of a game file. Only the app installs it.</value>
+    <value>A patch, a rename or a deletion of a game file, or files changed while the game runs. Only the app installs it.</value>
   </data>
   <data name="Creator_ThisPackage" xml:space="preserve">
     <value>Your package</value>
@@ -3271,7 +3271,7 @@
     <value>Saving to {path}</value>
   </data>
   <data name="Creator_BuildStage" xml:space="preserve">
-    <value>{stage, select, Checking {Checking the files} Copying {Packing the files} HashingOriginal {Hashing the original} CreatingPatch {Making a patch} other {Writing the package's description}}</value>
+    <value>{stage, select, Checking {Checking the files} Copying {Packing the files} HashingOriginal {Hashing the original} CreatingPatch {Making a patch} HashingRuntimeFiles {Hashing the files changed while the game runs} other {Writing the package's description}}</value>
   </data>
   <data name="Creator_StopBuildTitle" xml:space="preserve">
     <value>Stop building the package?</value>
@@ -3347,6 +3347,57 @@
   </data>
   <data name="Creator_TestUndoneKept" xml:space="preserve">
     <value>{reason, select, GameUpdated {{game} has its original files back, except the files the package's software changed: the game was updated during the test, so they stay as they are and copies of their originals are kept. Checking the game's files in {store} brings the game's own back.} OriginalUnknown {{game} has its original files back; the files the package's software changed are as they were before the test, but they had been changed already then. Checking the game's files in {store} brings the game's own back.} Backup {{game} has its original files back, except {count, plural, one {# file whose original's copy is missing or damaged} other {# files whose originals' copies are missing or damaged}}. Checking the game's files in {store} brings the game's own back.} other {{game} has its original files back, except {count, plural, one {# file} other {# files}} that an update of the game changed during the test.}}</value>
+  </data>
+  <data name="Creator_RuntimeTitle" xml:space="preserve">
+    <value>Changed while the game runs</value>
+  </data>
+  <data name="Creator_RuntimeLead" xml:space="preserve">
+    <value>Files that software from the package writes in the game's folder while the game runs, such as a list it rewrites, a copy of a game file it keeps or a log. The app copies them before the install, leaves them out of its checks and undoes their changes with the rest of the package.</value>
+  </data>
+  <data name="Creator_RuntimeNote" xml:space="preserve">
+    <value>Only what software from the package writes; the game's own saves, settings and logs stay off the list. The package records how these files look in the game now, so the game should be as its store ships it.</value>
+  </data>
+  <data name="Creator_RuntimePrompt" xml:space="preserve">
+    <value>Does software from the package write anything in the game while it runs? Such files belong on this list.</value>
+  </data>
+  <data name="Creator_RuntimeCount" xml:space="preserve">
+    <value>{count, plural, one {# file} other {# files}}</value>
+  </data>
+  <data name="Creator_RuntimeProblems" xml:space="preserve">
+    <value>{count, plural, one {To fix: # problem} other {To fix: # problems}}</value>
+  </data>
+  <data name="Creator_AddRuntimeChanges" xml:space="preserve">
+    <value>A game file it changes…</value>
+  </data>
+  <data name="Creator_AddRuntimeCreates" xml:space="preserve">
+    <value>A file it creates…</value>
+  </data>
+  <data name="Creator_RuntimePathName" xml:space="preserve">
+    <value>Path in the game's folder</value>
+  </data>
+  <data name="Creator_RuntimeAdd" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Creator_RuntimeCancel" xml:space="preserve">
+    <value>Cancel adding</value>
+  </data>
+  <data name="Creator_RuntimeState" xml:space="preserve">
+    <value>{state, select, InGame {In the game ({size}): copied and put back} New {New: the software creates it} Package {A file the package installs} Folder {New folder: the software creates it} other {}}</value>
+  </data>
+  <data name="Creator_RuntimeFromFolder" xml:space="preserve">
+    <value>From the folder with the files</value>
+  </data>
+  <data name="Creator_RemoveRuntime" xml:space="preserve">
+    <value>Remove {path} from the files changed while the game runs</value>
+  </data>
+  <data name="Creator_RuntimeWhy" xml:space="preserve">
+    <value>The package does not carry this file: software from the package writes it while the game runs, and the app undoes that.</value>
+  </data>
+  <data name="Creator_BlockedRuntime" xml:space="preserve">
+    <value>fix {count, plural, one {the problem} other {the # problems}} in the list of files changed while the game runs</value>
+  </data>
+  <data name="Creator_CheckRuntime" xml:space="preserve">
+    <value>every file the package's software writes while the game runs is on the list,</value>
   </data>
   <data name="Creator_TestAgain" xml:space="preserve">
     <value>Install for a test again</value>

@@ -322,6 +322,73 @@
     <Setter Property="Background" Value="{StaticResource FillBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
   </Style>
+  <!-- A card that folds to its head: the head is one button, with a hairline under it while the card is open. -->
+  <Style Selector="Button.cardHeader">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="Padding" Value="20,14,16,14" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Button.cardHeader.open">
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+  </Style>
+  <Style Selector="Button.cardHeader.open ui|Icon.cardChevron">
+    <Setter Property="RenderTransform" Value="rotate(180deg)" />
+  </Style>
+  <Style Selector="ItemsControl.runtimeRows">
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+  </Style>
+  <Style Selector="Border.runtimeRow">
+    <Setter Property="Padding" Value="20,12,16,14" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="BorderBrush" Value="#0FFFFFFF" />
+  </Style>
+  <Style Selector="ContentPresenter:nth-child(1) > Border.runtimeRow">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Border.runtimeRow.problem">
+    <Setter Property="Background" Value="#0FEF4444" />
+  </Style>
+  <Style Selector="TextBlock.monoPath">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="22" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="TextBox.monoField">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="Border.runtimePrompt">
+    <Setter Property="Margin" Value="0,4,0,0" />
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource InfoEdgeBrush}" />
+  </Style>
+  <Style Selector="Border.runtimeAdd">
+    <Setter Property="Padding" Value="20,14,20,18" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+  </Style>
+  <Style Selector="Border.runtimeAdd.typing">
+    <Setter Property="Background" Value="#05FFFFFF" />
+  </Style>
+  <Style Selector="Button.fixAction">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="14,0" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+
   <!-- The call to check: the one red button of the step on a card tinted by the accent from the top. -->
   <Style Selector="Border.checkCard">
     <Setter Property="CornerRadius" Value="16" />

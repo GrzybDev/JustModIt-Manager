@@ -2821,10 +2821,10 @@
     <value>W paczce nie ma plików .exe, bibliotek sklepu, zabezpieczeń, cracków ani kopii plików gry.</value>
   </data>
   <data name="Creator_RuleTitle" xml:space="preserve">
-    <value>{kind, select, StoreLibrary {{path} to biblioteka sklepu albo zabezpieczenia} CircumventionFile {{path} wygląda na plik cracka albo emulatora sklepu} CopyOfGameFile {{path} to kopia pliku gry {related}} WholeGameExecutable {{path} to cały plik .exe gry} WholeGameFile {{path} zastąpi plik gry w całości} WholeGameArchive {{path} zastąpi archiwum gry albo duży plik ({size})} ThirdPartyTool {{path} należy do narzędzia {tool}} AddedLibrary {{path} to biblioteka DLL} LargePatch {Łatka {path} jest prawie tak duża jak plik ({size})} other {{path}}}</value>
+    <value>{kind, select, StoreLibrary {{path} to biblioteka sklepu albo zabezpieczenia} CircumventionFile {{path} wygląda na plik cracka albo emulatora sklepu} CopyOfGameFile {{path} to kopia pliku gry {related}} WholeGameExecutable {{path} to cały plik .exe gry} WholeGameFile {{path} zastąpi plik gry w całości} WholeGameArchive {{path} zastąpi archiwum gry albo duży plik ({size})} ThirdPartyTool {{path} należy do narzędzia {tool}} AddedLibrary {{path} to biblioteka DLL} LargePatch {Łatka {path} jest prawie tak duża jak plik ({size})} RuntimeCode {{path} to kod programu, który zmienia się podczas gry} RuntimeSettings {{path} może zawierać ustawienia gracza} RuntimeSave {{path} wygląda na zapis stanu gry} other {{path}}}</value>
   </data>
   <data name="Creator_RuleText" xml:space="preserve">
-    <value>{kind, select, StoreLibrary {Paczka nie może zmieniać, podmieniać ani usuwać bibliotek sklepu ani zabezpieczeń – strona nie przyjmie takiej paczki. Plik, który nie jest częścią pracy, wystarczy wykluczyć.} CircumventionFile {Strona nie przyjmuje plików, które omijają zabezpieczenia gry, więc plik trzeba wykluczyć z paczki.} CopyOfGameFile {Paczka nie może zawierać plików gry. Plik trzeba wykluczyć z paczki.} WholeGameExecutable {Plik .exe gry może się zmienić tylko łatką, którą kreator zrobi z tego samego pliku.} WholeGameFile {Strona przyjmuje cały plik tylko wtedy, gdy w całości jest pracą autora; w innym razie wystarczy łatka.} WholeGameArchive {Cały plik archiwum niesie dużą część zasobów gry. Strona przyjmie go tylko wtedy, gdy w całości jest pracą autora; zwykle wystarczy łatka.} ThirdPartyTool {Strona przyjmuje narzędzia innych autorów z ich licencją i adresem kodu źródłowego.} AddedLibrary {Strona przyjmuje własny kod autora oraz narzędzia innych autorów z licencją i kodem źródłowym.} LargePatch {Taka łatka niesie większość pliku, np. zaszyfrowanego albo spakowanego archiwum. Strona przyjmie ją tylko wtedy, gdy plik jest pracą autora.} other {}}</value>
+    <value>{kind, select, StoreLibrary {Paczka nie może zmieniać, podmieniać ani usuwać bibliotek sklepu ani zabezpieczeń – strona nie przyjmie takiej paczki. Plik, który nie jest częścią pracy, wystarczy wykluczyć.} CircumventionFile {Strona nie przyjmuje plików, które omijają zabezpieczenia gry, więc plik trzeba wykluczyć z paczki.} CopyOfGameFile {Paczka nie może zawierać plików gry. Plik trzeba wykluczyć z paczki.} WholeGameExecutable {Plik .exe gry może się zmienić tylko łatką, którą kreator zrobi z tego samego pliku.} WholeGameFile {Strona przyjmuje cały plik tylko wtedy, gdy w całości jest pracą autora; w innym razie wystarczy łatka.} WholeGameArchive {Cały plik archiwum niesie dużą część zasobów gry. Strona przyjmie go tylko wtedy, gdy w całości jest pracą autora; zwykle wystarczy łatka.} ThirdPartyTool {Strona przyjmuje narzędzia innych autorów z ich licencją i adresem kodu źródłowego.} AddedLibrary {Strona przyjmuje własny kod autora oraz narzędzia innych autorów z licencją i kodem źródłowym.} LargePatch {Taka łatka niesie większość pliku, np. zaszyfrowanego albo spakowanego archiwum. Strona przyjmie ją tylko wtedy, gdy plik jest pracą autora.} RuntimeCode {Aplikacja nie sprawdzałaby zmian tego programu, więc nie zauważy aktualizacji gry, która go podmieni, a sprawdzenie paczki przez stronę nie obejmuje kodu zapisanego podczas gry. Potwierdzenie oznacza, że tak ma być.} RuntimeSettings {Odinstalowanie przywróci ten plik w postaci sprzed instalacji, więc ustawienia zmienione przez gracza, gdy paczka była zainstalowana, przepadną. Potwierdzenie oznacza, że plik zapisuje oprogramowanie z paczki.} RuntimeSave {Odinstalowanie przywróciłoby stary zapis i przepadłyby postępy gracza, więc zapisu stanu gry nie można dodać do listy.} other {}}</value>
   </data>
   <data name="Creator_Exclude" xml:space="preserve">
     <value>Wyklucz z paczki</value>
@@ -2917,7 +2917,7 @@
     <value>{reason, select, NewFile {Gra nie ma tego pliku, więc trafi do niej w całości.} ChangedFile {Zmieniony plik gry: paczka zapisze tylko różnice, a nie cały plik.} ReplacedFile {Cały plik zastąpi plik gry.} OriginalRenamedAway {Ten plik zajmie miejsce oryginału, któremu operacja {number} zmieniła nazwę.} RenamedGameFile {Plik {name} ma tę samą treść co oryginalny {from}, więc paczka zmieni nazwę pliku gry zamiast pakować jego kopię.} RemovedFile {Paczka usunie ten plik u graczy; oryginał trafi do kopii zapasowej.} AddedStep {Operacja dodana ręcznie.} other {}}</value>
   </data>
   <data name="Creator_Finding" xml:space="preserve">
-    <value>{kind, select, EmptyPackage {Paczka niczego nie zmienia.} InvalidPath {Ścieżka „{path}” jest pusta albo nieprawidłowa.} PathEscapesFolder {Ścieżka „{path}” wychodzi poza folder gry.} ReservedPath {„{path}” leży w folderze aplikacji albo sklepu w grze, a tam paczka nie może zapisywać.} DuplicatePath {Paczka zapisuje „{path}” drugi raz, więc pierwszy zapis przepadnie.} ConflictingOperations {Ta operacja cofa wcześniejszą, np. usuwa plik zapisany przez paczkę albo zmienia nazwę pliku na tę samą: „{path}”.} PathConflict {W miejscu „{path}” jest folder tam, gdzie paczka potrzebuje pliku, albo plik tam, gdzie potrzebuje folderu.} AuthorFileMissing {W folderze z plikami nie ma „{path}” – pliki można porównać ponownie.} GameFileMissing {Nie ma pliku „{path}” w grze ani w krokach przed tym.} FileRemovedEarlier {Wcześniejsza operacja usunęła już „{path}” albo zmieniła jego nazwę.} RenameOverwritesFile {Zmiana nazwy zastąpi plik gry „{path}”.} RenamedFileNotReplaced {Po zmianie nazwy w grze zabraknie pliku „{related}”, bo paczka nie zapisuje niczego w jego miejscu.} TooManyFiles {Paczka ma więcej plików, niż aplikacja instaluje z jednej paczki.} PackageTooLarge {Paczka jest większa, niż aplikacja instaluje z jednej paczki.} MissingTitle {Paczka aplikacji potrzebuje nazwy.} MissingVersion {Paczka aplikacji potrzebuje wersji.} LargerThanSiteTakes {Paczka ma {size}, czyli więcej, niż strona przyjmuje jako plik wydania.} FormatNotOnSite {Strona nie przyjmuje plików wydań w tym formacie.} other {„{path}” jest niezgodne z zasadami strony.}}</value>
+    <value>{kind, select, EmptyPackage {Paczka niczego nie zmienia.} InvalidPath {Ścieżka „{path}” jest pusta albo nieprawidłowa.} PathEscapesFolder {Ścieżka „{path}” wychodzi poza folder gry.} ReservedPath {„{path}” leży w folderze aplikacji albo sklepu w grze, a tam paczka nie może zapisywać.} DuplicatePath {Paczka zapisuje „{path}” drugi raz, więc pierwszy zapis przepadnie.} ConflictingOperations {Ta operacja cofa wcześniejszą, np. usuwa plik zapisany przez paczkę albo zmienia nazwę pliku na tę samą: „{path}”.} PathConflict {W miejscu „{path}” jest folder tam, gdzie paczka potrzebuje pliku, albo plik tam, gdzie potrzebuje folderu.} AuthorFileMissing {W folderze z plikami nie ma „{path}” – pliki można porównać ponownie.} GameFileMissing {Nie ma pliku „{path}” w grze ani w krokach przed tym.} FileRemovedEarlier {Wcześniejsza operacja usunęła już „{path}” albo zmieniła jego nazwę.} RenameOverwritesFile {Zmiana nazwy zastąpi plik gry „{path}”.} RenamedFileNotReplaced {Po zmianie nazwy w grze zabraknie pliku „{related}”, bo paczka nie zapisuje niczego w jego miejscu.} TooManyFiles {Paczka ma więcej plików, niż aplikacja instaluje z jednej paczki.} PackageTooLarge {Paczka jest większa, niż aplikacja instaluje z jednej paczki.} MissingTitle {Paczka aplikacji potrzebuje nazwy.} MissingVersion {Paczka aplikacji potrzebuje wersji.} LargerThanSiteTakes {Paczka ma {size}, czyli więcej, niż strona przyjmuje jako plik wydania.} FormatNotOnSite {Strona nie przyjmuje plików wydań w tym formacie.} RuntimeFileInGame {Gra ma już „{path}”, choć tworzy go oprogramowanie z paczki, więc pewnie była już z nim uruchamiana. Najlepiej sprawdzić spójność plików gry w sklepie, usunąć ten plik i ponownie porównać pliki.} RuntimeFileKept {Cofnięcie testu zostawiło „{path}” w postaci zmienionej przez oprogramowanie z paczki, więc gra nie ma już pliku dostarczanego przez sklep. Pomoże sprawdzenie spójności plików gry w sklepie, usunięcie zachowanych kopii i ponowne porównanie plików.} RuntimeFilePatched {„{path}” zmienia się podczas gry, więc nie może go zmienić łatka, która wymaga pliku w postaci dostarczanej przez sklep – zamiast niej paczka może zawierać cały plik.} TooManyRuntimePaths {Na liście mieści się najwyżej {files, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}.} RuntimeWithoutCode {Paczka nie zawiera programu, a tylko program z paczki może zmieniać pliki podczas gry. Pliki, które gra zmienia sama, zostają poza listą.} other {„{path}” jest niezgodne z zasadami strony.}}</value>
   </data>
   <data name="Creator_FindingSuggestion" xml:space="preserve">
     <value>{finding} Czy chodziło o {path}?</value>
@@ -2938,7 +2938,7 @@
     <value>Co z nim zrobić?</value>
   </data>
   <data name="Creator_Choice" xml:space="preserve">
-    <value>{choice, select, Copy {{difference, select, Changed {Cały plik} other {Kopia}}} Patch {Łatka} Rename {Zmiana nazwy} Delete {Usuń u graczy} other {{difference, select, Missing {Zostaw w grze} other {Wyklucz z paczki}}}}</value>
+    <value>{choice, select, Copy {{difference, select, Changed {Cały plik} other {Kopia}}} Patch {Łatka} Rename {Zmiana nazwy} Delete {Usuń u graczy} Runtime {Zmienia się podczas gry} other {{difference, select, Missing {Zostaw w grze} other {Wyklucz z paczki}}}}</value>
   </data>
   <data name="Creator_EditQuestion" xml:space="preserve">
     <value>Co paczka ma zrobić z tym plikiem?</value>
@@ -3163,7 +3163,7 @@
     <value>Zwykłe archiwum (.zip)</value>
   </data>
   <data name="Creator_FormatReason" xml:space="preserve">
-    <value>{reason, select, PatchesFiles {Paczka nakłada łatki na pliki gry.} RenamesFiles {Paczka zmienia nazwy plików gry.} DeletesFiles {Paczka usuwa pliki gry.} ReadsAsManifestPackage {Zwykłe archiwum z tymi plikami wyglądałoby jak uszkodzona paczka aplikacji.} CarriesThirdPartyNotices {Paczka podaje licencję i kod źródłowy dołączonego narzędzia albo biblioteki, a zmieści je tylko opis paczki.} other {Paczka tylko dodaje albo nadpisuje pliki, więc wystarczy zwykły .zip ułożony względem folderu gry.}}</value>
+    <value>{reason, select, PatchesFiles {Paczka nakłada łatki na pliki gry.} RenamesFiles {Paczka zmienia nazwy plików gry.} DeletesFiles {Paczka usuwa pliki gry.} ReadsAsManifestPackage {Zwykłe archiwum z tymi plikami wyglądałoby jak uszkodzona paczka aplikacji.} CarriesThirdPartyNotices {Paczka podaje licencję i kod źródłowy dołączonego narzędzia albo biblioteki, a zmieści je tylko opis paczki.} DeclaresRuntimeFiles {Paczka wskazuje pliki zmieniane przez jej oprogramowanie podczas gry, a może je podać tylko opis paczki.} other {Paczka tylko dodaje albo nadpisuje pliki, więc wystarczy zwykły .zip ułożony względem folderu gry.}}</value>
   </data>
   <data name="Creator_ManifestOutcome" xml:space="preserve">
     <value>Takie zmiany wykona tylko aplikacja: gracze zainstalują paczkę jednym kliknięciem, bez ręcznej instalacji.</value>
@@ -3178,7 +3178,7 @@
     <value>Same kopie plików – nowych albo nadpisanych. Da się je zainstalować także ręcznie.</value>
   </data>
   <data name="Creator_ManifestRule" xml:space="preserve">
-    <value>Łatka, zmiana nazwy albo usunięcie pliku gry. Instaluje tylko aplikacja.</value>
+    <value>Łatka, zmiana nazwy albo usunięcie pliku gry lub pliki zmieniane podczas gry. Instaluje tylko aplikacja.</value>
   </data>
   <data name="Creator_ThisPackage" xml:space="preserve">
     <value>Twoja paczka</value>
@@ -3259,7 +3259,7 @@
     <value>Zapis do: {path}</value>
   </data>
   <data name="Creator_BuildStage" xml:space="preserve">
-    <value>{stage, select, Checking {Sprawdzanie plików} Copying {Pakowanie plików} HashingOriginal {Liczenie skrótu oryginału} CreatingPatch {Tworzenie łatki} other {Zapisywanie opisu paczki}}</value>
+    <value>{stage, select, Checking {Sprawdzanie plików} Copying {Pakowanie plików} HashingOriginal {Liczenie skrótu oryginału} CreatingPatch {Tworzenie łatki} HashingRuntimeFiles {Liczenie skrótów plików zmienianych podczas gry} other {Zapisywanie opisu paczki}}</value>
   </data>
   <data name="Creator_StopBuildTitle" xml:space="preserve">
     <value>Przerwać budowanie paczki?</value>
@@ -3335,6 +3335,57 @@
   </data>
   <data name="Creator_TestUndoneKept" xml:space="preserve">
     <value>{reason, select, GameUpdated {{game} ma z powrotem oryginalne pliki poza plikami zmienionymi przez oprogramowanie z paczki: gra dostała aktualizację w trakcie testu, więc zostały bez zmian, a kopie ich oryginałów zachowano. Oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.} OriginalUnknown {{game} ma z powrotem oryginalne pliki; pliki zmieniane przez oprogramowanie z paczki mają postać sprzed testu, ale już wtedy były zmienione. Oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.} Backup {{game} ma z powrotem oryginalne pliki poza {count, plural, one {# plikiem, którego kopia oryginału zniknęła albo jest uszkodzona} few {# plikami, których kopie oryginałów zniknęły albo są uszkodzone} many {# plikami, których kopie oryginałów zniknęły albo są uszkodzone} other {# pliku, którego kopia oryginału zniknęła albo jest uszkodzona}}. Oryginalne pliki przywróci sprawdzenie spójności plików gry w {store}.} other {{game} ma z powrotem oryginalne pliki poza {count, plural, one {# plikiem zmienionym} few {# plikami zmienionymi} many {# plikami zmienionymi} other {# pliku zmienionego}} przez aktualizację gry w trakcie testu.}}</value>
+  </data>
+  <data name="Creator_RuntimeTitle" xml:space="preserve">
+    <value>Zmieniane podczas gry</value>
+  </data>
+  <data name="Creator_RuntimeLead" xml:space="preserve">
+    <value>Pliki, które oprogramowanie z paczki zapisuje w folderze gry podczas gry, np. lista, którą nadpisuje, kopia pliku gry, którą sobie zostawia, albo dziennik. Aplikacja skopiuje je przed instalacją, pominie przy sprawdzaniu plików i cofnie ich zmiany razem z resztą paczki.</value>
+  </data>
+  <data name="Creator_RuntimeNote" xml:space="preserve">
+    <value>Tylko to, co zapisuje oprogramowanie z paczki; zapisy stanu gry, jej ustawienia i dzienniki zostają poza listą. Paczka zapamięta, jak te pliki wyglądają teraz w grze, więc gra powinna być taka, jaką dostarcza sklep.</value>
+  </data>
+  <data name="Creator_RuntimePrompt" xml:space="preserve">
+    <value>Czy oprogramowanie z paczki zapisuje coś w grze podczas gry? Takie pliki trzeba dopisać do tej listy.</value>
+  </data>
+  <data name="Creator_RuntimeCount" xml:space="preserve">
+    <value>{count, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}</value>
+  </data>
+  <data name="Creator_RuntimeProblems" xml:space="preserve">
+    <value>Do poprawienia: {count, plural, one {# problem} few {# problemy} many {# problemów} other {# problemu}}</value>
+  </data>
+  <data name="Creator_AddRuntimeChanges" xml:space="preserve">
+    <value>Plik gry, który zmienia…</value>
+  </data>
+  <data name="Creator_AddRuntimeCreates" xml:space="preserve">
+    <value>Plik, który tworzy…</value>
+  </data>
+  <data name="Creator_RuntimePathName" xml:space="preserve">
+    <value>Ścieżka w folderze gry</value>
+  </data>
+  <data name="Creator_RuntimeAdd" xml:space="preserve">
+    <value>Dodaj</value>
+  </data>
+  <data name="Creator_RuntimeCancel" xml:space="preserve">
+    <value>Anuluj dodawanie</value>
+  </data>
+  <data name="Creator_RuntimeState" xml:space="preserve">
+    <value>{state, select, InGame {W grze ({size}) – zostanie skopiowany i przywrócony} New {Nowy – tworzy go oprogramowanie} Package {Plik instalowany przez paczkę} Folder {Nowy folder – tworzy go oprogramowanie} other {}}</value>
+  </data>
+  <data name="Creator_RuntimeFromFolder" xml:space="preserve">
+    <value>Z folderu z plikami</value>
+  </data>
+  <data name="Creator_RemoveRuntime" xml:space="preserve">
+    <value>Usuń {path} z plików zmienianych podczas gry</value>
+  </data>
+  <data name="Creator_RuntimeWhy" xml:space="preserve">
+    <value>Paczka nie zawiera tego pliku – zapisuje go podczas gry oprogramowanie z paczki, a aplikacja cofnie te zmiany.</value>
+  </data>
+  <data name="Creator_BlockedRuntime" xml:space="preserve">
+    <value>poprawić {count, plural, one {problem} few {# problemy} many {# problemów} other {# problemu}} na liście plików zmienianych podczas gry</value>
+  </data>
+  <data name="Creator_CheckRuntime" xml:space="preserve">
+    <value>każdy plik zapisywany przez oprogramowanie z paczki podczas gry jest na liście,</value>
   </data>
   <data name="Creator_TestAgain" xml:space="preserve">
     <value>Zainstaluj testowo jeszcze raz</value>

@@ -43,6 +43,14 @@ public enum OperationReason
 /// <param name="Stamp">The file as the comparison listed it.</param>
 public sealed record FileReference(string FullPath, FileStamp Stamp);
 
+/// <summary>A game file the package's software writes while the game runs, as the plan declares it in the manifest.</summary>
+/// <param name="Path">The game-relative path, spelt as the game spells it.</param>
+/// <param name="Kind">Whether the game has the file or the software creates it.</param>
+/// <param name="GameFile">The game's own file at the path, whose content the manifest names; null when the game has none.</param>
+/// <param name="WrittenByPackage">An operation of the package copies, renames or deletes the path too.</param>
+/// <param name="FromChoice">A file of the comparison declared with <see cref="FileChoice.Runtime"/>.</param>
+public sealed record PlannedRuntimeFile(string Path, RuntimeFileKind Kind, FileReference? GameFile, bool WrittenByPackage, bool FromChoice);
+
 /// <summary>One change the package makes, with game-relative, '/'-separated paths.</summary>
 public sealed record PlannedOperation
 {

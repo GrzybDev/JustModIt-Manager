@@ -235,6 +235,59 @@ public sealed class HostingRulesTests : IDisposable
         plan.Findings.Select(finding => finding.ToolId).Should().BeEquivalentTo("asi-loader", "ue4ss", "melonloader");
     }
 
+    [Theory]
+    [InlineData("saves/slot1.dat", FindingKind.RuntimeSave)]
+    [InlineData("Profile/AUTOSAVE.SAV", FindingKind.RuntimeSave)]
+    [InlineData("bin/steam_api64.dll", FindingKind.StoreLibrary)]
+    [InlineData("steam_settings/force_language.txt", FindingKind.CircumventionFile)]
+    public async Task Never_lets_software_of_a_package_change_a_save_a_store_library_or_a_crack_file(string path, FindingKind kind)
+    {
+        _workspace.Author("tools/streamer.exe", "program");
+
+        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.CreatesFile)));
+
+        plan.Findings.Should().Contain(finding => finding.Kind == kind && finding.Severity == FindingSeverity.Error
+            && finding.RuntimeIndex == 0);
+    }
+
+    [Fact]
+    public async Task Asks_about_program_code_and_game_settings_the_software_changes_until_the_author_accepts()
+    {
+        _workspace.Author("tools/streamer.exe", "program");
+        _workspace.Game("config/settings.ini", "volume=5");
+        var project = Project
+            .WithRuntimeFile(new RuntimeFileChoice("scripts/cache.asi", RuntimeFileKind.CreatesFile))
+            .WithRuntimeFile(new RuntimeFileChoice("config/settings.ini", RuntimeFileKind.ChangesGameFile));
+
+        var asked = await PlanAsync(project);
+        var acknowledged = asked.Findings.Aggregate(project, (accepted, finding) => accepted.Acknowledge(finding.AcknowledgementKey!));
+        var accepted = await PlanAsync(acknowledged);
+        _workspace.Game("config/settings.ini", "volume=10");
+        var changed = await PlanAsync(acknowledged);
+
+        asked.Findings.Select(finding => (finding.Kind, finding.AcknowledgementKey, finding.BlocksBuild)).Should().Equal(
+            (FindingKind.RuntimeCode, "runtime-code:scripts/cache.asi", true),
+            (FindingKind.RuntimeSettings, "runtime-settings:config/settings.ini:8", true));
+        accepted.CanBuild.Should().BeTrue();
+        changed.Findings.Where(finding => finding.BlocksBuild).Should().ContainSingle()
+            .Which.Kind.Should().Be(FindingKind.RuntimeSettings);
+    }
+
+    [Fact]
+    public async Task Takes_the_settings_the_package_writes_for_its_own()
+    {
+        _workspace.Author("tools/streamer.exe", "program");
+        _workspace.Game("tools/streamer.ini", "default");
+        _workspace.Author("tools/streamer.ini", "the settings of the package");
+        var review = await ReviewAsync(Project);
+
+        var plan = await PlanAsync(Project
+            .WithChoice(review.Entries.Single(entry => entry.File.Path == "tools/streamer.ini"), FileChoice.Copy)
+            .WithRuntimeFile(new RuntimeFileChoice("tools/streamer.ini", RuntimeFileKind.ChangesGameFile)));
+
+        plan.Findings.Should().NotContain(finding => finding.Kind == FindingKind.RuntimeSettings);
+    }
+
     private async Task<CreatorReview> ReviewAsync(CreatorProject project) =>
         CreatorPlanner.Plan(await _workspace.CompareAsync(), project, Workspace.Options);
 

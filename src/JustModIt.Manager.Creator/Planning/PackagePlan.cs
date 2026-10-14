@@ -27,6 +27,9 @@ public enum FormatReason
 
     /// <summary>It carries a third-party tool, whose licence and source only a manifest can name.</summary>
     CarriesThirdPartyNotices,
+
+    /// <summary>It names files its software changes while the game runs, which only a manifest can name.</summary>
+    DeclaresRuntimeFiles,
 }
 
 public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatReason> Reasons)
@@ -39,10 +42,12 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
     /// <summary>The format the operations need, with every reason for it.</summary>
     /// <param name="operations">The plan's operations, in order.</param>
     /// <param name="carriesThirdPartyTools">The package carries a tool that needs a <see cref="ToolNotice"/>.</param>
-    public static PackageFormatDecision For(IReadOnlyList<PlannedOperation> operations, bool carriesThirdPartyTools)
+    /// <param name="declaresRuntimeFiles">The package names files its software changes while the game runs.</param>
+    public static PackageFormatDecision For(IReadOnlyList<PlannedOperation> operations, bool carriesThirdPartyTools,
+        bool declaresRuntimeFiles = false)
     {
         ArgumentNullException.ThrowIfNull(operations);
-        ValueList<FormatReason> reasons =
+        List<FormatReason> reasons =
         [
             .. operations.Select(operation => operation.Kind switch
                 {
@@ -55,14 +60,20 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
                 .Distinct()
                 .Order(),
         ];
-        if (reasons.Count > 0)
+        // The operations say enough about a tool, so its notice is a reason only for a package that otherwise only copies.
+        if (reasons.Count == 0 && carriesThirdPartyTools)
         {
-            return new PackageFormatDecision(PackageKind.Manifest, reasons);
+            reasons.Add(FormatReason.CarriesThirdPartyNotices);
         }
 
-        if (carriesThirdPartyTools)
+        if (declaresRuntimeFiles)
         {
-            return new PackageFormatDecision(PackageKind.Manifest, [FormatReason.CarriesThirdPartyNotices]);
+            reasons.Add(FormatReason.DeclaresRuntimeFiles);
+        }
+
+        if (reasons.Count > 0)
+        {
+            return new PackageFormatDecision(PackageKind.Manifest, [.. reasons]);
         }
 
         return operations.Any(operation => operation.Path == PackageLayout.ManifestEntry)
@@ -84,7 +95,14 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
     }
 }
 
-public sealed record PlanSummary(int Copies, int Patches, int Renames, int Deletes, long CopiedBytes);
+/// <summary>What a plan does, in numbers.</summary>
+/// <param name="Copies">The files it copies.</param>
+/// <param name="Patches">The files it patches.</param>
+/// <param name="Renames">The game files it renames.</param>
+/// <param name="Deletes">The game files it deletes.</param>
+/// <param name="CopiedBytes">The bytes of the files it copies.</param>
+/// <param name="RuntimeCount">The files it names as changed while the game runs.</param>
+public sealed record PlanSummary(int Copies, int Patches, int Renames, int Deletes, long CopiedBytes, int RuntimeCount);
 
 /// <summary>An ordered, checked list of what the package does, the one source for its review, rules and build.</summary>
 public sealed record PackagePlan
@@ -106,6 +124,12 @@ public sealed record PackagePlan
     /// <summary>What the manifest names: each third-party tool the package carries whose notice the author completed.</summary>
     public ValueList<ThirdPartyNotice> ThirdPartyNotices { get; init; }
 
+    /// <summary>The game files the package's software writes while the game runs, which the manifest names.</summary>
+    public ValueList<PlannedRuntimeFile> RuntimeFiles { get; init; }
+
+    /// <summary>The package carries a program, such as a library, which may write files while the game runs.</summary>
+    public bool CarriesCode { get; init; }
+
     /// <summary>What the author has acknowledged, for warnings that only the build can find.</summary>
     public ValueList<string> Acknowledged { get; init; }
 
@@ -116,7 +140,8 @@ public sealed record PackagePlan
         Operations.Count(operation => operation.Kind == OperationKind.Patch),
         Operations.Count(operation => operation.Kind == OperationKind.Rename),
         Operations.Count(operation => operation.Kind == OperationKind.Delete),
-        Operations.Where(operation => operation.Kind == OperationKind.Copy).Sum(operation => operation.SourceFile?.Stamp.Size ?? 0));
+        Operations.Where(operation => operation.Kind == OperationKind.Copy).Sum(operation => operation.SourceFile?.Stamp.Size ?? 0),
+        RuntimeFiles.Count);
 
     /// <summary>The author checked the review and wants this exact plan built.</summary>
     /// <exception cref="InvalidOperationException">A finding blocks the build.</exception>

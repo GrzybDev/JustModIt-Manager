@@ -43,6 +43,11 @@ public sealed class CreatorProjectStoreTests : IDisposable
                 new LibraryNotice("bin/subtitles.dll", "MIT", "https://example.com/subtitles", "Example Subtitles", IsOwn: true),
             ],
             Acknowledged = ["whole-game-file:data/fonts.bin:1234"],
+            RuntimeFiles =
+            [
+                new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile),
+                new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile),
+            ],
         };
 
         await CreatorProjectStore.SaveAsync(project, ProjectPath, TestContext.Current.CancellationToken);
@@ -69,13 +74,14 @@ public sealed class CreatorProjectStoreTests : IDisposable
                 new LibraryNotice("bin/hook.dll", "MIT", "https://example.com/hook", "hook.dll"),
                 new LibraryNotice("bin/subtitles.dll", "MIT", "https://example.com/subtitles", "Example Subtitles", IsOwn: true),
             ],
+            RuntimeFiles = [new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile)],
         };
 
         await CreatorProjectStore.SaveAsync(project, ProjectPath, TestContext.Current.CancellationToken);
 
         using var json = JsonDocument.Parse(await File.ReadAllBytesAsync(ProjectPath, TestContext.Current.CancellationToken));
         var root = json.RootElement;
-        root.GetProperty("formatVersion").GetInt32().Should().Be(3);
+        root.GetProperty("formatVersion").GetInt32().Should().Be(4);
         root.GetProperty("mode").GetString().Should().Be("simple");
         root.GetProperty("authorFolder").GetString().Should().Be("author");
         root.GetProperty("gameFolder").GetString().Should().Be(_workspace.GameDirectory);
@@ -85,6 +91,8 @@ public sealed class CreatorProjectStoreTests : IDisposable
             .Equal("toolId", "license", "sourceUrl");
         root.GetProperty("libraries").EnumerateArray().Select(library => string.Join(",", library.EnumerateObject().Select(property => property.Name)))
             .Should().Equal("path,license,sourceUrl,name", "path,license,sourceUrl,name,isOwn");
+        root.GetProperty("runtimeFiles")[0].GetProperty("path").GetString().Should().Be("data/list.idx");
+        root.GetProperty("runtimeFiles")[0].GetProperty("kind").GetString().Should().Be("changesgamefile");
         root.TryGetProperty("game", out _).Should().BeFalse();
         root.TryGetProperty("steps", out _).Should().BeFalse();
     }
@@ -120,7 +128,7 @@ public sealed class CreatorProjectStoreTests : IDisposable
     [Fact]
     public async Task Tells_a_project_from_a_newer_app_even_when_the_rest_is_unreadable()
     {
-        await File.WriteAllTextAsync(ProjectPath, """{ "formatVersion": 4, "steps": 5 }""", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(ProjectPath, """{ "formatVersion": 5, "steps": 5 }""", TestContext.Current.CancellationToken);
 
         var load = () => CreatorProjectStore.LoadAsync(ProjectPath, TestContext.Current.CancellationToken);
 
@@ -145,6 +153,9 @@ public sealed class CreatorProjectStoreTests : IDisposable
     [InlineData("""{ "formatVersion": 3, "thirdParty": [ null ] }""")]
     [InlineData("""{ "formatVersion": 3, "acknowledged": [ null ] }""")]
     [InlineData("""{ "formatVersion": 3, "metadata": { "authors": [ null ] } }""")]
+    [InlineData("""{ "formatVersion": 4, "runtimeFiles": [ null ] }""")]
+    [InlineData("""{ "formatVersion": 4, "runtimeFiles": [ { "path": "a.txt", "kind": "rewrites" } ] }""")]
+    [InlineData("""{ "formatVersion": 4, "runtimeFiles": [ { "kind": "createsfile" } ] }""")]
     public async Task Refuses_a_damaged_project(string content)
     {
         await File.WriteAllTextAsync(ProjectPath, content, TestContext.Current.CancellationToken);
@@ -160,6 +171,18 @@ public sealed class CreatorProjectStoreTests : IDisposable
         var load = () => CreatorProjectStore.LoadAsync(ProjectPath, TestContext.Current.CancellationToken);
 
         (await load.Should().ThrowAsync<ProjectLoadException>()).Which.Error.Should().Be(ProjectLoadError.Unreadable);
+    }
+
+    [Fact]
+    public async Task Opens_a_project_of_the_format_before_the_files_changed_while_the_game_runs()
+    {
+        await File.WriteAllTextAsync(ProjectPath, """{ "formatVersion": 3, "choices": { "data/fonts.bin": "copy" } }""",
+            TestContext.Current.CancellationToken);
+
+        var project = await CreatorProjectStore.LoadAsync(ProjectPath, TestContext.Current.CancellationToken);
+
+        project.Choices.Should().ContainSingle();
+        project.RuntimeFiles.Should().BeEmpty();
     }
 
     [Fact]

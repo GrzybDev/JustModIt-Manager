@@ -1,11 +1,15 @@
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.VisualTree;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Creator;
@@ -16,6 +20,7 @@ namespace JustModIt.Manager.Ui.Tests;
 public sealed class CreatorReviewTests : IDisposable
 {
     private static readonly string Original = new('o', 2048);
+    private static readonly string Movies = new('m', 2048);
 
     private readonly CreatorWorkspace _work = new();
 
@@ -312,11 +317,211 @@ public sealed class CreatorReviewTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_package_with_a_program_asks_which_files_it_writes_while_the_game_runs_without_holding_the_check_up()
+    {
+        using var ui = await OpenAsync();
+        var review = await ReviewAsync(ui);
+
+        review.IsRuntimeOpen.Should().BeTrue("the package carries a library and names no file yet");
+        review.ShowsRuntimePrompt.Should().BeTrue();
+        review.HasRuntimeRows.Should().BeFalse();
+        review.RuntimeCount.Should().BeEmpty();
+        review.Checklist.Should().Contain(Strings.Creator_CheckRuntime);
+        review.CanConfirm.Should().BeTrue();
+        ui.Find<Border>("RuntimeCard").BringIntoView();
+        await RenderAsync(ui, "creator-runtime-prompt", null);
+
+        ui.Click(ui.Find<Button>("RuntimeHeader"));
+        review.IsRuntimeOpen.Should().BeFalse();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(1280, 800, "")]
+    [InlineData(960, 600, "-minimum")]
+    public async Task A_file_the_software_creates_that_the_game_already_has_is_refused_with_the_ways_to_fix_it(double width, double height,
+        string suffix)
+    {
+        _work.Game("data/movies.idx", Movies);
+        _work.Game("data/movies_original.idx", Movies);
+        using var ui = await OpenAsync(width, height);
+        var review = await ReviewAsync(ui);
+        ui.Pickers.File = Path.Combine(_work.GameFolder, "data", "movies.idx");
+
+        ui.Click(ui.Find<Button>("AddRuntimeChanges"));
+        await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 1);
+        ui.Click(ui.Find<Button>("AddRuntimeCreates"));
+        await UiHarness.WaitUntilAsync(() => review.IsTypingRuntime);
+        review.RuntimePath = "data/movies_original.idx";
+        ui.Click(ui.Find<Button>("ConfirmRuntimePath"));
+        await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 2 && review.HasRuntimeProblems);
+
+        review.RuntimeRows.Select(row => (row.Folder + row.Name, row.State)).Should().Equal(
+            ("data/movies.idx", "W grze (2,0\u00A0KB) – zostanie skopiowany i przywrócony"),
+            ("data/movies_original.idx", "Nowy – tworzy go oprogramowanie"));
+        review.RuntimeCount.Should().Be("2 pliki");
+        review.RuntimeProblems.Should().Be("Do poprawienia: 1 problem");
+        review.IsRuntimeOpen.Should().BeTrue();
+        review.CanConfirm.Should().BeFalse();
+        review.ConfirmBlocked.Should().Be("Najpierw trzeba poprawić problem na liście plików zmienianych podczas gry.");
+        Page(ui).Session!.Project.RuntimeFiles.Should().Equal(
+            new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile),
+            new RuntimeFileChoice("data/movies_original.idx", RuntimeFileKind.CreatesFile));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        var refusedRow = ui.Find<Border>().Last(border => border.Classes.Contains("runtimeRow"));
+        ScrollTo(refusedRow);
+        ui.Render("creator-runtime-in-game" + suffix, width < 1280 ? null : 2450);
+
+        var refused = review.RuntimeRows[1];
+        refused.OffersFixes.Should().BeTrue();
+        ui.Find<ItemsControl>("RuntimeRows").BringIntoView();
+        UiHarness.Settle();
+        ui.Click(Button(ui, review.CheckFilesLabel));
+        ui.Links.Opened.Should().Equal(new Uri("steam://validate/5100"));
+        ui.Click(Button(ui, Strings.Creator_Reveal, refused));
+        ui.Links.Folders.Should().Equal(Path.Combine(_work.GameFolder, "data"));
+        File.Delete(Path.Combine(_work.GameFolder, "data", "movies_original.idx"));
+        ui.Click(Button(ui, Strings.Creator_CompareAgain));
+        await UiHarness.WaitUntilAsync(() => Page(ui).Content is ReviewStepViewModel { HasRuntimeProblems: false, CanConfirm: true }
+            && Page(ui).Session!.Review!.Plan.Findings.All(finding => finding.RuntimeIndex is null));
+        var compared = (ReviewStepViewModel)Page(ui).Content!;
+        compared.IsRuntimeOpen.Should().BeFalse("once its problem is solved the card folds to its title");
+        compared.RuntimeCount.Should().Be("2 pliki");
+        ui.Find<Border>("RuntimeCard").BringIntoView();
+        await RenderAsync(ui, "creator-runtime-folded" + suffix, null);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(1280, 800, "")]
+    [InlineData(960, 600, "-minimum")]
+    public async Task A_path_typed_for_a_file_the_software_creates_is_checked_as_it_is_typed(double width, double height, string suffix)
+    {
+        _work.Game("data/movies.idx", Movies);
+        using var ui = await OpenAsync(width, height);
+        var review = await ReviewAsync(ui);
+        ui.Pickers.File = Path.Combine(_work.GameFolder, "data", "movies.idx");
+        ui.Click(ui.Find<Button>("AddRuntimeChanges"));
+        await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 1);
+
+        ui.Click(ui.Find<Button>("AddRuntimeCreates"));
+        await UiHarness.WaitUntilAsync(() => review.IsTypingRuntime);
+        review.RuntimePath = @"..\movies_original.idx";
+
+        review.RuntimePathProblem.Should().Be("Ścieżka „..\\movies_original.idx” wychodzi poza folder gry.");
+        review.CanConfirmRuntimePath.Should().BeFalse();
+        ui.Find<TextBox>("RuntimePath").Classes.Should().Contain("faulty");
+        UiHarness.Settle();
+        ui.Find<Grid>("RuntimePathError").BringIntoView();
+        await RenderAsync(ui, "creator-runtime-typing" + suffix, null);
+
+        review.RuntimePath = "data/movies.idx";
+        review.RuntimePathProblem.Should().NotBeEmpty("the list names the file already");
+        review.RuntimePath = "data/movies_original.idx";
+        review.CanConfirmRuntimePath.Should().BeTrue();
+        ui.Click(Button(ui, Strings.Creator_RuntimeCancel));
+        review.IsTypingRuntime.Should().BeFalse();
+        Page(ui).Session!.Project.RuntimeFiles.Should().ContainSingle();
+    }
+
+    [AvaloniaFact]
+    public async Task A_file_chosen_in_the_folder_as_one_the_software_changes_stands_in_the_card_and_goes_back_to_its_operation()
+    {
+        using var ui = await OpenAsync();
+        var review = await ReviewAsync(ui);
+        var config = Row(review, "config.xml");
+        Reveal(ui, config);
+        ui.Click(Button(ui, Strings.Creator_EditOperation, config));
+
+        ui.Click(Pill(ui, CreatorWording.Choice(FileChoice.Runtime, Creator.Comparison.FileDifference.Changed)));
+        await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 1);
+
+        var row = review.RuntimeRows.Single();
+        (row.Folder + row.Name, row.IsFromChoice).Should().Be(("data/config.xml", true));
+        row.Reason.Should().Be(Strings.Creator_RuntimeWhy);
+        review.Operations.OfType<OperationRow>().Should().NotContain(operation => operation.Name == "config.xml");
+        review.Rules.Should().Contain(rule => rule.Kind == RuleKind.Accept, "a game's settings file asks first");
+        ui.Click(ui.Find<Button>().First(button => button.DataContext == row && ToolTip.GetTip(button) as string == row.RemoveName));
+
+        await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 0);
+        review.Operations.OfType<OperationRow>().Should().Contain(operation => operation.Name == "config.xml");
+    }
+
+    [AvaloniaFact]
+    public async Task A_mistyped_game_file_offers_the_file_it_most_likely_means_in_its_place_on_the_list()
+    {
+        _work.Game("data/movies.idx", Movies);
+        using var ui = await OpenAsync();
+        var review = await ReviewAsync(ui);
+        Page(ui).Session!.Change(project => project
+            .WithRuntimeFile(new RuntimeFileChoice("data/movie.idx", RuntimeFileKind.ChangesGameFile))
+            .WithRuntimeFile(new RuntimeFileChoice("logs/streamer.log", RuntimeFileKind.CreatesFile)));
+        await UiHarness.WaitUntilAsync(() => review.HasRuntimeProblems);
+
+        var mistyped = review.RuntimeRows[0];
+        mistyped.State.Should().BeEmpty("the game has no such file");
+        mistyped.SuggestionText.Should().Be(Text.Format(Strings.Creator_FixPath, ("name", "movies.idx")));
+        Tap(ui, Button(ui, mistyped.SuggestionText, mistyped));
+
+        await UiHarness.WaitUntilAsync(() => !review.HasRuntimeProblems);
+        Page(ui).Session!.Project.RuntimeFiles.Select(file => file.Path).Should().Equal("data/movies.idx", "logs/streamer.log");
+    }
+
+    [AvaloniaFact]
+    public async Task A_game_file_an_undone_test_left_as_the_software_changed_it_is_refused_until_the_kept_copies_go()
+    {
+        _work.Game("data/movies.idx", Movies);
+        var kept = new LeftoverBackup(Guid.NewGuid(), CreatorWorkspace.Lantern, "Lantern Isle", Path.Combine(_work.GameFolder, ".example"), 2048)
+        {
+            GameDirectory = _work.GameFolder,
+            Kept = new KeptFilesSummary(KeptReason.OriginalUnknown, ["data/movies.idx"], 1, null, TestStates.Now),
+        };
+        var leftovers = new List<LeftoverBackup> { kept };
+        using var ui = await OpenAsync(answer: request => request is GetLeftoverBackups ? new LeftoverBackups([.. leftovers]) : null);
+        var review = await ReviewAsync(ui);
+
+        Page(ui).Session!.Change(project => project.WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile)));
+        await UiHarness.WaitUntilAsync(() => review.HasRuntimeProblems);
+
+        review.RuntimeRows.Single().Findings.Should().ContainSingle();
+        review.RuntimeRows.Single().OffersFixes.Should().BeTrue();
+        leftovers.Clear();
+        ui.Click(Button(ui, Strings.Creator_CompareAgain));
+        await UiHarness.WaitUntilAsync(() => Page(ui).Content is ReviewStepViewModel { HasRuntimeProblems: false, CanConfirm: true });
+    }
+
+    [AvaloniaFact]
+    public async Task Only_the_files_an_undone_test_left_in_the_game_s_current_folder_are_refused()
+    {
+        _work.Game("data/movies.idx", Movies);
+        _work.Game("data/sounds.idx", "sounds of the original game");
+        LeftoverBackup Kept(string folder, string path) =>
+            new(Guid.NewGuid(), CreatorWorkspace.Lantern, "Lantern Isle", Path.Combine(folder, ".example"), 2048)
+            {
+                GameDirectory = folder,
+                Kept = new KeptFilesSummary(KeptReason.OriginalUnknown, [path], 1, null, TestStates.Now),
+            };
+        LeftoverBackups leftovers = new([Kept(_work.GameFolder, "data/sounds.idx"), Kept(_work.GameFolder + " (old)", "data/movies.idx")]);
+        using var ui = await OpenAsync(answer: request => request is GetLeftoverBackups ? leftovers : null);
+        var review = await ReviewAsync(ui);
+
+        Page(ui).Session!.Change(project => project
+            .WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile))
+            .WithRuntimeFile(new RuntimeFileChoice("data/sounds.idx", RuntimeFileKind.ChangesGameFile)));
+        await UiHarness.WaitUntilAsync(() => review.HasRuntimeProblems);
+
+        review.RuntimeRows.Select(row => row.Findings.Count).Should().Equal([0, 1], "copies kept from another folder of the game say nothing of this one");
+    }
+
+    [AvaloniaFact]
     public async Task The_check_names_every_control_for_screen_readers()
     {
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
         ui.Click(Button(ui, Strings.Creator_EditOperation, Row(review, "config.xml")));
+        Page(ui).Session!.Change(project => project.WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.CreatesFile)));
+        await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 1);
+        ui.Click(ui.Find<Button>("AddRuntimeCreates"));
+        await UiHarness.WaitUntilAsync(() => review.IsTypingRuntime);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
 
         ui.Unnamed().Should().BeEmpty();
         ui.Click(Button(ui, Strings.Creator_ToAdvancedButton));
@@ -328,10 +533,10 @@ public sealed class CreatorReviewTests : IDisposable
 
     public void Dispose() => _work.Dispose();
 
-    private async Task<UiHarness> OpenAsync()
+    private async Task<UiHarness> OpenAsync(double width = 1280, double height = 800, Func<Message, Message?>? answer = null)
     {
-        var ui = new UiHarness(TestStates.Idle(creatorMode: true), CreatorWorkspace.Compose());
-        ui.Agent.Answer = _work.Answer;
+        var ui = new UiHarness(TestStates.Idle(creatorMode: true), CreatorWorkspace.Compose(), width, height);
+        ui.Agent.Answer = request => _work.Answer(request) ?? answer?.Invoke(request);
         ui.Shell.Navigator.Navigate(new CreatorRoute());
         await UiHarness.WaitUntilAsync(() => ui.Find<CreatorPage>().Any(page => page.IsEffectivelyVisible));
         return ui;
@@ -360,7 +565,31 @@ public sealed class CreatorReviewTests : IDisposable
         UiHarness.Settle();
     }
 
-    private static async Task RenderAsync(UiHarness ui, string name, double height)
+    // The operations above are virtualised, so the page's height is an estimate that settles only as it scrolls.
+    private static void ScrollTo(Control control)
+    {
+        var viewer = control.FindAncestorOfType<ScrollViewer>()!;
+        for (var i = 0; i < 8; i++)
+        {
+            UiHarness.Settle();
+            var below = control.TranslatePoint(default, viewer)!.Value.Y - 120;
+            if (Math.Abs(below) < 2)
+            {
+                return;
+            }
+
+            viewer.Offset = viewer.Offset.WithY(Math.Max(0, viewer.Offset.Y + below));
+        }
+    }
+
+    private static void Tap(UiHarness ui, Control control)
+    {
+        control.BringIntoView();
+        UiHarness.Settle();
+        ui.Click(control);
+    }
+
+    private static async Task RenderAsync(UiHarness ui, string name, double? height)
     {
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render(name, height);

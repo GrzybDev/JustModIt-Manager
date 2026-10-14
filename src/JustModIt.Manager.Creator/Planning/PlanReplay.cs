@@ -4,6 +4,12 @@ using JustModIt.Manager.Creator.Comparison;
 
 namespace JustModIt.Manager.Creator.Planning;
 
+/// <summary>A file the author declared as one the package's software writes while the game runs, before the plan checks it.</summary>
+/// <param name="Path">The game-relative path, spelt as the game spells it where it can.</param>
+/// <param name="Kind">Whether the game has the file or the software creates it.</param>
+/// <param name="FromChoice">A file of the comparison declared with <see cref="FileChoice.Runtime"/>.</param>
+internal sealed record RuntimeDeclaration(string Path, RuntimeFileKind Kind, bool FromChoice);
+
 /// <summary>
 /// Plays the operations over the listed game folder without touching a file, the way the installer replays a manifest:
 /// each sees the game as the ones before it left it, and one that cannot run is reported and not played.
@@ -41,12 +47,15 @@ internal sealed class PlanReplay
         RenamedAway,
     }
 
-    /// <summary>Replays the operations in order over the comparison's game listing.</summary>
+    /// <summary>Replays the operations in order over the comparison's game listing, then checks the declared files on the result.</summary>
     /// <param name="comparison">Gives the game listing and the author's files.</param>
     /// <param name="operations">In the order the package runs them.</param>
-    /// <returns>The operations with the files they rely on, and what keeps them from running.</returns>
-    public static (List<PlannedOperation> Operations, List<PlanFinding> Findings) Run(FolderComparison comparison,
-        IReadOnlyList<PlannedOperation> operations)
+    /// <param name="declarations">The files the package's software writes while the game runs; null for none.</param>
+    /// <param name="keptPaths">Game paths that an undone test left as the software wrote them; null for none.</param>
+    /// <returns>The operations with the files they rely on, the declared files, and what keeps them from running.</returns>
+    public static (List<PlannedOperation> Operations, List<PlanFinding> Findings, List<PlannedRuntimeFile> RuntimeFiles) Run(
+        FolderComparison comparison, IReadOnlyList<PlannedOperation> operations, IReadOnlyList<RuntimeDeclaration>? declarations = null,
+        IReadOnlySet<string>? keptPaths = null)
     {
         var replay = new PlanReplay(comparison);
         if (operations.Count == 0)
@@ -60,7 +69,66 @@ internal sealed class PlanReplay
             resolved.Add(replay.Play(operations[replay._index]));
         }
 
-        return (resolved, replay._findings);
+        var runtime = replay.Declare(declarations ?? [], resolved, keptPaths ?? new HashSet<string>());
+        return (resolved, replay._findings, runtime);
+    }
+
+    // On the game as the whole package leaves it: the software runs only once everything is installed.
+    private List<PlannedRuntimeFile> Declare(IReadOnlyList<RuntimeDeclaration> declarations, List<PlannedOperation> operations,
+        IReadOnlySet<string> keptPaths)
+    {
+        if (declarations.Count > RuntimeFile.MaxPerPackage)
+        {
+            _findings.Add(new PlanFinding(FindingKind.TooManyRuntimePaths));
+        }
+
+        var declared = new HashSet<string>(PackagePath.Comparer);
+        var planned = new List<PlannedRuntimeFile>(declarations.Count);
+        for (var i = 0; i < declarations.Count; i++)
+        {
+            var (path, kind, fromChoice) = declarations[i];
+            var game = _game.TryGetFile(path, out var file) ? new FileReference(file.FullPath, file.Stamp) : null;
+            var written = operations.Any(operation =>
+                PackagePath.Comparer.Equals(operation.Path, path) || PackagePath.Comparer.Equals(operation.From, path));
+            planned.Add(new PlannedRuntimeFile(path, kind, game, written, fromChoice));
+            if (RuntimePathProblem(path, _game.HiddenFolderName) is { } problem)
+            {
+                AddRuntime(problem, i, path);
+                continue;
+            }
+
+            if (!declared.Add(path))
+            {
+                AddRuntime(FindingKind.DuplicatePath, i, path);
+                continue;
+            }
+
+            if (IsBlocked(path))
+            {
+                AddRuntime(FindingKind.PathConflict, i, path);
+                continue;
+            }
+
+            if (operations.Any(operation => operation.Kind == OperationKind.Patch && PackagePath.Comparer.Equals(operation.Path, path)))
+            {
+                AddRuntime(FindingKind.RuntimeFilePatched, i, path);
+            }
+
+            switch (kind)
+            {
+                case RuntimeFileKind.ChangesGameFile when game is null && StateOf(path).Origin != Origin.Written:
+                    AddRuntime(FindingKind.GameFileMissing, i, path, NearestTo(path));
+                    break;
+                case RuntimeFileKind.ChangesGameFile when keptPaths.Contains(path):
+                    AddRuntime(FindingKind.RuntimeFileKept, i, path);
+                    break;
+                case RuntimeFileKind.CreatesFile when game is not null && !written:
+                    AddRuntime(FindingKind.RuntimeFileInGame, i, path);
+                    break;
+            }
+        }
+
+        return planned;
     }
 
     private PlannedOperation Play(PlannedOperation operation) => operation.Kind switch
@@ -219,28 +287,47 @@ internal sealed class PlanReplay
 
     private bool IsValid(PlannedOperation operation, string path)
     {
-        switch (PackagePath.Check(path))
+        if (PathProblem(path) is { } problem)
         {
-            case PackagePathCheck.EscapesFolder:
-                Add(FindingKind.PathEscapesFolder, operation, path);
-                return false;
-            case PackagePathCheck.Invalid:
-                Add(FindingKind.InvalidPath, operation, path);
-                return false;
-        }
-
-        // The installer refuses all of them, so a package holding one could not be installed anywhere.
-        if (AppFolders.IsReservedTopFolder(PackagePath.FirstSegment(path), _game.HiddenFolderName) || AppFolders.WouldMark(path))
-        {
-            Add(FindingKind.ReservedPath, operation, path);
+            Add(problem, operation, path);
             return false;
         }
 
         return true;
     }
 
-    // A folder cannot become a file, and a file cannot hold other files.
+    /// <summary>What keeps a path from being declared as a file the package's software writes; null when nothing does.</summary>
+    /// <param name="path">The game-relative path.</param>
+    /// <param name="hiddenFolderName">The name of the app's own folder in the game.</param>
+    internal static FindingKind? RuntimePathProblem(string path, string hiddenFolderName) =>
+        // A file the software has not created yet keeps the name it is given, which a short name would never meet.
+        PathProblem(path, hiddenFolderName) ?? (PackagePath.HasShortName(path) ? FindingKind.InvalidPath : null);
+
+    private FindingKind? PathProblem(string path) => PathProblem(path, _game.HiddenFolderName);
+
+    private static FindingKind? PathProblem(string path, string hiddenFolderName) => PackagePath.Check(path) switch
+    {
+        PackagePathCheck.EscapesFolder => FindingKind.PathEscapesFolder,
+        PackagePathCheck.Invalid => FindingKind.InvalidPath,
+        // The installer refuses all of them, so a package holding one could not be installed anywhere.
+        _ when AppFolders.IsReservedTopFolder(PackagePath.FirstSegment(path), hiddenFolderName) || AppFolders.WouldMark(path) =>
+            FindingKind.ReservedPath,
+        _ => null,
+    };
+
     private bool CanHoldFile(PlannedOperation operation, string path)
+    {
+        var blocked = IsBlocked(path);
+        if (blocked)
+        {
+            Add(FindingKind.PathConflict, operation, path);
+        }
+
+        return !blocked;
+    }
+
+    // A folder cannot become a file, and a file cannot hold other files.
+    private bool IsBlocked(string path)
     {
         var blocked = _game.IsDirectory(path) || _createdDirectories.Contains(path);
         for (var directory = GameIndex.DirectoryOf(path); !blocked && directory.Length > 0; directory = GameIndex.DirectoryOf(directory))
@@ -248,12 +335,7 @@ internal sealed class PlanReplay
             blocked = StateOf(directory).Origin is Origin.Game or Origin.Written;
         }
 
-        if (blocked)
-        {
-            Add(FindingKind.PathConflict, operation, path);
-        }
-
-        return !blocked;
+        return blocked;
     }
 
     private void Write(string path, FileReference? content)
@@ -316,6 +398,9 @@ internal sealed class PlanReplay
 
     private void Add(FindingKind kind, PlannedOperation operation, string path, string? suggested = null) =>
         _findings.Add(new PlanFinding(kind, path) { OperationIndex = _index, StepIndex = operation.StepIndex, SuggestedPath = suggested });
+
+    private void AddRuntime(FindingKind kind, int index, string path, string? suggested = null) =>
+        _findings.Add(new PlanFinding(kind, path) { RuntimeIndex = index, SuggestedPath = suggested });
 
     private readonly record struct PathState(Origin Origin, FileReference? Content);
 }

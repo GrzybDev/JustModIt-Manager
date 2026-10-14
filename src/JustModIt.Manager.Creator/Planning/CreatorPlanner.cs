@@ -32,7 +32,11 @@ public static class CreatorPlanner
     /// <param name="comparison">The folders as last compared.</param>
     /// <param name="project">The author's choices, steps and metadata.</param>
     /// <param name="options">The app's limits and hosting rules.</param>
-    public static CreatorReview Plan(FolderComparison comparison, CreatorProject project, CreatorOptions options)
+    /// <param name="keptPaths">
+    /// The game's paths that an undone test left as the package's software wrote them, by the app's records; null for none.
+    /// </param>
+    public static CreatorReview Plan(FolderComparison comparison, CreatorProject project, CreatorOptions options,
+        IReadOnlySet<string>? keptPaths = null)
     {
         ArgumentNullException.ThrowIfNull(comparison);
         ArgumentNullException.ThrowIfNull(project);
@@ -40,18 +44,26 @@ public static class CreatorPlanner
         var (entries, operations) = project.Mode == CreatorMode.Advanced
             ? ([], [.. project.Steps.Select((step, index) => ToOperation(step, OperationReason.Step, index, comparison.Game))])
             : Simple(comparison, project);
-        var (resolved, findings) = PlanReplay.Run(comparison, operations);
+        var (resolved, findings, runtime) = PlanReplay.Run(comparison, operations, Declarations(comparison, project, entries), keptPaths);
         if (project.Mode == CreatorMode.Simple)
         {
             findings.AddRange(RenamesNotReplaced(comparison, resolved));
         }
 
         findings.AddRange(HostingRules.Check(comparison, resolved, options.Rules));
+        findings.AddRange(HostingRules.CheckRuntime(runtime, resolved, options.Rules));
         var tools = findings.Where(finding => finding.Kind == FindingKind.ThirdPartyTool).Select(finding => finding.ToolId!).ToList();
         var libraries = findings.Where(finding => finding.Kind == FindingKind.AddedLibrary)
             .Select(finding => (Path: finding.Path!, Notice: project.LibraryNoticeOf(finding.Path!)))
             .Where(library => library.Notice is not null).ToList();
-        var format = PackageFormatDecision.For(resolved, carriesThirdPartyTools: tools.Count > 0 || libraries.Count > 0);
+        var carriesCode = tools.Count > 0 || HostingRules.CarriesCode(resolved, options.Rules);
+        if (runtime.Count > 0 && !carriesCode)
+        {
+            findings.Add(new PlanFinding(FindingKind.RuntimeWithoutCode));
+        }
+
+        var format = PackageFormatDecision.For(resolved, carriesThirdPartyTools: tools.Count > 0 || libraries.Count > 0,
+            declaresRuntimeFiles: runtime.Count > 0);
         findings.AddRange(PackageChecks(resolved, format, project.Metadata, options));
         var plan = new PackagePlan
         {
@@ -67,8 +79,37 @@ public static class CreatorPlanner
                 .. libraries.Where(library => library.Notice!.IsComplete).Select(library => NoticeOf(library.Path, library.Notice!)),
             ],
             Acknowledged = project.Acknowledged,
+            RuntimeFiles = [.. runtime],
+            CarriesCode = carriesCode,
         };
         return new CreatorReview([.. entries], plan);
+    }
+
+    // The author's list first, then the files of the comparison chosen as changed while the game runs, each path once; a
+    // path the author's list holds twice stays twice, so the replay can say so.
+    private static List<RuntimeDeclaration> Declarations(FolderComparison comparison, CreatorProject project, List<ReviewEntry> entries)
+    {
+        List<RuntimeDeclaration> declarations =
+            [.. project.RuntimeFiles.Select(file => new RuntimeDeclaration(comparison.Game.Spell(file.Path), file.Kind, FromChoice: false))];
+        var listed = declarations.Select(declaration => declaration.Path).ToHashSet(PackagePath.Comparer);
+        foreach (var entry in entries.Where(entry => entry.Choice == FileChoice.Runtime && listed.Add(entry.File.Path)))
+        {
+            var kind = entry.File.Difference == FileDifference.Changed ? RuntimeFileKind.ChangesGameFile : RuntimeFileKind.CreatesFile;
+            declarations.Add(new RuntimeDeclaration(entry.File.Path, kind, FromChoice: true));
+        }
+
+        return declarations;
+    }
+
+    /// <summary>What keeps a path the author types from being declared as a file the package's software writes.</summary>
+    /// <param name="path">The game-relative path as typed.</param>
+    /// <param name="options">Name the app's own folder in the game.</param>
+    /// <returns>The finding the plan would report for the path; null when nothing keeps it.</returns>
+    public static FindingKind? RuntimePathProblem(string path, CreatorOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(options);
+        return PlanReplay.RuntimePathProblem(path, options.HiddenFolderName);
     }
 
     // The site takes another author's code only with its licence and source, so no plain acknowledgement stands in for
@@ -124,7 +165,7 @@ public static class CreatorPlanner
         // Renames go first: whether a game file stays in place decides what may happen to its changed version.
         foreach (var file in comparison.Files.Where(file => file.RenameFrom is not null))
         {
-            var entry = Entry(file, project, renamed: false, FileChoice.Rename, FileChoice.Copy, FileChoice.Skip);
+            var entry = Entry(file, project, renamed: false, FileChoice.Rename, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip);
             entries[file.Path] = entry;
             if (entry.Choice == FileChoice.Rename)
             {
@@ -137,10 +178,10 @@ public static class CreatorPlanner
             var renamed = renamedAway.Contains(file.Path);
             var entry = file.Difference switch
             {
-                FileDifference.New => Entry(file, project, renamed, FileChoice.Copy, FileChoice.Skip),
+                FileDifference.New => Entry(file, project, renamed, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip),
                 // A patch needs its original in place, and the rename has moved it.
-                FileDifference.Changed when renamed => Entry(file, project, renamed, FileChoice.Copy, FileChoice.Skip),
-                FileDifference.Changed => Entry(file, project, renamed, FileChoice.Patch, FileChoice.Copy, FileChoice.Skip),
+                FileDifference.Changed when renamed => Entry(file, project, renamed, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip),
+                FileDifference.Changed => Entry(file, project, renamed, FileChoice.Patch, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip),
                 FileDifference.Identical => Entry(file, project, renamed, FileChoice.Skip),
                 _ when renamed => null,
                 _ => Entry(file, project, renamed, FileChoice.Skip, FileChoice.Delete),

@@ -28,11 +28,15 @@ internal sealed record ProjectDocument
     public List<LibraryNotice>? Libraries { get; init; }
 
     public List<string>? Acknowledged { get; init; }
+
+    public List<RuntimeFileDocument>? RuntimeFiles { get; init; }
 }
 
 internal sealed record GameDocument(string Store, string Id, string? Name);
 
 internal sealed record MetadataDocument(string? Title, string? Version, List<string>? Authors);
+
+internal sealed record RuntimeFileDocument(string Path, string Kind);
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

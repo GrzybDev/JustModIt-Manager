@@ -14,6 +14,9 @@ internal static class HostingRules
 {
     private const string ExecutableExtension = ".exe";
 
+    // A plugin of the ASI loaders, which load it as a library.
+    private const string LoaderPluginExtension = ".asi";
+
     /// <summary>What the rules find in a plan's operations.</summary>
     /// <param name="comparison">The comparison the plan was made from.</param>
     /// <param name="operations">The resolved operations, in order.</param>
@@ -47,6 +50,33 @@ internal static class HostingRules
             yield return finding;
         }
     }
+
+    /// <summary>What the rules find in the files the package's software writes while the game runs.</summary>
+    /// <param name="files">The declared files, in the plan's order.</param>
+    /// <param name="operations">The resolved operations, which may write some of the files too.</param>
+    /// <param name="rules">The rules to apply.</param>
+    public static IEnumerable<PlanFinding> CheckRuntime(IReadOnlyList<PlannedRuntimeFile> files, IReadOnlyList<PlannedOperation> operations,
+        HostingRuleSet rules)
+    {
+        for (var i = 0; i < files.Count; i++)
+        {
+            if (!PackagePath.IsValid(files[i].Path))
+            {
+                continue;
+            }
+
+            foreach (var finding in CheckRuntimeFile(files[i], operations, rules))
+            {
+                yield return finding with { RuntimeIndex = i };
+            }
+        }
+    }
+
+    /// <summary>Whether the package carries a program, the only thing that can change files while the game runs.</summary>
+    /// <param name="operations">The resolved operations.</param>
+    /// <param name="rules">Name the extensions of libraries.</param>
+    public static bool CarriesCode(IReadOnlyList<PlannedOperation> operations, HostingRuleSet rules) =>
+        operations.Any(operation => operation.Kind is OperationKind.Copy or OperationKind.Rename && IsCode(operation.Path, rules));
 
     /// <summary>Whether a patch carries most of its file, as one of an encrypted or recompressed archive does.</summary>
     /// <param name="rules">Hold the thresholds.</param>
@@ -98,6 +128,53 @@ internal static class HostingRules
         {
             yield return new PlanFinding(FindingKind.AddedLibrary, operation.Path);
         }
+    }
+
+    private static IEnumerable<PlanFinding> CheckRuntimeFile(PlannedRuntimeFile file, IReadOnlyList<PlannedOperation> operations,
+        HostingRuleSet rules)
+    {
+        var name = GameIndex.NameOf(file.Path);
+        if (Matches(rules.StoreLibraries, name))
+        {
+            yield return new PlanFinding(FindingKind.StoreLibrary, file.Path);
+        }
+
+        if (IsCircumvention(file.Path, rules))
+        {
+            yield return new PlanFinding(FindingKind.CircumventionFile, file.Path);
+        }
+
+        if (Matches(rules.SaveNames, name) || FoldersOf(file.Path).Any(folder => Matches(rules.SaveNames, folder)))
+        {
+            yield return new PlanFinding(FindingKind.RuntimeSave, file.Path);
+        }
+        else if (IsCode(file.Path, rules))
+        {
+            yield return new PlanFinding(FindingKind.RuntimeCode, file.Path)
+            {
+                AcknowledgementKey = AcknowledgementKeys.For(FindingKind.RuntimeCode, file.Path),
+            };
+        }
+        // A settings file the package writes is the package's own, and goes back as the package left it anyway.
+        else if (file.GameFile is { } game && rules.SettingsExtensions.Contains(Path.GetExtension(file.Path), StringComparer.OrdinalIgnoreCase)
+            && !operations.Any(operation => operation.Kind is OperationKind.Copy or OperationKind.Patch or OperationKind.Rename
+                && PackagePath.Comparer.Equals(operation.Path, file.Path)))
+        {
+            yield return new PlanFinding(FindingKind.RuntimeSettings, file.Path)
+            {
+                Size = game.Stamp.Size,
+                AcknowledgementKey = AcknowledgementKeys.For(FindingKind.RuntimeSettings, file.Path,
+                    game.Stamp.Size.ToString(CultureInfo.InvariantCulture)),
+            };
+        }
+    }
+
+    private static bool IsCode(string path, HostingRuleSet rules)
+    {
+        var extension = Path.GetExtension(path);
+        return extension.Equals(ExecutableExtension, StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(LoaderPluginExtension, StringComparison.OrdinalIgnoreCase)
+            || rules.LibraryExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
     }
 
     private static PlanFinding WholeGameFile(bool isArchive, string path, long size)

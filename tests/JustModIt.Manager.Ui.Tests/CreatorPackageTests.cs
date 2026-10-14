@@ -2,12 +2,15 @@ using System.IO.Compression;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Building;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
@@ -225,6 +228,43 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Pickers.Suggested.Should().Equal("Lantern Isle v1.0.examplemod", "Lantern Isle v1.1.examplemod");
         File.Exists(first).Should().BeTrue("the package of the earlier version stays");
         File.Exists(second).Should().BeTrue();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(1280, 800, "")]
+    [InlineData(960, 600, "-minimum")]
+    public async Task A_package_naming_files_changed_while_the_game_runs_says_why_only_the_app_installs_it_and_records_them(
+        double width, double height, string suffix)
+    {
+        var library = Noise(4, 4096);
+        var movies = Noise(5, 3000);
+        _work.Author("data/strings.bin", "strings of the original game");
+        _work.Game("dx11/render.dll", library);
+        _work.Author("dx11/render_o.dll", library);
+        _work.Author("dx11/render.dll", Noise(6, 3500));
+        _work.Game("data/movies.idx", movies);
+        using var ui = await OpenAsync(width: width, height: height);
+        var package = await PackageAsync(ui, project => project
+            .WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile))
+            .WithRuntimeFile(new RuntimeFileChoice("data/movies_original.idx", RuntimeFileKind.CreatesFile)));
+
+        package.IsManifest.Should().BeTrue();
+        package.FormatText.Should().StartWith(Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.RenamesFiles)))
+            + " " + Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.DeclaresRuntimeFiles))));
+        ui.Find<CreatorPage>().Single().GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToHome();
+        await RenderAsync(ui, "creator-runtime-package" + suffix, null);
+
+        package.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+
+        await using var built = await new PackageReader().OpenAsync(ui.Pickers.SaveFile, TestContext.Current.CancellationToken);
+        built.Manifest!.Requires.Should().Contain(PackageCapabilities.RuntimeFiles);
+        built.Manifest.RuntimeFiles!.Select(file => (file.Path, file.Originals?.Single().Size)).Should().Equal(
+            ("data/movies.idx", (long?)movies.Length),
+            ("data/movies_original.idx", null));
     }
 
     [AvaloniaFact]
@@ -643,6 +683,23 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task An_undone_test_reads_again_which_game_files_it_left_as_the_software_changed_them()
+    {
+        await TestedPackageAsync();
+        _ui!.Click(Button(_ui, Strings.Creator_TestInstall));
+        _ui.Push(State(null, installed: true));
+        _ui.Click(Button(_ui, Strings.Creator_UndoTest));
+        var asked = _ui.Agent.Requests.OfType<GetLeftoverBackups>().Count();
+
+        _ui.Agent.End(new JobEnded(Job(UndoJob, JobKind.Uninstall, JobStage.Uninstalling), JobOutcome.Succeeded)
+        {
+            KeptFiles = [new KeptFilesView(KeptReason.OriginalUnknown, 1)],
+        });
+
+        _ui.Agent.Requests.OfType<GetLeftoverBackups>().Should().HaveCount(asked + 1, "the plan must know the files the undo left");
+    }
+
+    [AvaloniaFact]
     public async Task An_undone_test_whose_files_may_only_not_have_been_the_store_s_says_so_as_information()
     {
         var package = await TestedPackageAsync();
@@ -718,16 +775,16 @@ public sealed class CreatorPackageTests : IDisposable
         return package;
     }
 
-    private async Task<UiHarness> OpenAsync(IFileSystem? files = null, AppStateView? state = null)
+    private async Task<UiHarness> OpenAsync(IFileSystem? files = null, AppStateView? state = null, double width = 1280, double height = 800)
     {
-        var ui = new UiHarness(state ?? TestStates.Idle(creatorMode: true), CreatorWorkspace.Compose(files));
+        var ui = new UiHarness(state ?? TestStates.Idle(creatorMode: true), CreatorWorkspace.Compose(files), width, height);
         ui.Agent.Answer = _work.Answer;
         ui.Shell.Navigator.Navigate(new CreatorRoute());
         await UiHarness.WaitUntilAsync(() => ui.Find<CreatorPage>().Any(page => page.IsEffectivelyVisible));
         return ui;
     }
 
-    private async Task<PackageStepViewModel> PackageAsync(UiHarness ui)
+    private async Task<PackageStepViewModel> PackageAsync(UiHarness ui, Func<CreatorProject, CreatorProject>? change = null)
     {
         var page = Page(ui);
         page.NewProjectCommand.Execute(null);
@@ -736,6 +793,12 @@ public sealed class CreatorPackageTests : IDisposable
         page.GoTo(CreatorStep.Files);
         ((FilesStepViewModel)page.Content!).UseFolder(_work.AuthorFolder);
         await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review && page.Session!.Review is not null);
+        if (change is not null)
+        {
+            page.Session!.Change(change);
+            await page.Session.SettledAsync();
+        }
+
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Click(Button(ui, Strings.Creator_Confirm));
         await UiHarness.WaitUntilAsync(() => page.Content is PackageStepViewModel);
@@ -796,7 +859,7 @@ public sealed class CreatorPackageTests : IDisposable
         });
     }
 
-    private static async Task RenderAsync(UiHarness ui, string name, double height)
+    private static async Task RenderAsync(UiHarness ui, string name, double? height)
     {
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render(name, height);

@@ -41,6 +41,8 @@
     ".pck", ".pkg", ".resources", ".rpa", ".rpf", ".sb", ".toc", ".ucas", ".utoc", ".vpk", ".wad", ".xp3"
   ],
   "libraryExtensions": [ ".dll", ".so", ".dylib" ],
+  "saveNames": [ "save", "saves", "savegame", "savegames", "savedata", "SaveGames", "*.sav", "*.save" ],
+  "settingsExtensions": [ ".ini", ".cfg", ".conf", ".config", ".json", ".xml", ".toml", ".yaml", ".yml", ".lua" ],
   "largeFileBytes": 16777216,
   "largePatchRatio": 0.5,
   "largePatchMinimumBytes": 1048576,

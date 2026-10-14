@@ -70,6 +70,35 @@ public sealed class InstallRoundTripTests : IDisposable
     }
 
     [Fact]
+    public async Task Declared_files_come_back_after_the_software_changed_them()
+    {
+        using var workspace = new Workspace();
+        workspace.Game("ExampleGame.exe", "exe");
+        workspace.Game("data/list.idx", Workspace.Bytes(3000, 21));
+        workspace.Author("tools/streamer.exe", "a program that rewrites the list");
+        var project = new CreatorProject { Metadata = new PackageMetadata { Title = "Example package", Version = "1" } }
+            .WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile))
+            .WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile));
+        var plan = CreatorPlanner.Plan(await workspace.CompareAsync(), project, Workspace.Options).Plan;
+        var game = Game(plan.GameDirectory);
+        var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
+            new BuildRequest { OutputPath = workspace.Output("example.examplemod"), Game = game }, progress: null,
+            TestContext.Current.CancellationToken);
+        var before = Snapshot(workspace);
+        await using var engine = Engine(game, workspace);
+        var installed = await engine.InstallAsync(new InstallRequest(game, built.OutputPath, BackupChoice.GameFolder), progress: null,
+            TestContext.Current.CancellationToken);
+
+        File.Copy(workspace.GamePath("data/list.idx"), workspace.GamePath("data/list_original.idx"));
+        await File.WriteAllBytesAsync(workspace.GamePath("data/list.idx"), Workspace.Bytes(2800, 22), TestContext.Current.CancellationToken);
+        var uninstalled = await engine.UninstallAsync(installed.Record.Id, replacedBy: null, progress: null,
+            TestContext.Current.CancellationToken);
+
+        uninstalled.KeptFiles.Should().BeEmpty();
+        Snapshot(workspace).Should().BeEquivalentTo(before);
+    }
+
+    [Fact]
     public async Task Installs_a_plain_zip()
     {
         using var workspace = new Workspace();
@@ -121,10 +150,12 @@ public sealed class InstallRoundTripTests : IDisposable
 
     private byte[] Read(string path) => File.ReadAllBytes(_workspace.GamePath(path));
 
-    private Dictionary<string, string> Snapshot() =>
-        Directory.EnumerateFiles(_workspace.GameDirectory, "*", SearchOption.AllDirectories)
-            .Where(file => !Path.GetRelativePath(_workspace.GameDirectory, file).StartsWith(Workspace.HiddenFolderName, StringComparison.Ordinal))
-            .ToDictionary(file => Path.GetRelativePath(_workspace.GameDirectory, file), file => Convert.ToHexString(File.ReadAllBytes(file)));
+    private Dictionary<string, string> Snapshot() => Snapshot(_workspace);
+
+    private static Dictionary<string, string> Snapshot(Workspace workspace) =>
+        Directory.EnumerateFiles(workspace.GameDirectory, "*", SearchOption.AllDirectories)
+            .Where(file => !Path.GetRelativePath(workspace.GameDirectory, file).StartsWith(Workspace.HiddenFolderName, StringComparison.Ordinal))
+            .ToDictionary(file => Path.GetRelativePath(workspace.GameDirectory, file), file => Convert.ToHexString(File.ReadAllBytes(file)));
 
     private sealed class FixedProbe(InstalledGame game) : IGameProbe
     {
