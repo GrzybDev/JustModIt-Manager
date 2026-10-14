@@ -133,6 +133,8 @@ public static class AgentServices
         services.AddSingleton(InstallEngineOptions.For(options.Identity, locations));
         services.AddSingleton<IInstallEngine, InstallEngine>();
         services.AddSingleton<IInstallPolicy>(SideBySideInstallPolicy.Instance);
+        services.AddSingleton(provider => new ReplacementMarkers(locations.ReplacingDirectory, provider.GetRequiredService<TimeProvider>(),
+            provider.GetRequiredService<ILogger<ReplacementMarkers>>()));
         services.AddSingleton<JobRunner>();
         services.AddSingleton(new StateCoordinatorOptions { TargetLanguage = options.TargetLanguage });
         services.AddSingleton<StateCoordinator>();

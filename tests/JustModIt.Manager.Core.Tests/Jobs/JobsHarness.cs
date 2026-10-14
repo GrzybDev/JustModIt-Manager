@@ -11,10 +11,13 @@ namespace JustModIt.Manager.Core.Tests.Jobs;
 /// <summary>A job runner over fakes: one installed, idle game whose project offers release one.</summary>
 internal sealed class JobsHarness : IAsyncDisposable
 {
+    private readonly TempDirectory _markers = new();
+
     private JobsHarness(IInstallPolicy? policy, IInstallEngine? engine)
     {
-        Runner = new JobRunner(engine ?? Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance,
-            policy);
+        Markers = new ReplacementMarkers(_markers.Path, Time, NullLogger<ReplacementMarkers>.Instance);
+        Runner = new JobRunner(engine ?? Engine, Catalogue, Downloader, Library, RunningGames, Settings, Markers, Time,
+            NullLogger<JobRunner>.Instance, policy);
         Runner.Changed += (_, job) => Changes.Enqueue(job);
         Runner.Progressed += (_, job) => Progress.Enqueue(job);
         Runner.Finished += (_, result) => Results.Enqueue(result);
@@ -36,6 +39,11 @@ internal sealed class JobsHarness : IAsyncDisposable
     public FakeInstallEngine Engine { get; } = new();
 
     public FakeSettings Settings { get; } = new();
+
+    public ReplacementMarkers Markers { get; }
+
+    /// <summary>The markers of the replacements under way, as files in their folder.</summary>
+    public IReadOnlyList<string> MarkerFiles => [.. _markers.Files()];
 
     public JobRunner Runner { get; }
 
@@ -90,5 +98,9 @@ internal sealed class JobsHarness : IAsyncDisposable
         Eventually.HoldsAsync(() => LastChange(job) is { Stage: JobStage.Waiting } waiting && waiting.WaitReason == reason,
             $"the job waits for {reason}");
 
-    public ValueTask DisposeAsync() => Runner.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await Runner.DisposeAsync();
+        _markers.Dispose();
+    }
 }

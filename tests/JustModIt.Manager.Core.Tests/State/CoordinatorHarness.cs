@@ -14,6 +14,7 @@ namespace JustModIt.Manager.Core.Tests.State;
 internal sealed class CoordinatorHarness : IAsyncDisposable
 {
     private readonly CancellationTokenSource _stop = new();
+    private readonly TempDirectory _markers = new();
     private Task _run = Task.CompletedTask;
 
     /// <summary>Builds the coordinator and the job runner; nothing runs before <see cref="StartAsync"/>.</summary>
@@ -29,7 +30,8 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
     {
         Settings = new FakeSettings(settings ?? AppSettings.Default);
         History = history ?? new InMemoryDocumentStore<AutomationHistory>(afterFirstLook ? AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)) : null);
-        Jobs = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings, Time, NullLogger<JobRunner>.Instance, policy);
+        Jobs = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings,
+            new ReplacementMarkers(_markers.Path, Time, NullLogger<ReplacementMarkers>.Instance), Time, NullLogger<JobRunner>.Instance, policy);
         Coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, RunningGames, Failures, History,
             new StateCoordinatorOptions { TargetLanguage = language ?? TargetLanguage.None }, Time, NullLogger<StateCoordinator>.Instance);
     }
@@ -138,5 +140,6 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
         await Coordinator.DisposeAsync();
         await Jobs.DisposeAsync();
         _stop.Dispose();
+        _markers.Dispose();
     }
 }

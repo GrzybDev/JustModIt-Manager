@@ -26,6 +26,7 @@ internal sealed record PreparedPackage(string Path, Guid FileId, Guid ReleaseId,
 /// <param name="runningGames">Waits for a game's processes to exit.</param>
 /// <param name="settings">Where new installs keep their backups.</param>
 /// <param name="policy">The app's rule for installs of several projects on one game.</param>
+/// <param name="markers">Keeps a replacement's removed install until the new one commits or it is put back.</param>
 /// <param name="downloadSlot">The single download slot that all jobs share.</param>
 /// <param name="time">The clock for waits.</param>
 /// <param name="logger">Logs what a job did besides its outcome.</param>
@@ -38,6 +39,7 @@ internal sealed partial class JobPipeline(
     IRunningGameDetector runningGames,
     ISettingsService settings,
     IInstallPolicy policy,
+    ReplacementMarkers markers,
     SemaphoreSlim downloadSlot,
     TimeProvider time,
     ILogger logger,
@@ -57,6 +59,7 @@ internal sealed partial class JobPipeline(
         InstallJobRequest install => InstallAsync(job, install),
         UninstallJobRequest uninstall => UninstallAsync(job, uninstall.Record),
         ReinstallJobRequest reinstall => ReinstallAsync(job, reinstall.Record),
+        RestoreJobRequest restore => RestoreAsync(job, restore.Marker),
         TestInstallJobRequest test => TestInstallAsync(job, test),
         MoveBackupsJobRequest move => MoveBackupsAsync(job, move),
         FollowMoveJobRequest follow => FollowMoveAsync(job, follow.Record),
@@ -144,38 +147,72 @@ internal sealed partial class JobPipeline(
         // Downloading first means a missing connection or package leaves the installed release as it is.
         var package = await PrepareAsync(job, game, project, variantName, fallBackToDefault).ConfigureAwait(false);
         job.Enter(JobStage.Checking);
-        var removed = await WhenSafeAsync(job, detected: true, canDefer: false, async current =>
-        {
-            await EnsureReplaceableAsync(job, record, package, current!).ConfigureAwait(false);
-            return await engine.UninstallAsync(record.Id, package.Path, job.InstallProgress, job.Token).ConfigureAwait(false);
-        }, job.Token).ConfigureAwait(false);
+        var marker = new ReplacementMarker(record, job.Kind, job.Origin, project.ProjectUuid);
+        var halted = false;
         try
         {
-            var installed = await InstallPackageAsync(job, package.Path, package.Source, isTest: false, canDefer: false, job.Token)
-                .ConfigureAwait(false);
-            return job.Succeeded() with
+            var removed = await WhenSafeAsync(job, detected: true, canDefer: false, async current =>
             {
-                Installed = installed.Record,
-                Warnings = installed.Warnings,
-                KeptFiles = removed.KeptFiles,
-                RemovedRecord = record.Id,
-            };
+                await EnsureReplaceableAsync(job, record, package, current!).ConfigureAwait(false);
+                // Before anything is removed, so a stop before the new install commits leaves the start to put this one back.
+                await markers.SaveAsync(marker, job.Token).ConfigureAwait(false);
+                return await engine.UninstallAsync(record.Id, package.Path, job.InstallProgress, job.Token).ConfigureAwait(false);
+            }, job.Token).ConfigureAwait(false);
+            try
+            {
+                var installed = await InstallPackageAsync(job, package.Path, package.Source, isTest: false, canDefer: false, job.Token)
+                    .ConfigureAwait(false);
+                return job.Succeeded() with
+                {
+                    Installed = installed.Record,
+                    Warnings = installed.Warnings,
+                    KeptFiles = removed.KeptFiles,
+                    RemovedRecord = record.Id,
+                };
+            }
+            catch (Exception exception)
+            {
+                // Not everything can be foreseen, e.g. a file locked meanwhile, and the player may cancel; either way the
+                // player must not lose the release that worked.
+                LogReplacementFailed(record.Game, exception.GetType().Name);
+                (var restored, halted) = await TryRestoreAsync(job, record).ConfigureAwait(false);
+                var cancelled = exception is OperationCanceledException && job.Token.IsCancellationRequested;
+                return (cancelled ? job.Result(JobOutcome.Cancelled) : job.Result(JobOutcome.Failed, JobFailures.From(exception))) with
+                {
+                    RemovedPrevious = true,
+                    RestoredPrevious = restored is not null,
+                    Installed = restored,
+                    RemovedRecord = record.Id,
+                };
+            }
         }
-        catch (Exception exception)
+        finally
         {
-            // Not everything can be foreseen, e.g. a file locked meanwhile, and the player may cancel; either way the player
-            // must not lose the release that worked.
-            LogReplacementFailed(record.Game, exception.GetType().Name);
-            var restored = await TryRestoreAsync(job, record).ConfigureAwait(false);
-            var cancelled = exception is OperationCanceledException && job.Token.IsCancellationRequested;
-            return (cancelled ? job.Result(JobOutcome.Cancelled) : job.Result(JobOutcome.Failed, JobFailures.From(exception))) with
+            // An exit that does not wait for the jobs leaves putting the previous release back to the next start.
+            if (!halted)
             {
-                RemovedPrevious = true,
-                RestoredPrevious = restored is not null,
-                Installed = restored,
-                RemovedRecord = record.Id,
-            };
+                markers.Remove(record.Id);
+            }
         }
+    }
+
+    // Ends as the replacement the stop cut short would have ended after a failure, with the previous release back or lost;
+    // putting it back counts as done, which also clears the loss that an exit cutting the job short may have reported.
+    private async Task<JobResult> RestoreAsync(JobContext job, ReplacementMarker marker)
+    {
+        var (restored, halted) = await TryRestoreAsync(job, marker.Previous).ConfigureAwait(false);
+        if (!halted)
+        {
+            markers.Remove(marker.Previous.Id);
+        }
+
+        return (restored is null ? job.Result(JobOutcome.Cancelled) : job.Succeeded()) with
+        {
+            RemovedPrevious = true,
+            RestoredPrevious = restored is not null,
+            Installed = restored,
+            RemovedRecord = marker.Previous.Id,
+        };
     }
 
     private async Task<JobResult> MoveBackupsAsync(JobContext job, MoveBackupsJobRequest request)
@@ -394,12 +431,12 @@ internal sealed partial class JobPipeline(
     }
 
     // The player's cancel does not stop this, since a job cancelled half-way must still end with the release it started
-    // from; only an exit without waiting for jobs does.
-    private async Task<InstallRecord?> TryRestoreAsync(JobContext job, InstallRecord record)
+    // from; only an exit without waiting for jobs does, which Halted tells.
+    private async Task<(InstallRecord? Restored, bool Halted)> TryRestoreAsync(JobContext job, InstallRecord record)
     {
         if (record.Source is not { TeamSlug: { } team, ProjectSlug: { } project, ReleaseUuid: { } release, ReleaseFileUuid: { } file } source)
         {
-            return null;
+            return (null, false);
         }
 
         job.Enter(JobStage.RestoringPrevious);
@@ -411,16 +448,16 @@ internal sealed partial class JobPipeline(
             var restored = await InstallPackageAsync(job, path, source, isTest: false, canDefer: false, halting, restores: record.Id)
                 .ConfigureAwait(false);
             LogRestored(record.Game);
-            return restored.Record;
+            return (restored.Record, false);
         }
         catch (Exception exception) when (exception is not OperationCanceledException || !halting.IsCancellationRequested)
         {
             LogRestoreFailed(record.Game, exception);
-            return null;
+            return (null, false);
         }
         catch (OperationCanceledException)
         {
-            return null;
+            return (null, true);
         }
     }
 

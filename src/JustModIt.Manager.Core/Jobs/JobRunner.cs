@@ -17,6 +17,7 @@ public sealed partial class JobRunner : IAsyncDisposable
 {
     private readonly IInstallEngine _engine;
     private readonly IPackageDownloader _downloader;
+    private readonly ReplacementMarkers _markers;
     private readonly TimeProvider _time;
     private readonly ILogger<JobRunner> _logger;
     private readonly JobPipeline _pipeline;
@@ -41,12 +42,13 @@ public sealed partial class JobRunner : IAsyncDisposable
     /// <param name="library">Gives a fresh look at a game before any write.</param>
     /// <param name="runningGames">Waits for a game's processes to exit.</param>
     /// <param name="settings">Where new installs keep their backups.</param>
+    /// <param name="markers">Keeps the replacements under way, so a start after a stop puts back what they removed.</param>
     /// <param name="time">The clock for waits and progress.</param>
     /// <param name="logger">Logs every job and what went wrong.</param>
     /// <param name="installPolicy">The app's rule for installs of several projects on one game; by default they share it.</param>
     public JobRunner(IInstallEngine engine, ICatalogue catalogue, IPackageDownloader downloader, ILibraryService library,
-        IRunningGameDetector runningGames, ISettingsService settings, TimeProvider time, ILogger<JobRunner> logger,
-        IInstallPolicy? installPolicy = null)
+        IRunningGameDetector runningGames, ISettingsService settings, ReplacementMarkers markers, TimeProvider time,
+        ILogger<JobRunner> logger, IInstallPolicy? installPolicy = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -54,15 +56,17 @@ public sealed partial class JobRunner : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(runningGames);
         ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(markers);
         ArgumentNullException.ThrowIfNull(time);
         ArgumentNullException.ThrowIfNull(logger);
         _engine = engine;
         _downloader = downloader;
+        _markers = markers;
         _time = time;
         _logger = logger;
         InstallPolicy = installPolicy ?? SideBySideInstallPolicy.Instance;
-        _pipeline = new JobPipeline(engine, catalogue, downloader, library, runningGames, settings, InstallPolicy, _downloadSlot, time,
-            logger, _halting.Token);
+        _pipeline = new JobPipeline(engine, catalogue, downloader, library, runningGames, settings, InstallPolicy, markers, _downloadSlot,
+            time, logger, _halting.Token);
     }
 
     public IInstallPolicy InstallPolicy { get; }
@@ -112,8 +116,8 @@ public sealed partial class JobRunner : IAsyncDisposable
     }
 
     /// <summary>
-    /// Finishes or undoes what a crash interrupted; jobs wait for it, so it is called once at the start before anything
-    /// else looks at the installs.
+    /// Finishes or undoes what a crash interrupted, and starts putting back the installs that replacements removed before a
+    /// stop; jobs wait for it, so it is called once at the start before anything else looks at the installs.
     /// </summary>
     /// <param name="cancellationToken">Stops recovery, which then counts as done.</param>
     public async Task<IReadOnlyList<RecoveredOperation>> RecoverAsync(CancellationToken cancellationToken)
@@ -121,6 +125,7 @@ public sealed partial class JobRunner : IAsyncDisposable
         try
         {
             var recovered = await _engine.RecoverAsync(cancellationToken).ConfigureAwait(false);
+            await StartRestoresAsync(cancellationToken).ConfigureAwait(false);
             _recovered.TrySetResult(recovered);
             return recovered;
         }
@@ -310,7 +315,8 @@ public sealed partial class JobRunner : IAsyncDisposable
         {
             job.PublishQueued();
             LogStarted(job.Kind, job.Game, job.Origin);
-            if (!_recovered.Task.IsCompleted)
+            // Recovery itself starts the jobs that put back what a stop left removed, once the engine has recovered.
+            if (job.Request is not RestoreJobRequest && !_recovered.Task.IsCompleted)
             {
                 job.Wait(JobWaitReason.Recovery, []);
                 await _recovered.Task.WaitAsync(job.Token).ConfigureAwait(false);
@@ -356,6 +362,42 @@ public sealed partial class JobRunner : IAsyncDisposable
         idle?.TrySetResult();
     }
 
+    // Started before recovery counts as done, so neither the player nor the automation gets a job onto the game first; a
+    // replacement whose new install committed, or whose uninstall was undone, only loses its marker.
+    private async Task StartRestoresAsync(CancellationToken cancellationToken)
+    {
+        IReadOnlyList<ReplacementMarker> markers;
+        IReadOnlyList<InstallRecord> records;
+        try
+        {
+            markers = await _markers.LoadAllAsync(cancellationToken).ConfigureAwait(false);
+            if (markers.Count == 0)
+            {
+                return;
+            }
+
+            records = await _engine.LoadRecordsAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            LogRestoresFailed(exception);
+            return;
+        }
+
+        foreach (var marker in markers)
+        {
+            if (records.Any(marker.IsSettledBy))
+            {
+                _markers.Remove(marker.Previous.Id);
+            }
+            else
+            {
+                LogRestoring(marker.Previous.Game);
+                Start(new RestoreJobRequest(marker));
+            }
+        }
+    }
+
     private void Publish(JobSnapshot snapshot, bool stepChanged) =>
         EventRaising.RaiseEach(stepChanged ? Changed : Progressed, this, snapshot, LogListenerFailed);
 
@@ -370,6 +412,12 @@ public sealed partial class JobRunner : IAsyncDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Recovering interrupted operations failed")]
     private partial void LogRecoveryFailed(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The app stopped while replacing an install on {Game}, which is put back")]
+    private partial void LogRestoring(GameKey game);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The replacements a stop cut short could not be read")]
+    private partial void LogRestoresFailed(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "A job listener failed")]
     private partial void LogListenerFailed(Exception exception);

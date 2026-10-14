@@ -65,6 +65,16 @@ public sealed record RepairJobRequest(InstallRecord Record, JobOrigin Origin = J
     public override JobKind Kind => JobKind.Repair;
 }
 
+/// <summary>
+/// Puts back, at the start after a stop, the install that a replacement removed before its new install committed, as the
+/// replacement itself would have after a failure.
+/// </summary>
+/// <param name="Marker">The replacement the stop cut short.</param>
+public sealed record RestoreJobRequest(ReplacementMarker Marker) : RecordJobRequest(Marker.Previous, Marker.Origin)
+{
+    public override JobKind Kind => Marker.Kind;
+}
+
 /// <summary>A package file the package creator built, installed on a detected game to try it out.</summary>
 /// <param name="Game">The game to install on.</param>
 /// <param name="GameName">The game's name, shown with the job.</param>

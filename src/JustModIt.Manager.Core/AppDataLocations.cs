@@ -50,6 +50,9 @@ public sealed class AppDataLocations
     /// <summary>What the automation did and announced, which holds back its repeats.</summary>
     public string AutomationHistoryFile => Path.Combine(StateDirectory, "automation.json");
 
+    /// <summary>The installs that replacements under way removed, which a start after a stop puts back.</summary>
+    public string ReplacingDirectory => Path.Combine(StateDirectory, "replacing");
+
     /// <summary>One folder per install record, holding the record and its journal.</summary>
     public string InstallsDirectory => Path.Combine(DataDirectory, "installs");
 

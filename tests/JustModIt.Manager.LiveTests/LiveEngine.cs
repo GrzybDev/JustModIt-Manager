@@ -83,7 +83,9 @@ internal sealed partial class LiveEngine : IAsyncDisposable
         Engine = new InstallEngine(InstallEngineOptions.For(LiveApp.Identity, locations), new PackageReader(),
             new FileLockProbe(RestartManagerLockHolders.Instance), Library, PhysicalVolumes.Instance, _time,
             _loggers.CreateLogger<InstallEngine>());
-        Jobs = new JobRunner(Engine, Catalogue, Downloads, Library, _runningGames, settings, _time, _loggers.CreateLogger<JobRunner>());
+        Jobs = new JobRunner(Engine, Catalogue, Downloads, Library, _runningGames, settings,
+            new ReplacementMarkers(locations.ReplacingDirectory, _time, _loggers.CreateLogger<ReplacementMarkers>()), _time,
+            _loggers.CreateLogger<JobRunner>());
         var jobLogger = _loggers.CreateLogger<LiveEngine>();
         Jobs.Changed += (_, job) =>
             LogJob(jobLogger, job.Kind, job.Game, job.Stage, job.WaitReason, string.Join(", ", job.RunningProcesses));
