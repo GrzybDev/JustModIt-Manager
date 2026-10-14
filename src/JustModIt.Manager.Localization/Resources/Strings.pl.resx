@@ -1482,6 +1482,21 @@
   <data name="GamePage_TestDetail" xml:space="preserve">
     <value>Instalacja testowa z kreatora</value>
   </data>
+  <data name="GamePage_SoftwareLine" xml:space="preserve">
+    <value>Oprogramowanie w projekcie: {names}</value>
+  </data>
+  <data name="GamePage_LicensesShow" xml:space="preserve">
+    <value>{count, plural, one {Pokaż licencję} other {Pokaż licencje}}</value>
+  </data>
+  <data name="GamePage_LicensesHide" xml:space="preserve">
+    <value>{count, plural, one {Ukryj licencję} other {Ukryj licencje}}</value>
+  </data>
+  <data name="GamePage_LicenseSource" xml:space="preserve">
+    <value>Kod źródłowy</value>
+  </data>
+  <data name="GamePage_LicenseSourceName" xml:space="preserve">
+    <value>Kod źródłowy: {name}</value>
+  </data>
   <data name="GamePage_TestText" xml:space="preserve">
     <value>Kreator zainstalował tę paczkę, aby ją wypróbować; nie będzie aktualizowana.</value>
   </data>

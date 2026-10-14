@@ -116,6 +116,16 @@
       <Setter Property="Padding" Value="12,0" />
       <Setter Property="FontWeight" Value="Medium" />
     </Style>
+    <!-- The software a package carries, unfolded under its row's line in a quiet frame. -->
+    <Style Selector="Border.licenses">
+      <Setter Property="Margin" Value="0,6,0,2" />
+      <Setter Property="Padding" Value="14,10,16,10" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="Background" Value="#80030712" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
     <!-- On the page the switch's track is light and neutral, since red is kept for the one main button. -->
     <Style Selector="ToggleSwitch.neutral:checked">
       <Setter Property="Background" Value="{StaticResource TextEmphasisBrush}" />
@@ -578,6 +588,42 @@
                           <ui:StatusLine FontSize="13" LineHeight="18" Icon="{x:Static theme:Icons.TriangleAlert}" Tone="Warning" Label="{Binding Detail}"
                                          IsVisible="{Binding IsWarning}" />
                           <TextBlock Classes="rowText" Text="{Binding Detail}" IsVisible="{Binding !IsWarning}" />
+                          <WrapPanel ItemSpacing="10" IsVisible="{Binding Licenses, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <TextBlock Classes="rowText" Text="{Binding Licenses.Line}" />
+                            <Button x:Name="LicensesToggle" Classes="link" FontSize="13" Content="{Binding Licenses.Toggle}"
+                                    ui:ButtonAssist.Icon="{Binding Licenses.ToggleIcon}"
+                                    AutomationProperties.Name="{Binding Licenses.Toggle}"
+                                    Command="{Binding Licenses.ToggleShownCommand}" />
+                          </WrapPanel>
+                          <Border Classes="licenses" theme:Motion.Enter="True" IsVisible="{Binding Licenses.AreShown, FallbackValue=False}">
+                            <ItemsControl ItemsSource="{Binding Licenses.Items}">
+                              <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                  <StackPanel Spacing="10" />
+                                </ItemsPanelTemplate>
+                              </ItemsControl.ItemsPanel>
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="game:LicenseItem">
+                                  <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding Name}" FontSize="13" LineHeight="18" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TextBrush}" />
+                                    <WrapPanel ItemSpacing="6">
+                                      <TextBlock Classes="rowText" Text="{Binding License}" Foreground="{StaticResource TextBodyBrush}" />
+                                      <TextBlock Text="·" FontSize="13" LineHeight="18" Foreground="{StaticResource TextMutedBrush}" />
+                                      <Button Classes="inlineLink" Content="{x:Static loc:Strings.GamePage_LicenseSource}" ToolTip.Tip="{Binding Address}"
+                                              ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUpRight}" ui:ButtonAssist.IconAfter="True"
+                                              AutomationProperties.Name="{Binding SourceName}"
+                                              IsVisible="{Binding Link, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                              Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).OpenCommand}"
+                                              CommandParameter="{Binding Link}" />
+                                      <TextBlock Classes="rowText" Text="{Binding Address}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                                 IsVisible="{Binding Link, Converter={x:Static ObjectConverters.IsNull}}" />
+                                    </WrapPanel>
+                                  </StackPanel>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                          </Border>
                         </StackPanel>
                         <StackPanel Classes="rowActions" Orientation="Horizontal" Spacing="4">
                           <Button Classes="outline rowAction" Content="{Binding Action}" ui:ButtonAssist.Icon="{Binding ActionIcon}"

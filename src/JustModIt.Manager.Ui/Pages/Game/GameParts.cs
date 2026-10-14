@@ -3,7 +3,10 @@ using System.ComponentModel;
 using System.Windows.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
+using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Controls;
 
 namespace JustModIt.Manager.Ui.Pages.Game;
@@ -165,9 +168,57 @@ public sealed record InstallRow(Guid Id, string Title, string When, string Detai
 
     public Message? ActionRequest { get; init; }
 
+    /// <summary>The software the install's packages carry, with its licences; null when they carry none.</summary>
+    public LicensesView? Licenses { get; init; }
+
     public bool HasProject => Project.Length > 0;
 
     public bool HasAction => Action is not null;
+}
+
+/// <summary>
+/// The software an install's packages carry, named on the line that tells of it and listed with its licence and source
+/// once the player unfolds it; kept across the page's states, so unfolding it keeps the row and the toggle's focus.
+/// </summary>
+/// <param name="notices">The software as the packages name it.</param>
+public sealed partial class LicensesView(IReadOnlyList<ThirdPartyNoticeView> notices) : ObservableObject
+{
+    public IReadOnlyList<ThirdPartyNoticeView> Notices { get; } = notices;
+
+    public IReadOnlyList<LicenseItem> Items { get; } = [.. notices.Select(LicenseItem.From)];
+
+    public string Line => Text.Format(Strings.GamePage_SoftwareLine, ("names", string.Join(", ", Notices.Select(notice => notice.Name))));
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Toggle), nameof(ToggleIcon))]
+    public partial bool AreShown { get; set; }
+
+    public string Toggle => Text.Format(AreShown ? Strings.GamePage_LicensesHide : Strings.GamePage_LicensesShow, ("count", Notices.Count));
+
+    public Geometry ToggleIcon => AreShown ? Theme.Icons.ChevronUp : Theme.Icons.ChevronDown;
+
+    [RelayCommand]
+    private void ToggleShown() => AreShown = !AreShown;
+}
+
+/// <summary>A piece of software an install's package carries, as its unfolded list shows it.</summary>
+/// <param name="Name">What the package calls it.</param>
+/// <param name="License">Its licence, as the package names it.</param>
+/// <param name="Address">Where its source code is.</param>
+/// <param name="Link">The address to open; null for one the window does not open, which shows as text.</param>
+public sealed record LicenseItem(string Name, string License, string Address, Uri? Link)
+{
+    /// <summary>The link to the source, named with the software for screen readers.</summary>
+    public string SourceName => Text.Format(Strings.GamePage_LicenseSourceName, ("name", Name));
+
+    /// <summary>Makes the item of a notice of an installed package.</summary>
+    /// <param name="notice">The notice as the install's view carries it.</param>
+    public static LicenseItem From(ThirdPartyNoticeView notice)
+    {
+        ArgumentNullException.ThrowIfNull(notice);
+        var link = Uri.TryCreate(notice.SourceUrl, UriKind.Absolute, out var address) && address.Scheme == Uri.UriSchemeHttps ? address : null;
+        return new LicenseItem(notice.Name, notice.License, notice.SourceUrl, link);
+    }
 }
 
 /// <summary>A variant of the project the player can pick, such as text only next to text and voice.</summary>

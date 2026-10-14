@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -268,6 +269,53 @@ public sealed class GameTests
         ui.Push(State(generic with { InstallReplaces = true, Installs = [installed[0]], Status = new GameStatusView(MyGameState.Installed) }));
         page.ShowsChoices.Should().BeFalse("an app with one project per game offers no second one beside the installed");
         page.Installs.Should().ContainSingle().Which.HasProject.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public async Task An_install_names_the_software_its_packages_carry_and_unfolds_their_licences_and_sources()
+    {
+        var plain = Installed("Ember Hollow", "4100", offer: Ember);
+        var game = plain with
+        {
+            Installs =
+            [
+                plain.Installs[0] with
+                {
+                    ThirdPartyNotices =
+                    [
+                        new ThirdPartyNoticeView("Lantern Streamer", "GPL-3.0-or-later", "https://code.example.com/lantern-streamer"),
+                        new ThirdPartyNoticeView("Example Loader", "MIT", "http://loader.example.com/source"),
+                    ],
+                },
+            ],
+        };
+        using var ui = Open(State(game), game);
+        var page = Page(ui);
+        var licenses = page.Installs.Single().Licenses!;
+
+        licenses.Line.Should().Be(Text.Format(Strings.GamePage_SoftwareLine, ("names", "Lantern Streamer, Example Loader")));
+        ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == licenses.Line);
+        ui.Find<TextBlock>().Should().NotContain(text => text.IsEffectivelyVisible && text.Text == "GPL-3.0-or-later",
+            "the licences stay folded until the player asks for them");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-licences-folded");
+
+        ui.Click(ui.Find<Button>("LicensesToggle"));
+        licenses.Toggle.Should().Be(Text.Format(Strings.GamePage_LicensesHide, ("count", 2)));
+        ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == "GPL-3.0-or-later");
+        ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == "http://loader.example.com/source",
+            "the window opens only https addresses, so the other one shows as text");
+        ui.Unnamed().Should().BeEmpty();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-licences");
+        ui.Click(ui.Find<Button>().Single(button => button.IsEffectivelyVisible
+            && AutomationProperties.GetName(button) == Text.Format(Strings.GamePage_LicenseSourceName, ("name", "Lantern Streamer"))));
+        ui.Links.Opened.Should().Equal(new Uri("https://code.example.com/lantern-streamer"));
+
+        ui.Push(State(game) with { Version = 2 });
+        page.Installs.Single().Licenses.Should().BeSameAs(licenses, "a state that changes nothing of the software keeps the list unfolded");
+        ui.Push(State(plain) with { Version = 3 });
+        page.Installs.Single().Licenses.Should().BeNull();
     }
 
     [AvaloniaFact]

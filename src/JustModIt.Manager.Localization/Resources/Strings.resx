@@ -1494,6 +1494,21 @@
   <data name="GamePage_TestDetail" xml:space="preserve">
     <value>A test install from the package creator</value>
   </data>
+  <data name="GamePage_SoftwareLine" xml:space="preserve">
+    <value>Software in the project: {names}</value>
+  </data>
+  <data name="GamePage_LicensesShow" xml:space="preserve">
+    <value>{count, plural, one {Show the licence} other {Show the licences}}</value>
+  </data>
+  <data name="GamePage_LicensesHide" xml:space="preserve">
+    <value>{count, plural, one {Hide the licence} other {Hide the licences}}</value>
+  </data>
+  <data name="GamePage_LicenseSource" xml:space="preserve">
+    <value>Source code</value>
+  </data>
+  <data name="GamePage_LicenseSourceName" xml:space="preserve">
+    <value>Source code of {name}</value>
+  </data>
   <data name="GamePage_TestText" xml:space="preserve">
     <value>The package creator installed this package to try it out; it is never updated.</value>
   </data>

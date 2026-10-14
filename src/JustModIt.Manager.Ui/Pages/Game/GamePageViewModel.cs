@@ -36,6 +36,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private readonly UiServices _services;
     private readonly GameKey _key;
     private readonly List<(DateTimeOffset At, long Bytes)> _samples = [];
+    private readonly Dictionary<Guid, LicensesView> _licenses = [];
     private GameView? _game;
     private Guid? _detailsFor;
     private CancellationTokenSource? _details;
@@ -734,7 +735,26 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             Action = action,
             ActionIcon = icon,
             ActionRequest = request,
+            Licenses = LicensesOf(install),
         };
+    }
+
+    // The same list stays while the install's packages name the same software, so a state that changes nothing else folds
+    // nothing.
+    private LicensesView? LicensesOf(InstallView install)
+    {
+        if (install.ThirdPartyNotices.Count == 0)
+        {
+            _licenses.Remove(install.Id);
+            return null;
+        }
+
+        if (!_licenses.TryGetValue(install.Id, out var licenses) || !licenses.Notices.SequenceEqual(install.ThirdPartyNotices))
+        {
+            _licenses[install.Id] = licenses = new LicensesView(install.ThirdPartyNotices) { AreShown = licenses?.AreShown ?? false };
+        }
+
+        return licenses;
     }
 
     private void ShowVariants(GameView game, InstallView? install, ProjectOfferView? project)
