@@ -42,6 +42,17 @@ public sealed class PackageManifestTests
         var bare = new PackageManifest { Id = Guid.Empty, Title = "T", Version = "1", Operations = [new DeleteOperation("a")] };
         using var unset = JsonDocument.Parse(JsonSerializer.Serialize(bare, PackageJsonContext.Default.PackageManifest));
         unset.RootElement.EnumerateObject().Select(property => property.Name).Should()
-            .NotContain(["requires", "generator", "createdAt", "thirdPartyNotices"]);
+            .NotContain(["requires", "generator", "createdAt", "thirdPartyNotices", "runtimeFiles"]);
+    }
+
+    [Fact]
+    public void The_capabilities_of_a_package_name_its_declarations()
+    {
+        PackageOperation[] operations = [new RenameOperation("tool/list.dat", "tool/list_old.dat"), new DeleteOperation("a")];
+
+        PackageCapabilities.Of(operations, declaresFiles: true).Should().Equal("op:delete", "op:rename", "runtime:files@1");
+        PackageCapabilities.Of(operations).Should().Equal("op:delete", "op:rename");
+        PackageCapabilities.Supported.Should().Contain(PackageCapabilities.RuntimeFiles)
+            .And.NotContain(PackageCapabilities.RuntimeFolders, "this version cannot undo folders the software fills");
     }
 }

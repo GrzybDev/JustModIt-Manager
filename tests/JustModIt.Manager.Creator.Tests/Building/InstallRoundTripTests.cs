@@ -64,7 +64,7 @@ public sealed class InstallRoundTripTests : IDisposable
         Read("data/strings.bin").Should().Equal(Changed(Strings));
         Read("data/fonts/extra.ttf").Should().Equal(Workspace.Text("font"));
 
-        await engine.UninstallAsync(installed.Record.Id, progress: null, TestContext.Current.CancellationToken);
+        await engine.UninstallAsync(installed.Record.Id, replacedBy: null, progress: null, TestContext.Current.CancellationToken);
 
         Snapshot().Should().BeEquivalentTo(before);
     }

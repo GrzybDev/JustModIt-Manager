@@ -25,12 +25,90 @@ public sealed class RecoveryTests
         var engine = harness.CreateEngine();
         var recovered = await engine.RecoverAsync(InstallHarness.Token);
         var record = (await engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which;
-        var uninstalled = await engine.UninstallAsync(record.Id, null, InstallHarness.Token);
+        var uninstalled = await engine.UninstallAsync(record.Id, null, null, InstallHarness.Token);
 
         recovered.Should().ContainSingle().Which.Outcome.Should().Be(RecoveryOutcome.RolledBack);
         uninstalled.KeptFiles.Should().BeEmpty();
         harness.Snapshot().Should().BeEquivalentTo(before);
         harness.AppFiles().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Recovers_and_undoes_installs_whose_software_changes_files_written_by_the_previous_version()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The saved files hold Windows paths.");
+        // A, committed and inheriting from an earlier install taken on build 41; B, an uninstall cut before its commit after
+        // writing its kept-files record; C, one cut after its commit; D, a kept-files record with a held-back file and a marker.
+        var (a, b, c, d) = (Guid.Parse("545ea5ba4b974d59bf22dcb013db2f51"), Guid.Parse("3e03be63bc8d4e2f8770672b7474298e"),
+            Guid.Parse("9f5a101cfbd84598beb77d00c9f09f81"), Guid.Parse("02b5a9f89ca64bb3b182c6bdbf40c881"));
+        await using var harness = new InstallHarness();
+        var saved = Path.Join(AppContext.BaseDirectory, "Installation", "Fixtures", "v2");
+        TreeCopy.Copy(Path.Join(saved, "Before"), harness.GameRoot);
+        var before = harness.Snapshot();
+        TreeCopy.Copy(Path.Join(saved, "Game"), harness.GameRoot);
+        TreeCopy.Copy(Path.Join(saved, "AppData"), harness.AppData);
+        var root = JsonEncodedText.Encode(Path.GetDirectoryName(harness.GameRoot)!).ToString();
+        foreach (var file in Directory.EnumerateFiles(harness.AppData, "*.json*", SearchOption.AllDirectories))
+        {
+            await File.WriteAllTextAsync(file, (await File.ReadAllTextAsync(file, InstallHarness.Token)).Replace("{root}", root,
+                StringComparison.Ordinal), InstallHarness.Token);
+        }
+
+        // Git keeps no empty folder, and the cut uninstall had moved B's only backup out of its own.
+        Directory.CreateDirectory(Path.Join(harness.AppData, "backups", "steam-1000", b.ToString("N")));
+        var engine = harness.CreateEngine();
+
+        var recovered = await engine.RecoverAsync(InstallHarness.Token);
+
+        recovered.Should().BeEquivalentTo([new RecoveredOperation(b, harness.GameRoot, RecoveryOutcome.RolledBack),
+            new RecoveredOperation(c, harness.GameRoot, RecoveryOutcome.CleanedUp)]);
+        (await harness.KeptFilesAsync()).Keys.Should().BeEquivalentTo([c, d], "B never committed, so it keeps nothing");
+        File.Exists(Path.Join(harness.AppData, "backups", "steam-1000", c.ToString("N"), "0")).Should().BeTrue("C's copy was kept");
+        (await engine.LoadRecordsAsync(InstallHarness.Token)).Select(record => record.Id).Should().BeEquivalentTo([a, b]);
+
+        (await engine.UninstallAsync(b, null, null, InstallHarness.Token)).KeptFiles.Should()
+            .Equal(new KeptFile("b/list.dat", KeptReason.OriginalUnknown));
+        (await engine.UninstallAsync(a, null, null, InstallHarness.Token)).KeptFiles.Should().BeEquivalentTo([
+            new KeptFile("a/list.dat", KeptReason.GameUpdatedSinceInstall), new KeptFile("a/data.dat", KeptReason.OriginalUnknown)],
+            "the list was taken on build 41, and the earlier install never listed the data");
+        var inheriting = await engine.InstallAsync(harness.Request(harness.ManifestPackage(new TestPackage().Copy("d/loader.dll", "loader")
+            .Declare("d/state.dat"))), null, InstallHarness.Token);
+        var state = (await engine.LoadFilesAsync(inheriting.Record.Id, InstallHarness.Token)).Files.Single(file => file.Path == "d/state.dat");
+        (await engine.UninstallAsync(inheriting.Record.Id, null, null, InstallHarness.Token)).KeptFiles.Should()
+            .Equal(new KeptFile("d/state.dat", KeptReason.OriginalUnknown));
+
+        state.InheritedFrom.Should().Be(d);
+        state.OriginalUncertain.Should().BeTrue();
+        // The store's check brings back the files kept after the update, and their copies can go.
+        foreach (var path in new[] { "a/list.dat", "c/list.dat", "d/list.dat" })
+        {
+            File.Copy(Path.Join(saved, "Before", path), harness.GameFile(path), overwrite: true);
+        }
+
+        foreach (var kept in new[] { a, c, d })
+        {
+            (await engine.RemoveLeftoverBackupsAsync(kept, InstallHarness.Token)).Should().BeTrue();
+        }
+
+        harness.Snapshot().Should().BeEquivalentTo(before);
+        harness.AppFiles().Should().OnlyContain(path => path.StartsWith(harness.LeftoversDirectory, StringComparison.Ordinal),
+            "only the markers of uncertain originals stay, for a later install to take over");
+    }
+
+    [Fact]
+    public async Task A_file_list_from_a_newer_app_makes_its_install_unreadable()
+    {
+        await using var harness = new InstallHarness();
+        var result = await harness.InstallAsync(harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed")));
+        var list = Path.Join(harness.InstallsDirectory, result.Record.Id.ToString("N"), "files.json");
+        await File.WriteAllTextAsync(list, (await File.ReadAllTextAsync(list, InstallHarness.Token))
+            .Replace("\"formatVersion\":1", "\"formatVersion\":3", StringComparison.Ordinal), InstallHarness.Token);
+
+        var uninstall = () => harness.UninstallAsync(result.Record.Id);
+
+        (await uninstall.Should().ThrowAsync<InstallBlockedException>()).Which.Issues.Should()
+            .Equal(new UnreadableInstallIssue(result.Record.Id));
+        harness.ReadGameFile("readme.txt").Should().Be("Changed");
     }
 
     [Fact]

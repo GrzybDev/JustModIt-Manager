@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
@@ -60,6 +61,7 @@ internal sealed class InstallHarness : IAsyncDisposable
         Crashes = Path.Join(root, "Crashes");
         SlowBackupCopyBytes = slowBackupCopyBytes;
         Volumes.Assign(root, GameVolume);
+        Probe.InstallDirectory = GameRoot;
         Engine = CreateEngine();
 
         WriteGameFile("bin/game.exe", TestPatch.RandomBytes(64 << 10, seed: 2));
@@ -212,6 +214,35 @@ internal sealed class InstallHarness : IAsyncDisposable
 
     public string ReadGameFile(string relativePath) => File.ReadAllText(GameFile(relativePath));
 
+    /// <summary>Makes a folder of the game a link to another folder, or skips the test where links cannot be made.</summary>
+    /// <param name="relativePath">The game-relative folder, which must not exist yet.</param>
+    /// <param name="target">The folder the link leads to.</param>
+    public string LinkDirectory(string relativePath, string target) =>
+        _temp.CreateDirectoryLink(Path.GetRelativePath(PathCanonicalizer.Canonicalize(_temp.Path), GameFile(relativePath)), target);
+
+    /// <summary>The kept-files records among the app's leftovers, by the id of the install whose uninstall wrote each.</summary>
+    public async Task<Dictionary<Guid, InstalledFiles>> KeptFilesAsync()
+    {
+        var kept = new Dictionary<Guid, InstalledFiles>();
+        foreach (var folder in Directory.Exists(LeftoversDirectory) ? Directory.EnumerateDirectories(LeftoversDirectory) : [])
+        {
+            var files = JsonSerializer.Deserialize(await File.ReadAllTextAsync(Path.Join(folder, "files.json"), Token),
+                InstallationJsonContext.Default.InstalledFiles)!;
+            if (files.KeptAt is not null)
+            {
+                kept[Guid.ParseExact(Path.GetFileName(folder), "N")] = files;
+            }
+        }
+
+        return kept;
+    }
+
+    /// <summary>The file list of an install as written on disk.</summary>
+    /// <param name="recordId">The install's record id.</param>
+    public async Task<InstalledFiles> FilesOnDiskAsync(Guid recordId) =>
+        JsonSerializer.Deserialize(await File.ReadAllTextAsync(Path.Join(InstallsDirectory, recordId.ToString("N"), "files.json"), Token),
+            InstallationJsonContext.Default.InstalledFiles)!;
+
     public string ManifestPackage(TestPackage package) =>
         package.WriteManifestPackage(Path.Join(Packages, Guid.NewGuid().ToString("N") + ".examplemod"));
 
@@ -237,7 +268,7 @@ internal sealed class InstallHarness : IAsyncDisposable
     }
 
     public Task<UninstallResult> UninstallAsync(Guid recordId, CancellationToken cancellationToken = default) =>
-        Engine.UninstallAsync(recordId, progress: null, cancellationToken == default ? Token : cancellationToken);
+        Engine.UninstallAsync(recordId, replacedBy: null, progress: null, cancellationToken == default ? Token : cancellationToken);
 
     /// <summary>Every file (hash and attributes) and folder of the game, to prove an operation left no trace.</summary>
     public Dictionary<string, string> Snapshot()
@@ -271,11 +302,14 @@ internal sealed class InstallHarness : IAsyncDisposable
         }
     }
 
-    /// <summary>What the app keeps apart from the game: install folders and backups in its data and the player's folder.</summary>
+    /// <summary>
+    /// What the app keeps apart from the game: install folders, kept-files records and backups in its data and the player's
+    /// folder.
+    /// </summary>
     public IReadOnlyList<string> AppFiles() =>
         [.. new[] { AppData, CustomFolder }.Where(Directory.Exists)
             .SelectMany(folder => Directory.EnumerateFileSystemEntries(folder, "*", SearchOption.AllDirectories))
-            .Where(entry => !PathComparison.AreSame(entry, InstallsDirectory))];
+            .Where(entry => !PathComparison.AreSame(entry, InstallsDirectory) && !PathComparison.AreSame(entry, LeftoversDirectory))];
 
     /// <summary>Makes the game's volume and the app's other folders look like different drives.</summary>
     public void PutBackupsOnAnotherVolume()
@@ -296,7 +330,9 @@ internal sealed class InstallHarness : IAsyncDisposable
     /// <param name="kind">The kind of change the crash comes right before.</param>
     public void CrashBefore(ChangeKind kind) => CrashWhen((changing, _) => changing == kind);
 
-    private void CrashWhen(Func<ChangeKind, string?, bool> isCrash)
+    /// <summary>Copies the game and the app's folders aside at the first change a test picks, as a crash would leave them.</summary>
+    /// <param name="isCrash">True for the change the crash comes right before, given its kind and path.</param>
+    public void CrashWhen(Func<ChangeKind, string?, bool> isCrash)
     {
         var crashed = false;
         BeforeChange = (kind, path) =>
@@ -503,6 +539,14 @@ internal sealed class FakeGameProbe : IGameProbe
 
     public ValueList<RunningProcess> Running { get; set; } = [];
 
+    public string InstallDirectory { get; set; } = "unused";
+
+    public string? BuildId { get; set; } = "42";
+
+    public ValueList<string> Languages { get; set; } = [];
+
+    public ValueList<string> Content { get; set; } = [];
+
     /// <summary>Runs when an operation looks at the game, which it does last before its first change.</summary>
     public Action? OnProbe { get; set; }
 
@@ -516,8 +560,11 @@ internal sealed class FakeGameProbe : IGameProbe
         {
             Key = key,
             Name = "Example Game",
-            InstallDirectory = "unused",
+            InstallDirectory = InstallDirectory,
             LibraryId = "library-1",
+            BuildId = BuildId,
+            Languages = Languages,
+            Content = Content,
             State = State,
             Reason = Reason,
             IsStale = IsStale,

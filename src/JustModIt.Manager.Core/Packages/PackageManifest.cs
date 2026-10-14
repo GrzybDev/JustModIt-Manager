@@ -42,6 +42,12 @@ public sealed record PackageManifest
     /// <summary>Third-party components the package carries, which older apps ignore, so it needs no capability.</summary>
     public IReadOnlyList<ThirdPartyNotice>? ThirdPartyNotices { get; init; }
 
+    /// <summary>
+    /// Game files the package's software changes while the game runs, which an app that ignored them would never undo, so
+    /// a list that is not empty needs <see cref="PackageCapabilities.RuntimeFiles"/>.
+    /// </summary>
+    public IReadOnlyList<RuntimeFile>? RuntimeFiles { get; init; }
+
     public required IReadOnlyList<PackageOperation> Operations { get; init; }
 }
 

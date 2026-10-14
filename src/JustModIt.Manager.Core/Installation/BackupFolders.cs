@@ -57,13 +57,14 @@ internal static class BackupFolders
     /// </summary>
     /// <param name="backupDirectory">The record's backup folder.</param>
     /// <param name="files">The install's files, which name their backups.</param>
+    /// <param name="spared">Names of backups that stay, such as the copies a kept-files record holds.</param>
     /// <returns>How many backups were removed.</returns>
-    public static int DeleteListed(string backupDirectory, InstalledFiles files)
+    public static int DeleteListed(string backupDirectory, InstalledFiles files, IReadOnlySet<string>? spared = null)
     {
         var removed = 0;
         foreach (var file in files.Files)
         {
-            if (file.Backup is { } name && File.Exists(Path.Join(backupDirectory, name)))
+            if (file.Backup is { } name && spared?.Contains(name) != true && File.Exists(Path.Join(backupDirectory, name)))
             {
                 FileOperations.DeleteFile(Path.Join(backupDirectory, name));
                 removed++;

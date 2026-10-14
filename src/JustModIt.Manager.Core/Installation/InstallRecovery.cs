@@ -29,13 +29,14 @@ public sealed record RecoveredOperation(Guid RecordId, string? GameDirectory, Re
 
 /// <summary>Finishes or undoes what a crash or a power cut interrupted, first thing when the agent starts.</summary>
 /// <param name="store">The folders of installs and their journals.</param>
+/// <param name="leftovers">The folders of kept-files records, which uninstalls write and installs take entries from.</param>
 /// <param name="options">The app's hidden folder name.</param>
 /// <param name="ownership">Gives a game up once nothing of the app is left on it.</param>
 /// <param name="volumes">Tells a game folder gone for good from one on an unplugged drive.</param>
 /// <param name="hook">Called right before each change.</param>
 /// <param name="logger">Logs what recovery did.</param>
-internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOptions options, GameFolderOwnership ownership,
-    IVolumes volumes, ChangeHook hook, ILogger logger)
+internal sealed class InstallRecovery(InstallRecordStore store, InstallRecordStore leftovers, InstallEngineOptions options,
+    GameFolderOwnership ownership, IVolumes volumes, ChangeHook hook, ILogger logger)
 {
     /// <summary>Finishes or undoes every operation that left a journal.</summary>
     /// <param name="cancellationToken">Stops recovery between operations.</param>
@@ -93,7 +94,7 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
         var load = await InstallRecordStore.LoadAsync(folder, cancellationToken).ConfigureAwait(false);
         return header.Kind switch
         {
-            TransactionKind.Install => await RecoverInstallAsync(folder, header).ConfigureAwait(false),
+            TransactionKind.Install => await RecoverInstallAsync(folder, header, cancellationToken).ConfigureAwait(false),
             TransactionKind.Uninstall => await RecoverUninstallAsync(folder, header, cancellationToken).ConfigureAwait(false),
             // Without a readable record there is no telling whether the move committed.
             _ when load.IsUnreadable => Report(header, RecoveryOutcome.Failed),
@@ -101,11 +102,13 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
         };
     }
 
-    private async Task<RecoveredOperation?> RecoverInstallAsync(InstallFolder folder, TransactionStarted header)
+    private async Task<RecoveredOperation?> RecoverInstallAsync(InstallFolder folder, TransactionStarted header,
+        CancellationToken cancellationToken)
     {
         // The record is the commit point, whether or not this version can read it.
         if (folder.HasRecord)
         {
+            await TidyKeptFilesAsync(folder, header, cancellationToken).ConfigureAwait(false);
             File.Delete(folder.JournalFile);
             TransactionCleanup.RemoveStaging(header.StagingDirectory);
             BackupFolders.DeleteIfEmpty(header.BackupDirectory);
@@ -149,17 +152,11 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
                 return Report(header, RecoveryOutcome.Unavailable);
             }
 
-            InstalledFiles? files = null;
-            try
-            {
-                files = await InstallRecordStore.LoadFilesAsync(folder, cancellationToken).ConfigureAwait(false);
-            }
-            catch (InvalidDataException)
-            {
-            }
-
+            var files = await FilesOrNullAsync(folder, cancellationToken).ConfigureAwait(false);
+            // The copies its kept-files record names were left for the player.
+            var kept = await FilesOrNullAsync(leftovers.FolderOf(folder.Id), cancellationToken).ConfigureAwait(false);
             await ownership.ReleaseAsync(header.GameDirectory, folder.Id).ConfigureAwait(false);
-            Uninstaller.Finish(header, folder, files);
+            Uninstaller.Finish(header, folder, files, kept);
             return Report(header, RecoveryOutcome.CleanedUp);
         }
 
@@ -170,7 +167,8 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
                 return Report(header, RecoveryOutcome.Unavailable);
             }
 
-            // The record stays, so its backups can still be listed and removed.
+            // The record stays, so its backups can still be listed and removed; the uninstall wrote no kept files.
+            InstallRecordStore.DeleteFolder(leftovers.FolderOf(folder.Id));
             File.Delete(folder.JournalFile);
             return Report(header, RecoveryOutcome.Discarded);
         }
@@ -183,10 +181,38 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallEngineOpt
 
         return await UndoAsync(header, game, entries, () =>
         {
+            // An uninstall that did not commit leaves no kept files.
+            InstallRecordStore.DeleteFolder(leftovers.FolderOf(folder.Id));
             TransactionCleanup.RemoveStaging(header.StagingDirectory);
             File.Delete(folder.JournalFile);
             return Task.CompletedTask;
         }).ConfigureAwait(false);
+    }
+
+    // A committed install drops from the game's kept-files records what it took over or made stale, as it would have done
+    // itself had it not been cut short.
+    private async Task TidyKeptFilesAsync(InstallFolder folder, TransactionStarted header, CancellationToken cancellationToken)
+    {
+        if (GameFolder.TryOpen(header.GameDirectory, options.HiddenFolderName) is not { } game
+            || await FilesOrNullAsync(folder, cancellationToken).ConfigureAwait(false) is not { } files)
+        {
+            return;
+        }
+
+        var kept = await KeptFiles.LoadForAsync(leftovers, store, game.Root, cancellationToken).ConfigureAwait(false);
+        await KeptFiles.TidyAsync(files, kept, game, leftovers, hook, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<InstalledFiles?> FilesOrNullAsync(InstallFolder folder, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await InstallRecordStore.LoadFilesAsync(folder, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidDataException)
+        {
+            return null;
+        }
     }
 
     private async Task<RecoveredOperation?> UndoAsync(TransactionStarted header, GameFolder game, IReadOnlyList<JournalEntry> entries,

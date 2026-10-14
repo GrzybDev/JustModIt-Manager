@@ -112,6 +112,11 @@ internal static class JobFailures
             return new JobFailure(JobFailureReason.ConflictingInstall) { Files = Distinct(owned.Select(issue => issue.Path)) };
         }
 
+        if (issues.OfType<KeptFileIssue>().ToList() is { Count: > 0 } kept)
+        {
+            return new JobFailure(JobFailureReason.KeptFilesPending) { Files = Distinct(kept.Select(issue => issue.Path)) };
+        }
+
         var incompatible = issues.Where(issue => issue is MissingFileIssue or PathConflictIssue or FileMismatchIssue { AlreadyPatched: false })
             .ToList();
         if (incompatible.Count > 0)

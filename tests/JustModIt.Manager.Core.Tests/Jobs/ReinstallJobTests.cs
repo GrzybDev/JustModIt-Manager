@@ -132,6 +132,23 @@ public sealed class ReinstallJobTests
     }
 
     [Theory]
+    [InlineData(true, JobFailureReason.KeptFilesBlockReplacement)]
+    [InlineData(false, JobFailureReason.KeptFilesPending)]
+    public async Task An_update_that_writes_a_kept_file_says_whether_only_uninstalling_first_gets_past_it(bool keptByItsUninstall,
+        JobFailureReason reason)
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var record = jobs.Installed();
+        jobs.PublishReleaseTwo();
+        jobs.Engine.Prediction = new PreflightReport([new KeptFileIssue("tool/list.dat", keptByItsUninstall ? record.Id : Guid.NewGuid())], []);
+
+        var result = await jobs.RunAsync(new UpdateJobRequest(record));
+
+        result.Failure.Should().BeEquivalentTo(new JobFailure(reason) { Files = ["tool/list.dat"] });
+        jobs.Engine.Calls.Should().NotContain("uninstall");
+    }
+
+    [Theory]
     [InlineData(JobKind.Update)]
     [InlineData(JobKind.Repair)]
     [InlineData(JobKind.Install)]

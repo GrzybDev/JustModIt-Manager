@@ -12,6 +12,16 @@ public sealed record GameVersion(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] ValueList<string> Languages = default,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] ValueList<string> Content = default)
 {
+    /// <summary>
+    /// The version of an original taken before the app recorded versions, which matches no version, itself included, so such an
+    /// original never counts as fitting the game.
+    /// </summary>
+    public static GameVersion Unrecorded { get; } = new() { IsUnrecorded = true };
+
+    /// <summary>No record told the version; see <see cref="Unrecorded"/>.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsUnrecorded { get; init; }
+
     /// <summary>The version of the game's files its store reports now.</summary>
     /// <param name="game">The game as its store describes it.</param>
     public static GameVersion Of(InstalledGame game)
@@ -22,13 +32,14 @@ public sealed record GameVersion(
 
     /// <summary>
     /// Whether both describe the same files: the same languages, and the same installed content where both list it, since a
-    /// new build may change only parts the player does not have, otherwise the same build, unknown on both sides or neither.
+    /// new build may change only parts the player does not have, otherwise the same build, unknown on both sides or neither;
+    /// an unrecorded version matches none.
     /// </summary>
     /// <param name="other">The other version.</param>
     public bool Matches(GameVersion other)
     {
         ArgumentNullException.ThrowIfNull(other);
-        if (!Languages.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(other.Languages))
+        if (IsUnrecorded || other.IsUnrecorded || !Languages.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(other.Languages))
         {
             return false;
         }

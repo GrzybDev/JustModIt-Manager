@@ -45,6 +45,19 @@ public enum JobFailureReason
     ConflictingInstall,
 
     /// <summary>
+    /// Files an earlier uninstall left as the package's software changed them still hold what it left (<see cref="JobFailure.Files"/>),
+    /// so the store's check of the game's files comes first.
+    /// </summary>
+    KeptFilesPending,
+
+    /// <summary>
+    /// The install's own uninstall would leave files as the package's software changed them (<see cref="JobFailure.Files"/>),
+    /// and what takes its place writes them, so only uninstalling, the store's check of the game's files and installing again
+    /// get past it.
+    /// </summary>
+    KeptFilesBlockReplacement,
+
+    /// <summary>
     /// Another project is installed on the game, and this one may neither join it, by the app's rule, nor take its place:
     /// a test install never does, and only the player swaps projects.
     /// </summary>

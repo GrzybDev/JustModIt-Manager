@@ -1060,6 +1060,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             : "";
         var (request, caption) = (failure.Kind, install) switch
         {
+            // Trying again is refused the same way until the player uninstalls and the store checks the game's files.
+            _ when failure.Failure?.Reason == JobFailureReason.KeptFilesBlockReplacement => (null, ""),
             (JobKind.Update, { } failed) when failed.Project is { } project =>
                 ((Message?)new UpdateProject(failed.Id), Caption(Strings.GamePage_CaptionTo, project, Size(project, failed.Status.UpdateVariant))),
             (JobKind.Repair, { } failed) => (new RepairProject(failed.Id), Strings.GamePage_RepairCaption),

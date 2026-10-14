@@ -119,6 +119,78 @@ internal static class FileOperations
     public static FileStream OpenRead(string path) =>
         new(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 0, FileOptions.Asynchronous | FileOptions.SequentialScan);
 
+    /// <summary>
+    /// The size, hash and time of a file that a program may write while it is read, so the program is never locked out;
+    /// the file must have the same size and time after the read.
+    /// </summary>
+    /// <param name="path">The file.</param>
+    /// <param name="progress">Receives the bytes hashed.</param>
+    /// <param name="cancellationToken">Stops the hashing.</param>
+    /// <exception cref="FileChangedWhileReadException">The file changed while it was read.</exception>
+    public static async Task<FileSnapshot> HashSharedAsync(string path, IProgress<long>? progress, CancellationToken cancellationToken)
+    {
+        var before = StampOf(path);
+        var stream = SharedFileRead.Open(path, SharedFileRead.Sharing);
+        FileSnapshot read;
+        await using (stream.ConfigureAwait(false))
+        {
+            var sha256 = await FileHash.ComputeAsync(stream, HashAlgorithmName.SHA256, progress, cancellationToken).ConfigureAwait(false);
+            read = new FileSnapshot(stream.Position, sha256, before.LastWriteTimeUtc);
+        }
+
+        return Unchanged(path, before, read);
+    }
+
+    /// <summary>
+    /// Copies a file that a program may write while it is read, as <see cref="HashSharedAsync"/> reads it, and gives the
+    /// copy the file's time.
+    /// </summary>
+    /// <param name="source">The file to copy.</param>
+    /// <param name="destination">The new file; nothing may exist there yet.</param>
+    /// <param name="progress">Receives the bytes written.</param>
+    /// <param name="cancellationToken">Stops the copy and removes the new file.</param>
+    /// <returns>The content copied, with the source's time.</returns>
+    /// <exception cref="FileChangedWhileReadException">The file changed while it was read; the copy is removed.</exception>
+    public static async Task<FileSnapshot> CopySharedAsync(string source, string destination, IProgress<long>? progress,
+        CancellationToken cancellationToken)
+    {
+        var before = StampOf(source);
+        var stream = SharedFileRead.Open(source, SharedFileRead.Sharing);
+        FileSnapshot copy;
+        await using (stream.ConfigureAwait(false))
+        {
+            copy = await WriteNewFileAsync(stream, destination, progress, cancellationToken).ConfigureAwait(false);
+        }
+
+        try
+        {
+            copy = Unchanged(source, before, copy with { LastWriteTimeUtc = before.LastWriteTimeUtc });
+            File.SetLastWriteTimeUtc(destination, before.LastWriteTimeUtc);
+            return copy;
+        }
+        catch
+        {
+            TryDeleteFile(destination);
+            throw;
+        }
+    }
+
+    private static (long Length, DateTime LastWriteTimeUtc) StampOf(string path)
+    {
+        var file = new FileInfo(path);
+        return (file.Length, file.LastWriteTimeUtc);
+    }
+
+    // A program may have written the file while it was read, so what was read may be neither the old content nor the new.
+    private static FileSnapshot Unchanged(string path, (long Length, DateTime LastWriteTimeUtc) before, FileSnapshot read)
+    {
+        var after = new FileInfo(path);
+        return after.Exists && after.Length == before.Length && after.LastWriteTimeUtc == before.LastWriteTimeUtc
+            && read.Size == before.Length
+                ? read
+                : throw new FileChangedWhileReadException(path);
+    }
+
     /// <summary>Renames a file over another in one step; a read-only target would refuse it.</summary>
     /// <param name="source">The file to rename.</param>
     /// <param name="target">The file it replaces.</param>
@@ -242,4 +314,11 @@ internal static class FileOperations
             file.IsReadOnly = false;
         }
     }
+}
+
+/// <summary>A file changed while it was read, so what was read cannot be trusted as either version of it.</summary>
+/// <param name="path">The file.</param>
+internal sealed class FileChangedWhileReadException(string path) : IOException($"'{path}' changed while it was read.")
+{
+    public string FilePath { get; } = path;
 }

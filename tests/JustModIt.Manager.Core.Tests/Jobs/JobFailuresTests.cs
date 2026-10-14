@@ -142,6 +142,13 @@ public sealed class JobFailuresTests
     }
 
     [Fact]
+    public void Files_an_earlier_uninstall_left_for_the_software_name_their_paths()
+    {
+        JobFailures.FromIssues([new FileLockedIssue("a.pak", []), new KeptFileIssue("tool/list.dat", Guid.NewGuid())])
+            .Should().BeEquivalentTo(new JobFailure(JobFailureReason.KeptFilesPending) { Files = ["tool/list.dat"] });
+    }
+
+    [Fact]
     public void A_package_for_another_game_comes_before_the_files_it_does_not_fit()
     {
         JobFailures.FromIssues([
@@ -176,6 +183,7 @@ public sealed class JobFailuresTests
         nameof(InstallNotFoundIssue) => new InstallNotFoundIssue(Guid.NewGuid()),
         nameof(UnreadableInstallIssue) => new UnreadableInstallIssue(Guid.NewGuid()),
         nameof(FileOwnedByOtherInstallIssue) => new FileOwnedByOtherInstallIssue("a.pak", Guid.NewGuid()),
+        nameof(KeptFileIssue) => new KeptFileIssue("tool/list.dat", Guid.NewGuid()),
         nameof(GameManagedByOtherAppIssue) => new GameManagedByOtherAppIssue("OtherApp", "folder"),
         nameof(UnsafePathIssue) => new UnsafePathIssue("../a"),
         nameof(PathConflictIssue) => new PathConflictIssue("a"),

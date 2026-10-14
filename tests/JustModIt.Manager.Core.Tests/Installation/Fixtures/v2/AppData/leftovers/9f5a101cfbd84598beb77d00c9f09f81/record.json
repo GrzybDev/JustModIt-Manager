@@ -1,0 +1,44 @@
+{
+  "formatVersion": 1,
+  "id": "9f5a101c-fbd8-4598-beb7-7d00c9f09f81",
+  "game": "steam:1000",
+  "gameName": "Example Game",
+  "installDirectory": "{root}\\Game",
+  "gameVolume": "VOLUME-GAMES",
+  "gameBuildId": "41",
+  "gameVersion": {
+    "buildId": "41"
+  },
+  "installedAt": "2026-09-23T12:00:00+00:00",
+  "package": {
+    "kind": "Manifest",
+    "fileName": "4a99aa58dad64317aa0023af7ff3e4fd.examplemod",
+    "manifestId": "6f0c9f8e-3b1a-4a55-9d0e-2f5b1c7a9e10",
+    "title": "Example package",
+    "version": "1.0",
+    "runtimeFiles": [
+      "c/list.dat"
+    ]
+  },
+  "source": {
+    "projectId": "project-1",
+    "projectSlug": "example-project",
+    "projectName": "Example Project",
+    "gameSlug": "example-game",
+    "gameName": "Example Game",
+    "teamSlug": "example-team",
+    "teamName": "Example Team",
+    "releaseId": "release-1",
+    "releaseLabel": "v1.2",
+    "releaseVersion": 3,
+    "releaseFileId": "file-1",
+    "variantName": "Text only",
+    "coverUrl": "https://images.example.com/covers/example-game.jpg",
+    "coverPath": "cache/images/example-game.jpg"
+  },
+  "backup": {
+    "location": "AppData",
+    "directory": "{root}\\AppData\\backups\\steam-1000\\9f5a101cfbd84598beb77d00c9f09f81"
+  },
+  "fileCount": 1
+}

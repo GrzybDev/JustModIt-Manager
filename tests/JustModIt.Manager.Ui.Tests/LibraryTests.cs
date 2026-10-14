@@ -98,6 +98,31 @@ public sealed class LibraryTests
     }
 
     [AvaloniaFact]
+    public void A_replacement_refused_for_files_its_uninstall_would_leave_leads_to_the_game_rather_than_trying_again()
+    {
+        var refused = Failed with
+        {
+            Installs =
+            [
+                Failed.Installs[0] with
+                {
+                    LastFailure = Failed.Installs[0].LastFailure! with
+                    {
+                        Failure = new JobFailureView(JobFailureReason.KeptFilesBlockReplacement) { Files = ["data/list.dat"] },
+                    },
+                },
+            ],
+        };
+        using var ui = new UiHarness(State(refused));
+
+        var row = Page(ui).TodoRows.Single();
+        (row.Kind, row.ActionText, row.Request).Should().Be((TodoKind.Failure, "Otwórz", null));
+        ui.Click(RowAction(ui, refused.Name));
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new GameRoute(refused.Key), "the game's page says what to do first");
+        ui.Agent.Requests.Should().NotContain(request => request is UpdateProject, "trying again would be refused the same way");
+    }
+
+    [AvaloniaFact]
     public async Task Search_and_filters_narrow_the_panel_and_the_grid_and_lead_back_when_nothing_is_left()
     {
         using var ui = new UiHarness(Library());

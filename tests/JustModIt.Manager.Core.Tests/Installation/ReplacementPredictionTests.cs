@@ -67,6 +67,21 @@ public sealed class ReplacementPredictionTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_replacement_sees_handed_over_paths_as_they_are()
+    {
+        RuntimeFileTests.WithList(_harness);
+        var installed = await InstallAsync(RuntimeFileTests.Software());
+        RuntimeFileTests.Play(_harness);
+
+        var declaring = await PredictAsync(installed, new TestPackage().Rename("tool/list_original.dat", "tool/list_saved.dat")
+            .Declare("tool/list_original.dat"));
+        var notDeclaring = await PredictAsync(installed, new TestPackage().Rename("tool/list_original.dat", "tool/list_saved.dat"));
+
+        declaring.CanProceed.Should().BeTrue("the copy the software made goes over to the new release as it is");
+        notDeclaring.Issues.Should().Equal(new MissingFileIssue("tool/list_original.dat"));
+    }
+
+    [Fact]
     public async Task Refuses_a_broken_package_before_anything_else()
     {
         var installed = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed"));

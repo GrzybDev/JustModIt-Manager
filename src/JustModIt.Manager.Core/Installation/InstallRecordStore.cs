@@ -182,15 +182,19 @@ internal sealed class InstallRecordStore(string installsDirectory, TimeProvider 
         }
     }
 
-    /// <summary>Writes the file list first and the record last, since the record is the commit point of an install.</summary>
+    /// <summary>
+    /// Writes the file list first and the record last, since the record is the commit point of an install, each in the
+    /// oldest format that holds it, so older versions still undo what they can read.
+    /// </summary>
     /// <param name="record">The install's record.</param>
     /// <param name="files">The files the install touched.</param>
     /// <param name="cancellationToken">Stops the writes.</param>
     public async Task SaveAsync(InstallRecord record, InstalledFiles files, CancellationToken cancellationToken)
     {
         var folder = FolderOf(record.Id);
+        var list = files with { FormatVersion = files.RequiredFormatVersion };
         await AtomicFile.WriteJsonAsync(folder.FilesFile, FilesWriterOptions,
-            writer => JsonSerializer.Serialize(writer, files, InstallationJsonContext.Default.InstalledFiles), cancellationToken, time)
+            writer => JsonSerializer.Serialize(writer, list, InstallationJsonContext.Default.InstalledFiles), cancellationToken, time)
             .ConfigureAwait(false);
         await SaveRecordAsync(record, cancellationToken).ConfigureAwait(false);
     }

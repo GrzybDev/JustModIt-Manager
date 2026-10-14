@@ -66,8 +66,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     }
 
     public Task<IReadOnlyList<RecoveredOperation>> RecoverAsync(CancellationToken cancellationToken) =>
-        EnqueueAsync(() => new InstallRecovery(_store, _options, _ownership, _volumes, _hook, _logger).RunAsync(cancellationToken),
-            cancellationToken);
+        EnqueueAsync(() => new InstallRecovery(_store, _leftovers, _options, _ownership, _volumes, _hook, _logger)
+            .RunAsync(cancellationToken), cancellationToken);
 
     public Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken)
     {
@@ -87,8 +87,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             {
                 var game = OpenGame(request.Game.InstallDirectory);
                 var records = await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false);
-                var (report, _, _) = await CheckAsync(package, game, request.Game, request.Backup, Guid.NewGuid(), records,
-                    replacing: null, baseline: null, progress, cancellationToken).ConfigureAwait(false);
+                var (report, _, _) = await CheckAsync(package, game, request, Guid.NewGuid(), records, replacing: null, baseline: null,
+                    left: null, progress, cancellationToken).ConfigureAwait(false);
                 return report;
             }
         }, cancellationToken);
@@ -134,8 +134,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             using var gameLock = Lock(game);
             var records = await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false);
             var id = Guid.NewGuid();
-            var (report, plan, backup) = await CheckAsync(package, game, request.Game, request.Backup, id, records, replacing: null,
-                baseline: null, progress, cancellationToken).ConfigureAwait(false);
+            var (report, plan, backup) = await CheckAsync(package, game, request, id, records, replacing: null, baseline: null,
+                left: null, progress, cancellationToken).ConfigureAwait(false);
             if (!report.CanProceed)
             {
                 throw new InstallBlockedException(report.Issues);
@@ -155,6 +155,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         var gameVolume = _volumes.GetVolumeId(game.Root);
         using var transaction = InstallTransaction.Begin(game, folder, backup, gameVolume, plan, _hook);
         InstallRecord record;
+        InstalledFiles files;
         try
         {
             await _ownership.ClaimAsync(game.Root, cancellationToken).ConfigureAwait(false);
@@ -163,7 +164,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             ThrowIfAny([.. _ownership.OtherApps(game.Root, plan.Paths.Values)]);
             await transaction.ExecuteAsync(package, new ProgressTracker(progress, InstallStage.Installing, package.Steps.Count,
                 plan.BytesTotal), cancellationToken).ConfigureAwait(false);
-            var files = transaction.Result();
+            files = transaction.Result();
             record = new InstallRecord
             {
                 Id = id,
@@ -177,7 +178,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
                 Package = InstalledPackage.From(package),
                 Source = request.Source,
                 Backup = backup,
-                FileCount = files.Files.Count,
+                FileCount = files.Files.Count(file => file.Change != FileChange.Unchanged),
                 IsTest = request.IsTest,
             };
             await transaction.CommitAsync(record, files, _store, cancellationToken).ConfigureAwait(false);
@@ -201,9 +202,24 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             throw new InstallFailedException(rolledBack, exception);
         }
 
+        // Before the journal goes, so recovery does it again after a crash.
+        await TidyKeptFilesAsync(game, id, files).ConfigureAwait(false);
         transaction.Tidy(folder, _logger);
         _logger.Installed(package.FileName, request.Game.Key.ToString(), id);
         return record;
+    }
+
+    private async Task TidyKeptFilesAsync(GameFolder game, Guid recordId, InstalledFiles files)
+    {
+        try
+        {
+            var kept = await KeptFiles.LoadForAsync(_leftovers, _store, game.Root, CancellationToken.None).ConfigureAwait(false);
+            await KeptFiles.TidyAsync(files, kept, game, _leftovers, _hook, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _logger.CleanupFailed(recordId, exception);
+        }
     }
 
     private async Task<InstallRecord> MoveBackupsCoreAsync(Guid recordId, BackupChoice destination,
@@ -258,21 +274,31 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             game?.StagingDirectory(recordId) ?? string.Empty, _hook, progress, _logger, cancellationToken).ConfigureAwait(false);
     }
 
+    // Left is the kept-files record a replaced install's uninstall will write, which the install that follows meets.
     private async Task<(PreflightReport Report, InstallPlan Plan, BackupFolder Backup)> CheckAsync(IPackage package, GameFolder game,
-        InstalledGame installation, BackupChoice choice, Guid recordId, IReadOnlyList<RecordLoad> records, Guid? replacing,
-        Func<string, SimulatedFile?>? baseline, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
+        InstallRequest request, Guid recordId, IReadOnlyList<RecordLoad> records, Guid? replacing, Func<string, SimulatedFile?>? baseline,
+        KeptFilesRecord? left, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
+        var installation = request.Game;
         var issues = PendingOn(game.Root);
         var owners = await OwnersAsync(records, game.Root, replacing, issues, cancellationToken).ConfigureAwait(false);
-        var backup = BackupFolders.For(choice, game.Root, installation.Key, recordId, _options);
+        var backup = BackupFolders.For(request.Backup, game.Root, installation.Key, recordId, _options);
         if (backup is null)
         {
-            issues.Add(new BackupFolderUnavailableIssue(choice.CustomFolder ?? string.Empty));
+            issues.Add(new BackupFolderUnavailableIssue(request.Backup.CustomFolder ?? string.Empty));
             backup = BackupFolders.For(BackupChoice.GameFolder, game.Root, installation.Key, recordId, _options)!;
         }
 
+        var kept = (await KeptFiles.LoadForAsync(_leftovers, _store, game.Root, cancellationToken).ConfigureAwait(false))
+            .Select(record => record with { IsPutBack = record.Record.Id == request.Restores })
+            .ToList();
+        if (left is not null)
+        {
+            kept.Add(left);
+        }
+
         var preflight = new InstallPreflight(_locks, _volumes, _options.SlowBackupCopyBytes);
-        var (report, plan) = await preflight.CheckAsync(package, game, installation, backup, owners, issues, baseline, progress,
+        var (report, plan) = await preflight.CheckAsync(package, game, installation, backup, owners, kept, issues, baseline, progress,
             cancellationToken).ConfigureAwait(false);
         var others = _ownership.OtherApps(game.Root, plan.Paths.Values);
         // Asked last, because hashing the files of a large package takes long enough for the store to start an update.

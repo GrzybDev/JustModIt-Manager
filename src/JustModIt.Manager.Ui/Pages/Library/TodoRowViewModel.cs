@@ -175,6 +175,14 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
         Kind = TodoKind.Failure;
         Line = new LineContent(Icons.CircleX, Tone.Danger, Text.Format(Strings.Library_StateFailed, ("kind", failure.Kind.ToString())),
             failure.LostPrevious ? Strings.Library_PreviousLost : GameWording.FailureReason(failure.Failure, game.Key.Store, game.Name));
+        // Trying again is refused the same way until the player uninstalls and the store checks the game's files, which the
+        // game's page leads through.
+        if (failure.Failure?.Reason == JobFailureReason.KeptFilesBlockReplacement)
+        {
+            Act(Strings.Library_Open, Icons.ArrowRight, Text.Format(Strings.Library_OpenName, ("game", game.Name)));
+            return;
+        }
+
         Request = (failure.Kind, install) switch
         {
             (JobKind.Update, { } failed) => new UpdateProject(failed.Id),

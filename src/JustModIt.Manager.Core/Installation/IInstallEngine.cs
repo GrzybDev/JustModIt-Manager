@@ -40,7 +40,8 @@ public interface IInstallEngine
 
     /// <summary>
     /// Whether a package would install once the given install is uninstalled, as an update or repair needs to know before
-    /// it removes anything; files the install touched count as the uninstall will leave them, all others as they are.
+    /// it removes anything; files the install touched count as the uninstall will leave them, all others as they are, and
+    /// the files the uninstall would leave for later count as kept.
     /// </summary>
     /// <param name="recordId">The install to be replaced.</param>
     /// <param name="replacement">The package to install in its place.</param>
@@ -51,12 +52,20 @@ public interface IInstallEngine
     Task<PreflightReport> PredictReplacementAsync(Guid recordId, InstallRequest replacement, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken);
 
-    /// <summary>Puts an install's originals back and removes what it added, leaving alone files changed since.</summary>
+    /// <summary>
+    /// Puts an install's originals back and removes what it added, leaving alone files changed since, and files its
+    /// package's software changed when the game is no longer the version their originals were taken from.
+    /// </summary>
     /// <param name="recordId">The install's record id.</param>
+    /// <param name="replacedBy">
+    /// The package that replaces the install, whose declared files are handed over to it as they are; null for a plain
+    /// uninstall.
+    /// </param>
     /// <param name="progress">Reports the uninstall.</param>
     /// <param name="cancellationToken">Stops the uninstall; what it changed by then is undone.</param>
     /// <exception cref="InstallBlockedException">Refused before any change.</exception>
-    Task<UninstallResult> UninstallAsync(Guid recordId, IProgress<InstallProgress>? progress, CancellationToken cancellationToken);
+    Task<UninstallResult> UninstallAsync(Guid recordId, string? replacedBy, IProgress<InstallProgress>? progress,
+        CancellationToken cancellationToken);
 
     /// <summary>Checks an install's files against what it installed.</summary>
     /// <param name="recordId">The install's record id.</param>
@@ -110,13 +119,14 @@ public interface IInstallEngine
     Task<InstalledFiles> LoadFilesAsync(Guid recordId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// The originals that installs forgotten with their game left outside the game folder, with their size, so the player
-    /// can remove them; those whose folder is not there, or does not answer, are left out until it is back.
+    /// The originals that installs forgotten with their game left outside the game folder, and the copies committed
+    /// uninstalls kept of files a package's software changed, with their size, so the player can remove them; those whose
+    /// folder is not there, or does not answer, are left out until it is back.
     /// </summary>
     /// <param name="cancellationToken">Stops the search.</param>
     Task<IReadOnlyList<LeftoverBackup>> FindLeftoverBackupsAsync(CancellationToken cancellationToken);
 
-    /// <summary>Removes the originals a forgotten install left, and the app's list of them.</summary>
+    /// <summary>Removes the originals a forgotten install left, or the copies an uninstall kept, and the app's list of them.</summary>
     /// <param name="recordId">The forgotten install's record id.</param>
     /// <param name="cancellationToken">Stops the removal before it starts deleting.</param>
     /// <returns>False when there are none, or their folder is not there, which keeps the list for when it is back.</returns>

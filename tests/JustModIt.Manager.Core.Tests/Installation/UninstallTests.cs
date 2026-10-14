@@ -155,7 +155,7 @@ public sealed class UninstallTests : IAsyncDisposable
             }
         });
 
-        var uninstall = () => _harness.Engine.UninstallAsync(result.Record.Id, progress, InstallHarness.Token);
+        var uninstall = () => _harness.Engine.UninstallAsync(result.Record.Id, null, progress, InstallHarness.Token);
 
         (await uninstall.Should().ThrowAsync<InstallBlockedException>()).Which.Issues.Should()
             .Equal(new GameNotReadyIssue(GameInstallState.Updating, GameStateReason.None));

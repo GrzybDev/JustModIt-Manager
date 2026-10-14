@@ -34,6 +34,14 @@ public sealed class GameVersionTests
     }
 
     [Fact]
+    public void A_version_no_record_told_matches_none_not_even_itself()
+    {
+        GameVersion.Unrecorded.Matches(GameVersion.Unrecorded).Should().BeFalse();
+        GameVersion.Unrecorded.Matches(new GameVersion()).Should().BeFalse();
+        new GameVersion().Matches(GameVersion.Unrecorded).Should().BeFalse();
+    }
+
+    [Fact]
     public void The_version_of_a_game_is_what_its_store_reports()
     {
         var game = new InstalledGame

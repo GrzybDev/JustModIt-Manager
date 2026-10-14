@@ -13,6 +13,7 @@ internal sealed partial class TestPackage
 
     private readonly List<(string Name, byte[] Content, int Attributes)> _entries = [];
     private readonly List<PackageOperation> _operations = [];
+    private readonly List<RuntimeFile> _runtimeFiles = [];
     private string? _manifest;
     private int _formatVersion = PackageManifest.CurrentFormatVersion;
     private IReadOnlyList<string>? _requires;
@@ -38,6 +39,17 @@ internal sealed partial class TestPackage
     public TestPackage Delete(string path)
     {
         _operations.Add(new DeleteOperation(path));
+        return this;
+    }
+
+    /// <summary>Declares a file the package's software changes while the game runs.</summary>
+    /// <param name="path">The game-relative file.</param>
+    /// <param name="originals">The contents its store ships, which the manifest names as its originals.</param>
+    public TestPackage Declare(string path, params string[] originals)
+    {
+        _runtimeFiles.Add(new RuntimeFile(path, originals.Length > 0
+            ? [.. originals.Select(original => Encoding.UTF8.GetBytes(original)).Select(bytes => new FileContent(bytes.Length, Sha256(bytes)))]
+            : null));
         return this;
     }
 
@@ -93,8 +105,9 @@ internal sealed partial class TestPackage
         Title = "Example package",
         Version = "1.0",
         Targets = _targets,
-        Requires = _requires,
+        Requires = _requires ?? (_runtimeFiles.Count > 0 ? PackageCapabilities.Of(_operations, declaresFiles: true) : null),
         ThirdPartyNotices = _notices,
+        RuntimeFiles = _runtimeFiles.Count > 0 ? [.. _runtimeFiles] : null,
         Operations = [.. _operations],
     };
 

@@ -88,7 +88,7 @@ public sealed class JobEndedTests : IAsyncDisposable
         public override Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<InstallRecord>>([Record]);
 
-        public override Task<UninstallResult> UninstallAsync(Guid recordId, IProgress<InstallProgress>? progress,
+        public override Task<UninstallResult> UninstallAsync(Guid recordId, string? replacedBy, IProgress<InstallProgress>? progress,
             CancellationToken cancellationToken) => uninstall();
 
         public override Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken) =>

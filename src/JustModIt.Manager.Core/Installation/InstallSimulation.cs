@@ -33,6 +33,13 @@ internal sealed record DiskHash(long Size, DateTime LastWriteTimeUtc, string Sha
     }
 }
 
+/// <summary>A file the package declares, as the check before the install resolved it.</summary>
+/// <param name="Declaration">The manifest's entry.</param>
+/// <param name="FullPath">The resolved full path.</param>
+/// <param name="RelativePath">The game-relative path in its spelling on disk.</param>
+/// <param name="TouchedByStep">A step of the package copies, renames or deletes the file as well.</param>
+internal sealed record DeclaredFile(RuntimeFile Declaration, string FullPath, string RelativePath, bool TouchedByStep);
+
 /// <summary>
 /// Plays a package's steps over the game folder without changing it, only hashing patch sources, so a wrong game version
 /// is found before any change together with every other problem.
@@ -64,6 +71,12 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
 
     /// <summary>Hashes taken of files on disk, which the install reuses while the files are unchanged.</summary>
     public Dictionary<string, DiskHash> Hashes { get; } = new(PathComparison.Comparer);
+
+    /// <summary>The files the package declares, one per file however many spellings reach it, in the order declared.</summary>
+    public List<DeclaredFile> Declared { get; } = [];
+
+    /// <summary>Declared files no step touches that the game has, which the install copies, by full path.</summary>
+    public Dictionary<string, long> RuntimeOriginals { get; } = new(PathComparison.Comparer);
 
     public long CopiedBytes { get; private set; }
 
@@ -103,6 +116,50 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
             progress.FinishFile();
         }
     }
+
+    /// <summary>
+    /// Places the files the package declares on the folder as the steps leave it, collecting their problems in
+    /// <see cref="Issues"/>; a declared file a step touches counts as that step's.
+    /// </summary>
+    /// <param name="files">The package's declarations.</param>
+    public void Declare(IReadOnlyList<RuntimeFile> files)
+    {
+        var declared = new HashSet<string>(PathComparison.Comparer);
+        foreach (var file in files)
+        {
+            // Declarations that reach one file through a link or another spelling are one, recorded as the first resolves.
+            if (Resolve(file.Path) is not { } path || !declared.Add(path))
+            {
+                continue;
+            }
+
+            var byStep = IsTouched(path);
+            if (!byStep)
+            {
+                if (!CanHoldFile(path, file.Path))
+                {
+                    continue;
+                }
+
+                Touched[game.RelativePathOf(path)] = path;
+                if (StateOf(path) is { } current)
+                {
+                    RuntimeOriginals[path] = current.Size;
+                    TargetDirectories.Add(Path.GetDirectoryName(path)!);
+                }
+                else
+                {
+                    PlanParents(path);
+                }
+            }
+
+            Declared.Add(new DeclaredFile(file, path, game.RelativePathOf(path), byStep));
+        }
+    }
+
+    /// <summary>Whether a step of the package touches a file.</summary>
+    /// <param name="fullPath">The file's resolved full path.</param>
+    public bool IsTouched(string fullPath) => _overlay.ContainsKey(fullPath);
 
     private void Copy(CopyStep step)
     {

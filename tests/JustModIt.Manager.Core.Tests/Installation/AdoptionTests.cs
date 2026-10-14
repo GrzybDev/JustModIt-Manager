@@ -25,7 +25,7 @@ public sealed class AdoptionTests : IAsyncDisposable
         adopted.Backup.Directory.Should().StartWith(adopted.InstallDirectory);
         Snapshot(moved).Should().BeEquivalentTo(before, "following a move changes nothing in the game");
         (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().Be(adopted);
-        var uninstalled = await _harness.Engine.UninstallAsync(installed.Id, null, InstallHarness.Token);
+        var uninstalled = await _harness.Engine.UninstallAsync(installed.Id, null, null, InstallHarness.Token);
         uninstalled.KeptFiles.Should().BeEmpty();
         File.ReadAllText(Path.Join(moved, "readme.txt")).Should().Be("Read me");
     }
@@ -120,6 +120,43 @@ public sealed class AdoptionTests : IAsyncDisposable
 
         (await unanswered).Should().Be(ForgetOutcome.Kept);
         (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task A_moved_game_is_followed_whatever_its_declared_files_hold()
+    {
+        RuntimeFileTests.WithList(_harness);
+        var installed = (await _harness.InstallAsync(_harness.ManifestPackage(RuntimeFileTests.Software()))).Record;
+        RuntimeFileTests.Play(_harness);
+        var moved = Move();
+        File.Delete(Path.Join(moved, "tool", "list.dat"));
+
+        var adopted = await _harness.Engine.AdoptMovedAsync(installed.Id, _harness.Game with { InstallDirectory = moved }, null,
+            InstallHarness.Token);
+
+        adopted.Should().NotBeNull();
+        adopted!.GameVersion.Should().Be(installed.GameVersion, "originals belong to the version they were taken from");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task An_install_that_wrote_only_declared_files_is_found_in_a_moved_game_by_them(bool there)
+    {
+        RuntimeFileTests.WithList(_harness);
+        var installed = (await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("tool/loader.cfg", "settings")
+            .Declare("tool/loader.cfg").Declare("tool/list.dat")))).Record;
+        _harness.WriteGameFile("tool/loader.cfg", "settings the software rewrote");
+        var moved = Move();
+        if (!there)
+        {
+            File.Delete(Path.Join(moved, "tool", "loader.cfg"));
+        }
+
+        var adopted = await _harness.Engine.AdoptMovedAsync(installed.Id, _harness.Game with { InstallDirectory = moved }, null,
+            InstallHarness.Token);
+
+        (adopted is not null).Should().Be(there);
     }
 
     private async Task<InstallRecord> InstallAsync() =>

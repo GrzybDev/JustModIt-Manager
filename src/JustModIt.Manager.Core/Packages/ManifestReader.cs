@@ -1,17 +1,20 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Text.Unicode;
 using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Packages;
 
-internal static class ManifestReader
+internal static partial class ManifestReader
 {
     private const string FormatVersionProperty = "formatVersion";
     private const string RequiresProperty = "requires";
     private const string OperationsProperty = "operations";
     private const string TypeProperty = "type";
     private const string ThirdPartyNoticesProperty = "thirdPartyNotices";
+    private const string RuntimeFilesProperty = "runtimeFiles";
+    private const string RuntimeFoldersProperty = "runtimeFolders";
 
     /// <summary>Reads a package's manifest, refusing one made for a newer app before anything else.</summary>
     /// <param name="json">The bytes of <c>manifest.json</c>, with or without a byte order mark.</param>
@@ -33,7 +36,7 @@ internal static class ManifestReader
             // The serializer checks the nullability of properties but not of list items.
             return manifest.ThirdPartyNotices is not { } notices
                 || (notices.Count <= ThirdPartyNotice.MaxPerPackage && notices.All(notice => notice?.IsValid() == true))
-                    ? manifest
+                    ? WithCheckedRuntimeFiles(manifest)
                     : throw Invalid(ThirdPartyNoticesProperty);
         }
         catch (JsonException exception)
@@ -64,6 +67,7 @@ internal static class ManifestReader
     // Runs before full deserialisation, so a package made for a newer app says "update" instead of "damaged".
     private static void CheckVersionAndCapabilities(JsonElement root)
     {
+        var required = new HashSet<string>(StringComparer.Ordinal);
         if (root.ValueKind != JsonValueKind.Object
             || !root.TryGetProperty(FormatVersionProperty, out var version)
             || version.ValueKind != JsonValueKind.Number
@@ -87,9 +91,14 @@ internal static class ManifestReader
 
             foreach (var capability in requires.EnumerateArray())
             {
-                RequireSupported(capability.ValueKind == JsonValueKind.String ? capability.GetString() : null, RequiresProperty);
+                var name = capability.ValueKind == JsonValueKind.String ? capability.GetString() : null;
+                RequireSupported(name, RequiresProperty);
+                required.Add(name!);
             }
         }
+
+        CheckDeclarations(root, RuntimeFilesProperty, PackageCapabilities.RuntimeFiles, required);
+        CheckDeclarations(root, RuntimeFoldersProperty, PackageCapabilities.RuntimeFolders, required);
 
         if (!root.TryGetProperty(OperationsProperty, out var operations) || operations.ValueKind != JsonValueKind.Array)
         {
@@ -110,6 +119,58 @@ internal static class ManifestReader
         }
     }
 
+    // An app that ignored the list would install the package without ever undoing what its software changes, which is why
+    // the list needs its capability while notices do not.
+    private static void CheckDeclarations(JsonElement root, string property, string capability, HashSet<string> required)
+    {
+        if (!root.TryGetProperty(property, out var list) || list.ValueKind == JsonValueKind.Null)
+        {
+            return;
+        }
+
+        if (list.ValueKind != JsonValueKind.Array)
+        {
+            throw Invalid(property);
+        }
+
+        if (list.GetArrayLength() > 0 && !required.Contains(capability))
+        {
+            throw Invalid(RequiresProperty);
+        }
+    }
+
+    private static PackageManifest WithCheckedRuntimeFiles(PackageManifest manifest)
+    {
+        if (manifest.RuntimeFiles is not { } files)
+        {
+            return manifest;
+        }
+
+        return files.Count <= RuntimeFile.MaxPerPackage && files.All(file => file is not null)
+            ? manifest with { RuntimeFiles = [.. files.Select(Checked)] }
+            : throw Invalid(RuntimeFilesProperty);
+    }
+
+    private static RuntimeFile Checked(RuntimeFile file)
+    {
+        // A file the software has not created yet keeps the spelling it is given, so a short name would never meet the
+        // file's long name.
+        if (!PackagePath.IsValid(file.Path) || file.Path.Split(PackagePath.Separator).Any(ShortName().IsMatch))
+        {
+            throw new InvalidPackageException(PackageError.InvalidPath, file.Path);
+        }
+
+        if (file.Originals is not { } originals)
+        {
+            return file;
+        }
+
+        return originals.Count is > 0 and <= RuntimeFile.MaxOriginals
+            && originals.All(original => original is { Size: >= 0 } && ManifestSteps.IsSha256(original.Sha256))
+                ? file with { Originals = [.. originals.Select(original => original with { Sha256 = original.Sha256.ToLowerInvariant() })] }
+                : throw Invalid(RuntimeFilesProperty);
+    }
+
     private static void RequireSupported(string? capability, string property)
     {
         if (string.IsNullOrEmpty(capability))
@@ -124,4 +185,7 @@ internal static class ManifestReader
     }
 
     private static InvalidPackageException Invalid(string detail) => new(PackageError.InvalidManifest, detail);
+
+    [GeneratedRegex(@"^[^~]{1,6}~[0-9]+(\.[^.]{0,3})?$", RegexOptions.CultureInvariant)]
+    private static partial Regex ShortName();
 }

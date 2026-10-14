@@ -26,4 +26,11 @@ public sealed record BackupChoice(BackupLocation Location, string? CustomFolder 
 /// <param name="Source">What the site says about the package, kept in the record.</param>
 /// <param name="IsTest">A package the package creator installs to try it out, which is never updated.</param>
 public sealed record InstallRequest(InstalledGame Game, string PackagePath, BackupChoice Backup, InstallSource? Source = null,
-    bool IsTest = false);
+    bool IsTest = false)
+{
+    /// <summary>
+    /// The install a replacement removed that this one puts back, taking over what its uninstall left for later; null for any
+    /// other install.
+    /// </summary>
+    public Guid? Restores { get; init; }
+}

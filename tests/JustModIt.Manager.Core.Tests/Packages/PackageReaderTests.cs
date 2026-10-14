@@ -448,6 +448,147 @@ public sealed class PackageReaderTests : IDisposable
         (await ErrorAsync(Zip)).Should().Be(PackageError.NotAnArchive);
     }
 
+    [Fact]
+    public async Task Reads_the_files_a_package_s_software_changes_with_their_originals()
+    {
+        new TestPackage().Copy("tool/loader.dll", "loader").Declare("tool/list.dat", "Original list").Declare("tool/list_original.dat")
+            .WriteManifestPackage(ManifestPackage);
+
+        await using var package = await _reader.OpenAsync(ManifestPackage, TestContext.Current.CancellationToken);
+
+        package.Manifest!.Requires.Should().Equal("op:copy", "runtime:files@1");
+        package.RuntimeFiles.Should().BeEquivalentTo([
+            new RuntimeFile("tool/list.dat", [new FileContent(13, TestPackage.Sha256("Original list"u8.ToArray()))]),
+            new RuntimeFile("tool/list_original.dat")]);
+    }
+
+    [Fact]
+    public async Task Normalises_the_hashes_of_declared_originals_to_lower_case()
+    {
+        new TestPackage().RawManifest(Declaring($$"""[ { "path": "tool/list.dat", "originals": [ { "size": 1, "sha256": "{{new string('A', 64)}}" } ] } ]"""))
+            .WriteManifestPackage(ManifestPackage);
+
+        await using var package = await _reader.OpenAsync(ManifestPackage, TestContext.Current.CancellationToken);
+
+        package.RuntimeFiles.Single().Originals!.Single().Sha256.Should().Be(new string('a', 64));
+    }
+
+    [Theory]
+    [InlineData("""[ "op:delete" ], "runtimeFiles": [ { "path": "tool/list.dat" } ]""")]
+    [InlineData("""null, "runtimeFiles": [ { "path": "tool/list.dat" } ]""")]
+    public async Task A_manifest_that_declares_runtime_files_without_their_capability_is_damaged(string requiresAndFiles)
+    {
+        new TestPackage().RawManifest($$"""
+            { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": {{requiresAndFiles}},
+              "operations": [ { "type": "delete", "path": "old.txt" } ] }
+            """).WriteManifestPackage(ManifestPackage);
+
+        var exception = await OpenFailureAsync(ManifestPackage);
+
+        exception.Error.Should().Be(PackageError.InvalidManifest, "an app that ignored the list would never undo what the software changes");
+        exception.Detail.Should().Be("requires");
+    }
+
+    [Fact]
+    public async Task A_manifest_that_declares_runtime_folders_this_app_cannot_undo_asks_for_a_newer_app()
+    {
+        new TestPackage().RawManifest($$"""
+            { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": [ "op:delete", "runtime:folders@1" ],
+              "runtimeFolders": [ { "path": "tool/cache" } ], "operations": [ { "type": "delete", "path": "old.txt" } ] }
+            """).WriteManifestPackage(ManifestPackage);
+        var withoutCapability = _temp.Combine("folders.examplemod");
+        new TestPackage().RawManifest($$"""
+            { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1",
+              "runtimeFolders": [ { "path": "tool/cache" } ], "operations": [ { "type": "delete", "path": "old.txt" } ] }
+            """).WriteManifestPackage(withoutCapability);
+
+        var exception = await OpenFailureAsync(ManifestPackage);
+
+        exception.Error.Should().Be(PackageError.UnsupportedCapability);
+        exception.Detail.Should().Be("runtime:folders@1");
+        (await OpenFailureAsync(withoutCapability)).Detail.Should().Be("requires");
+    }
+
+    [Theory]
+    [InlineData("""[ { "path": "../evil.dll" } ]""", PackageError.InvalidPath)]
+    [InlineData("""[ { "path": "/evil.dll" } ]""", PackageError.InvalidPath)]
+    [InlineData("""[ { "path": "C:evil.dll" } ]""", PackageError.InvalidPath)]
+    [InlineData("""[ { "path": "tool/list.dat." } ]""", PackageError.InvalidPath)]
+    [InlineData("""[ { "path": "tool/LIST~1.DAT" } ]""", PackageError.InvalidPath)]
+    [InlineData("""[ { "path": "PROGRA~12/list.dat" } ]""", PackageError.InvalidPath)]
+    [InlineData("""[ null ]""", PackageError.InvalidManifest)]
+    [InlineData("""{ "path": "tool/list.dat" }""", PackageError.InvalidManifest)]
+    [InlineData("""[ { "originals": [] } ]""", PackageError.InvalidManifest)]
+    [InlineData("""[ { "path": "tool/list.dat", "originals": [] } ]""", PackageError.InvalidManifest)]
+    [InlineData("""[ { "path": "tool/list.dat", "originals": [ null ] } ]""", PackageError.InvalidManifest)]
+    [InlineData("""[ { "path": "tool/list.dat", "originals": [ { "size": -1, "sha256": "0000000000000000000000000000000000000000000000000000000000000000" } ] } ]""", PackageError.InvalidManifest)]
+    [InlineData("""[ { "path": "tool/list.dat", "originals": [ { "size": 1, "sha256": "abc" } ] } ]""", PackageError.InvalidManifest)]
+    [InlineData("""[ { "path": "tool/list.dat", "originals": [ { "size": 1 } ] } ]""", PackageError.InvalidManifest)]
+    public async Task Runtime_paths_follow_the_path_rules_and_the_limits(string runtimeFiles, PackageError error)
+    {
+        new TestPackage().RawManifest(Declaring(runtimeFiles)).WriteManifestPackage(ManifestPackage);
+
+        (await ErrorAsync(ManifestPackage)).Should().Be(error);
+    }
+
+    [Theory]
+    [InlineData(65, 1)]
+    [InlineData(1, 9)]
+    public async Task Runtime_files_and_their_originals_are_bounded(int files, int originals)
+    {
+        var original = $$"""{ "size": 1, "sha256": "{{Hash}}" }""";
+        var list = string.Join(", ", Enumerable.Range(0, files).Select(index =>
+            $$"""{ "path": "tool/list{{index}}.dat", "originals": [ {{string.Join(", ", Enumerable.Repeat(original, originals))}} ] }"""));
+        new TestPackage().RawManifest(Declaring($"[ {list} ]")).WriteManifestPackage(ManifestPackage);
+
+        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidManifest);
+    }
+
+    [Fact]
+    public async Task Duplicate_runtime_paths_are_refused_in_any_letter_case()
+    {
+        new TestPackage().Copy("tool/loader.dll", "loader").Declare("tool/list.dat").Declare("TOOL/List.dat")
+            .WriteManifestPackage(ManifestPackage);
+
+        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidManifest);
+    }
+
+    [Fact]
+    public async Task A_declared_file_may_not_be_patched()
+    {
+        var patch = await TestPatch.CreateAsync(TestPatch.RandomBytes(1000, seed: 3), TestPatch.RandomBytes(1000, seed: 4));
+        new TestPackage().Patch("data/strings.pak", patch).Declare("data/Strings.pak").WriteManifestPackage(ManifestPackage);
+
+        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidManifest);
+    }
+
+    [Fact]
+    public async Task A_declared_file_may_be_copied_renamed_or_deleted()
+    {
+        new TestPackage().Rename("tool/list.dat", "tool/list_old.dat").Copy("tool/list.dat", "new list").Delete("tool/cache.dat")
+            .Declare("tool/list.dat").Declare("tool/list_old.dat").Declare("tool/cache.dat")
+            .WriteManifestPackage(ManifestPackage);
+
+        await using var package = await _reader.OpenAsync(ManifestPackage, TestContext.Current.CancellationToken);
+
+        package.RuntimeFiles.Select(file => file.Path).Should().Equal("tool/list.dat", "tool/list_old.dat", "tool/cache.dat");
+    }
+
+    [Fact]
+    public async Task A_plain_zip_declares_nothing()
+    {
+        new TestPackage().Entry("tool/loader.dll", "loader").WriteZip(Zip);
+
+        await using var package = await _reader.OpenAsync(Zip, TestContext.Current.CancellationToken);
+
+        package.RuntimeFiles.Should().BeEmpty();
+    }
+
+    private static string Declaring(string runtimeFiles) => $$"""
+        { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": [ "op:delete", "runtime:files@1" ],
+          "runtimeFiles": {{runtimeFiles}}, "operations": [ { "type": "delete", "path": "old.txt" } ] }
+        """;
+
     private async Task<PackageError> ErrorAsync(string path) => (await OpenFailureAsync(path)).Error;
 
     private async Task<InvalidPackageException> OpenFailureAsync(string path)

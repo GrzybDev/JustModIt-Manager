@@ -225,6 +225,31 @@ public sealed class GameTests
     }
 
     [AvaloniaFact]
+    public void An_update_refused_for_files_the_uninstall_would_leave_says_to_uninstall_first()
+    {
+        var failed = FailedUpdate("Ember Hollow", "4100");
+        failed = failed with
+        {
+            Installs =
+            [
+                failed.Installs[0] with
+                {
+                    LastFailure = new FailureView(JobKind.Update, JobOrigin.Automatic, TestStates.Now.AddMinutes(-3),
+                        new JobFailureView(JobFailureReason.KeptFilesBlockReplacement) { Files = ["data/list.dat"] }),
+                },
+            ],
+        };
+        using var ui = Open(State(failed), failed);
+        var page = Page(ui);
+
+        page.Step!.Kind.Should().Be(StepKind.Failed);
+        (page.Step.HasPrimary, page.Step.PrimaryRequest).Should().Be((false, null), "trying again would be refused the same way");
+        page.Step.Text.Should().Be("Odinstalowanie zainstalowanej wersji spolszczenia zostawiłoby pliki zmienione przez jego oprogramowanie tak, "
+            + "jak są, a nowe paczki zapisują te same pliki, więc najpierw trzeba odinstalować spolszczenie, potem sprawdzić spójność plików "
+            + "gry w Steam i zainstalować je ponownie. Wersja 1 została bez zmian.");
+    }
+
+    [AvaloniaFact]
     public async Task Several_teams_wait_for_the_players_choice_without_a_red_button()
     {
         var game = Choice("Saltmarsh: Low Tide", "5400");

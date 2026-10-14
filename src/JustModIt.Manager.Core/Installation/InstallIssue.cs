@@ -47,6 +47,15 @@ public sealed record UnreadableInstallIssue(Guid RecordId) : InstallIssue;
 public sealed record FileOwnedByOtherInstallIssue(string Path, Guid RecordId) : InstallIssue;
 
 /// <summary>
+/// An earlier uninstall left the file as the package's software changed it, keeping a copy of its original, and the file
+/// still holds what the software left, so installing over it would take that for the game's own file; checking the game's
+/// files in its store, or removing the kept copies, lets it go.
+/// </summary>
+/// <param name="Path">The file.</param>
+/// <param name="RecordId">The kept-files record that holds it.</param>
+public sealed record KeptFileIssue(string Path, Guid RecordId) : InstallIssue;
+
+/// <summary>
 /// Another app or build has installs or an unfinished operation on the game, a game around it or one inside it that the
 /// package reaches, which only that app can undo, so this one keeps out until the other has uninstalled.
 /// </summary>

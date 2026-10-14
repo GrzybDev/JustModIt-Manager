@@ -1,0 +1,2 @@
+{"type":"started","formatVersion":1,"kind":"Uninstall","recordId":"9f5a101c-fbd8-4598-beb7-7d00c9f09f81","gameDirectory":"{root}\\Game","stagingDirectory":"{root}\\Game\\.example-app\\staging\\9f5a101cfbd84598beb77d00c9f09f81","backupDirectory":"{root}\\AppData\\backups\\steam-1000\\9f5a101cfbd84598beb77d00c9f09f81","gameVolume":"VOLUME-GAMES"}
+{"type":"displaced","path":"c/loader.dll","name":"0"}

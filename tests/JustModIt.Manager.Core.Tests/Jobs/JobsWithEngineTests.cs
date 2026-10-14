@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Tests.Installation;
@@ -83,6 +84,115 @@ public sealed class JobsWithEngineTests
         test.Failure!.Reason.Should().Be(JobFailureReason.OtherGame);
         game.ReadGameFile("readme.txt").Should().Be("Release one");
         (await game.Engine.LoadRecordsAsync(Token)).Should().Equal(installed);
+    }
+
+    [Fact]
+    public async Task An_update_hands_the_files_the_software_changes_over_to_the_new_release()
+    {
+        await using var game = RuntimeFileTests.WithList(new InstallHarness());
+        await using var jobs = await JobsAsync(game);
+        var original = game.Snapshot();
+        RuntimeFileTests.Software().WriteManifestPackage(jobs.Downloader.PathOf(FileOne, PackageFormat.Manifest));
+        RuntimeFileTests.Software().Copy("tool/settings.cfg", "release two")
+            .WriteManifestPackage(jobs.Downloader.PathOf(FileTwo, PackageFormat.Manifest));
+        var installed = await InstallReleaseOneAsync(game, jobs);
+        RuntimeFileTests.Play(game);
+        jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
+
+        var updated = await jobs.RunAsync(new UpdateJobRequest(installed));
+
+        updated.Outcome.Should().Be(JobOutcome.Succeeded);
+        updated.KeptFiles.Should().BeEmpty("handed-over files are neither kept nor reported");
+        game.ReadGameFile("tool/list.dat").Should().Be("List rewritten by the software", "the software keeps its state");
+        game.ReadGameFile("tool/list_original.dat").Should().Be("Original list");
+        (await jobs.RunAsync(new UninstallJobRequest(updated.Installed!))).KeptFiles.Should().BeEmpty();
+        game.Snapshot().Should().BeEquivalentTo(original);
+        game.AppFiles().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_failed_update_hands_the_files_the_software_changes_to_the_release_it_puts_back()
+    {
+        await using var game = RuntimeFileTests.WithList(new InstallHarness());
+        await using var jobs = await JobsAsync(game);
+        var original = game.Snapshot();
+        RuntimeFileTests.Software().WriteManifestPackage(jobs.Downloader.PathOf(FileOne, PackageFormat.Manifest));
+        RuntimeFileTests.Software().Operation(new CopyOperation("tool/settings.cfg", "files/tool/settings.cfg", 11, new string('0', 64)))
+            .Entry("files/tool/settings.cfg", "Release two").WriteManifestPackage(jobs.Downloader.PathOf(FileTwo, PackageFormat.Manifest));
+        var installed = await InstallReleaseOneAsync(game, jobs);
+        RuntimeFileTests.Play(game);
+        jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
+
+        var result = await jobs.RunAsync(new UpdateJobRequest(installed));
+
+        result.RestoredPrevious.Should().BeTrue();
+        game.ReadGameFile("tool/list.dat").Should().Be("List rewritten by the software");
+        game.ReadGameFile("tool/list_original.dat").Should().Be("Original list");
+        (await game.KeptFilesAsync()).Should().BeEmpty("the release put back took every note over");
+        await jobs.RunAsync(new UninstallJobRequest(result.Installed!));
+        game.Snapshot().Should().BeEquivalentTo(original);
+    }
+
+    [Fact]
+    public async Task A_failed_update_after_a_game_update_puts_the_release_back_with_what_its_uninstall_held_back()
+    {
+        await using var game = RuntimeFileTests.WithList(new InstallHarness());
+        await using var jobs = await JobsAsync(game);
+        RuntimeFileTests.Software().WriteManifestPackage(jobs.Downloader.PathOf(FileOne, PackageFormat.Manifest));
+        new TestPackage().Copy("tool/loader.dll", "loader two")
+            .Operation(new CopyOperation("tool/settings.cfg", "files/tool/settings.cfg", 11, new string('0', 64)))
+            .Entry("files/tool/settings.cfg", "Release two").WriteManifestPackage(jobs.Downloader.PathOf(FileTwo, PackageFormat.Manifest));
+        var installed = await InstallReleaseOneAsync(game, jobs);
+        RuntimeFileTests.Play(game);
+        UpdateGame(game, jobs);
+        jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
+
+        var result = await jobs.RunAsync(new UpdateJobRequest(installed));
+
+        result.Failure!.Reason.Should().Be(JobFailureReason.InvalidPackage);
+        result.RestoredPrevious.Should().BeTrue("the player must not lose the release that worked");
+        game.ReadGameFile("tool/list.dat").Should().Be("List rewritten by the software");
+        game.ReadGameFile("tool/loader.dll").Should().Be("loader");
+        (await game.KeptFilesAsync()).Should().BeEmpty("the release put back took over what its uninstall held back");
+    }
+
+    [Fact]
+    public async Task An_update_that_writes_a_file_the_uninstall_would_hold_back_leaves_the_installed_release_alone()
+    {
+        await using var game = RuntimeFileTests.WithList(new InstallHarness());
+        await using var jobs = await JobsAsync(game);
+        RuntimeFileTests.Software().WriteManifestPackage(jobs.Downloader.PathOf(FileOne, PackageFormat.Manifest));
+        new TestPackage().Copy("tool/loader.dll", "loader two").Copy("tool/list.dat", "List shipped by release two")
+            .WriteManifestPackage(jobs.Downloader.PathOf(FileTwo, PackageFormat.Manifest));
+        var installed = await InstallReleaseOneAsync(game, jobs);
+        RuntimeFileTests.Play(game);
+        UpdateGame(game, jobs);
+        var played = game.Snapshot();
+        jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
+
+        var result = await jobs.RunAsync(new UpdateJobRequest(installed));
+
+        result.Failure!.Reason.Should().Be(JobFailureReason.KeptFilesBlockReplacement, "checking the files in the store would not get past it");
+        result.RemovedPrevious.Should().BeFalse();
+        game.Snapshot().Should().BeEquivalentTo(played);
+        (await game.Engine.LoadRecordsAsync(Token)).Should().ContainSingle().Which.Id.Should().Be(installed.Id);
+    }
+
+    private static async Task<InstallRecord> InstallReleaseOneAsync(InstallHarness game, JobsHarness jobs)
+    {
+        jobs.Downloader.Cached[FileOne] = true;
+        jobs.Downloader.Cached[FileTwo] = true;
+        jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, requiresManager: true))));
+        var installed = await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator(), null));
+        game.ReadGameFile("tool/loader.dll").Should().Be("loader");
+        return installed.Installed!;
+    }
+
+    // The store updated the game, as both the job's look and the engine's own see it.
+    private static void UpdateGame(InstallHarness game, JobsHarness jobs)
+    {
+        game.Probe.BuildId = "43";
+        jobs.Library.Publish(game.Game with { BuildId = "43" });
     }
 
     private static async Task<JobsHarness> JobsAsync(InstallHarness game)

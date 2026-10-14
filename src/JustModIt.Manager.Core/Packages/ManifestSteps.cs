@@ -75,8 +75,11 @@ internal static class ManifestSteps
     private static string GamePath(string path) =>
         PackagePath.IsValid(path) ? path : throw new InvalidPackageException(PackageError.InvalidPath, path);
 
+    /// <summary>Whether text is a SHA-256 in hex, in either letter case.</summary>
+    /// <param name="hash">The text a manifest gives as a hash.</param>
+    public static bool IsSha256(string? hash) =>
+        hash is { Length: Sha256HexLength } && !hash.AsSpan().ContainsAnyExcept(HexDigits);
+
     private static string Sha256(string hash) =>
-        hash.Length == Sha256HexLength && !hash.AsSpan().ContainsAnyExcept(HexDigits)
-            ? hash.ToLowerInvariant()
-            : throw new InvalidPackageException(PackageError.InvalidManifest, hash);
+        IsSha256(hash) ? hash.ToLowerInvariant() : throw new InvalidPackageException(PackageError.InvalidManifest, hash);
 }

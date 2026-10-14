@@ -1,0 +1,5 @@
+{"type":"started","formatVersion":1,"kind":"Uninstall","recordId":"3e03be63-bc8d-4e2f-8770-672b7474298e","gameDirectory":"{root}\\Game","stagingDirectory":"{root}\\Game\\.example-app\\staging\\3e03be63bc8d4e2f8770672b7474298e","backupDirectory":"{root}\\AppData\\backups\\steam-1000\\3e03be63bc8d4e2f8770672b7474298e","gameVolume":"VOLUME-GAMES"}
+{"type":"displaced","path":"b/loader.dll","name":"0"}
+{"type":"displaced","path":"b/list_original.dat","name":"1"}
+{"type":"displaced","path":"b/list.dat","name":"3"}
+{"type":"restored","path":"b/list.dat","backup":"0","moved":true,"original":{"size":15,"sha256":"012b61508ac4a88c9bc470065c7ba9774fa3cdfb2b0dd850d75e1249966c1b20","lastWriteTimeUtc":"2026-10-13T15:58:44.6906197Z"}}

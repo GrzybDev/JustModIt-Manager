@@ -34,7 +34,10 @@ public sealed record JobResult(JobSnapshot Job, JobOutcome Outcome)
 
     public ValueList<InstallWarning> Warnings { get; init; }
 
-    /// <summary>Files an uninstall left as they were, because something changed them since the install.</summary>
+    /// <summary>
+    /// Files an uninstall left as they were, because something changed them since the install, and files the package's
+    /// software changed that it put back with advice to check them, each with why.
+    /// </summary>
     public ValueList<KeptFile> KeptFiles { get; init; }
 
     /// <summary>The game folder was gone for good, so only the record and its backups were dropped.</summary>

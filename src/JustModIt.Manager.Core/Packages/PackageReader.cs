@@ -17,6 +17,9 @@ public interface IPackage : IAsyncDisposable
     /// <summary>The changes the package makes, in order.</summary>
     IReadOnlyList<PackageStep> Steps { get; }
 
+    /// <summary>Game files the package's software changes while the game runs; none for a plain .zip, which cannot declare any.</summary>
+    IReadOnlyList<RuntimeFile> RuntimeFiles { get; }
+
     /// <summary>Streams exactly the declared size of an entry, or fails with <see cref="InvalidPackageException"/>.</summary>
     /// <param name="entry">The entry's normalised name, as a step names it.</param>
     /// <param name="cancellationToken">Cancels opening it.</param>
@@ -67,7 +70,8 @@ public sealed class PackageReader(PackageLimits? limits = null)
                 kind == PackageKind.Manifest ? IsManifestPackageEntry : _ => true, cancellationToken).ConfigureAwait(false);
             var manifest = kind == PackageKind.Manifest ? await ReadManifestAsync(files, cancellationToken).ConfigureAwait(false) : null;
             var steps = manifest is null ? ZipSteps(files) : ManifestSteps.From(manifest, files);
-            return new ZipPackage(kind, Path.GetFileName(path), archive, files, manifest, steps);
+            var runtimeFiles = manifest is null ? [] : RuntimeDeclarations.From(manifest);
+            return new ZipPackage(kind, Path.GetFileName(path), archive, files, manifest, steps, runtimeFiles);
         }
         catch
         {
@@ -162,7 +166,8 @@ public sealed class PackageReader(PackageLimits? limits = null)
         ZipArchive archive,
         OrderedDictionary<string, ZipArchiveEntry> files,
         PackageManifest? manifest,
-        IReadOnlyList<PackageStep> steps) : IPackage
+        IReadOnlyList<PackageStep> steps,
+        IReadOnlyList<RuntimeFile> runtimeFiles) : IPackage
     {
         public PackageKind Kind => kind;
 
@@ -171,6 +176,8 @@ public sealed class PackageReader(PackageLimits? limits = null)
         public PackageManifest? Manifest => manifest;
 
         public IReadOnlyList<PackageStep> Steps => steps;
+
+        public IReadOnlyList<RuntimeFile> RuntimeFiles => runtimeFiles;
 
         public async Task<Stream> OpenEntryAsync(string entry, CancellationToken cancellationToken) =>
             files.TryGetValue(entry, out var found)

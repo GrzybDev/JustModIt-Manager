@@ -34,6 +34,47 @@ public sealed class BackupTests
         harness.AppFiles().Should().BeEmpty();
     }
 
+    [Theory]
+    [MemberData(nameof(Moves))]
+    public async Task Moving_backups_carries_the_copies_of_declared_files(string from, string to)
+    {
+        await using var harness = RuntimeFileTests.WithList(InstallHarness.At(from, to));
+        var before = harness.Snapshot();
+        var result = await harness.InstallAsync(harness.ManifestPackage(RuntimeFileTests.Software()));
+
+        await harness.Engine.MoveBackupsAsync(result.Record.Id, harness.Choice(to), null, InstallHarness.Token);
+        RuntimeFileTests.Play(harness);
+
+        await BackupsShouldHoldTheOriginalsAsync(harness);
+        (await harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
+        harness.Snapshot().Should().BeEquivalentTo(before);
+        harness.AppFiles().Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Forgetting_an_install_keeps_or_removes_the_copies_of_declared_files(bool keepBackups)
+    {
+        await using var harness = RuntimeFileTests.WithList(InstallHarness.At("app data"));
+        var result = await harness.InstallAsync(harness.ManifestPackage(RuntimeFileTests.Software()));
+        TreeCopy.Delete(harness.GameRoot);
+
+        var outcome = await harness.Engine.ForgetIfGoneAsync(result.Record.Id, keepBackups, InstallHarness.Token);
+
+        if (keepBackups)
+        {
+            outcome.Should().Be(ForgetOutcome.ForgottenKeepingBackups);
+            (await harness.Engine.FindLeftoverBackupsAsync(InstallHarness.Token)).Should().ContainSingle()
+                .Which.Bytes.Should().Be("Original list".Length);
+        }
+        else
+        {
+            outcome.Should().Be(ForgetOutcome.Forgotten);
+            harness.AppFiles().Should().BeEmpty();
+        }
+    }
+
     [Fact]
     [SupportedOSPlatform("windows")]
     public async Task Undoes_a_move_at_once_when_its_journal_cannot_be_written()

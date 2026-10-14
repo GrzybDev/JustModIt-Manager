@@ -41,9 +41,10 @@ public sealed partial class InstallEngine
         }
 
         using var gameLock = Lock(target);
-        var tracker = new ProgressTracker(progress, InstallStage.Verifying, files.Files.Count, FileInspector.BytesToHash(files));
+        var tracker = new ProgressTracker(progress, InstallStage.Verifying, FileInspector.Checked(files).Count(),
+            FileInspector.BytesToHash(files));
         var inspected = await FileInspector.InspectAllAsync(files, target, tracker, cancellationToken).ConfigureAwait(false);
-        if (!IsThere(inspected))
+        if (!IsThere(inspected, files, target))
         {
             return null;
         }
@@ -69,12 +70,19 @@ public sealed partial class InstallEngine
     }
 
     // A file the install deleted being absent proves little on its own, so a file it wrote has to be there unless it only
-    // deleted files.
-    private static bool IsThere(List<InspectedFile> inspected)
+    // deleted files. Files the package's software changes are never read; when the package wrote only such files, one of
+    // them being there is enough.
+    private static bool IsThere(List<InspectedFile> inspected, InstalledFiles files, GameFolder target)
     {
         var written = inspected.Where(file => file.File.Change != FileChange.Deleted).ToList();
-        return written.Count > 0
-            ? written.Any(file => file.Integrity == FileIntegrity.Intact)
+        if (written.Count > 0)
+        {
+            return written.Any(file => file.Integrity == FileIntegrity.Intact);
+        }
+
+        var declared = files.Files.Where(file => file is { Runtime: true, Change: FileChange.Added or FileChange.Replaced }).ToList();
+        return declared.Count > 0
+            ? declared.Exists(file => target.TryResolve(file.Path) is { } path && File.Exists(path))
             : inspected.Count > 0 && inspected.All(file => file.Integrity == FileIntegrity.Intact);
     }
 }

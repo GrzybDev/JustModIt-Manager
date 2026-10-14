@@ -14,6 +14,18 @@ public enum KeptReason
 
     /// <summary>The original's backup no longer matches it, so the installed file stays rather than a damaged copy.</summary>
     BackupDamaged,
+
+    /// <summary>
+    /// The game is another version than the one the originals of files the package's software changes were taken from, so
+    /// those files stay as they are and the copies of their originals are kept.
+    /// </summary>
+    GameUpdatedSinceInstall,
+
+    /// <summary>
+    /// A file the package's software changes is as it was before the install, but it may not have been the store's file
+    /// even then, so the store's check of the files is advised.
+    /// </summary>
+    OriginalUnknown,
 }
 
 public sealed record KeptFile(string Path, KeptReason Reason);
@@ -31,8 +43,20 @@ internal sealed record UndoStep(InstalledFile File, string Path, UndoAction Acti
 
 /// <summary>What an uninstall will do.</summary>
 /// <param name="Steps">What the uninstall changes; every other file stays as it is.</param>
-/// <param name="Kept">The files that stay as they are, and why.</param>
-internal sealed record UninstallPlan(IReadOnlyList<UndoStep> Steps, IReadOnlyList<KeptFile> Kept);
+/// <param name="Kept">The files that stay as they are, or come back with advice to check them, and why.</param>
+internal sealed record UninstallPlan(IReadOnlyList<UndoStep> Steps, IReadOnlyList<KeptFile> Kept)
+{
+    /// <summary>
+    /// What the kept-files record holds: files the package's software changed that the uninstall leaves for the player, and
+    /// paths handed over to the install that replaces this one.
+    /// </summary>
+    public IReadOnlyList<InstalledFile> Left { get; init; } = [];
+
+    /// <summary>This plan together with the plan for the files the package's software changes.</summary>
+    /// <param name="runtime">The plan for those files.</param>
+    public UninstallPlan With(RuntimeUndoPlan runtime) =>
+        new([.. Steps, .. runtime.Steps], [.. Kept, .. runtime.Kept]) { Left = [.. Left, .. runtime.Left] };
+}
 
 /// <summary>
 /// Puts originals back and removes added files, never touching a file changed since the install, as a journaled
@@ -40,19 +64,28 @@ internal sealed record UninstallPlan(IReadOnlyList<UndoStep> Steps, IReadOnlyLis
 /// </summary>
 internal static class Uninstaller
 {
-    /// <summary>Decides what to do with each of the install's files, without changing anything.</summary>
+    /// <summary>
+    /// Decides what to do with each of the install's files that a check reads, without changing anything; those the
+    /// package's software changes are left to <see cref="RuntimeUndo"/>.
+    /// </summary>
     /// <param name="record">The install.</param>
     /// <param name="files">The install's files.</param>
     /// <param name="game">The game folder.</param>
+    /// <param name="handedOver">Full paths handed over as they are to the install that replaces this one.</param>
     /// <param name="progress">Reports the check of the files.</param>
     /// <param name="cancellationToken">Stops the check.</param>
     public static async Task<UninstallPlan> PlanAsync(InstallRecord record, InstalledFiles files, GameFolder game,
-        IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
+        IReadOnlySet<string> handedOver, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
-        var tracker = new ProgressTracker(progress, InstallStage.Checking, files.Files.Count, FileInspector.BytesToHash(files));
+        var checkedFiles = files with
+        {
+            Files = [.. FileInspector.Checked(files).Where(file => !handedOver.Contains(game.Locate(file.Path)))],
+        };
+        var tracker = new ProgressTracker(progress, InstallStage.Checking, checkedFiles.Files.Count,
+            FileInspector.BytesToHash(checkedFiles));
         var steps = new List<UndoStep>();
         var kept = new List<KeptFile>();
-        foreach (var (file, path, integrity) in await FileInspector.InspectAllAsync(files, game, tracker, cancellationToken)
+        foreach (var (file, path, integrity) in await FileInspector.InspectAllAsync(checkedFiles, game, tracker, cancellationToken)
                      .ConfigureAwait(false))
         {
             switch (Decide(file, integrity))
@@ -124,6 +157,12 @@ internal static class Uninstaller
                     .ConfigureAwait(false);
                 if (source is null)
                 {
+                    // The software's files come back all together or not at all, so the whole uninstall is undone.
+                    if (file.Runtime)
+                    {
+                        throw new IOException($"The copy of the original of '{file.Path}' no longer holds it.");
+                    }
+
                     logger.BackupDamaged(file.Path, record.Id);
                     kept.Add(new KeptFile(file.Path, KeptReason.BackupDamaged));
                     tracker.FinishFile();
@@ -165,21 +204,33 @@ internal static class Uninstaller
     }
 
     /// <summary>
-    /// Tidies up after an uninstall committed: the installed files it moved aside, the backups the record lists and the
-    /// rest of the record go.
+    /// Tidies up after an uninstall committed: the installed files it moved aside, the backups the record lists but its
+    /// kept-files record does not, and the rest of the record go.
     /// </summary>
     /// <param name="header">The uninstall's journal header.</param>
     /// <param name="folder">The install's folder.</param>
     /// <param name="files">
     /// The install's files; null when an earlier attempt removed their list already, so the record's own backup folder goes
-    /// as a whole.
+    /// as a whole, except the copies the kept-files record names.
     /// </param>
-    public static void Finish(TransactionStarted header, InstallFolder folder, InstalledFiles? files)
+    /// <param name="kept">The uninstall's kept-files record, whose copies stay; null when it wrote none.</param>
+    public static void Finish(TransactionStarted header, InstallFolder folder, InstalledFiles? files, InstalledFiles? kept)
     {
         TransactionCleanup.RemoveStaging(header.StagingDirectory);
+        var spared = (kept?.Files ?? []).Select(file => file.Backup).OfType<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (files is not null)
         {
-            BackupFolders.DeleteListed(header.BackupDirectory, files);
+            BackupFolders.DeleteListed(header.BackupDirectory, files, spared);
+        }
+        else if (spared.Count > 0)
+        {
+            foreach (var backup in Directory.Exists(header.BackupDirectory) ? Directory.EnumerateFiles(header.BackupDirectory) : [])
+            {
+                if (!spared.Contains(Path.GetFileName(backup)))
+                {
+                    FileOperations.DeleteFile(backup);
+                }
+            }
         }
         else
         {

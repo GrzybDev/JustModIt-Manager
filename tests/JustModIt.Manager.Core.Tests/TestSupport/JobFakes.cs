@@ -362,7 +362,8 @@ internal sealed class FakeInstallEngine : IInstallEngine
         return Task.FromResult(Prediction);
     }
 
-    public Task<UninstallResult> UninstallAsync(Guid recordId, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
+    public Task<UninstallResult> UninstallAsync(Guid recordId, string? replacedBy, IProgress<InstallProgress>? progress,
+        CancellationToken cancellationToken)
     {
         Log("uninstall");
         if (OnUninstall is { } uninstall)

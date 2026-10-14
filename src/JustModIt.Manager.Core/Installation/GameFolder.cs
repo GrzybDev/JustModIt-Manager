@@ -61,6 +61,13 @@ internal sealed class GameFolder
         return resolved is null || AppFolders.WouldMark(RelativePathOf(resolved)) ? null : resolved;
     }
 
+    /// <summary>
+    /// The full path a game-relative path names, to compare paths by: resolved when it resolves safely, otherwise only joined
+    /// to the game's folder.
+    /// </summary>
+    /// <param name="relativePath">A game-relative package path.</param>
+    public string Locate(string relativePath) => TryResolve(relativePath) ?? PackagePath.ToFullPath(Root, relativePath);
+
     /// <summary>The game-relative package path of a full path in the game folder.</summary>
     /// <param name="fullPath">A full path inside the game folder.</param>
     public string RelativePathOf(string fullPath) => PackagePath.FromFullPath(Root, fullPath);

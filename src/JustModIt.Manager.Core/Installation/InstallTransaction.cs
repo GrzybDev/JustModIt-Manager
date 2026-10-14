@@ -10,7 +10,7 @@ namespace JustModIt.Manager.Core.Installation;
 /// Applies a checked plan, journaling a path's original state and backing up an existing file the first time the path is
 /// touched, before anything changes it; rollback, recovery and uninstall all follow from that first touch.
 /// </summary>
-internal sealed class InstallTransaction : IDisposable
+internal sealed partial class InstallTransaction : IDisposable
 {
     private readonly GameFolder _game;
     private readonly InstallPlan _plan;
@@ -81,6 +81,7 @@ internal sealed class InstallTransaction : IDisposable
     /// <param name="cancellationToken">Stops the install before the record commits it; the caller then rolls it back.</param>
     public async Task ExecuteAsync(IPackage package, ProgressTracker progress, CancellationToken cancellationToken)
     {
+        await PrepareRuntimeAsync(progress, cancellationToken).ConfigureAwait(false);
         foreach (var step in package.Steps)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -123,34 +124,41 @@ internal sealed class InstallTransaction : IDisposable
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    /// <summary>What the install changed, for its record.</summary>
+    /// <summary>What the install changed, and every file the package's software changes, for its record.</summary>
     public InstalledFiles Result()
     {
+        var declared = _plan.Runtime.Files.ToDictionary(file => file.FullPath, PathComparison.Comparer);
         var files = new List<InstalledFile>();
         foreach (var (path, touched) in _touched)
         {
-            FileChange? change = (touched.Original, touched.Current) switch
+            FileChange? change = touched.CopiedOnly ? FileChange.Unchanged : (touched.Original, touched.Current) switch
             {
                 (null, null) => null,
                 (null, _) => FileChange.Added,
                 (_, null) => FileChange.Deleted,
                 _ => FileChange.Replaced,
             };
+            var isDeclared = declared.TryGetValue(path, out var declaration);
+            if (change is null && isDeclared)
+            {
+                // The package added the file and removed it again, so it was absent before as after.
+                change = FileChange.Unchanged;
+            }
+
             if (change is { } kind)
             {
-                var installed = touched.Current is { } current
+                var installed = kind != FileChange.Unchanged && touched.Current is { } current
                     ? current with { LastWriteTimeUtc = File.GetLastWriteTimeUtc(path) }
                     : null;
-                files.Add(new InstalledFile(touched.RelativePath, kind, touched.Original, installed, touched.Backup,
-                    touched.Attributes));
+                var entry = new InstalledFile(touched.RelativePath, kind, touched.Original, installed, touched.Backup,
+                    touched.Attributes);
+                files.Add(isDeclared ? Declared(entry, declaration!) : entry);
             }
         }
 
-        return new InstalledFiles
-        {
-            Files = files,
-            CreatedDirectories = [.. _createdDirectories.Where(Directory.Exists).Select(_game.RelativePathOf)],
-        };
+        files.AddRange(declared.Values.Where(file => !_touched.ContainsKey(file.FullPath))
+            .Select(file => Declared(new InstalledFile(file.RelativePath, FileChange.Unchanged), file)));
+        return new InstalledFiles { Files = files, CreatedDirectories = CreatedDirectories() };
     }
 
     /// <summary>Saves the record, which commits the install.</summary>
@@ -323,7 +331,7 @@ internal sealed class InstallTransaction : IDisposable
             FileSnapshot original;
             if (_plan.MovesOriginals)
             {
-                original = (_plan.Hashes.TryGetValue(path, out var known) ? known.ForUnchanged(path) : null)
+                original = (_plan.Hashes.TryGetValue(path, out var known) && !_brought.Contains(path) ? known.ForUnchanged(path) : null)
                     ?? await FileOperations.HashAsync(path, progress.Bytes, cancellationToken).ConfigureAwait(false);
                 _actions.Add(() =>
                 {
@@ -407,6 +415,9 @@ internal sealed class InstallTransaction : IDisposable
         public FileAttributes? Attributes { get; init; }
 
         public FileSnapshot? Current { get; set; }
+
+        /// <summary>A declared file the install only copied, leaving it as it was.</summary>
+        public bool CopiedOnly { get; init; }
     }
 }
 

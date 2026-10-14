@@ -107,7 +107,7 @@ internal sealed partial class JobPipeline(
         try
         {
             var result = await WhenSafeAsync(job, detected, canDefer: false,
-                _ => engine.UninstallAsync(record.Id, job.InstallProgress, job.Token), job.Token).ConfigureAwait(false);
+                _ => engine.UninstallAsync(record.Id, replacedBy: null, job.InstallProgress, job.Token), job.Token).ConfigureAwait(false);
             return job.Succeeded() with { KeptFiles = result.KeptFiles, RemovedRecord = record.Id };
         }
         catch (InstallBlockedException blocked) when (blocked.Issues.All(issue => issue is GameFolderMissingIssue))
@@ -147,7 +147,7 @@ internal sealed partial class JobPipeline(
         var removed = await WhenSafeAsync(job, detected: true, canDefer: false, async current =>
         {
             await EnsureReplaceableAsync(job, record, package, current!).ConfigureAwait(false);
-            return await engine.UninstallAsync(record.Id, job.InstallProgress, job.Token).ConfigureAwait(false);
+            return await engine.UninstallAsync(record.Id, package.Path, job.InstallProgress, job.Token).ConfigureAwait(false);
         }, job.Token).ConfigureAwait(false);
         try
         {
@@ -354,12 +354,14 @@ internal sealed partial class JobPipeline(
     }
 
     private Task<InstallResult> InstallPackageAsync(JobContext job, string packagePath, InstallSource? source, bool isTest, bool canDefer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Guid? restores = null)
     {
         job.Enter(JobStage.Checking);
         return WhenSafeAsync(job, detected: true, canDefer,
-            game => engine.InstallAsync(new InstallRequest(game!, packagePath, BackupChoice.From(settings.Current), source, isTest),
-                job.InstallProgress, cancellationToken),
+            game => engine.InstallAsync(new InstallRequest(game!, packagePath, BackupChoice.From(settings.Current), source, isTest)
+            {
+                Restores = restores,
+            }, job.InstallProgress, cancellationToken),
             cancellationToken);
     }
 
@@ -381,9 +383,14 @@ internal sealed partial class JobPipeline(
 
         var failure = JobFailures.FromIssues(report.Issues);
         var isNewRelease = record.Source?.ReleaseUuid != package.ReleaseId;
-        throw new JobFailedException(failure.Reason == JobFailureReason.UnsupportedGameVersion && isNewRelease
-            ? failure with { Reason = JobFailureReason.NewReleaseIncompatible }
-            : failure);
+        throw new JobFailedException(failure.Reason switch
+        {
+            JobFailureReason.UnsupportedGameVersion when isNewRelease => failure with { Reason = JobFailureReason.NewReleaseIncompatible },
+            // The store's check of the files would not help: the uninstall holds them back again from what they then hold.
+            JobFailureReason.KeptFilesPending when report.Issues.OfType<KeptFileIssue>().Any(issue => issue.RecordId == record.Id) =>
+                failure with { Reason = JobFailureReason.KeptFilesBlockReplacement },
+            _ => failure,
+        });
     }
 
     // The player's cancel does not stop this, since a job cancelled half-way must still end with the release it started
@@ -401,7 +408,8 @@ internal sealed partial class JobPipeline(
         {
             var path = await FindPreviousPackageAsync(new ReleaseFileLocator(listed?.Team.Slug ?? team, listed?.ProjectSlug ?? project,
                 release, file), record.Package.Kind).ConfigureAwait(false);
-            var restored = await InstallPackageAsync(job, path, source, isTest: false, canDefer: false, halting).ConfigureAwait(false);
+            var restored = await InstallPackageAsync(job, path, source, isTest: false, canDefer: false, halting, restores: record.Id)
+                .ConfigureAwait(false);
             LogRestored(record.Game);
             return restored.Record;
         }

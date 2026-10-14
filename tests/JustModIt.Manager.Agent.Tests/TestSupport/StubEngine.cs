@@ -32,7 +32,7 @@ internal class StubEngine : IInstallEngine
     public Task<PreflightReport> PredictReplacementAsync(Guid recordId, InstallRequest replacement,
         IProgress<InstallProgress>? progress, CancellationToken cancellationToken) => throw new NotSupportedException();
 
-    public virtual Task<UninstallResult> UninstallAsync(Guid recordId, IProgress<InstallProgress>? progress,
+    public virtual Task<UninstallResult> UninstallAsync(Guid recordId, string? replacedBy, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<VerificationResult> VerifyAsync(Guid recordId, IProgress<InstallProgress>? progress,

@@ -61,8 +61,9 @@ public sealed record BackupFolder(BackupLocation Location, string Directory);
 /// <param name="Title">The manifest's title.</param>
 /// <param name="Version">The manifest's version.</param>
 /// <param name="ThirdPartyNotices">The licences of third-party tools the manifest lists.</param>
+/// <param name="RuntimeFiles">The game files the package's software changes while the game runs, as the manifest names them.</param>
 public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? ManifestId = null, string? Title = null,
-    string? Version = null, IReadOnlyList<ThirdPartyNotice>? ThirdPartyNotices = null)
+    string? Version = null, IReadOnlyList<ThirdPartyNotice>? ThirdPartyNotices = null, IReadOnlyList<string>? RuntimeFiles = null)
 {
     /// <summary>What an install keeps of an opened package.</summary>
     /// <param name="package">The package.</param>
@@ -70,7 +71,8 @@ public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? M
     {
         ArgumentNullException.ThrowIfNull(package);
         return new InstalledPackage(package.Kind, package.FileName, package.Manifest?.Id, package.Manifest?.Title,
-            package.Manifest?.Version, package.Manifest?.ThirdPartyNotices);
+            package.Manifest?.Version, package.Manifest?.ThirdPartyNotices,
+            package.RuntimeFiles.Count > 0 ? [.. package.RuntimeFiles.Select(file => file.Path)] : null);
     }
 }
 
@@ -121,10 +123,19 @@ public sealed record InstallSource
     public Guid? ReleaseFileUuid => Guid.TryParse(ReleaseFileId, out var id) ? id : null;
 }
 
-/// <summary>The files an install touched and the folders it created, in the order it touched them.</summary>
+/// <summary>
+/// The files an install touched and the folders it created, in the order it touched them; also the paths an uninstall left
+/// for later in a kept-files record (<see cref="KeptAt"/>).
+/// </summary>
 public sealed record InstalledFiles
 {
-    public const int CurrentFormatVersion = 1;
+    public const int CurrentFormatVersion = 2;
+
+    /// <summary>
+    /// The format of a list without entries the package's software changes, still written for one, since a version that
+    /// read only that format would half-undo a list with such entries; it refuses a newer one as unreadable instead.
+    /// </summary>
+    public const int FirstFormatVersion = 1;
 
     public int FormatVersion { get; init; } = CurrentFormatVersion;
 
@@ -132,6 +143,14 @@ public sealed record InstalledFiles
 
     /// <summary>Game-relative folders the install created, parents first.</summary>
     public required IReadOnlyList<string> CreatedDirectories { get; init; }
+
+    /// <summary>Set on a kept-files record: when the uninstall left its paths.</summary>
+    public DateTimeOffset? KeptAt { get; init; }
+
+    /// <summary>The format the list needs: the first unless it holds what only the current format describes.</summary>
+    [JsonIgnore]
+    public int RequiredFormatVersion =>
+        KeptAt is not null || Files.Any(file => file.Runtime) ? CurrentFormatVersion : FirstFormatVersion;
 }
 
 public enum FileChange
@@ -139,6 +158,9 @@ public enum FileChange
     Added,
     Replaced,
     Deleted,
+
+    /// <summary>The install left the path as it was; it is listed because the package's software changes it.</summary>
+    Unchanged,
 }
 
 /// <summary>A file's content as its size and hash tell it.</summary>
@@ -156,11 +178,14 @@ public sealed record FileSnapshot(long Size, string Sha256, DateTime? LastWriteT
     }
 }
 
-/// <summary>A file an install touched.</summary>
+/// <summary>A file an install touched, or one the package's software changes while the game runs.</summary>
 /// <param name="Path">Game-relative.</param>
 /// <param name="Change">What the install did to it.</param>
-/// <param name="Original">The content before the install; null for an added file.</param>
-/// <param name="Installed">The content the install left; null for a deleted file.</param>
+/// <param name="Original">The content before the install; null for an added file or one the game did not have.</param>
+/// <param name="Installed">
+/// The content the install left; null for a deleted file and a path the install left as it was. In a kept-files record,
+/// what the path held when the record was written.
+/// </param>
 /// <param name="Backup">The name of the original's backup in the record's backup folder; null for added files.</param>
 /// <param name="OriginalAttributes">Attributes such as read-only that come back with the original.</param>
 public sealed record InstalledFile(
@@ -169,4 +194,22 @@ public sealed record InstalledFile(
     FileSnapshot? Original = null,
     FileSnapshot? Installed = null,
     string? Backup = null,
-    FileAttributes? OriginalAttributes = null);
+    FileAttributes? OriginalAttributes = null)
+{
+    /// <summary>The package declares the path: its software changes it while the game runs, so no check reads it.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Runtime { get; init; }
+
+    /// <summary>The original may not be the store's file, so putting it back is followed by advice to check the files.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool OriginalUncertain { get; init; }
+
+    /// <summary>The game's version the original was taken from, when an earlier install took it.</summary>
+    public GameVersion? Taken { get; init; }
+
+    /// <summary>The kept-files record the entry was inherited from; it loses the entry once this install commits.</summary>
+    public Guid? InheritedFrom { get; init; }
+
+    /// <summary>In a kept-files record: why the uninstall left the path; null for a path handed over to the next install.</summary>
+    public KeptReason? Kept { get; init; }
+}

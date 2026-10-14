@@ -39,7 +39,7 @@ public sealed class BackupMoveCrashTests
 
             recovered.Should().ContainSingle().Which.Outcome.Should().Be(RecoveryOutcome.CleanedUp, "crash at change {0}", change);
             await BackupTests.BackupsShouldHoldTheOriginalsAsync(harness);
-            (await engine.UninstallAsync(result.Record.Id, null, InstallHarness.Token)).KeptFiles.Should()
+            (await engine.UninstallAsync(result.Record.Id, null, null, InstallHarness.Token)).KeptFiles.Should()
                 .BeEmpty("crash at change {0}", change);
             harness.Snapshot().Should().BeEquivalentTo(before, "crash at change {0}", change);
             harness.AppFiles().Should().BeEmpty("crash at change {0}", change);
