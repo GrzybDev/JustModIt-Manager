@@ -160,13 +160,29 @@ public sealed class UiHarness : IDisposable
             && string.IsNullOrWhiteSpace(Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(control).GetName()));
 
     /// <summary>A real click in the middle of a control, scrolled into view first, so hit testing and click handlers run.</summary>
+    /// <param name="control">The control to click.</param>
     public void Click(Control control)
     {
         control.BringIntoView();
         Settle();
-        ClickAt(control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), Window)
-            ?? throw new InvalidOperationException("The control is not in the window."));
+        // A control that has just appeared still slides in from below, which scrolling into view does not count, so near the
+        // bottom of a view it can stand past the edge, where the click would land on something else, until its entrance ends.
+        var clock = Stopwatch.StartNew();
+        while (!ClickLandsOn(control) && clock.Elapsed < TimeSpan.FromSeconds(1))
+        {
+            Thread.Sleep(16);
+            Settle();
+        }
+
+        ClickAt(Middle(control));
     }
+
+    private bool ClickLandsOn(Control control) =>
+        Window.InputHitTest(Middle(control)) is Visual hit && (hit == control || control.IsVisualAncestorOf(hit));
+
+    private Point Middle(Control control) =>
+        control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), Window)
+            ?? throw new InvalidOperationException("The control is not in the window.");
 
     /// <summary>A real click at a point of the window.</summary>
     public void ClickAt(Point point)
