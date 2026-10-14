@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
@@ -524,7 +525,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             }
 
             Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_BuildFailed, ("failure", failed.Failure.ToString()),
-                ("files", failed.Paths.Count), ("file", failed.Paths.Count > 0 ? failed.Paths[0] : "")));
+                ("files", failed.Paths.Count), ("file", failed.Paths.Count > 0 ? InFolder(plan, failed.Paths[0]) : "")));
         }
         catch (CreatorBlockedException blocked)
         {
@@ -599,6 +600,13 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     // The next build asks for a place again rather than going back to one the build refused or could not write to.
     private void ForgetTarget() => _target = null;
+
+    // The author's folder is laid out like the game's, so a file of either reads by its path in the game, without the folders
+    // above it, which may name the user's profile.
+    private static string InFolder(PackagePlan plan, string path) =>
+        PathComparison.IsWithin(plan.AuthorDirectory, path) ? PackagePath.FromFullPath(plan.AuthorDirectory, path)
+        : PathComparison.IsWithin(plan.GameDirectory, path) ? PackagePath.FromFullPath(plan.GameDirectory, path)
+        : path;
 
     private void Show(BuildProgress progress)
     {

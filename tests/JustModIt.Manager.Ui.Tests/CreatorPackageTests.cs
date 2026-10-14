@@ -444,7 +444,8 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitUntilAsync(() => package.HasProblem);
 
         package.NeedsComparison.Should().BeTrue();
-        package.ProblemText.Should().Contain("credits.txt");
+        package.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FilesChanged)),
+            ("files", 1), ("file", "data/extra/credits.txt")), "the author's file is named by its path in the folder, not above it");
         ui.Click(Button(ui, Strings.Creator_CompareAgain));
         await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review && Page(ui).Session!.Review is not null);
         Page(ui).Session!.IsConfirmed.Should().BeFalse("a new comparison asks for a new check");
@@ -457,6 +458,23 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_Build));
         await UiHarness.WaitUntilAsync(() => package.IsBuilt);
         ui.Pickers.Suggested.Should().ContainSingle("the build goes where the failed one was going");
+    }
+
+    [AvaloniaFact]
+    public async Task A_game_file_changed_since_the_comparison_is_named_by_its_path_in_the_game()
+    {
+        using var ui = await OpenAsync();
+        var package = await PackageAsync(ui);
+        package.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        _work.Game("data/strings.bin", "strings of the original game, as its store updated them");
+        ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
+
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.HasProblem);
+
+        package.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FilesChanged)),
+            ("files", 1), ("file", "data/strings.bin")));
     }
 
     [AvaloniaFact]
