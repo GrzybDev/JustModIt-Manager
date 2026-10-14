@@ -3,8 +3,9 @@ using JustModIt.Manager.Core.Games;
 namespace JustModIt.Manager.Core.Catalog;
 
 /// <summary>
-/// Groups a release's ready files into variants as the site's page does and picks each variant's package for a game: one
-/// made for its store version, else for its build's system, else a universal one.
+/// Picks the package of a release's base and of each of its add-ons for a game: one made for its store version, else for
+/// its build's system, else a universal one; a release from before add-ons has its files grouped into variants as the
+/// site's page groups them, and they become one group of which the player picks one.
 /// </summary>
 public static class ReleaseSelector
 {
@@ -28,7 +29,25 @@ public static class ReleaseSelector
         return Select(project.StorefrontLinks, project.Status, project.PublicRelease, game, gameSystem);
     }
 
-    /// <summary>What a release offers the game, recommending the variant of the site's default file whenever it fits.</summary>
+    /// <summary>
+    /// The names of what a release lets the player choose: its add-ons with a finished file, or the variants of a release
+    /// from before add-ons, as the site's page groups them.
+    /// </summary>
+    /// <param name="release">The release.</param>
+    /// <returns>The names, and whether they are variants; none when there is nothing to choose.</returns>
+    public static (IReadOnlyList<string> Names, bool AreVariants) FeatureNames(Release release)
+    {
+        ArgumentNullException.ThrowIfNull(release);
+        if (release.Features is { Count: > 0 } features)
+        {
+            return ([.. features.Where(feature => feature.Files.Any(file => file.IsReady)).Select(feature => feature.Name)], false);
+        }
+
+        var variants = Variants(release.Files.Where(file => file.IsReady));
+        return variants.Count > 1 ? ([.. variants.Select(variant => variant.Name).Distinct()], true) : ([], false);
+    }
+
+    /// <summary>What a release offers the game.</summary>
     /// <param name="projectLinks">Every storefront link of the project.</param>
     /// <param name="status">The project's status, which may hold releases back; null when unknown.</param>
     /// <param name="release">The public release; null when there is none.</param>
@@ -42,45 +61,110 @@ public static class ReleaseSelector
         // A backend that holds a release back already leaves it out for anonymous visitors; this covers one that does not.
         if (release is null || status?.AllowsPublicReleases == false)
         {
-            return new ReleaseSelection { Links = links, Variants = [], Unavailable = SelectionUnavailability.NoPublicRelease };
+            return new ReleaseSelection { Links = links, Unavailable = SelectionUnavailability.NoPublicRelease };
         }
 
         var linkUuids = links.Select(link => link.Uuid).ToHashSet();
-        var variants = GroupVariants(release.Files.Where(file => file.IsReady))
-            .Select(variant => Choose(variant.Name, variant.Files, linkUuids, gameSystem))
-            .ToList();
-        var installable = variants.Where(variant => variant.IsInstallable).ToList();
-        var recommended = installable.FirstOrDefault(variant => variant.Files.Any(file => file.Uuid == release.DefaultFile?.Uuid))
-            ?? installable.FirstOrDefault(variant => variant.Package!.Format == PackageFormat.Zip)
-            ?? installable.FirstOrDefault();
+        var baseFiles = release.Files.Where(file => file.IsReady).ToList();
+        if (release.Features is not { Count: > 0 } && Variants(baseFiles) is { Count: > 1 } variants)
+        {
+            return Legacy(release, links, variants, linkUuids, gameSystem);
+        }
+
+        var (package, unavailable) = baseFiles.Count == 0 ? (null, SelectionUnavailability.NoReadyFiles) : Choose(baseFiles, linkUuids, gameSystem);
         return new ReleaseSelection
         {
             Release = release,
             Links = links,
-            Variants = variants,
-            Default = recommended,
-            Unavailable = recommended is not null ? null
-                : variants.Count == 0 ? SelectionUnavailability.NoReadyFiles
-                : variants.Exists(variant => variant.Unavailable == SelectionUnavailability.UnsupportedFormat)
+            Base = package,
+            Features = package is null ? [] : Features(release.Features ?? [], linkUuids, gameSystem),
+            Unavailable = unavailable,
+        };
+    }
+
+    // An add-on without a package for the game is not offered for it; a group keeps its first member's spelling, and one
+    // with a single listed member is an add-on on its own.
+    private static List<FeatureOffer> Features(IReadOnlyList<ReleaseFeature> features, HashSet<Guid> links, OperatingSystemKind system)
+    {
+        var groups = features.Where(feature => feature.Group.Trim().Length > 0)
+            .GroupBy(feature => feature.Group.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .ToDictionary(group => group.Key, group => group.First().Group.Trim(), StringComparer.OrdinalIgnoreCase);
+        var offers = new List<FeatureOffer>();
+        foreach (var feature in features)
+        {
+            var files = feature.Files.Where(file => file.IsReady).ToList();
+            if (Choose(files, links, system).Package is { } package)
+            {
+                offers.Add(new FeatureOffer
+                {
+                    Key = feature.Key,
+                    Name = feature.Name,
+                    Description = feature.Description,
+                    Group = groups.GetValueOrDefault(feature.Group.Trim()),
+                    IsDefault = feature.IsDefault,
+                    Package = package,
+                    Files = files,
+                });
+            }
+        }
+
+        return offers;
+    }
+
+    // The variants that fit become one group, recommending the variant of the site's default file whenever it fits; a
+    // variant's name is its key, which an install from before add-ons recorded as its choice.
+    private static ReleaseSelection Legacy(Release release, List<StorefrontLink> links, List<(string Name, List<ReleaseFile> Files)> variants,
+        HashSet<Guid> linkUuids, OperatingSystemKind system)
+    {
+        var chosen = variants.Select(variant => (variant.Name, variant.Files, Pick: Choose(variant.Files, linkUuids, system))).ToList();
+        var installable = chosen.Where(variant => variant.Pick.Package is not null).ToList();
+        var recommended = installable.FindIndex(variant => variant.Files.Exists(file => file.Uuid == release.DefaultFile?.Uuid));
+        recommended = recommended >= 0 ? recommended : installable.FindIndex(variant => variant.Pick.Package!.Format == PackageFormat.Zip);
+        recommended = recommended >= 0 ? recommended : 0;
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        return new ReleaseSelection
+        {
+            Release = release,
+            Links = links,
+            IsLegacy = true,
+            Features = [.. installable.Select((variant, index) => new FeatureOffer
+            {
+                Key = UniqueKey(variant.Name, keys),
+                Name = variant.Name,
+                Description = variant.Files.Select(file => file.Description).FirstOrDefault(text => !string.IsNullOrWhiteSpace(text)) ?? "",
+                Group = "",
+                IsDefault = index == recommended,
+                Package = variant.Pick.Package!,
+                Files = variant.Files,
+            })],
+            Unavailable = installable.Count > 0 ? null
+                : chosen.Exists(variant => variant.Pick.Unavailable == SelectionUnavailability.UnsupportedFormat)
                     ? SelectionUnavailability.UnsupportedFormat
-                : variants.Exists(variant => variant.Unavailable == SelectionUnavailability.OtherSystems)
+                : chosen.Exists(variant => variant.Pick.Unavailable == SelectionUnavailability.OtherSystems)
                     ? SelectionUnavailability.OtherSystems
                 : SelectionUnavailability.OtherStores,
         };
     }
 
-    /// <summary>The names of a release's variants, of its ready files grouped as the site's page groups them.</summary>
-    /// <param name="release">The release.</param>
-    public static IReadOnlyList<string> VariantNames(Release release)
+    // Older releases may give two variants one name; the first keeps it, so an install that recorded the name keeps its own.
+    private static string UniqueKey(string name, HashSet<string> taken)
     {
-        ArgumentNullException.ThrowIfNull(release);
-        return [.. GroupVariants(release.Files.Where(file => file.IsReady)).Select(variant => variant.Name).Distinct()];
+        var key = name;
+        for (var number = 2; !taken.Add(key); number++)
+        {
+            key = $"{name} ({number})";
+        }
+
+        return key;
     }
 
-    // A file whose coverage overlaps one already in its name's variant starts a variant of its own: older releases reused
-    // one name for what were really two choices.
-    private static List<(string Name, List<ReleaseFile> Files)> GroupVariants(IEnumerable<ReleaseFile> files)
+    /// <summary>A release's files grouped into variants as the site's page groups the files of a release from before add-ons.</summary>
+    /// <param name="files">The release's ready files.</param>
+    internal static List<(string Name, List<ReleaseFile> Files)> Variants(IEnumerable<ReleaseFile> files)
     {
+        // A file whose coverage overlaps one already in its name's variant starts a variant of its own: older releases
+        // reused one name for what were really two choices.
         var variants = new List<(string Name, List<ReleaseFile> Files)>();
         foreach (var file in files)
         {
@@ -107,7 +191,8 @@ public static class ReleaseSelector
     private static bool Meets<T>(IReadOnlyList<T> first, IReadOnlyList<T> second) =>
         first.Count == 0 || second.Count == 0 ? first.Count == 0 && second.Count == 0 : first.Any(second.Contains);
 
-    private static ReleaseVariant Choose(string name, List<ReleaseFile> files, HashSet<Guid> links, OperatingSystemKind system)
+    private static (ReleaseFile? Package, SelectionUnavailability? Unavailable) Choose(List<ReleaseFile> files, HashSet<Guid> links,
+        OperatingSystemKind system)
     {
         var forStore = files.Where(file => file.StorefrontLinkUuids.Count == 0 || file.StorefrontLinkUuids.Any(links.Contains)).ToList();
         // A file that the best one outranks is meant for other store versions or systems, so it never stands in for a
@@ -119,15 +204,9 @@ public static class ReleaseSelector
             .ThenByDescending(file => file.OperatingSystems.Count > 0)
             .FirstOrDefault();
         var package = best?.Format is not null ? best : null;
-        return new ReleaseVariant
-        {
-            Name = name,
-            Files = files,
-            Package = package,
-            Unavailable = package is not null ? null
-                : best is not null ? SelectionUnavailability.UnsupportedFormat
-                : forStore.Count > 0 ? SelectionUnavailability.OtherSystems
-                : SelectionUnavailability.OtherStores,
-        };
+        return (package, package is not null ? null
+            : best is not null ? SelectionUnavailability.UnsupportedFormat
+            : forStore.Count > 0 ? SelectionUnavailability.OtherSystems
+            : SelectionUnavailability.OtherStores);
     }
 }

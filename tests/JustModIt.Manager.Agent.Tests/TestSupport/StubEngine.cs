@@ -35,7 +35,7 @@ internal class StubEngine : IInstallEngine
     public virtual Task<UninstallResult> UninstallAsync(Guid recordId, IReadOnlyList<string>? replacedBy, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => throw new NotSupportedException();
 
-    public Task<VerificationResult> VerifyAsync(Guid recordId, IProgress<InstallProgress>? progress,
+    public virtual Task<VerificationResult> VerifyAsync(Guid recordId, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<InstallRecord> MoveBackupsAsync(Guid recordId, BackupChoice destination, IProgress<InstallProgress>? progress,

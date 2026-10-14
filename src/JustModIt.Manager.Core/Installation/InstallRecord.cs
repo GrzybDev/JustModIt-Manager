@@ -46,6 +46,12 @@ public sealed record InstallRecord
     /// </summary>
     public IReadOnlyList<InstalledPart>? Parts { get; init; }
 
+    /// <summary>
+    /// The add-ons the install went without since their own checks failed on the game, which hold for the record's release
+    /// and game build; null when none was left out.
+    /// </summary>
+    public IReadOnlyList<LeftOutFeature>? LeftOutFeatures { get; init; }
+
     public InstallSource? Source { get; init; }
 
     /// <summary>Where this install keeps the originals it replaced; a later change of the setting does not move them.</summary>
@@ -101,6 +107,12 @@ public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? M
 public sealed record InstalledPart(InstalledPackage Package, string? FeatureKey = null, string? FeatureName = null,
     string? ReleaseFileId = null, string? CachedFileId = null);
 
+/// <summary>An add-on an install went without, since its own check failed on the game.</summary>
+/// <param name="Key">The add-on's key.</param>
+/// <param name="Name">Its name, shown offline.</param>
+/// <param name="Reason">Why it was left out.</param>
+public sealed record LeftOutFeature(string Key, string Name, PartLeftOutReason Reason);
+
 /// <summary>Where a package came from on the site, supplied by the caller so an install can be shown offline.</summary>
 public sealed record InstallSource
 {
@@ -128,9 +140,17 @@ public sealed record InstallSource
     /// <summary>Tells an older release from a newer one when the backend numbers none.</summary>
     public DateTimeOffset? ReleasePublishedAt { get; init; }
 
+    /// <summary>The release file of the install's first package, its base.</summary>
     public string? ReleaseFileId { get; init; }
 
+    /// <summary>The variant of a release from before add-ons that the install took, by its name; null for any other release.</summary>
     public string? VariantName { get; init; }
+
+    /// <summary>
+    /// The release offered several variants that fit the game, so the one taken was the player's choice; null in records
+    /// written before the app recorded it.
+    /// </summary>
+    public bool? HadVariantChoice { get; init; }
 
     public Uri? CoverUrl { get; init; }
 

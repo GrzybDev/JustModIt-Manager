@@ -129,6 +129,7 @@ public sealed class CompositeInstallTests : IAsyncDisposable
         check.LeftOut.Should().Equal(new LeftOutPart(1, request.Parts[1], reason));
         result.LeftOut.Should().Equal(check.LeftOut);
         result.Record.Parts!.Select(part => part.FeatureKey).Should().Equal(null, "music");
+        result.Record.LeftOutFeatures.Should().Equal(new LeftOutFeature("voices", "Example voices", reason));
         _harness.ReadGameFile("data/lang/text.txt").Should().Be("Text");
         _harness.ReadGameFile("data/lang/voice.txt").Should().Be("Voice");
         await _harness.UninstallAsync(result.Record.Id);

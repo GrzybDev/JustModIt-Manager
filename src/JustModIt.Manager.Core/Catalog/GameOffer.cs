@@ -7,6 +7,12 @@ namespace JustModIt.Manager.Core.Catalog;
 /// <param name="Selection">What its public release offers the game.</param>
 public sealed record ProjectOffer(IndexEntry Project, ReleaseSelection Selection)
 {
+    /// <summary>
+    /// What installing the project takes with the player's choices, and with its install's record for an installed one;
+    /// null when nothing can be installed or nobody planned it.
+    /// </summary>
+    public ReleasePlan? Plan { get; init; }
+
     /// <summary>The link to the game's store version whose newest build the team has not confirmed yet.</summary>
     public StorefrontLink? OutdatedLink => Selection.Links.FirstOrDefault(link => link.IsOutdated == true);
 

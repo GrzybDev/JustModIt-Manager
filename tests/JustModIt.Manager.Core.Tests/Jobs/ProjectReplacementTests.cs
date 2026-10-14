@@ -29,8 +29,9 @@ public sealed class ProjectReplacementTests
         await using var jobs = await JobsHarness.CreateAsync();
         var record = jobs.Installed();
         var other = jobs.Engine.Add(Record(source: Source(ReleaseTwo, FileTwo, 1, project: OtherProject)));
+        jobs.Choose(("Text and voice", true));
 
-        var result = await jobs.RunAsync(JobsHarness.Install(variant: "Text and voice"));
+        var result = await jobs.RunAsync(JobsHarness.Install());
 
         result.Outcome.Should().Be(JobOutcome.Succeeded);
         result.RemovedRecord.Should().Be(record.Id);
@@ -86,7 +87,7 @@ public sealed class ProjectReplacementTests
     }
 
     private static InstallJobRequest InstallOtherProject(JobOrigin origin = JobOrigin.User) =>
-        new(Game, "Example Game", Locator(OtherProject, "paper-team"), null, origin);
+        new(Game, "Example Game", Locator(OtherProject, "paper-team"), origin);
 
     private static ProjectPage OtherProjectPage() =>
         Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team");

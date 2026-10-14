@@ -20,7 +20,11 @@ internal static class TestStates
 
     public static readonly Guid Project = Guid.Parse("11111111-0000-4000-8000-000000000001");
 
+    public static readonly Guid ReleaseOne = Guid.Parse("22222222-0000-4000-8000-000000000001");
+
     public static readonly Guid ReleaseTwo = Guid.Parse("22222222-0000-4000-8000-000000000002");
+
+    public static readonly Guid FileOne = Guid.Parse("33333333-0000-4000-8000-000000000001");
 
     public static readonly Guid FileTwo = Guid.Parse("33333333-0000-4000-8000-000000000002");
 
@@ -31,19 +35,46 @@ internal static class TestStates
     private static readonly ReleaseFile PackageFile = new()
     {
         Uuid = FileTwo,
-        Name = "Text only",
+        Name = "",
         Status = "ready",
         RequiresManager = true,
         DownloadFilename = "example-project.examplemod",
         Size = 4096,
     };
 
-    public static ReleaseVariant Variant { get; } = new()
+    private static readonly ReleaseFile VoiceFile = new()
     {
-        Name = "Text only",
-        Files = [PackageFile],
-        Package = PackageFile,
+        Uuid = Guid.Parse("33333333-0000-4000-8000-0000000000a1"),
+        Name = "",
+        Status = "ready",
+        RequiresManager = true,
+        DownloadFilename = "example-project-voice-over.examplemod",
+        Size = 2048,
     };
+
+    public static FeatureOffer Voice { get; } = new()
+    {
+        Key = "voice-over",
+        Name = "Voice-over",
+        Description = "Spoken lines in the cutscenes.",
+        IsDefault = true,
+        Package = VoiceFile,
+        Files = [VoiceFile],
+    };
+
+    private static readonly InstalledPackage BasePackage = new(PackageKind.Manifest, "package.examplemod", ThirdPartyNotices:
+    [
+        new ThirdPartyNotice
+        {
+            Name = "Example Loader",
+            License = "MIT",
+            SourceUrl = "https://example.com/loader/source",
+            Paths = ["loader.dll"],
+        },
+    ]);
+
+    public static ReleasePlan Plan { get; } = new([new PlanPart(null, null, PackageFile, false), new PlanPart("voice-over", "Voice-over", VoiceFile, true)],
+        ["voice-over"], null);
 
     public static ProjectOffer Offer { get; } = new(
         new IndexEntry
@@ -67,9 +98,12 @@ internal static class TestStates
         {
             Release = new Release { Uuid = ReleaseTwo, Version = 2, Name = "Autumn patch", FirstPublishedAt = Now.AddDays(-1) },
             Links = [],
-            Variants = [Variant, new ReleaseVariant { Name = "Text and voice", Files = [], Unavailable = SelectionUnavailability.OtherSystems }],
-            Default = Variant,
-        });
+            Base = PackageFile,
+            Features = [Voice],
+        })
+    {
+        Plan = Plan,
+    };
 
     public static AppSettings Settings { get; } = AppSettings.Default
         .ChooseAutoUpdate(Game, false)
@@ -110,7 +144,12 @@ internal static class TestStates
                 Name = "Example Game",
                 Status = new MyGameStatus(MyGameState.Busy)
                 {
-                    Update = new UpdateCheck(UpdateState.Available, UpdateKind.NewRelease, Variant, VariantFellBack: true),
+                    Update = new UpdateCheck(UpdateState.Available, UpdateKind.NewRelease, Plan)
+                    {
+                        Drops = [new InstalledFeature("signs", "Signs")],
+                        WaitsForPlayer = true,
+                        Size = 6144,
+                    },
                 },
                 Game = new InstalledGame
                 {
@@ -134,24 +173,23 @@ internal static class TestStates
                             GameName = "Example Game",
                             InstallDirectory = @"C:\Games\Example Game",
                             InstalledAt = Now.AddDays(-3),
-                            Package = new InstalledPackage(PackageKind.Manifest, "package.examplemod", ThirdPartyNotices:
+                            Package = BasePackage,
+                            Parts =
                             [
-                                new ThirdPartyNotice
-                                {
-                                    Name = "Example Loader",
-                                    License = "MIT",
-                                    SourceUrl = "https://example.com/loader/source",
-                                    Paths = ["loader.dll"],
-                                },
-                            ]),
+                                new InstalledPart(BasePackage, ReleaseFileId: FileOne.ToString("D")),
+                                new InstalledPart(new InstalledPackage(PackageKind.Manifest, "signs.examplemod"), "signs", "Signs",
+                                    Guid.NewGuid().ToString("D")),
+                            ],
+                            LeftOutFeatures = [new LeftOutFeature("voice-over", "Voice-over", PartLeftOutReason.NewerApp)],
                             Source = new InstallSource
                             {
                                 ProjectId = Project.ToString("D"),
                                 ProjectName = "Example Project",
                                 TeamName = "Lantern Team",
+                                ReleaseId = ReleaseOne.ToString("D"),
+                                ReleaseFileId = FileOne.ToString("D"),
                                 ReleaseLabel = "v1",
                                 ReleaseVersion = 1,
-                                VariantName = "Text only",
                             },
                             Backup = new BackupFolder(BackupLocation.GameFolder, @"C:\Games\Example Game\.example-app\backups"),
                             FileCount = 3,

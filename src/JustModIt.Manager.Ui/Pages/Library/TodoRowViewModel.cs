@@ -189,7 +189,7 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
             (JobKind.Repair, { } failed) => new RepairProject(failed.Id),
             (JobKind.Uninstall, { } failed) => new UninstallProject(failed.Id),
             (JobKind.Install or JobKind.Update or JobKind.Repair, null) when game.Project is { } project =>
-                new InstallProject(game.Key, project.ProjectId, game.Preferences.VariantName),
+                new InstallProject(game.Key, project.ProjectId),
             _ => null,
         };
         Act(Strings.Library_Retry, Icons.RotateCcw, Text.Format(Strings.Library_RetryName, ("game", game.Name)));
@@ -210,7 +210,7 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
     {
         Kind = TodoKind.Update;
         var release = install.Project?.Release;
-        var size = install.Project?.Variants.FirstOrDefault(variant => variant.Name == install.Status.UpdateVariant)?.Package?.Size;
+        var size = install.Status.UpdateSize;
         var detail = GameWording.Join([release is null ? "" : GameWording.Released(release, clock), size is { } bytes ? Formats.FileSize(bytes) : ""]);
         Line = new LineContent(Icons.CircleArrowUp, Tone.Info, Strings.Library_StateUpdate, detail)
         {

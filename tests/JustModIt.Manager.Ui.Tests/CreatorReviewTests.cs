@@ -136,6 +136,13 @@ public sealed class CreatorReviewTests : IDisposable
         review.RulesState.Should().Be(Text.Format(Strings.Creator_RulesQuestions, ("count", 1)));
         review.CanConfirm.Should().BeFalse("another author's tool needs its licence and source");
         await RenderAsync(ui, "creator-review-library", 1900);
+        var (width, height) = (ui.Window.Width, ui.Window.Height);
+        (ui.Window.Width, ui.Window.Height) = (960, 600);
+        UiHarness.Settle();
+        Pill(ui, Strings.Creator_LibraryThirdParty).BringIntoView();
+        await RenderAsync(ui, "creator-review-library-960", null);
+        (ui.Window.Width, ui.Window.Height) = (width, height);
+        UiHarness.Settle();
 
         library.License = "MIT";
         library.Source = "https://code.example.com/lantern-hook";

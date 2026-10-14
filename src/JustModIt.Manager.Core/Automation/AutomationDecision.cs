@@ -28,8 +28,11 @@ internal enum AutomationReason
     Orphaned,
     BackupsUnavailable,
 
-    /// <summary>The current release has nothing yet for the installed variant, e.g. its voice-over is still being uploaded.</summary>
-    VariantUnavailable,
+    /// <summary>
+    /// What the release offers now would cost the install an add-on or its variant, or give an install from before add-ons
+    /// some, which only the player decides.
+    /// </summary>
+    ChoiceUnavailable,
 
     UpToDate,
 
@@ -66,14 +69,15 @@ internal sealed record AutomationDecision(AutomationAction Action, AutomationRea
     /// </summary>
     public Guid ReleaseId { get; init; }
 
-    public ReleaseVariant? Variant { get; init; }
-
     /// <summary>
     /// The releases an announcement tells of, each only once: the one on offer, or every team's while the player chooses.
     /// </summary>
     public ValueList<Guid> Announces { get; init; }
 
     public bool StartsJob => Action is AutomationAction.Install or AutomationAction.Update or AutomationAction.Repair;
+
+    /// <summary>The announcement tells of a repair, which the history keeps per install and game build.</summary>
+    public bool AnnouncesRepair => Action == AutomationAction.Announce && Install?.Status.State == MyGameState.NeedsRepair;
 
     /// <summary>A decision to do nothing.</summary>
     /// <param name="reason">Why nothing is done.</param>

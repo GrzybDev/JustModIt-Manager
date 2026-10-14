@@ -66,7 +66,7 @@ public sealed class CatalogueCacheTests : IDisposable
             PackageFormat.Zip, PackageFormat.Zip, PackageFormat.Manifest, PackageFormat.Manifest, PackageFormat.Zip);
         entry.PublicRelease.Files[4].OperatingSystems.Should().Equal(OperatingSystemKind.Unknown);
         entry.Status!.AllowsPublicReleasesFlag.Should().BeNull("a flag the backend did not send stays unknown");
-        ReleaseSelector.Select(entry, new GameKey(StoreId.Steam, "1000010"), OperatingSystemKind.Windows).Default!.Package!.Uuid
+        ReleaseSelector.Select(entry, new GameKey(StoreId.Steam, "1000010"), OperatingSystemKind.Windows).Plan(FeatureChoices.None)!.Parts[0].File.Uuid
             .Should().Be(Guid.Parse("a0000000-0000-4000-8000-000000000002"));
         (await _cache.LoadSiteAsync(Token)).Should().BeEquivalentTo(site);
     }

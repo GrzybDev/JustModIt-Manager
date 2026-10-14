@@ -91,7 +91,7 @@ public sealed class ReinstallJobTests
     }
 
     [Fact]
-    public async Task The_player_may_take_the_recommended_variant_when_the_installed_one_is_gone()
+    public async Task The_player_may_take_the_releases_base_when_the_installed_variant_is_gone()
     {
         await using var jobs = await JobsHarness.CreateAsync();
         var record = jobs.Installed("Text and voice");
@@ -99,7 +99,8 @@ public sealed class ReinstallJobTests
 
         var result = await jobs.RunAsync(new UpdateJobRequest(record));
 
-        result.Installed!.Source!.VariantName.Should().Be("Text only");
+        result.Installed!.Source.Should().Match<InstallSource>(source =>
+            source.ReleaseFileId == FileTwo.ToString("D") && source.VariantName == null && source.HadVariantChoice == false);
     }
 
     [Fact]
@@ -302,7 +303,7 @@ public sealed class ReinstallJobTests
         if (kind == JobKind.Install)
         {
             jobs.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
-            return new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"), null);
+            return new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"));
         }
 
         jobs.PublishReleaseTwo();

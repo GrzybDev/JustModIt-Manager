@@ -1,6 +1,8 @@
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using static JustModIt.Manager.Core.Tests.TestSupport.TestProjects;
 
@@ -75,8 +77,18 @@ public sealed class MyGameStatusRulesTests
 
         status.State.Should().Be(MyGameState.UpdateAvailable);
         status.Update!.Kind.Should().Be(UpdateKind.NewRelease);
-        status.Update.Variant!.Package!.Uuid.Should().Be(FileTwo);
-        status.Update.VariantFellBack.Should().BeFalse();
+        status.Update.Plan!.Parts.Should().ContainSingle().Which.File.Uuid.Should().Be(FileTwo);
+        status.Update.WaitsForPlayer.Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_repair_tells_what_the_current_release_installs()
+    {
+        var status = Resolve(Installed(), Record(), NewerRelease, RepairReason.FilesModified);
+
+        status.State.Should().Be(MyGameState.NeedsRepair);
+        status.Update!.Plan!.Parts.Single().File.Uuid.Should().Be(FileTwo);
+        status.Update.Size.Should().Be(1024);
     }
 
     [Fact]
@@ -113,7 +125,8 @@ public sealed class MyGameStatusRulesTests
     [InlineData(RepairReason.FilesMissing)]
     public void Changed_files_need_a_repair_even_when_an_update_exists(RepairReason reason)
     {
-        Resolve(Installed(), Record(), NewerRelease, reason).Should().Be(new MyGameStatus(MyGameState.NeedsRepair) { Repair = reason });
+        Resolve(Installed(), Record(), NewerRelease, reason).Should().Match<MyGameStatus>(status =>
+            status.State == MyGameState.NeedsRepair && status.Repair == reason);
     }
 
     [Fact]
@@ -150,7 +163,8 @@ public sealed class MyGameStatusRulesTests
 
     private static MyGameStatus Resolve(InstalledGame? game, InstallRecord record, ProjectOffer? project, RepairReason? repair = null,
         bool hasJob = false, bool backupsUnavailable = false) =>
-        MyGameStatusRules.Resolve(game, record, project, repair, hasJob, backupsUnavailable);
+        MyGameStatusRules.Resolve(game, record, project, repair, hasJob, backupsUnavailable,
+            InstallChoices.For(GamePreferences.Default, Project, record, game?.BuildId));
 
     private static ProjectOffer Offer(Release? release)
     {

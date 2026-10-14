@@ -32,6 +32,7 @@ public sealed class CataloguePagesTests
         page.Mode.Should().Be(CatalogueGameMode.Project);
         page.Primary.Should().Be("Zobacz grę na GOG", "the store found on this computer comes first");
         page.Released.Should().Be("Wersja 1.0 · Wydano 15 dni temu");
+        page.Features.Should().Be("Składniki: Lektor · Polskie tekstury");
         page.Stores.Select(store => (store.Name, store.IsLink)).Should().Equal(("Steam", true), ("GOG", false));
         (page.ShowsAbsent, page.HasNote, page.ShowsStatusBox).Should().Be((true, false, false));
         page.Story.ShowsFilms.Should().BeTrue();
@@ -61,7 +62,7 @@ public sealed class CataloguePagesTests
 
         (ember.Primary, ember.PrimaryOpensGame).Should().Be(("Otwórz w „Moich grach”", true));
         ember.Note.Should().Be("Gra jest na tym komputerze. Instalacja i aktualizacje spolszczenia są w „Moich grach”.");
-        ember.Variants.Should().Be("Warianty: Pełna · Tylko napisy");
+        ember.Features.Should().Be("Warianty: Pełna · Tylko napisy");
         ui.Click(ui.Find<Button>("PrimaryButton"));
         ui.Shell.Navigator.CurrentRoute.Should().Be(new GameRoute(EmberKey));
 

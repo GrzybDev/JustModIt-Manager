@@ -1,0 +1,500 @@
+[
+  {
+    "name": "a release with only a base downloads the base",
+    "files": [{ "id": "base", "name": "Translation" }],
+    "features": [],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "base",
+    "site": { "download": ["base"], "manager": [] },
+    "manager": { "install": ["base"] }
+  },
+  {
+    "name": "a base packaged per store downloads the game store's package",
+    "files": [
+      { "id": "steam", "name": "Translation", "stores": ["steam"] },
+      { "id": "gog", "name": "Translation", "stores": ["gog"] }
+    ],
+    "features": [],
+    "game": { "store": "gog", "system": "Windows" },
+    "base": "gog",
+    "site": { "download": ["gog"], "manager": [] },
+    "manager": { "install": ["gog"] }
+  },
+  {
+    "name": "an add-on on by default installs with the base, one off by default only when turned on",
+    "files": [{ "id": "base", "name": "", "mergeable": true }],
+    "features": [
+      {
+        "key": "voice-over",
+        "name": "Voice-over",
+        "description": "Spoken lines in the cutscenes.",
+        "isDefault": true,
+        "files": [{ "id": "voice", "mergeable": true }]
+      },
+      {
+        "key": "textures",
+        "name": "Textures",
+        "isDefault": false,
+        "files": [{ "id": "textures", "mergeable": true }]
+      }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "base",
+    "featurePackages": { "Voice-over": "voice", "Textures": "textures" },
+    "site": { "download": ["base", "voice"], "manager": [] },
+    "manager": { "install": ["base", "voice"] }
+  },
+  {
+    "name": "a group installs its default member when that one is a plain archive",
+    "files": [{ "id": "base", "name": "", "mergeable": true }],
+    "features": [
+      {
+        "key": "full-subtitles",
+        "name": "Full",
+        "isDefault": true,
+        "group": "Subtitles",
+        "files": [{ "id": "full", "mergeable": true }]
+      },
+      {
+        "key": "lite-subtitles",
+        "name": "Lite",
+        "isDefault": false,
+        "group": "Subtitles",
+        "files": [{ "id": "lite", "mergeable": true }]
+      }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "base",
+    "featurePackages": { "Full": "full", "Lite": "lite" },
+    "site": { "download": ["base", "full"], "manager": [] },
+    "manager": { "install": ["base", "full"] }
+  },
+  {
+    "name": "a group whose default member only the manager installs",
+    "files": [{ "id": "base", "name": "", "mergeable": true }],
+    "features": [
+      {
+        "key": "full-subtitles",
+        "name": "Full",
+        "isDefault": true,
+        "group": "Subtitles",
+        "files": [{ "id": "full", "requiresManager": true }]
+      },
+      {
+        "key": "lite-subtitles",
+        "name": "Lite",
+        "isDefault": false,
+        "group": "Subtitles",
+        "files": [{ "id": "lite", "mergeable": true }]
+      }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "base",
+    "featurePackages": { "Full": "full", "Lite": "lite" },
+    "site": { "download": ["base", "lite"], "manager": [] },
+    "manager": { "install": ["base", "full"] }
+  },
+  {
+    "name": "a group with one member is an ordinary add-on",
+    "files": [{ "id": "base", "name": "" }],
+    "features": [
+      {
+        "key": "signs",
+        "name": "Signs",
+        "isDefault": true,
+        "group": "Extras",
+        "files": [{ "id": "signs", "requiresManager": true }]
+      }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "base",
+    "featurePackages": { "Signs": "signs" },
+    "site": { "download": ["base"], "manager": ["Signs"] },
+    "manager": { "install": ["base", "signs"] }
+  },
+  {
+    "name": "an add-on pinned like the base takes the package of the base's store",
+    "files": [
+      { "id": "steam", "name": "", "stores": ["steam"] },
+      { "id": "gog", "name": "", "stores": ["gog"] }
+    ],
+    "features": [
+      {
+        "key": "voice-over",
+        "name": "Voice-over",
+        "isDefault": true,
+        "files": [
+          { "id": "voice-steam", "stores": ["steam"], "requiresManager": true },
+          { "id": "voice-gog", "stores": ["gog"], "requiresManager": true }
+        ]
+      }
+    ],
+    "game": { "store": "gog", "system": "Windows" },
+    "base": "gog",
+    "featurePackages": { "Voice-over": "voice-gog" },
+    "site": { "download": ["gog"], "manager": ["Voice-over"] },
+    "manager": { "install": ["gog", "voice-gog"] }
+  },
+  {
+    "name": "a universal add-on goes with a base packaged per store",
+    "files": [
+      { "id": "steam", "name": "", "stores": ["steam"] },
+      { "id": "gog", "name": "", "stores": ["gog"] }
+    ],
+    "features": [
+      {
+        "key": "voice-over",
+        "name": "Voice-over",
+        "isDefault": true,
+        "files": [{ "id": "voice", "requiresManager": true }]
+      }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "steam",
+    "featurePackages": { "Voice-over": "voice" },
+    "site": { "download": ["steam"], "manager": ["Voice-over"] },
+    "manager": { "install": ["steam", "voice"] }
+  },
+  {
+    "name": "an add-on without a package for the game's version is left out",
+    "files": [
+      { "id": "steam", "name": "", "stores": ["steam"] },
+      { "id": "gog", "name": "", "stores": ["gog"] }
+    ],
+    "features": [
+      {
+        "key": "voice-over",
+        "name": "Voice-over",
+        "isDefault": true,
+        "files": [
+          { "id": "voice-steam", "stores": ["steam"], "requiresManager": true }
+        ]
+      }
+    ],
+    "game": { "store": "gog", "system": "Windows" },
+    "base": "gog",
+    "featurePackages": { "Voice-over": null },
+    "site": { "download": ["gog"], "manager": [] },
+    "manager": { "install": ["gog"] }
+  },
+  {
+    "name": "an add-on follows the store's own base package",
+    "files": [
+      { "id": "universal", "name": "" },
+      { "id": "steam", "name": "", "stores": ["steam"] }
+    ],
+    "features": [
+      {
+        "key": "voice-over",
+        "name": "Voice-over",
+        "isDefault": true,
+        "files": [
+          { "id": "voice-universal", "requiresManager": true },
+          { "id": "voice-steam", "stores": ["steam"], "requiresManager": true }
+        ]
+      }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "steam",
+    "featurePackages": { "Voice-over": "voice-steam" },
+    "site": { "download": ["steam"], "manager": ["Voice-over"] },
+    "manager": { "install": ["steam", "voice-steam"] }
+  },
+  {
+    "name": "an add-on follows the universal base package on another store",
+    "files": [
+      { "id": "universal", "name": "" },
+      { "id": "steam", "name": "", "stores": ["steam"] }
+    ],
+    "features": [
+      {
+        "key": "voice-over",
+        "name": "Voice-over",
+        "isDefault": true,
+        "files": [
+          { "id": "voice-universal", "requiresManager": true },
+          { "id": "voice-steam", "stores": ["steam"], "requiresManager": true }
+        ]
+      }
+    ],
+    "game": { "store": "gog", "system": "Windows" },
+    "base": "universal",
+    "featurePackages": { "Voice-over": "voice-universal" },
+    "site": { "download": ["universal"], "manager": ["Voice-over"] },
+    "manager": { "install": ["universal", "voice-universal"] }
+  },
+  {
+    "name": "a plain add-on archive that can't be merged is the manager's to install, the site's download leaving it out",
+    "files": [{ "id": "base", "name": "", "mergeable": true }],
+    "features": [
+      {
+        "key": "textures",
+        "name": "Textures",
+        "isDefault": true,
+        "files": [{ "id": "textures", "mergeable": false }]
+      }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "base",
+    "featurePackages": { "Textures": "textures" },
+    "site": { "download": ["base"], "manager": [] },
+    "manager": { "install": ["base", "textures"] }
+  },
+  {
+    "name": "the site merges an add-on's package pinned like the base package of the game's store",
+    "files": [
+      { "id": "steam", "name": "", "stores": ["steam"], "mergeable": true },
+      { "id": "gog", "name": "", "stores": ["gog"], "mergeable": true }
+    ],
+    "features": [
+      {
+        "key": "voice-over",
+        "name": "Voice-over",
+        "isDefault": true,
+        "files": [
+          { "id": "voice-steam", "stores": ["steam"], "mergeable": true },
+          { "id": "voice-gog", "stores": ["gog"], "mergeable": true }
+        ]
+      }
+    ],
+    "game": { "store": "gog", "system": "Windows" },
+    "base": "gog",
+    "featurePackages": { "Voice-over": "voice-gog" },
+    "site": { "download": ["gog", "voice-gog"], "manager": [] },
+    "manager": { "install": ["gog", "voice-gog"] }
+  },
+  {
+    "name": "a base package that can't be merged downloads alone from the site",
+    "files": [{ "id": "base", "name": "", "mergeable": false }],
+    "features": [
+      {
+        "key": "voice-over",
+        "name": "Voice-over",
+        "isDefault": true,
+        "files": [{ "id": "voice", "mergeable": true }]
+      }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "base",
+    "featurePackages": { "Voice-over": "voice" },
+    "site": { "download": ["base"], "manager": [] },
+    "manager": { "install": ["base", "voice"] }
+  },
+  {
+    "name": "add-ons keep the array's order even at equal positions, a later one replacing an earlier one's file",
+    "files": [{ "id": "base", "name": "", "paths": ["data/strings.bin"] }],
+    "features": [
+      {
+        "key": "voice-over",
+        "name": "Voice-over",
+        "position": 0,
+        "isDefault": true,
+        "files": [
+          {
+            "id": "voice",
+            "requiresManager": true,
+            "paths": ["Data/Strings.bin", "audio/pl.bank"]
+          }
+        ]
+      },
+      {
+        "key": "signs",
+        "name": "Signs",
+        "position": 0,
+        "isDefault": true,
+        "files": [
+          {
+            "id": "signs",
+            "requiresManager": true,
+            "paths": ["audio\\PL.bank"]
+          }
+        ]
+      }
+    ],
+    "game": { "store": "steam", "system": "Windows" },
+    "base": "base",
+    "featurePackages": { "Voice-over": "voice", "Signs": "signs" },
+    "site": { "download": ["base"], "manager": ["Voice-over", "Signs"] },
+    "manager": {
+      "install": ["base", "voice", "signs"],
+      "layout": { "data/strings.bin": "voice", "audio/pl.bank": "signs" }
+    }
+  },
+  {
+    "name": "a release from before add-ons with two variants offers the default file's",
+    "files": [
+      {
+        "id": "full",
+        "name": "Full",
+        "description": "Game text and the bonus videos."
+      },
+      { "id": "text", "name": "Text only" }
+    ],
+    "defaultFile": "text",
+    "features": [],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["full"], ["text"]],
+    "recommended": "text",
+    "base": "text",
+    "site": { "download": ["text"], "manager": [] },
+    "manager": { "install": ["text"] }
+  },
+  {
+    "name": "same-named files built for different stores fold into one variant",
+    "files": [
+      { "id": "steam", "name": "Text only", "stores": ["steam"] },
+      { "id": "gog", "name": "Text only", "stores": ["gog"] },
+      { "id": "audio", "name": "Text + audio" }
+    ],
+    "features": [],
+    "game": { "store": "gog", "system": "Windows" },
+    "variants": [["steam", "gog"], ["audio"]],
+    "recommended": "steam",
+    "base": "gog",
+    "site": { "download": ["gog"], "manager": [] },
+    "manager": { "install": ["gog"] }
+  },
+  {
+    "name": "a universal archive sits next to a store's own one in the same variant",
+    "files": [
+      { "id": "universal", "name": "Text only" },
+      { "id": "steam", "name": "Text only", "stores": ["steam"] }
+    ],
+    "features": [],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["universal", "steam"]],
+    "recommended": "universal",
+    "base": "steam",
+    "site": { "download": ["steam"], "manager": [] },
+    "manager": { "install": ["steam"] }
+  },
+  {
+    "name": "the universal archive serves every other store",
+    "files": [
+      { "id": "universal", "name": "Text only" },
+      { "id": "steam", "name": "Text only", "stores": ["steam"] }
+    ],
+    "features": [],
+    "game": { "store": "gog", "system": "Windows" },
+    "variants": [["universal", "steam"]],
+    "recommended": "universal",
+    "base": "universal",
+    "site": { "download": ["universal"], "manager": [] },
+    "manager": { "install": ["universal"] }
+  },
+  {
+    "name": "two same-named files that fit the same version stay apart",
+    "files": [
+      { "id": "first", "name": "Translation" },
+      { "id": "second", "name": "Translation" }
+    ],
+    "features": [],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["first"], ["second"]],
+    "recommended": "first",
+    "base": "first",
+    "site": { "download": ["first"], "manager": [] },
+    "manager": { "install": ["first"] }
+  },
+  {
+    "name": "a file for one store and a same-named one for it and another stay apart",
+    "files": [
+      { "id": "steam", "name": "X", "stores": ["steam"] },
+      { "id": "both", "name": "X", "stores": ["steam", "gog"] }
+    ],
+    "features": [],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["steam"], ["both"]],
+    "recommended": "steam",
+    "base": "steam",
+    "site": { "download": ["steam"], "manager": [] },
+    "manager": { "install": ["steam"] }
+  },
+  {
+    "name": "builds for different systems share a variant",
+    "files": [
+      { "id": "windows", "name": "Text only", "systems": ["Windows"] },
+      { "id": "linux", "name": "Text only", "systems": ["Linux"] }
+    ],
+    "features": [],
+    "game": { "store": "steam", "system": "Linux" },
+    "variants": [["windows", "linux"]],
+    "recommended": "windows",
+    "base": "linux",
+    "site": { "download": ["linux"], "manager": [] },
+    "manager": { "install": ["linux"] }
+  },
+  {
+    "name": "a store's own file beats one for the system, which beats a universal one",
+    "files": [
+      { "id": "universal", "name": "Text only" },
+      { "id": "windows", "name": "Text only", "systems": ["Windows"] },
+      { "id": "steam", "name": "Text only", "stores": ["steam"] }
+    ],
+    "features": [],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["universal", "windows", "steam"]],
+    "recommended": "universal",
+    "base": "steam",
+    "site": { "download": ["steam"], "manager": [] },
+    "manager": { "install": ["steam"] }
+  },
+  {
+    "name": "a file for the system beats a universal one on another store",
+    "files": [
+      { "id": "universal", "name": "Text only" },
+      { "id": "windows", "name": "Text only", "systems": ["Windows"] },
+      { "id": "steam", "name": "Text only", "stores": ["steam"] }
+    ],
+    "features": [],
+    "game": { "store": "gog", "system": "Windows" },
+    "variants": [["universal", "windows", "steam"]],
+    "recommended": "universal",
+    "base": "windows",
+    "site": { "download": ["windows"], "manager": [] },
+    "manager": { "install": ["windows"] }
+  },
+  {
+    "name": "the variant of the release's default file is recommended",
+    "files": [
+      { "id": "text", "name": "Text only" },
+      { "id": "audio", "name": "Text + audio" }
+    ],
+    "defaultFile": "audio",
+    "features": [],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["text"], ["audio"]],
+    "recommended": "audio",
+    "base": "audio",
+    "site": { "download": ["audio"], "manager": [] },
+    "manager": { "install": ["audio"] }
+  },
+  {
+    "name": "without a default file a variant with a direct download is recommended",
+    "files": [
+      { "id": "managed", "name": "Text + audio", "requiresManager": true },
+      { "id": "zip", "name": "Text only" }
+    ],
+    "features": [],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["managed"], ["zip"]],
+    "recommended": "zip",
+    "base": "zip",
+    "site": { "download": ["zip"], "manager": [] },
+    "manager": { "install": ["zip"] }
+  },
+  {
+    "name": "files that are not ready are left out",
+    "files": [
+      { "id": "ready", "name": "Text only" },
+      { "id": "uploading", "name": "Text only", "status": "pending" }
+    ],
+    "features": [],
+    "game": { "store": "steam", "system": "Windows" },
+    "variants": [["ready"]],
+    "recommended": "ready",
+    "base": "ready",
+    "site": { "download": ["ready"], "manager": [] },
+    "manager": { "install": ["ready"] }
+  }
+]

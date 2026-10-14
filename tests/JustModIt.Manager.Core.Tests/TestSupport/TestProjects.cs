@@ -79,6 +79,21 @@ internal static class TestProjects
         StorefrontLinkUuids = [.. onlyFor.Select(LinkOf)],
     };
 
+    /// <summary>An add-on's package, for every store unless pinned.</summary>
+    public static ReleaseFile AddOn(Guid uuid, params GameKey[] onlyFor) =>
+        File(uuid, "", requiresManager: true, onlyFor) with { DownloadFilename = "addon.examplemod", Size = 2048 };
+
+    public static ReleaseFeature Feature(string key, string name, bool isDefault = true, string group = "", params ReleaseFile[] files) => new()
+    {
+        Uuid = new Guid(SHA256.HashData(Encoding.UTF8.GetBytes("feature " + key)).AsSpan(0, 16)),
+        Key = key,
+        Name = name,
+        Description = name + " for the whole game.",
+        IsDefault = isDefault,
+        Group = group,
+        Files = files,
+    };
+
     public static Release Release(Guid uuid, int version, params ReleaseFile[] files) => new()
     {
         Uuid = uuid,
@@ -135,6 +150,20 @@ internal static class TestProjects
         ReleasePublishedAt = Now.AddDays(version - 10),
         ReleaseFileId = file.ToString("D"),
         VariantName = variant,
+    };
+
+    /// <summary>An install made with add-ons: its record names its packages, the base's first, and no variant.</summary>
+    /// <param name="record">The install as an earlier version recorded it.</param>
+    /// <param name="features">The add-ons it has, by key and release file.</param>
+    public static InstallRecord WithParts(InstallRecord record, params (string Key, Guid File)[] features) => record with
+    {
+        Parts =
+        [
+            new InstalledPart(record.Package, ReleaseFileId: record.Source!.ReleaseFileId),
+            .. features.Select(feature => new InstalledPart(new InstalledPackage(PackageKind.Manifest, "addon.examplemod"), feature.Key,
+                feature.Key, feature.File.ToString("D"))),
+        ],
+        Source = record.Source with { VariantName = null, HadVariantChoice = false },
     };
 
     public static InstallRecord Record(GameKey? game = null, InstallSource? source = null, string? folder = null, Guid? id = null,

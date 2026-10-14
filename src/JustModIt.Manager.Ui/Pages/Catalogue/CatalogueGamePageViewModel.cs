@@ -195,8 +195,8 @@ public sealed partial class CatalogueGamePageViewModel : PageViewModel, IProject
     public partial bool ShowsFacts { get; private set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasVariants))]
-    public partial string Variants { get; private set; } = "";
+    [NotifyPropertyChangedFor(nameof(HasFeatures))]
+    public partial string Features { get; private set; } = "";
 
     [ObservableProperty]
     public partial Uri? SitePage { get; private set; }
@@ -283,7 +283,7 @@ public sealed partial class CatalogueGamePageViewModel : PageViewModel, IProject
     /// <summary>Without another button the site's button leads the line.</summary>
     public bool LeadsWithSite => !HasPrimary && !HasStoreAction;
 
-    public bool HasVariants => Variants.Length > 0;
+    public bool HasFeatures => Features.Length > 0;
 
     public bool HasProgress => ProgressKind.Length > 0 || ProgressPercent.Length > 0;
 
@@ -675,7 +675,12 @@ public sealed partial class CatalogueGamePageViewModel : PageViewModel, IProject
                 ? GameWording.Join([Text.Format(Strings.GamePage_Version, ("version", GameWording.Version(release))), ReleasedText(release)])
             : CatalogueCardViewModel.Announced(project, _services.Clock);
         IsStopped = hasFile && abandoned;
-        Variants = details is { Variants.Count: > 1 } ? Text.Format(Strings.Catalogue_Variants, ("variants", string.Join(" · ", details.Variants))) : "";
+        Features = details switch
+        {
+            { AreVariants: true, Features.Count: > 1 } => Text.Format(Strings.Catalogue_Variants, ("variants", string.Join(" · ", details.Features))),
+            { AreVariants: false, Features.Count: > 0 } => Text.Format(Strings.Catalogue_Features, ("features", string.Join(" · ", details.Features))),
+            _ => "",
+        };
 
         var progress = details?.Progress;
         // Where there is a file the status explains itself in its bubble, unless the project shows how far it is.

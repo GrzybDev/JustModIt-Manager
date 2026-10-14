@@ -3,6 +3,7 @@ using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Agent.Storage;
 using JustModIt.Manager.Agent.Updates;
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
@@ -74,13 +75,10 @@ public sealed class AgentCommands(
         CheckNow => Done(() => _ = checks.CheckNowAsync()),
         ChangeSettings change => ChangeSettings(change.Settings),
         SetGameAutomation automation => Done(() => settings.Update(current => ChooseAutomation(current, automation))),
-        ChooseProject choose => Done(() => settings.Update(current => current.WithGame(choose.Game, preferences => preferences with
-        {
-            ProjectId = choose.ProjectId,
-            VariantName = preferences.ProjectId == choose.ProjectId ? preferences.VariantName : null,
-        }))),
-        ChooseVariant choose => Done(() => settings.Update(current =>
-            current.WithGame(choose.Game, preferences => preferences with { VariantName = choose.VariantName }))),
+        ChooseProject choose => Done(() => settings.Update(current =>
+            current.WithGame(choose.Game, preferences => preferences with { ProjectId = choose.ProjectId }))),
+        ChooseFeatures choose => Done(() => ChooseFeatures(choose)),
+        ApplyFeatures apply => Start(ApplyFeatures(apply)),
         HideGame hide => Done(() => settings.Update(current =>
             current.WithGame(hide.Game, preferences => preferences with { IsHidden = hide.IsHidden }))),
         ConfirmAdultContent => Done(() => settings.Update(current => current.ConfirmAdultContent(time.GetUtcNow()))),
@@ -147,16 +145,56 @@ public sealed class AgentCommands(
         var game = Detected(request.Game);
         var offer = Find(request.Game).Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == request.ProjectId)
             ?? throw Invalid("The project is not on offer for the game.");
-        return new InstallJobRequest(game.Key, game.Name, offer.Project.Locator, request.VariantName);
+        return new InstallJobRequest(game.Key, game.Name, offer.Project.Locator);
+    }
+
+    private void ChooseFeatures(ChooseFeatures request)
+    {
+        var offer = Find(request.Game).Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == request.ProjectId)
+            ?? throw Invalid("The project is not on offer for the game.");
+        settings.Update(current => current.WithGame(request.Game, preferences =>
+            Remember(preferences, offer.Selection, request.ProjectId, request.Choices, [])));
+    }
+
+    // The install is looked for among all the player's games, so a project no longer on offer, e.g. one whose team took it
+    // back to work in progress, still changes its add-ons. Its pending update or repair takes the change, each worded as
+    // itself, so there is never a second job for one change.
+    private ReinstallJobRequest ApplyFeatures(ApplyFeatures request)
+    {
+        var install = FindInstall(request.Install);
+        if (install is not { Project.Selection: var selection, Record.Source.ProjectUuid: { } project })
+        {
+            throw Invalid("The install's project is not in the catalogue.");
+        }
+
+        var record = install.Record;
+        IReadOnlyCollection<string> installed = [.. InstallChoices.FeaturesOf(record).Select(feature => feature.Key),
+            .. record.Source?.VariantName is { } variant ? [variant] : Array.Empty<string>()];
+        settings.Update(current => current.WithGame(record.Game, preferences =>
+            Remember(preferences, selection, project, request.Choices, installed)));
+        return install.Status.State switch
+        {
+            MyGameState.UpdateAvailable => new UpdateJobRequest(record),
+            MyGameState.NeedsRepair => new RepairJobRequest(record),
+            _ => new ChangeFeaturesJobRequest(record),
+        };
+    }
+
+    // A choice among the variants of a release from before add-ons replaces the one remembered before add-ons existed.
+    private static GamePreferences Remember(GamePreferences preferences, ReleaseSelection selection, Guid project,
+        IReadOnlyDictionary<string, bool?> changes, IReadOnlyCollection<string> installed)
+    {
+        var updated = preferences.WithFeatures(project, selection.Remember(preferences.FeaturesOf(project), changes, installed));
+        return selection.IsLegacy && changes.Count > 0 ? updated with { VariantName = null } : updated;
     }
 
     // A package is made for a game no project is on offer for yet, which the player's games do not list.
     private TestInstallJobRequest TestInstall(TestInstallPackage request)
     {
         var game = library.Snapshot.Find(request.Game) ?? throw Invalid("No store reports the game.");
-        return Path.IsPathFullyQualified(request.PackagePath)
-            ? new TestInstallJobRequest(game.Key, game.Name, [request.PackagePath])
-            : throw Invalid("The package path is not fully qualified.");
+        return request.PackagePaths.Count > 0 && request.PackagePaths.All(Path.IsPathFullyQualified)
+            ? new TestInstallJobRequest(game.Key, game.Name, request.PackagePaths)
+            : throw Invalid("A package path is not fully qualified.");
     }
 
     private JobStarted Start(JobRequest request)

@@ -152,14 +152,15 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var record = await RunInstallAsync(request, parts, game, id, backup, plan, progress, cancellationToken)
+            var record = await RunInstallAsync(request, parts, report.LeftOut, game, id, backup, plan, progress, cancellationToken)
                 .ConfigureAwait(false);
             return new InstallResult(record, report.Warnings) { LeftOut = report.LeftOut };
         }
     }
 
-    private async Task<InstallRecord> RunInstallAsync(InstallRequest request, CompositePackage package, GameFolder game, Guid id,
-        BackupFolder backup, InstallPlan plan, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
+    private async Task<InstallRecord> RunInstallAsync(InstallRequest request, CompositePackage package, ValueList<LeftOutPart> leftOut,
+        GameFolder game, Guid id, BackupFolder backup, InstallPlan plan, IProgress<InstallProgress>? progress,
+        CancellationToken cancellationToken)
     {
         var folder = _store.FolderOf(id);
         var gameVolume = _volumes.GetVolumeId(game.Root);
@@ -187,6 +188,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
                 InstalledAt = _time.GetUtcNow(),
                 Package = InstalledPackage.From(package.Parts[0].Package!),
                 Parts = [.. package.Parts.Select(part => InstalledPartOf(part, request.Parts[part.Index]))],
+                LeftOutFeatures = LeftOutFeaturesOf(leftOut),
                 Source = request.Source,
                 Backup = backup,
                 FileCount = files.Files.Count(file => file.Change != FileChange.Unchanged),
@@ -288,6 +290,12 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     private static InstalledPart InstalledPartOf(CompositePart part, InstallPart requested) =>
         new(InstalledPackage.From(part.Package!), requested.FeatureKey, requested.FeatureName, requested.ReleaseFileId,
             requested.CachedFileId);
+
+    private static List<LeftOutFeature>? LeftOutFeaturesOf(ValueList<LeftOutPart> leftOut) =>
+        leftOut.Any(part => part.Part.FeatureKey is not null)
+            ? [.. leftOut.Where(part => part.Part.FeatureKey is not null)
+                .Select(part => new LeftOutFeature(part.Part.FeatureKey!, part.Part.FeatureName ?? part.Part.FeatureKey!, part.Reason))]
+            : null;
 
     // An install of optional parts alone could end up installing nothing.
     private Task<CompositePackage> OpenAsync(InstallRequest request, CancellationToken cancellationToken) =>

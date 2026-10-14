@@ -11,6 +11,7 @@ public sealed class SettingsFormatTests : IDisposable
 {
     private static readonly GameKey Witcher = new(StoreId.Gog, "1207658924");
     private static readonly GameKey Portal = new(StoreId.Steam, "400");
+    private static readonly Guid Project = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920");
 
     private readonly TempDirectory _directory = new();
     private readonly string _path;
@@ -41,15 +42,15 @@ public sealed class SettingsFormatTests : IDisposable
             RevealedAdultGames = [Guid.Parse("7c8d9e0f-0000-4000-8000-000000000003")],
             RecentCreatorProjects = [Rooted("Second.exampleproj"), Rooted("First.exampleproj")],
         }
-            .WithGame(Witcher, preferences => preferences with
+            .WithGame(Witcher, preferences => (preferences with
             {
                 AutoInstall = false,
                 AutoUpdate = true,
-                ProjectId = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920"),
-                VariantName = "Text + voice-over",
+                ProjectId = Project,
                 IsHidden = true,
-            })
-            .WithGame(Portal, preferences => preferences with { VariantName = "Text only" })
+            }).WithFeatures(Project, new Dictionary<string, bool> { ["voice-over"] = false, ["signs"] = true }))
+            .WithGame(Portal, preferences => preferences.WithFeatures(Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e921"),
+                new Dictionary<string, bool> { ["Text only"] = true }))
             .WithLibraryFolder(new LibraryFolder(StoreId.Steam, Rooted("SteamLibrary")))
             .WithLibraryFolder(new LibraryFolder(StoreId.Gog, Rooted("GOG Games")));
 
@@ -62,7 +63,7 @@ public sealed class SettingsFormatTests : IDisposable
     public async Task The_file_is_readable_json_with_named_values_and_sorted_games()
     {
         await SaveAsync(AppSettings.Default
-            .WithGame(Witcher, preferences => preferences with { VariantName = "Café + voice-over" })
+            .WithGame(Witcher, preferences => preferences.WithFeatures(Project, new Dictionary<string, bool> { ["Café + voice-over"] = true }))
             .WithGame(Portal, preferences => preferences with { IsHidden = true }));
 
         var text = await File.ReadAllTextAsync(_path, TestContext.Current.CancellationToken);
@@ -74,6 +75,7 @@ public sealed class SettingsFormatTests : IDisposable
         stored.ContainsKey("customBackupFolder").Should().BeFalse();
         stored["games"]!.AsObject().Select(game => game.Key).Should().Equal("gog:1207658924", "steam:400");
         stored["games"]!["steam:400"]!.ToJsonString().Should().Be("""{"isHidden":true}""");
+        stored["games"]!["gog:1207658924"]!["features"]![Project.ToString("D")]!["Café + voice-over"]!.GetValue<bool>().Should().BeTrue();
         text.Should().Contain("Café + voice-over");
     }
 
@@ -116,7 +118,8 @@ public sealed class SettingsFormatTests : IDisposable
         stored["autoInstallProjects"]!.GetValue<bool>().Should().BeTrue();
         stored["autoUpdateProjects"]!.GetValue<bool>().Should().BeFalse();
         stored["checkIntervalMinutes"]!.GetValue<int>().Should().Be(30, "a value this version does not know is kept");
-        (await LoadAsync()).Should().Be(settings);
+        stored["games"]!["gog:1207658924"]!.AsObject().ContainsKey("variantName").Should().BeFalse("a variant chosen before add-ons is never written");
+        (await LoadAsync()).Should().Be(settings!.WithGame(Witcher, preferences => preferences with { VariantName = null }));
         settings.Should().Be(new AppSettings
         {
             CloseBehavior = CloseBehavior.MinimizeToTray,

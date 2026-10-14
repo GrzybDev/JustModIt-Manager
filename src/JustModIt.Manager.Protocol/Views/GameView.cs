@@ -70,7 +70,7 @@ public sealed record GameView
             Name = game.Name,
             Status = GameStatusView.From(game.Status),
             Detected = game.Game is { } detected ? DetectedGameView.From(detected) : null,
-            Projects = [.. game.Projects.Select(ProjectOfferView.From)],
+            Projects = [.. game.Projects.Select(project => ProjectOfferView.From(project))],
             Project = game.Project is { } project ? ProjectOfferView.From(project) : null,
             Installs = [.. game.Installs.Select(InstallView.From)],
             InstallReplaces = game.NewInstall?.Replaces is not null,
@@ -104,11 +104,14 @@ public sealed record GameStatusView(MyGameState State)
 
     public UpdateKind? UpdateKind { get; init; }
 
-    /// <summary>The variant an update installs.</summary>
-    public string? UpdateVariant { get; init; }
+    /// <summary>
+    /// The bytes an update, or the repair of an install that needs one, downloads: of the packages the install does not hold
+    /// already; null when there is nothing to install.
+    /// </summary>
+    public long? UpdateSize { get; init; }
 
-    /// <summary>The variant the player chose is gone, so the update installs the recommended one.</summary>
-    public bool UpdateVariantFellBack { get; init; }
+    /// <summary>The add-ons the install has that the update goes without, though the player did not turn them off.</summary>
+    public IReadOnlyList<InstalledFeature> UpdateDrops { get; init; } = [];
 
     /// <summary>The folder that should hold the originals, while it is unavailable.</summary>
     public string? BackupDirectory { get; init; }
@@ -126,8 +129,8 @@ public sealed record GameStatusView(MyGameState State)
             Orphan = status.Orphan,
             Update = status.Update?.State,
             UpdateKind = status.Update?.Kind,
-            UpdateVariant = status.Update?.Variant?.Name,
-            UpdateVariantFellBack = status.Update?.VariantFellBack ?? false,
+            UpdateSize = status.Update is { State: UpdateState.Available or UpdateState.UpToDate } update ? update.Size : null,
+            UpdateDrops = [.. status.Update?.Drops ?? []],
             BackupDirectory = status.BackupDirectory,
         };
     }

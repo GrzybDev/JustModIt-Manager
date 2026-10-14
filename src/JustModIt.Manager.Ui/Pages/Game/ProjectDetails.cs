@@ -107,8 +107,11 @@ public sealed record ProjectDetails
     /// <summary>The release players can download; null when there is none.</summary>
     public ReleaseView? Release { get; init; }
 
-    /// <summary>The names of the release's variants, as the site groups its files.</summary>
-    public IReadOnlyList<string> Variants { get; init; } = [];
+    /// <summary>The names of the release's add-ons, or of the variants of a release from before add-ons.</summary>
+    public IReadOnlyList<string> Features { get; init; } = [];
+
+    /// <summary><see cref="Features"/> are the variants of a release from before add-ons.</summary>
+    public bool AreVariants { get; init; }
 
     /// <summary>The release has a file ready to download, so the project has something to install.</summary>
     public bool HasFile { get; init; }
@@ -165,7 +168,8 @@ public sealed record ProjectDetails
             TeamMembers = project.Team.MemberCount,
             TeamProjects = project.Team.ProjectCount,
             Release = project.PublicRelease is { } release ? ReleaseView.From(release) : null,
-            Variants = project.PublicRelease is { } shown ? ReleaseSelector.VariantNames(shown) : [],
+            Features = project.PublicRelease is { } shown ? ReleaseSelector.FeatureNames(shown).Names : [],
+            AreVariants = project.PublicRelease is { } listed && ReleaseSelector.FeatureNames(listed).AreVariants,
             HasFile = project.Status?.AllowsPublicReleases != false && project.PublicRelease?.Files.Any(file => file.IsReady) == true,
             ShipsWithGame = project.Status is { IsCompleted: true, AllowsPublicReleases: false },
             Stores =

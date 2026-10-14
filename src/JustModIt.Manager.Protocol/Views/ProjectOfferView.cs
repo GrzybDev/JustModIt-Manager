@@ -38,21 +38,27 @@ public sealed record ProjectOfferView
     /// <summary>The public release; null when there is none to offer.</summary>
     public ReleaseView? Release { get; init; }
 
-    public IReadOnlyList<VariantView> Variants { get; init; } = [];
+    /// <summary>The base's package for the game; null when none fits, and for a release from before add-ons.</summary>
+    public PackageView? Base { get; init; }
 
-    /// <summary>The variant to recommend; null exactly when nothing can be installed.</summary>
-    public string? DefaultVariant { get; init; }
+    /// <summary>The add-ons that fit the game, or the variants of a release from before add-ons, in the release's order.</summary>
+    public IReadOnlyList<FeatureView> Features { get; init; } = [];
 
-    /// <summary>Why nothing can be installed; null when <see cref="DefaultVariant"/> is set.</summary>
+    /// <summary>A release from before add-ons whose variants make one choice, which the app names itself.</summary>
+    public bool IsLegacy { get; init; }
+
+    /// <summary>Why nothing can be installed; null when something can.</summary>
     public SelectionUnavailability? Unavailable { get; init; }
 
-    /// <summary>Maps what a project offers a game.</summary>
-    /// <param name="offer">The project with the release and variants that fit the game.</param>
-    public static ProjectOfferView From(ProjectOffer offer)
+    /// <summary>Maps what a project offers a game, as a new install takes it or, for an installed one, as its install does.</summary>
+    /// <param name="offer">The project with the release and the plan that fit the game.</param>
+    /// <param name="installed">The packages the project's install holds already; null for a new install.</param>
+    public static ProjectOfferView From(ProjectOffer offer, InstalledRelease? installed = null)
     {
         ArgumentNullException.ThrowIfNull(offer);
         var project = offer.Project;
         var selection = offer.Selection;
+        var plan = offer.Plan;
         return new ProjectOfferView
         {
             ProjectId = project.ProjectUuid,
@@ -69,8 +75,10 @@ public sealed record ProjectOfferView
             LatestBuild = offer.OutdatedLink?.LatestBuild ?? "",
             UpdatedAt = project.UpdatedAt,
             Release = selection.Release is { } release ? ReleaseView.From(release) : null,
-            Variants = [.. selection.Variants.Select(VariantView.From)],
-            DefaultVariant = selection.Default?.Name,
+            Base = selection.Base is { } package ? PackageView.From(package) : null,
+            Features = [.. selection.Features.Select(feature => FeatureView.From(feature,
+                plan is not null && (plan.FeatureKeys.Contains(feature.Key) || plan.Variant == feature.Key), installed))],
+            IsLegacy = selection.IsLegacy,
             Unavailable = selection.Unavailable,
         };
     }
@@ -158,27 +166,40 @@ public sealed record ReleaseView(Guid Id, int Version)
     }
 }
 
-/// <summary>A choice such as "text only" next to "text and voice", with the package that fits the game.</summary>
-/// <param name="Name">The variant's name, which commands choose it by.</param>
-public sealed record VariantView(string Name)
+/// <summary>
+/// An add-on that fits the game, or a variant of a release from before add-ons, with whether the plan takes it, as the
+/// agent works it out with the engine's rules so the window never repeats them.
+/// </summary>
+/// <param name="Key">The add-on's key, which commands choose it by; a variant's name.</param>
+/// <param name="Name">The name to show.</param>
+/// <param name="Description">Plain text; empty for none.</param>
+/// <param name="IsDefault">The author turns it on, or recommends it among its group.</param>
+/// <param name="IsOn">
+/// What installing, or the pending update or repair, takes with the player's choices; for an install that is up to date,
+/// what it has.
+/// </param>
+public sealed record FeatureView(string Key, string Name, string Description, bool IsDefault, bool IsOn)
 {
-    public string Description { get; init; } = "";
+    /// <summary>The caption of the choice it makes with others; null for an add-on on its own.</summary>
+    public string? Group { get; init; }
 
-    public PackageView? Package { get; init; }
+    public required PackageView Package { get; init; }
 
-    /// <summary>Null exactly when <see cref="Package"/> is set.</summary>
-    public SelectionUnavailability? Unavailable { get; init; }
+    /// <summary>The install the offer is shown for holds the package already, so taking it downloads nothing.</summary>
+    public bool IsPresent { get; init; }
 
-    /// <summary>Maps a variant of the release.</summary>
-    /// <param name="variant">The variant with the package picked for the game.</param>
-    public static VariantView From(ReleaseVariant variant)
+    /// <summary>Maps an add-on of the release.</summary>
+    /// <param name="feature">The add-on with the package picked for the game.</param>
+    /// <param name="isOn">Whether the plan takes it.</param>
+    /// <param name="installed">The packages the project's install holds already; null for a new install.</param>
+    public static FeatureView From(FeatureOffer feature, bool isOn, InstalledRelease? installed)
     {
-        ArgumentNullException.ThrowIfNull(variant);
-        return new VariantView(variant.Name)
+        ArgumentNullException.ThrowIfNull(feature);
+        return new FeatureView(feature.Key, feature.Name, feature.Description, feature.IsDefault, isOn)
         {
-            Description = variant.Description,
-            Package = variant.Package is { } file ? PackageView.From(file) : null,
-            Unavailable = variant.Unavailable,
+            Group = feature.Group,
+            Package = PackageView.From(feature.Package),
+            IsPresent = installed?.Holds(feature.Package) == true,
         };
     }
 }

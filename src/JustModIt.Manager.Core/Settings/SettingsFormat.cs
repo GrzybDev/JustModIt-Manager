@@ -43,6 +43,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string AutoUpdate = "autoUpdate";
     private const string ProjectId = "projectId";
     private const string VariantName = "variantName";
+    private const string FeaturesName = "features";
     private const string IsHidden = "isHidden";
     private const string Store = "store";
     private const string FolderPath = "path";
@@ -125,7 +126,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             writer.WriteIfSet(AutoInstall, preferences.AutoInstall);
             writer.WriteIfSet(AutoUpdate, preferences.AutoUpdate);
             writer.WriteIfSet(ProjectId, preferences.ProjectId);
-            writer.WriteIfSet(VariantName, preferences.VariantName);
+            WriteFeatures(writer, preferences.Features);
             if (preferences.IsHidden)
             {
                 writer.WriteBoolean(IsHidden, true);
@@ -155,6 +156,28 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         }
 
         writer.WriteEndArray();
+    }
+
+    private static void WriteFeatures(Utf8JsonWriter writer, ValueDictionary<Guid, ValueDictionary<string, bool>> features)
+    {
+        if (features.Count == 0)
+        {
+            return;
+        }
+
+        writer.WriteStartObject(FeaturesName);
+        foreach (var (project, chosen) in features.OrderBy(entry => entry.Key))
+        {
+            writer.WriteStartObject(project.ToString("D"));
+            foreach (var (key, on) in chosen.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+            {
+                writer.WriteBoolean(key, on);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndObject();
     }
 
     private static void WriteIds(Utf8JsonWriter writer, string name, ValueList<Guid> ids)
@@ -189,6 +212,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
                 AutoUpdate = game.Value.GetBooleanOrNull(AutoUpdate),
                 ProjectId = game.Value.GetGuidOrNull(ProjectId),
                 VariantName = game.Value.GetTextOrNull(VariantName),
+                Features = ReadFeatures(game.Value.GetOrNull(FeaturesName, JsonValueKind.Object)),
                 IsHidden = game.Value.GetBooleanOrNull(IsHidden) ?? false,
             };
             if (preferences != GamePreferences.Default)
@@ -198,6 +222,39 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         }
 
         return new ValueDictionary<GameKey, GamePreferences>(result.ToImmutable());
+    }
+
+    private static ValueDictionary<Guid, ValueDictionary<string, bool>> ReadFeatures(JsonElement? features)
+    {
+        if (features is not { } projects)
+        {
+            return default;
+        }
+
+        var result = ImmutableDictionary.CreateBuilder<Guid, ValueDictionary<string, bool>>();
+        foreach (var project in projects.EnumerateObject())
+        {
+            if (!Guid.TryParse(project.Name, out var id) || project.Value.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var chosen = ImmutableDictionary.CreateBuilder<string, bool>(StringComparer.Ordinal);
+            foreach (var feature in project.Value.EnumerateObject())
+            {
+                if (feature.Name.Length > 0 && feature.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                {
+                    chosen[feature.Name] = feature.Value.GetBoolean();
+                }
+            }
+
+            if (chosen.Count > 0)
+            {
+                result[id] = new ValueDictionary<string, bool>(chosen.ToImmutable());
+            }
+        }
+
+        return new ValueDictionary<Guid, ValueDictionary<string, bool>>(result.ToImmutable());
     }
 
     private static ValueList<Guid> ReadIds(JsonElement? ids) =>

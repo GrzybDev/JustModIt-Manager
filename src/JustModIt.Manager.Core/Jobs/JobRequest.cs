@@ -14,16 +14,15 @@ public abstract record JobRequest(GameKey Game, string GameName, JobOrigin Origi
 }
 
 /// <summary>
-/// Installs a project next to the game's installs or in place of them, as the app's install policy says; a project the
-/// game has already takes the place of its install, e.g. to switch the variant.
+/// Installs a project with the add-ons the player's choices give, next to the game's installs or in place of them, as the
+/// app's install policy says; a project the game has already takes the place of its install.
 /// </summary>
 /// <param name="Game">The game to install on.</param>
 /// <param name="GameName">The game's name, shown with the job.</param>
 /// <param name="Project">The project to install, as the site locates it.</param>
-/// <param name="VariantName">The variant to install; null installs the one the release recommends.</param>
 /// <param name="Origin">Whether the player or the automation asked for the job.</param>
-public sealed record InstallJobRequest(GameKey Game, string GameName, ProjectLocator Project, string? VariantName,
-    JobOrigin Origin = JobOrigin.User) : JobRequest(Game, GameName, Origin)
+public sealed record InstallJobRequest(GameKey Game, string GameName, ProjectLocator Project, JobOrigin Origin = JobOrigin.User)
+    : JobRequest(Game, GameName, Origin)
 {
     public override JobKind Kind => JobKind.Install;
 }
@@ -63,6 +62,17 @@ public sealed record UpdateJobRequest(InstallRecord Record, JobOrigin Origin = J
 public sealed record RepairJobRequest(InstallRecord Record, JobOrigin Origin = JobOrigin.User) : ReinstallJobRequest(Record, Origin)
 {
     public override JobKind Kind => JobKind.Repair;
+}
+
+/// <summary>
+/// Installs the project's current release with the add-ons the player chose in place of an install that is up to date;
+/// it needs the project neither on offer nor completed, since the player chose the install already there.
+/// </summary>
+/// <param name="Record">The installed release's record.</param>
+/// <param name="Origin">Whether the player or the automation asked for the job.</param>
+public sealed record ChangeFeaturesJobRequest(InstallRecord Record, JobOrigin Origin = JobOrigin.User) : ReinstallJobRequest(Record, Origin)
+{
+    public override JobKind Kind => JobKind.Install;
 }
 
 /// <summary>

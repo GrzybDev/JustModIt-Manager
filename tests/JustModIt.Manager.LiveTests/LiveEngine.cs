@@ -157,7 +157,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
         var snapshot = await Catalogue.RefreshAsync(new IndexRequest([game.Key], []), cancellationToken);
         var offer = GameOffer.For(snapshot.Index, game.Key, game.Platform, LiveApp.Language).Projects.Should().ContainSingle().Subject;
         var release = offer.Selection.Release!;
-        var file = offer.Selection.Default!.Package!;
+        var file = offer.Selection.Plan(FeatureChoices.None)!.Parts[0].File;
         var locator = new ReleaseFileLocator(offer.Project.Team.Slug, offer.Project.ProjectSlug, release.Uuid, file.Uuid);
         return new OfferedRelease(offer.Project.Locator, locator, file);
     }

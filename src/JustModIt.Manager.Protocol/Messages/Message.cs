@@ -33,7 +33,8 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(ChangeSettings), "changeSettings")]
 [JsonDerivedType(typeof(SetGameAutomation), "setGameAutomation")]
 [JsonDerivedType(typeof(ChooseProject), "chooseProject")]
-[JsonDerivedType(typeof(ChooseVariant), "chooseVariant")]
+[JsonDerivedType(typeof(ChooseFeatures), "chooseFeatures")]
+[JsonDerivedType(typeof(ApplyFeatures), "applyFeatures")]
 [JsonDerivedType(typeof(HideGame), "hideGame")]
 [JsonDerivedType(typeof(ConfirmAdultContent), "confirmAdultContent")]
 [JsonDerivedType(typeof(RevealAdultPictures), "revealAdultPictures")]
@@ -75,7 +76,7 @@ public abstract record Message;
 /// <param name="ProcessId">The sender's process, to hand it the foreground or wait for it to exit.</param>
 public sealed record Hello(int ProtocolVersion, string AppVersion, ProcessRole Role, int ProcessId) : Message
 {
-    public const int CurrentProtocolVersion = 1;
+    public const int CurrentProtocolVersion = 2;
 
     /// <summary>The hello this process sends.</summary>
     /// <param name="role">The role this process runs.</param>

@@ -60,9 +60,7 @@ internal static class AutomationPolicy
         // A player who turned automatic updates off for a game is only told of its repairs too.
         MyGameState.NeedsRepair when settings.ReapplyAfterGameUpdate && game.Preferences.AutoUpdate != false =>
             AttemptRepair(game, install, history, now),
-        MyGameState.NeedsRepair => history.WasRepairAnnounced(install.Record.Id, game.Game?.BuildId)
-            ? AutomationDecision.Skip(AutomationReason.AlreadyAnnounced)
-            : new AutomationDecision(AutomationAction.Announce, AutomationReason.ReapplyOff),
+        MyGameState.NeedsRepair => AnnounceRepair(game, install, AutomationReason.ReapplyOff, history),
         MyGameState.Busy => AutomationDecision.Skip(AutomationReason.Busy),
         MyGameState.GameNotReady => AutomationDecision.Skip(AutomationReason.GameNotReady),
         MyGameState.Orphaned => AutomationDecision.Skip(AutomationReason.Orphaned),
@@ -73,12 +71,11 @@ internal static class AutomationPolicy
 
     private static AutomationDecision DecideInstall(MyGame game, bool autoInstall, AutomationHistory history, DateTimeOffset now)
     {
-        if (game.Project is not { Selection: { Release: { } release } selection })
+        if (game.Project is not { Selection.Release: { } release })
         {
             return AnnounceChoice(game, history);
         }
 
-        var (variant, _) = selection.Choose(game.Preferences.VariantName);
         // The player can still install it by hand; the app just does not push it on a game its store already offers in
         // the language.
         var reason = !autoInstall ? AutomationReason.AutoInstallOff
@@ -89,8 +86,7 @@ internal static class AutomationPolicy
             return Announce(game, release, announced, history);
         }
 
-        var install = Attempt(game, AutomationAction.Install, release, history, now);
-        return install.Action == AutomationAction.Install ? install with { Variant = variant } : install;
+        return Attempt(game, AutomationAction.Install, release, history, now);
     }
 
     private static AutomationDecision Announce(MyGame game, Release release, AutomationReason reason, AutomationHistory history) =>
@@ -103,6 +99,11 @@ internal static class AutomationPolicy
                 Announces = [release.Uuid],
             };
 
+    private static AutomationDecision AnnounceRepair(MyGame game, MyInstall install, AutomationReason reason, AutomationHistory history) =>
+        history.WasRepairAnnounced(install.Record.Id, game.Game?.BuildId)
+            ? AutomationDecision.Skip(AutomationReason.AlreadyAnnounced)
+            : new AutomationDecision(AutomationAction.Announce, reason);
+
     // The choice between teams is the player's alone; the automation only asks for it.
     private static AutomationDecision AnnounceChoice(MyGame game, AutomationHistory history)
     {
@@ -112,21 +113,18 @@ internal static class AutomationPolicy
             : new AutomationDecision(AutomationAction.Announce, AutomationReason.NoProjectChosen) { Announces = releases };
     }
 
-    // Updates and repairs keep the installed variant: another one would swap e.g. the player's voice-over for text only,
-    // while the one installed may just not be ready yet in the new release.
+    // Updates and repairs never take away what the player has, such as an add-on, or the variant that may just not be ready
+    // yet in the new release; nor do they give an install from before add-ons any. The player hears of it once instead.
     private static AutomationDecision AttemptUpdate(MyGame game, MyInstall install, AutomationHistory history, DateTimeOffset now) =>
-        install is { Status.Update: { VariantFellBack: false, Variant: { } variant }, Project.Selection.Release: { } release }
-            ? Attempt(game, AutomationAction.Update, release, history, now) is { Action: AutomationAction.Update } update
-                ? update with { Variant = variant }
-                : AutomationDecision.Skip(AutomationReason.RecentlyTried)
-            : AutomationDecision.Skip(AutomationReason.VariantUnavailable);
+        install.Project?.Selection.Release is not { } release ? AutomationDecision.Skip(AutomationReason.ChoiceUnavailable)
+        : install.Status.Update is { WaitsForPlayer: true } ? Announce(game, release, AutomationReason.ChoiceUnavailable, history)
+        : Attempt(game, AutomationAction.Update, release, history, now);
 
     private static AutomationDecision AttemptRepair(MyGame game, MyInstall install, AutomationHistory history, DateTimeOffset now)
     {
-        if (install.Project is { Selection: var selection } && install.Record.Source?.VariantName is { } installed
-            && selection.FindInstallable(installed) is null)
+        if (install.Status.Update is { WaitsForPlayer: true })
         {
-            return AutomationDecision.Skip(AutomationReason.VariantUnavailable);
+            return AnnounceRepair(game, install, AutomationReason.ChoiceUnavailable, history);
         }
 
         // A repair installs the current release, so a newer one is a new try even when the installed one stopped fitting.

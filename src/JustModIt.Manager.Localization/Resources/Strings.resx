@@ -1170,15 +1170,6 @@
   <data name="GamePage_CaptionWaits" xml:space="preserve">
     <value>{caption} · starts once connected</value>
   </data>
-  <data name="GamePage_Change" xml:space="preserve">
-    <value>Change variant</value>
-  </data>
-  <data name="GamePage_ChangeText" xml:space="preserve">
-    <value>The installed variant is removed and “{variant}” takes its place. The game must not run meanwhile.</value>
-  </data>
-  <data name="GamePage_ChangeTitle" xml:space="preserve">
-    <value>Changing the variant</value>
-  </data>
   <data name="GamePage_ChangesHide" xml:space="preserve">
     <value>Hide the changes</value>
   </data>
@@ -1485,6 +1476,45 @@
   <data name="GamePage_RowVariant" xml:space="preserve">
     <value>Variant</value>
   </data>
+  <data name="GamePage_FeaturesLine" xml:space="preserve">
+    <value>{count, plural, =0 {Without add-ons} one {With the add-on {names}} other {With the add-ons {names}}}</value>
+  </data>
+  <data name="GamePage_FeatureQuoted" xml:space="preserve">
+    <value>“{name}”</value>
+  </data>
+  <data name="GamePage_VariantLine" xml:space="preserve">
+    <value>Variant: {variant}</value>
+  </data>
+  <data name="GamePage_ChangeChoice" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="GamePage_CollapseChoice" xml:space="preserve">
+    <value>Collapse</value>
+  </data>
+  <data name="GamePage_Apply" xml:space="preserve">
+    <value>Apply changes</value>
+  </data>
+  <data name="GamePage_ApplyWithUpdate" xml:space="preserve">
+    <value>The change will be applied together with the update.</value>
+  </data>
+  <data name="GamePage_ApplyWithRepair" xml:space="preserve">
+    <value>The change will be applied together with the repair.</value>
+  </data>
+  <data name="GamePage_ChangeSummary" xml:space="preserve">
+    <value>Change: {changes}</value>
+  </data>
+  <data name="GamePage_ChangeItem" xml:space="preserve">
+    <value>{kind, select, add {+ {name}} remove {− {name}} other {{name}}}</value>
+  </data>
+  <data name="GamePage_UpdateDrops" xml:space="preserve">
+    <value>{count, plural, one {The new version installs without the add-on {names}.} other {The new version installs without the add-ons {names}.}}</value>
+  </data>
+  <data name="GamePage_FeatureLeftOut" xml:space="preserve">
+    <value>{reason, select, app {The add-on {name} needs a newer version of the app.} other {The add-on {name} does not fit this version of the game.}}</value>
+  </data>
+  <data name="GamePage_InfoFeatures" xml:space="preserve">
+    <value>Add-ons</value>
+  </data>
   <data name="GamePage_SeeNotes" xml:space="preserve">
     <value>The team's notes are further down.</value>
   </data>
@@ -1564,16 +1594,13 @@
     <value>Update project</value>
   </data>
   <data name="GamePage_UpdateFixTitle" xml:space="preserve">
-    <value>The team corrected this version's package</value>
+    <value>The team changed this version's packages</value>
   </data>
   <data name="GamePage_UpdateText" xml:space="preserve">
     <value>The installed version is removed first, then the new one is installed. The game must not run meanwhile.</value>
   </data>
   <data name="GamePage_UpdateTitle" xml:space="preserve">
     <value>A new version of the project is out</value>
-  </data>
-  <data name="GamePage_VariantLocked" xml:space="preserve">
-    <value>The variant can change once the job is done.</value>
   </data>
   <data name="GamePage_Version" xml:space="preserve">
     <value>Version {version}</value>
@@ -1787,6 +1814,9 @@
   </data>
   <data name="Catalogue_Variants" xml:space="preserve">
     <value>Variants: {variants}</value>
+  </data>
+  <data name="Catalogue_Features" xml:space="preserve">
+    <value>Add-ons: {features}</value>
   </data>
   <data name="Catalogue_HereInstalls" xml:space="preserve">
     <value>The game is on this computer. The project is installed and updated in “{library}”.</value>
@@ -3321,6 +3351,12 @@
   <data name="Creator_TestInstall" xml:space="preserve">
     <value>Install for a test</value>
   </data>
+  <data name="Creator_TestTogether" xml:space="preserve">
+    <value>Together with the main package…</value>
+  </data>
+  <data name="Creator_TestTogetherTitle" xml:space="preserve">
+    <value>Choose the main package, which installs before this one</value>
+  </data>
   <data name="Creator_TestInstalledTitle" xml:space="preserve">
     <value>The package is installed in {game} for a test</value>
   </data>
@@ -3415,10 +3451,10 @@
     <value>Publish it on the site</value>
   </data>
   <data name="Creator_PublishManifest" xml:space="preserve">
-    <value>The file goes up as a new release of the project, marked as one that needs the app. The changes and variants are set on the site.</value>
+    <value>On the site, the file goes into a release of the project, as its main package or as an add-on, and the site marks it as one that needs the app. The changes and add-ons are set there too.</value>
   </data>
   <data name="Creator_PublishZip" xml:space="preserve">
-    <value>The file goes up as a new release of the project. The changes, authors and variants are set on the site.</value>
+    <value>On the site, the file goes into a release of the project, as its main package or as an add-on. The changes, authors and add-ons are set there too.</value>
   </data>
   <data name="Creator_OpenDashboard" xml:space="preserve">
     <value>Open the dashboard on the site</value>

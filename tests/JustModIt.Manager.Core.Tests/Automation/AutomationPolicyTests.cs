@@ -22,16 +22,20 @@ public sealed class AutomationPolicyTests
     private static readonly Release Two = Release(ReleaseTwo, 2, File(FileTwo), File(Guid.NewGuid(), "Text and voice"));
 
     [Fact]
-    public void Installs_the_recommended_variant_or_the_remembered_one_while_it_is_offered()
+    public void Installs_what_the_players_choices_give_else_the_recommended_variant()
     {
         Decide(Game(One)).Should().BeEquivalentTo(new { Action = AutomationAction.Install, ReleaseId = ReleaseOne });
-        Decide(Game(One)).Variant!.Name.Should().Be("Text only");
+        Game(One).Project!.Plan!.Variant.Should().Be("Text only");
 
         var remembered = Automatic.WithGame(TestProjects.Game, preferences => preferences with { VariantName = "Text and voice" });
-        Decide(Game(One, settings: remembered), remembered).Variant!.Name.Should().Be("Text and voice");
+        Game(One, settings: remembered).Project!.Plan!.Variant.Should().Be("Text and voice");
+
+        var chosen = remembered.WithGame(TestProjects.Game, preferences =>
+            preferences.WithFeatures(TestProjects.Project, new Dictionary<string, bool> { ["Text only"] = true }));
+        Game(One, settings: chosen).Project!.Plan!.Variant.Should().Be("Text only", "a choice made since add-ons exist wins");
 
         var gone = Automatic.WithGame(TestProjects.Game, preferences => preferences with { VariantName = "Voice only" });
-        Decide(Game(One, settings: gone), gone).Variant!.Name.Should().Be("Text only");
+        Game(One, settings: gone).Project!.Plan!.Variant.Should().Be("Text only");
     }
 
     [Fact]
@@ -150,13 +154,61 @@ public sealed class AutomationPolicyTests
     }
 
     [Fact]
-    public void Waits_while_the_current_release_lacks_the_installed_variant()
+    public void Tells_once_instead_of_swapping_the_installed_variant_for_one_the_player_never_chose()
     {
         var record = Record(source: Source(ReleaseOne, VoiceFile, 1, "Text and voice"));
         var textOnly = Release(ReleaseTwo, 2, File(FileTwo));
 
-        Decide(Game(textOnly, record)).Reason.Should().Be(AutomationReason.VariantUnavailable);
-        Decide(Game(textOnly, record, repair: RepairReason.FilesModified)).Reason.Should().Be(AutomationReason.VariantUnavailable);
+        Decide(Game(textOnly, record)).Should().BeEquivalentTo(new
+        {
+            Action = AutomationAction.Announce,
+            Reason = AutomationReason.ChoiceUnavailable,
+            ReleaseId = ReleaseTwo,
+        });
+        Decide(Game(textOnly, record), history: AutomationHistory.Empty.RecordAnnouncement(TestProjects.Game, ReleaseTwo)).Reason
+            .Should().Be(AutomationReason.AlreadyAnnounced);
+        var broken = Decide(Game(textOnly, record, repair: RepairReason.FilesModified));
+        broken.Should().BeEquivalentTo(new { Action = AutomationAction.Announce, Reason = AutomationReason.ChoiceUnavailable });
+        broken.AnnouncesRepair.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Never_takes_away_an_installed_add_on_but_brings_a_new_default_one_by_itself()
+    {
+        var record = WithParts(Record(source: Source(ReleaseOne, FileOne, 1)), ("voice-over", VoiceFile));
+        var withoutVoice = Release(ReleaseTwo, 2, File(FileTwo, "")) with
+        {
+            Features = [Feature("voice-over", "Voice-over", isDefault: false, files: AddOn(Guid.NewGuid()))],
+        };
+        var withSigns = Release(ReleaseTwo, 2, File(FileTwo, "")) with
+        {
+            Features = [Feature("voice-over", "Voice-over", files: AddOn(Guid.NewGuid())), Feature("signs", "Signs", files: AddOn(Guid.NewGuid()))],
+        };
+
+        Decide(Game(withoutVoice, record)).Should().BeEquivalentTo(new { Action = AutomationAction.Announce, Reason = AutomationReason.ChoiceUnavailable });
+        Decide(Game(withSigns, record)).Action.Should().Be(AutomationAction.Update);
+        Game(withSigns, record).Installs[0].Status.Update!.Plan!.FeatureKeys.Should().Equal("voice-over", "signs");
+        var turnedOff = Automatic.WithGame(TestProjects.Game, preferences =>
+            preferences.WithFeatures(TestProjects.Project, new Dictionary<string, bool> { ["voice-over"] = false }));
+        Decide(Game(withoutVoice, record, turnedOff), turnedOff).Action.Should().Be(AutomationAction.Update, "the player turned it off");
+    }
+
+    [Fact]
+    public void Tells_an_install_from_before_add_ons_once_of_a_release_with_them_and_leaves_the_rest_to_the_player()
+    {
+        var alpha = Record(source: Source(ReleaseOne, FileOne, 1));
+        var legacy = WithParts(Record(source: Source(ReleaseOne, FileOne, 1))) with { Source = Source(ReleaseOne, FileOne, 1) with { HadVariantChoice = true } };
+        var withSerial = Release(ReleaseTwo, 2, File(FileTwo, "Text only")) with
+        {
+            Features = [Feature("serial", "Serial", files: AddOn(Guid.NewGuid()))],
+        };
+
+        var decision = Decide(Game(withSerial, alpha));
+
+        decision.Should().BeEquivalentTo(new { Action = AutomationAction.Announce, Reason = AutomationReason.ChoiceUnavailable });
+        Game(withSerial, alpha).Installs[0].Status.Update!.Plan!.FeatureKeys.Should().Equal("serial");
+        Decide(Game(withSerial, legacy)).Reason.Should().Be(AutomationReason.ChoiceUnavailable, "an install of a variant meets the same rule");
+        Decide(Game(withSerial, alpha, repair: RepairReason.FilesModified)).Reason.Should().Be(AutomationReason.ChoiceUnavailable);
     }
 
     [Fact]

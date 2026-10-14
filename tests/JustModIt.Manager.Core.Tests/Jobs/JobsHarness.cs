@@ -70,8 +70,14 @@ internal sealed class JobsHarness : IAsyncDisposable
         return harness;
     }
 
-    public static InstallJobRequest Install(GameKey? game = null, string? variant = null, JobOrigin origin = JobOrigin.User) =>
-        new(game ?? TestProjects.Game, "Example Game", TestProjects.Locator(), variant, origin);
+    public static InstallJobRequest Install(GameKey? game = null, JobOrigin origin = JobOrigin.User) =>
+        new(game ?? TestProjects.Game, "Example Game", TestProjects.Locator(), origin);
+
+    /// <summary>Chooses one of the project's variants, or turns its add-ons on or off, as the player does on the game's page.</summary>
+    /// <param name="choices">Whether each add-on or variant is on, by key.</param>
+    public void Choose(params (string Key, bool On)[] choices) =>
+        Settings.Update(settings => settings.WithGame(TestProjects.Game, preferences =>
+            preferences.WithFeatures(TestProjects.Project, choices.ToDictionary(choice => choice.Key, choice => choice.On))));
 
     /// <summary>Publishes release two of the project.</summary>
     /// <param name="files">The release's files; none for a text-only and a text-and-voice file.</param>

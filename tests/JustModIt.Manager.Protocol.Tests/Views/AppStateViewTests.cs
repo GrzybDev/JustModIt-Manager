@@ -48,7 +48,10 @@ public sealed class AppStateViewTests
     public void An_install_names_the_files_the_software_of_every_package_changes_while_the_game_runs_once()
     {
         var install = State.Games[0].Installs[0];
-        var single = install with { Record = install.Record with { Package = install.Record.Package with { RuntimeFiles = ["data/list.dat"] } } };
+        var single = install with
+        {
+            Record = install.Record with { Package = install.Record.Package with { RuntimeFiles = ["data/list.dat"] }, Parts = null },
+        };
         var addOn = new InstalledPackage(PackageKind.Manifest, "add-on.examplemod", RuntimeFiles: ["Data/List.dat", "data/list_original.dat"]);
         var parts = install with
         {
@@ -71,13 +74,14 @@ public sealed class AppStateViewTests
         var game = View.Games[0];
 
         game.Key.Should().Be(Game);
-        game.Status.Should().Be(new GameStatusView(MyGameState.Busy)
+        game.Status.Should().BeEquivalentTo(new
         {
+            State = MyGameState.Busy,
             Update = UpdateState.Available,
             UpdateKind = UpdateKind.NewRelease,
-            UpdateVariant = "Text only",
-            UpdateVariantFellBack = true,
+            UpdateSize = 6144L,
         });
+        game.Status.UpdateDrops.Should().Equal(new InstalledFeature("signs", "Signs"));
         game.Detected!.InstallDirectory.Should().Be(@"C:\Games\Example Game");
         game.Project!.ProjectId.Should().Be(Project);
         var install = game.Installs.Should().ContainSingle().Subject;
@@ -86,11 +90,14 @@ public sealed class AppStateViewTests
             Id = RecordId,
             ProjectId = (Guid?)Project,
             ReleaseLabel = "v1",
-            VariantName = "Text only",
+            VariantName = (string?)null,
+            Features = new[] { new InstalledFeature("signs", "Signs") },
+            LeftOut = new[] { new LeftOutFeature("voice-over", "Voice-over", PartLeftOutReason.NewerApp) },
             BackupLocation = BackupLocation.GameFolder,
             BackupsUnavailable = true,
             NeedsAttention = true,
         });
+        install.PackageFileNames.Should().Equal("package.examplemod", "signs.examplemod");
         install.Status.State.Should().Be(MyGameState.Busy);
         install.Project!.Release!.Id.Should().Be(ReleaseTwo);
         install.LastFailure!.Failure!.Reason.Should().Be(JobFailureReason.Offline);
@@ -109,8 +116,22 @@ public sealed class AppStateViewTests
         game.SiteIds.Should().Equal([Guid.Parse("66666666-0000-4000-8000-000000000001")], "the window unveils an adult game by its id on the site");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void An_install_s_offer_marks_the_add_ons_whose_package_it_holds_itself_or_as_the_file_it_copies(bool copied)
+    {
+        var held = Guid.NewGuid();
+        var feature = copied ? Voice with { Package = Voice.Package with { Uuid = Guid.NewGuid(), CopiedFrom = held } } : Voice;
+        var offer = Offer with { Selection = Offer.Selection with { Features = [feature] } };
+        var installed = new InstalledRelease(ReleaseOne, 1, null, [FileOne, copied ? held : Voice.Package.Uuid]);
+
+        ProjectOfferView.From(offer, installed).Features.Single().IsPresent.Should().BeTrue();
+        ProjectOfferView.From(offer, new InstalledRelease(ReleaseOne, 1, null, [FileOne])).Features.Single().IsPresent.Should().BeFalse();
+    }
+
     [Fact]
-    public void A_project_offer_carries_the_sites_status_release_and_variants()
+    public void A_project_offer_carries_the_sites_status_release_and_add_ons_with_what_the_plan_takes()
     {
         var offer = View.Games[0].Projects.Should().ContainSingle().Subject;
 
@@ -119,10 +140,20 @@ public sealed class AppStateViewTests
         offer.Status!.IsCompleted.Should().BeTrue();
         offer.Types.Should().Equal("Text");
         offer.Release.Should().Be(new ReleaseView(ReleaseTwo, 2) { Name = "Autumn patch", Date = Now.AddDays(-1), DateKind = ReleaseDateKind.Released });
-        offer.DefaultVariant.Should().Be("Text only");
-        offer.Variants.Select(variant => (variant.Name, variant.Package?.FileId, variant.Unavailable))
-            .Should().Equal(("Text only", FileTwo, null), ("Text and voice", null, SelectionUnavailability.OtherSystems));
-        offer.Variants[0].Package!.Format.Should().Be(PackageFormat.Manifest);
+        offer.Base.Should().Be(new PackageView(FileTwo, "example-project.examplemod") { Size = 4096, Format = PackageFormat.Manifest });
+        offer.IsLegacy.Should().BeFalse();
+        offer.Features.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            Key = "voice-over",
+            Name = "Voice-over",
+            Description = "Spoken lines in the cutscenes.",
+            Group = (string?)null,
+            IsDefault = true,
+            IsOn = true,
+            IsPresent = false,
+            Package = new { Size = (long?)2048 },
+        });
+        View.Games[0].Installs[0].Project!.Features[0].IsPresent.Should().BeFalse("the install has another add-on's package");
     }
 
     [Fact]

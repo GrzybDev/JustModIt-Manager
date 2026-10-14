@@ -24,7 +24,7 @@ public sealed class JobsWithEngineTests
         jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, requiresManager: true))));
         jobs.Downloader.Cached[FileOne] = true;
 
-        var installed = await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator(), null));
+        var installed = await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator()));
 
         installed.Outcome.Should().Be(JobOutcome.Succeeded);
         game.ReadGameFile("readme.txt").Should().Be("Read me, translated");
@@ -50,7 +50,7 @@ public sealed class JobsWithEngineTests
         jobs.Downloader.Cached[FileOne] = true;
         jobs.Downloader.Cached[FileTwo] = true;
         jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, requiresManager: true))));
-        var installed = (await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator(), null))).Installed!;
+        var installed = (await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator()))).Installed!;
         jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
 
         var result = await jobs.RunAsync(new UpdateJobRequest(installed));
@@ -73,7 +73,7 @@ public sealed class JobsWithEngineTests
         jobs.Downloader.Cached[FileOne] = true;
         jobs.Downloader.Cached[FileTwo] = true;
         jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, requiresManager: true))));
-        var installed = (await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator(), null))).Installed!;
+        var installed = (await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator()))).Installed!;
         jobs.Catalogue.Add(Page(release: Release(ReleaseTwo, 2, File(FileTwo, requiresManager: true))));
 
         var update = await jobs.RunAsync(new UpdateJobRequest(installed));
@@ -227,7 +227,7 @@ public sealed class JobsWithEngineTests
         jobs.Downloader.Cached[FileOne] = true;
         jobs.Downloader.Cached[FileTwo] = true;
         jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileOne, requiresManager: true))));
-        var installed = await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator(), null));
+        var installed = await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator()));
         game.ReadGameFile("tool/loader.dll").Should().Be("loader");
         return installed.Installed!;
     }

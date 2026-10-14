@@ -71,6 +71,7 @@
       <Setter Property="Padding" Value="24,14" />
       <Setter Property="BorderBrush" Value="{StaticResource HairlineFaintBrush}" />
       <Setter Property="BorderThickness" Value="0,1,0,0" />
+      <Setter Property="ui:ToolTipAssist.IsBoundary" Value="True" />
     </Style>
     <Style Selector="Border.row.first">
       <Setter Property="BorderThickness" Value="0" />
@@ -318,6 +319,48 @@
       <Setter Property="VerticalAlignment" Value="Top" />
       <Setter Property="Margin" Value="0,-2,0,0" />
     </Style>
+    <!-- An add-on on its own: a plus while off, a check in the accent while on, the selection shown by the accent. -->
+    <Style Selector="ToggleButton.feature">
+      <Setter Property="Padding" Value="10,0,13,0" />
+    </Style>
+    <Style Selector="ToggleButton.feature:checked">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.feature ui|Icon">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.feature:checked ui|Icon">
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    </Style>
+    <!-- One of a group: the same pill without a mark, its recommended member named beside its name. -->
+    <Style Selector="RadioButton.feature">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="14,0" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="RadioButton.feature TextBlock.recommended">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+    <Style Selector="RadioButton.feature:checked TextBlock.recommended">
+      <Setter Property="Foreground" Value="#FFC9CF" />
+    </Style>
+    <!-- An add-on's description, beside its pill within the row. -->
+    <Style Selector="ToolTip.description">
+      <Setter Property="Background" Value="#1A2130" />
+      <Setter Property="BorderBrush" Value="#24FFFFFF" />
+      <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="MaxWidth" Value="420" />
+    </Style>
+    <Style Selector="Button.applyChoice">
+      <Setter Property="Padding" Value="14,0" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Background" Value="#73030712" />
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    </Style>
+
     <!-- In a narrow window a row's actions go under its facts, so the facts keep their line. -->
     <Style Selector="Border.machine.compact StackPanel.rowActions">
       <Setter Property="Grid.Row" Value="1" />
@@ -328,6 +371,103 @@
   </UserControl.Styles>
 
   <UserControl.Resources>
+    <!-- The add-ons of an install or of the project a new install takes: a quiet line that unfolds into pills in place. -->
+    <DataTemplate x:Key="FeaturesTemplate" x:DataType="game:FeaturePanel">
+      <StackPanel Margin="0,4,0,0">
+        <ui:TrailingAction x:Name="FeatureLine" Text="{Binding Line}" Emphasis="{Binding LineEmphasis}" EmphasisForeground="{StaticResource TextBodyBrush}"
+                           LineHeight="18" TextElement.FontSize="13" TextElement.Foreground="{StaticResource TextSecondaryBrush}">
+          <ui:TrailingAction.Action>
+            <Button x:Name="FeatureToggle" Classes="link filesToggle" Content="{Binding Toggle}" ui:ButtonAssist.Icon="{Binding ToggleIcon}"
+                    ui:ButtonAssist.IconAfter="True" AutomationProperties.Name="{Binding Toggle}" IsVisible="{Binding CanChange}"
+                    Command="{Binding ToggleOpenCommand}" />
+          </ui:TrailingAction.Action>
+        </ui:TrailingAction>
+        <StackPanel x:Name="FeaturePills" Margin="0,12,0,2" Spacing="14" IsVisible="{Binding IsOpen}" theme:Motion.Enter="True">
+          <ItemsControl ItemsSource="{Binding Toggles}" IsVisible="{Binding HasToggles}"
+                        AutomationProperties.Name="{x:Static loc:Strings.GamePage_InfoFeatures}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel ItemSpacing="8" LineSpacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="game:FeaturePill">
+                <ToggleButton Theme="{StaticResource OptionPill}" Classes="feature" IsChecked="{Binding IsOn, Mode=OneWay}" IsEnabled="{Binding CanTurn}"
+                              Command="{Binding TurnCommand}" AutomationProperties.Name="{Binding Name}"
+                              AutomationProperties.HelpText="{Binding Description}" ToolTip.ServiceEnabled="{Binding HasDescription}"
+                              ToolTip.Placement="Right" ToolTip.HorizontalOffset="12" ToolTip.VerticalOffset="0" ToolTip.ShowOnDisabled="True"
+                              ui:ToolTipAssist.ShowOnFocus="True">
+                  <ToolTip.Tip>
+                    <ToolTip Classes="description" Content="{Binding Description}" />
+                  </ToolTip.Tip>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ui:Icon Data="{Binding Icon}" Width="14" Height="14" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                  </StackPanel>
+                </ToggleButton>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ItemsControl ItemsSource="{Binding Groups}" IsVisible="{Binding HasGroups}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="14" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="game:FeatureGroupView">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{Binding Caption}" FontSize="12" LineHeight="16" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" />
+                  <ItemsControl ItemsSource="{Binding Members}" AutomationProperties.Name="{Binding Caption}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="game:FeaturePill">
+                        <RadioButton Theme="{StaticResource ChoicePill}" Classes="feature" IsChecked="{Binding IsOn, Mode=OneWay}"
+                                     GroupName="{Binding $parent[ItemsControl].((game:FeatureGroupView)DataContext).Name}" IsEnabled="{Binding CanTurn}"
+                                     Command="{Binding TurnCommand}" AutomationProperties.Name="{Binding Name}"
+                                     AutomationProperties.HelpText="{Binding Description}" ToolTip.ServiceEnabled="{Binding HasDescription}"
+                                     ToolTip.Placement="Right" ToolTip.HorizontalOffset="12" ToolTip.VerticalOffset="0" ToolTip.ShowOnDisabled="True"
+                                     ui:ToolTipAssist.ShowOnFocus="True">
+                          <ToolTip.Tip>
+                            <ToolTip Classes="description" Content="{Binding Description}" />
+                          </ToolTip.Tip>
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                            <TextBlock Classes="recommended" Text="{x:Static loc:Strings.GamePage_Recommended}" FontSize="12" FontWeight="Medium"
+                                       VerticalAlignment="Center" IsVisible="{Binding IsRecommended}" />
+                          </StackPanel>
+                        </RadioButton>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <WrapPanel ItemSpacing="14" LineSpacing="8" IsVisible="{Binding ShowsApply}">
+            <Button x:Name="ApplyFeatures" Classes="outline rowAction applyChoice" Content="{x:Static loc:Strings.GamePage_Apply}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}"
+                    Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).ApplyCommand}" CommandParameter="{Binding}" />
+            <StackPanel VerticalAlignment="Center" Spacing="1">
+              <TextBlock FontSize="13" LineHeight="18" Foreground="{StaticResource TextSecondaryBrush}">
+                <Run Text="{Binding SummaryLead}" /><Run Text="{Binding SummaryChanges}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+              </TextBlock>
+              <TextBlock Text="{Binding SummaryCaption}" FontSize="12" LineHeight="16" Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+          </WrapPanel>
+          <StackPanel x:Name="ApplyWith" Orientation="Horizontal" Spacing="6" IsVisible="{Binding ShowsApplyWith}">
+            <ui:Icon Data="{x:Static theme:Icons.ArrowDown}" Width="14" Height="14" VerticalAlignment="Center"
+                     Foreground="{StaticResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding ApplyWith}" FontSize="13" LineHeight="18" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+    </DataTemplate>
+
     <!-- The next step, used at the panel's foot or, in a short window, at its head. -->
     <DataTemplate x:Key="StepTemplate" x:DataType="game:NextStep">
       <Border Classes="band" Classes.accent="{Binding IsAccent}" Classes.info="{Binding IsInfo}" Classes.success="{Binding IsSuccess}"
@@ -370,6 +510,8 @@
               </ItemsControl>
             </WrapPanel>
             <TextBlock Classes="bandText" Text="{Binding Text}" />
+            <ui:StatusLine x:Name="StepWarning" FontSize="14" LineHeight="21" Icon="{x:Static theme:Icons.TriangleAlert}" Tone="Warning"
+                           Label="{Binding Warning}" IsVisible="{Binding HasWarning}" />
             <Button x:Name="CheckFilesUnder" Classes="outline onArt checkFiles" Margin="0,8,0,0" HorizontalAlignment="Left"
                     IsVisible="{Binding ChecksUnder}" AutomationProperties.Name="{Binding CheckFilesLabel}"
                     Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).CheckFilesCommand}">
@@ -624,6 +766,8 @@
                           <ui:StatusLine FontSize="13" LineHeight="18" Icon="{x:Static theme:Icons.TriangleAlert}" Tone="Warning" Label="{Binding Detail}"
                                          IsVisible="{Binding IsWarning}" />
                           <TextBlock Classes="rowText" Text="{Binding Detail}" IsVisible="{Binding !IsWarning}" />
+                          <ContentControl Content="{Binding Features}" ContentTemplate="{StaticResource FeaturesTemplate}"
+                                          IsVisible="{Binding Features, Converter={x:Static ObjectConverters.IsNotNull}}" />
                           <ui:TrailingAction x:Name="RuntimeLine" Text="{x:Static loc:Strings.GamePage_RuntimeLine}" LineHeight="18"
                                              TextElement.FontSize="13" TextElement.Foreground="{StaticResource TextSecondaryBrush}"
                                              IsVisible="{Binding RuntimeFiles, Converter={x:Static ObjectConverters.IsNotNull}}">
@@ -692,59 +836,21 @@
               </ItemsControl>
               <Border Classes="row" IsVisible="{Binding IsNotInstalled}">
                 <Grid ColumnDefinitions="32,100,*" ColumnSpacing="16">
-                  <Grid Grid.RowSpan="2" RowDefinitions="*,Auto,*" Margin="0,-14">
+                  <Grid Grid.RowSpan="2" RowDefinitions="14,Auto,*" Margin="0,-14">
                     <Border Classes="line" />
                     <Border Grid.Row="1" Classes="node">
                       <ui:Icon Data="{x:Static theme:Icons.Languages}" />
                     </Border>
                     <Border Grid.Row="2" Classes="line" />
                   </Grid>
-                  <TextBlock Grid.Column="1" Classes="rowLabel" Text="{x:Static loc:Strings.GamePage_RowProject}" />
-                  <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                  <TextBlock Grid.Column="1" Classes="rowLabel" VerticalAlignment="Top" Margin="0,6,0,0"
+                             Text="{x:Static loc:Strings.GamePage_RowProject}" />
+                  <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Top" Margin="0,5,0,0">
                     <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.GamePage_NotInstalled}" />
                     <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_NotInstalledHint}" />
+                    <ContentControl x:Name="NewFeatures" Content="{Binding NewFeatures}" ContentTemplate="{StaticResource FeaturesTemplate}"
+                                    IsVisible="{Binding NewFeatures, Converter={x:Static ObjectConverters.IsNotNull}}" />
                   </StackPanel>
-                </Grid>
-              </Border>
-
-              <!-- The variant, picked with pills; locked while a job runs. -->
-              <Border Classes="row" IsVisible="{Binding ShowsVariants}">
-                <Grid ColumnDefinitions="32,100,*" ColumnSpacing="16">
-                  <Grid Grid.RowSpan="2" RowDefinitions="*,Auto,*" Margin="0,-14">
-                    <Border Classes="line" />
-                    <Border Grid.Row="1" Classes="node">
-                      <ui:Icon Data="{x:Static theme:Icons.Layers}" />
-                    </Border>
-                    <Border Grid.Row="2" Classes="line" />
-                  </Grid>
-                  <TextBlock Grid.Column="1" Classes="rowLabel" Text="{x:Static loc:Strings.GamePage_RowVariant}" />
-                  <Panel Grid.Column="2" VerticalAlignment="Center">
-                    <ItemsControl x:Name="VariantPills" ItemsSource="{Binding Variants}" IsVisible="{Binding !AreVariantsLocked}"
-                                  AutomationProperties.Name="{x:Static loc:Strings.GamePage_RowVariant}">
-                      <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                          <WrapPanel ItemSpacing="8" LineSpacing="8" />
-                        </ItemsPanelTemplate>
-                      </ItemsControl.ItemsPanel>
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="game:VariantChoice">
-                          <RadioButton Theme="{StaticResource ChoicePill}" GroupName="variant" IsChecked="{Binding IsChosen, Mode=OneWay}"
-                                       Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).ChooseVariantCommand}"
-                                       CommandParameter="{Binding}" AutomationProperties.Name="{Binding Name}">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                              <TextBlock Text="{Binding Name}" />
-                              <TextBlock Text="{x:Static loc:Strings.GamePage_Recommended}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
-                                         IsVisible="{Binding IsRecommended}" VerticalAlignment="Center" />
-                            </StackPanel>
-                          </RadioButton>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <StackPanel Spacing="2" IsVisible="{Binding AreVariantsLocked}">
-                      <TextBlock Classes="rowTitle" Text="{Binding LockedVariant}" />
-                      <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_VariantLocked}" />
-                    </StackPanel>
-                  </Panel>
                 </Grid>
               </Border>
 
@@ -805,15 +911,22 @@
                   <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_InfoSaved}" />
                 </StackPanel>
               </StackPanel>
-              <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_RowVariant}" />
-                <TextBlock Grid.Column="1" Text="{Binding SavedVariant}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
-                <TextBlock Grid.Row="1" Classes="rowText" Text="{x:Static loc:Strings.GamePage_InfoPackage}" />
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SavedPackage}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"
-                           TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Row="2" Classes="rowText" Text="{x:Static loc:Strings.GamePage_InfoFiles}" />
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SavedFiles}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
-              </Grid>
+              <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="160,*" IsVisible="{Binding HasSavedFeatures}">
+                  <TextBlock Classes="rowText" Text="{Binding SavedFeaturesLabel}" />
+                  <TextBlock x:Name="SavedFeatures" Grid.Column="1" Text="{Binding SavedFeatures}" FontWeight="SemiBold"
+                             Foreground="{StaticResource TextBrush}" TextWrapping="Wrap" />
+                </Grid>
+                <Grid ColumnDefinitions="160,*">
+                  <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_InfoPackage}" />
+                  <TextBlock x:Name="SavedPackage" Grid.Column="1" Text="{Binding SavedPackage}" FontWeight="SemiBold" LineHeight="20"
+                             Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                </Grid>
+                <Grid ColumnDefinitions="160,*">
+                  <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_InfoFiles}" />
+                  <TextBlock Grid.Column="1" Text="{Binding SavedFiles}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                </Grid>
+              </StackPanel>
             </StackPanel>
           </Border>
 

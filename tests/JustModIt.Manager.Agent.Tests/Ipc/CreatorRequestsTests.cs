@@ -37,7 +37,7 @@ public sealed class CreatorRequestsTests : IAsyncDisposable
         var library = await _agent.ServiceAsync<ILibraryService>();
         await Eventually.HoldsAsync(() => library.Snapshot.Find(Game) is not null);
 
-        var started = (JobStarted)(await window.RequestAsync(new TestInstallPackage(Game, Path.Combine(_agent.Directory, "example.zip"))))!;
+        var started = (JobStarted)(await window.RequestAsync(new TestInstallPackage(Game, [Path.Combine(_agent.Directory, "example.zip")])))!;
         var ended = await window.NextAsync<JobEnded>(ended => ended.Job.Id == started.JobId);
 
         ended.Should().BeEquivalentTo(new { Outcome = JobOutcome.Failed, Failure = new { Reason = JobFailureReason.DiskError } });
@@ -54,11 +54,13 @@ public sealed class CreatorRequestsTests : IAsyncDisposable
         (await window.StateAsync(state => state.IsLoaded)).Games.Should().BeEmpty();
         var package = Path.Combine(_agent.Directory, "example.zip");
 
-        var started = await window.RequestAsync(new TestInstallPackage(Game, package));
-        var undetected = () => window.RequestAsync(new TestInstallPackage(new GameKey(StoreId.Steam, "2000"), package));
+        var started = await window.RequestAsync(new TestInstallPackage(Game, [package]));
+        var undetected = () => window.RequestAsync(new TestInstallPackage(new GameKey(StoreId.Steam, "2000"), [package]));
+        var relative = () => window.RequestAsync(new TestInstallPackage(Game, [package, "addon.examplemod"]));
 
         started.Should().BeOfType<JobStarted>();
         (await undetected.Should().ThrowAsync<RequestFailedException>()).Which.Code.Should().Be(ErrorCode.InvalidRequest);
+        (await relative.Should().ThrowAsync<RequestFailedException>()).Which.Code.Should().Be(ErrorCode.InvalidRequest);
     }
 
     [Fact]

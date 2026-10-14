@@ -114,7 +114,6 @@ public sealed class AgentIpcTests : IAsyncDisposable
 
         await window.RequestAsync(new SetGameAutomation(UnknownGame, AutoInstall: true, AutoUpdate: false));
         await window.RequestAsync(new ChooseProject(UnknownGame, project));
-        await window.RequestAsync(new ChooseVariant(UnknownGame, "Text only"));
         await window.RequestAsync(new HideGame(UnknownGame, IsHidden: true));
         await window.RequestAsync(new ExitApp(ExitMode.Now));
         await _agent.Run.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token);
@@ -125,7 +124,6 @@ public sealed class AgentIpcTests : IAsyncDisposable
             AutoInstall = true,
             AutoUpdate = false,
             ProjectId = project,
-            VariantName = "Text only",
             IsHidden = true,
         });
     }

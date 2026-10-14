@@ -313,7 +313,8 @@ public sealed class CreatorPackageTests : IDisposable
             "each copy's package is named after its store and goes where the author says, not over the other one");
         File.GetLastWriteTimeUtc(steam).Should().Be(built);
         ui.Click(Button(ui, Strings.Creator_TestInstall));
-        ui.Agent.Requests.OfType<TestInstallPackage>().Last().Should().Be(new TestInstallPackage(gog.Key, other));
+        var test = ui.Agent.Requests.OfType<TestInstallPackage>().Last();
+        (test.Game, test.PackagePaths.Single()).Should().Be((gog.Key, other));
     }
 
     [AvaloniaFact]
@@ -540,7 +541,7 @@ public sealed class CreatorPackageTests : IDisposable
         package.ResultName.Should().Be("Lantern Isle.zip", "a place the author did not pick changes nothing");
 
         ui.Click(Button(ui, Strings.Creator_TestInstall));
-        ui.Agent.Requests.OfType<TestInstallPackage>().Should().Equal(new TestInstallPackage(CreatorWorkspace.Lantern, output));
+        ui.Agent.Requests.OfType<TestInstallPackage>().Should().ContainSingle().Which.PackagePaths.Should().Equal(output);
         ui.Push(State(Job(InstallJob, JobKind.TestInstall, JobStage.Installing), installed: false));
         package.Test.Should().Be(TestInstallState.Installing);
         ui.Push(State(null, installed: true));
@@ -563,6 +564,37 @@ public sealed class CreatorPackageTests : IDisposable
         await RenderAsync(ui, "creator-tested", 1400);
         ui.Click(Button(ui, Strings.Creator_OpenDashboard));
         ui.Links.Opened.Should().Equal(new Uri("https://example.com/dashboard"));
+    }
+
+    [AvaloniaFact]
+    public async Task An_add_on_is_tried_together_with_the_package_it_goes_with_which_installs_first()
+    {
+        _work.Author("data/strings.bin", "strings of the original game");
+        using var ui = await OpenAsync();
+        var package = await PackageAsync(ui);
+        var output = Output("Lantern Isle.zip");
+        ui.Pickers.SaveFile = output;
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        ui.Agent.Answer = request => request is TestInstallPackage ? new JobStarted(InstallJob) : _work.Answer(request);
+        var main = Output("Lantern Isle main.zip");
+        ui.Pickers.File = main;
+        await RenderAsync(ui, "creator-test-together", 1400);
+        var (width, height) = (ui.Window.Width, ui.Window.Height);
+        (ui.Window.Width, ui.Window.Height) = (960, 600);
+        UiHarness.Settle();
+        ui.Find<Button>("TestTogether").BringIntoView();
+        await RenderAsync(ui, "creator-test-together-960", null);
+        (ui.Window.Width, ui.Window.Height) = (width, height);
+        UiHarness.Settle();
+
+        Strings.Creator_TestTogether.Should().Be("Razem z paczką spolszczenia…");
+        ui.Click(Button(ui, Strings.Creator_TestTogether));
+        await UiHarness.WaitUntilAsync(() => ui.Agent.Requests.OfType<TestInstallPackage>().Any());
+
+        ui.Pickers.Asked.Should().Contain(Strings.Creator_TestTogetherTitle);
+        ui.Agent.Requests.OfType<TestInstallPackage>().Single().PackagePaths.Should().Equal(main, output);
+        package.Test.Should().Be(TestInstallState.Installing);
     }
 
     [AvaloniaFact]

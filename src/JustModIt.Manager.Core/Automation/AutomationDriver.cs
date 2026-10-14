@@ -77,7 +77,7 @@ internal sealed class AutomationDriver : IAsyncDisposable
             {
                 if (decision.Action == AutomationAction.Announce)
                 {
-                    History = decision is { Reason: AutomationReason.ReapplyOff, Install: { } broken }
+                    History = decision is { AnnouncesRepair: true, Install: { } broken }
                         ? History.RecordRepairAnnouncement(broken.Record.Id, game.Game?.BuildId)
                         : decision.Announces.Aggregate(History, (history, release) => history.RecordAnnouncement(game.Key, release));
                     announced.Add((game, decision));
@@ -150,7 +150,7 @@ internal sealed class AutomationDriver : IAsyncDisposable
     private static JobRequest? RequestFor(MyGame game, AutomationDecision decision) => decision.Action switch
     {
         AutomationAction.Install when game.Project is { } project =>
-            new InstallJobRequest(game.Key, game.Name, project.Project.Locator, decision.Variant?.Name, JobOrigin.Automatic),
+            new InstallJobRequest(game.Key, game.Name, project.Project.Locator, JobOrigin.Automatic),
         AutomationAction.Update when decision.Install is { } install => new UpdateJobRequest(install.Record, JobOrigin.Automatic),
         AutomationAction.Repair when decision.Install is { } install => new RepairJobRequest(install.Record, JobOrigin.Automatic),
         _ => null,
@@ -167,11 +167,11 @@ internal sealed class AutomationDriver : IAsyncDisposable
     private static IEnumerable<GameKey> GamesWith(List<(MyGame Game, AutomationDecision Decision)> announced, NoticeKind kind) =>
         announced.Where(item => KindOf(item.Decision) == kind).Select(item => item.Game.Key).Distinct();
 
-    private static NoticeKind KindOf(AutomationDecision announcement) => announcement.Reason switch
+    private static NoticeKind KindOf(AutomationDecision announcement) => announcement switch
     {
-        AutomationReason.AutoUpdateOff => NoticeKind.UpdateAvailable,
-        AutomationReason.ReapplyOff => NoticeKind.RepairNeeded,
-        AutomationReason.NoProjectChosen => NoticeKind.ChoiceNeeded,
+        { AnnouncesRepair: true } => NoticeKind.RepairNeeded,
+        { Reason: AutomationReason.AutoUpdateOff or AutomationReason.ChoiceUnavailable } => NoticeKind.UpdateAvailable,
+        { Reason: AutomationReason.NoProjectChosen } => NoticeKind.ChoiceNeeded,
         _ => NoticeKind.Available,
     };
 
@@ -276,8 +276,7 @@ internal sealed class AutomationDriver : IAsyncDisposable
         }
         else if (result.Installed is { IsTest: false, Source: { } source })
         {
-            _settings.Update(settings => settings.WithGame(key, preferences =>
-                preferences with { ProjectId = source.ProjectUuid, VariantName = source.VariantName }));
+            _settings.Update(settings => settings.WithGame(key, preferences => preferences with { ProjectId = source.ProjectUuid }));
         }
     }
 

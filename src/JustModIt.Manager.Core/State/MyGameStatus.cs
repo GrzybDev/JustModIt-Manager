@@ -78,7 +78,10 @@ public sealed record MyGameStatus(MyGameState State)
 
     public OrphanReason? Orphan { get; init; }
 
-    /// <summary>For an installed release the catalogue knows: whether and what to update to.</summary>
+    /// <summary>
+    /// For an installed release the catalogue knows: whether and what to update to; for one that needs repairing, what the
+    /// repair installs.
+    /// </summary>
     public UpdateCheck? Update { get; init; }
 
     /// <summary>The folder that should hold the originals, for <see cref="MyGameState.BackupsUnavailable"/>.</summary>

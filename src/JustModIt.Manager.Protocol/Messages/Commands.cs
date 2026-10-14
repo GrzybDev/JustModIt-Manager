@@ -9,13 +9,12 @@ namespace JustModIt.Manager.Protocol.Messages;
 // installed on a game; every other job works on one install, addressed by its id.
 
 /// <summary>
-/// Installs a project on a game as <see cref="Views.GameView.InstallReplaces"/> tells; a project the game has already
-/// takes the place of its install, e.g. to switch the variant.
+/// Installs a project on a game with the add-ons the player chose, as <see cref="Views.GameView.InstallReplaces"/> tells; a
+/// project the game has already takes the place of its install.
 /// </summary>
 /// <param name="Game">A detected game.</param>
 /// <param name="ProjectId">One of the projects the game offers.</param>
-/// <param name="VariantName">The variant to install; null installs the one the release recommends.</param>
-public sealed record InstallProject(GameKey Game, Guid ProjectId, string? VariantName = null) : Message;
+public sealed record InstallProject(GameKey Game, Guid ProjectId) : Message;
 
 /// <summary>Installs the project's newer release in place of an install.</summary>
 /// <param name="Install">The install's record id.</param>
@@ -29,10 +28,10 @@ public sealed record RepairProject(Guid Install) : Message;
 /// <param name="Install">The install's record id.</param>
 public sealed record UninstallProject(Guid Install) : Message;
 
-/// <summary>Installs a package file the package creator built on a detected game, to try it out.</summary>
+/// <summary>Installs package files the package creator built on a detected game as one install, to try them out.</summary>
 /// <param name="Game">A detected game.</param>
-/// <param name="PackagePath">The package file's full path.</param>
-public sealed record TestInstallPackage(GameKey Game, string PackagePath) : Message;
+/// <param name="PackagePaths">The package files' full paths, in the order they install, each of them needed.</param>
+public sealed record TestInstallPackage(GameKey Game, IReadOnlyList<string> PackagePaths) : Message;
 
 /// <summary>
 /// Moves the backups of every install that keeps them elsewhere, where they can be reached, to where the settings now
@@ -96,10 +95,23 @@ public sealed record SetGameAutomation(GameKey Game, bool? AutoInstall = null, b
 /// <param name="ProjectId">Null forgets the choice.</param>
 public sealed record ChooseProject(GameKey Game, Guid? ProjectId = null) : Message;
 
-/// <summary>Remembers which variant the player chose for a game's project.</summary>
+/// <summary>
+/// Remembers which add-ons the player turned on or off for a project not installed on a game, which installing it takes;
+/// a choice equal to the author's default is forgotten, so the add-on follows the author again.
+/// </summary>
 /// <param name="Game">The game the choice is for.</param>
-/// <param name="VariantName">Null forgets the choice.</param>
-public sealed record ChooseVariant(GameKey Game, string? VariantName = null) : Message;
+/// <param name="ProjectId">The project whose add-ons they are.</param>
+/// <param name="Choices">Whether each add-on is on, by key; null forgets the choice.</param>
+public sealed record ChooseFeatures(GameKey Game, Guid ProjectId, IReadOnlyDictionary<string, bool?> Choices) : Message;
+
+/// <summary>
+/// Remembers the add-ons the player turned on or off for an install's project, and in the same request installs the
+/// project's current release with them in place of the install: as its pending update or repair, or else as a change of
+/// add-ons, so no automatic job comes in between.
+/// </summary>
+/// <param name="Install">The install's record id.</param>
+/// <param name="Choices">Whether each add-on is on, by key; null forgets the choice.</param>
+public sealed record ApplyFeatures(Guid Install, IReadOnlyDictionary<string, bool?> Choices) : Message;
 
 /// <summary>Hides a game from the player's list, or shows it again.</summary>
 /// <param name="Game">The game to hide or show.</param>

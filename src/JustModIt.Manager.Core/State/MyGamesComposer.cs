@@ -57,7 +57,8 @@ public static class MyGamesComposer
         foreach (var key in input.Library.Games.Keys.Union(recordsByGame.Keys))
         {
             var game = input.Library.Find(key);
-            var offer = GameOffer.For(input.Index, key, game?.Platform ?? OperatingSystemKind.Unknown, input.Language);
+            var offer = Planned(GameOffer.For(input.Index, key, game?.Platform ?? OperatingSystemKind.Unknown, input.Language),
+                input.Settings.GetGame(key), game);
             var records = recordsByGame.GetValueOrDefault(key) ?? [];
             if (records.Count == 0 && offer.Projects.Count == 0)
             {
@@ -103,17 +104,31 @@ public static class MyGamesComposer
         };
     }
 
+    // Each project on offer as a new install would take it, with the player's choices.
+    private static GameOffer Planned(GameOffer offer, GamePreferences preferences, InstalledGame? game) => offer with
+    {
+        Projects = [.. offer.Projects.Select(project => project with
+        {
+            Plan = project.Selection.Plan(InstallChoices.For(preferences, project.Project.ProjectUuid, null, game?.BuildId)),
+        })],
+    };
+
     // The game is what its store reports, and current the same, running when it is known to run.
     private static MyInstall Install(MyGamesInput input, InstallRecord record, GameKey key, InstalledGame? game, InstalledGame? current,
         GameOffer offer, bool hasJob)
     {
-        var project = InstalledProject(input.Index, offer, record, key, game);
+        var choices = record.Source?.ProjectUuid is { } uuid
+            ? InstallChoices.For(input.Settings.GetGame(key), uuid, record, game?.BuildId)
+            : FeatureChoices.None;
+        var project = InstalledProject(input.Index, offer, record, key, game) is { } offered
+            ? offered with { Plan = offered.Selection.Plan(choices) }
+            : null;
         RepairReason? repair = input.Repairs.TryGetValue(record.Id, out var found) ? found : null;
         var backupsUnavailable = input.UnavailableBackups.Contains(record.Id);
         return new MyInstall
         {
             Record = record,
-            Status = MyGameStatusRules.Resolve(current, record, project, repair, hasJob, backupsUnavailable),
+            Status = MyGameStatusRules.Resolve(current, record, project, repair, hasJob, backupsUnavailable, choices),
             BackupsUnavailable = backupsUnavailable,
             Project = project,
             LastFailure = input.Failures.GetValueOrDefault(new FailureKey(key, record.Id)),

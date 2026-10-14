@@ -45,8 +45,9 @@ public sealed class JobRunnerTests
     {
         await using var jobs = await JobsHarness.CreateAsync();
         jobs.Settings.Update(settings => settings with { BackupLocation = BackupLocation.AppData });
+        jobs.Choose(("Text and voice", true));
 
-        var result = await jobs.RunAsync(JobsHarness.Install(variant: "Text and voice"));
+        var result = await jobs.RunAsync(JobsHarness.Install());
 
         result.Installed!.Source!.VariantName.Should().Be("Text and voice");
         jobs.Downloader.Downloads.Should().Equal(VoiceFile);
@@ -85,7 +86,7 @@ public sealed class JobRunnerTests
         jobs.Catalogue.PageGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var first = jobs.Runner.Start(JobsHarness.Install());
 
-        var second = await jobs.RunAsync(JobsHarness.Install(variant: "Text and voice"));
+        var second = await jobs.RunAsync(JobsHarness.Install());
 
         second.Outcome.Should().Be(JobOutcome.Failed);
         second.Failure!.Reason.Should().Be(JobFailureReason.AlreadyRunning);
@@ -294,7 +295,7 @@ public sealed class JobRunnerTests
         var first = jobs.Runner.Start(JobsHarness.Install());
         await Eventually.HoldsAsync(() => jobs.Downloader.Downloads.Contains(FileOne), "the first download starts");
 
-        var second = jobs.Runner.Start(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject), null));
+        var second = jobs.Runner.Start(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject)));
         await jobs.WaitsAsync(second.Job.Id, JobWaitReason.Download);
 
         jobs.Downloader.Downloads.Should().Equal(FileOne);
@@ -315,7 +316,7 @@ public sealed class JobRunnerTests
         var first = jobs.Runner.Start(JobsHarness.Install());
         await Eventually.HoldsAsync(() => jobs.Downloader.Downloads.Contains(FileOne), "the first download starts");
 
-        var second = await jobs.RunAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject), null));
+        var second = await jobs.RunAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject)));
 
         second.Outcome.Should().Be(JobOutcome.Succeeded);
         jobs.Downloader.Gates[FileOne].SetResult();
@@ -347,7 +348,7 @@ public sealed class JobRunnerTests
         jobs.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), OtherGame));
         jobs.Catalogue.PageGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var automatic = jobs.Runner.Start(JobsHarness.Install(origin: JobOrigin.Automatic));
-        var players = jobs.Runner.Start(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject), null));
+        var players = jobs.Runner.Start(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject)));
         await Eventually.HoldsAsync(() => jobs.Catalogue.PageRequests.Count == 2, "both jobs prepare");
 
         jobs.Runner.Shutdown(cancelPlayerJobs: false);

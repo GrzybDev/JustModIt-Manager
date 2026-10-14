@@ -20,15 +20,15 @@ public static class TestGames
 
     public static string Cover(string slug) => $"https://images.example.com/covers/{slug}.png";
 
-    /// <summary>A completed project of a team for a game, its public release with one or two variants.</summary>
+    /// <summary>
+    /// A completed project of a team for a game, its public release a base with the given add-ons, or from before add-ons
+    /// with two variants.
+    /// </summary>
     public static ProjectOfferView Offer(string game, TeamView? team = null, int version = 2, string status = "Ukończone",
-        string color = Completed, bool twoVariants = false, DateTimeOffset? released = null)
+        string color = Completed, bool twoVariants = false, DateTimeOffset? released = null, IReadOnlyList<FeatureView>? features = null)
     {
         var slug = Slug(game);
         team ??= Lanterns;
-        var variants = twoVariants
-            ? new[] { Variant("Full", 3_774_874), Variant("Subtitles only", 2_202_009) }
-            : [Variant("Full", 3_774_874)];
         return new ProjectOfferView
         {
             ProjectId = Id(slug + team.Slug),
@@ -45,13 +45,29 @@ public static class TestGames
                 Date = released ?? TestStates.Now.AddDays(-1),
                 DateKind = ReleaseDateKind.Released,
             },
-            Variants = variants,
-            DefaultVariant = variants[0].Name,
+            Base = twoVariants ? null : Package("Full", 3_774_874),
+            Features = twoVariants
+                ? [Variant("Full", 3_774_874, isDefault: true), Variant("Subtitles only", 2_202_009, isDefault: false)]
+                : features ?? [],
+            IsLegacy = twoVariants,
         };
     }
 
-    public static VariantView Variant(string name, long size) =>
-        new(name) { Package = new PackageView(Id(name), name + ".zip") { Size = size, Format = PackageFormat.Zip } };
+    public static PackageView Package(string name, long size) => new(Id(name), name + ".zip") { Size = size, Format = PackageFormat.Zip };
+
+    /// <summary>An add-on of a release, on as the plan takes it.</summary>
+    public static FeatureView Feature(string key, string name, bool isOn, long size, bool isDefault = true, string? group = null,
+        string description = "", bool isPresent = false) =>
+        new(key, name, description, isDefault, isOn)
+        {
+            Group = group,
+            Package = new PackageView(Id(key), key + ".examplemod") { Size = size, Format = PackageFormat.Manifest },
+            IsPresent = isPresent,
+        };
+
+    /// <summary>A variant of a release from before add-ons, which the player picks like one add-on of a group.</summary>
+    public static FeatureView Variant(string name, long size, bool isDefault) =>
+        new(name, name, "", isDefault, isDefault) { Group = "", Package = Package(name, size) };
 
     /// <summary>A game on Steam that is installed and idle, with a project on offer and nothing installed.</summary>
     public static GameView Available(string name, string id, ProjectOfferView? offer = null)
@@ -96,7 +112,8 @@ public static class TestGames
         TeamName = project.Team.Name,
         ReleaseLabel = $"v{version}",
         ReleaseVersion = version,
-        VariantName = project.DefaultVariant,
+        VariantName = project.IsLegacy ? project.Features.FirstOrDefault(feature => feature.IsOn)?.Key : null,
+        Features = [.. project.Features.Where(feature => feature.IsOn && !project.IsLegacy).Select(feature => new InstalledFeature(feature.Key, feature.Name))],
         CoverUrl = new Uri(project.Cover),
     };
 
@@ -108,7 +125,7 @@ public static class TestGames
         {
             Update = UpdateState.Available,
             UpdateKind = Core.Catalog.UpdateKind.NewRelease,
-            UpdateVariant = "Full",
+            UpdateSize = 3_774_874,
         });
     }
 

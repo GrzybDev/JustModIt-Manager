@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Media;
 
 namespace JustModIt.Manager.Ui.Controls;
@@ -12,6 +13,12 @@ public sealed class TrailingAction : Panel
 {
     public static readonly StyledProperty<string?> TextProperty = AvaloniaProperty.Register<TrailingAction, string?>(nameof(Text));
 
+    /// <summary>A part of the text drawn in <see cref="EmphasisForeground"/>, such as names the text quotes; its first occurrence counts.</summary>
+    public static readonly StyledProperty<string?> EmphasisProperty = AvaloniaProperty.Register<TrailingAction, string?>(nameof(Emphasis));
+
+    public static readonly StyledProperty<IBrush?> EmphasisForegroundProperty =
+        AvaloniaProperty.Register<TrailingAction, IBrush?>(nameof(EmphasisForeground));
+
     /// <summary>The control after the text, kept whole on one line.</summary>
     public static readonly StyledProperty<Control?> ActionProperty = AvaloniaProperty.Register<TrailingAction, Control?>(nameof(Action));
 
@@ -23,7 +30,7 @@ public sealed class TrailingAction : Panel
     private readonly TextBlock _separator = new() { Text = " · " };
     private bool _fits;
 
-    static TrailingAction() => AffectsMeasure<TrailingAction>(TextProperty, ActionProperty, LineHeightProperty);
+    static TrailingAction() => AffectsMeasure<TrailingAction>(TextProperty, EmphasisProperty, ActionProperty, LineHeightProperty);
 
     /// <summary>Creates a text without an action.</summary>
     public TrailingAction()
@@ -36,6 +43,18 @@ public sealed class TrailingAction : Panel
     {
         get => GetValue(TextProperty);
         set => SetValue(TextProperty, value);
+    }
+
+    public string? Emphasis
+    {
+        get => GetValue(EmphasisProperty);
+        set => SetValue(EmphasisProperty, value);
+    }
+
+    public IBrush? EmphasisForeground
+    {
+        get => GetValue(EmphasisForegroundProperty);
+        set => SetValue(EmphasisForegroundProperty, value);
     }
 
     public Control? Action
@@ -53,9 +72,9 @@ public sealed class TrailingAction : Panel
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == TextProperty)
+        if (change.Property == TextProperty || change.Property == EmphasisProperty || change.Property == EmphasisForegroundProperty)
         {
-            _text.Text = Text;
+            ShowText();
         }
         else if (change.Property == LineHeightProperty)
         {
@@ -134,6 +153,32 @@ public sealed class TrailingAction : Panel
         }
 
         return finalSize;
+    }
+
+    private void ShowText()
+    {
+        var text = Text ?? "";
+        var at = string.IsNullOrEmpty(Emphasis) ? -1 : text.IndexOf(Emphasis, StringComparison.Ordinal);
+        if (at < 0)
+        {
+            _text.Inlines = null;
+            _text.Text = text;
+            return;
+        }
+
+        var inlines = new InlineCollection();
+        if (at > 0)
+        {
+            inlines.Add(new Run(text[..at]));
+        }
+
+        inlines.Add(new Run(Emphasis) { Foreground = EmphasisForeground });
+        if (at + Emphasis!.Length < text.Length)
+        {
+            inlines.Add(new Run(text[(at + Emphasis.Length)..]));
+        }
+
+        _text.Inlines = inlines;
     }
 
     // The trailing spaces count, so the separator never runs into the last word.

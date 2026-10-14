@@ -284,6 +284,9 @@
                   <Button Classes="quiet" Content="{x:Static loc:Strings.Creator_TestAgain}" IsVisible="{Binding WasTested}"
                           ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding InstallTestCommand}" />
                 </WrapPanel>
+                <Button x:Name="TestTogether" Classes="link" Margin="0,6,0,0" HorizontalAlignment="Left"
+                        Content="{x:Static loc:Strings.Creator_TestTogether}" IsVisible="{Binding OffersTestInstall}"
+                        Command="{Binding InstallTestTogetherCommand}" />
               </StackPanel>
             </Grid>
             <Border Classes="divider" Opacity="0.6" />

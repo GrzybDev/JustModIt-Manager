@@ -31,7 +31,7 @@ public sealed class GameTests
     private static readonly Guid SiteId = new("3e0c5a1d-7b2f-4c8e-9a6d-5f4e3d2c1b0a");
 
     [AvaloniaFact]
-    public async Task Installing_takes_the_chosen_variant_and_shows_the_job_live_until_it_is_cancelled()
+    public async Task Installing_takes_the_variant_chosen_under_the_line_and_shows_the_job_live_until_it_is_cancelled()
     {
         var game = Available("Ember Hollow", "4100", Ember);
         using var ui = Open(State(game), game, Ember);
@@ -42,10 +42,15 @@ public sealed class GameTests
 
         page.Step!.Kind.Should().Be(StepKind.Install);
         page.Step.PrimaryCaption.Should().Be("Wersja 2 · 3,6\u00A0MB");
-        ui.Click(ui.Find<RadioButton>().Single(pill => pill.DataContext is VariantChoice { Name: "Subtitles only" }));
+        page.NewFeatures!.Line.Should().Be("Wariant: Full");
+        ui.Click(ui.Find<Button>("FeatureToggle"));
+        ui.Click(ui.Find<RadioButton>().Single(pill => pill.DataContext is FeaturePill { Key: "Subtitles only" }));
         page.Step.PrimaryCaption.Should().Be("Wersja 2 · 2,1\u00A0MB");
+        page.NewFeatures.Line.Should().Be("Wariant: Subtitles only");
+        ui.Agent.Requests.OfType<ChooseFeatures>().Should().ContainSingle().Which.Should().BeEquivalentTo(
+            new ChooseFeatures(game.Key, Ember.ProjectId, new Dictionary<string, bool?> { ["Subtitles only"] = true }));
         ui.Click(ui.Find<Button>("PrimaryButton"));
-        ui.Agent.Requests.OfType<InstallProject>().Should().Equal(new InstallProject(game.Key, Ember.ProjectId, "Subtitles only"));
+        ui.Agent.Requests.OfType<InstallProject>().Should().Equal(new InstallProject(game.Key, Ember.ProjectId));
 
         var job = Job(game, JobKind.Install, JobStage.Downloading, fraction: 0.4);
         ui.Push(State(Busy(game, job)));
@@ -246,6 +251,9 @@ public sealed class GameTests
         var toggle = ui.Find<Button>("RuntimeToggle");
 
         ui.Find<TrailingAction>("RuntimeLine").IsEffectivelyVisible.Should().BeTrue();
+        var features = ui.Find<TrailingAction>().Single(line => line.Name == "FeatureLine" && line.IsEffectivelyVisible);
+        features.TranslatePoint(default, ui.Window)!.Value.Y.Should().BeLessThan(
+            ui.Find<TrailingAction>("RuntimeLine").TranslatePoint(default, ui.Window)!.Value.Y, "the files line stands under the add-ons line");
         AutomationProperties.GetName(toggle).Should().Be("Pokaż pliki");
         ui.Find<PathList>().Should().OnlyContain(list => !list.IsEffectivelyVisible, "the list is folded when the page opens");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
@@ -266,7 +274,8 @@ public sealed class GameTests
         var plain = Installed("Ember Hollow", "4100", offer: Ember);
         ui.Push(State(plain) with { Version = 3 });
         page.Installs.Single().RuntimeFiles.Should().BeNull();
-        ui.Find<TrailingAction>().Should().OnlyContain(line => !line.IsEffectivelyVisible, "an install whose software changes nothing has no line");
+        ui.Find<TrailingAction>().Where(line => line.Name == "RuntimeLine").Should().OnlyContain(line => !line.IsEffectivelyVisible,
+            "an install whose software changes nothing has no line");
     }
 
     [AvaloniaFact]
@@ -440,7 +449,7 @@ public sealed class GameTests
         var installed = new[]
         {
             Install(first, 2, new GameStatusView(MyGameState.Installed)),
-            Install(second, 1, new GameStatusView(MyGameState.UpdateAvailable) { Update = Core.Catalog.UpdateState.Available, UpdateVariant = "Full" }),
+            Install(second, 1, new GameStatusView(MyGameState.UpdateAvailable) { Update = Core.Catalog.UpdateState.Available, UpdateSize = 3_774_874 }),
         };
         var generic = Available("Ember Hollow", "4100", first) with
         {
@@ -534,7 +543,7 @@ public sealed class GameTests
         using var ui = Open(State(gone), gone);
         var page = Page(ui);
         page.Step!.Kind.Should().Be(StepKind.Gone);
-        page.ShowsVariants.Should().BeFalse();
+        page.Installs.Single().Features.Should().BeNull("an install without its game has no line of add-ons");
         page.ShowsAutomation.Should().BeFalse();
         page.GameState.Should().Be("Steam nie zgłasza już tej gry");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));

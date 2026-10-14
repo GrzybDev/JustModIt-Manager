@@ -2,6 +2,7 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Jobs;
 
 namespace JustModIt.Manager.Core.State;
 
@@ -18,8 +19,9 @@ internal static class MyGameStatusRules
     /// <param name="repair">What verification found wrong with the install; null while it is intact or unchecked.</param>
     /// <param name="hasJob">The game has a job, which keeps every install on it from changing otherwise.</param>
     /// <param name="backupsUnavailable">The folder holding the install's originals is not there.</param>
+    /// <param name="choices">The player's choices and the install's record, which an update or a repair follows.</param>
     public static MyGameStatus Resolve(InstalledGame? game, InstallRecord record, ProjectOffer? project, RepairReason? repair,
-        bool hasJob, bool backupsUnavailable)
+        bool hasJob, bool backupsUnavailable, FeatureChoices choices)
     {
         ArgumentNullException.ThrowIfNull(record);
         if (hasJob)
@@ -52,10 +54,13 @@ internal static class MyGameStatusRules
             return new MyGameStatus(MyGameState.TestInstalled);
         }
 
-        // A repair installs the current release anyway, so it comes before an update.
+        // A repair installs the current release anyway, so it comes before an update, and tells what that release takes.
+        var update = project is not null && InstallChoices.InstalledReleaseOf(record) is { } installed
+            ? ReleaseUpdates.Check(installed, project.Selection, choices)
+            : null;
         if (repair is { } reason)
         {
-            return new MyGameStatus(MyGameState.NeedsRepair) { Repair = reason };
+            return new MyGameStatus(MyGameState.NeedsRepair) { Repair = reason, Update = update };
         }
 
         if (project is null)
@@ -63,7 +68,6 @@ internal static class MyGameStatusRules
             return Orphaned(OrphanReason.NotInCatalog);
         }
 
-        var update = InstalledReleaseOf(record) is { } installed ? ReleaseUpdates.Check(installed, project.Selection) : null;
         return new MyGameStatus(update?.State == UpdateState.Available ? MyGameState.UpdateAvailable : MyGameState.Installed)
         {
             Update = update,
@@ -83,16 +87,6 @@ internal static class MyGameStatusRules
             : installs.MinBy(Urgency) is { } first ? first
             : game is { IsReady: true } ? new MyGameStatus(MyGameState.NotInstalled)
             : NotReady(game);
-    }
-
-    /// <summary>The release an install came from, for telling whether the catalogue offers a newer one; null when unknown.</summary>
-    /// <param name="record">The install's record.</param>
-    public static InstalledRelease? InstalledReleaseOf(InstallRecord record)
-    {
-        ArgumentNullException.ThrowIfNull(record);
-        return record.Source is { ReleaseUuid: { } release, ReleaseFileUuid: { } file } source
-            ? new InstalledRelease(release, source.ReleaseVersion ?? 0, source.ReleasePublishedAt, file, source.VariantName)
-            : null;
     }
 
     // Not the order the rules for one install test in: a test install must not hide that another install needs a repair.

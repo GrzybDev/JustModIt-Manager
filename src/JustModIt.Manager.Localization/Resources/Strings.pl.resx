@@ -1158,15 +1158,6 @@
   <data name="GamePage_CaptionWaits" xml:space="preserve">
     <value>{caption} · ruszy po połączeniu</value>
   </data>
-  <data name="GamePage_Change" xml:space="preserve">
-    <value>Zmień wariant</value>
-  </data>
-  <data name="GamePage_ChangeText" xml:space="preserve">
-    <value>Obecny wariant zostanie usunięty, a jego miejsce zajmie „{variant}”. Gra musi być w tym czasie wyłączona.</value>
-  </data>
-  <data name="GamePage_ChangeTitle" xml:space="preserve">
-    <value>Zmiana wariantu projektu</value>
-  </data>
   <data name="GamePage_ChangesHide" xml:space="preserve">
     <value>Zwiń listę zmian</value>
   </data>
@@ -1473,6 +1464,45 @@
   <data name="GamePage_RowVariant" xml:space="preserve">
     <value>Wariant</value>
   </data>
+  <data name="GamePage_FeaturesLine" xml:space="preserve">
+    <value>{count, plural, =0 {Bez składników} one {Ze składnikiem {names}} other {Ze składnikami {names}}}</value>
+  </data>
+  <data name="GamePage_FeatureQuoted" xml:space="preserve">
+    <value>„{name}”</value>
+  </data>
+  <data name="GamePage_VariantLine" xml:space="preserve">
+    <value>Wariant: {variant}</value>
+  </data>
+  <data name="GamePage_ChangeChoice" xml:space="preserve">
+    <value>Zmień</value>
+  </data>
+  <data name="GamePage_CollapseChoice" xml:space="preserve">
+    <value>Zwiń</value>
+  </data>
+  <data name="GamePage_Apply" xml:space="preserve">
+    <value>Zastosuj zmiany</value>
+  </data>
+  <data name="GamePage_ApplyWithUpdate" xml:space="preserve">
+    <value>Zmiana wejdzie razem z aktualizacją.</value>
+  </data>
+  <data name="GamePage_ApplyWithRepair" xml:space="preserve">
+    <value>Zmiana wejdzie razem z naprawą.</value>
+  </data>
+  <data name="GamePage_ChangeSummary" xml:space="preserve">
+    <value>Zmiana: {changes}</value>
+  </data>
+  <data name="GamePage_ChangeItem" xml:space="preserve">
+    <value>{kind, select, add {+ {name}} remove {− {name}} other {{name}}}</value>
+  </data>
+  <data name="GamePage_UpdateDrops" xml:space="preserve">
+    <value>{count, plural, one {Nowa wersja zainstaluje się bez składnika {names}.} other {Nowa wersja zainstaluje się bez składników {names}.}}</value>
+  </data>
+  <data name="GamePage_FeatureLeftOut" xml:space="preserve">
+    <value>{reason, select, app {Składnik {name} wymaga nowszej wersji aplikacji.} other {Składnik {name} nie pasuje do tej wersji gry.}}</value>
+  </data>
+  <data name="GamePage_InfoFeatures" xml:space="preserve">
+    <value>Składniki</value>
+  </data>
   <data name="GamePage_SeeNotes" xml:space="preserve">
     <value>Warto zajrzeć do uwag od grupy poniżej.</value>
   </data>
@@ -1552,16 +1582,13 @@
     <value>Zaktualizuj projekt</value>
   </data>
   <data name="GamePage_UpdateFixTitle" xml:space="preserve">
-    <value>Grupa poprawiła paczkę tej wersji</value>
+    <value>Grupa zmieniła paczki tej wersji</value>
   </data>
   <data name="GamePage_UpdateText" xml:space="preserve">
     <value>Najpierw zostanie usunięta obecna wersja, a potem zainstalowana nowa. Gra musi być w tym czasie wyłączona.</value>
   </data>
   <data name="GamePage_UpdateTitle" xml:space="preserve">
     <value>Jest nowa wersja projektu</value>
-  </data>
-  <data name="GamePage_VariantLocked" xml:space="preserve">
-    <value>Wariant można zmienić po zakończeniu zadania.</value>
   </data>
   <data name="GamePage_Version" xml:space="preserve">
     <value>Wersja {version}</value>
@@ -1775,6 +1802,9 @@
   </data>
   <data name="Catalogue_Variants" xml:space="preserve">
     <value>Warianty: {variants}</value>
+  </data>
+  <data name="Catalogue_Features" xml:space="preserve">
+    <value>Składniki: {features}</value>
   </data>
   <data name="Catalogue_HereInstalls" xml:space="preserve">
     <value>Gra jest na tym komputerze. Instalacja i aktualizacje projektu są w „Moich grach”.</value>
@@ -3309,6 +3339,12 @@
   <data name="Creator_TestInstall" xml:space="preserve">
     <value>Zainstaluj testowo</value>
   </data>
+  <data name="Creator_TestTogether" xml:space="preserve">
+    <value>Razem z główną paczką…</value>
+  </data>
+  <data name="Creator_TestTogetherTitle" xml:space="preserve">
+    <value>Wybierz główną paczkę, która zainstaluje się przed tą</value>
+  </data>
   <data name="Creator_TestInstalledTitle" xml:space="preserve">
     <value>Paczka jest zainstalowana testowo w grze {game}</value>
   </data>
@@ -3403,10 +3439,10 @@
     <value>Opublikuj ją na stronie</value>
   </data>
   <data name="Creator_PublishManifest" xml:space="preserve">
-    <value>Ten plik dodaje się jako nowe wydanie projektu, z zaznaczeniem, że wymaga aplikacji. Opis zmian i warianty ustawia się na stronie.</value>
+    <value>Na stronie plik trafia do wydania projektu: jako główna paczka albo jako składnik, a strona sama oznaczy, że wymaga aplikacji. Tam też ustawia się opis zmian i składniki.</value>
   </data>
   <data name="Creator_PublishZip" xml:space="preserve">
-    <value>Ten plik dodaje się jako nowe wydanie projektu. Opis zmian, autorów i warianty ustawia się na stronie.</value>
+    <value>Na stronie plik trafia do wydania projektu: jako główna paczka albo jako składnik. Tam też ustawia się opis zmian, autorów i składniki.</value>
   </data>
   <data name="Creator_OpenDashboard" xml:space="preserve">
     <value>Otwórz panel na stronie</value>

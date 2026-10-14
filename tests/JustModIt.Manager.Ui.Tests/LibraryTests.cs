@@ -8,6 +8,7 @@ using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Navigation;
@@ -67,6 +68,18 @@ public sealed class LibraryTests
         page.OfflineTitle.Should().Be("Brak połączenia z Bazą Spolszczeń");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render("library-offline");
+    }
+
+    [AvaloniaFact]
+    public void An_update_row_tells_what_the_update_downloads()
+    {
+        var update = Update with
+        {
+            Installs = [Update.Installs[0] with { Status = Update.Installs[0].Status with { UpdateSize = 46_871_347 } }],
+        };
+        using var ui = new UiHarness(State(update));
+
+        Page(ui).TodoRows.Single().Line.Detail.Should().EndWith(Formats.FileSize(46_871_347), "an update downloads only what the install lacks");
     }
 
     [AvaloniaFact]

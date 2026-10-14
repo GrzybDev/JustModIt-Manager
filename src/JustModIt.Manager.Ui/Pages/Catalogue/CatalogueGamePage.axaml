@@ -292,7 +292,7 @@
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
                   </StackPanel>
-                  <TextBlock Classes="fact" Text="{Binding Variants}" IsVisible="{Binding HasVariants}" TextWrapping="Wrap" />
+                  <TextBlock Classes="fact" Text="{Binding Features}" IsVisible="{Binding HasFeatures}" TextWrapping="Wrap" />
                 </StackPanel>
                 <Button x:Name="SiteButton" Classes="outline onArt" Content="{x:Static loc:Strings.GamePage_OpenOnSite}" IsVisible="{Binding IsProject}"
                         Classes.under="{Binding IsCompact}" Classes.lead="{Binding LeadsWithSite}" VerticalAlignment="Center"

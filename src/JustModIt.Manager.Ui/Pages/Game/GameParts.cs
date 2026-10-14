@@ -17,7 +17,6 @@ public enum StepKind
     Install,
     Update,
     Repair,
-    ChangeVariant,
     Choose,
     Refused,
     Unavailable,
@@ -49,6 +48,9 @@ public enum StepKind
 /// <param name="Text">What happens, or why not.</param>
 public sealed record NextStep(StepKind Kind, Tone Tone, Geometry Icon, string Title, string Text)
 {
+    /// <summary>A warning under the text, e.g. that an update goes without an add-on; empty for none.</summary>
+    public string Warning { get; init; } = "";
+
     /// <summary>A line under the text, e.g. when the release came out; empty for none.</summary>
     public string Meta { get; init; } = "";
 
@@ -99,6 +101,8 @@ public sealed record NextStep(StepKind Kind, Tone Tone, Geometry Icon, string Ti
 
     /// <summary>The step points to the team's notes further down.</summary>
     public bool PointsToNotes { get; init; }
+
+    public bool HasWarning => Warning.Length > 0;
 
     public bool HasPrimary => Primary is not null;
 
@@ -191,6 +195,9 @@ public sealed record InstallRow(Guid Id, string Title, string When, string Detai
     /// <summary>The software the install's packages carry, with its licences; null when they carry none.</summary>
     public LicensesView? Licenses { get; init; }
 
+    /// <summary>The install's add-ons, its line and its pills; null when its project offers none to choose.</summary>
+    public FeaturePanel? Features { get; init; }
+
     public bool HasProject => Project.Length > 0;
 
     public bool HasAction => Action is not null;
@@ -262,17 +269,211 @@ public sealed record LicenseItem(string Name, string License, string Address, Ur
     }
 }
 
-/// <summary>A variant of the project the player can pick, such as text only next to text and voice.</summary>
-/// <param name="Name">The variant's name, which commands choose it by.</param>
-/// <param name="IsRecommended">The release recommends it.</param>
-public sealed partial class VariantChoice(string Name, bool IsRecommended) : ObservableObject
+/// <summary>An add-on as a pill under its row's line: turned on or off on its own, or chosen among its group.</summary>
+public sealed partial class FeaturePill : ObservableObject
 {
-    public string Name { get; } = Name;
+    private readonly Action<FeaturePill> _turned;
 
-    public bool IsRecommended { get; } = IsRecommended;
+    /// <summary>Creates the pill of an add-on, on as the plan takes it.</summary>
+    /// <param name="feature">The add-on as the agent offers it.</param>
+    /// <param name="turned">Told when the player turns or chooses the pill.</param>
+    public FeaturePill(FeatureView feature, Action<FeaturePill> turned)
+    {
+        ArgumentNullException.ThrowIfNull(feature);
+        _turned = turned;
+        Key = feature.Key;
+        Name = feature.Name;
+        Description = feature.Description;
+        IsRecommended = feature.IsDefault;
+        Baseline = feature.IsOn;
+        IsOn = feature.IsOn;
+        Size = feature.Package.Size;
+        IsPresent = feature.IsPresent;
+    }
+
+    public string Key { get; }
+
+    public string Name { get; }
+
+    /// <summary>Plain text, shown beside the pill under the pointer or the keyboard's focus; empty for none.</summary>
+    public string Description { get; }
+
+    public bool HasDescription => Description.Length > 0;
+
+    /// <summary>The member a group recommends, marked as such.</summary>
+    public bool IsRecommended { get; }
+
+    /// <summary>What the agent's plan takes, which the pill returns to when a change is dropped.</summary>
+    public bool Baseline { get; set; }
+
+    /// <summary>The bytes of the add-on's package; null when the site does not say.</summary>
+    public long? Size { get; set; }
+
+    /// <summary>The install holds the package already, so taking it downloads nothing.</summary>
+    public bool IsPresent { get; set; }
 
     [ObservableProperty]
-    public partial bool IsChosen { get; set; }
+    [NotifyPropertyChangedFor(nameof(Icon))]
+    public partial bool IsOn { get; set; }
+
+    /// <summary>False while the install went without the add-on on this game build, so it cannot be turned on here.</summary>
+    [ObservableProperty]
+    public partial bool CanTurn { get; set; } = true;
+
+    /// <summary>A plus while the add-on is off, a check while it is on.</summary>
+    public Geometry Icon => IsOn ? Theme.Icons.Check : Theme.Icons.Plus;
+
+    public bool IsChanged => IsOn != Baseline;
+
+    [RelayCommand]
+    private void Turn() => _turned(this);
+}
+
+/// <summary>Add-ons of which exactly one is on, under the caption their author gave the choice.</summary>
+/// <param name="Caption">The choice's caption.</param>
+/// <param name="Members">The add-ons, in the release's order.</param>
+/// <param name="Name">Ties the group's pills together, unique on the page.</param>
+public sealed record FeatureGroupView(string Caption, IReadOnlyList<FeaturePill> Members, string Name);
+
+/// <summary>
+/// The add-ons of an install, or of the project a new install takes: the quiet line under its row that names them, and
+/// the pills it unfolds into; kept across the page's states, so what the player turned stays until applied or dropped.
+/// </summary>
+/// <param name="install">The install the add-ons are of; null for the project a new install takes.</param>
+/// <param name="project">The project whose add-ons they are.</param>
+public sealed partial class FeaturePanel(Guid? install, Guid project) : ObservableObject
+{
+    public Guid? Install { get; } = install;
+
+    public Guid Project { get; } = project;
+
+    public ObservableCollection<FeaturePill> Toggles { get; } = [];
+
+    public ObservableCollection<FeatureGroupView> Groups { get; } = [];
+
+    /// <summary>Every pill, those on their own first.</summary>
+    public IEnumerable<FeaturePill> Pills => Toggles.Concat(Groups.SelectMany(group => group.Members));
+
+    /// <summary>The line: what the install has, or what installing takes.</summary>
+    [ObservableProperty]
+    public partial string Line { get; set; } = "";
+
+    /// <summary>The names the line quotes, drawn brighter than the rest of it.</summary>
+    [ObservableProperty]
+    public partial string LineEmphasis { get; set; } = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Toggle), nameof(ToggleIcon))]
+    public partial bool IsOpen { get; set; }
+
+    /// <summary>No job runs on the game, so the add-ons can change.</summary>
+    [ObservableProperty]
+    public partial bool CanChange { get; set; }
+
+    /// <summary>"Apply changes" stands under the pills, for an install that is up to date whose pills differ from it.</summary>
+    [ObservableProperty]
+    public partial bool ShowsApply { get; set; }
+
+    [ObservableProperty]
+    public partial string SummaryLead { get; set; } = "";
+
+    /// <summary>What the change adds and removes, drawn brighter than its lead.</summary>
+    [ObservableProperty]
+    public partial string SummaryChanges { get; set; } = "";
+
+    /// <summary>The version and the size the change downloads.</summary>
+    [ObservableProperty]
+    public partial string SummaryCaption { get; set; } = "";
+
+    /// <summary>Says that the pending update or repair takes the change; empty for none.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsApplyWith))]
+    public partial string ApplyWith { get; set; } = "";
+
+    public bool ShowsApplyWith => ApplyWith.Length > 0;
+
+    public bool HasToggles => Toggles.Count > 0;
+
+    public bool HasGroups => Groups.Count > 0;
+
+    public string Toggle => IsOpen ? Strings.GamePage_CollapseChoice : Strings.GamePage_ChangeChoice;
+
+    public Geometry ToggleIcon => IsOpen ? Theme.Icons.ChevronUp : Theme.Icons.ChevronDown;
+
+    /// <summary>The player turned a pill away from what the plan takes.</summary>
+    public bool HasChanges => Pills.Any(pill => pill.IsChanged);
+
+    /// <summary>What the player turned, as the agent takes it: an add-on on its own by its state, a group by its chosen member.</summary>
+    public IReadOnlyDictionary<string, bool?> Changes() =>
+        Pills.Where(pill => pill.IsChanged && (pill.IsOn || Toggles.Contains(pill))).ToDictionary(pill => pill.Key, pill => (bool?)pill.IsOn);
+
+    /// <summary>Puts every pill back where the plan has it, dropping what the player turned.</summary>
+    public void Reset()
+    {
+        foreach (var pill in Pills)
+        {
+            pill.IsOn = pill.Baseline;
+        }
+    }
+
+    /// <summary>
+    /// Follows the agent's plan: a new set of add-ons makes new pills; otherwise a pill whose plan changed takes it, and the
+    /// others keep what the player turned.
+    /// </summary>
+    /// <param name="features">The add-ons as the agent offers them.</param>
+    /// <param name="variantCaption">The caption of the variants of a release from before add-ons; null for any other release.</param>
+    /// <param name="leftOut">The add-ons the install went without on this game build, by key.</param>
+    /// <param name="turned">Told when the player turns or chooses a pill.</param>
+    public void Follow(IReadOnlyList<FeatureView> features, string? variantCaption, IReadOnlySet<string> leftOut, Action<FeaturePill> turned)
+    {
+        ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(leftOut);
+        if (!Pills.Select(pill => pill.Key).SequenceEqual(Ordered(features).Select(feature => feature.Key)))
+        {
+            Toggles.Clear();
+            Groups.Clear();
+            foreach (var feature in features.Where(feature => feature.Group is null))
+            {
+                Toggles.Add(new FeaturePill(feature, turned));
+            }
+
+            foreach (var group in features.Where(feature => feature.Group is not null).GroupBy(feature => feature.Group!, StringComparer.Ordinal))
+            {
+                Groups.Add(new FeatureGroupView(variantCaption ?? group.Key, [.. group.Select(feature => new FeaturePill(feature, turned))],
+                    $"{Install ?? Project:N}-{Groups.Count}"));
+            }
+
+            OnPropertyChanged(nameof(HasToggles));
+            OnPropertyChanged(nameof(HasGroups));
+        }
+        else
+        {
+            foreach (var (pill, feature) in Pills.Zip(Ordered(features)))
+            {
+                if (pill.Baseline != feature.IsOn)
+                {
+                    pill.Baseline = feature.IsOn;
+                    pill.IsOn = feature.IsOn;
+                }
+
+                (pill.Size, pill.IsPresent) = (feature.Package.Size, feature.IsPresent);
+            }
+        }
+
+        foreach (var pill in Pills)
+        {
+            pill.CanTurn = !leftOut.Contains(pill.Key);
+        }
+    }
+
+    // The pills of add-ons on their own come first, then each group's.
+    private static IEnumerable<FeatureView> Ordered(IReadOnlyList<FeatureView> features) =>
+        features.Where(feature => feature.Group is null)
+            .Concat(features.Where(feature => feature.Group is not null).GroupBy(feature => feature.Group!, StringComparer.Ordinal)
+                .SelectMany(group => group));
+
+    [RelayCommand]
+    private void ToggleOpen() => IsOpen = !IsOpen;
 }
 
 /// <summary>A project on offer for the game, as a column of the comparison shows it.</summary>

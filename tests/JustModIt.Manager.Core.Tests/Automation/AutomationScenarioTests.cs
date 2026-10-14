@@ -133,6 +133,25 @@ public sealed class AutomationScenarioTests
     }
 
     [Fact]
+    public async Task Tells_of_an_update_that_would_take_an_installed_add_on_away_as_an_update_and_leaves_it_to_the_player()
+    {
+        await using var app = new CoordinatorHarness(AnnounceOnly, afterFirstLook: true);
+        app.Library.Publish(Installed());
+        app.Engine.Add(WithParts(Record(source: Source(ReleaseOne, FileOne, 1)), ("voice-over", VoiceFile)));
+        var release = Release(ReleaseTwo, 2, File(FileTwo, "")) with
+        {
+            Features = [Feature("voice-over", "Voice-over", isDefault: false, files: AddOn(Guid.NewGuid()))],
+        };
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: release));
+        app.Catalogue.Add(Page(release: release));
+
+        await app.StartAsync();
+
+        (await app.NoticeAsync()).Should().BeEquivalentTo(new { Kind = NoticeKind.UpdateAvailable, Game = (GameKey?)Game, ReleaseVersion = 2 });
+        app.Catalogue.PageRequests.Should().BeEmpty("only the player may let the add-on go");
+    }
+
+    [Fact]
     public async Task Announces_a_repair_once_per_break_while_reapplying_is_off()
     {
         await using var app = new CoordinatorHarness(AnnounceOnly with { ReapplyAfterGameUpdate = false }, afterFirstLook: true)
@@ -408,15 +427,16 @@ public sealed class AutomationScenarioTests
     }
 
     [Fact]
-    public async Task Remembers_the_project_and_variant_the_player_installed()
+    public async Task Remembers_the_project_the_player_installed_and_writes_no_choice_of_add_ons_for_the_player()
     {
         await using var app = new CoordinatorHarness(AnnounceOnly).WithGameAndProject();
         await app.StartAsync();
 
-        await app.RunJobAsync(JobsHarness.Install(variant: "Text and voice"));
+        await app.RunJobAsync(JobsHarness.Install());
 
-        await Eventually.HoldsAsync(() => app.Settings.Current.GetGame(Game).VariantName == "Text and voice", "the choice is kept");
-        app.Settings.Current.GetGame(Game).ProjectId.Should().Be(Project.ToString("D"));
+        await Eventually.HoldsAsync(() => app.Settings.Current.GetGame(Game).ProjectId == Project, "the project is kept");
+        app.Settings.Current.GetGame(Game).Should().Match<GamePreferences>(preferences => preferences.VariantName == null
+            && preferences.Features.Count == 0);
     }
 
     [Fact]

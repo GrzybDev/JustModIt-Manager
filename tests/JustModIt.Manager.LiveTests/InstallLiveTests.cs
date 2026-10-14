@@ -46,7 +46,7 @@ public sealed class InstallLiveTests
     private static async Task<InstallRecord> RoundTripAsync(LiveEngine engine, InstalledGame game, OfferedRelease release,
         IReadOnlyDictionary<string, string> content, GameFolderState before, bool replacesGameFiles)
     {
-        var installed = await engine.RunAsync(new InstallJobRequest(game.Key, game.Name, release.Project, VariantName: null), Token);
+        var installed = await engine.RunAsync(new InstallJobRequest(game.Key, game.Name, release.Project), Token);
 
         installed.Outcome.Should().Be(JobOutcome.Succeeded, $"{installed.Failure}");
         var record = installed.Installed!;

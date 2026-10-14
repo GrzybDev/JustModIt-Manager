@@ -76,11 +76,10 @@ internal sealed partial class JobPipeline(
             // Only the player swaps the project they have for another.
             return job.Origin == JobOrigin.Automatic
                 ? throw new JobFailedException(new JobFailure(JobFailureReason.OtherProjectInstalled))
-                : await ReplaceAsync(job, replaced, game, request.Project, request.VariantName, fallBackToDefault: false)
-                    .ConfigureAwait(false);
+                : await ReplaceAsync(job, replaced, game, request.Project).ConfigureAwait(false);
         }
 
-        var package = await PrepareAsync(job, game, request.Project, request.VariantName, fallBackToDefault: false).ConfigureAwait(false);
+        var package = await PrepareAsync(job, game, request.Project, record: null).ConfigureAwait(false);
         var installed = await InstallPackageAsync(job, package.Parts, package.Source, isTest: false, canDefer: false, job.Token)
             .ConfigureAwait(false);
         return job.Succeeded() with { Installed = installed.Record, Warnings = installed.Warnings };
@@ -131,13 +130,10 @@ internal sealed partial class JobPipeline(
             ?? throw new JobFailedException(new JobFailure(JobFailureReason.ProjectNotFound)));
         var game = await WaitUntilSafeAsync(job, job.Origin == JobOrigin.Automatic, job.Token).ConfigureAwait(false);
         await EnsureNoOtherAppAsync(game, job.Token).ConfigureAwait(false);
-        // Only the player may end up with another variant, e.g. text only for a voice-over the new release does not have yet.
-        return await ReplaceAsync(job, record, game, project, record.Source?.VariantName, fallBackToDefault: job.Origin == JobOrigin.User)
-            .ConfigureAwait(false);
+        return await ReplaceAsync(job, record, game, project).ConfigureAwait(false);
     }
 
-    private async Task<JobResult> ReplaceAsync(JobContext job, InstallRecord record, InstalledGame game, ProjectLocator project,
-        string? variantName, bool fallBackToDefault)
+    private async Task<JobResult> ReplaceAsync(JobContext job, InstallRecord record, InstalledGame game, ProjectLocator project)
     {
         foreach (var installedFile in record.PackageFileIds)
         {
@@ -145,7 +141,9 @@ internal sealed partial class JobPipeline(
         }
 
         // Downloading first means a missing connection or package leaves the installed release as it is.
-        var package = await PrepareAsync(job, game, project, variantName, fallBackToDefault).ConfigureAwait(false);
+        // The add-ons of the project's own install count; another project's say nothing about this one's.
+        var same = record.Source?.ProjectUuid == project.ProjectUuid;
+        var package = await PrepareAsync(job, game, project, same ? record : null).ConfigureAwait(false);
         job.Enter(JobStage.Checking);
         var marker = new ReplacementMarker(record, job.Kind, job.Origin, project.ProjectUuid);
         var halted = false;
@@ -318,12 +316,14 @@ internal sealed partial class JobPipeline(
         }
     }
 
-    private async Task<PreparedPackage> PrepareAsync(JobContext job, InstalledGame game, ProjectLocator project, string? variantName,
-        bool fallBackToDefault)
+    // The record is the install the job replaces, whose add-ons and choices the plan keeps.
+    private async Task<PreparedPackage> PrepareAsync(JobContext job, InstalledGame game, ProjectLocator project, InstallRecord? record)
     {
         for (var attempt = 1; ; attempt++)
         {
-            var (detail, release, variant, files) = await PlanAsync(job, game, project, variantName, fallBackToDefault).ConfigureAwait(false);
+            var (detail, selection, plan) = await PlanAsync(job, game, project, record).ConfigureAwait(false);
+            var release = selection.Release!;
+            var files = plan.Parts.Select(part => part.File).ToList();
             var locator = new ReleaseLocator(detail.Team.Slug, detail.Slug, release.Uuid);
             foreach (var file in files)
             {
@@ -366,20 +366,24 @@ internal sealed partial class JobPipeline(
                 ReleaseVersion = release.Version > 0 ? release.Version : null,
                 ReleasePublishedAt = release.FirstPublishedAt,
                 ReleaseFileId = files[0].Uuid.ToString("D"),
-                VariantName = variant.Name,
+                VariantName = plan.Variant,
+                HadVariantChoice = selection.IsLegacy && selection.Features.Count > 1,
                 CoverUrl = CoverOf(detail),
             };
-            return new PreparedPackage([.. files.Select((file, index) => new InstallPart(downloaded[index].Path)
+            return new PreparedPackage([.. plan.Parts.Select((part, index) => new InstallPart(downloaded[index].Path)
             {
-                ReleaseFileId = file.Uuid.ToString("D"),
+                IsOptional = part.IsOptional,
+                FeatureKey = part.FeatureKey,
+                FeatureName = part.FeatureName,
+                ReleaseFileId = part.File.Uuid.ToString("D"),
                 CachedFileId = downloaded[index].CopyOf?.ToString("D"),
             })], release.Uuid, source);
         }
     }
 
-    // The files to install, the base's first, from the project's page as the site has it now.
-    private async Task<(ProjectPage Page, Release Release, ReleaseVariant Variant, IReadOnlyList<ReleaseFile> Files)> PlanAsync(
-        JobContext job, InstalledGame game, ProjectLocator project, string? variantName, bool fallBackToDefault)
+    // The packages to install, the base's first, from the project's page as the site has it now and the player's choices.
+    private async Task<(ProjectPage Page, ReleaseSelection Selection, ReleasePlan Plan)> PlanAsync(JobContext job, InstalledGame game,
+        ProjectLocator project, InstallRecord? record)
     {
         job.Enter(JobStage.Preparing);
         // The release and file ids must be the site's current ones.
@@ -390,8 +394,8 @@ internal sealed partial class JobPipeline(
         }
 
         var detail = page.Page;
-        // The player chose an install already there, so it keeps its updates and repairs whatever the project's status.
-        if (job.Kind == JobKind.Install && detail.Status is not { IsCompleted: true })
+        // The player chose an install already there, so it keeps its updates, repairs and add-ons whatever the project's status.
+        if (job.Request is InstallJobRequest && detail.Status is not { IsCompleted: true })
         {
             throw new JobFailedException(new JobFailure(JobFailureReason.ProjectNotCompleted));
         }
@@ -402,9 +406,21 @@ internal sealed partial class JobPipeline(
             throw new JobFailedException(new JobFailure(JobFailureReason.ReleaseUnavailable));
         }
 
-        var variant = Choose(selection, variantName, fallBackToDefault)
-            ?? throw new JobFailedException(new JobFailure(JobFailureReason.NoPackage) { Unavailability = UnavailabilityOf(selection, variantName) });
-        return (detail, selection.Release, variant, [variant.Package!]);
+        // An add-on the site added since the state was made follows its author's default and is remembered nowhere.
+        var choices = InstallChoices.For(settings.Current.GetGame(game.Key), detail.Uuid, record, game.BuildId);
+        var plan = selection.Plan(choices) ?? throw new JobFailedException(new JobFailure(JobFailureReason.NoPackage)
+        {
+            Unavailability = selection.Unavailable,
+        });
+        // The automation never removes the player's add-on or variant, nor gives an install from before add-ons any, so
+        // what only the player may do fails before anything is downloaded, and counted.
+        if (job.Origin == JobOrigin.Automatic && record is not null && InstallChoices.InstalledReleaseOf(record) is { } installed
+            && ReleaseUpdates.Check(installed, selection, choices).WaitsForPlayer)
+        {
+            throw new JobFailedException(new JobFailure(JobFailureReason.NoPackage));
+        }
+
+        return (detail, selection, plan);
     }
 
     private async Task<IReadOnlyList<DownloadedPackage>> DownloadAsync(JobContext job, ReleaseDownload download)
@@ -465,7 +481,13 @@ internal sealed partial class JobPipeline(
             .ConfigureAwait(false);
         if (report.CanProceed)
         {
-            return report;
+            // An automatic update must not cost the player an add-on, so a new release whose add-on no longer fits waits for
+            // the player, who may update without it.
+            var installed = InstallChoices.FeaturesOf(record).Select(feature => feature.Key).ToHashSet(StringComparer.Ordinal);
+            return job is { Kind: JobKind.Update, Origin: JobOrigin.Automatic }
+                && report.LeftOut.Any(part => part.Part.FeatureKey is { } key && installed.Contains(key))
+                ? throw new JobFailedException(new JobFailure(JobFailureReason.NewReleaseIncompatible))
+                : report;
         }
 
         if (SafetyGate.IsOnlyInUse(report.Issues))
@@ -489,7 +511,12 @@ internal sealed partial class JobPipeline(
     // from; only an exit without waiting for jobs does, which Halted tells.
     private async Task<(InstallRecord? Restored, bool Halted)> TryRestoreAsync(JobContext job, InstallRecord record)
     {
-        if (record.Source is not { TeamSlug: { } team, ProjectSlug: { } project, ReleaseUuid: { } release, ReleaseFileUuid: { } file } source)
+        // A record from before installs had parts names its one package by the source's file.
+        IReadOnlyList<InstalledPart> parts = record.Parts ?? (record.Source?.ReleaseFileId is { } single
+            ? [new InstalledPart(record.Package, ReleaseFileId: single)]
+            : []);
+        if (record.Source is not { TeamSlug: { } team, ProjectSlug: { } project, ReleaseUuid: { } release } source || parts.Count == 0
+            || parts.Any(part => !Guid.TryParse(part.ReleaseFileId, out _)))
         {
             return (null, false);
         }
@@ -498,10 +525,26 @@ internal sealed partial class JobPipeline(
         var listed = source.ProjectUuid is { } projectId ? catalogue.Current.Index.FindProject(projectId) : null;
         try
         {
-            var path = await FindPreviousPackageAsync(new ReleaseFileLocator(listed?.Team.Slug ?? team, listed?.ProjectSlug ?? project,
-                release, file), record.Package.Kind).ConfigureAwait(false);
-            var restored = await InstallPackageAsync(job, [new InstallPart(path) { ReleaseFileId = file.ToString("D") }], source,
-                isTest: false, canDefer: false, halting, restores: record.Id).ConfigureAwait(false);
+            var restoring = new List<InstallPart>();
+            foreach (var part in parts)
+            {
+                var locator = new ReleaseFileLocator(listed?.Team.Slug ?? team, listed?.ProjectSlug ?? project, release,
+                    Guid.Parse(part.ReleaseFileId!));
+                var path = await FindPreviousPackageAsync(locator, Guid.TryParse(part.CachedFileId, out var cached) ? cached : (Guid?)null,
+                    part.Package.Kind).ConfigureAwait(false);
+                // The install that worked before should work again; an add-on that no longer does still lets the rest come back.
+                restoring.Add(new InstallPart(path)
+                {
+                    IsOptional = part.FeatureKey is not null,
+                    FeatureKey = part.FeatureKey,
+                    FeatureName = part.FeatureName,
+                    ReleaseFileId = part.ReleaseFileId,
+                    CachedFileId = part.CachedFileId,
+                });
+            }
+
+            var restored = await InstallPackageAsync(job, restoring, source, isTest: false, canDefer: false, halting, restores: record.Id)
+                .ConfigureAwait(false);
             LogRestored(record.Game);
             return (restored.Record, false);
         }
@@ -516,8 +559,9 @@ internal sealed partial class JobPipeline(
         }
     }
 
-    // The package of an install is kept for exactly this, so a download here is rare; it still has to stay bounded.
-    private async Task<string> FindPreviousPackageAsync(ReleaseFileLocator locator, PackageKind kind)
+    // The package of an install is kept for exactly this, so a download here is rare; it still has to stay bounded. A copy of
+    // another release's file was taken from that file's download, which is kept under its own id.
+    private async Task<string> FindPreviousPackageAsync(ReleaseFileLocator locator, Guid? cachedAs, PackageKind kind)
     {
         // The kind comes from the content, the cached file's name from the site's format, and the two may differ.
         PackageFormat[] formats = kind == PackageKind.Manifest
@@ -525,7 +569,8 @@ internal sealed partial class JobPipeline(
             : [PackageFormat.Zip, PackageFormat.Manifest];
         foreach (var format in formats)
         {
-            if (await downloader.FindCachedAsync(new PackageRequest(locator, format, null), halting).ConfigureAwait(false) is { } cached)
+            var kept = new PackageRequest(cachedAs is { } original ? locator with { FileUuid = original } : locator, format, null);
+            if (await downloader.FindCachedAsync(kept, halting).ConfigureAwait(false) is { } cached)
             {
                 return cached.Path;
             }
@@ -533,16 +578,6 @@ internal sealed partial class JobPipeline(
 
         return (await downloader.DownloadAsync(new PackageRequest(locator, formats[0], null), null, halting).ConfigureAwait(false)).Path;
     }
-
-    private static ReleaseVariant? Choose(ReleaseSelection selection, string? variantName, bool fallBackToDefault) =>
-        variantName is null
-            ? selection.Default
-            : selection.FindInstallable(variantName) ?? (fallBackToDefault ? selection.Default : null);
-
-    private static SelectionUnavailability UnavailabilityOf(ReleaseSelection selection, string? variantName) =>
-        selection.Unavailable
-        ?? selection.Variants.FirstOrDefault(variant => variant.Name == variantName)?.Unavailable
-        ?? SelectionUnavailability.NoReadyFiles;
 
     private static Uri? CoverOf(ProjectPage page) =>
         Uri.TryCreate(page.CoverImage.Length > 0 ? page.CoverImage : page.Game.Cover, UriKind.Absolute, out var cover)

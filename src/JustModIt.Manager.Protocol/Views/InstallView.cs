@@ -1,4 +1,6 @@
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
@@ -38,7 +40,11 @@ public sealed record InstallView
 
     public PackageKind PackageKind { get; init; }
 
+    /// <summary>The file of the install's first package, its base.</summary>
     public string PackageFileName { get; init; } = "";
+
+    /// <summary>The files of every package the install came from, in the order they installed.</summary>
+    public IReadOnlyList<string> PackageFileNames { get; init; } = [];
 
     public Guid? ProjectId { get; init; }
 
@@ -52,7 +58,14 @@ public sealed record InstallView
 
     public int? ReleaseVersion { get; init; }
 
+    /// <summary>The variant of a release from before add-ons that the install has; null for none.</summary>
     public string? VariantName { get; init; }
+
+    /// <summary>The add-ons the install has, named as they were when they were installed.</summary>
+    public IReadOnlyList<InstalledFeature> Features { get; init; } = [];
+
+    /// <summary>The add-ons the install went without, since they did not fit the game, with why.</summary>
+    public IReadOnlyList<LeftOutFeature> LeftOut { get; init; } = [];
 
     public Uri? CoverUrl { get; init; }
 
@@ -83,7 +96,7 @@ public sealed record InstallView
             Id = record.Id,
             Status = GameStatusView.From(install.Status),
             BackupsUnavailable = install.BackupsUnavailable,
-            Project = install.Project is { } offer ? ProjectOfferView.From(offer) : null,
+            Project = install.Project is { } offer ? ProjectOfferView.From(offer, InstallChoices.InstalledReleaseOf(record)) : null,
             LastFailure = install.LastFailure is { } failure ? FailureView.From(failure) : null,
             NeedsAttention = install.NeedsAttention,
             InstalledAt = record.InstalledAt,
@@ -92,6 +105,7 @@ public sealed record InstallView
             FileCount = record.FileCount,
             PackageKind = record.Package.Kind,
             PackageFileName = record.Package.FileName,
+            PackageFileNames = [.. Packages(record).Select(package => package.FileName)],
             ProjectId = source?.ProjectUuid,
             ProjectName = source?.ProjectName,
             TeamName = source?.TeamName,
@@ -99,6 +113,8 @@ public sealed record InstallView
             ReleaseLabel = source?.ReleaseLabel,
             ReleaseVersion = source?.ReleaseVersion,
             VariantName = source?.VariantName,
+            Features = InstallChoices.FeaturesOf(record),
+            LeftOut = [.. record.LeftOutFeatures ?? []],
             CoverUrl = source?.CoverUrl,
             CoverPath = source?.CoverPath,
             BackupLocation = record.Backup.Location,

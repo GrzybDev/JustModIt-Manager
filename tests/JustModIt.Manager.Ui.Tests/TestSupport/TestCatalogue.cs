@@ -125,6 +125,23 @@ public static class TestCatalogue
             ["size"] = 3_774_874,
             ["position"] = position,
         };
+        JsonNode Feature(string key, string name, int position) => new JsonObject
+        {
+            ["uuid"] = Id(game.Slug + key),
+            ["key"] = key,
+            ["name"] = name,
+            ["position"] = position,
+            ["is_default"] = position == 0,
+            ["files"] = new JsonArray(new JsonObject
+            {
+                ["uuid"] = Id(game.Slug + key + "file"),
+                ["name"] = "",
+                ["requires_manager"] = true,
+                ["download_filename"] = $"{game.Slug}-{key}.examplemod",
+                ["status"] = "ready",
+                ["size"] = 1_572_864,
+            }),
+        };
         var page = new JsonObject
         {
             ["uuid"] = project.Uuid,
@@ -168,6 +185,8 @@ public static class TestCatalogue
                 ["is_public"] = true,
                 ["first_published_at"] = TestStates.Now.AddDays(-15).ToString("O", System.Globalization.CultureInfo.InvariantCulture),
                 ["files"] = game.Slug == "ember-hollow" ? new JsonArray(File("Pełna", 0), File("Tylko napisy", 1)) : new JsonArray(File("Pełna", 0)),
+                ["features"] = game.Slug == "glass-orchard" ? new JsonArray(Feature("lektor", "Lektor", 0), Feature("tekstury", "Polskie tekstury", 1))
+                    : new JsonArray(),
             }) : new JsonArray(),
             ["gallery"] = new JsonArray(
                 new JsonObject { ["uuid"] = Id(game.Slug + "film"), ["kind"] = "youtube", ["youtube_id"] = "Tr4iLer-0_1", ["caption"] = "Zwiastun", ["position"] = 0 },

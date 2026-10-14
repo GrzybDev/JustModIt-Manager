@@ -422,7 +422,26 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     }
 
     [RelayCommand]
-    private async Task InstallTestAsync()
+    private Task InstallTestAsync() => TestAsync([OutputPath]);
+
+    // An add-on is tried together with the package it goes with, which installs first, so a clash between the two shows
+    // before players meet it.
+    [RelayCommand]
+    private async Task InstallTestTogetherAsync()
+    {
+        if (OutputPath.Length == 0)
+        {
+            return;
+        }
+
+        var first = await _page.Services.Pickers.PickFileAsync(Strings.Creator_TestTogetherTitle, startIn: OutputFolder()).ConfigureAwait(true);
+        if (first is not null && !string.Equals(first, OutputPath, StringComparison.OrdinalIgnoreCase))
+        {
+            await TestAsync([first, OutputPath]).ConfigureAwait(true);
+        }
+    }
+
+    private async Task TestAsync(IReadOnlyList<string> packages)
     {
         if (_page.Game is not { } game || OutputPath.Length == 0)
         {
@@ -431,7 +450,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
         (_testNote, _undoJob) = ("", null);
         _ended.Clear();
-        var (sent, answer) = await _page.AskAsync(new TestInstallPackage(game.Key, OutputPath)).ConfigureAwait(true);
+        var (sent, answer) = await _page.AskAsync(new TestInstallPackage(game.Key, packages)).ConfigureAwait(true);
         if (sent && answer is JobStarted started)
         {
             _testJob = started.JobId;

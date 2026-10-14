@@ -25,6 +25,22 @@
       <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
       <Setter Property="Background" Value="{DynamicResource AccentFilterBrush}" />
     </Style>
+    <Style Selector="Border.arrowChip">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Background" Value="{StaticResource FillBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <!-- The chosen column's arrow takes the accent, as its frame does. -->
+    <Style Selector="Button.choiceCard.chosen Border.arrowChip">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftStrongBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    </Style>
+    <Style Selector="Button.choiceCard.chosen Border.arrowChip > ui|Icon">
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    </Style>
     <Style Selector="Border.choicePart">
       <Setter Property="Padding" Value="16,0" />
       <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
@@ -77,8 +93,7 @@
                   <ui:TeamBadge NameText="{Binding Team}" Avatar="{Binding Avatar}" Width="32" Height="32" CornerRadius="8" />
                   <TextBlock Grid.Column="1" Text="{Binding Team}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"
                              VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                  <Border Grid.Column="2" Width="28" Height="28" CornerRadius="999" Background="{StaticResource FillBrush}"
-                          BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1">
+                  <Border Grid.Column="2" Classes="arrowChip">
                     <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" />
                   </Border>
                 </Grid>

@@ -74,7 +74,7 @@ public sealed class StateCoordinatorTests
         await app.StartAsync();
         await app.GameAsync(game => game.NewInstall?.Replaces == record, "installing another project replaces the install");
 
-        var result = await app.RunJobAsync(new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"), null));
+        var result = await app.RunJobAsync(new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team")));
 
         await app.GameAsync(game => game.Installs is [{ Record: var only }] && only == result.Installed && game.NewInstall?.Replaces == only,
             "the other project is the one install on the game");
@@ -88,7 +88,7 @@ public sealed class StateCoordinatorTests
         app.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
         await app.StartAsync();
 
-        var joined = (await app.RunJobAsync(new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"), null))).Installed;
+        var joined = (await app.RunJobAsync(new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team")))).Installed;
         await app.GameAsync(game => game.Installs.Count == 2 && game.NewInstall == InstallAdmission.Alongside, "both projects are installed");
         await app.RunJobAsync(new UninstallJobRequest(record));
 
@@ -413,7 +413,7 @@ public sealed class StateCoordinatorTests
         await app.RunJobAsync(JobsHarness.Install());
         app.Engine.NextInstalls.Enqueue((_, _, _) => throw new InstallBlockedException([new MissingFileIssue("data/strings.pak")]));
 
-        await app.RunJobAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject), null));
+        await app.RunJobAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject)));
 
         await Eventually.HoldsAsync(() => !app.Downloader.Cached.ContainsKey(stale), "the old download is removed");
         app.Downloader.Cached.Keys.Should().BeEquivalentTo([FileOne, FileTwo]);
@@ -429,7 +429,7 @@ public sealed class StateCoordinatorTests
         app.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), OtherGame));
         await app.StartAsync();
         app.Engine.NextInstalls.Enqueue((_, _, _) => throw new InstallBlockedException([new MissingFileIssue("data/strings.pak")]));
-        await app.RunJobAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject), null));
+        await app.RunJobAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject)));
         await Eventually.HoldsAsync(() => app.Downloader.Prunes.Count == 1, "the downloads are pruned after the failed job");
         var stale = Guid.NewGuid();
         app.Downloader.Cached[stale] = true;
@@ -462,7 +462,7 @@ public sealed class StateCoordinatorTests
         }
 
         await app.StartAsync();
-        await app.RunJobAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject), null));
+        await app.RunJobAsync(new InstallJobRequest(OtherGame, "Other Game", Locator(OtherProject)));
 
         await Eventually.HoldsAsync(() => !app.Downloader.Cached.ContainsKey(VoiceFile), "a copy's own file, never downloaded, goes");
         app.Downloader.Cached.Keys.Should().BeEquivalentTo([FileOne, FileTwo, otherFile]);
@@ -792,7 +792,7 @@ public sealed class StateCoordinatorTests
         if (job == "another project taking its place")
         {
             app.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
-            request = new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"), null);
+            request = new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team"));
         }
         else
         {

@@ -306,9 +306,6 @@
   <data name="GamePage_CancelledText" xml:space="preserve">
     <value>{kind, select, Install {Pliki gry zostały bez zmian.} Uninstall {Spolszczenie nadal jest zainstalowane.} other {Przywrócono wersję {version}, więc gra jest w takim stanie jak przed zadaniem.}}</value>
   </data>
-  <data name="GamePage_ChangeTitle" xml:space="preserve">
-    <value>Zmiana wariantu spolszczenia</value>
-  </data>
   <data name="GamePage_ChoiceName" xml:space="preserve">
     <value>{team}: {status}, wersja {version}. Wybierz to spolszczenie</value>
   </data>
@@ -696,7 +693,7 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
     <value>Opublikuj ją w Bazie Spolszczeń</value>
   </data>
   <data name="Creator_PublishManifest" xml:space="preserve">
-    <value>Ten plik dodaje się jako nowe wydanie projektu, z zaznaczonym „Wymaga Menadżera Spolszczeń”. Opis zmian i warianty ustawia się na stronie.</value>
+    <value>Na stronie plik trafia do wydania: jako spolszczenie albo jako składnik, a strona sama oznaczy, że wymaga Menadżera Spolszczeń. Tam też ustawia się opis zmian i składniki.</value>
   </data>
   <data name="Creator_OpenDashboard" xml:space="preserve">
     <value>Otwórz panel w Bazie Spolszczeń</value>
@@ -733,5 +730,14 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   </data>
   <data name="Creator_RuntimeWhy" xml:space="preserve">
     <value>Paczka nie zawiera tego pliku – zapisuje go podczas gry oprogramowanie z paczki, a Menadżer cofnie te zmiany.</value>
+  </data>
+  <data name="Creator_TestTogether" xml:space="preserve">
+    <value>Razem z paczką spolszczenia…</value>
+  </data>
+  <data name="Creator_TestTogetherTitle" xml:space="preserve">
+    <value>Wybierz paczkę spolszczenia, która zainstaluje się przed tą</value>
+  </data>
+  <data name="Creator_PublishZip" xml:space="preserve">
+    <value>Na stronie plik trafia do wydania: jako spolszczenie albo jako składnik. Tam też ustawia się opis zmian, autorów i składniki.</value>
   </data>
 </root>

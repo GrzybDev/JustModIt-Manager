@@ -28,7 +28,7 @@ public sealed class MyGamesLiveTests
             var game = state.Find(key)!;
             game.Status.State.Should().Be(MyGameState.NotInstalled, $"{game.Name} is installed and idle, with nothing on it");
             game.Project.Should().NotBeNull();
-            game.Project!.Selection.Default!.Package!.Format.Should().NotBeNull();
+            game.Project!.Plan!.Parts[0].File.Format.Should().NotBeNull();
         }
 
         state.Find(OwnerGames.WhiteWhisper).Should().BeNull("its project has no release yet");

@@ -24,8 +24,8 @@ using JustModIt.Manager.Ui.Theme;
 namespace JustModIt.Manager.Ui.Pages.Game;
 
 /// <summary>
-/// A game's page: what the store and this computer say about it, its installs, the variant and automation choices, the
-/// one next step, and the project's page from the site below. Everything about the game comes from the agent's state,
+/// A game's page: what the store and this computer say about it, its installs with their add-ons, the automation choice,
+/// the one next step, and the project's page from the site below. Everything about the game comes from the agent's state,
 /// so the page shows offline; the project's page is asked for in the background and read off the UI thread.
 /// </summary>
 public sealed partial class GamePageViewModel : PageViewModel, IProjectComparison, IDisposable
@@ -39,6 +39,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private readonly List<(DateTimeOffset At, long Bytes)> _samples = [];
     private readonly Dictionary<Guid, RuntimeFilesView> _runtimeFiles = [];
     private readonly Dictionary<Guid, LicensesView> _licenses = [];
+    private readonly Dictionary<Guid, FeaturePanel> _features = [];
     private GameView? _game;
     private Guid? _detailsFor;
     private CancellationTokenSource? _details;
@@ -47,8 +48,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private NextStep? _result;
     private Guid? _finished;
     private JobEnded? _ended;
-    private string? _chosenVariant;
     private bool _askedDetected;
+    private bool _composing;
 
     /// <summary>Creates the page of a game, which follows the agent's state from then on.</summary>
     /// <param name="services">The window's services.</param>
@@ -197,17 +198,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     [ObservableProperty]
     public partial bool IsNotInstalled { get; private set; }
 
-    public ObservableCollection<VariantChoice> Variants { get; } = [];
-
+    /// <summary>The add-ons of the project a new install takes; null when it offers none to choose.</summary>
     [ObservableProperty]
-    public partial bool ShowsVariants { get; private set; }
-
-    /// <summary>A job runs, so the variant shows as text until it ends.</summary>
-    [ObservableProperty]
-    public partial bool AreVariantsLocked { get; private set; }
-
-    [ObservableProperty]
-    public partial string LockedVariant { get; private set; } = "";
+    public partial FeaturePanel? NewFeatures { get; private set; }
 
     [ObservableProperty]
     public partial bool ShowsAutomation { get; private set; }
@@ -267,9 +260,16 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     [ObservableProperty]
     public partial bool ShowsSavedInfo { get; private set; }
 
+    /// <summary>The installed add-ons, or the variant, as the install's record names them; empty for none.</summary>
     [ObservableProperty]
-    public partial string SavedVariant { get; private set; } = "";
+    [NotifyPropertyChangedFor(nameof(HasSavedFeatures))]
+    public partial string SavedFeatures { get; private set; } = "";
 
+    /// <summary>"Add-ons" for an install with add-ons, "Variant" for one of a release from before them.</summary>
+    [ObservableProperty]
+    public partial string SavedFeaturesLabel { get; private set; } = "";
+
+    /// <summary>Every package the install came from, one per line.</summary>
     [ObservableProperty]
     public partial string SavedPackage { get; private set; } = "";
 
@@ -311,6 +311,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     public bool HasBuild => Build.Length > 0;
 
     public bool HasStep => Step is not null;
+
+    public bool HasSavedFeatures => SavedFeatures.Length > 0;
 
     public bool ShowsDetails => Details is not null;
 
@@ -424,14 +426,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     }
 
     [RelayCommand]
-    private async Task ChooseVariantAsync(VariantChoice variant)
-    {
-        _chosenVariant = variant.Name;
-        Compose();
-        await AgentRequests.SendAsync(_services, new ChooseVariant(_key, variant.Name)).ConfigureAwait(true);
-    }
-
-    [RelayCommand]
     private async Task ChooseProjectAsync(ProjectChoice choice)
     {
         if (_game is { Installs.Count: > 0, InstallReplaces: false, InstallRefusal: null })
@@ -481,6 +475,46 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
     [RelayCommand]
     private Task ActAsync(InstallRow row) => row.ActionRequest is { } request ? SendJobAsync(request) : Task.CompletedTask;
+
+    [RelayCommand]
+    private Task ApplyAsync(FeaturePanel panel) =>
+        panel.Install is { } install ? SendJobAsync(new ApplyFeatures(install, panel.Changes())) : Task.CompletedTask;
+
+    // A project not installed yet takes a turn at once, so installing it follows; an install keeps it in the window until
+    // the player applies it.
+    private void Turned(FeaturePanel panel, FeaturePill pill)
+    {
+        var group = panel.Groups.FirstOrDefault(group => group.Members.Contains(pill));
+        if (group is null)
+        {
+            pill.IsOn = !pill.IsOn;
+        }
+        else
+        {
+            foreach (var member in group.Members)
+            {
+                member.IsOn = member == pill;
+            }
+        }
+
+        if (panel.Install is null)
+        {
+            _ = AgentRequests.SendAsync(_services, new ChooseFeatures(_key, panel.Project,
+                new Dictionary<string, bool?> { [pill.Key] = pill.IsOn }));
+        }
+
+        Compose();
+    }
+
+    // Folding an install's pills drops what the player turned, and the page's step follows.
+    private void OnFeaturesChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(FeaturePanel.IsOpen) && sender is FeaturePanel { IsOpen: false, Install: not null } panel && !_composing)
+        {
+            panel.Reset();
+            Compose();
+        }
+    }
 
     private async Task ConfirmUninstallAsync(Guid install)
     {
@@ -611,11 +645,24 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
     private void Compose()
     {
-        if (_game is not { } game)
+        if (_game is not { } game || _composing)
         {
             return;
         }
 
+        _composing = true;
+        try
+        {
+            ComposePage(game);
+        }
+        finally
+        {
+            _composing = false;
+        }
+    }
+
+    private void ComposePage(GameView game)
+    {
         var state = _services.Agent.State;
         var subject = Subject(game);
         var install = subject.Install;
@@ -651,7 +698,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
         ShowGame(game, store, install);
         ShowInstalls(game, install);
-        ShowVariants(game, install, project);
         ShowAutomation(game);
         ShowChoices(game);
         ShowSaved(install);
@@ -710,6 +756,14 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
         var rows = game.Installs.Select(install => Row(game, install, several, install == subject)).ToList();
         IsNotInstalled = rows.Count == 0;
+        NewFeatures = IsNotInstalled ? FeaturesOf(null, game.Project) : null;
+        var shown = rows.Select(row => row.Features).Append(NewFeatures).OfType<FeaturePanel>().ToHashSet();
+        foreach (var gone in _features.Where(entry => !shown.Contains(entry.Value)).ToList())
+        {
+            gone.Value.PropertyChanged -= OnFeaturesChanged;
+            _features.Remove(gone.Key);
+        }
+
         Sync(Installs, rows);
     }
 
@@ -721,6 +775,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         {
             { State: MyGameState.NeedsRepair } status => (Text.Format(Strings.GamePage_FilesChanged, ("reason", status.Repair?.ToString() ?? ""),
                 ("store", GameWording.StoreName(game.Key.Store))), true),
+            _ when install.LeftOut.Count > 0 => (string.Join(" ", install.LeftOut.Select(feature => Text.Format(Strings.GamePage_FeatureLeftOut,
+                ("reason", feature.Reason == PartLeftOutReason.NewerApp ? "app" : "other"), ("name", Quoted(feature.Name))))), true),
             { State: MyGameState.Orphaned, Orphan: OrphanReason.GameNotDetected } => (Text.Format(Strings.GamePage_BackupsStay, ("drive", drive)), false),
             { State: MyGameState.Orphaned, Orphan: OrphanReason.GameMoved } => (Text.Format(Strings.GamePage_LeftBehind, ("drive", drive)), false),
             { State: MyGameState.TestInstalled } => (Strings.GamePage_TestDetail, false),
@@ -747,7 +803,83 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             ActionRequest = request,
             RuntimeFiles = RuntimeFilesOf(install),
             Licenses = LicensesOf(install),
+            Features = FeaturesOf(install, install.Project),
         };
+    }
+
+    // An install of a project that offers add-ons, or several variants of a release from before them, has a line of its
+    // own, and so has the project a new install takes; an install whose game or project is gone, or a test, has none.
+    private FeaturePanel? FeaturesOf(InstallView? install, ProjectOfferView? project)
+    {
+        if (project is not { Features.Count: > 0 } offer || (offer.IsLegacy && offer.Features.Count < 2)
+            || install?.Status.State is MyGameState.Orphaned or MyGameState.TestInstalled)
+        {
+            return null;
+        }
+
+        var id = install?.Id ?? offer.ProjectId;
+        if (!_features.TryGetValue(id, out var panel) || panel.Project != offer.ProjectId)
+        {
+            _features[id] = panel = new FeaturePanel(install?.Id, offer.ProjectId);
+            panel.PropertyChanged += OnFeaturesChanged;
+        }
+
+        // An add-on the install went without on this release stays off; turning it on again would only leave it out again.
+        var leftOut = install is not null && install.ReleaseId == offer.Release?.Id
+            ? install.LeftOut.Select(feature => feature.Key).Where(key => offer.Features.Any(feature => feature.Key == key && !feature.IsOn))
+                .ToHashSet(StringComparer.Ordinal)
+            : [];
+        panel.Follow(offer.Features, offer.IsLegacy ? Strings.GamePage_RowVariant : null, leftOut, pill => Turned(panel, pill));
+        // An install changes its add-ons through the current release, so only while that is its own or an update of it.
+        panel.CanChange = _job is null && install?.Status.Update is null or UpdateState.UpToDate or UpdateState.Available;
+        if (!panel.CanChange)
+        {
+            panel.IsOpen = false;
+            panel.Reset();
+        }
+
+        (panel.Line, panel.LineEmphasis) = Line(install, offer, panel);
+        var changed = install is not null && panel.HasChanges;
+        panel.ShowsApply = changed && install!.Status.State == MyGameState.Installed;
+        panel.ApplyWith = !changed ? ""
+            : install!.Status.State == MyGameState.UpdateAvailable ? Strings.GamePage_ApplyWithUpdate
+            : install.Status.State == MyGameState.NeedsRepair ? Strings.GamePage_ApplyWithRepair
+            : "";
+        if (panel.ShowsApply)
+        {
+            var changes = string.Join(", ", panel.Pills.Where(pill => pill.IsChanged && (pill.IsOn || panel.Toggles.Contains(pill)))
+                .Select(pill => Text.Format(Strings.GamePage_ChangeItem,
+                    ("kind", !panel.Toggles.Contains(pill) ? "other" : pill.IsOn ? "add" : "remove"), ("name", pill.Name))));
+            (panel.SummaryLead, panel.SummaryChanges) = Around(Text.Format(Strings.GamePage_ChangeSummary, ("changes", changes)), changes);
+            var download = Math.Max(0, Extra(panel) ?? 0);
+            panel.SummaryCaption = Caption(Strings.GamePage_Caption, offer, download > 0 ? download : (long?)null);
+        }
+
+        return panel;
+    }
+
+    // An install's line names what it has; the line of a project not installed names what installing takes.
+    private static (string Line, string Emphasis) Line(InstallView? install, ProjectOfferView project, FeaturePanel panel)
+    {
+        if (project.IsLegacy)
+        {
+            var variant = install is null ? panel.Pills.FirstOrDefault(pill => pill.IsOn)?.Name ?? "" : install.VariantName ?? "";
+            return (Text.Format(Strings.GamePage_VariantLine, ("variant", variant)), variant);
+        }
+
+        var names = install is null ? panel.Pills.Where(pill => pill.IsOn).Select(pill => pill.Name).ToList()
+            : install.Features.Select(feature => feature.Name).ToList();
+        var quoted = string.Join(", ", names.Select(Quoted));
+        return (Text.Format(Strings.GamePage_FeaturesLine, ("count", names.Count), ("names", quoted)), quoted);
+    }
+
+    private static string Quoted(string name) => Text.Format(Strings.GamePage_FeatureQuoted, ("name", name));
+
+    // A sentence split where the part it quotes starts, so that part can be drawn apart.
+    private static (string Lead, string Quote) Around(string sentence, string quote)
+    {
+        var at = quote.Length == 0 ? -1 : sentence.IndexOf(quote, StringComparison.Ordinal);
+        return at < 0 ? (sentence, "") : (sentence[..at], sentence[at..]);
     }
 
     // The same list stays while the install declares the same files, so a state that changes nothing else folds nothing.
@@ -783,39 +915,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         }
 
         return licenses;
-    }
-
-    private void ShowVariants(GameView game, InstallView? install, ProjectOfferView? project)
-    {
-        var variants = project?.Variants.Where(variant => variant.Package is not null).ToList() ?? [];
-        var orphaned = install?.Status.State is MyGameState.Orphaned or MyGameState.TestInstalled;
-        ShowsVariants = variants.Count > 1 && !orphaned;
-        AreVariantsLocked = _job is not null;
-        var chosen = Chosen(game, install, project);
-        LockedVariant = chosen ?? "";
-        if (Variants.Select(variant => variant.Name).SequenceEqual(variants.Select(variant => variant.Name)))
-        {
-            foreach (var variant in Variants)
-            {
-                variant.IsChosen = variant.Name == chosen;
-            }
-
-            return;
-        }
-
-        Variants.Clear();
-        foreach (var variant in variants)
-        {
-            Variants.Add(new VariantChoice(variant.Name, variant.Name == project!.DefaultVariant) { IsChosen = variant.Name == chosen });
-        }
-    }
-
-    // The variant shown as chosen: the one picked here, else the installed one, else the remembered one, else the recommended.
-    private string? Chosen(GameView game, InstallView? install, ProjectOfferView? project)
-    {
-        var names = project?.Variants.Where(variant => variant.Package is not null).Select(variant => variant.Name).ToList() ?? [];
-        return new[] { _chosenVariant, install?.VariantName, game.Preferences.VariantName, project?.DefaultVariant }
-            .FirstOrDefault(name => name is not null && names.Contains(name)) ?? install?.VariantName;
     }
 
     private void ShowAutomation(GameView game)
@@ -866,8 +965,14 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private void ShowSaved(InstallView? install)
     {
         ShowsSavedInfo = install is { Status: { State: MyGameState.Orphaned, Orphan: OrphanReason.NotInCatalog } };
-        SavedVariant = install?.VariantName ?? "";
-        SavedPackage = install?.PackageFileName ?? "";
+        (SavedFeaturesLabel, SavedFeatures) = install switch
+        {
+            { Features.Count: > 0 } => (Strings.GamePage_InfoFeatures, string.Join(" · ", install.Features.Select(feature => feature.Name))),
+            { VariantName: { Length: > 0 } variant } => (Strings.GamePage_RowVariant, variant),
+            _ => ("", ""),
+        };
+        SavedPackage = install is null ? "" : string.Join(Environment.NewLine,
+            install.PackageFileNames.Count > 0 ? install.PackageFileNames : [install.PackageFileName]);
         SavedFiles = install is null ? "" : Formats.Number(install.FileCount);
     }
 
@@ -954,14 +1059,13 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                 GameWording.FailureReason(new JobFailureView(refusal), game.Key.Store, game.Name));
         }
 
-        if (project.Unavailable is { } unavailable || project.DefaultVariant is null)
+        if (project.Unavailable is not null)
         {
             return new NextStep(StepKind.Unavailable, Tone.Neutral, Icons.Ban, Strings.GamePage_UnavailableTitle,
                 Text.Format(Strings.GamePage_Unavailable, ("reason", project.Unavailable?.ToString() ?? "")));
         }
 
-        var variant = Chosen(game, null, project);
-        var size = Size(project, variant);
+        var size = NewSize(project);
         return new NextStep(StepKind.Install, Tone.Accent, Icons.Download, Strings.GamePage_InstallTitle,
             Text.Format(Strings.GamePage_InstallText, ("duration", size switch
             {
@@ -976,29 +1080,34 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             Primary = Strings.GamePage_Install,
             PrimaryIcon = Icons.Download,
             PrimaryCaption = Caption(Strings.GamePage_Caption, project, size),
-            PrimaryRequest = new InstallProject(_key, project.ProjectId, variant),
+            PrimaryRequest = new InstallProject(_key, project.ProjectId),
         };
     }
 
     private NextStep Installed(GameView game, InstallView install, ProjectOfferView? project, bool offline)
     {
+        // Pills the player turned go with the pending update or repair, so its button applies them too.
+        var panel = _features.GetValueOrDefault(install.Id);
+        var turned = panel is { HasChanges: true } ? new ApplyFeatures(install.Id, panel.Changes()) : null;
         if (install.Status.State == MyGameState.NeedsRepair)
         {
+            var size = PendingSize(install, panel);
             return new NextStep(StepKind.Repair, Tone.Warning, Icons.Wrench, Strings.GamePage_RepairTitle,
                 Text.Format(Strings.GamePage_RepairText, ("reason", install.Status.Repair?.ToString() ?? ""),
                     ("store", GameWording.StoreName(game.Key.Store))))
             {
                 Primary = Strings.GamePage_Repair,
                 PrimaryIcon = Icons.Wrench,
-                PrimaryCaption = Strings.GamePage_RepairCaption,
-                PrimaryRequest = new RepairProject(install.Id),
+                PrimaryCaption = size > 0 && project is not null ? Caption(Strings.GamePage_Caption, project, size) : Strings.GamePage_RepairCaption,
+                PrimaryRequest = turned ?? (Message)new RepairProject(install.Id),
             };
         }
 
         if (install.Status.State == MyGameState.UpdateAvailable && project is not null)
         {
-            var size = Size(project, install.Status.UpdateVariant);
-            var caption = Caption(Strings.GamePage_CaptionTo, project, size);
+            var size = PendingSize(install, panel);
+            var replaced = install.Status.UpdateKind == UpdateKind.ReplacedPackage;
+            var caption = Caption(replaced ? Strings.GamePage_Caption : Strings.GamePage_CaptionTo, project, size);
             return offline
                 ? new NextStep(StepKind.Offline, Tone.Warning, Icons.WifiOff, Strings.Library_OfflineTitle, Strings.GamePage_OfflineText)
                 {
@@ -1006,37 +1115,24 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                     Primary = Strings.GamePage_Update,
                     PrimaryIcon = Icons.CircleArrowUp,
                     PrimaryCaption = Text.Format(Strings.GamePage_CaptionWaits, ("caption", caption)),
-                    PrimaryRequest = new UpdateProject(install.Id),
+                    PrimaryRequest = turned ?? (Message)new UpdateProject(install.Id),
                 }
                 : new NextStep(StepKind.Update, Tone.Info, Icons.CircleArrowUp,
-                    install.Status.UpdateKind == UpdateKind.ReplacedPackage ? Strings.GamePage_UpdateFixTitle : Strings.GamePage_UpdateTitle,
-                    Strings.GamePage_UpdateText)
+                    replaced ? Strings.GamePage_UpdateFixTitle : Strings.GamePage_UpdateTitle, Strings.GamePage_UpdateText)
                 {
+                    Warning = Drops(install, panel),
                     Meta = Released(project),
-                    OffersChanges = Details is { Changes.IsEmpty: false },
+                    OffersChanges = !replaced && Details is { Changes.IsEmpty: false },
                     Primary = Strings.GamePage_Update,
                     PrimaryIcon = Icons.CircleArrowUp,
                     PrimaryCaption = caption,
-                    PrimaryRequest = new UpdateProject(install.Id),
+                    PrimaryRequest = turned ?? (Message)new UpdateProject(install.Id),
                 };
         }
 
         if (install.Status.Update == UpdateState.NotForThisGame)
         {
             return new NextStep(StepKind.Unavailable, Tone.Neutral, Icons.Ban, Strings.GamePage_UnavailableTitle, Strings.GamePage_NotForThisGame);
-        }
-
-        if (project is not null && Chosen(game, install, project) is { } variant && variant != install.VariantName && game.InstallRefusal is null)
-        {
-            var size = Size(project, variant);
-            return new NextStep(StepKind.ChangeVariant, Tone.Accent, Icons.Layers, Strings.GamePage_ChangeTitle,
-                Text.Format(Strings.GamePage_ChangeText, ("variant", variant)))
-            {
-                Primary = Strings.GamePage_Change,
-                PrimaryIcon = Icons.Download,
-                PrimaryCaption = Caption(Strings.GamePage_Caption, project, size),
-                PrimaryRequest = new InstallProject(_key, project.ProjectId, variant),
-            };
         }
 
         return new NextStep(StepKind.Current, Tone.Success, Icons.Check, Strings.GamePage_CurrentTitle,
@@ -1092,11 +1188,14 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             // Trying again is refused the same way until the player uninstalls and the store checks the game's files.
             _ when failure.Failure?.Reason == JobFailureReason.KeptFilesBlockReplacement => (null, ""),
             (JobKind.Update, { } failed) when failed.Project is { } project =>
-                ((Message?)new UpdateProject(failed.Id), Caption(Strings.GamePage_CaptionTo, project, Size(project, failed.Status.UpdateVariant))),
+                ((Message?)new UpdateProject(failed.Id), Caption(Strings.GamePage_CaptionTo, project, failed.Status.UpdateSize)),
             (JobKind.Repair, { } failed) => (new RepairProject(failed.Id), Strings.GamePage_RepairCaption),
             (JobKind.Uninstall, { } failed) => (new UninstallProject(failed.Id), ""),
+            // A change of add-ons tries again with the choices the agent kept.
+            (JobKind.Install, { } failed) when failed.Project is { } project =>
+                (new ApplyFeatures(failed.Id, new Dictionary<string, bool?>()), Caption(Strings.GamePage_Caption, project, failed.Status.UpdateSize)),
             (_, null) when game.Project is { } project =>
-                (new InstallProject(_key, project.ProjectId, Chosen(game, null, project)), Caption(Strings.GamePage_Caption, project, Size(project, Chosen(game, null, project)))),
+                (new InstallProject(_key, project.ProjectId), Caption(Strings.GamePage_Caption, project, NewSize(project))),
             _ => (null, ""),
         };
         return new NextStep(StepKind.Failed, Tone.Danger, Icons.CircleX,
@@ -1169,7 +1268,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
     private void ShowProgress(JobView job)
     {
-        var stages = Stages(job.Kind);
+        var stages = Stages(job);
         var current = Math.Max(0, Array.FindIndex(stages, stage => stage.Stages.Contains(job.Stage)));
         var steps = stages.Select((stage, index) => new JobStepView(index + 1,
             Text.Format(Strings.GamePage_Step, ("step", stage.Name)),
@@ -1212,15 +1311,22 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         return seconds < 0.5 ? null : (job.BytesDone - firstBytes) / seconds;
     }
 
-    private static (string Name, JobStage[] Stages)[] Stages(JobKind kind) => kind switch
+    // A change of an install's add-ons removes it before installing anew, as an update does.
+    private static (string Name, JobStage[] Stages)[] Stages(JobView job) => job.Kind switch
     {
-        JobKind.Install or JobKind.TestInstall =>
+        JobKind.Install when job.InstallId is null =>
         [
             ("Download", [JobStage.Preparing, JobStage.Downloading]),
             ("Check", [JobStage.Checking]),
             ("Install", [JobStage.Installing, JobStage.Verifying, JobStage.RollingBack]),
         ],
-        JobKind.Update or JobKind.Repair =>
+        JobKind.TestInstall =>
+        [
+            ("Download", [JobStage.Preparing, JobStage.Downloading]),
+            ("Check", [JobStage.Checking]),
+            ("Install", [JobStage.Installing, JobStage.Verifying, JobStage.RollingBack]),
+        ],
+        JobKind.Update or JobKind.Repair or JobKind.Install =>
         [
             ("Download", [JobStage.Preparing, JobStage.Downloading]),
             ("Check", [JobStage.Checking]),
@@ -1288,9 +1394,45 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
     private InstallView? SubjectInstall() => _game is null ? null : Subject(_game).Install;
 
-    private static long? Size(ProjectOfferView project, string? variant) =>
-        (project.Variants.FirstOrDefault(entry => entry.Name == variant) ?? project.Variants.FirstOrDefault(entry => entry.Name == project.DefaultVariant))
-            ?.Package?.Size;
+    // What installing the project downloads: its base and the add-ons the line names.
+    private long? NewSize(ProjectOfferView project)
+    {
+        var features = NewFeatures is { } panel && panel.Project == project.ProjectId
+            ? panel.Pills.Where(pill => pill.IsOn).Select(pill => pill.Size)
+            : project.Features.Where(feature => feature.IsOn).Select(feature => feature.Package.Size);
+        long? total = project.Base is { } package ? package.Size : 0;
+        foreach (var size in features)
+        {
+            total += size;
+        }
+
+        return total;
+    }
+
+    // What the pending update or repair downloads, with the add-ons the player turned since.
+    private static long? PendingSize(InstallView install, FeaturePanel? panel) =>
+        install.Status.UpdateSize is { } size ? Math.Max(0, size + (panel is null ? 0 : Extra(panel) ?? 0)) : null;
+
+    // The bytes the pills the player turned add to what the plan downloads, or take from it; null when a size is unknown.
+    private static long? Extra(FeaturePanel panel)
+    {
+        long? extra = 0;
+        foreach (var pill in panel.Pills.Where(pill => pill.IsChanged && !pill.IsPresent))
+        {
+            extra += pill.IsOn ? pill.Size : -pill.Size;
+        }
+
+        return extra;
+    }
+
+    // The installed add-ons the update goes without, unless the player turned their pills on again.
+    private static string Drops(InstallView install, FeaturePanel? panel)
+    {
+        var drops = install.Status.UpdateDrops
+            .Where(drop => panel?.Pills.FirstOrDefault(pill => pill.Key == drop.Key) is not { IsOn: true }).ToList();
+        return drops.Count == 0 ? ""
+            : Text.Format(Strings.GamePage_UpdateDrops, ("count", drops.Count), ("names", string.Join(", ", drops.Select(drop => Quoted(drop.Name)))));
+    }
 
     private static string Caption(string pattern, ProjectOfferView project, long? size) =>
         Text.Format(pattern, ("version", GameWording.Version(project.Release)), ("size", size is { } bytes ? Formats.FileSize(bytes) : ""),
