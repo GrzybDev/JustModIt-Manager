@@ -145,9 +145,10 @@ internal sealed class AgentHarness : IAsyncDisposable
     private async Task<PipeConnection> Connect(ProcessRole role, IConnectionHandler? handler)
     {
         var hello = new Hello(Hello.CurrentProtocolVersion, "1.0.0", role, Environment.ProcessId);
-        // The agent listens a moment after it starts, and a client connects only to a pipe that listens.
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-        while (true)
+        // The agent listens a moment after it starts, and a client connects only to a pipe that listens. Its start and these
+        // attempts share the thread pool with the other tests' agents, so the wait is counted in attempts, which a busy
+        // machine holds up as much as the start, rather than in time the machine may spend on other work.
+        for (var attempt = 1; ; attempt++)
         {
             try
             {
@@ -155,9 +156,15 @@ internal sealed class AgentHarness : IAsyncDisposable
                 _connections.Add(connection);
                 return connection;
             }
-            catch (TimeoutException) when (DateTime.UtcNow < deadline)
+            catch (TimeoutException) when (attempt < 400 && !_run.IsCompleted)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(20), Token);
+            }
+            catch (TimeoutException) when (_run.IsCompleted)
+            {
+                // An agent that stopped before it listened tells why, which waiting out the attempts would hide.
+                await _run;
+                throw new InvalidOperationException("The agent stopped before it listened.");
             }
         }
     }
