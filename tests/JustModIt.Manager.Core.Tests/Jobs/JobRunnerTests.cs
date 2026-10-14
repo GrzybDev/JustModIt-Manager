@@ -187,13 +187,18 @@ public sealed class JobRunnerTests
 
         var handle = jobs.Runner.Start(JobsHarness.Install());
         await jobs.WaitsAsync(handle.Job.Id, JobWaitReason.StoreBusy);
-        // The clock only moves once the job sleeps, or a slow machine would count its way to the wait as time waited.
         await Eventually.HoldsAsync(() => jobs.Time.TimersCreated > timers, "the job sleeps until it looks again");
         jobs.Library.Probes.Clear();
+        var probes = jobs.Library.ProbeCount;
 
-        var waited = await jobs.Time.RunUntilCompletedAsync(handle.Completion, TimeSpan.FromSeconds(10));
-        (await handle.Completion).Outcome.Should().Be(JobOutcome.Succeeded);
-        waited.Should().BeLessThanOrEqualTo(JobPipeline.StoreBusyRecheck + TimeSpan.FromSeconds(10),
+        // The clock moves to the minute's end at once: stepped while the job waits for a thread, it ran past the minute on
+        // a busy machine.
+        jobs.Time.Advance(JobPipeline.StoreBusyRecheck - TimeSpan.FromSeconds(1));
+        await Eventually.SettleAsync();
+        jobs.Library.ProbeCount.Should().Be(probes, "nothing changed, so the job sleeps on");
+        jobs.Time.Advance(TimeSpan.FromSeconds(1));
+
+        (await handle.Completion.WaitAsync(TimeSpan.FromSeconds(30), Token)).Outcome.Should().Be(JobOutcome.Succeeded,
             "the store is looked at again at least once a minute");
     }
 
