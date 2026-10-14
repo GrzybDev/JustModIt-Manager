@@ -58,8 +58,28 @@ public sealed class SteamAppManifestTests
             BytesDownloaded = 14006601632,
             ScheduledAutoUpdate = null,
             Language = "polish",
+            InstalledDepots = ["110801@7802845176688782381"],
         });
         manifest.HasPendingTargetBuild.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Installed_depots_are_read_with_their_manifests()
+    {
+        var manifest = Parse("""
+            "appid" "10" "installdir" "Game"
+            "InstalledDepots"
+            {
+                "11" { "manifest" "5550001" "size" "100" }
+                "12" { "manifest" "5550002" "size" "20" "dlcappid" "13" }
+                "14" { "manifest" "0" }
+                "15" { "size" "5" }
+                "sixteen" { "manifest" "5550003" }
+            }
+            """);
+
+        manifest.InstalledDepots.Should().Equal("11@5550001", "12@5550002");
+        Parse("\"appid\" \"10\" \"installdir\" \"Game\"").InstalledDepots.Should().BeEmpty();
     }
 
     [Fact]

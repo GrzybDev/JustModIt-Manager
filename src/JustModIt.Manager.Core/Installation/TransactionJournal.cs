@@ -263,7 +263,7 @@ internal sealed class TransactionJournal : IDisposable
     AllowOutOfOrderMetadataProperties = true,
     UseStringEnumConverter = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    Converters = [typeof(Games.GameKeyJsonConverter)])]
+    Converters = [typeof(Games.GameKeyJsonConverter), typeof(Collections.StringListJsonConverter)])]
 [JsonSerializable(typeof(JournalEntry))]
 [JsonSerializable(typeof(InstallRecord))]
 [JsonSerializable(typeof(InstalledFiles))]

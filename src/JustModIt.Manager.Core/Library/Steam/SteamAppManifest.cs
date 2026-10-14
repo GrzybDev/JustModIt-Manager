@@ -1,4 +1,5 @@
 using System.Globalization;
+using JustModIt.Manager.Core.Collections;
 
 namespace JustModIt.Manager.Core.Library.Steam;
 
@@ -33,6 +34,9 @@ internal sealed record SteamAppManifest
 
     /// <summary>The game language chosen in Steam (an API language code such as <c>polish</c>).</summary>
     public string? Language { get; init; }
+
+    /// <summary>Every installed depot, DLC depots included, with the manifest it was installed from, as <c>depot@manifest</c>.</summary>
+    public ValueList<string> InstalledDepots { get; init; }
 
     public bool HasPendingTargetBuild =>
         TargetBuildId is not null && !string.Equals(TargetBuildId, BuildId, StringComparison.Ordinal);
@@ -69,6 +73,7 @@ internal sealed record SteamAppManifest
             ScheduledAutoUpdate = ParseUnixTime(state.GetString("ScheduledAutoUpdate")),
             Language = LauncherJson.NullIfBlank(state["UserConfig"]?.GetString("language"))
                 ?? LauncherJson.NullIfBlank(state["MountedConfig"]?.GetString("language")),
+            InstalledDepots = InstalledDepotsOf(state["InstalledDepots"]),
         };
     }
 
@@ -96,5 +101,13 @@ internal sealed record SteamAppManifest
             : null;
 
     private static string? NonZero(string? text) => LauncherJson.NullIfBlank(text) is { } value && value != "0" ? value : null;
+
+    private static ValueList<string> InstalledDepotsOf(VdfNode? depots) =>
+        depots is { IsObject: true }
+            ? [.. depots.Children
+                .Where(depot => ParseUInt32(depot.Key) > 0 && NonZero(depot.Value.GetString("manifest")) is not null)
+                .Select(depot => $"{depot.Key}@{depot.Value.GetString("manifest")}")
+                .Distinct(StringComparer.Ordinal)]
+            : [];
 
 }

@@ -63,6 +63,22 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
     }
 
     [Fact]
+    public async Task The_installed_content_is_left_to_fresh_scans()
+    {
+        var snapshot = new LibrarySnapshot
+        {
+            Games = new ValueDictionary<GameKey, InstalledGame>(ImmutableDictionary<GameKey, InstalledGame>.Empty
+                .Add(LinkedGame.Key, LinkedGame with { Content = ["621@77"] })),
+        };
+        var file = new AppDataLocations(_directory.Path, _directory.Combine("cache"), _directory.Combine("logs")).LibrarySnapshotFile;
+
+        await Store(file).SaveAsync(snapshot, TestContext.Current.CancellationToken);
+        var loaded = await Store(file).LoadAsync(TestContext.Current.CancellationToken);
+
+        loaded!.Games[LinkedGame.Key].Content.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Entries_that_cannot_be_read_are_left_out_and_an_unknown_state_blocks_writing()
     {
         using var json = JsonDocument.Parse("""

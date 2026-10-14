@@ -30,6 +30,12 @@ public sealed record InstallRecord
 
     public string? GameBuildId { get; init; }
 
+    /// <summary>
+    /// The version of the game the install was made on, which tells whether originals taken then still fit the game; null
+    /// in records written before the app recorded it.
+    /// </summary>
+    public GameVersion? GameVersion { get; init; }
+
     public required DateTimeOffset InstalledAt { get; init; }
 
     public required InstalledPackage Package { get; init; }

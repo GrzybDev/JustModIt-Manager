@@ -191,6 +191,18 @@ public sealed class InstallTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Records_the_languages_and_installed_content_of_the_game_it_was_made_on()
+    {
+        var package = _harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed"));
+        var request = _harness.Request(package) with { Game = _harness.Game with { Languages = ["pl"], Content = ["1001@77", "1002@78"] } };
+
+        await _harness.Engine.InstallAsync(request, null, InstallHarness.Token);
+
+        (await _harness.CreateEngine().LoadRecordsAsync(InstallHarness.Token)).Single().GameVersion.Should()
+            .Be(new GameVersion("42", ["pl"], ["1001@77", "1002@78"]));
+    }
+
+    [Fact]
     public async Task A_test_install_without_a_source_stays_marked_after_a_restart()
     {
         var package = _harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Test"));

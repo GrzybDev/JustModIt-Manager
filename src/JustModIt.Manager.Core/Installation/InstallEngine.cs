@@ -172,6 +172,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
                 InstallDirectory = game.Root,
                 GameVolume = gameVolume,
                 GameBuildId = request.Game.BuildId,
+                GameVersion = GameVersion.Of(request.Game),
                 InstalledAt = _time.GetUtcNow(),
                 Package = InstalledPackage.From(package),
                 Source = request.Source,

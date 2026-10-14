@@ -21,7 +21,8 @@ public sealed class SteamLibraryProviderTests
     public async Task An_installed_game_is_reported_with_its_details()
     {
         var written = new DateTimeOffset(2026, 4, 2, 8, 30, 0, TimeSpan.Zero);
-        _steam.AddApp(1001, "Example Quest", extra: "\"UserConfig\" { \"language\" \"polish\" }", writtenAt: written, buildId: "4242");
+        _steam.AddApp(1001, "Example Quest", writtenAt: written, buildId: "4242",
+            extra: "\"UserConfig\" { \"language\" \"polish\" } \"InstalledDepots\" { \"1002\" { \"manifest\" \"77\" } }");
 
         var scan = await _steam.ScanAsync();
 
@@ -40,6 +41,7 @@ public sealed class SteamLibraryProviderTests
             StoreActivityAt = written,
             Platform = OperatingSystemKind.Windows,
             Languages = ["pl"],
+            Content = ["1002@77"],
             Launch = LaunchLink.TryCreate("steam://rungameid/1001"),
         });
     }
