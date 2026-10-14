@@ -146,8 +146,8 @@ public sealed partial class JobRunner : IAsyncDisposable
     /// <summary>Starts a job in the background and returns at once.</summary>
     /// <param name="request">What the job is to do.</param>
     /// <returns>
-    /// The job; one that finished already when the game has a job (<see cref="JobFailureReason.AlreadyRunning"/>) or the
-    /// runner is shut down (cancelled), without any event.
+    /// The job; a refused one (<see cref="JobHandle.IsRefused"/>) when the game has a job
+    /// (<see cref="JobFailureReason.AlreadyRunning"/>) or the runner is shut down (cancelled).
     /// </returns>
     public JobHandle Start(JobRequest request)
     {
@@ -162,7 +162,7 @@ public sealed partial class JobRunner : IAsyncDisposable
                     ? refused.Result(JobOutcome.Cancelled)
                     : refused.Result(JobOutcome.Failed, new JobFailure(JobFailureReason.AlreadyRunning));
                 refused.DisposeCancellation();
-                return new JobHandle(refused.Snapshot, Task.FromResult(result));
+                return new JobHandle(refused.Snapshot, Task.FromResult(result)) { IsRefused = true };
             }
 
             // The app's exit cancels automatic jobs; the player's jobs finish unless the player cancels them.

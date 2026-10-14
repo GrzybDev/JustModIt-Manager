@@ -132,4 +132,11 @@ public sealed record JobSnapshot
 /// <summary>A started job: what it is, and its result once it has finished.</summary>
 /// <param name="Job">The job as it was when it was started.</param>
 /// <param name="Completion">Never faults: failures and cancellations are results.</param>
-public sealed record JobHandle(JobSnapshot Job, Task<JobResult> Completion);
+public sealed record JobHandle(JobSnapshot Job, Task<JobResult> Completion)
+{
+    /// <summary>
+    /// The runner did not run the job, which has its result already and no event: the game has a job, or the app exits.
+    /// A job that ran may have ended too by the time its starter looks, so only this tells the two apart.
+    /// </summary>
+    public bool IsRefused { get; init; }
+}

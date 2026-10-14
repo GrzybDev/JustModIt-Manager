@@ -97,6 +97,22 @@ public sealed class JobRunnerTests
     }
 
     [Fact]
+    public async Task Tells_a_refused_job_from_one_that_ran_however_soon_that_one_ended()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        jobs.Catalogue.PageGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var first = jobs.Runner.Start(JobsHarness.Install());
+        var busy = jobs.Runner.Start(JobsHarness.Install());
+        jobs.Catalogue.PageGate.SetResult();
+        await first.Completion;
+        jobs.Runner.Shutdown(cancelPlayerJobs: false);
+        var exiting = jobs.Runner.Start(JobsHarness.Install());
+
+        (first.IsRefused, busy.IsRefused, exiting.IsRefused).Should().Be((false, true, true),
+            "a job that ended before its starter looked ran all the same");
+    }
+
+    [Fact]
     public async Task Waits_for_recovery_before_touching_anything()
     {
         await using var jobs = await JobsHarness.CreateAsync(recover: false);

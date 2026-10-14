@@ -87,7 +87,7 @@ internal sealed class AutomationDriver : IAsyncDisposable
                     tried = true;
                     var handle = _jobs.Start(request);
                     // Another job runs on the game, or the app is exiting; the decision stands for the next look.
-                    if (handle.Completion.IsCompleted)
+                    if (handle.IsRefused)
                     {
                         continue;
                     }
