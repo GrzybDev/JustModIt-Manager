@@ -725,4 +725,7 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="NoticeStoreCheckAdvised" xml:space="preserve">
     <value>{reason, select, GameUpdated {Gra dostała aktualizację, gdy spolszczenie było zainstalowane, więc pliki zmieniane przez jego oprogramowanie zostały bez zmian, a kopie ich oryginałów zachowano.} OriginalUnknown {Pliki zmieniane przez oprogramowanie spolszczenia mają postać sprzed jego instalacji, ale już wtedy były zmienione.} other {Część plików została w wersji spolszczenia, bo kopie ich oryginałów zniknęły albo są uszkodzone.}} Oryginalne pliki przywróci sprawdzenie spójności plików gry w jej sklepie.</value>
   </data>
+  <data name="GamePage_RuntimeLine" xml:space="preserve">
+    <value>Podczas gry oprogramowanie spolszczenia zmienia też pliki w folderze gry; odinstalowanie cofnie i te zmiany.</value>
+  </data>
 </root>

@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
@@ -67,6 +68,9 @@ public sealed record InstallView
 
     public IReadOnlyList<ThirdPartyNoticeView> ThirdPartyNotices { get; init; } = [];
 
+    /// <summary>The game files the software of the install's packages changes while the game runs, as their manifests name them.</summary>
+    public IReadOnlyList<string> RuntimeFiles { get; init; } = [];
+
     /// <summary>Maps an install with its status and record.</summary>
     /// <param name="install">The install as the engine's state holds it.</param>
     public static InstallView From(MyInstall install)
@@ -100,10 +104,15 @@ public sealed record InstallView
             BackupLocation = record.Backup.Location,
             BackupDirectory = record.Backup.Directory,
             IsTest = record.IsTest,
-            ThirdPartyNotices = [.. (record.Parts?.Select(part => part.Package) ?? [record.Package])
-                .SelectMany(package => package.ThirdPartyNotices ?? []).Select(ThirdPartyNoticeView.From).Distinct()],
+            ThirdPartyNotices = [.. Packages(record).SelectMany(package => package.ThirdPartyNotices ?? []).Select(ThirdPartyNoticeView.From)
+                .Distinct()],
+            RuntimeFiles = [.. Packages(record).SelectMany(package => package.RuntimeFiles ?? []).Distinct(PackagePath.Comparer)],
         };
     }
+
+    // A record from before installs had parts names its one package.
+    private static IEnumerable<InstalledPackage> Packages(InstallRecord record) =>
+        record.Parts?.Select(part => part.Package) ?? [record.Package];
 }
 
 /// <summary>

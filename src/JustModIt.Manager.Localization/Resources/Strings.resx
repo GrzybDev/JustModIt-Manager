@@ -1446,6 +1446,9 @@
   <data name="GamePage_CheckFiles" xml:space="preserve">
     <value>Check the files in {store}</value>
   </data>
+  <data name="GamePage_RuntimeLine" xml:space="preserve">
+    <value>While the game runs, the project's software also changes files in the game's folder; uninstalling undoes that too.</value>
+  </data>
   <data name="GamePage_RuntimeShow" xml:space="preserve">
     <value>Show the files</value>
   </data>

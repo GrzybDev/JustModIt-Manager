@@ -313,6 +313,11 @@
       <Setter Property="Grid.Column" Value="3" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
+    <!-- An install's facts may run over several lines, so its row lines up at the top. -->
+    <Style Selector="StackPanel.rowActions.top">
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Margin" Value="0,-2,0,0" />
+    </Style>
     <!-- In a narrow window a row's actions go under its facts, so the facts keep their line. -->
     <Style Selector="Border.machine.compact StackPanel.rowActions">
       <Setter Property="Grid.Row" Value="1" />
@@ -599,15 +604,16 @@
                   <DataTemplate x:DataType="game:InstallRow">
                     <Border Classes="row">
                       <Grid ColumnDefinitions="32,100,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16">
-                        <Grid Grid.RowSpan="2" RowDefinitions="*,Auto,*" Margin="0,-14">
+                        <Grid Grid.RowSpan="2" RowDefinitions="14,Auto,*" Margin="0,-14">
                           <Border Classes="line" />
                           <Border Grid.Row="1" Classes="node">
                             <ui:Icon Data="{x:Static theme:Icons.Languages}" />
                           </Border>
                           <Border Grid.Row="2" Classes="line" />
                         </Grid>
-                        <TextBlock Grid.Column="1" Classes="rowLabel" Text="{x:Static loc:Strings.GamePage_RowProject}" />
-                        <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Grid.Column="1" Classes="rowLabel" VerticalAlignment="Top" Margin="0,6,0,0"
+                                   Text="{x:Static loc:Strings.GamePage_RowProject}" />
+                        <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Top" Margin="0,5,0,0">
                           <TextBlock Text="{Binding Project}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextEmphasisBrush}"
                                      IsVisible="{Binding HasProject}" />
                           <TextBlock Classes="rowTitle" TextWrapping="Wrap">
@@ -618,13 +624,27 @@
                           <ui:StatusLine FontSize="13" LineHeight="18" Icon="{x:Static theme:Icons.TriangleAlert}" Tone="Warning" Label="{Binding Detail}"
                                          IsVisible="{Binding IsWarning}" />
                           <TextBlock Classes="rowText" Text="{Binding Detail}" IsVisible="{Binding !IsWarning}" />
-                          <WrapPanel ItemSpacing="10" IsVisible="{Binding Licenses, Converter={x:Static ObjectConverters.IsNotNull}}">
-                            <TextBlock Classes="rowText" Text="{Binding Licenses.Line}" />
-                            <Button x:Name="LicensesToggle" Classes="link" FontSize="13" Content="{Binding Licenses.Toggle}"
-                                    ui:ButtonAssist.Icon="{Binding Licenses.ToggleIcon}"
-                                    AutomationProperties.Name="{Binding Licenses.Toggle}"
-                                    Command="{Binding Licenses.ToggleShownCommand}" />
-                          </WrapPanel>
+                          <ui:TrailingAction x:Name="RuntimeLine" Text="{x:Static loc:Strings.GamePage_RuntimeLine}" LineHeight="18"
+                                             TextElement.FontSize="13" TextElement.Foreground="{StaticResource TextSecondaryBrush}"
+                                             IsVisible="{Binding RuntimeFiles, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <ui:TrailingAction.Action>
+                              <Button x:Name="RuntimeToggle" Classes="link filesToggle" Content="{Binding RuntimeFiles.Toggle}"
+                                      ui:ButtonAssist.Icon="{Binding RuntimeFiles.ToggleIcon}" AutomationProperties.Name="{Binding RuntimeFiles.Toggle}"
+                                      Command="{Binding RuntimeFiles.ToggleShownCommand}" />
+                            </ui:TrailingAction.Action>
+                          </ui:TrailingAction>
+                          <ui:PathList Paths="{Binding RuntimeFiles.Paths}" Margin="0,6,0,2" theme:Motion.Enter="True"
+                                       IsVisible="{Binding RuntimeFiles.AreShown, FallbackValue=False}"
+                                       AutomationProperties.Name="{x:Static loc:Strings.GamePage_RuntimeFiles}" />
+                          <ui:TrailingAction x:Name="LicensesLine" Text="{Binding Licenses.Line}" LineHeight="18"
+                                             TextElement.FontSize="13" TextElement.Foreground="{StaticResource TextSecondaryBrush}"
+                                             IsVisible="{Binding Licenses, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <ui:TrailingAction.Action>
+                              <Button x:Name="LicensesToggle" Classes="link filesToggle" Content="{Binding Licenses.Toggle}"
+                                      ui:ButtonAssist.Icon="{Binding Licenses.ToggleIcon}" AutomationProperties.Name="{Binding Licenses.Toggle}"
+                                      Command="{Binding Licenses.ToggleShownCommand}" />
+                            </ui:TrailingAction.Action>
+                          </ui:TrailingAction>
                           <Border Classes="licenses" theme:Motion.Enter="True" IsVisible="{Binding Licenses.AreShown, FallbackValue=False}">
                             <ItemsControl ItemsSource="{Binding Licenses.Items}">
                               <ItemsControl.ItemsPanel>
@@ -655,7 +675,7 @@
                             </ItemsControl>
                           </Border>
                         </StackPanel>
-                        <StackPanel Classes="rowActions" Orientation="Horizontal" Spacing="4">
+                        <StackPanel Classes="rowActions top" Orientation="Horizontal" Spacing="4">
                           <Button Classes="outline rowAction" Content="{Binding Action}" ui:ButtonAssist.Icon="{Binding ActionIcon}"
                                   IsVisible="{Binding HasAction}" Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).ActCommand}"
                                   CommandParameter="{Binding}" />

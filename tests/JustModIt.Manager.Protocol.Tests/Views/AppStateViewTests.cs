@@ -45,6 +45,27 @@ public sealed class AppStateViewTests
     }
 
     [Fact]
+    public void An_install_names_the_files_the_software_of_every_package_changes_while_the_game_runs_once()
+    {
+        var install = State.Games[0].Installs[0];
+        var single = install with { Record = install.Record with { Package = install.Record.Package with { RuntimeFiles = ["data/list.dat"] } } };
+        var addOn = new InstalledPackage(PackageKind.Manifest, "add-on.examplemod", RuntimeFiles: ["Data/List.dat", "data/list_original.dat"]);
+        var parts = install with
+        {
+            Record = install.Record with
+            {
+                Package = install.Record.Package with { RuntimeFiles = ["data/list.dat"] },
+                Parts = [new InstalledPart(install.Record.Package), new InstalledPart(addOn, "series", "Series")],
+            },
+        };
+
+        InstallView.From(install).RuntimeFiles.Should().BeEmpty();
+        InstallView.From(single).RuntimeFiles.Should().Equal("data/list.dat");
+        InstallView.From(parts).RuntimeFiles.Should().Equal(["Data/List.dat", "data/list_original.dat"],
+            "the record's parts name what each package declares, and the base declares nothing");
+    }
+
+    [Fact]
     public void A_game_carries_its_status_installs_offer_and_job()
     {
         var game = View.Games[0];

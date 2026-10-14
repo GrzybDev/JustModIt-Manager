@@ -185,12 +185,36 @@ public sealed record InstallRow(Guid Id, string Title, string When, string Detai
 
     public Message? ActionRequest { get; init; }
 
+    /// <summary>The files the install's software changes while the game runs; null when it changes none.</summary>
+    public RuntimeFilesView? RuntimeFiles { get; init; }
+
     /// <summary>The software the install's packages carry, with its licences; null when they carry none.</summary>
     public LicensesView? Licenses { get; init; }
 
     public bool HasProject => Project.Length > 0;
 
     public bool HasAction => Action is not null;
+}
+
+/// <summary>
+/// The game files an install's software changes while the game runs, listed under the line that tells of them once the
+/// player unfolds them; kept across the page's states, so unfolding them keeps the row and the toggle's focus.
+/// </summary>
+/// <param name="paths">The files, game-relative.</param>
+public sealed partial class RuntimeFilesView(IReadOnlyList<string> paths) : ObservableObject
+{
+    public IReadOnlyList<string> Paths { get; } = paths;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Toggle), nameof(ToggleIcon))]
+    public partial bool AreShown { get; set; }
+
+    public string Toggle => AreShown ? Strings.GamePage_RuntimeHide : Strings.GamePage_RuntimeShow;
+
+    public Geometry ToggleIcon => AreShown ? Theme.Icons.ChevronUp : Theme.Icons.ChevronDown;
+
+    [RelayCommand]
+    private void ToggleShown() => AreShown = !AreShown;
 }
 
 /// <summary>

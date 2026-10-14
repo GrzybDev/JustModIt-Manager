@@ -37,6 +37,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private readonly UiServices _services;
     private readonly GameKey _key;
     private readonly List<(DateTimeOffset At, long Bytes)> _samples = [];
+    private readonly Dictionary<Guid, RuntimeFilesView> _runtimeFiles = [];
     private readonly Dictionary<Guid, LicensesView> _licenses = [];
     private GameView? _game;
     private Guid? _detailsFor;
@@ -702,6 +703,11 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private void ShowInstalls(GameView game, InstallView? subject)
     {
         var several = game.Installs.Count > 1;
+        foreach (var gone in _runtimeFiles.Keys.Where(id => game.Installs.All(install => install.Id != id)).ToList())
+        {
+            _runtimeFiles.Remove(gone);
+        }
+
         var rows = game.Installs.Select(install => Row(game, install, several, install == subject)).ToList();
         IsNotInstalled = rows.Count == 0;
         Sync(Installs, rows);
@@ -739,8 +745,26 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             Action = action,
             ActionIcon = icon,
             ActionRequest = request,
+            RuntimeFiles = RuntimeFilesOf(install),
             Licenses = LicensesOf(install),
         };
+    }
+
+    // The same list stays while the install declares the same files, so a state that changes nothing else folds nothing.
+    private RuntimeFilesView? RuntimeFilesOf(InstallView install)
+    {
+        if (install.RuntimeFiles.Count == 0)
+        {
+            _runtimeFiles.Remove(install.Id);
+            return null;
+        }
+
+        if (!_runtimeFiles.TryGetValue(install.Id, out var files) || !files.Paths.SequenceEqual(install.RuntimeFiles, StringComparer.Ordinal))
+        {
+            _runtimeFiles[install.Id] = files = new RuntimeFilesView(install.RuntimeFiles) { AreShown = files?.AreShown ?? false };
+        }
+
+        return files;
     }
 
     // The same list stays while the install's packages name the same software, so a state that changes nothing else folds

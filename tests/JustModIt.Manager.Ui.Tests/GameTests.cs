@@ -236,6 +236,60 @@ public sealed class GameTests
     }
 
     [AvaloniaFact]
+    public async Task An_install_whose_software_changes_files_says_so_and_unfolds_them()
+    {
+        var game = WithRuntimeFiles(Installed("Ember Hollow", "4100", offer: Ember));
+        using var ui = Open(State(game), game, Ember);
+        var page = Page(ui);
+        await UiHarness.WaitUntilAsync(() => page.Details is not null);
+        var files = page.Installs.Single().RuntimeFiles!;
+        var toggle = ui.Find<Button>("RuntimeToggle");
+
+        ui.Find<TrailingAction>("RuntimeLine").IsEffectivelyVisible.Should().BeTrue();
+        AutomationProperties.GetName(toggle).Should().Be("Pokaż pliki");
+        ui.Find<PathList>().Should().OnlyContain(list => !list.IsEffectivelyVisible, "the list is folded when the page opens");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("install-line-folded");
+
+        toggle.Focus(NavigationMethod.Tab);
+        ui.Press(Key.Space);
+        files.AreShown.Should().BeTrue();
+        AutomationProperties.GetName(toggle).Should().Be("Ukryj pliki");
+        var list = ui.Find<PathList>().Single(shown => shown.IsEffectivelyVisible);
+        (list.Paths, AutomationProperties.GetName(list)).Should().Be((files.Paths, "Pliki zmieniane podczas gry"));
+        ui.Push(State(game) with { Version = 2 });
+        page.Installs.Single().RuntimeFiles.Should().BeSameAs(files, "a state that changes nothing else keeps the files unfolded");
+        toggle.IsFocused.Should().BeTrue("the row stays, and its toggle keeps the focus");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("install-line-unfolded");
+
+        var plain = Installed("Ember Hollow", "4100", offer: Ember);
+        ui.Push(State(plain) with { Version = 3 });
+        page.Installs.Single().RuntimeFiles.Should().BeNull();
+        ui.Find<TrailingAction>().Should().OnlyContain(line => !line.IsEffectivelyVisible, "an install whose software changes nothing has no line");
+    }
+
+    [AvaloniaFact]
+    public async Task At_the_smallest_window_the_line_of_files_the_software_changes_wraps_with_its_toggle_whole()
+    {
+        var game = WithRuntimeFiles(Installed("Ember Hollow", "4100", offer: Ember));
+        using var ui = new UiHarness(State(game), width: 960, height: 600);
+        ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(game.Key)]);
+        UiHarness.Settle();
+        Page(ui).Installs.Single().RuntimeFiles!.AreShown = true;
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        var list = ui.Find<PathList>().Single(shown => shown.IsEffectivelyVisible);
+        list.BringIntoView();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+
+        var toggle = ui.Find<Button>("RuntimeToggle");
+        var line = ui.Find<TrailingAction>("RuntimeLine");
+        toggle.TranslatePoint(new Point(toggle.Bounds.Width, 0), line)!.Value.X.Should().BeLessThanOrEqualTo(line.Bounds.Width);
+        list.TranslatePoint(new Point(list.Bounds.Width, 0), ui.Window)!.Value.X.Should().BeLessThan(960);
+        ui.Render("install-line-minimum");
+    }
+
+    [AvaloniaFact]
     public async Task An_install_refused_for_kept_files_says_what_comes_first_and_offers_steam_s_check()
     {
         var game = Available("Ember Hollow", "4100", Ember) with
@@ -730,4 +784,7 @@ public sealed class GameTests
     }
 
     private static GamePageViewModel Page(UiHarness ui) => (GamePageViewModel)ui.Shell.Navigator.Current!;
+
+    private static GameView WithRuntimeFiles(GameView game) =>
+        game with { Installs = [game.Installs[0] with { RuntimeFiles = ["data/videos/list.dat", "data/videos/list_original.dat"] }] };
 }
