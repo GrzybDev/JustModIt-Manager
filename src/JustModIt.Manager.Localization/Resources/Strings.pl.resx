@@ -3168,6 +3168,9 @@
   <data name="Creator_PackageName" xml:space="preserve">
     <value>{game} v{version}</value>
   </data>
+  <data name="Creator_PackageGameOnStore" xml:space="preserve">
+    <value>{game} ({store})</value>
+  </data>
   <data name="Creator_BuildTitle" xml:space="preserve">
     <value>Zapisz paczkę</value>
   </data>

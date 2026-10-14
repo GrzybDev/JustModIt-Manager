@@ -225,6 +225,55 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_package_built_for_one_copy_of_a_game_is_left_behind_once_the_author_picks_another_copy()
+    {
+        using var ui = await OpenAsync();
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        ui.Agent.Answer = request => request switch
+        {
+            GetDetectedGames => new DetectedGames([.. _work.Detected, gog]),
+            TestInstallPackage => new JobStarted(InstallJob),
+            _ => null,
+        };
+        var package = await PackageAsync(ui);
+        package.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        var steam = Output("Lantern Isle (Steam) v1.0.examplemod");
+        ui.Pickers.SaveFile = steam;
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        var built = File.GetLastWriteTimeUtc(steam);
+        ui.Click(Button(ui, Strings.Creator_TestInstall));
+        ui.Agent.End(new JobEnded(Job(InstallJob, JobKind.TestInstall, JobStage.Checking), JobOutcome.Failed,
+            new JobFailureView(JobFailureReason.GameRunning)));
+        package.Test.Should().Be(TestInstallState.Failed);
+
+        var page = Page(ui);
+        page.OpenStepCommand.Execute(page.Steps[(int)CreatorStep.Game]);
+        ((GameStepViewModel)page.Content!).Choose(gog);
+
+        (package.IsReady, package.OutputPath, package.Test, package.HasTestProblem).Should().Be((true, "", TestInstallState.None, false));
+        page.GoTo(CreatorStep.Files);
+        await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review && page.Session!.Review is not null
+            && page.Session.Comparison!.GameDirectory == gog.Game.InstallDirectory);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Click(Button(ui, Strings.Creator_Confirm));
+        await UiHarness.WaitUntilAsync(() => page.Content is PackageStepViewModel);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        Shows(ui, Strings.Creator_TestInstall).Should().BeFalse("the package built so far is the other copy's");
+
+        var other = Output("Lantern Isle (GOG) v1.0.examplemod");
+        ui.Pickers.SaveFile = other;
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.IsBuilt);
+        ui.Pickers.Suggested.Should().Equal(["Lantern Isle (Steam) v1.0.examplemod", "Lantern Isle (GOG) v1.0.examplemod"],
+            "each copy's package is named after its store and goes where the author says, not over the other one");
+        File.GetLastWriteTimeUtc(steam).Should().Be(built);
+        ui.Click(Button(ui, Strings.Creator_TestInstall));
+        ui.Agent.Requests.OfType<TestInstallPackage>().Last().Should().Be(new TestInstallPackage(gog.Key, other));
+    }
+
+    [AvaloniaFact]
     public async Task The_site_s_limits_are_warnings_after_the_build()
     {
         using var ui = await OpenAsync(state: TestStates.Idle(creatorMode: true) with
@@ -530,4 +579,7 @@ public sealed class CreatorPackageTests : IDisposable
     private static Button Button(UiHarness ui, string name) =>
         ui.Find<Button>().First(button => button.IsEffectivelyVisible && button.IsEffectivelyEnabled
             && ControlAutomationPeer.CreatePeerForElement(button).GetName() == name);
+
+    private static bool Shows(UiHarness ui, string name) =>
+        ui.Find<Button>().Any(button => button.IsEffectivelyVisible && ControlAutomationPeer.CreatePeerForElement(button).GetName() == name);
 }

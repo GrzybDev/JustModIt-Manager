@@ -141,6 +141,11 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
             var chosen = Selected?.Entry.Key;
             _options = [.. detected.Games.Select(entry => new GameOption(entry) { IsSelected = entry.Key == chosen })];
             Judge();
+            if (_page.Game is { } game)
+            {
+                _page.IsGameOnOtherStores = IsOnOtherStores(game);
+            }
+
             IsLoaded = true;
             Filter();
         }
@@ -170,6 +175,7 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
             });
         }
 
+        _page.IsGameOnOtherStores = IsOnOtherStores(entry);
         _page.Game = entry;
         _page.ClearProblem();
         foreach (var option in _options)
@@ -250,6 +256,11 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
         Selected = _options.FirstOrDefault(option => option.IsSelected);
         ContinueCommand.NotifyCanExecuteChanged();
     }
+
+    // Stores spell a title differently now and then, e.g. with a colon, so titles are compared as the search folds them.
+    private bool IsOnOtherStores(DetectedGameEntry entry) =>
+        _options.Any(option => option.Entry.Key.Store != entry.Key.Store
+            && string.Equals(SearchText.Fold(option.Name), SearchText.Fold(entry.Name), StringComparison.Ordinal));
 
     private static string InstalledText(InstallView install)
     {

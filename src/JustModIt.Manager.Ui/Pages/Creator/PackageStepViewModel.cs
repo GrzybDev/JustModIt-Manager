@@ -68,6 +68,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private Guid? _undoJob;
     private bool _lostTrack;
     private string _testNote = "";
+    private (GameKey? Key, string Folder) _game;
 
     /// <summary>Creates the step for a project.</summary>
     /// <param name="page">The creator.</param>
@@ -76,6 +77,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     {
         _page = page;
         _session = session;
+        _game = (session.Project.Game?.Key, session.Project.GameFolder);
         _session.PropertyChanged += OnSessionChanged;
         _page.Agent.PropertyChanged += OnAgentChanged;
         _page.Agent.JobsProgressed += OnJobsProgressed;
@@ -573,7 +575,29 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             ]);
     }
 
-    private void OnSessionChanged(object? sender, PropertyChangedEventArgs e) => Show();
+    private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        var project = _session.Project;
+        if (_game != (project.Game?.Key, project.GameFolder))
+        {
+            _game = (project.Game?.Key, project.GameFolder);
+            Forget();
+        }
+
+        Show();
+    }
+
+    // A package and its test belong to the game it was built for: another copy of the game, e.g. from another store, has
+    // other files, so its package is built anew, and a test install never takes the other copy's package.
+    private void Forget()
+    {
+        (OutputPath, _builtAs, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings) = ("", "", "", "", "", "", []);
+        (ProblemTitle, ProblemText, NeedsComparison, BuildFindings, BuildTarget) = ("", "", false, [], "");
+        (_testJob, _undoJob, _lostTrack, _testNote, HasTestProblem) = (null, null, false, "", false);
+        _ended.Clear();
+        Test = TestInstallState.None;
+        State = PackageState.Ready;
+    }
 
     private void OnAgentChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -856,11 +880,17 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         TestFraction = job.Fraction;
     }
 
-    private string SuggestedName(DetectedGameEntry game, string extension) =>
-        FileNames.Suggest(_session.Project.Metadata.Version.Trim() is { Length: > 0 } version
-                ? Text.Format(Strings.Creator_PackageName, ("game", game.Name), ("version", version))
-                : game.Name,
+    // A copy of the game from another store gets a package of its own, which a name without the store would overwrite.
+    private string SuggestedName(DetectedGameEntry game, string extension)
+    {
+        var name = _page.IsGameOnOtherStores
+            ? Text.Format(Strings.Creator_PackageGameOnStore, ("game", game.Name), ("store", GameWording.StoreName(game.Key.Store)))
+            : game.Name;
+        return FileNames.Suggest(_session.Project.Metadata.Version.Trim() is { Length: > 0 } version
+                ? Text.Format(Strings.Creator_PackageName, ("game", name), ("version", version))
+                : name,
             Strings.Creator_ProjectFallbackName, extension);
+    }
 
     private string? OutputFolder() =>
         OutputPath.Length > 0 ? Path.GetDirectoryName(OutputPath)

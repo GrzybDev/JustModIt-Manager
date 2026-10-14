@@ -199,6 +199,9 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
 
     public string GameStoreName => Game is { } game ? GameWording.StoreName(game.Key.Store) : "";
 
+    /// <summary>Another store reports a game of the same name as <see cref="Game"/>, whose package would take the same name.</summary>
+    internal bool IsGameOnOtherStores { get; set; }
+
     public override void OnShown()
     {
         ShowRecent();

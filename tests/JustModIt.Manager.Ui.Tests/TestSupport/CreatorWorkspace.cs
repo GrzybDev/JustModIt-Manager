@@ -48,6 +48,20 @@ public sealed class CreatorWorkspace : IDisposable
 
     public string Game(string path, string content) => Write(GameFolder, path, content);
 
+    /// <summary>Lantern Isle as another store reports it, in a folder of its own holding the same files.</summary>
+    public DetectedGameEntry CopyOfLantern(GameKey key)
+    {
+        var folder = Path.Combine(Root, "Games", "Lantern Isle " + key.Store.Value);
+        foreach (var file in Directory.EnumerateFiles(GameFolder, "*", SearchOption.AllDirectories))
+        {
+            var copy = Path.Combine(folder, Path.GetRelativePath(GameFolder, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
+            File.Copy(file, copy);
+        }
+
+        return Entry(key, "Lantern Isle", folder, GameInstallState.Installed);
+    }
+
     public string Author(string path, string content) => Write(AuthorFolder, path, content);
 
     /// <summary>Puts the creator's page, with an optional file system, in place of the window's own.</summary>
