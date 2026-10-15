@@ -1,12 +1,11 @@
 using System.Runtime.InteropServices;
-using JustModIt.Manager.Localization;
 
 namespace JustModIt.Manager.Ui;
 
 /// <summary>Where the player reports a problem with the app, from the settings or after it closed unexpectedly.</summary>
 internal static class ProblemReports
 {
-    /// <summary>The address of a new problem report, with the app's and the system's version and nothing else.</summary>
+    /// <summary>The address of the bug form, prefilled with the app's and the system's version and nothing else.</summary>
     /// <param name="context">What the window knows about the app.</param>
     /// <returns>Null when the app has no place for reports.</returns>
     public static Uri? Address(UiContext context)
@@ -16,8 +15,9 @@ internal static class ProblemReports
             return null;
         }
 
-        var body = string.Join('\n', Text.Format(Strings.Settings_IssueVersion, ("version", context.Version)),
-            Text.Format(Strings.Settings_IssueSystem, ("system", RuntimeInformation.OSDescription)));
-        return new UriBuilder(issues) { Query = "body=" + Uri.EscapeDataString(body) }.Uri;
+        // With issue forms a plain new issue lands on the template chooser; the bug form's field ids take the values.
+        var query = "template=bug_report.yml&version=" + Uri.EscapeDataString(context.Version)
+            + "&system=" + Uri.EscapeDataString(RuntimeInformation.OSDescription);
+        return new UriBuilder(issues) { Query = query }.Uri;
     }
 }

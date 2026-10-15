@@ -54,7 +54,7 @@ public sealed class UnexpectedCloseTests
         ui.Render("unexpected-close-failed-report");
 
         ui.Click(ui.Find<Button>("ReportProblem"));
-        ui.Links.Opened.Should().ContainSingle().Which.AbsoluteUri.Should().StartWith("https://code.example.com/issues/new?body=");
+        ui.Links.Opened.Should().ContainSingle().Which.AbsoluteUri.Should().StartWith("https://code.example.com/issues/new?template=bug_report.yml&version=");
         (await dialog.Result).Should().BeTrue();
     }
 

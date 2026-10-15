@@ -2214,12 +2214,6 @@
   <data name="Settings_StopMoving" xml:space="preserve">
     <value>Anuluj</value>
   </data>
-  <data name="Settings_IssueVersion" xml:space="preserve">
-    <value>Wersja aplikacji: {version}</value>
-  </data>
-  <data name="Settings_IssueSystem" xml:space="preserve">
-    <value>System: {system}</value>
-  </data>
   <data name="Undetected_Subtitle" xml:space="preserve">
     <value>Co widać na tym komputerze i co zrobić, gdy brakuje gry.</value>
   </data>

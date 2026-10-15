@@ -2226,12 +2226,6 @@
   <data name="Settings_StopMoving" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="Settings_IssueVersion" xml:space="preserve">
-    <value>App version: {version}</value>
-  </data>
-  <data name="Settings_IssueSystem" xml:space="preserve">
-    <value>System: {system}</value>
-  </data>
   <data name="Undetected_Subtitle" xml:space="preserve">
     <value>What the stores show on this computer, and what helps when a game is missing.</value>
   </data>

@@ -545,7 +545,7 @@ public sealed class SettingsTests
         ui.Links.Opened[0].Should().Be(new Uri("https://example.com/"));
         ui.Links.Opened[1].Should().Be(new Uri("https://code.example.com/example-app"));
         var report = Uri.UnescapeDataString(ui.Links.Opened[2].Query);
-        report.Should().StartWith("?body=Wersja aplikacji: 0.1.0\nSystem: ").And.NotContain(Environment.UserName,
+        report.Should().StartWith("?template=bug_report.yml&version=0.1.0&system=").And.NotContain(Environment.UserName,
             "a report carries the app's and the system's version and nothing else");
 
         ui.Click(ui.Find<Button>("OpenLogs"));
