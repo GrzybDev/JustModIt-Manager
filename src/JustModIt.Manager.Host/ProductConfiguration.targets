@@ -14,6 +14,9 @@
       <_UpdatePrereleasesLiteral Condition="'$(ManagerUpdatePrereleases)' == 'true'">true</_UpdatePrereleasesLiteral>
       <_DevelopmentBuildLiteral>false</_DevelopmentBuildLiteral>
       <_DevelopmentBuildLiteral Condition="'$(ManagerDevelopmentBuild)' == 'true'">true</_DevelopmentBuildLiteral>
+      <!-- Keys belong to the release and CI channels; a development build uses the API as anyone does, whatever it is passed. -->
+      <_ApiKey>$(ManagerApiKey)</_ApiKey>
+      <_ApiKey Condition="'$(ManagerDevelopmentBuild)' == 'true'"></_ApiKey>
       <_DevelopmentShellIntegrationLiteral>false</_DevelopmentShellIntegrationLiteral>
       <_DevelopmentShellIntegrationLiteral Condition="'$(ManagerDevelopmentShellIntegration)' == 'true'">true</_DevelopmentShellIntegrationLiteral>
       <!-- Only an app references Host, whose type this member builds; test projects get the constants alone. -->
@@ -72,7 +75,7 @@ internal static class ProductConfiguration
     public const string SiteUrl = @"$([MSBuild]::Escape($(ManagerSiteUrl.Replace('"', '""'))))"%3B
 
     /// <summary>An empty key means the API is used anonymously.</summary>
-    public const string ApiKey = @"$([MSBuild]::Escape($(ManagerApiKey.Replace('"', '""'))))"%3B
+    public const string ApiKey = @"$([MSBuild]::Escape($(_ApiKey.Replace('"', '""'))))"%3B
 
     /// <summary>An empty address turns self-update off.</summary>
     public const string UpdateUrl = @"$([MSBuild]::Escape($(ManagerUpdateUrl.Replace('"', '""'))))"%3B

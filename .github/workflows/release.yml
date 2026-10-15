@@ -108,7 +108,10 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
-          MANAGER_API_KEY: ${{ secrets.MANAGER_API_KEY }}
+          # Each app's releases carry a key of their own, so the site can tell the apps apart and pause one alone.
+          MANAGER_API_KEY: >-
+            ${{ steps.version.outputs.slug == 'menadzer-spolszczen' && secrets.MANAGER_API_KEY_MENADZER_SPOLSZCZEN
+            || steps.version.outputs.slug == 'justmodit-manager' && secrets.MANAGER_API_KEY_JUSTMODIT_MANAGER || '' }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}

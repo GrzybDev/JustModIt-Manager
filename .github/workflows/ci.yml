@@ -35,9 +35,12 @@ jobs:
         run: Invoke-Pester -Path build/tests -CI
 
       # NativeAOT and trimming warnings only surface at publish time, and they are errors here. Every app is packaged as
-      # its release would be, so a shared change cannot break one that nobody was looking at.
+      # its release would be, so a shared change cannot break one that nobody was looking at. CI packages carry the CI
+      # channel's key, never a release's; a pull request from a fork gets no secrets and builds without one.
       - name: Package every app
         shell: pwsh
+        env:
+          MANAGER_API_KEY: ${{ secrets.MANAGER_API_KEY_CI }}
         run: |
           foreach ($app in (Get-ChildItem src/*/Product.props).Directory.Name) {
             ./build/package.ps1 -App $app -Version (./build/version.ps1 -App $app -Ci ${{ github.run_number }}) -NoDelta
