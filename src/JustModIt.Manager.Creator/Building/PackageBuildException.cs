@@ -22,6 +22,9 @@ public enum BuildFailure
     /// <summary>Files changed or disappeared since the comparison; <see cref="PackageBuildException.Paths"/> names them.</summary>
     FilesChanged,
 
+    /// <summary>A file could not be read, e.g. because another program holds it; <see cref="PackageBuildException.Paths"/> names it.</summary>
+    Unreadable,
+
     TooManyEntries,
     TooLarge,
     ManifestTooLarge,

@@ -357,6 +357,24 @@ public sealed class PackageBuilderTests : IDisposable
     }
 
     [Fact]
+    public async Task Names_a_file_another_program_holds_rather_than_failing_to_write_the_package()
+    {
+        var held = _workspace.Author("new.txt", "new");
+        var plan = await PlanAsync(new CreatorProject());
+
+        PackageBuildException failure;
+        using (File.Open(held, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            var build = () => BuildAsync(plan, "example.zip");
+            failure = (await build.Should().ThrowAsync<PackageBuildException>()).Which;
+        }
+
+        failure.Failure.Should().Be(BuildFailure.Unreadable);
+        failure.Paths.Should().ContainSingle().Which.Should().EndWith("new.txt");
+        Directory.GetFileSystemEntries(_workspace.OutputDirectory).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Refuses_a_game_that_holds_an_install_another_app_manages_or_is_not_ready()
     {
         _workspace.Author("data.txt", "text");

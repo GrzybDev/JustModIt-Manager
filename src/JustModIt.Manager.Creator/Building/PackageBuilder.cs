@@ -238,7 +238,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
                 tracker.StartFile(file.Path, game.Stamp.Size);
                 long done = 0;
                 var bytes = new InlineProgress<long>(read => tracker.Report(BuildStage.HashingRuntimeFiles, done += read));
-                var source = fileSystem.OpenRead(game.FullPath, FileShare.Read);
+                var source = OpenSource(game.FullPath);
                 await using (source.ConfigureAwait(false))
                 {
                     var (size, sha256) = await FileHash.CopyAndComputeAsync(source, Stream.Null, HashAlgorithmName.SHA256, bytes,
@@ -272,6 +272,24 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
             }
         }
 
+        // A file another program holds, or one the author may not read, is named as such; as an I/O error it would read as
+        // a package that could not be written, whose place the author would be asked to change.
+        private Stream OpenSource(string path)
+        {
+            try
+            {
+                return fileSystem.OpenRead(path, FileShare.Read);
+            }
+            catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+            {
+                throw new PackageBuildException(BuildFailure.FilesChanged, [path]);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                throw new PackageBuildException(BuildFailure.Unreadable, [path]);
+            }
+        }
+
         private async Task<CopyOperation> CopyAsync(PlannedOperation operation, CancellationToken cancellationToken)
         {
             var file = operation.SourceFile ?? throw Unresolved(operation);
@@ -279,7 +297,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
             var name = EntryFor(operation);
             long done = 0;
             var bytes = new InlineProgress<long>(read => tracker.Report(BuildStage.Copying, done += read));
-            var source = fileSystem.OpenRead(file.FullPath, FileShare.Read);
+            var source = OpenSource(file.FullPath);
             await using (source.ConfigureAwait(false))
             {
                 var compression = await PayloadCompression.ForAsync(source, cancellationToken).ConfigureAwait(false);
