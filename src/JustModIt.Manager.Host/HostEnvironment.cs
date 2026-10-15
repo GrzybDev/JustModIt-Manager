@@ -1,10 +1,12 @@
 using System.Reflection;
 using JustModIt.Manager.Agent;
+using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
+using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui;
 using Microsoft.Extensions.Logging;
 using Velopack.Locators;
@@ -98,7 +100,8 @@ internal sealed record HostEnvironment
     /// <param name="options">What the app hands the startup about itself.</param>
     /// <param name="launch">This process's command line, parsed.</param>
     /// <param name="loggers">The window process's log.</param>
-    public UiContext WindowContext(AppOptions options, LaunchArguments launch, ILoggerFactory loggers)
+    /// <param name="previous">How the window's previous run ended uncleanly; null after a clean exit.</param>
+    public UiContext WindowContext(AppOptions options, LaunchArguments launch, ILoggerFactory loggers, UncleanExit? previous = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         return new UiContext
@@ -117,6 +120,11 @@ internal sealed record HostEnvironment
             SourceAddress = Address(Product.SourceUrl),
             Revision = Revision,
             IssuesAddress = Address(Product.IssuesUrl),
+            ErrorReportsDsn = Product.ErrorReportsDsn,
+            // A window that was killed has nothing to report, and the agent tells of its own exits.
+            PreviousCrash = previous is { CrashType: { } crash }
+                ? new UncleanExitView(previous.Version, crash) { IsWindow = true, CrashedAt = previous.CrashedAt, Report = previous.Report }
+                : null,
             ImageCacheDirectory = Locations.ImageCacheDirectory,
             ImageHosts = Product.ImageHosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             Codecs = OperatingSystem.IsWindows() ? new WindowsMediaCodecs() : null,

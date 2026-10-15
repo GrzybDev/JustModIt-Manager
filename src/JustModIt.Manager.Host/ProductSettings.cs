@@ -26,6 +26,9 @@ public sealed record ProductSettings
     /// <summary>Empty uses the API anonymously.</summary>
     public string ApiKey { get; init; } = "";
 
+    /// <summary>The Sentry DSN that error reports go to, with the player's consent; empty offers no reports.</summary>
+    public string ErrorReportsDsn { get; init; } = "";
+
     /// <summary>Empty turns self-update off.</summary>
     public string UpdateUrl { get; init; } = "";
 

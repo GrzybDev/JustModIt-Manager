@@ -2,6 +2,7 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Protocol.Activation;
+using JustModIt.Manager.Protocol.Views;
 using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui;
@@ -49,6 +50,12 @@ public sealed record UiContext
 
     /// <summary>Where players report a problem, which the window gives the app's and the system's version; null offers none.</summary>
     public Uri? IssuesAddress { get; init; }
+
+    /// <summary>The Sentry DSN that error reports go to with the player's consent; empty offers no reports.</summary>
+    public string ErrorReportsDsn { get; init; } = "";
+
+    /// <summary>How the window's own previous run crashed, which this window tells; null when it did not.</summary>
+    public UncleanExitView? PreviousCrash { get; init; }
 
     /// <summary>Where the window keeps the images it downloaded, so they show again without the network.</summary>
     public required string ImageCacheDirectory { get; init; }

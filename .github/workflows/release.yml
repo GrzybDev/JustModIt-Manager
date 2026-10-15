@@ -112,6 +112,7 @@ jobs:
           MANAGER_API_KEY: >-
             ${{ steps.version.outputs.slug == 'menadzer-spolszczen' && secrets.MANAGER_API_KEY_MENADZER_SPOLSZCZEN
             || steps.version.outputs.slug == 'justmodit-manager' && secrets.MANAGER_API_KEY_JUSTMODIT_MANAGER || '' }}
+          MANAGER_ERROR_REPORTS_DSN: ${{ secrets.MANAGER_ERROR_REPORTS_DSN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}

@@ -142,10 +142,35 @@ public enum AppUpdateState
     Failed,
 }
 
-/// <summary>A run of the agent that did not exit cleanly, as its session marker tells at the next start.</summary>
+/// <summary>A run of the agent, or of the window, that did not exit cleanly, as its session marker tells at the next start.</summary>
 /// <param name="Version">The app's version in that run; empty when its marker was cut short.</param>
 /// <param name="CrashType">The type of the exception that ended it; null when it was killed or the power went out.</param>
-public sealed record UncleanExitView(string Version, string? CrashType);
+public sealed record UncleanExitView(string Version, string? CrashType)
+{
+    /// <summary>The window's run ended so, rather than the agent's.</summary>
+    public bool IsWindow { get; init; }
+
+    /// <summary>When the crash happened; null without one.</summary>
+    public DateTimeOffset? CrashedAt { get; init; }
+
+    /// <summary>What the crash recorded for an error report; null without a crash, or for one an older version recorded.</summary>
+    public CrashReportView? Report { get; init; }
+}
+
+/// <summary>What a crash recorded for an error report, with the user's name hidden in every text.</summary>
+/// <param name="Exceptions">The exception that ended the run, then those that caused it.</param>
+/// <param name="Log">The run's last log lines before the crash, oldest first.</param>
+public sealed record CrashReportView(IReadOnlyList<CrashError> Exceptions, IReadOnlyList<string> Log)
+{
+    /// <summary>How many of the run's last log lines a report keeps.</summary>
+    public const int LogLines = 30;
+}
+
+/// <summary>One exception of a crash.</summary>
+/// <param name="Type">Its type's full name.</param>
+/// <param name="Message">Its message.</param>
+/// <param name="StackTrace">Its stack trace as the runtime writes it, the throwing method first; empty when it has none.</param>
+public sealed record CrashError(string Type, string Message, string StackTrace);
 
 /// <summary>The app's own updates.</summary>
 public sealed record AppUpdateView

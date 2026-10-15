@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Styling;
 using JustModIt.Manager.Ui.Connection;
+using JustModIt.Manager.Ui.Diagnostics;
 using JustModIt.Manager.Ui.Images;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
@@ -32,6 +33,9 @@ public sealed class UiServices
 
     /// <summary>The system's pickers of folders and files.</summary>
     public required IFilePickers Pickers { get; init; }
+
+    /// <summary>Sends a crash's report when the player agrees.</summary>
+    public required IErrorReports ErrorReports { get; init; }
 
     /// <summary>The time now and the local time zone, which dates on the pages are told against.</summary>
     public TimeProvider Clock { get; init; } = TimeProvider.System;

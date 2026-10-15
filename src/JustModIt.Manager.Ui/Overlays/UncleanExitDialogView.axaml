@@ -6,31 +6,102 @@
              xmlns:loc="using:JustModIt.Manager.Localization"
              x:Class="JustModIt.Manager.Ui.Overlays.UncleanExitDialogView"
              x:DataType="overlays:UncleanExitDialogViewModel">
-  <Border Classes="dialog" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Message}">
-    <StackPanel Spacing="20">
-      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-        <Border Classes="iconChip warning" VerticalAlignment="Top">
-          <ui:Icon Data="{x:Static theme:Icons.TriangleAlert}" />
-        </Border>
-        <StackPanel Grid.Column="1" Spacing="6">
-          <TextBlock Classes="dialogTitle" Text="{Binding Title}" />
-          <TextBlock Classes="bodyText" Text="{Binding Message}" />
-          <TextBlock Classes="caption" Text="{Binding Detail}" IsVisible="{Binding Detail, Converter={x:Static ObjectConverters.IsNotNull}}" />
-          <ui:StatusLine x:Name="SaveResult" Margin="0,4,0,0" FontSize="13" Detail="{Binding SaveResult}" Icon="{Binding SaveIcon}"
-                         Tone="{Binding SaveTone}" Foreground="{StaticResource TextBodyBrush}"
-                         IsVisible="{Binding SaveResult, Converter={x:Static ObjectConverters.IsNotNull}}" />
+  <UserControl.Styles>
+    <Style Selector="Border.reportCard">
+      <Setter Property="Margin" Value="54,0,0,0" />
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.preview">
+      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.preview SelectableTextBlock">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="LineHeight" Value="19" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    </Style>
+    <Style Selector="Border.preview SelectableTextBlock.label">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+  </UserControl.Styles>
+  <Border Classes="dialog" Width="600" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Message}">
+    <!-- In the smallest window the report's preview may not fit, so the text scrolls above buttons that stay in sight. -->
+    <Grid RowDefinitions="*,Auto" RowSpacing="18">
+      <ScrollViewer x:Name="UncleanExitBody" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="18">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+            <Border Classes="iconChip warning" VerticalAlignment="Top">
+              <ui:Icon Data="{x:Static theme:Icons.TriangleAlert}" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="6">
+              <TextBlock Classes="dialogTitle" Text="{Binding Title}" />
+              <TextBlock Classes="bodyText" Text="{Binding Message}" />
+              <TextBlock Classes="caption" Text="{Binding Detail}" IsVisible="{Binding Detail, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <ui:StatusLine x:Name="SaveResult" Margin="0,4,0,0" FontSize="13" Detail="{Binding SaveResult}" Icon="{Binding SaveIcon}"
+                             Tone="{Binding SaveTone}" Foreground="{StaticResource TextBodyBrush}"
+                             IsVisible="{Binding SaveResult, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
+          </Grid>
+          <Border x:Name="ErrorReport" Classes="reportCard" IsVisible="{Binding CanSendReport}">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" IsVisible="{Binding IsAsking}">
+                <ui:Icon Data="{x:Static theme:Icons.ShieldCheck}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <TextBlock Classes="switchLabel" Text="{x:Static loc:Strings.Shell_ErrorReportTitle}" />
+                  <TextBlock Classes="small" TextWrapping="Wrap" Text="{x:Static loc:Strings.Shell_ErrorReportText}" />
+                </StackPanel>
+              </Grid>
+              <ui:StatusLine x:Name="ReportOutcome" FontSize="13" Detail="{Binding Outcome}" Icon="{Binding OutcomeIcon}" Tone="{Binding OutcomeTone}"
+                             Foreground="{StaticResource TextStrongBrush}" IsVisible="{Binding HasOutcome}" />
+              <TextBlock x:Name="ReportNumber" Classes="small" Margin="26,-8,0,0" Text="{Binding OutcomeDetail}"
+                         IsVisible="{Binding OutcomeDetail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <Button x:Name="ReportPreviewToggle" Classes="link" Margin="26,0,0,0" HorizontalAlignment="Left" FontSize="13" FontWeight="SemiBold"
+                      Foreground="{StaticResource TextBrush}" Content="{Binding PreviewToggle}" ui:ButtonAssist.Icon="{Binding PreviewToggleIcon}"
+                      ui:ButtonAssist.IconAfter="True" Command="{Binding TogglePreviewCommand}" />
+              <Border x:Name="ReportPreview" Classes="preview" Margin="26,0,0,0" IsVisible="{Binding IsPreviewOpen}">
+                <ScrollViewer MaxHeight="190" HorizontalScrollBarVisibility="Disabled">
+                  <ItemsControl ItemsSource="{Binding Preview}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="overlays:ReportField">
+                        <Grid ColumnDefinitions="92,*" ColumnSpacing="10">
+                          <SelectableTextBlock Classes="label" Text="{Binding Label}" />
+                          <SelectableTextBlock Grid.Column="1" Text="{Binding Value}" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Border>
+              <Grid Margin="26,0,0,0" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <ToggleSwitch x:Name="SendReportsAutomatically" IsChecked="{Binding SendsAutomatically}"
+                              AutomationProperties.Name="{x:Static loc:Strings.Shell_ErrorReportAuto}" />
+                <TextBlock Grid.Column="1" Classes="small" VerticalAlignment="Center" Text="{x:Static loc:Strings.Shell_ErrorReportAuto}" />
+              </Grid>
+            </StackPanel>
+          </Border>
         </StackPanel>
-      </Grid>
+      </ScrollViewer>
       <!-- The way out comes first, so the dialog's focus starts on it; the tab order follows the buttons as they stand. -->
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+      <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
+        <Button x:Name="SaveReport" Classes="quiet" KeyboardNavigation.TabIndex="1" Content="{x:Static loc:Strings.Shell_SaveReport}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.Save}" Command="{Binding SaveReportCommand}" />
         <Button x:Name="CloseDialog" Grid.Column="2" Classes="quiet" KeyboardNavigation.TabIndex="2" Content="{x:Static loc:Strings.Shell_Close}"
                 Command="{Binding CloseCommand}" />
         <Button x:Name="ReportProblem" Grid.Column="3" Classes="outline" KeyboardNavigation.TabIndex="3" IsVisible="{Binding CanReport}"
                 Content="{x:Static loc:Strings.Settings_ReportProblem}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ExternalLink}"
                 ui:ButtonAssist.IconAfter="True" Command="{Binding ReportCommand}" />
-        <Button x:Name="SaveReport" Classes="quiet" KeyboardNavigation.TabIndex="1" Content="{x:Static loc:Strings.Shell_SaveReport}"
-                ui:ButtonAssist.Icon="{x:Static theme:Icons.Save}" Command="{Binding SaveReportCommand}" />
+        <Button x:Name="SendReport" Grid.Column="4" Classes="primary" KeyboardNavigation.TabIndex="4" IsVisible="{Binding IsAsking}"
+                Content="{Binding SendText}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Send}" Command="{Binding SendReportCommand}" />
       </Grid>
-    </StackPanel>
+    </Grid>
   </Border>
 </UserControl>

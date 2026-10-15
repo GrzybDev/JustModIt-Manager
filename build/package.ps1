@@ -13,7 +13,8 @@ from its project with MSBuild, so the script is the same for every app. The outp
   release-notes.md   the commits since the app's previous tag, leaving out those that touch only other apps
   checksums.txt      the SHA-256 of the installer and the full package
 
-The API key for the app's site comes from the MANAGER_API_KEY environment variable when it is set.
+The API key for the app's site comes from the MANAGER_API_KEY environment variable when it is set, and the address
+error reports go to from MANAGER_ERROR_REPORTS_DSN.
 
 .EXAMPLE
 build\package.ps1 -App MenadzerSpolszczen -Version 0.2.0-alpha.1
@@ -83,6 +84,9 @@ if (-not (Test-Path $vpk)) {
 
 $publishArguments = @('publish', $target.Project, '-c', 'Release', '-r', $Runtime, "-p:Version=$Version", '-o', $publish)
 if ($env:MANAGER_API_KEY) { $publishArguments += "-p:ManagerApiKey=$(ConvertTo-MSBuildValue $env:MANAGER_API_KEY)" }
+if ($env:MANAGER_ERROR_REPORTS_DSN) {
+    $publishArguments += "-p:ManagerErrorReportsDsn=$(ConvertTo-MSBuildValue $env:MANAGER_ERROR_REPORTS_DSN)"
+}
 Invoke-Native 'dotnet' $publishArguments
 
 New-Item -ItemType Directory -Force $symbols, $releases | Out-Null

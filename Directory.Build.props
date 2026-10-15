@@ -32,6 +32,7 @@
        ProductConfiguration together with its Product.props. -->
   <PropertyGroup>
     <ManagerApiKey Condition="'$(ManagerApiKey)' == ''"></ManagerApiKey>
+    <ManagerErrorReportsDsn Condition="'$(ManagerErrorReportsDsn)' == ''"></ManagerErrorReportsDsn>
     <ManagerUpdatePrereleases Condition="'$(ManagerUpdatePrereleases)' == ''">true</ManagerUpdatePrereleases>
     <!-- A development build uses its own data folder, mutexes and pipe, so it never touches an installed copy. -->
     <ManagerDevelopmentBuild Condition="'$(ManagerDevelopmentBuild)' == '' and '$(Configuration)' == 'Release'">false</ManagerDevelopmentBuild>

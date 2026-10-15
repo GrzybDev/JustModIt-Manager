@@ -12,7 +12,7 @@ public sealed class AgentStatus(AgentOptions options)
     private readonly Lock _gate = new();
     private ActivityView _activity = new();
     private AppUpdateView _update = new() { CurrentVersion = options.Version };
-    private UncleanExitView? _uncleanExit = options.PreviousExit is { } exit ? new UncleanExitView(exit.Version, exit.CrashType) : null;
+    private UncleanExitView? _uncleanExit = options.PreviousExit?.View;
 
     /// <summary>Raised after every change, outside the lock; handlers must return quickly.</summary>
     public event EventHandler? Changed;

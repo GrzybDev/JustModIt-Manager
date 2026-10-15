@@ -54,6 +54,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private readonly NavigationItem _creator;
     private readonly DispatcherTimer _slowConnection;
     private bool _toldUncleanExit;
+    private bool _toldWindowCrash;
     private NavigationTarget? _pendingLink;
 
     /// <summary>Creates the shell, which opens the player's games or the place the window was started for.</summary>
@@ -239,10 +240,13 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (Agent.State.UncleanExit is { } exit && !_toldUncleanExit)
+        var agentExit = _toldUncleanExit ? null : Agent.State.UncleanExit;
+        var windowCrash = _toldWindowCrash ? null : _services.Context.PreviousCrash;
+        _toldUncleanExit |= agentExit is not null;
+        _toldWindowCrash = true;
+        if (agentExit is not null || windowCrash is not null)
         {
-            _toldUncleanExit = true;
-            _ = TellUncleanExitAsync(exit);
+            _ = TellUncleanExitsAsync(agentExit, windowCrash);
         }
 
         OpenPendingLink();
@@ -267,18 +271,27 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
     }
 
-    // The agent forgets the exit at once, so the next window does not tell it again even if this one closes meanwhile.
-    private async Task TellUncleanExitAsync(UncleanExitView exit)
+    // The agent forgets its exit at once, so the next window does not tell it again even if this one closes meanwhile; the
+    // window's own crash was its marker's, which this window's start has already replaced.
+    private async Task TellUncleanExitsAsync(UncleanExitView? agent, UncleanExitView? window)
     {
-        try
+        if (agent is not null)
         {
-            await Agent.RequestAsync(new DismissUncleanExit()).ConfigureAwait(true);
-        }
-        catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
-        {
+            try
+            {
+                await Agent.RequestAsync(new DismissUncleanExit()).ConfigureAwait(true);
+            }
+            catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
+            {
+            }
+
+            await Dialogs.ShowAsync(new UncleanExitDialogViewModel(_services, agent)).ConfigureAwait(true);
         }
 
-        await Dialogs.ShowAsync(new UncleanExitDialogViewModel(_services, exit)).ConfigureAwait(true);
+        if (window is not null)
+        {
+            await Dialogs.ShowAsync(new UncleanExitDialogViewModel(_services, window)).ConfigureAwait(true);
+        }
     }
 
     private void SyncNavigation()

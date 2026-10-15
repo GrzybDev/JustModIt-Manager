@@ -2499,6 +2499,99 @@
   <data name="Shell_ReportFailed" xml:space="preserve">
     <value>The report could not be saved.</value>
   </data>
+  <data name="Shell_UncleanExitWindowTitle" xml:space="preserve">
+    <value>The {product} window closed unexpectedly</value>
+  </data>
+  <data name="Shell_UncleanExitWindowMessage" xml:space="preserve">
+    <value>The games' files are safe: the window never changes them itself, and the app kept running in the background. If this happens again, a diagnostic report saved here helps with a problem report.</value>
+  </data>
+  <data name="Shell_ErrorReportTitle" xml:space="preserve">
+    <value>Error report</value>
+  </data>
+  <data name="Shell_ErrorReportText" xml:space="preserve">
+    <value>The error's description can be sent to the app's authors, so they find its cause sooner. The report holds no user name and no file contents; its last log lines may name the games and folders they were about.</value>
+  </data>
+  <data name="Shell_ErrorReportShow" xml:space="preserve">
+    <value>Show what will be sent</value>
+  </data>
+  <data name="Shell_ErrorReportShowSent" xml:space="preserve">
+    <value>Show the report sent</value>
+  </data>
+  <data name="Shell_ErrorReportHide" xml:space="preserve">
+    <value>Hide the preview</value>
+  </data>
+  <data name="Shell_ErrorReportAuto" xml:space="preserve">
+    <value>Send such reports automatically</value>
+  </data>
+  <data name="Shell_ErrorReportSend" xml:space="preserve">
+    <value>Send report</value>
+  </data>
+  <data name="Shell_ErrorReportSending" xml:space="preserve">
+    <value>Sending…</value>
+  </data>
+  <data name="Shell_ErrorReportRetry" xml:space="preserve">
+    <value>Send again</value>
+  </data>
+  <data name="Shell_ErrorReportSent" xml:space="preserve">
+    <value>Report sent – thank you.</value>
+  </data>
+  <data name="Shell_ErrorReportSentAuto" xml:space="preserve">
+    <value>The error report was sent automatically.</value>
+  </data>
+  <data name="Shell_ErrorReportNumber" xml:space="preserve">
+    <value>Report number: {id}. Worth quoting in a problem report.</value>
+  </data>
+  <data name="Shell_ErrorReportFailed" xml:space="preserve">
+    <value>The report could not be sent. Try again, or save the report and attach it to a problem report.</value>
+  </data>
+  <data name="Shell_ReportFieldApp" xml:space="preserve">
+    <value>App</value>
+  </data>
+  <data name="Shell_ReportFieldProcess" xml:space="preserve">
+    <value>Process</value>
+  </data>
+  <data name="Shell_ReportFieldSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Shell_ReportFieldTime" xml:space="preserve">
+    <value>When</value>
+  </data>
+  <data name="Shell_ReportFieldError" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Shell_ReportFieldCalls" xml:space="preserve">
+    <value>Stack</value>
+  </data>
+  <data name="Shell_ReportFieldLog" xml:space="preserve">
+    <value>Log</value>
+  </data>
+  <data name="Shell_ReportProcess" xml:space="preserve">
+    <value>{process, select, window {the window} other {in the background}}</value>
+  </data>
+  <data name="Settings_ErrorReports" xml:space="preserve">
+    <value>Send error reports</value>
+  </data>
+  <data name="Settings_ErrorReportsDescription" xml:space="preserve">
+    <value>After an unexpected close, the error's description goes to the app's authors without asking. The report holds the app's and the system's version, the error's description and the last log lines, without the user name or file contents.</value>
+  </data>
+  <data name="Settings_ErrorReportsWhat" xml:space="preserve">
+    <value>What does a report hold?</value>
+  </data>
+  <data name="Settings_ErrorReportsDialogTitle" xml:space="preserve">
+    <value>What an error report holds</value>
+  </data>
+  <data name="Settings_ErrorReportsDialogText" xml:space="preserve">
+    <value>An example. The real report shows before it is sent, in the dialog after an unexpected close.</value>
+  </data>
+  <data name="Settings_ErrorReportsDialogNote" xml:space="preserve">
+    <value>Paths in the user's folder are replaced, as in the logs; the log lines may name games and their folders. The report holds no id of the computer or of the installation.</value>
+  </data>
+  <data name="Settings_ReportExampleError" xml:space="preserve">
+    <value>type, message and stack</value>
+  </data>
+  <data name="Settings_ReportExampleLog" xml:space="preserve">
+    <value>{count, plural, one {the last entry} other {the last # entries}}</value>
+  </data>
   <data name="Creator_Subtitle" xml:space="preserve">
     <value>Changed files become a package that players install in one click.</value>
   </data>

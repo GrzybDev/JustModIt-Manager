@@ -2487,6 +2487,99 @@
   <data name="Shell_ReportFailed" xml:space="preserve">
     <value>Nie udało się zapisać raportu.</value>
   </data>
+  <data name="Shell_UncleanExitWindowTitle" xml:space="preserve">
+    <value>Okno aplikacji {product} zostało nieoczekiwanie zamknięte</value>
+  </data>
+  <data name="Shell_UncleanExitWindowMessage" xml:space="preserve">
+    <value>Pliki gier są bezpieczne – okno nie zmienia ich samo, a aplikacja działała dalej w tle. Jeśli sytuacja się powtarza, warto zapisać raport diagnostyczny i dołączyć go do zgłoszenia problemu.</value>
+  </data>
+  <data name="Shell_ErrorReportTitle" xml:space="preserve">
+    <value>Raport o błędzie</value>
+  </data>
+  <data name="Shell_ErrorReportText" xml:space="preserve">
+    <value>Opis błędu można wysłać autorom aplikacji, żeby łatwiej znaleźli przyczynę. Raport nie zawiera nazwy użytkownika ani zawartości plików; ostatnie wpisy dziennika mogą wymieniać gry i foldery, których dotyczyły.</value>
+  </data>
+  <data name="Shell_ErrorReportShow" xml:space="preserve">
+    <value>Pokaż, co zostanie wysłane</value>
+  </data>
+  <data name="Shell_ErrorReportShowSent" xml:space="preserve">
+    <value>Pokaż wysłany raport</value>
+  </data>
+  <data name="Shell_ErrorReportHide" xml:space="preserve">
+    <value>Ukryj podgląd</value>
+  </data>
+  <data name="Shell_ErrorReportAuto" xml:space="preserve">
+    <value>Wysyłaj takie raporty automatycznie</value>
+  </data>
+  <data name="Shell_ErrorReportSend" xml:space="preserve">
+    <value>Wyślij raport</value>
+  </data>
+  <data name="Shell_ErrorReportSending" xml:space="preserve">
+    <value>Wysyłanie…</value>
+  </data>
+  <data name="Shell_ErrorReportRetry" xml:space="preserve">
+    <value>Wyślij ponownie</value>
+  </data>
+  <data name="Shell_ErrorReportSent" xml:space="preserve">
+    <value>Raport wysłany – dziękujemy.</value>
+  </data>
+  <data name="Shell_ErrorReportSentAuto" xml:space="preserve">
+    <value>Raport o błędzie wysłano automatycznie.</value>
+  </data>
+  <data name="Shell_ErrorReportNumber" xml:space="preserve">
+    <value>Numer raportu: {id}. Warto go podać, zgłaszając problem.</value>
+  </data>
+  <data name="Shell_ErrorReportFailed" xml:space="preserve">
+    <value>Nie udało się wysłać raportu. Można spróbować ponownie albo zapisać raport i dołączyć go do zgłoszenia.</value>
+  </data>
+  <data name="Shell_ReportFieldApp" xml:space="preserve">
+    <value>Aplikacja</value>
+  </data>
+  <data name="Shell_ReportFieldProcess" xml:space="preserve">
+    <value>Proces</value>
+  </data>
+  <data name="Shell_ReportFieldSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Shell_ReportFieldTime" xml:space="preserve">
+    <value>Kiedy</value>
+  </data>
+  <data name="Shell_ReportFieldError" xml:space="preserve">
+    <value>Błąd</value>
+  </data>
+  <data name="Shell_ReportFieldCalls" xml:space="preserve">
+    <value>Stos</value>
+  </data>
+  <data name="Shell_ReportFieldLog" xml:space="preserve">
+    <value>Dziennik</value>
+  </data>
+  <data name="Shell_ReportProcess" xml:space="preserve">
+    <value>{process, select, window {okno} other {działanie w tle}}</value>
+  </data>
+  <data name="Settings_ErrorReports" xml:space="preserve">
+    <value>Wysyłaj raporty o błędach</value>
+  </data>
+  <data name="Settings_ErrorReportsDescription" xml:space="preserve">
+    <value>Po nieoczekiwanym zamknięciu opis błędu trafi do autorów aplikacji bez pytania. Raport zawiera wersję aplikacji i systemu, opis błędu i ostatnie wpisy dziennika, bez nazwy użytkownika i zawartości plików.</value>
+  </data>
+  <data name="Settings_ErrorReportsWhat" xml:space="preserve">
+    <value>Co zawiera raport?</value>
+  </data>
+  <data name="Settings_ErrorReportsDialogTitle" xml:space="preserve">
+    <value>Co zawiera raport o błędzie</value>
+  </data>
+  <data name="Settings_ErrorReportsDialogText" xml:space="preserve">
+    <value>Przykład. Prawdziwy raport pokazuje się przed wysłaniem w oknie po nieoczekiwanym zamknięciu.</value>
+  </data>
+  <data name="Settings_ErrorReportsDialogNote" xml:space="preserve">
+    <value>Ścieżki z folderu użytkownika są zastępowane, jak w dziennikach; wpisy dziennika mogą wymieniać gry i ich foldery. Raport nie zawiera identyfikatora komputera ani instalacji.</value>
+  </data>
+  <data name="Settings_ReportExampleError" xml:space="preserve">
+    <value>typ, komunikat i stos wywołań</value>
+  </data>
+  <data name="Settings_ReportExampleLog" xml:space="preserve">
+    <value>{count, plural, one {ostatni wpis} few {# ostatnie wpisy} many {# ostatnich wpisów} other {# ostatniego wpisu}}</value>
+  </data>
   <data name="Creator_Subtitle" xml:space="preserve">
     <value>Z gotowych plików powstanie paczka, którą gracze zainstalują jednym kliknięciem.</value>
   </data>

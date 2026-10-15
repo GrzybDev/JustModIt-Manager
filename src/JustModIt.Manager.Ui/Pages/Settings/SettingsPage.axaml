@@ -450,6 +450,15 @@
                             AutomationProperties.Name="{x:Static loc:Strings.Settings_AutoUpdateApp}"
                             AutomationProperties.HelpText="{Binding AutoUpdateAppDescription}" />
             </ui:SettingRow>
+            <ui:SettingRow x:Name="ErrorReports" Classes="divided" Icon="{x:Static theme:Icons.Send}" Title="{x:Static loc:Strings.Settings_ErrorReports}"
+                           Description="{x:Static loc:Strings.Settings_ErrorReportsDescription}" IsVisible="{Binding CanSendErrorReports}">
+              <ToggleSwitch x:Name="SendErrorReports" IsChecked="{Binding SendErrorReports}"
+                            AutomationProperties.Name="{x:Static loc:Strings.Settings_ErrorReports}"
+                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_ErrorReportsDescription}" />
+            </ui:SettingRow>
+            <Button x:Name="ErrorReportExample" Classes="link" FontSize="13" FontWeight="SemiBold" Margin="72,-8,20,16" HorizontalAlignment="Left"
+                    Foreground="{StaticResource TextBrush}" Content="{x:Static loc:Strings.Settings_ErrorReportsWhat}"
+                    Command="{Binding ShowErrorReportExampleCommand}" IsVisible="{Binding CanSendErrorReports}" />
             <Border Classes="divider" />
             <StackPanel Margin="20,18,20,20" Spacing="12">
               <TextBlock x:Name="AboutApp" Classes="bodyText" LineHeight="22" MaxWidth="760" HorizontalAlignment="Left"

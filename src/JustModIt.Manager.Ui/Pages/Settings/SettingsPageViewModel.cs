@@ -10,6 +10,7 @@ using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
@@ -99,6 +100,13 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     [ObservableProperty]
     public partial bool AutoUpdateApp { get; set; }
+
+    /// <inheritdoc cref="AppSettings.SendErrorReports"/>
+    [ObservableProperty]
+    public partial bool SendErrorReports { get; set; }
+
+    /// <summary>The build has somewhere to send error reports, so the page offers them.</summary>
+    public bool CanSendErrorReports => _services.ErrorReports.IsAvailable;
 
     public string ProductName => _services.Context.ProductName;
 
@@ -196,6 +204,11 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     partial void OnAutoUpdateAppChanged(bool value) => Change(settings => settings with { AutoUpdateApp = value });
 
+    partial void OnSendErrorReportsChanged(bool value) => Change(settings => settings with { SendErrorReports = value });
+
+    [RelayCommand]
+    private async Task ShowErrorReportExampleAsync() => await _services.Dialogs.ShowAsync(new ErrorReportExampleViewModel(_services.Context.ProductName, _services.Context.Version)).ConfigureAwait(true);
+
     private static string Overline(string text) => text.ToUpper(Text.Culture);
 
     [RelayCommand(CanExecute = nameof(CanCheck))]
@@ -275,6 +288,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         ShowNotifications = settings.ShowNotifications;
         CreatorMode = settings.CreatorMode;
         AutoUpdateApp = settings.AutoUpdateApp;
+        SendErrorReports = settings.SendErrorReports;
         _syncing = false;
         Backups.Refresh();
         Teams.Refresh();

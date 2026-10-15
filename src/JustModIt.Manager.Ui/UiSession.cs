@@ -1,5 +1,6 @@
 using Avalonia;
 using JustModIt.Manager.Ui.Connection;
+using JustModIt.Manager.Ui.Diagnostics;
 using JustModIt.Manager.Ui.Images;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
@@ -38,8 +39,9 @@ public sealed class UiSession : IDisposable
     /// <param name="links">Opens addresses outside the window; null for the system's shell.</param>
     /// <param name="clock">The time the pages tell dates against; null for the system's clock.</param>
     /// <param name="pickers">The pickers of folders and files; null for the window's own.</param>
+    /// <param name="errorReports">Sends crash reports; null for the DSN the app was built with.</param>
     public static UiSession Create(Application application, UiContext context, IAgent agent, IImageLoader? images = null,
-        IExternalLinks? links = null, TimeProvider? clock = null, IFilePickers? pickers = null)
+        IExternalLinks? links = null, TimeProvider? clock = null, IFilePickers? pickers = null, IErrorReports? errorReports = null)
     {
         ArgumentNullException.ThrowIfNull(application);
         ArgumentNullException.ThrowIfNull(context);
@@ -48,6 +50,7 @@ public sealed class UiSession : IDisposable
         composition.Views.Register<ConfirmDialogViewModel>(() => new ConfirmDialogView());
         composition.Views.Register<ChoiceDialogViewModel>(() => new ChoiceDialogView());
         composition.Views.Register<UncleanExitDialogViewModel>(() => new UncleanExitDialogView());
+        composition.Views.Register<ErrorReportExampleViewModel>(() => new ErrorReportExampleView());
         Screens.Register(composition);
         context.Compose?.Invoke(composition);
 
@@ -66,6 +69,8 @@ public sealed class UiSession : IDisposable
             Links = links ?? new ShellLinks(context.Loggers.CreateLogger<ShellLinks>()),
             Clock = clock ?? TimeProvider.System,
             Pickers = pickers ?? new StorageProviderPickers(() => session?._window),
+            ErrorReports = errorReports
+                ?? new ErrorReports(ErrorReportTarget.Parse(context.ErrorReportsDsn), $"{context.Site.ProductName}/{context.Version}"),
         };
         session = new UiSession(composition, services, new ShellViewModel(services, composition.FirstRun), cache);
         return session;

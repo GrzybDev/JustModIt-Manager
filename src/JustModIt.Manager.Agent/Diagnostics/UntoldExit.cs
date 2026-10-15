@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Agent.Diagnostics;
 
@@ -25,6 +26,15 @@ public sealed class UntoldExit
     /// <summary>The type of the exception that ended it; null when it was killed or the power went out.</summary>
     public string? CrashType { get; }
 
+    /// <summary>When the crash happened; null without one.</summary>
+    public DateTimeOffset? CrashedAt { get; private init; }
+
+    /// <summary>What the crash recorded for an error report; null without one.</summary>
+    public CrashReportView? Report { get; private init; }
+
+    /// <summary>The exit as the window tells it.</summary>
+    public UncleanExitView View => new(Version, CrashType) { CrashedAt = CrashedAt, Report = Report };
+
     /// <summary>Keeps the unclean exit this start found, or else takes the one an earlier run left untold.</summary>
     /// <param name="directory">The app's state folder.</param>
     /// <param name="found">How the previous run ended uncleanly; null after a clean exit.</param>
@@ -47,7 +57,7 @@ public sealed class UntoldExit
         {
         }
 
-        return found is null ? null : new UntoldExit(path, found.Version, found.CrashType);
+        return found is null ? null : new UntoldExit(path, found.Version, found.CrashType) { CrashedAt = found.CrashedAt, Report = found.Report };
     }
 
     /// <summary>Forgets the exit once a window has told the player, so no later start tells it again.</summary>
@@ -79,9 +89,14 @@ public sealed class UntoldExit
             using var document = JsonDocument.Parse(json);
             var root = document.RootElement;
             return new UntoldExit(path, root.GetProperty("version").GetString() ?? "",
-                root.TryGetProperty("crashType", out var type) ? type.GetString() : null);
+                root.TryGetProperty("crashType", out var type) ? type.GetString() : null)
+            {
+                CrashedAt = root.TryGetProperty("crashedAt", out var crashedAt) ? crashedAt.GetDateTimeOffset() : null,
+                Report = SessionMarker.ReadReport(root),
+            };
         }
-        catch (Exception exception) when (exception is JsonException or KeyNotFoundException or InvalidOperationException)
+        catch (Exception exception) when (exception is JsonException or KeyNotFoundException or InvalidOperationException
+            or FormatException)
         {
             return null;
         }
@@ -97,6 +112,16 @@ public sealed class UntoldExit
         if (exit.CrashType is { } crash)
         {
             writer.WriteString("crashType", crash);
+        }
+
+        if (exit.CrashedAt is { } crashedAt)
+        {
+            writer.WriteString("crashedAt", crashedAt);
+        }
+
+        if (exit.Report is { } report)
+        {
+            SessionMarker.WriteReport(writer, report);
         }
 
         writer.WriteEndObject();

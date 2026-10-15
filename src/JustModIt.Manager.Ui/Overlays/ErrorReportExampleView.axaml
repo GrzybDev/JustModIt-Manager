@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Overlays.ErrorReportExampleView"
+             x:DataType="overlays:ErrorReportExampleViewModel">
+  <Border Classes="dialog" Width="480" AutomationProperties.Name="{x:Static loc:Strings.Settings_ErrorReportsDialogTitle}"
+          AutomationProperties.HelpText="{x:Static loc:Strings.Settings_ErrorReportsDialogText}">
+    <StackPanel Spacing="16">
+      <TextBlock Classes="dialogTitle" Text="{x:Static loc:Strings.Settings_ErrorReportsDialogTitle}" />
+      <TextBlock Classes="bodyText" Text="{x:Static loc:Strings.Settings_ErrorReportsDialogText}" />
+      <Border Padding="12,10" CornerRadius="8" Background="{StaticResource SurfaceSunkenBrush}" BorderBrush="{StaticResource BorderBrush}"
+              BorderThickness="1">
+        <ItemsControl ItemsSource="{Binding Fields}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="overlays:ReportField">
+              <Grid ColumnDefinitions="84,*" ColumnSpacing="10">
+                <TextBlock FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" LineHeight="19"
+                           Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding Label}" />
+                <TextBlock Grid.Column="1" FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" LineHeight="19" TextWrapping="Wrap"
+                           Foreground="{StaticResource TextBodyBrush}" Text="{Binding Value}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+      <TextBlock Classes="small" TextWrapping="Wrap" Text="{x:Static loc:Strings.Settings_ErrorReportsDialogNote}" />
+      <Button x:Name="CloseExample" Classes="quiet" HorizontalAlignment="Right" Content="{x:Static loc:Strings.Shell_Close}"
+              Command="{Binding CloseCommand}" />
+    </StackPanel>
+  </Border>
+</UserControl>

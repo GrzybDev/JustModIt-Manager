@@ -51,7 +51,7 @@ internal static partial class Roles
     /// <param name="args">The command line as given, for a hand-over.</param>
     public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
         RunClaimed(environment, environment.Names.UiLock, UiRole, args,
-            (loggers, _, _) => (options.Ui ?? new WindowHost()).Run(environment.WindowContext(options, launch, loggers)));
+            (loggers, _, previous) => (options.Ui ?? new WindowHost()).Run(environment.WindowContext(options, launch, loggers, previous)));
 
     /// <summary>
     /// Ends the session markers of the runs that the installer stopped to replace the app, so the next start does not take
@@ -104,7 +104,8 @@ internal static partial class Roles
         var logger = log.Loggers.CreateLogger(typeof(Roles).FullName!);
         LogStarting(logger, role, environment.Version, RuntimeInformation.OSDescription, RuntimeInformation.ProcessArchitecture,
             environment.Install.IsInstalled, Environment.IsPrivilegedProcess);
-        var session = new SessionMarker(environment.Locations.StateDirectory, role, environment.Version, TimeProvider.System);
+        var session = new SessionMarker(environment.Locations.StateDirectory, role, environment.Version, TimeProvider.System, log.Redactor,
+            log.Recent);
         var previous = session.Begin();
         CrashHandlers.Report(logger, previous);
         int exitCode;
@@ -128,12 +129,18 @@ internal static partial class Roles
 
         public RoleLog(HostEnvironment environment, string role)
         {
-            _logger = AppLogging.Create(environment.Locations.LogsDirectory, role, environment.Product.IsDevelopmentBuild,
-                PathRedactor.ForCurrentUser());
+            Redactor = PathRedactor.ForCurrentUser();
+            Recent = new RecentLog(Redactor);
+            _logger = AppLogging.Create(environment.Locations.LogsDirectory, role, environment.Product.IsDevelopmentBuild, Redactor, Recent);
             Loggers = new SerilogLoggerFactory(_logger);
         }
 
         public SerilogLoggerFactory Loggers { get; }
+
+        public PathRedactor Redactor { get; }
+
+        /// <summary>The role's last lines, which the report of a crash takes.</summary>
+        public RecentLog Recent { get; }
 
         public void Dispose()
         {

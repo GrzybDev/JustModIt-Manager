@@ -20,6 +20,9 @@ public sealed record SettingsView
 
     public bool AutoUpdateApp { get; init; }
 
+    /// <inheritdoc cref="AppSettings.SendErrorReports"/>
+    public bool SendErrorReports { get; init; }
+
     public bool ShowNotifications { get; init; }
 
     public bool BlurAdultContent { get; init; }
@@ -58,6 +61,7 @@ public sealed record SettingsView
             AutoUpdateProjects = settings.AutoUpdateProjects,
             ReapplyAfterGameUpdate = settings.ReapplyAfterGameUpdate,
             AutoUpdateApp = settings.AutoUpdateApp,
+            SendErrorReports = settings.SendErrorReports,
             ShowNotifications = settings.ShowNotifications,
             BlurAdultContent = settings.BlurAdultContent,
             CreatorMode = settings.CreatorMode,
@@ -83,6 +87,7 @@ public sealed record SettingsView
             AutoUpdateProjects = AutoUpdateProjects,
             ReapplyAfterGameUpdate = ReapplyAfterGameUpdate,
             AutoUpdateApp = AutoUpdateApp,
+            SendErrorReports = SendErrorReports,
             ShowNotifications = ShowNotifications,
             BlurAdultContent = BlurAdultContent,
             CreatorMode = CreatorMode,

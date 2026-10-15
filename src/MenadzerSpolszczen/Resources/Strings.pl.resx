@@ -587,6 +587,9 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Shell_UncleanExitTitle" xml:space="preserve">
     <value>{product} został nieoczekiwanie zamknięty</value>
   </data>
+  <data name="Shell_UncleanExitWindowTitle" xml:space="preserve">
+    <value>Okno Menadżera Spolszczeń zostało nieoczekiwanie zamknięte</value>
+  </data>
   <data name="Creator_Subtitle" xml:space="preserve">
     <value>Z przetłumaczonych plików powstanie paczka, którą gracze zainstalują jednym kliknięciem.</value>
   </data>

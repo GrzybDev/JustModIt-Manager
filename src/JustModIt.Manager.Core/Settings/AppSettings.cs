@@ -47,6 +47,9 @@ public sealed record AppSettings
 
     public bool AutoUpdateApp { get; init; } = true;
 
+    /// <summary>Send the report of a crash without asking; off until the player turns it on.</summary>
+    public bool SendErrorReports { get; init; }
+
     /// <summary>System notifications; notices inside the window are always shown.</summary>
     public bool ShowNotifications { get; init; } = true;
 

@@ -480,6 +480,33 @@ public sealed class SettingsTests
     }
 
     [AvaloniaFact]
+    public async Task Error_reports_go_without_asking_only_once_the_player_turns_them_on_and_the_page_says_what_they_hold()
+    {
+        using (var withoutPlace = await OpenAsync(State()))
+        {
+            withoutPlace.Find<Control>("ErrorReports").IsVisible.Should().BeFalse("a build without a place for reports offers none");
+        }
+
+        using var ui = new UiHarness(State(), launch: new SettingsTarget(), errorReports: true);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
+        var toggle = ui.Find<ToggleSwitch>("SendErrorReports");
+        toggle.IsChecked.Should().BeFalse("reports wait for the player's consent");
+        ui.Find<Button>("ErrorReportExample").BringIntoView();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("settings-error-reports");
+
+        ui.Click(toggle);
+        ui.Agent.Requests.OfType<ChangeSettings>().Should().ContainSingle().Which.Settings.SendErrorReports.Should().BeTrue();
+        ui.Click(ui.Find<Button>("ErrorReportExample"));
+        var example = ui.Shell.Dialogs.Current.Should().BeOfType<ErrorReportExampleViewModel>().Subject;
+        example.Fields.Select(field => field.Value).Should().Contain(["Example App 0.1.0", "okno", "30 ostatnich wpisów"]);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("settings-error-reports-example");
+        ui.Click(ui.Find<Button>("CloseExample"));
+        (await example.Result).Should().BeFalse();
+    }
+
+    [AvaloniaFact]
     public async Task The_about_card_follows_the_apps_update_and_leads_to_the_site_the_code_a_report_the_logs_and_the_licences()
     {
         var state = State() with

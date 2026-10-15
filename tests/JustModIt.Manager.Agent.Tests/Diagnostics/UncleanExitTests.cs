@@ -23,7 +23,8 @@ public sealed class UncleanExitTests : IAsyncDisposable
         var window = await _agent.ConnectWindowAsync();
 
         (await window.StateAsync(loaded => loaded.IsLoaded)).UncleanExit
-            .Should().Be(new UncleanExitView("0.9.0", typeof(InvalidOperationException).FullName), "a later start with a clean exit before it");
+            .Should().Be(new UncleanExitView("0.9.0", typeof(InvalidOperationException).FullName) { CrashedAt = DateTimeOffset.UnixEpoch },
+                "a later start with a clean exit before it");
         await window.RequestAsync(new DismissUncleanExit());
 
         (await window.StateAsync(told => told.UncleanExit is null)).UncleanExit.Should().BeNull("the next window does not hear it again");

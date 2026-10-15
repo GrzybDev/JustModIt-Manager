@@ -31,6 +31,7 @@ public sealed class ProductConfigurationTests
         ProductConfiguration.SiteUrl.Should().BeEmpty();
         ProductConfiguration.SourceUrl.Should().BeEmpty();
         ProductConfiguration.IssuesUrl.Should().BeEmpty();
+        ProductConfiguration.ErrorReportsDsn.Should().BeEmpty();
         ProductConfiguration.DevelopmentShellIntegration.Should().BeFalse();
     }
 
