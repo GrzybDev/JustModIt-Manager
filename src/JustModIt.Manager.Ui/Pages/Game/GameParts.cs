@@ -366,6 +366,12 @@ public sealed partial class FeaturePanel(Guid? install, Guid project) : Observab
     [NotifyPropertyChangedFor(nameof(Toggle), nameof(ToggleIcon))]
     public partial bool IsOpen { get; set; }
 
+    /// <summary>
+    /// Turns of a project not installed stay in the window, as a link from the site set them, rather than being remembered;
+    /// installing takes them.
+    /// </summary>
+    public bool KeepsTurns { get; set; }
+
     /// <summary>No job runs on the game, so the add-ons can change.</summary>
     [ObservableProperty]
     public partial bool CanChange { get; set; }

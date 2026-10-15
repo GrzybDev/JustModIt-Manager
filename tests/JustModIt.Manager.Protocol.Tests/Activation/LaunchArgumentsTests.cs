@@ -75,7 +75,7 @@ public sealed class LaunchArgumentsTests
     [InlineData("https://example.com")]
     [InlineData("other-app://settings")]
     [InlineData(@"C:\Games\Example")]
-    [InlineData("example-app://install/steam/480")]
+    [InlineData("example-app://uninstall/steam/480")]
     [InlineData("--agentx")]
     [InlineData("")]
     public void Unknown_arguments_are_ignored(string argument)

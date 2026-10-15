@@ -30,10 +30,17 @@ public sealed record LibraryRoute : Route
 
 /// <summary>A game of the player's list.</summary>
 /// <param name="Game">The game's key.</param>
-public sealed record GameRoute(GameKey Game) : Route
+/// <param name="Choice">What a link from the site chose for the game, which its page sets without saving; null for none.</param>
+public sealed record GameRoute(GameKey Game, SiteChoice? Choice = null) : Route
 {
     public override ShellSection Section => ShellSection.Library;
 }
+
+/// <summary>The project and add-ons a link from the site chose, which a game's page sets until the player installs them.</summary>
+/// <param name="ProjectId">The project, one the game holds or offers.</param>
+/// <param name="Features">The keys of the add-ons that are on, a group's by its chosen member; null takes the author's.</param>
+/// <param name="Variant">The variant of a release from before add-ons, by its name; null takes the author's.</param>
+public sealed record SiteChoice(Guid ProjectId, IReadOnlyList<string>? Features, string? Variant);
 
 /// <summary>What detection found on this computer, for a player whose game is missing.</summary>
 /// <param name="From">The sidebar entry of the page it was opened from, which stays highlighted.</param>

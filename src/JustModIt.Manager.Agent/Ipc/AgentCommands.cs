@@ -145,6 +145,12 @@ public sealed class AgentCommands(
         var game = Detected(request.Game);
         var offer = Find(request.Game).Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == request.ProjectId)
             ?? throw Invalid("The project is not on offer for the game.");
+        if (request.Choices is { Count: > 0 } choices)
+        {
+            settings.Update(current => current.WithGame(request.Game, preferences =>
+                Remember(preferences, offer.Selection, request.ProjectId, choices, [])));
+        }
+
         return new InstallJobRequest(game.Key, game.Name, offer.Project.Locator);
     }
 

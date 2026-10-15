@@ -66,15 +66,16 @@ public sealed class NavigationTests
     {
         var game = new GameKey(StoreId.Gog, "1207658924");
 
-        AgentLinks.RoutesFor(new GameTarget("gog", "1207658924"), creatorMode: false).Should()
+        var idle = TestStates.Idle();
+        AgentLinks.RoutesFor(new GameTarget("gog", "1207658924"), idle).Should()
             .Equal(new LibraryRoute(), new GameRoute(game));
-        AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow", "lantern-team", "full"), creatorMode: false).Should()
+        AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow", "lantern-team", "full"), idle).Should()
             .Equal(new CatalogueRoute(), new CatalogueProjectRoute("ember-hollow", "lantern-team", "full"));
-        AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow"), creatorMode: false).Should()
+        AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow"), idle).Should()
             .Equal(new CatalogueRoute(), new CatalogueGameRoute("ember-hollow"));
-        AgentLinks.RoutesFor(new GameTarget("not a store", "1"), creatorMode: false).Should().Equal(new LibraryRoute());
-        AgentLinks.RoutesFor(new CreatorTarget(), creatorMode: false).Should().Equal(new LibraryRoute());
-        AgentLinks.RoutesFor(new CreatorTarget(), creatorMode: true).Should().Equal(new CreatorRoute());
+        AgentLinks.RoutesFor(new GameTarget("not a store", "1"), idle).Should().Equal(new LibraryRoute());
+        AgentLinks.RoutesFor(new CreatorTarget(), idle).Should().Equal(new LibraryRoute());
+        AgentLinks.RoutesFor(new CreatorTarget(), TestStates.Idle(creatorMode: true)).Should().Equal(new CreatorRoute());
 
         using var ui = new UiHarness(TestStates.Idle());
         ui.Shell.Navigator.Navigate(new SettingsRoute());

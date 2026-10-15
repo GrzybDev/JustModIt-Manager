@@ -10,7 +10,7 @@ internal static class GameScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
-        ui.Pages.Register<GameRoute>((route, services) => new GamePageViewModel(services, route.Game));
+        ui.Pages.Register<GameRoute>((route, services) => new GamePageViewModel(services, route.Game, route.Choice));
         ui.Views.Register<GamePageViewModel>(() => new GamePage());
         ui.Views.Register<GalleryViewerViewModel>(() => new GalleryViewer());
     }

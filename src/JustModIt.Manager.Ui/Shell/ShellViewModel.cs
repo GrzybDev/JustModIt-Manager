@@ -54,6 +54,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private readonly NavigationItem _creator;
     private readonly DispatcherTimer _slowConnection;
     private bool _toldUncleanExit;
+    private NavigationTarget? _pendingLink;
 
     /// <summary>Creates the shell, which opens the player's games or the place the window was started for.</summary>
     /// <param name="services">What the shell and its pages talk to.</param>
@@ -84,7 +85,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Agent.NavigationRequested += OnNavigationRequested;
         Agent.Noticed += OnNoticed;
         CloseFlow = new CloseFlow(services.Agent, services.Navigator, services.Dialogs);
-        Navigator.Open(services.Context.Launch.Target is { } target ? AgentLinks.RoutesFor(target, creatorMode: false) : [new LibraryRoute()]);
+        _pendingLink = services.Context.Launch.Target;
+        Navigator.Open([new LibraryRoute()]);
         ApplyLink();
         ApplyState();
     }
@@ -182,20 +184,34 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnNavigationRequested(object? sender, NavigationTarget target) =>
-        Navigator.Open(AgentLinks.RoutesFor(target, Agent.State.Settings.CreatorMode));
+    private void OnNavigationRequested(object? sender, NavigationTarget target)
+    {
+        _pendingLink = target;
+        OpenPendingLink();
+    }
+
+    // Where a link leads depends on the player's games, so it waits for the agent's state, under the connecting view; a
+    // project link waits for the state that holds them, which an agent just started sends after its first.
+    private void OpenPendingLink()
+    {
+        if (_pendingLink is { } link && Agent.HasState && (link is not InstallTarget || Agent.State.IsLoaded))
+        {
+            _pendingLink = null;
+            Navigator.Open(AgentLinks.RoutesFor(link, Agent.State));
+        }
+    }
 
     private void OnNoticed(object? sender, NoticeView notice)
     {
         // The game's page in front says the same in its step.
-        if (notice is { Kind: NoticeKind.StoreCheckAdvised, Game: { } game } && Navigator.CurrentRoute == new GameRoute(game))
+        if (notice is { Kind: NoticeKind.StoreCheckAdvised, Game: { } game } && Navigator.CurrentRoute is GameRoute shown && shown.Game == game)
         {
             return;
         }
 
         Toasts.Show(NoticeToasts.Create(notice,
             about => Navigator.Open(AgentLinks.RoutesFor(new GameTarget(about.Game!.Value.Store.Value, about.Game.Value.StoreGameId),
-                Agent.State.Settings.CreatorMode)),
+                Agent.State)),
             () => Navigator.Navigate(new SettingsRoute())));
     }
 
@@ -228,6 +244,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             _toldUncleanExit = true;
             _ = TellUncleanExitAsync(exit);
         }
+
+        OpenPendingLink();
 
         var settings = Agent.State.Settings;
         _creator.IsVisible = settings.CreatorMode;

@@ -129,6 +129,21 @@ public sealed class FeatureChoiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task An_install_remembers_the_add_ons_the_window_kept_with_it()
+    {
+        _record = null;
+        await SeedIndexAsync(Completed);
+        _agent.Start();
+        var window = await _agent.ConnectWindowAsync();
+        await window.StateAsync(state => state.Games.SingleOrDefault()?.Project is not null);
+
+        await window.RequestAsync(new InstallProject(Game, Project, new Dictionary<string, bool?> { ["voice-over"] = false }));
+
+        (await window.StateAsync(state => state.Games.Single().Project!.Features.Single().IsOn == false))
+            .Should().NotBeNull("the install's add-ons are the player's choice from then on");
+    }
+
+    [Fact]
     public async Task A_choice_for_a_project_not_installed_needs_the_project_on_offer()
     {
         _agent.Start();

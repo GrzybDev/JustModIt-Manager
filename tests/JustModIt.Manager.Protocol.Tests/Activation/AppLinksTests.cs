@@ -73,7 +73,6 @@ public sealed class AppLinksTests
 
     [Theory]
     [InlineData("example-app://open")]
-    [InlineData("example-app://install/steam/480")]
     [InlineData("example-app://uninstall/steam/480")]
     [InlineData("example-app://exit")]
     [InlineData("example-app:library")]
@@ -85,6 +84,58 @@ public sealed class AppLinksTests
     public void Anything_else_only_opens_the_window(string link)
     {
         _links.Parse(link).Should().BeNull();
+    }
+
+    public static TheoryData<string, InstallTarget> Installs => new()
+    {
+        { "example-app://install/example-game/example-team/example-project",
+            new InstallTarget("example-game", "example-team", "example-project") },
+        { "example-app://install/example-game/example-team/example-project?features=voice-over,textures",
+            new InstallTarget("example-game", "example-team", "example-project", ["voice-over", "textures"]) },
+        { "example-app://install/example-game/example-team/example-project?features=",
+            new InstallTarget("example-game", "example-team", "example-project", []) },
+        { "example-app://install/example-game/example-team/example-project?variant=Text%20and%20voice&features=a%2Cb,c",
+            new InstallTarget("example-game", "example-team", "example-project", ["a,b", "c"], "Text and voice") },
+        { "example-app://install/example-%C4%85/example-team/example-project/?features=voice-over,voice-over,%00&variant=",
+            new InstallTarget("example-ą", "example-team", "example-project", ["voice-over"]) },
+        { "example-app://install/example-game/example-team/example-project?features=a&features=b&utm_source=site",
+            new InstallTarget("example-game", "example-team", "example-project", ["a"]) },
+        { "example-app://install/example-game/example-team/example-project?variant=Steam%2FGOG",
+            new InstallTarget("example-game", "example-team", "example-project", Variant: "Steam/GOG") },
+    };
+
+    [Theory]
+    [MemberData(nameof(Installs))]
+    public void Install_link_names_the_project_and_the_sites_choice(string link, InstallTarget expected)
+    {
+        _links.Parse(link).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("example-app://install", null)]
+    [InlineData("example-app://install/example-game", "example-game")]
+    [InlineData("example-app://install/example-game/example-team", "example-game")]
+    [InlineData("example-app://install/example-game/example-team/%2E%2E?features=a", "example-game")]
+    [InlineData("example-app://install/example-game/example-team/example-project/extra", "example-game")]
+    public void Broken_install_link_opens_the_catalogue_as_its_catalogue_link_would(string link, string? game)
+    {
+        _links.Parse(link).Should().Be(new CatalogueTarget(game));
+    }
+
+    [Fact]
+    public void Overlong_install_link_opens_the_catalogue()
+    {
+        _links.Parse($"example-app://install/example-game/example-team/example-project?features={new string('a', 3000)}")
+            .Should().Be(new CatalogueTarget());
+    }
+
+    [Fact]
+    public void Install_link_is_written_the_way_the_site_writes_it()
+    {
+        _links.For(new InstallTarget("example game", "example-team", "example-project", ["voice over", "textures"], "Text & voice"))
+            .Should().Be("example-app://install/example%20game/example-team/example-project?features=voice%20over,textures&variant=Text%20%26%20voice");
+        _links.For(new InstallTarget("example-game", "example-team", "example-project", []))
+            .Should().Be("example-app://install/example-game/example-team/example-project?features=");
     }
 
     [Fact]
@@ -120,6 +171,9 @@ public sealed class AppLinksTests
         new CatalogueTarget(),
         new CatalogueTarget("example-ąćź"),
         new CatalogueTarget("example game", "team & co", "project?"),
+        new InstallTarget("example game", "team & co", "project?"),
+        new InstallTarget("example-game", "example-team", "example-project", ["a,b", "c&d"], "Text = voice"),
+        new InstallTarget("example-game", "example-team", "example-project", []),
         new SettingsTarget(),
         new CreatorTarget(),
     ];

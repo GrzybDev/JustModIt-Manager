@@ -10,6 +10,7 @@ public sealed class AppLinks
 {
     private const int MaxLinkLength = 2048;
     private const int MaxSegmentLength = 256;
+    private const int MaxFeatures = 64;
 
     private readonly string _prefix;
 
@@ -50,8 +51,13 @@ public sealed class AppLinks
     public NavigationTarget? Parse(string link)
     {
         ArgumentNullException.ThrowIfNull(link);
-        if (link.Length > MaxLinkLength
-            || !Uri.TryCreate(link, UriKind.Absolute, out var uri)
+        if (link.Length > MaxLinkLength)
+        {
+            // The site's download makes these links, so one too long to read still opens the catalogue rather than nothing.
+            return link.StartsWith(Scheme + "://install", StringComparison.OrdinalIgnoreCase) ? new CatalogueTarget() : null;
+        }
+
+        if (!Uri.TryCreate(link, UriKind.Absolute, out var uri)
             || !string.Equals(uri.Scheme, Scheme, StringComparison.OrdinalIgnoreCase))
         {
             return null;
@@ -67,6 +73,7 @@ public sealed class AppLinks
                 ? new GameTarget(store, gameId)
                 : new LibraryTarget(),
             "CATALOGUE" => Catalogue(segments),
+            "INSTALL" => Install(segments, uri.Query),
             "SETTINGS" => new SettingsTarget(),
             "CREATOR" => new CreatorTarget(),
             _ => null,
@@ -83,6 +90,7 @@ public sealed class AppLinks
             $"{Scheme}://catalogue/{Uri.EscapeDataString(slug)}/{Uri.EscapeDataString(team)}/{Uri.EscapeDataString(project)}",
         CatalogueTarget { GameSlug: { } slug } => $"{Scheme}://catalogue/{Uri.EscapeDataString(slug)}",
         CatalogueTarget => $"{Scheme}://catalogue",
+        InstallTarget install => Install(install),
         SettingsTarget => $"{Scheme}://settings",
         CreatorTarget => $"{Scheme}://creator",
         _ => throw new ArgumentOutOfRangeException(nameof(target), target, "Unknown navigation target."),
@@ -99,6 +107,56 @@ public sealed class AppLinks
         return segments.Length == 3 && Decode(segments[1]) is { } team && Decode(segments[2]) is { } project
             ? new CatalogueTarget(game, team, project)
             : new CatalogueTarget(game);
+    }
+
+    // The site writes each key apart, joined by commas; no parameter leaves the author's choice, and an empty one means
+    // none.
+    private static NavigationTarget Install(string[] segments, string query)
+    {
+        if (segments.Length != 3 || Decode(segments[0]) is not { } game || Decode(segments[1]) is not { } team
+            || Decode(segments[2]) is not { } project)
+        {
+            return Catalogue(segments);
+        }
+
+        List<string>? features = null;
+        string? variant = null;
+        foreach (var parameter in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var (name, value) = parameter.IndexOf('=', StringComparison.Ordinal) is var at and >= 0
+                ? (parameter[..at], parameter[(at + 1)..])
+                : (parameter, "");
+            if (name == "features" && features is null)
+            {
+                features = [.. value.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(Decode).OfType<string>().Distinct()
+                    .Take(MaxFeatures)];
+            }
+            else if (name == "variant" && variant is null)
+            {
+                variant = DecodeName(value);
+            }
+        }
+
+        return new InstallTarget(game, team, project, features, variant);
+    }
+
+    private string Install(InstallTarget install)
+    {
+        var link = $"{Scheme}://install/{Uri.EscapeDataString(install.GameSlug)}/{Uri.EscapeDataString(install.TeamSlug)}/"
+            + Uri.EscapeDataString(install.ProjectSlug);
+        string[] query =
+        [
+            .. install.Features is { } features ? [$"features={string.Join(',', features.Select(Uri.EscapeDataString))}"] : Array.Empty<string>(),
+            .. install.Variant is { } variant ? [$"variant={Uri.EscapeDataString(variant)}"] : Array.Empty<string>(),
+        ];
+        return query.Length > 0 ? $"{link}?{string.Join('&', query)}" : link;
+    }
+
+    // A variant is named as the site shows it, so it may hold slashes that a path segment may not.
+    private static string? DecodeName(string value)
+    {
+        var name = Uri.UnescapeDataString(value);
+        return name.Length <= MaxSegmentLength && !string.IsNullOrWhiteSpace(name) && !name.Any(char.IsControl) ? name : null;
     }
 
     private static string? Decode(string segment)

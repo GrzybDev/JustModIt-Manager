@@ -50,15 +50,19 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private JobEnded? _ended;
     private bool _askedDetected;
     private bool _composing;
+    private SiteChoice? _choice;
+    private bool _choiceSet;
 
     /// <summary>Creates the page of a game, which follows the agent's state from then on.</summary>
     /// <param name="services">The window's services.</param>
     /// <param name="game">The game the page is about.</param>
-    public GamePageViewModel(UiServices services, GameKey game)
+    /// <param name="choice">What a link from the site chose, set on the page until the player installs it; null for none.</param>
+    public GamePageViewModel(UiServices services, GameKey game, SiteChoice? choice = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _key = game;
+        _choice = choice;
         Story = new ProjectStory(services);
         _services.Agent.PropertyChanged += OnAgentChanged;
         _services.Agent.JobsProgressed += OnJobsProgressed;
@@ -428,6 +432,12 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     [RelayCommand]
     private async Task ChooseProjectAsync(ProjectChoice choice)
     {
+        if (_choice is { } linked && linked.ProjectId != choice.ProjectId)
+        {
+            _choice = null;
+            Compose();
+        }
+
         if (_game is { Installs.Count: > 0, InstallReplaces: false, InstallRefusal: null })
         {
             await AgentRequests.SendAsync(_services, new InstallProject(_key, choice.ProjectId)).ConfigureAwait(true);
@@ -497,7 +507,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             }
         }
 
-        if (panel.Install is null)
+        if (panel.Install is null && !panel.KeepsTurns)
         {
             _ = AgentRequests.SendAsync(_services, new ChooseFeatures(_key, panel.Project,
                 new Dictionary<string, bool?> { [pill.Key] = pill.IsOn }));
@@ -757,7 +767,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
         var rows = game.Installs.Select(install => Row(game, install, several, install == subject)).ToList();
         IsNotInstalled = rows.Count == 0;
-        NewFeatures = IsNotInstalled ? FeaturesOf(null, game.Project) : null;
+        NewFeatures = IsNotInstalled ? FeaturesOf(null, Chosen(game)) : null;
         var shown = rows.Select(row => row.Features).Append(NewFeatures).OfType<FeaturePanel>().ToHashSet();
         foreach (var gone in _features.Where(entry => !shown.Contains(entry.Value)).ToList())
         {
@@ -838,6 +848,14 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             panel.IsOpen = false;
             panel.Reset();
         }
+        else if (_choice is { } choice && !_choiceSet && choice.ProjectId == offer.ProjectId
+                 && (install is null || choice.Features is not null || choice.Variant is not null))
+        {
+            _choiceSet = true;
+            Choose(panel, offer, choice);
+            panel.KeepsTurns = install is null;
+            panel.IsOpen = panel.HasChanges;
+        }
 
         (panel.Line, panel.LineEmphasis) = Line(install, offer, panel);
         var changed = install is not null && panel.HasChanges;
@@ -857,6 +875,29 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         }
 
         return panel;
+    }
+
+    // A link sets the pills as the site had them: those it names on and the others off, each group on its named member, else
+    // on its recommended one; a link that names none takes the author's choice.
+    private static void Choose(FeaturePanel panel, ProjectOfferView offer, SiteChoice choice)
+    {
+        bool Named(FeaturePill pill) => offer.IsLegacy
+            ? choice.Variant is { } variant ? pill.Name == variant || pill.Key == variant : pill.IsRecommended
+            : choice.Features?.Contains(pill.Key, StringComparer.Ordinal) ?? pill.IsRecommended;
+        foreach (var pill in panel.Toggles.Where(pill => pill.CanTurn))
+        {
+            pill.IsOn = Named(pill);
+        }
+
+        foreach (var group in panel.Groups)
+        {
+            var chosen = group.Members.FirstOrDefault(member => member.CanTurn && Named(member))
+                ?? group.Members.FirstOrDefault(member => member.IsRecommended) ?? group.Members[0];
+            foreach (var member in group.Members)
+            {
+                member.IsOn = member == chosen;
+            }
+        }
     }
 
     // An install's line names what it has; the line of a project not installed names what installing takes.
@@ -954,7 +995,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             return new ProjectChoice(project.ProjectId, project.Team.Name, project.Team.Avatar, project.Status?.Name ?? "", project.Status?.Color ?? "",
                 version.Length > 0 ? Text.Format(Strings.GamePage_Version, ("version", version)) : "", released)
             {
-                IsChosen = game.Project?.ProjectId == project.ProjectId,
+                IsChosen = Chosen(game)?.ProjectId == project.ProjectId,
                 IsInstalled = installed.Contains(project.ProjectId),
                 AccessibleName = Text.Format(Strings.GamePage_ChoiceName, ("team", project.Team.Name), ("status", project.Status?.Name ?? ""),
                     ("version", version)),
@@ -1081,7 +1122,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             Primary = Strings.GamePage_Install,
             PrimaryIcon = Icons.Download,
             PrimaryCaption = Caption(Strings.GamePage_Caption, project, size),
-            PrimaryRequest = new InstallProject(_key, project.ProjectId),
+            // Pills a link set stay in the window, so the install takes them with it.
+            PrimaryRequest = new InstallProject(_key, project.ProjectId,
+                NewFeatures is { KeepsTurns: true, HasChanges: true } panel && panel.Project == project.ProjectId ? panel.Changes() : null),
         };
     }
 
@@ -1382,7 +1425,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     }
 
     // The install the page is about: the one a job works on, then one that needs the player, then the project's own.
-    private static (InstallView? Install, ProjectOfferView? Project) Subject(GameView game)
+    private (InstallView? Install, ProjectOfferView? Project) Subject(GameView game)
     {
         var install = game.Installs.FirstOrDefault(install => install.Id == game.Job?.InstallId)
             ?? game.Installs.FirstOrDefault(install => install.LastFailure is not null)
@@ -1390,8 +1433,14 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             ?? game.Installs.FirstOrDefault(install => install.Status.State == MyGameState.UpdateAvailable)
             ?? game.Installs.FirstOrDefault(install => install.ProjectId == game.Project?.ProjectId)
             ?? (game.Installs.Count > 0 ? game.Installs[0] : null);
-        return (install, install is null ? game.Project : install.Project);
+        return (install, install is null ? Chosen(game) : install.Project);
     }
+
+    // The project a link from the site chose stands in for the game's own while the game offers it.
+    private ProjectOfferView? Chosen(GameView game) =>
+        _choice is { } choice && game.Projects.FirstOrDefault(project => project.ProjectId == choice.ProjectId) is { } linked
+            ? linked
+            : game.Project;
 
     private InstallView? SubjectInstall() => _game is null ? null : Subject(_game).Install;
 

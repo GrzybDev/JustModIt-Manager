@@ -14,7 +14,11 @@ namespace JustModIt.Manager.Protocol.Messages;
 /// </summary>
 /// <param name="Game">A detected game.</param>
 /// <param name="ProjectId">One of the projects the game offers.</param>
-public sealed record InstallProject(GameKey Game, Guid ProjectId) : Message;
+/// <param name="Choices">
+/// Add-ons the player turned in the window and not yet remembered, by key, as <see cref="ChooseFeatures"/> takes them;
+/// remembered with the install. Null for none.
+/// </param>
+public sealed record InstallProject(GameKey Game, Guid ProjectId, IReadOnlyDictionary<string, bool?>? Choices = null) : Message;
 
 /// <summary>Installs the project's newer release in place of an install.</summary>
 /// <param name="Install">The install's record id.</param>
