@@ -133,6 +133,8 @@ public sealed class CreatorReviewTests : IDisposable
         review.CanConfirm.Should().BeTrue();
         ui.Click(Pill(ui, Strings.Creator_LibraryThirdParty));
         await UiHarness.WaitUntilAsync(() => library.NeedsNotice);
+        ui.Find<TextBlock>().Where(text => text.IsEffectivelyVisible).Select(text => text.Text).Should()
+            .Contain(Strings.Creator_LibraryHint, "the caption names the library's name too").And.NotContain(Strings.Creator_ToolHint);
         review.RulesState.Should().Be(Text.Format(Strings.Creator_RulesQuestions, ("count", 1)));
         review.CanConfirm.Should().BeFalse("another author's tool needs its licence and source");
         await RenderAsync(ui, "creator-review-library", 1900);

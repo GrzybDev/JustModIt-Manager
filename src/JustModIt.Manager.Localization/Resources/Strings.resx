@@ -2895,6 +2895,9 @@
   <data name="Creator_ToolHint" xml:space="preserve">
     <value>The licence and the address of the source code go into the package's description, so players know where the tool comes from.</value>
   </data>
+  <data name="Creator_LibraryHint" xml:space="preserve">
+    <value>The name, the licence and the address of the source code go into the package's description, so players know what the library is and where it comes from.</value>
+  </data>
   <data name="Creator_LibraryQuestion" xml:space="preserve">
     <value>Where is this file from?</value>
   </data>

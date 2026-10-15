@@ -2883,6 +2883,9 @@
   <data name="Creator_ToolHint" xml:space="preserve">
     <value>Licencja i adres kodu źródłowego trafią do opisu paczki, żeby gracze wiedzieli, skąd jest narzędzie.</value>
   </data>
+  <data name="Creator_LibraryHint" xml:space="preserve">
+    <value>Nazwa, licencja i adres kodu źródłowego trafią do opisu paczki, żeby gracze wiedzieli, czym jest ta biblioteka i skąd pochodzi.</value>
+  </data>
   <data name="Creator_LibraryQuestion" xml:space="preserve">
     <value>Skąd jest ten plik?</value>
   </data>

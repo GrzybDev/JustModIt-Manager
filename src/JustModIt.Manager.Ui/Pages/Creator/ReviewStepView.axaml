@@ -129,7 +129,8 @@
                                  AutomationProperties.Name="{x:Static loc:Strings.Creator_ToolSource}" />
                       </StackPanel>
                     </Grid>
-                    <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_ToolHint}" />
+                    <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_ToolHint}" IsVisible="{Binding !IsLibrary}" />
+                    <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_LibraryHint}" IsVisible="{Binding IsLibrary}" />
                     <Button Classes="link" FontSize="13" HorizontalAlignment="Left" IsVisible="{Binding CanRemoveNotice}"
                             Content="{x:Static loc:Strings.Creator_LibraryRemoveNotice}" ui:ButtonAssist.Icon="{x:Static theme:Icons.X}"
                             Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RemoveLibraryNoticeCommand}"
