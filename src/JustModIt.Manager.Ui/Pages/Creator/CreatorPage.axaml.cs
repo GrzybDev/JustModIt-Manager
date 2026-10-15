@@ -4,17 +4,25 @@ using JustModIt.Manager.Localization;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
-/// <summary>The view of <see cref="CreatorPageViewModel"/>, which puts the start's explanation under it in a narrow window.</summary>
+/// <summary>
+/// The view of <see cref="CreatorPageViewModel"/>, which puts the start's explanation under it and shortens the project's
+/// first button to its icon in a narrow window.
+/// </summary>
 public sealed partial class CreatorPage : UserControl
 {
     // Below this width the start's text beside the explanation would wrap into a column too narrow to read.
     private const double NarrowStart = 860;
+
+    // Below this width the page's title would be cut beside the project's buttons, so the first of them keeps only its icon.
+    private const double NarrowHeader = 720;
 
     /// <summary>Creates the view.</summary>
     public CreatorPage()
     {
         InitializeComponent();
         StartGrid.SizeChanged += (_, e) => Arrange(e.NewSize.Width < NarrowStart);
+        Header.SizeChanged += (_, e) => (NewButton.IsVisible, NewIconButton.IsVisible) =
+            (e.NewSize.Width >= NarrowHeader, e.NewSize.Width < NarrowHeader);
     }
 
     public static string HowItWorksTitle => Strings.Creator_HowItWorks.ToUpper(Text.Culture);

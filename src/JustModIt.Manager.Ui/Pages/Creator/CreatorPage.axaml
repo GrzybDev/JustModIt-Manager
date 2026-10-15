@@ -41,11 +41,15 @@
   <ScrollViewer Classes="page" x:Name="Scroller">
     <StackPanel Classes="page" Spacing="20" MaxWidth="{StaticResource PageMaxWidth}">
       <StackPanel Spacing="4">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+        <Grid x:Name="Header" ColumnDefinitions="*,Auto" ColumnSpacing="24">
           <TextBlock Classes="pageTitle" Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasProject}">
             <Button x:Name="NewButton" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_New}"
                     ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding NewProjectCommand}" />
+            <Button x:Name="NewIconButton" Classes="icon large" IsVisible="False" ToolTip.Tip="{x:Static loc:Strings.Creator_New}"
+                    Command="{Binding NewProjectCommand}">
+              <ui:Icon Data="{x:Static theme:Icons.Plus}" Foreground="{StaticResource TextEmphasisBrush}" />
+            </Button>
             <Button x:Name="OpenButton" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_OpenShort}"
                     ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding OpenProjectCommand}" />
             <Button x:Name="SaveButton" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_Save}"

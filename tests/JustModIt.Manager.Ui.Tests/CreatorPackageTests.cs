@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -202,6 +203,23 @@ public sealed class CreatorPackageTests : IDisposable
 
         ui.Agent.Requests.OfType<GetProjectPage>().Should().BeEmpty();
         (package.LastRelease, package.Version, package.AuthorsNote).Should().Be(("", "", Strings.Creator_AuthorsHint));
+    }
+
+    [AvaloniaFact]
+    public async Task In_the_smallest_window_the_title_stands_whole_beside_the_project_s_buttons()
+    {
+        using var ui = await OpenAsync(width: 960, height: 600);
+        await PackageAsync(ui);
+        var page = ui.Find<CreatorPage>().Single();
+        page.GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToHome();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        var title = page.GetVisualDescendants().OfType<TextBlock>().First(text => text.Classes.Contains("pageTitle"));
+        var shown = title.Bounds.Width;
+        title.Measure(Size.Infinity);
+        title.DesiredSize.Width.Should().BeLessThanOrEqualTo(shown + 0.5, "the title is not cut");
+        Button(ui, Strings.Creator_New).Classes.Should().Contain("icon", "the first button keeps only its icon, and its name");
+        ui.Render("creator-header-minimum");
     }
 
     [AvaloniaFact]
