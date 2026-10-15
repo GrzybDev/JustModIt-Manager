@@ -62,11 +62,11 @@ internal static class TestProjects
     {
         Uuid = LinkOf(game),
         Platform = new StorefrontPlatform { Uuid = SteamPlatform, Name = "Steam", Provider = game.Store.Value },
-        AdditionalData = CatalogueFixtures.Element($"{{\"{(game.Store == StoreId.Gog ? "gog_id" : "appid")}\":\"{game.StoreGameId}\","
+        AdditionalData = CatalogueFixtures.Element($"{{\"{IdProperty(game.Store)}\":\"{game.StoreGameId}\","
             + $"\"languages\":[{string.Join(',', languages.Select(language => $"\"{language}\""))}]}}"),
     };
 
-    public static Guid LinkOf(GameKey game) => Guid.Parse($"55555555-0000-4000-8000-{ulong.Parse(game.StoreGameId, System.Globalization.CultureInfo.InvariantCulture):D12}");
+    public static Guid LinkOf(GameKey game) => new(SHA256.HashData(Encoding.UTF8.GetBytes(game.ToString())).AsSpan(0, 16));
 
     public static ReleaseFile File(Guid uuid, string variant = "Text only", bool requiresManager = false, params GameKey[] onlyFor) => new()
     {
@@ -180,4 +180,6 @@ internal static class TestProjects
         FileCount = 3,
         IsTest = isTest,
     };
+
+    private static string IdProperty(StoreId store) => store == StoreId.Gog ? "gog_id" : store == StoreId.Epic ? "namespace" : "appid";
 }

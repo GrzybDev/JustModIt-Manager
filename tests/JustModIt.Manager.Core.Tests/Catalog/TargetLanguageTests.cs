@@ -26,6 +26,13 @@ public sealed class TargetLanguageTests
     [InlineData("nb", "steam", """[16]""", true)]
     [InlineData("de", "gog", """["de"]""", true)]
     [InlineData("pt-BR", "steam", """[11]""", true)]
+    [InlineData("pl", "epic", """["en", "pl"]""", true)]
+    [InlineData("pl", "epic", """["en", "pl-PL"]""", true)]
+    [InlineData("pl", "epic", """["en", "pt-BR"]""", false)]
+    [InlineData("pl", "epic", """[12]""", false)]
+    [InlineData("pt", "epic", """["pt-BR"]""", true)]
+    [InlineData("zh", "epic", """["zh-Hant"]""", true)]
+    [InlineData("no", "epic", """["nb"]""", true)]
     public void Knows_how_each_store_names_the_language(string code, string provider, string languages, bool offered)
     {
         var link = Link(provider, languages);

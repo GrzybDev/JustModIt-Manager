@@ -54,6 +54,7 @@ public sealed record StorefrontLink
     {
         [StoreId.Steam] = "appid",
         [StoreId.Gog] = "gog_id",
+        [StoreId.Epic] = "namespace",
     }.ToFrozenDictionary();
 
     public required Guid Uuid { get; init; }
@@ -85,13 +86,14 @@ public sealed record StorefrontLink
     /// <summary>Null when the store has no ids or the backend could not find one for the link.</summary>
     [JsonIgnore]
     public GameKey? GameKey =>
-        Store is { } store && IdProperties.TryGetValue(store, out var property) && ReadStoreId(property) is { } id
+        Store is { } store && IdProperties.TryGetValue(store, out var property) && ReadStoreId(store, property) is { } id
             ? new GameKey(store, id)
             : null;
 
     /// <summary>
-    /// The languages the store sells the game with, in the store's own terms (Steam's language numbers, GOG's codes); empty
-    /// when the store gave none, which means unknown rather than none.
+    /// The languages the store sells the game with, in the store's own terms (Steam's language numbers, GOG's codes) or, for
+    /// Epic, whose names for them the backend turns into BCP 47 tags, as tags; empty when the store gave none, which means
+    /// unknown rather than none.
     /// </summary>
     [JsonIgnore]
     public IReadOnlyList<string> Languages =>
@@ -109,17 +111,33 @@ public sealed record StorefrontLink
     public string BuildId =>
         Data("buildid", JsonValueKind.String)?.GetString() ?? Data("buildid", JsonValueKind.Number)?.GetRawText() ?? "";
 
-    // Ids come as numbers or text; either way they stay text, since GOG ids exceed what a double holds.
-    private string? ReadStoreId(string property) =>
-        AdditionalData.ValueKind == JsonValueKind.Object && AdditionalData.TryGetProperty(property, out var value)
-            ? value.ValueKind switch
-            {
-                JsonValueKind.Number when value.TryGetUInt64(out var number) && number > 0 => number.ToString(CultureInfo.InvariantCulture),
-                JsonValueKind.String when ulong.TryParse(value.GetString(), NumberStyles.None, CultureInfo.InvariantCulture, out var number)
-                    && number > 0 => number.ToString(CultureInfo.InvariantCulture),
-                _ => null,
-            }
-            : null;
+    // Steam and GOG ids are numbers, which come as numbers or text and stay text, since GOG ids exceed what a double holds.
+    // An Epic namespace is a word or hexadecimal text that the store's own records spell the same way, so it is taken as
+    // it is spelt.
+    private string? ReadStoreId(StoreId store, string property)
+    {
+        if (AdditionalData.ValueKind != JsonValueKind.Object || !AdditionalData.TryGetProperty(property, out var value))
+        {
+            return null;
+        }
+
+        if (store == StoreId.Epic)
+        {
+            return value.ValueKind == JsonValueKind.String && value.GetString() is { } text && IsNamespace(text) ? text : null;
+        }
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.Number when value.TryGetUInt64(out var number) && number > 0 => number.ToString(CultureInfo.InvariantCulture),
+            JsonValueKind.String when ulong.TryParse(value.GetString(), NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+                && number > 0 => number.ToString(CultureInfo.InvariantCulture),
+            _ => null,
+        };
+    }
+
+    private static bool IsNamespace(string text) =>
+        text.Length is > 0 and <= 64 && char.IsAsciiLetterOrDigit(text[0])
+        && text.All(letter => char.IsAsciiLetterOrDigit(letter) || letter is '-' or '_');
 
     private JsonElement? Data(string property, JsonValueKind kind) =>
         AdditionalData.ValueKind == JsonValueKind.Object ? AdditionalData.GetOrNull(property, kind) : null;

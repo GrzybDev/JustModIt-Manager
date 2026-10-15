@@ -137,6 +137,20 @@ public sealed class MyGamesComposerTests
     }
 
     [Fact]
+    public void An_epic_game_finds_its_project_by_the_store_s_namespace_and_language()
+    {
+        var epic = new GameKey(StoreId.Epic, "5b1f0c2e9d4a47c8b3e6a0f1d2c3b4a5");
+        var entry = Entry(release: Release(ReleaseOne, 1, File(FileOne)), game: epic, languages: ["en", "pl"]);
+
+        var game = Compose(Input([Installed(epic), Installed(new GameKey(StoreId.Epic, "lantern"))], [entry]) with
+        {
+            Language = TargetLanguage.FromCode("pl"),
+        }).Should().ContainSingle().Which;
+
+        (game.Key, game.Project!.Project.ProjectUuid, game.OffersTargetLanguage).Should().Be((epic, Project, true));
+    }
+
+    [Fact]
     public void A_job_makes_the_game_busy_and_travels_with_it()
     {
         var job = new JobSnapshot { Id = Guid.NewGuid(), Game = Game, GameName = "Example Game", Kind = JobKind.Install, Origin = JobOrigin.User };

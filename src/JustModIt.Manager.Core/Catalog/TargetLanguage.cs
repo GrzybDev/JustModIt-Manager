@@ -101,6 +101,11 @@ public sealed class TargetLanguage
             return false;
         }
 
+        if (link.Store == StoreId.Epic)
+        {
+            return link.Languages.Any(IsNamedBy);
+        }
+
         var accepted = link.Store == StoreId.Steam ? _steam : link.Store == StoreId.Gog ? _gog : null;
         return accepted is not null
             && link.Languages.Any(language => accepted.Contains(language) || accepted.Contains(LanguageNames.Base(language)));

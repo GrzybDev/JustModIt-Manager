@@ -21,6 +21,15 @@ public sealed class StorefrontLinkTests
     [InlineData("", "{}", null)]
     [InlineData("future-store", """{"id": 620}""", null)]
     [InlineData("steam", "[]", null)]
+    [InlineData("epic", """{"namespace": "5b1f0c2e9d4a47c8b3e6a0f1d2c3b4a5"}""", "epic:5b1f0c2e9d4a47c8b3e6a0f1d2c3b4a5")]
+    [InlineData("epic", """{"namespace": "lantern"}""", "epic:lantern")]
+    [InlineData("epic", """{"namespace": "Lantern_isle-2"}""", "epic:Lantern_isle-2")]
+    [InlineData("epic", """{"namespace": 620}""", null)]
+    [InlineData("epic", """{"namespace": ""}""", null)]
+    [InlineData("epic", """{"namespace": "-lantern"}""", null)]
+    [InlineData("epic", """{"namespace": "lantern isle"}""", null)]
+    [InlineData("epic", """{"namespace": "a1234567890123456789012345678901234567890123456789012345678901234"}""", null)]
+    [InlineData("epic", """{"appid": 620}""", null)]
     public void Reads_the_store_id_leniently(string provider, string data, string? expected)
     {
         var link = Link(provider, data);
@@ -37,12 +46,15 @@ public sealed class StorefrontLinkTests
     {
         var steam = Link("steam", """{"appid": 1, "languages": [0, 12, "x", null], "buildid": "900"}""");
         var gog = Link("gog", """{"gog_id": 1, "languages": ["en", "pl"], "buildid": 901}""");
+        var epic = Link("epic", """{"namespace": "lantern", "languages": ["en", "pl", "pt-BR"]}""");
         var none = Link("steam", """{"appid": 1, "languages": "english"}""");
 
         steam.Languages.Should().Equal("0", "12", "x");
         steam.BuildId.Should().Be("900");
         gog.Languages.Should().Equal("en", "pl");
         gog.BuildId.Should().Be("901");
+        epic.Languages.Should().Equal("en", "pl", "pt-BR");
+        epic.BuildId.Should().BeEmpty();
         none.Languages.Should().BeEmpty();
         none.BuildId.Should().BeEmpty();
     }
