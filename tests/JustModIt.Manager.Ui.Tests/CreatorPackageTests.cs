@@ -8,6 +8,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Creator;
@@ -386,6 +387,31 @@ public sealed class CreatorPackageTests : IDisposable
         await BuiltAsync(package);
         ui.Pickers.Suggested.Should().HaveCount(2, "the place the build could not write to is asked for again");
         package.OutputPath.Should().Be(Output("Lantern Isle v1.0.examplemod"));
+    }
+
+    [AvaloniaFact]
+    public async Task A_build_that_fails_unexpectedly_says_so_and_builds_where_it_was_going_once_the_cause_is_gone()
+    {
+        var files = new HeldFileSystem(_work.AuthorFolder);
+        files.Reads.Set();
+        using var ui = await OpenAsync(files);
+        var package = await PackageAsync(ui);
+        package.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        var output = Output("Lantern Isle v1.0.examplemod");
+        ui.Pickers.SaveFile = output;
+        files.Failure = new PatchException(PatchError.EngineUnavailable, "the engine is missing");
+
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await BuildEndedAsync(package);
+
+        (package.State, package.ProblemTitle, package.ProblemText).Should().Be((PackageState.Ready, Strings.Creator_BuildFailedTitle,
+            Text.Format(Strings.Creator_Unexpected, ("error", nameof(PatchException)))));
+        File.Exists(output).Should().BeFalse();
+        files.Failure = null;
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await BuiltAsync(package);
+        ui.Pickers.Suggested.Should().ContainSingle("the build goes where the failed one was going");
     }
 
     [AvaloniaFact]

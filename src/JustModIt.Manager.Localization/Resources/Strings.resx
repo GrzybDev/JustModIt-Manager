@@ -2805,6 +2805,9 @@
   <data name="Creator_CompareFailed" xml:space="preserve">
     <value>A file of the folder or of the game could not be read, e.g. because another program holds it. Once it is closed, the files can be compared again.</value>
   </data>
+  <data name="Creator_CompareStoppedTitle" xml:space="preserve">
+    <value>The files were not compared</value>
+  </data>
   <data name="Creator_BlockTitle" xml:space="preserve">
     <value>{reason, select, GameFolderMissing {The game's folder is gone} AuthorFolderMissing {The folder with the files is gone} GameFolder {This is the game's folder} FoldersOverlap {This folder overlaps the game's folder} GameHasInstall {A package is installed on the game} other {Another app manages the game's files}}</value>
   </data>
@@ -3326,6 +3329,9 @@
   </data>
   <data name="Creator_BuildWriteFailed" xml:space="preserve">
     <value>The package could not be written, e.g. because the folder is read-only or the disk is full.</value>
+  </data>
+  <data name="Creator_Unexpected" xml:space="preserve">
+    <value>An unexpected error ({error}) stopped it. The logs that the settings save as a diagnostic report hold its details.</value>
   </data>
   <data name="Creator_ZipKind" xml:space="preserve">
     <value>Plain .zip archive</value>

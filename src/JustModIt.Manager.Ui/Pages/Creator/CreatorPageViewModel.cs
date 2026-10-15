@@ -15,6 +15,7 @@ using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
+using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
@@ -108,6 +109,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         ArgumentNullException.ThrowIfNull(services);
         Services = services;
         FileSystem = fileSystem;
+        Log = services.Context.Loggers.CreateLogger<CreatorPageViewModel>();
         Steps =
         [
             new(CreatorStep.Game, Strings.Creator_StepGame),
@@ -125,6 +127,9 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     public IFileSystem? FileSystem { get; }
 
     public CreatorOptions Options => Services.Context.Creator;
+
+    /// <summary>Records what goes wrong in the creator, for the diagnostic report.</summary>
+    public ILogger Log { get; }
 
     public IAgent Agent => Services.Agent;
 

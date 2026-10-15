@@ -19,6 +19,7 @@ using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
+using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
@@ -558,6 +559,13 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             ForgetTarget();
             Fail(Strings.Creator_BuildFailedTitle, Strings.Creator_BuildWriteFailed);
         }
+        // Anything else, such as a patch the encoder could not make, ends the build like the failures above rather than the
+        // window, which would lose the author's unsaved work.
+        catch (Exception exception)
+        {
+            LogBuildFailed(_page.Log, exception);
+            Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_Unexpected, ("error", exception.GetType().Name)));
+        }
         finally
         {
             if (_building == building)
@@ -1046,4 +1054,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     private static string ReviewLine(PlanFinding finding) =>
         ReviewStepViewModel.IsHosting(finding.Kind) ? CreatorWording.RuleTitle(finding) : CreatorWording.Finding(finding);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The package build failed unexpectedly")]
+    private static partial void LogBuildFailed(ILogger logger, Exception exception);
 }

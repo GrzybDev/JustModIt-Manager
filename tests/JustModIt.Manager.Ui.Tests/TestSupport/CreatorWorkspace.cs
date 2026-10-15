@@ -102,7 +102,7 @@ public sealed class CreatorWorkspace : IDisposable
 
 /// <summary>
 /// The real file system, except that reading a file of a folder waits until the test lets it, so a comparison can be
-/// caught under way.
+/// caught under way, and then fails with what the test sets, as a driver or an encoder might.
 /// </summary>
 /// <param name="folder">The folder whose files wait.</param>
 public sealed class HeldFileSystem(string folder) : IFileSystem
@@ -110,6 +110,9 @@ public sealed class HeldFileSystem(string folder) : IFileSystem
     private readonly PhysicalFileSystem _inner = PhysicalFileSystem.Instance;
 
     public ManualResetEventSlim Reads { get; } = new();
+
+    /// <summary>What reading a file of the folder throws once the test lets it; null reads the file.</summary>
+    public Exception? Failure { get; set; }
 
     public bool FileExists(string path) => _inner.FileExists(path);
 
@@ -125,6 +128,10 @@ public sealed class HeldFileSystem(string folder) : IFileSystem
         if (path.StartsWith(folder, StringComparison.OrdinalIgnoreCase))
         {
             Reads.Wait(UiHarness.TimeLimit);
+            if (Failure is { } failure)
+            {
+                throw failure;
+            }
         }
 
         return _inner.OpenRead(path, share);

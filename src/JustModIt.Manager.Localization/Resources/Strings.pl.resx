@@ -2793,6 +2793,9 @@
   <data name="Creator_CompareFailed" xml:space="preserve">
     <value>Nie udało się odczytać pliku z folderu albo z gry, np. bo używa go inny program. Po jego zamknięciu można porównać pliki ponownie.</value>
   </data>
+  <data name="Creator_CompareStoppedTitle" xml:space="preserve">
+    <value>Nie udało się porównać plików</value>
+  </data>
   <data name="Creator_BlockTitle" xml:space="preserve">
     <value>{reason, select, GameFolderMissing {Nie ma folderu gry} AuthorFolderMissing {Nie ma folderu z plikami} GameFolder {To jest folder gry} FoldersOverlap {Ten folder leży w folderze gry albo go zawiera} GameHasInstall {Na grze jest zainstalowana paczka} other {Plikami gry zarządza inna aplikacja}}</value>
   </data>
@@ -3314,6 +3317,9 @@
   </data>
   <data name="Creator_BuildWriteFailed" xml:space="preserve">
     <value>Nie udało się zapisać paczki, np. folder jest tylko do odczytu albo dysk jest pełny.</value>
+  </data>
+  <data name="Creator_Unexpected" xml:space="preserve">
+    <value>Przerwał to nieoczekiwany błąd ({error}). Szczegóły są w logach, które można zapisać w ustawieniach jako raport diagnostyczny.</value>
   </data>
   <data name="Creator_ZipKind" xml:space="preserve">
     <value>Zwykłe archiwum .zip</value>

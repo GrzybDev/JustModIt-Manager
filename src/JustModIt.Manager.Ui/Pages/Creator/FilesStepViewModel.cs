@@ -7,6 +7,7 @@ using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Pages.Library;
+using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
@@ -221,6 +222,13 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         {
             Stop(comparing, Strings.Creator_CompareFailedTitle, Strings.Creator_CompareFailed);
         }
+        // Anything else ends the comparison like the failures above rather than the window, which would lose the author's
+        // unsaved work.
+        catch (Exception exception)
+        {
+            LogComparisonFailed(_page.Log, exception);
+            Stop(comparing, Strings.Creator_CompareStoppedTitle, Text.Format(Strings.Creator_Unexpected, ("error", exception.GetType().Name)));
+        }
         finally
         {
             if (_comparing == comparing)
@@ -347,4 +355,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         _comparing?.Cancel();
         (_comparing, _comparedWith, _comparesOnShow) = (null, null, project.AuthorFolder.Length > 0);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The comparison of the files failed unexpectedly")]
+    private static partial void LogComparisonFailed(ILogger logger, Exception exception);
 }

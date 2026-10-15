@@ -85,6 +85,25 @@ public sealed class CreatorTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_comparison_that_fails_unexpectedly_says_so_and_leaves_the_creator_open()
+    {
+        _work.Author("data/strings.bin", "strings of the changed  game");
+        var files = new HeldFileSystem(_work.Root) { Failure = new InvalidDataException("The disk returned nonsense.") };
+        files.Reads.Set();
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
+        var step = await FilesStepAsync(ui);
+
+        step.UseFolder(_work.AuthorFolder);
+        await UiHarness.WaitUntilAsync(() => step.IsStopped);
+
+        (step.ProblemTitle, step.ProblemText).Should().Be(
+            (Strings.Creator_CompareStoppedTitle, Text.Format(Strings.Creator_Unexpected, ("error", nameof(InvalidDataException)))));
+        files.Failure = null;
+        step.UseFolder(_work.AuthorFolder);
+        await UiHarness.WaitUntilAsync(() => Page(ui).Session!.Comparison is not null);
+    }
+
+    [AvaloniaFact]
     public async Task The_folder_is_compared_with_the_game_chosen_last_whether_the_earlier_comparison_ended_or_not()
     {
         // Files of the same size are hashed, which the held file system keeps from finishing while the test holds it.
