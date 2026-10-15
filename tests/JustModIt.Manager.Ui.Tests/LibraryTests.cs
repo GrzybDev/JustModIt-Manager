@@ -136,6 +136,25 @@ public sealed class LibraryTests
     }
 
     [AvaloniaFact]
+    public void A_failure_nothing_could_try_again_from_the_list_leads_to_the_game_by_name()
+    {
+        var withdrawn = TestGames.Available("Ember Hollow", "4100") with
+        {
+            Project = null,
+            LastFailure = new FailureView(JobKind.Install, JobOrigin.User, TestStates.Now.AddMinutes(-5),
+                new JobFailureView(JobFailureReason.ReleaseUnavailable)),
+            NeedsAttention = true,
+        };
+        using var ui = new UiHarness(State(withdrawn));
+
+        var row = Page(ui).TodoRows.Single();
+        (row.Kind, row.ActionText, row.Request).Should().Be((TodoKind.Failure, "Otwórz", null));
+        ui.Render("library-todo-open");
+        ui.Click(RowAction(ui, withdrawn.Name));
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new GameRoute(withdrawn.Key));
+    }
+
+    [AvaloniaFact]
     public async Task Search_and_filters_narrow_the_panel_and_the_grid_and_lead_back_when_nothing_is_left()
     {
         using var ui = new UiHarness(Library());

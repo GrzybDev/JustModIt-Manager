@@ -177,13 +177,7 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
             failure.LostPrevious ? Strings.Library_PreviousLost : GameWording.FailureReason(failure.Failure, game.Key.Store, game.Name));
         // Trying again is refused the same way until the player uninstalls and the store checks the game's files, which the
         // game's page leads through.
-        if (failure.Failure?.Reason == JobFailureReason.KeptFilesBlockReplacement)
-        {
-            Act(Strings.Library_Open, Icons.ArrowRight, Text.Format(Strings.Library_OpenName, ("game", game.Name)));
-            return;
-        }
-
-        Request = (failure.Kind, install) switch
+        Request = failure.Failure?.Reason == JobFailureReason.KeptFilesBlockReplacement ? null : (failure.Kind, install) switch
         {
             (JobKind.Update, { } failed) => new UpdateProject(failed.Id),
             (JobKind.Repair, { } failed) => new RepairProject(failed.Id),
@@ -192,7 +186,14 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
                 new InstallProject(game.Key, project.ProjectId),
             _ => null,
         };
-        Act(Strings.Library_Retry, Icons.RotateCcw, Text.Format(Strings.Library_RetryName, ("game", game.Name)));
+        if (Request is null)
+        {
+            Act(Strings.Library_Open, Icons.ArrowRight, Text.Format(Strings.Library_OpenName, ("game", game.Name)));
+        }
+        else
+        {
+            Act(Strings.Library_Retry, Icons.RotateCcw, Text.Format(Strings.Library_RetryName, ("game", game.Name)));
+        }
     }
 
     private void ShowRepair(GameView game, InstallView install)
