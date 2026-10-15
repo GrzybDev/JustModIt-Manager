@@ -231,8 +231,11 @@ public sealed class SettingsTests
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render("settings-app-data", height: 3200);
 
+        var answer = ui.Agent.Answer;
+        ui.Agent.Answer = request => request is OpenFolder ? new FolderToOpen(@"D:\Example Data") : answer(request);
         ui.Click(ui.Find<Button>("OpenDataFolder"));
         ui.Agent.Requests.OfType<OpenFolder>().Should().Equal(new OpenFolder(AppFolder.Data));
+        ui.Links.Folders.Should().Equal(@"D:\Example Data");
 
         ui.Push(state.With(TestStates.Job()));
         ui.Find<Button>("ClearCache").IsEffectivelyEnabled.Should().BeFalse("a job may be about to use a package");
@@ -548,8 +551,11 @@ public sealed class SettingsTests
         report.Should().StartWith("?template=bug_report.yml&version=0.1.0&system=").And.NotContain(Environment.UserName,
             "a report carries the app's and the system's version and nothing else");
 
+        var answer = ui.Agent.Answer;
+        ui.Agent.Answer = request => request is OpenFolder ? new FolderToOpen(@"D:\Example Data\logs") : answer(request);
         ui.Click(ui.Find<Button>("OpenLogs"));
         ui.Agent.Requests.OfType<OpenFolder>().Should().Equal(new OpenFolder(AppFolder.Logs));
+        ui.Links.Folders.Should().Equal(@"D:\Example Data\logs");
         ui.Click(ui.Find<Button>("OpenLicenses"));
         ui.Shell.Navigator.CurrentRoute.Should().Be(new LicensesRoute());
     }

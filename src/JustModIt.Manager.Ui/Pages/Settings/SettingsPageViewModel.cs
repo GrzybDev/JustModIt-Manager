@@ -251,7 +251,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     }
 
     [RelayCommand]
-    private async Task OpenLogsAsync() => await AgentRequests.SendAsync(_services, new OpenFolder(AppFolder.Logs)).ConfigureAwait(true);
+    private async Task OpenLogsAsync() => await AgentRequests.OpenFolderAsync(_services, new OpenFolder(AppFolder.Logs)).ConfigureAwait(true);
 
     [RelayCommand]
     private void OpenLicenses() => _services.Navigator.Navigate(new LicensesRoute());

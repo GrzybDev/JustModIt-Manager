@@ -140,7 +140,7 @@ public sealed record RememberCreatorProject(string Path) : Message;
 /// <param name="Game">A detected game.</param>
 public sealed record LaunchGame(GameKey Game) : Message;
 
-/// <summary>A folder that <see cref="OpenFolder"/> shows in the file manager.</summary>
+/// <summary>A folder that <see cref="OpenFolder"/> asks for.</summary>
 public enum AppFolder
 {
     /// <summary>The folder of <see cref="OpenFolder.Game"/>.</summary>
@@ -155,11 +155,18 @@ public enum AppFolder
     Data,
 }
 
-/// <summary>Shows a folder in the file manager.</summary>
+/// <summary>
+/// Asks for a folder to show in the file manager, answered with <see cref="FolderToOpen"/>: the window opens it, since only the
+/// process in front may bring the file manager's window to the front.
+/// </summary>
 /// <param name="Folder">Which folder to show.</param>
 /// <param name="Game">The game, for <see cref="AppFolder.Game"/>.</param>
 /// <param name="Install">The install's record id, for <see cref="AppFolder.InstallBackups"/>.</param>
 public sealed record OpenFolder(AppFolder Folder, GameKey? Game = null, Guid? Install = null) : Message;
+
+/// <summary>The folder an <see cref="OpenFolder"/> asked for, there to be opened.</summary>
+/// <param name="Path">The folder's full path.</param>
+public sealed record FolderToOpen(string Path) : Message;
 
 /// <summary>
 /// Adds a folder the player picked because detection did not find a game; answered with <see cref="LibraryFolderAdded"/>.

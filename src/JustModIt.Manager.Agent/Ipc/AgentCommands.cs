@@ -85,7 +85,7 @@ public sealed class AgentCommands(
         RevealAdultPictures reveal => Done(() => settings.Update(current => current.RevealAdultPictures(reveal.Game))),
         RememberCreatorProject remember => Remember(remember.Path),
         LaunchGame launch => Launch(library.Snapshot.Find(launch.Game)),
-        OpenFolder open => Open(FolderOf(open)),
+        OpenFolder open => new FolderToOpen(FolderOf(open)),
         AddLibraryFolder add => await AddLibraryFolderAsync(add.Path, cancellationToken).ConfigureAwait(false),
         RemoveLibraryFolder remove => Done(() => library.RemoveLibraryFolder(new LibraryFolder(StoreOf(remove.Store), remove.Path))),
         ValidateBackupFolder validate => CheckBackupFolder(validate.Folder) is { } problem

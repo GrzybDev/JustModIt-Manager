@@ -87,7 +87,7 @@ public sealed partial class AppDataViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task OpenFolderAsync() => await AgentRequests.SendAsync(_services, new OpenFolder(AppFolder.Data)).ConfigureAwait(true);
+    private async Task OpenFolderAsync() => await AgentRequests.OpenFolderAsync(_services, new OpenFolder(AppFolder.Data)).ConfigureAwait(true);
 
     [RelayCommand(CanExecute = nameof(CanClear))]
     private async Task ClearAsync()

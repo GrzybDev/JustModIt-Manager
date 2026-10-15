@@ -81,6 +81,7 @@ public sealed class MessageTests
         new OpenFolder(AppFolder.Game, Game),
         new OpenFolder(AppFolder.InstallBackups, Install: RecordId),
         new OpenFolder(AppFolder.Logs),
+        new FolderToOpen(@"C:\Games\Example Game"),
         new AddLibraryFolder(@"D:\GOG Games"),
         new LibraryFolderAdded(null, null, LibraryFolderRejection.DlcOnly),
         new RemoveLibraryFolder("gog", @"D:\GOG Games"),

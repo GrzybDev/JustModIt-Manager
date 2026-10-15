@@ -654,6 +654,8 @@ public sealed class GameTests
         using var ui = Open(State(game), game);
         var page = Page(ui);
 
+        var answer = ui.Agent.Answer;
+        ui.Agent.Answer = request => request is OpenFolder ? new FolderToOpen(@"C:\Games\Ember Hollow") : answer(request);
         ui.Click(ui.Find<Button>("HideButton"));
         page.LaunchCommand.Execute(null);
         page.OpenFolderCommand.Execute(null);
@@ -663,6 +665,7 @@ public sealed class GameTests
         ui.Agent.Requests.Should().Contain(new HideGame(game.Key, true)).And.Contain(new LaunchGame(game.Key))
             .And.Contain(new OpenFolder(AppFolder.Game, game.Key));
         ui.Links.Opened.Should().Equal(new Uri("https://example.com/games/ember-hollow/lantern-team"), new Uri("steam://nav/games/details/4100"));
+        ui.Links.Folders.Should().Equal(@"C:\Games\Ember Hollow");
 
         ui.Push(State(game with { IsHidden = true, Preferences = game.Preferences with { IsHidden = true } }));
         page.HideText.Should().Be("Pokaż w „Moich grach”");

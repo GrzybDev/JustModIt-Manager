@@ -41,6 +41,7 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(RememberCreatorProject), "rememberCreatorProject")]
 [JsonDerivedType(typeof(LaunchGame), "launchGame")]
 [JsonDerivedType(typeof(OpenFolder), "openFolder")]
+[JsonDerivedType(typeof(FolderToOpen), "folderToOpen")]
 [JsonDerivedType(typeof(AddLibraryFolder), "addLibraryFolder")]
 [JsonDerivedType(typeof(LibraryFolderAdded), "libraryFolderAdded")]
 [JsonDerivedType(typeof(RemoveLibraryFolder), "removeLibraryFolder")]

@@ -219,15 +219,17 @@ public sealed class AgentIpcTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task The_logs_and_the_data_folder_open_in_the_system_shell()
+    public async Task The_logs_and_the_data_folder_are_handed_to_the_window_to_open()
     {
         _agent.Start();
         var window = await _agent.ConnectWindowAsync();
 
-        await window.RequestAsync(new OpenFolder(AppFolder.Logs));
-        await window.RequestAsync(new OpenFolder(AppFolder.Data));
+        var logs = await window.RequestAsync(new OpenFolder(AppFolder.Logs));
+        var data = await window.RequestAsync(new OpenFolder(AppFolder.Data));
 
-        _agent.Shell.Opened.Should().Equal(_agent.Options.Locations.LogsDirectory, _agent.Options.Locations.DataDirectory);
+        (logs, data).Should().Be((new FolderToOpen(_agent.Options.Locations.LogsDirectory),
+            new FolderToOpen(_agent.Options.Locations.DataDirectory)));
+        _agent.Shell.Opened.Should().BeEmpty("the agent runs in the background, so a window it opened would stay behind");
         Directory.Exists(_agent.Options.Locations.LogsDirectory).Should().BeTrue();
     }
 

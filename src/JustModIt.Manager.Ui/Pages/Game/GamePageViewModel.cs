@@ -365,7 +365,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private async Task LaunchAsync() => await AgentRequests.SendAsync(_services, new LaunchGame(_key)).ConfigureAwait(true);
 
     [RelayCommand]
-    private async Task OpenFolderAsync() => await AgentRequests.SendAsync(_services, new OpenFolder(AppFolder.Game, _key)).ConfigureAwait(true);
+    private async Task OpenFolderAsync() => await AgentRequests.OpenFolderAsync(_services, new OpenFolder(AppFolder.Game, _key)).ConfigureAwait(true);
 
     [RelayCommand]
     private async Task ToggleHiddenAsync() => await AgentRequests.SendAsync(_services, new HideGame(_key, !IsHidden)).ConfigureAwait(true);

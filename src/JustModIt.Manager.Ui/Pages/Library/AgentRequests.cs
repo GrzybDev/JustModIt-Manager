@@ -46,6 +46,17 @@ internal static class AgentRequests
         return (false, null);
     }
 
+    /// <summary>Asks the agent for a folder and shows it in the file manager.</summary>
+    /// <param name="services">The window's services.</param>
+    /// <param name="request">Which folder.</param>
+    public static async Task OpenFolderAsync(UiServices services, OpenFolder request)
+    {
+        if ((await AskAsync(services, request).ConfigureAwait(true)).Answer is FolderToOpen folder)
+        {
+            services.Links.OpenFolder(folder.Path);
+        }
+    }
+
     private static void Show(UiServices services, string message) =>
         services.Toasts.Show(new ToastViewModel(ToastTone.Danger, Icons.CircleX, Strings.Library_RequestFailedTitle, message));
 }
