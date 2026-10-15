@@ -1,4 +1,8 @@
 using JustModIt.Manager.Agent.Diagnostics;
+using JustModIt.Manager.Core;
+using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Settings;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Host.Tests;
 
@@ -20,6 +24,24 @@ public sealed class InstallerHookTests : IDisposable
         previous.Should().BeNull("the installer stopped the agent after the player agreed to replace the app");
         new SessionMarker(_state, "ui", "1.1.0", TimeProvider.System).Begin().Should().BeNull();
         UntoldExit.Carry(_state, previous).Should().BeEquivalentTo(new { Version = "0.9.0", CrashType = crash.CrashType });
+    }
+
+    [Fact]
+    public async Task Uninstalling_forgets_the_installations_id_and_keeps_every_other_setting()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The installer's hooks run only on Windows.");
+        var data = Path.GetDirectoryName(_state)!;
+        var locations = new AppDataLocations(data, Path.Combine(data, "cache"), Path.Combine(data, "logs"));
+        var store = new JsonDocumentStore<AppSettings>(locations.SettingsFile, SettingsFormat.Instance, TimeProvider.System,
+            NullLogger.Instance);
+        await store.SaveAsync(AppSettings.Default with { InstallationId = Guid.NewGuid(), CreatorMode = true }, TestContext.Current.CancellationToken);
+
+        if (OperatingSystem.IsWindows())
+        {
+            ShellHooks.ForgetInstallation(locations);
+        }
+
+        (await store.LoadAsync(TestContext.Current.CancellationToken)).Should().Be(AppSettings.Default with { CreatorMode = true });
     }
 
     [Fact]

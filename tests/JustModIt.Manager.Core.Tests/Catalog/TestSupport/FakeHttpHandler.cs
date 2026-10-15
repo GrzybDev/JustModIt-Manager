@@ -13,7 +13,8 @@ internal sealed record SentRequest(
     AuthenticationHeaderValue? Authorization,
     RangeHeaderValue? Range,
     RangeConditionHeaderValue? IfRange,
-    bool HasCookie)
+    bool HasCookie,
+    string? Installation)
 {
     public string PathAndQuery => Uri.PathAndQuery;
 }
@@ -76,7 +77,8 @@ internal sealed class FakeHttpHandler(Func<HttpRequestMessage, CancellationToken
         cancellationToken.ThrowIfCancellationRequested();
         _requests.Enqueue(new SentRequest(request.Method, request.RequestUri!, request.Headers.Accept.ToString(),
             request.Headers.UserAgent.ToString(), request.Headers.Authorization, request.Headers.Range, request.Headers.IfRange,
-            request.Headers.Contains("Cookie")));
+            request.Headers.Contains("Cookie"),
+            request.Headers.TryGetValues("X-JustModIt-Installation", out var installation) ? string.Join(",", installation) : null));
         var response = await respond(request, cancellationToken);
         response.RequestMessage ??= request;
         return response;

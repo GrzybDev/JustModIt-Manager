@@ -110,7 +110,8 @@ public static class AgentServices
         services.AddSingleton<ILibraryService>(provider => provider.GetRequiredService<LibraryService>());
         services.AddSingleton<IGameProbe>(provider => provider.GetRequiredService<LibraryService>());
 
-        services.AddSingleton(provider => new CatalogueApiClient(options.Api, provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton(provider => new CatalogueApiClient(options.Api, provider.GetRequiredService<TimeProvider>(),
+            installation: provider.GetRequiredService<ISettingsService>().InstallationId));
         services.AddSingleton<ICatalogueApi>(provider => provider.GetRequiredService<CatalogueApiClient>());
         services.AddSingleton(provider => new CatalogueCache(locations.CatalogueCacheDirectory, provider.GetRequiredService<TimeProvider>(),
             provider.GetRequiredService<ILogger<CatalogueCache>>()));

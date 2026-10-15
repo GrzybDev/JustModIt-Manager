@@ -31,11 +31,28 @@ internal static class ShellHooks
     public static void EndStoppedRuns(ProductSettings product) =>
         Apply(product, environment => Roles.EndStoppedRuns(environment.Locations.StateDirectory));
 
-    /// <summary>Removes the link scheme and autostart before the app is uninstalled.</summary>
+    /// <summary>
+    /// Removes the link scheme and autostart before the app is uninstalled, and forgets the installation's id, so an install
+    /// later is another installation for the site.
+    /// </summary>
     /// <param name="product">The app's build settings.</param>
     public static void Unregister(ProductSettings product) => Apply(product, environment =>
+    {
         ShellRegistration.Unregister(WindowsLinkRegistration.Instance, new WindowsAutostart(environment.Identity.InstanceName),
-            environment.Identity.Slug));
+            environment.Identity.Slug);
+        ForgetInstallation(environment.Locations);
+    });
+
+    /// <summary>Drops the installation's id from the settings, which outlive the app's files.</summary>
+    /// <param name="locations">The app's data folders.</param>
+    internal static void ForgetInstallation(AppDataLocations locations)
+    {
+        var store = SettingsStore(locations);
+        if (store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult() is { InstallationId: not null } settings)
+        {
+            store.SaveAsync(settings with { InstallationId = null }, CancellationToken.None).GetAwaiter().GetResult();
+        }
+    }
 
     private static void Apply(ProductSettings product, Action<HostEnvironment> change)
     {
@@ -51,6 +68,8 @@ internal static class ShellHooks
 
     // A hook has no loop to wait in, and the settings file is small.
     private static AppSettings ReadSettings(AppDataLocations locations) =>
-        new JsonDocumentStore<AppSettings>(locations.SettingsFile, SettingsFormat.Instance, TimeProvider.System, NullLogger.Instance)
-            .LoadAsync(CancellationToken.None).GetAwaiter().GetResult() ?? AppSettings.Default;
+        SettingsStore(locations).LoadAsync(CancellationToken.None).GetAwaiter().GetResult() ?? AppSettings.Default;
+
+    private static JsonDocumentStore<AppSettings> SettingsStore(AppDataLocations locations) =>
+        new(locations.SettingsFile, SettingsFormat.Instance, TimeProvider.System, NullLogger.Instance);
 }

@@ -41,6 +41,7 @@ public sealed class SettingsFormatTests : IDisposable
             AdultContentConfirmedUntil = new DateTimeOffset(2026, 9, 2, 18, 30, 0, TimeSpan.FromHours(2)),
             RevealedAdultGames = [Guid.Parse("7c8d9e0f-0000-4000-8000-000000000003")],
             RecentCreatorProjects = [Rooted("Second.exampleproj"), Rooted("First.exampleproj")],
+            InstallationId = Guid.Parse("c0ffee00-0000-4000-8000-000000000042"),
         }
             .WithGame(Witcher, preferences => (preferences with
             {

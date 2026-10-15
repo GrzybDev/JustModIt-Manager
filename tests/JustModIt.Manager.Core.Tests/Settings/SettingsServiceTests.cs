@@ -30,6 +30,19 @@ public sealed class SettingsServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task The_installations_id_is_made_once_when_first_asked_for()
+    {
+        var service = await CreateAsync();
+        service.Current.InstallationId.Should().BeNull("an id exists only once a download needs it");
+
+        var first = service.InstallationId();
+
+        first.Should().NotBeEmpty();
+        service.InstallationId().Should().Be(first);
+        service.Current.InstallationId.Should().Be(first);
+    }
+
+    [Fact]
     public async Task A_change_applies_at_once_and_is_announced_on_the_calling_thread()
     {
         var service = await CreateAsync();

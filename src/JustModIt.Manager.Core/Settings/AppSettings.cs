@@ -95,6 +95,12 @@ public sealed record AppSettings
     /// <summary>The package creator's project files opened or saved last, newest first, fully qualified.</summary>
     public ValueList<string> RecentCreatorProjects { get; init; }
 
+    /// <summary>
+    /// A random id of this installation of the app, which the site's counted download request alone carries, so the site
+    /// counts one download of a release per installation; null until the first such request, and dropped by uninstalling.
+    /// </summary>
+    public Guid? InstallationId { get; init; }
+
     /// <summary>The player's choices for a game, or the defaults.</summary>
     /// <param name="key">The game's store and store id.</param>
     public GamePreferences GetGame(GameKey key) => Games.TryGetValue(key, out var preferences) ? preferences : GamePreferences.Default;

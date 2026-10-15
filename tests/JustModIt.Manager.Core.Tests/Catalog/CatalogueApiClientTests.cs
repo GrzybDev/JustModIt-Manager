@@ -178,6 +178,21 @@ public sealed class CatalogueApiClientTests
             + "?files=a0000000-0000-4000-8000-000000000001,a0000000-0000-4000-8000-000000000002");
     }
 
+    [Fact]
+    public async Task Only_the_counted_download_request_carries_the_installations_id()
+    {
+        var installation = Guid.Parse("c0ffee00-0000-4000-8000-000000000042");
+        var handler = new FakeHttpHandler(request => request.RequestUri!.AbsolutePath.EndsWith("/download/", StringComparison.Ordinal)
+            ? FakeHttpHandler.Json("""{"download_url": "https://storage.example.com/package.zip"}""")
+            : FakeHttpHandler.Json("[]"));
+        using var client = new CatalogueApiClient(CatalogueFixtures.Options(), _time, handler, () => installation);
+
+        await client.GetStatusesAsync(Token);
+        await client.ResolveDownloadAsync(File, Token);
+
+        handler.Requests.Select(request => request.Installation).Should().Equal(null, "c0ffee00-0000-4000-8000-000000000042");
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.BadRequest, """{"detail": "Pick at most one file of each part.", "code": "invalid_selection"}""",
         CatalogueErrorReason.InvalidSelection)]

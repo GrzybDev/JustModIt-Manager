@@ -19,23 +19,30 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
     private static readonly MediaTypeWithQualityHeaderValue JsonMediaType = new("application/json");
     private static readonly string[] NeededScopes = ["catalog.read", "site.read", "releases.download"];
 
+    // The site counts one download of a release per installation with it; nothing else carries it.
+    private const string InstallationHeader = "X-JustModIt-Installation";
+
     private readonly HttpClient _http;
     private readonly Uri _apiAddress;
     private readonly bool _hasKey;
     private readonly ApiKeyStatus _keyStatus = new();
     private readonly TimeProvider _time;
+    private readonly Func<Guid>? _installation;
 
     /// <summary>Creates a client with pooled connections of its own.</summary>
     /// <param name="options">The API's address, the app's name for the User-Agent and the optional key.</param>
     /// <param name="time">The clock for attempt timeouts, retry delays and Retry-After dates.</param>
     /// <param name="connection">Replaces the network connection, e.g. in tests.</param>
-    public CatalogueApiClient(CatalogueApiOptions options, TimeProvider time, HttpMessageHandler? connection = null)
+    /// <param name="installation">The id of this installation of the app, sent only with counted downloads; null sends none.</param>
+    public CatalogueApiClient(CatalogueApiOptions options, TimeProvider time, HttpMessageHandler? connection = null,
+        Func<Guid>? installation = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(time);
         _apiAddress = options.ApiAddress;
         _hasKey = options.ApiKey is not null;
         _time = time;
+        _installation = installation;
         _http = CatalogueHttp.CreateApiClient(options, _keyStatus, time, connection);
     }
 
@@ -218,6 +225,10 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
         if (counted)
         {
             CatalogueHttp.MarkCounted(request);
+            if (_installation is not null)
+            {
+                request.Headers.Add(InstallationHeader, _installation().ToString("D"));
+            }
         }
 
         try

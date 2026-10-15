@@ -33,6 +33,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string AdultContentConfirmedUntil = "adultContentConfirmedUntil";
     private const string RevealedAdultGames = "revealedAdultGames";
     private const string RecentCreatorProjects = "recentCreatorProjects";
+    private const string InstallationId = "installationId";
 
     // Version 0 stored the inverse of BlurAdultContent and named the automation after the only kind of project it knew.
     private const string LegacyShowAdultContent = "showAdultContent";
@@ -56,7 +57,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
         AutoUpdateApp, ShowNotifications, BlurAdultContent, CreatorMode, OnboardingCompleted, OnboardingStep,
         TrayNoticeShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
-        AdultContentConfirmedUntil, RevealedAdultGames, RecentCreatorProjects, LegacyShowAdultContent,
+        AdultContentConfirmedUntil, RevealedAdultGames, RecentCreatorProjects, InstallationId, LegacyShowAdultContent,
         LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
 
     public AppSettings Read(JsonElement root, int version)
@@ -95,6 +96,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             AdultContentConfirmedUntil = root.GetDateTimeOffsetOrNull(AdultContentConfirmedUntil),
             RevealedAdultGames = ReadIds(root.GetOrNull(RevealedAdultGames, JsonValueKind.Array)),
             RecentCreatorProjects = ReadPaths(root.GetOrNull(RecentCreatorProjects, JsonValueKind.Array)),
+            InstallationId = root.GetGuidOrNull(InstallationId),
         };
     }
 
@@ -156,6 +158,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         }
 
         writer.WriteEndArray();
+        writer.WriteIfSet(InstallationId, document.InstallationId);
     }
 
     private static void WriteFeatures(Utf8JsonWriter writer, ValueDictionary<Guid, ValueDictionary<string, bool>> features)

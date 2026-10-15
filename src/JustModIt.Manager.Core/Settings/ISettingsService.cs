@@ -20,6 +20,20 @@ public interface ISettingsService
     AppSettings Update(Func<AppSettings, AppSettings> change);
 }
 
+/// <summary>What the settings service offers beyond its interface.</summary>
+public static class SettingsServiceExtensions
+{
+    /// <summary>The id of this installation of the app, made the first time it is asked for.</summary>
+    /// <param name="settings">The app's settings, which keep the id.</param>
+    public static Guid InstallationId(this ISettingsService settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        return settings.Current.InstallationId
+            ?? settings.Update(current => current.InstallationId is null ? current with { InstallationId = Guid.NewGuid() } : current)
+                .InstallationId!.Value;
+    }
+}
+
 /// <summary>The settings before and after a change.</summary>
 /// <param name="previous">The settings before the change.</param>
 /// <param name="current">The settings after it.</param>
