@@ -1,0 +1,72 @@
+name: Bug report
+description: Something in the app or its code does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Players of Menadżer Spolszczeń can also report in [its own repository](https://github.com/GrzybDev/MenadzerSpolszczen/issues/new/choose), in Polish.
+        Security problems go [privately](https://github.com/GrzybDev/JustModIt-Manager/security/advisories/new), never here.
+  - type: dropdown
+    id: app
+    attributes:
+      label: App
+      options:
+        - Menadżer Spolszczeń
+        - JustModIt Manager
+        - A development build from source
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: The settings page shows it, under "About".
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+  - type: dropdown
+    id: store
+    attributes:
+      label: Store of the game, if the problem is about a game
+      options:
+        - Not about a game
+        - Steam
+        - GOG Galaxy
+        - GOG offline installer
+        - Epic Games Launcher
+        - Heroic
+        - Legendary
+        - Other
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See …
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The settings page opens the logs folder, and after an unexpected close the app offers a diagnostic report you can attach here. Paths with your user name are already hidden.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send it
+      options:
+        - label: I searched the existing issues and found none about this.
+          required: true

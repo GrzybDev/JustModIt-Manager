@@ -1,0 +1,25 @@
+name: Pomysł
+description: Zaproponuj, co aplikacja mogłaby robić lepiej albo w ogóle.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: W czym by to pomogło
+      description: Sytuacja albo problem, z którego wziął się pomysł, własnymi słowami.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Pomysł
+      description: Jak to widzisz. Szkice i zrzuty ekranu są mile widziane.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Przed wysłaniem
+      options:
+        - label: Przejrzałem istniejące zgłoszenia i nie ma wśród nich tego pomysłu.
+          required: true

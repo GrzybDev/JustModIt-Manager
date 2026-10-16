@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Menadżer Spolszczeń for players
+    url: https://github.com/GrzybDev/MenadzerSpolszczen/issues/new/choose
+    about: Problems and ideas of players of Menadżer Spolszczeń, in Polish or English.
+  - name: A translation, a project or the site
+    url: https://bazaspolszczen.pl/contact
+    about: Wrong files in a release, your account, the site or its API go to Baza Spolszczeń.
+  - name: Security vulnerability
+    url: https://github.com/GrzybDev/JustModIt-Manager/security/advisories/new
+    about: Report security problems privately, never in a public issue.

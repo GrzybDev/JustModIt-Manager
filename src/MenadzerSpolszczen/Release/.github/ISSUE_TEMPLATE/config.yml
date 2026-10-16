@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Problem ze spolszczeniem albo stroną
+    url: https://bazaspolszczen.pl/contact
+    about: Złe pliki w wydaniu, konto albo strona Bazy Spolszczeń.
+  - name: Problem z bezpieczeństwem
+    url: https://github.com/GrzybDev/JustModIt-Manager/security/advisories/new
+    about: Luki w zabezpieczeniach zgłaszaj prywatnie, nigdy w publicznym zgłoszeniu.
+  - name: Kod źródłowy
+    url: https://github.com/GrzybDev/JustModIt-Manager
+    about: Zgłoszenia dotyczące kodu i pull requesty trafiają do repozytorium JustModIt Manager.

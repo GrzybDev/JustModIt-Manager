@@ -1,0 +1,67 @@
+name: Zgłoszenie błędu
+description: Coś w aplikacji nie działa tak, jak powinno.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dziękujemy za zgłoszenie. Problem ze spolszczeniem (złe pliki, wadliwe wydanie) zgłoś na stronie spolszczenia albo przez [formularz kontaktowy Bazy Spolszczeń](https://bazaspolszczen.pl/contact).
+        Problemy z bezpieczeństwem zgłaszaj [prywatnie](https://github.com/GrzybDev/JustModIt-Manager/security/advisories/new), nigdy tutaj.
+  - type: input
+    id: version
+    attributes:
+      label: Wersja aplikacji
+      description: Pokazują ją ustawienia, w sekcji „O programie”.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Wersja Windows
+      placeholder: Windows 11 24H2
+  - type: input
+    id: game
+    attributes:
+      label: Gra i spolszczenie, jeśli problem ich dotyczy
+      placeholder: Nazwa gry, nazwa grupy
+  - type: dropdown
+    id: store
+    attributes:
+      label: Sklep, z którego jest gra
+      options:
+        - Nie dotyczy gry
+        - Steam
+        - GOG Galaxy
+        - Instalator offline z GOG-a
+        - Epic Games Launcher
+        - Heroic
+        - Legendary
+        - Inny
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Co się stało
+      description: Co zrobiłeś, czego się spodziewałeś i co stało się zamiast tego. Zrzuty ekranu bardzo pomagają.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Jak to powtórzyć
+      placeholder: |
+        1. Otwórz …
+        2. Kliknij …
+        3. Widać …
+  - type: textarea
+    id: logs
+    attributes:
+      label: Dzienniki
+      description: Ustawienia otwierają folder z dziennikami, a po nieoczekiwanym zamknięciu aplikacja proponuje zapisanie raportu diagnostycznego, który możesz tu dołączyć. Ścieżki z nazwą użytkownika są w nich już ukryte.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Przed wysłaniem
+      options:
+        - label: Przejrzałem istniejące zgłoszenia i nie ma wśród nich tego problemu.
+          required: true
