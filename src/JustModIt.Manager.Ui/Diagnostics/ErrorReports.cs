@@ -46,7 +46,7 @@ public sealed record ErrorReportTarget(Uri Endpoint, string PublicKey)
 
 /// <summary>
 /// A crash as the error report shows it before it is sent and as the Sentry envelope that is sent: the app, its process,
-/// the system, the exceptions and the last log lines, with nothing that names the player or the computer.
+/// the system and the exceptions, with nothing that names the player, the computer or a game.
 /// </summary>
 public sealed class ErrorReport
 {
@@ -93,6 +93,7 @@ public sealed class ErrorReport
         System.Runtime.InteropServices.Architecture.X86 => "x86",
         var other => other.ToString(),
     };
+
     /// <summary>The exception that ended the run, then those that caused it.</summary>
     public IReadOnlyList<CrashError> Errors { get; }
 

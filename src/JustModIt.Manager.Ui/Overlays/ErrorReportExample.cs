@@ -16,7 +16,8 @@ public sealed partial class ErrorReportExampleViewModel(string productName, stri
         new(Strings.Shell_ReportFieldApp, $"{productName} {version}"),
         new(Strings.Shell_ReportFieldProcess, Text.Format(Strings.Shell_ReportProcess, ("process", "window"))),
         new(Strings.Shell_ReportFieldSystem, $"{ErrorReport.ThisSystem}, {ErrorReport.ThisArchitecture}"),
-        new(Strings.Shell_ReportFieldError, Strings.Settings_ReportExampleError),    ];
+        new(Strings.Shell_ReportFieldError, Strings.Settings_ReportExampleError),
+    ];
 
     [RelayCommand]
     private void Close() => Cancel();
