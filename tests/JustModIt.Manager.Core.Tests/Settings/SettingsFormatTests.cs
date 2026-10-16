@@ -29,6 +29,7 @@ public sealed class SettingsFormatTests : IDisposable
             AutoUpdateProjects = false,
             ReapplyAfterGameUpdate = false,
             AutoUpdateApp = false,
+            UpdatePrereleases = true,
             SendErrorReports = true,
             ShowNotifications = false,
             BlurAdultContent = false,

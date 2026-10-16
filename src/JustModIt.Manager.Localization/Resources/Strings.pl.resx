@@ -2193,6 +2193,12 @@
   <data name="Settings_AutoUpdateAppDescription" xml:space="preserve">
     <value>Nowe wersje aplikacji {product} są pobierane w tle i instalowane, gdy aplikacja nie jest używana.</value>
   </data>
+  <data name="Settings_UpdatePrereleases" xml:space="preserve">
+    <value>Instaluj wersje testowe</value>
+  </data>
+  <data name="Settings_UpdatePrereleasesDescription" xml:space="preserve">
+    <value>{product} aktualizuje się także do wersji testowych, które szybciej dają nowości, ale mogą mieć więcej błędów.</value>
+  </data>
   <data name="Settings_AboutText" xml:space="preserve">
     <value>Otwartoźródłowa aplikacja, która wykrywa gry na tym komputerze i instaluje do nich projekty tworzone przez fanów.</value>
   </data>

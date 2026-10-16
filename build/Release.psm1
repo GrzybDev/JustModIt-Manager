@@ -33,7 +33,7 @@ function Get-AppProjects {
 function Read-AppProject([System.IO.DirectoryInfo]$Folder) {
     $project = Get-ChildItem $Folder.FullName -Filter '*.csproj' | Select-Object -First 1
     $properties = 'Product', 'Company', 'AssemblyName', 'ApplicationIcon', 'ManagerAppId', 'ManagerAppSlug', 'ManagerUpdateUrl',
-        'ManagerUpdateChannel', 'ManagerUpdatePrereleases'
+        'ManagerUpdateChannel'
     $arguments = @('msbuild', $project.FullName, '-p:Configuration=Release', '-getItem:PackageVersion') +
         @($properties | ForEach-Object { "-getProperty:$_" })
     $read = Get-NativeOutput 'dotnet' $arguments
@@ -54,7 +54,6 @@ function Read-AppProject([System.IO.DirectoryInfo]$Folder) {
         Slug = $values.ManagerAppSlug
         UpdateUrl = $values.ManagerUpdateUrl.TrimEnd('/')
         Channel = $values.ManagerUpdateChannel
-        Prereleases = $values.ManagerUpdatePrereleases -eq 'true'
         VelopackVersion = $velopack[0].Version
     }
 }

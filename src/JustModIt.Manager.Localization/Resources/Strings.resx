@@ -2205,6 +2205,12 @@
   <data name="Settings_AutoUpdateAppDescription" xml:space="preserve">
     <value>New versions of {product} are downloaded in the background and installed while the app is not in use.</value>
   </data>
+  <data name="Settings_UpdatePrereleases" xml:space="preserve">
+    <value>Install test versions</value>
+  </data>
+  <data name="Settings_UpdatePrereleasesDescription" xml:space="preserve">
+    <value>{product} also updates to test versions, which bring new features sooner but may have more bugs.</value>
+  </data>
   <data name="Settings_AboutText" xml:space="preserve">
     <value>An open-source app that finds the games on this computer and installs the projects that fans made for them.</value>
   </data>

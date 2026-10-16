@@ -10,8 +10,6 @@
            Text="ManagerDevelopmentName must be letters or digits." />
     <PropertyGroup>
       <_ProductConfigurationFile>$(IntermediateOutputPath)ProductConfiguration.g.cs</_ProductConfigurationFile>
-      <_UpdatePrereleasesLiteral>false</_UpdatePrereleasesLiteral>
-      <_UpdatePrereleasesLiteral Condition="'$(ManagerUpdatePrereleases)' == 'true'">true</_UpdatePrereleasesLiteral>
       <_DevelopmentBuildLiteral>false</_DevelopmentBuildLiteral>
       <_DevelopmentBuildLiteral Condition="'$(ManagerDevelopmentBuild)' == 'true'">true</_DevelopmentBuildLiteral>
       <!-- Keys belong to the release and CI channels; a development build uses the API as anyone does, whatever it is passed. -->
@@ -40,7 +38,6 @@
         ErrorReportsDsn = ErrorReportsDsn,
         UpdateUrl = UpdateUrl,
         UpdateChannel = UpdateChannel,
-        UpdatePrereleases = UpdatePrereleases,
         SourceUrl = SourceUrl,
         IssuesUrl = IssuesUrl,
         Language = Language,
@@ -88,8 +85,6 @@ internal static class ProductConfiguration
     public const string UpdateUrl = @"$([MSBuild]::Escape($(ManagerUpdateUrl.Replace('"', '""'))))"%3B
 
     public const string UpdateChannel = @"$([MSBuild]::Escape($(ManagerUpdateChannel.Replace('"', '""'))))"%3B
-
-    public const bool UpdatePrereleases = $(_UpdatePrereleasesLiteral)%3B
 
     /// <summary>The repository holding the app's source code, or empty for none.</summary>
     public const string SourceUrl = @"$([MSBuild]::Escape($(ManagerSourceUrl.Replace('"', '""'))))"%3B

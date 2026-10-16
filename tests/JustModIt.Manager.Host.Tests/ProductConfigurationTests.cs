@@ -50,7 +50,6 @@ public sealed class ProductConfigurationTests
             CreatorProjectExtension = ".exampleproj",
             ApiUrl = "https://api.example.com/",
             TargetLanguage = "de",
-            UpdatePrereleases = ProductConfiguration.UpdatePrereleases,
             IsDevelopmentBuild = ProductConfiguration.IsDevelopmentBuild,
         });
         settings.Identity.InstanceName.Should().Be(ProductConfiguration.IsDevelopmentBuild ? "ExampleApp.Dev" : "ExampleApp");

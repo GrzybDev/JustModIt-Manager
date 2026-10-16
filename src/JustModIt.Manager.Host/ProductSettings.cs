@@ -35,8 +35,6 @@ public sealed record ProductSettings
     /// <summary>Empty follows the channel the installed build came from.</summary>
     public string UpdateChannel { get; init; } = "";
 
-    public bool UpdatePrereleases { get; init; }
-
     /// <summary>Empty offers no link to the source code.</summary>
     public string SourceUrl { get; init; } = "";
 

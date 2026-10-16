@@ -91,7 +91,7 @@ internal sealed record HostEnvironment
         InstallDirectory = Install.Directory,
         IntegratesWithShell = Install.IsInstalled || (Product.IsDevelopmentBuild && Product.DevelopmentShellIntegration),
         Updates = Product.UpdateUrl.Length > 0
-            ? new UpdateFeed(Product.UpdateUrl, Product.UpdateChannel.Length > 0 ? Product.UpdateChannel : null, Product.UpdatePrereleases)
+            ? new UpdateFeed(Product.UpdateUrl, Product.UpdateChannel.Length > 0 ? Product.UpdateChannel : null)
             : null,
         RestartedByUpdater = RestartedByUpdater,
     };

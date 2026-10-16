@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Settings;
 using Velopack;
 using Velopack.Sources;
 
@@ -38,19 +39,27 @@ public interface IAppUpdater
 /// <summary>Velopack with the app's GitHub releases.</summary>
 internal sealed class VelopackUpdater : IAppUpdater
 {
-    private readonly UpdateManager? _manager;
+    private readonly UpdateFeed? _feed;
+    private readonly ISettingsService _settings;
+    private UpdateManager? _manager;
+    private bool _includesPrereleases;
     private UpdateInfo? _found;
 
     /// <summary>Creates the updater; a copy that was not installed, or has no feed, cannot update itself.</summary>
     /// <param name="options">The app's update feed.</param>
-    public VelopackUpdater(AgentOptions options)
+    /// <param name="settings">Whether the player takes the app's test versions.</param>
+    public VelopackUpdater(AgentOptions options, ISettingsService settings)
     {
         ArgumentNullException.ThrowIfNull(options);
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         if (options.Updates is { } feed)
         {
-            var manager = new UpdateManager(new GithubSource(feed.Url, accessToken: null, prerelease: feed.IncludesPrereleases),
-                new UpdateOptions { ExplicitChannel = feed.Channel });
-            _manager = manager.IsInstalled ? manager : null;
+            _includesPrereleases = settings.Current.UpdatePrereleases;
+            var manager = Create(feed, _includesPrereleases);
+            if (manager.IsInstalled)
+            {
+                (_feed, _manager) = (feed, manager);
+            }
         }
     }
 
@@ -60,6 +69,13 @@ internal sealed class VelopackUpdater : IAppUpdater
 
     public async Task<AppRelease?> CheckAsync(CancellationToken cancellationToken)
     {
+        // Velopack's GitHub source takes pre-releases or not when it is made, so a changed setting needs a new one.
+        if (_feed is not null && _settings.Current.UpdatePrereleases != _includesPrereleases)
+        {
+            _includesPrereleases = !_includesPrereleases;
+            _manager = Create(_feed, _includesPrereleases);
+        }
+
         _found = await Manager.CheckForUpdatesAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
         return _found is null ? null : Release(_found.TargetFullRelease);
     }
@@ -72,6 +88,10 @@ internal sealed class VelopackUpdater : IAppUpdater
         Manager.WaitExitThenApplyUpdates(Manager.UpdatePendingRestart, silent: true, restart: true, [.. restartArgs]);
 
     private UpdateManager Manager => _manager ?? throw new InvalidOperationException("This copy of the app cannot update itself.");
+
+    private static UpdateManager Create(UpdateFeed feed, bool includesPrereleases) =>
+        new(new GithubSource(feed.Url, accessToken: null, prerelease: includesPrereleases),
+            new UpdateOptions { ExplicitChannel = feed.Channel });
 
     private static AppRelease Release(VelopackAsset asset) =>
         new(asset.Version.ToString(), string.IsNullOrWhiteSpace(asset.NotesMarkdown) ? null : asset.NotesMarkdown);

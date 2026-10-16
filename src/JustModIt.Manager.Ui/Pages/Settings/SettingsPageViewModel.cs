@@ -72,6 +72,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     public string AutoUpdateAppDescription =>
         Text.Format(Strings.Settings_AutoUpdateAppDescription, ("product", _services.Context.ProductName));
 
+    public string UpdatePrereleasesDescription =>
+        Text.Format(Strings.Settings_UpdatePrereleasesDescription, ("product", _services.Context.ProductName));
+
     public string CreatorModeDescription { get; } = Text.Format(Strings.Settings_CreatorModeDescription, ("creator", Strings.Shell_Creator));
 
     [ObservableProperty]
@@ -100,6 +103,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     [ObservableProperty]
     public partial bool AutoUpdateApp { get; set; }
+
+    [ObservableProperty]
+    public partial bool UpdatePrereleases { get; set; }
 
     /// <inheritdoc cref="AppSettings.SendErrorReports"/>
     [ObservableProperty]
@@ -204,6 +210,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     partial void OnAutoUpdateAppChanged(bool value) => Change(settings => settings with { AutoUpdateApp = value });
 
+    partial void OnUpdatePrereleasesChanged(bool value) => Change(settings => settings with { UpdatePrereleases = value });
+
     partial void OnSendErrorReportsChanged(bool value) => Change(settings => settings with { SendErrorReports = value });
 
     [RelayCommand]
@@ -288,6 +296,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         ShowNotifications = settings.ShowNotifications;
         CreatorMode = settings.CreatorMode;
         AutoUpdateApp = settings.AutoUpdateApp;
+        UpdatePrereleases = settings.UpdatePrereleases;
         SendErrorReports = settings.SendErrorReports;
         _syncing = false;
         Backups.Refresh();

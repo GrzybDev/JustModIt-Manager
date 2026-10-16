@@ -19,6 +19,7 @@ public sealed class AppSettingsTests
         settings.AutoUpdateProjects.Should().BeTrue();
         settings.ReapplyAfterGameUpdate.Should().BeTrue();
         settings.AutoUpdateApp.Should().BeTrue();
+        settings.UpdatePrereleases.Should().BeFalse();
         settings.ShowNotifications.Should().BeTrue();
         settings.BlurAdultContent.Should().BeTrue();
         settings.CreatorMode.Should().BeFalse();

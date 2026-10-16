@@ -95,7 +95,8 @@ Get-ChildItem $publish -Filter '*.pdb' | Move-Item -Destination $symbols
 if (-not $NoDelta -and $target.UpdateUrl) {
     $downloadArguments = @('download', 'github', '--repoUrl', $target.UpdateUrl, '--outputDir', $releases, '--skip-updates')
     if ($target.Channel) { $downloadArguments += @('--channel', $target.Channel) }
-    if ($target.Prereleases) { $downloadArguments += '--pre' }
+    # The delta is made against the newest release of any kind, since testers update to pre-releases too.
+    $downloadArguments += '--pre'
     if ($Token) { $downloadArguments += @('--token', $Token) }
     & $vpk @downloadArguments
     $downloaded = $LASTEXITCODE -eq 0

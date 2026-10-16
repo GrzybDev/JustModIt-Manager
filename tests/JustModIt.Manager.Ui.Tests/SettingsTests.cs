@@ -510,6 +510,20 @@ public sealed class SettingsTests
     }
 
     [AvaloniaFact]
+    public async Task Test_versions_come_as_updates_only_once_the_player_turns_them_on()
+    {
+        var state = State() with { Update = new AppUpdateView { State = AppUpdateState.UpToDate, CurrentVersion = "0.1.0" } };
+        using var ui = await OpenAsync(state);
+        var toggle = ui.Find<ToggleSwitch>("UpdatePrereleases");
+        toggle.IsChecked.Should().BeFalse("a player takes the stable versions unless they ask for test ones");
+
+        ui.Click(toggle);
+        ui.Agent.Requests.OfType<ChangeSettings>().Should().ContainSingle().Which.Settings.UpdatePrereleases.Should().BeTrue();
+        ui.Push(state with { Version = 2, Update = state.Update with { State = AppUpdateState.Unavailable } });
+        toggle.IsEffectivelyEnabled.Should().BeFalse("a copy that does not update itself has nothing to switch");
+    }
+
+    [AvaloniaFact]
     public async Task The_about_card_follows_the_apps_update_and_leads_to_the_site_the_code_a_report_the_logs_and_the_licences()
     {
         var state = State() with

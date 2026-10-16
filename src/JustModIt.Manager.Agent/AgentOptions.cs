@@ -57,5 +57,4 @@ public sealed record AgentOptions
 /// <summary>The feed the app's own updates come from.</summary>
 /// <param name="Url">The app's GitHub repository, whose releases hold its updates.</param>
 /// <param name="Channel">The release channel to follow; null follows the one the installed build came from.</param>
-/// <param name="IncludesPrereleases">Whether GitHub pre-releases count as updates.</param>
-public sealed record UpdateFeed(string Url, string? Channel, bool IncludesPrereleases);
+public sealed record UpdateFeed(string Url, string? Channel);

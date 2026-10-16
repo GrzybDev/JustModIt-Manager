@@ -19,6 +19,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string AutoUpdateProjects = "autoUpdateProjects";
     private const string ReapplyAfterGameUpdate = "reapplyAfterGameUpdate";
     private const string AutoUpdateApp = "autoUpdateApp";
+    private const string UpdatePrereleases = "updatePrereleases";
     private const string SendErrorReports = "sendErrorReports";
     private const string ShowNotifications = "showNotifications";
     private const string BlurAdultContent = "blurAdultContent";
@@ -56,7 +57,8 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
 
     public IReadOnlySet<string> KnownProperties { get; } = FrozenSet.Create(StringComparer.Ordinal,
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
-        AutoUpdateApp, SendErrorReports, ShowNotifications, BlurAdultContent, CreatorMode, OnboardingCompleted, OnboardingStep,
+        AutoUpdateApp, UpdatePrereleases, SendErrorReports, ShowNotifications, BlurAdultContent, CreatorMode,
+        OnboardingCompleted, OnboardingStep,
         TrayNoticeShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
         AdultContentConfirmedUntil, RevealedAdultGames, RecentCreatorProjects, InstallationId, LegacyShowAdultContent,
         LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
@@ -83,6 +85,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
                 ?? defaults.AutoUpdateProjects,
             ReapplyAfterGameUpdate = root.GetBooleanOrNull(ReapplyAfterGameUpdate) ?? defaults.ReapplyAfterGameUpdate,
             AutoUpdateApp = root.GetBooleanOrNull(AutoUpdateApp) ?? defaults.AutoUpdateApp,
+            UpdatePrereleases = root.GetBooleanOrNull(UpdatePrereleases) ?? defaults.UpdatePrereleases,
             SendErrorReports = root.GetBooleanOrNull(SendErrorReports) ?? defaults.SendErrorReports,
             ShowNotifications = root.GetBooleanOrNull(ShowNotifications) ?? defaults.ShowNotifications,
             BlurAdultContent = blurAdultContent,
@@ -112,6 +115,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteBoolean(AutoUpdateProjects, document.AutoUpdateProjects);
         writer.WriteBoolean(ReapplyAfterGameUpdate, document.ReapplyAfterGameUpdate);
         writer.WriteBoolean(AutoUpdateApp, document.AutoUpdateApp);
+        writer.WriteBoolean(UpdatePrereleases, document.UpdatePrereleases);
         writer.WriteBoolean(SendErrorReports, document.SendErrorReports);
         writer.WriteBoolean(ShowNotifications, document.ShowNotifications);
         writer.WriteBoolean(BlurAdultContent, document.BlurAdultContent);

@@ -67,8 +67,8 @@ public sealed class HostEnvironmentTests
     {
         HostEnvironment.Create(Product, Build).AgentOptions().Updates.Should().BeNull();
 
-        HostEnvironment.Create(Product with { UpdateUrl = "https://github.com/example/example-app", UpdatePrereleases = true }, Build)
-            .AgentOptions().Updates.Should().Be(new UpdateFeed("https://github.com/example/example-app", null, IncludesPrereleases: true));
+        HostEnvironment.Create(Product with { UpdateUrl = "https://github.com/example/example-app" }, Build)
+            .AgentOptions().Updates.Should().Be(new UpdateFeed("https://github.com/example/example-app", null));
         HostEnvironment.Create(Product with { UpdateUrl = "https://github.com/example/example-app", UpdateChannel = "beta" }, Build)
             .AgentOptions().Updates!.Channel.Should().Be("beta");
     }

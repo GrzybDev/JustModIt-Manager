@@ -47,6 +47,9 @@ public sealed record AppSettings
 
     public bool AutoUpdateApp { get; init; } = true;
 
+    /// <summary>Count the app's test versions (pre-releases) as updates; off until the player turns it on.</summary>
+    public bool UpdatePrereleases { get; init; }
+
     /// <summary>Send the report of a crash without asking; off until the player turns it on.</summary>
     public bool SendErrorReports { get; init; }
 

@@ -450,6 +450,12 @@
                             AutomationProperties.Name="{x:Static loc:Strings.Settings_AutoUpdateApp}"
                             AutomationProperties.HelpText="{Binding AutoUpdateAppDescription}" />
             </ui:SettingRow>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Rocket}" Title="{x:Static loc:Strings.Settings_UpdatePrereleases}"
+                           Description="{Binding UpdatePrereleasesDescription}">
+              <ToggleSwitch x:Name="UpdatePrereleases" IsChecked="{Binding UpdatePrereleases}" IsEnabled="{Binding CanUpdateApp}"
+                            AutomationProperties.Name="{x:Static loc:Strings.Settings_UpdatePrereleases}"
+                            AutomationProperties.HelpText="{Binding UpdatePrereleasesDescription}" />
+            </ui:SettingRow>
             <ui:SettingRow x:Name="ErrorReports" Classes="divided" Icon="{x:Static theme:Icons.Send}" Title="{x:Static loc:Strings.Settings_ErrorReports}"
                            Description="{x:Static loc:Strings.Settings_ErrorReportsDescription}" IsVisible="{Binding CanSendErrorReports}">
               <ToggleSwitch x:Name="SendErrorReports" IsChecked="{Binding SendErrorReports}"

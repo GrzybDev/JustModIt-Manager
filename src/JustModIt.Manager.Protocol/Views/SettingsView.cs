@@ -20,6 +20,9 @@ public sealed record SettingsView
 
     public bool AutoUpdateApp { get; init; }
 
+    /// <inheritdoc cref="AppSettings.UpdatePrereleases"/>
+    public bool UpdatePrereleases { get; init; }
+
     /// <inheritdoc cref="AppSettings.SendErrorReports"/>
     public bool SendErrorReports { get; init; }
 
@@ -61,6 +64,7 @@ public sealed record SettingsView
             AutoUpdateProjects = settings.AutoUpdateProjects,
             ReapplyAfterGameUpdate = settings.ReapplyAfterGameUpdate,
             AutoUpdateApp = settings.AutoUpdateApp,
+            UpdatePrereleases = settings.UpdatePrereleases,
             SendErrorReports = settings.SendErrorReports,
             ShowNotifications = settings.ShowNotifications,
             BlurAdultContent = settings.BlurAdultContent,
@@ -87,6 +91,7 @@ public sealed record SettingsView
             AutoUpdateProjects = AutoUpdateProjects,
             ReapplyAfterGameUpdate = ReapplyAfterGameUpdate,
             AutoUpdateApp = AutoUpdateApp,
+            UpdatePrereleases = UpdatePrereleases,
             SendErrorReports = SendErrorReports,
             ShowNotifications = ShowNotifications,
             BlurAdultContent = BlurAdultContent,
