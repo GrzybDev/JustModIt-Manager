@@ -77,40 +77,29 @@ public sealed class DiagnosticsTests : IDisposable
     }
 
     [Fact]
-    public void A_crash_records_its_exceptions_and_last_log_lines_for_a_report_without_the_users_name()
+    public void A_crash_records_its_exceptions_for_a_report_without_the_users_name_any_path_or_any_game()
     {
         var redactor = new PathRedactor([(Profile, "%USERPROFILE%")], "example");
-        var recent = new RecentLog(redactor);
-        using (var logger = AppLogging.Create(_directory, "agent", verbose: false, redactor, recent))
-        {
-            using var factory = new SerilogLoggerFactory(logger);
-            for (var line = 1; line <= RecentLog.Capacity + 2; line++)
-            {
-                factory.CreateLogger("Example.Scanner").LogInformation("Scanned {Folder} {Line}", Path.Combine(Profile, "Games"), line);
-            }
-
-            factory.CreateLogger("Example.Pipe").LogInformation("Listening on {Pipe}", "ExampleApp.S-1-5-21-1111-2222-3333-1001.1");
-        }
-
-        var crashed = new SessionMarker(_directory, "agent", "1.0.0", _time, redactor, recent);
+        var crashed = new SessionMarker(_directory, "agent", "1.0.0", _time, redactor);
         crashed.Begin();
-        var file = Path.Combine(Profile, "Games", "save.dat");
-        crashed.RecordCrash(Thrown(new InvalidOperationException("Publishing failed", new IOException($"The file '{file}' is in use."))));
+        var file = Path.Combine(Profile, "Games", "Unannounced Game", "save.dat");
+        crashed.RecordCrash(Thrown(new InvalidOperationException("Replacing the install on steam:4100 failed for pipe ExampleApp.S-1-5-21-1111-2222-3333-1001.1",
+            new IOException($"The file '{file}' is in use, as is 'E:\\Studio Builds\\Unannounced Game (Dev)\\game.pak'."))));
 
         var report = new SessionMarker(_directory, "agent", "1.0.0", _time).Begin()!.Report!;
 
         report.Exceptions.Select(error => error.Type).Should().Equal(typeof(InvalidOperationException).FullName, typeof(IOException).FullName);
-        report.Exceptions[1].Message.Should().NotContain(Profile).And.Contain("%USERPROFILE%");
+        report.Exceptions[0].Message.Should().Be("Replacing the install on <game> failed for pipe ExampleApp.<sid>.1",
+            "a game's store id and the user's security id say too much");
+        report.Exceptions[1].Message.Should().Be("The file '<path>' is in use, as is '<path>'.",
+            "a path may name a game its player is not allowed to talk about");
         report.Exceptions[0].StackTrace.Should().Contain(nameof(Thrown));
-        report.Log.Should().HaveCount(RecentLog.Capacity);
-        report.Log[^2].Should().Contain("INF Example.Scanner: Scanned").And.Contain("%USERPROFILE%").And.EndWith(" 32").And.NotContain(Profile);
-        report.Log[^1].Should().EndWith("Listening on ExampleApp.<sid>.1", "a security id names the user's account on this computer");
     }
 
     [Fact]
     public void An_untold_exit_keeps_its_report_for_the_window()
     {
-        var report = new Protocol.Views.CrashReportView([new Protocol.Views.CrashError("Example.Error", "Broken", "at Example.Run()")], ["12:00:00 INF Started"]);
+        var report = new Protocol.Views.CrashReportView([new Protocol.Views.CrashError("Example.Error", "Broken", "at Example.Run()")]);
         var crash = new UncleanExit(DateTimeOffset.UnixEpoch, "0.9.0", "Example.Error", DateTimeOffset.UnixEpoch) { Report = report };
         UntoldExit.Carry(_directory, crash);
 

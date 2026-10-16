@@ -502,7 +502,7 @@ public sealed class SettingsTests
         ui.Agent.Requests.OfType<ChangeSettings>().Should().ContainSingle().Which.Settings.SendErrorReports.Should().BeTrue();
         ui.Click(ui.Find<Button>("ErrorReportExample"));
         var example = ui.Shell.Dialogs.Current.Should().BeOfType<ErrorReportExampleViewModel>().Subject;
-        example.Fields.Select(field => field.Value).Should().Contain(["Example App 0.1.0", "okno", "30 ostatnich wpisów"]);
+        example.Fields.Select(field => field.Value).Should().Contain(["Example App 0.1.0", "okno"]);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render("settings-error-reports-example");
         ui.Click(ui.Find<Button>("CloseExample"));

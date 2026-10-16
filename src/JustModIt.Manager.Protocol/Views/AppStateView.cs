@@ -157,14 +157,12 @@ public sealed record UncleanExitView(string Version, string? CrashType)
     public CrashReportView? Report { get; init; }
 }
 
-/// <summary>What a crash recorded for an error report, with the user's name hidden in every text.</summary>
+/// <summary>
+/// What a crash recorded for an error report: its exceptions only, with every path, game and the user's name hidden, since a
+/// report must never tell which games are on the computer.
+/// </summary>
 /// <param name="Exceptions">The exception that ended the run, then those that caused it.</param>
-/// <param name="Log">The run's last log lines before the crash, oldest first.</param>
-public sealed record CrashReportView(IReadOnlyList<CrashError> Exceptions, IReadOnlyList<string> Log)
-{
-    /// <summary>How many of the run's last log lines a report keeps.</summary>
-    public const int LogLines = 30;
-}
+public sealed record CrashReportView(IReadOnlyList<CrashError> Exceptions);
 
 /// <summary>One exception of a crash.</summary>
 /// <param name="Type">Its type's full name.</param>

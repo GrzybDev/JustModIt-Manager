@@ -75,8 +75,8 @@ się na stronie spolszczenia tak samo jak pobranie ze strony. Żeby liczyło si�
 losowy identyfikator instalacji, który nic nie mówi o graczu ani o komputerze; ponowna instalacja aplikacji daje nowy.
 
 Po nieoczekiwanym zamknięciu aplikacja może wysłać opis błędu jej autorom: tylko za zgodą albo bez pytania, gdy
-włączy się to w ustawieniach. Przed wysłaniem widać, co pójdzie; raport nie zawiera nazwy użytkownika ani zawartości
-plików, choć ostatnie wpisy dziennika mogą wymieniać gry i foldery, których dotyczyły. Szczegóły opisuje
+włączy się to w ustawieniach. Przed wysłaniem widać, co pójdzie; raport zawiera tylko sam błąd, bez nazwy użytkownika,
+zawartości plików, ścieżek i gier. Szczegóły opisuje
 [polityka prywatności Bazy Spolszczeń](https://bazaspolszczen.pl/legal/privacy-policy).
 
 ## Zgłaszanie problemów

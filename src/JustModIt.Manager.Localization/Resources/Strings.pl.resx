@@ -2497,7 +2497,7 @@
     <value>Raport o błędzie</value>
   </data>
   <data name="Shell_ErrorReportText" xml:space="preserve">
-    <value>Opis błędu można wysłać autorom aplikacji, żeby łatwiej znaleźli przyczynę. Raport nie zawiera nazwy użytkownika ani zawartości plików; ostatnie wpisy dziennika mogą wymieniać gry i foldery, których dotyczyły.</value>
+    <value>Opis błędu można wysłać autorom aplikacji, żeby łatwiej znaleźli przyczynę. Raport nie zawiera nazwy użytkownika, zawartości plików, ścieżek ani gier.</value>
   </data>
   <data name="Shell_ErrorReportShow" xml:space="preserve">
     <value>Pokaż, co zostanie wysłane</value>
@@ -2550,9 +2550,6 @@
   <data name="Shell_ReportFieldCalls" xml:space="preserve">
     <value>Stos</value>
   </data>
-  <data name="Shell_ReportFieldLog" xml:space="preserve">
-    <value>Dziennik</value>
-  </data>
   <data name="Shell_ReportProcess" xml:space="preserve">
     <value>{process, select, window {okno} other {działanie w tle}}</value>
   </data>
@@ -2560,7 +2557,7 @@
     <value>Wysyłaj raporty o błędach</value>
   </data>
   <data name="Settings_ErrorReportsDescription" xml:space="preserve">
-    <value>Po nieoczekiwanym zamknięciu opis błędu trafi do autorów aplikacji bez pytania. Raport zawiera wersję aplikacji i systemu, opis błędu i ostatnie wpisy dziennika, bez nazwy użytkownika i zawartości plików.</value>
+    <value>Po nieoczekiwanym zamknięciu opis błędu trafi do autorów aplikacji bez pytania. Raport zawiera wersję aplikacji i systemu oraz opis błędu, bez nazwy użytkownika, zawartości plików, ścieżek i gier.</value>
   </data>
   <data name="Settings_ErrorReportsWhat" xml:space="preserve">
     <value>Co zawiera raport?</value>
@@ -2572,13 +2569,10 @@
     <value>Przykład. Prawdziwy raport pokazuje się przed wysłaniem w oknie po nieoczekiwanym zamknięciu.</value>
   </data>
   <data name="Settings_ErrorReportsDialogNote" xml:space="preserve">
-    <value>Ścieżki z folderu użytkownika są zastępowane, jak w dziennikach; wpisy dziennika mogą wymieniać gry i ich foldery. Raport nie zawiera identyfikatora komputera ani instalacji.</value>
+    <value>Wszystkie ścieżki i gry są ukrywane, a raport nie zawiera wpisów dziennika ani identyfikatora komputera czy instalacji.</value>
   </data>
   <data name="Settings_ReportExampleError" xml:space="preserve">
     <value>typ, komunikat i stos wywołań</value>
-  </data>
-  <data name="Settings_ReportExampleLog" xml:space="preserve">
-    <value>{count, plural, one {ostatni wpis} few {# ostatnie wpisy} many {# ostatnich wpisów} other {# ostatniego wpisu}}</value>
   </data>
   <data name="Creator_Subtitle" xml:space="preserve">
     <value>Z gotowych plików powstanie paczka, którą gracze zainstalują jednym kliknięciem.</value>

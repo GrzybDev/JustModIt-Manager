@@ -75,9 +75,8 @@ request alone carries a random installation id, which says nothing about you or 
 gives a new one.
 
 If the app closes unexpectedly, it can send a description of the error to its authors: only when you agree, or without
-asking once you turn that on in the settings. You see what goes before it is sent; it holds no user name and no file
-contents, though its last log lines may name the games and folders they were about. The
-[privacy policy of Baza Spolszczeń](https://bazaspolszczen.pl/legal/privacy-policy) has the details.
+asking once you turn that on in the settings. You see what goes before it is sent; it holds only the error itself, with
+no user name, no file contents, no paths and no games. The [privacy policy of Baza Spolszczeń](https://bazaspolszczen.pl/legal/privacy-policy) has the details.
 
 ## Reporting a problem
 

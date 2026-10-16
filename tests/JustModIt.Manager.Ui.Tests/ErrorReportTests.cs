@@ -16,8 +16,7 @@ public sealed class ErrorReportTests
                 new CrashError("System.InvalidOperationException", "Publishing failed",
                     "   at Example.State.Publish() + 0x4c\r\n   at Example.State.RunAsync() + 0x1f2\r\n   at System.Threading.Tasks.Task.Run()"),
                 new CrashError("System.IO.IOException", "The file '%USERPROFILE%\\save.dat' is in use.", ""),
-            ],
-            ["12:31:58 INF Example.Scanner: Scanned 12 games", "12:32:00 WRN Example.State: Slow"]),
+            ]),
     };
 
     [Theory]
@@ -61,7 +60,7 @@ public sealed class ErrorReportTests
         exceptions[1].GetProperty("stacktrace").GetProperty("frames").EnumerateArray()
             .Select(frame => (frame.GetProperty("function").GetString(), frame.GetProperty("in_app").GetBoolean())).Should()
             .Equal(("System.Threading.Tasks.Task.Run()", false), ("Example.State.RunAsync() + 0x1f2", true), ("Example.State.Publish() + 0x4c", true));
-        root.GetProperty("extra").GetProperty("log").GetString().Should().Be(string.Join('\n', Crash.Report!.Log));
+        root.TryGetProperty("extra", out _).Should().BeFalse("a report carries no log lines, which could name a game");
         root.TryGetProperty("user", out _).Should().BeFalse();
         root.TryGetProperty("server_name", out _).Should().BeFalse();
         lines[2].Should().NotContain(Environment.MachineName);

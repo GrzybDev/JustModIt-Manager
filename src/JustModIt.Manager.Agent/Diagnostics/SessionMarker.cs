@@ -29,7 +29,6 @@ public sealed class SessionMarker
     private readonly string _version;
     private readonly TimeProvider _time;
     private readonly PathRedactor? _redactor;
-    private readonly RecentLog? _log;
     private DateTimeOffset _startedAt;
 
     /// <summary>Creates the marker of one role; nothing is written until <see cref="Begin"/>.</summary>
@@ -38,9 +37,7 @@ public sealed class SessionMarker
     /// <param name="version">This app's version, written into the marker.</param>
     /// <param name="time">Stamps the start and a crash.</param>
     /// <param name="redactor">Hides the user's name in what a crash records; null records no error report.</param>
-    /// <param name="log">The role's last log lines, which a crash records with its report; null for none.</param>
-    public SessionMarker(string directory, string role, string version, TimeProvider time, PathRedactor? redactor = null,
-        RecentLog? log = null)
+    public SessionMarker(string directory, string role, string version, TimeProvider time, PathRedactor? redactor = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         ArgumentException.ThrowIfNullOrWhiteSpace(role);
@@ -50,7 +47,6 @@ public sealed class SessionMarker
         _version = version;
         _time = time;
         _redactor = redactor;
-        _log = log;
     }
 
     /// <summary>Marks this run as started.</summary>
@@ -80,7 +76,7 @@ public sealed class SessionMarker
         CrashReportView? report = null;
         try
         {
-            report = _redactor is null ? null : ReportOf(exception, _redactor, _log);
+            report = _redactor is null ? null : ReportOf(exception, _redactor);
         }
         // A message, a stack trace or a logged value may throw as the process goes down; the crash is told without them.
         catch (Exception)
@@ -202,13 +198,6 @@ public sealed class SessionMarker
         }
 
         writer.WriteEndArray();
-        writer.WriteStartArray("log");
-        foreach (var line in report.Log)
-        {
-            writer.WriteStringValue(line);
-        }
-
-        writer.WriteEndArray();
         writer.WriteEndObject();
     }
 
@@ -225,12 +214,11 @@ public sealed class SessionMarker
 
         try
         {
+            // Scrubbed again, and log lines an earlier version kept left out, so no report from before names a game.
             return new CrashReportView(
                 [.. exceptions.EnumerateArray().Select(exception => new CrashError(exception.GetProperty("type").GetString() ?? "",
-                    exception.GetProperty("message").GetString() ?? "", exception.GetProperty("stackTrace").GetString() ?? ""))],
-                report.TryGetProperty("log", out var log) && log.ValueKind == JsonValueKind.Array
-                    ? [.. log.EnumerateArray().Select(line => line.GetString() ?? "")]
-                    : []);
+                    ReportText.Scrub(exception.GetProperty("message").GetString() ?? ""),
+                    ReportText.Scrub(exception.GetProperty("stackTrace").GetString() ?? "")))]);
         }
         catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException)
         {
@@ -239,7 +227,7 @@ public sealed class SessionMarker
     }
 
     // The exception and its causes, outermost first, as the runtime words them, with the user's name hidden.
-    private static CrashReportView ReportOf(Exception crash, PathRedactor redactor, RecentLog? log)
+    private static CrashReportView ReportOf(Exception crash, PathRedactor redactor)
     {
         var chain = new List<Exception>();
         var pending = new Queue<Exception>([crash]);
@@ -258,8 +246,7 @@ public sealed class SessionMarker
         return new CrashReportView(
             [.. chain.Select(exception => new CrashError(exception.GetType().FullName ?? exception.GetType().Name,
                 Cut(ReportText.Scrub(redactor.Redact(exception.Message)), MaxMessageLength),
-                Cut(ReportText.Scrub(redactor.Redact(exception.StackTrace ?? "")), MaxStackTraceLength)))],
-            log?.Lines() ?? []);
+                Cut(ReportText.Scrub(redactor.Redact(exception.StackTrace ?? "")), MaxStackTraceLength)))]);
     }
 
     private static string Cut(string text, int length) => text.Length <= length ? text : text[..length];

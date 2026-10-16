@@ -25,8 +25,7 @@ public static class AppLogging
     /// <param name="role">Names the files, e.g. <c>agent</c> writes <c>agent-20260929.log</c>.</param>
     /// <param name="verbose">Debug messages too, as development builds write them.</param>
     /// <param name="redactor">Hides the user's name in every line.</param>
-    /// <param name="recent">Keeps the last lines for the report of a crash; null keeps none.</param>
-    public static Logger Create(string logsDirectory, string role, bool verbose, PathRedactor redactor, RecentLog? recent = null)
+    public static Logger Create(string logsDirectory, string role, bool verbose, PathRedactor redactor)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(logsDirectory);
         ArgumentException.ThrowIfNullOrWhiteSpace(role);
@@ -35,11 +34,6 @@ public static class AppLogging
             .MinimumLevel.Is(verbose ? LogEventLevel.Debug : LogEventLevel.Information)
             .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
             .Enrich.FromLogContext();
-        if (recent is not null)
-        {
-            configuration = configuration.WriteTo.Sink(recent);
-        }
-
         return configuration
             // The file is written on a worker, so logging never waits for the disk; without a flush timer, since one
             // would wake the idle agent every second.
@@ -59,64 +53,27 @@ public static class AppLogging
 }
 
 /// <summary>
-/// The last lines a role logged, kept in memory for the report of a crash and written out, with the user's name hidden,
-/// only when one happens.
-/// </summary>
-/// <param name="redactor">Hides the user's name.</param>
-public sealed class RecentLog(PathRedactor redactor) : ILogEventSink
-{
-    public const int Capacity = CrashReportView.LogLines;
-
-    private const string Template = "{Timestamp:HH:mm:ss} {Level:u3} {SourceContext}: {Message:lj}";
-
-    private readonly Queue<LogEvent> _events = new();
-    private readonly Lock _gate = new();
-    private readonly MessageTemplateTextFormatter _formatter = new(Template, CultureInfo.InvariantCulture);
-
-    public void Emit(LogEvent logEvent)
-    {
-        lock (_gate)
-        {
-            _events.Enqueue(logEvent);
-            if (_events.Count > Capacity)
-            {
-                _events.Dequeue();
-            }
-        }
-    }
-
-    /// <summary>The lines kept, oldest first, each on one line.</summary>
-    public IReadOnlyList<string> Lines()
-    {
-        LogEvent[] events;
-        lock (_gate)
-        {
-            events = [.. _events];
-        }
-
-        return
-        [
-            .. events.Select(logEvent =>
-            {
-                using var line = new StringWriter(CultureInfo.InvariantCulture);
-                _formatter.Format(logEvent, line);
-                return ReportText.Scrub(redactor.Redact(line.ToString())).ReplaceLineEndings(" ");
-            }),
-        ];
-    }
-}
-
-/// <summary>
-/// Hides in a crash's report what the logs keep on this computer: the user's security id, which names the agent's pipe.
+/// Hides in a crash's report what the logs keep on this computer: the user's security id, which names the agent's pipe,
+/// and every path and game, since some players make games under a non-disclosure agreement and a report must not name one.
 /// </summary>
 internal static partial class ReportText
 {
-    /// <summary>The text with every Windows security id replaced by a placeholder.</summary>
-    /// <param name="text">A message, stack trace or log line bound for a report.</param>
-    public static string Scrub(string text) => SecurityId().Replace(text, "<sid>");
+    /// <summary>The text with every Windows security id, path and game key replaced by a placeholder.</summary>
+    /// <param name="text">A message or stack trace bound for a report.</param>
+    public static string Scrub(string text) =>
+        GameKey().Replace(FilePath().Replace(SecurityId().Replace(text, "<sid>"), "<path>"), "<game>");
 
     [GeneratedRegex(@"S-1-\d+(-\d+)+", RegexOptions.CultureInvariant)]
     private static partial Regex SecurityId();
+
+    // A path runs to the next quote, angle bracket or line end, since folder names hold spaces and brackets; hiding the
+    // rest of a line is safer than leaving the end of a game's folder.
+    [GeneratedRegex(@"(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|\\\\[^\\/\s]+[\\/]|%[A-Za-z_]+%[\\/]|~[\\/])[^'""`<>|\r\n]*",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex FilePath();
+
+    [GeneratedRegex(@"\b(?:steam|gog|epic):[^\s'"",;)\]]+", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex GameKey();
 }
 
 /// <summary>

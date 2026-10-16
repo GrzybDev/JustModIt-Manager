@@ -21,9 +21,7 @@ public sealed class UnexpectedCloseTests
             [
                 new CrashError("System.InvalidOperationException", "Collection was modified; enumeration operation may not execute.",
                     "   at Example.State.StateCoordinator.Publish() + 0x4c\n   at Example.State.StateCoordinator.RunAsync() + 0x1f2"),
-            ],
-            ["14:31:58 INF Example.Library: Scanned steam: 12 games", "14:32:06 INF Example.Catalog: Catalogue refreshed in 2.4 s",
-                "14:32:07 WRN Example.Library: Library %USERPROFILE%\\Games offline"]),
+            ]),
     };
 
     [AvaloniaFact]
@@ -69,7 +67,7 @@ public sealed class UnexpectedCloseTests
         ui.Reports.Sent.Should().BeEmpty("nothing goes without the player's consent");
         ui.Find<Border>("ReportPreview").IsVisible.Should().BeFalse();
         ui.Click(ui.Find<Button>("ReportPreviewToggle"));
-        dialog.Preview.Select(field => field.Label).Should().Equal("Aplikacja", "Proces", "System", "Kiedy", "Błąd", "Stos", "Dziennik");
+        dialog.Preview.Select(field => field.Label).Should().Equal("Aplikacja", "Proces", "System", "Kiedy", "Błąd", "Stos");
         dialog.Preview[1].Value.Should().Be("działanie w tle");
         dialog.Preview[5].Value.Should().Be(string.Join(Environment.NewLine, "Example.State.StateCoordinator.Publish() + 0x4c",
             "Example.State.StateCoordinator.RunAsync() + 0x1f2"));

@@ -225,8 +225,6 @@ public sealed partial class UncleanExitDialogViewModel : DialogViewModel<bool>
             new(Strings.Shell_ReportFieldTime, Formats.DateAndTime(report.CrashedAt, _services.Clock.LocalTimeZone)),
             new(Strings.Shell_ReportFieldError, string.Join(Environment.NewLine,
                 report.Errors.Select(cause => cause.Message.Length > 0 ? $"{cause.Type}: {cause.Message}" : cause.Type))),
-            .. report.Calls.Count > 0 ? [new ReportField(Strings.Shell_ReportFieldCalls, string.Join(Environment.NewLine, report.Calls))] : Array.Empty<ReportField>(),
-            .. report.Log.Count > 0 ? [new ReportField(Strings.Shell_ReportFieldLog, string.Join(Environment.NewLine, report.Log))] : Array.Empty<ReportField>(),
-        ];
+            .. report.Calls.Count > 0 ? [new ReportField(Strings.Shell_ReportFieldCalls, string.Join(Environment.NewLine, report.Calls))] : Array.Empty<ReportField>(),        ];
     }
 }

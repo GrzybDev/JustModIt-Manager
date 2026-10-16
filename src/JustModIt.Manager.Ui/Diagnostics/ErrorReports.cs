@@ -66,7 +66,6 @@ public sealed class ErrorReport
         IsWindow = exit.IsWindow;
         CrashedAt = exit.CrashedAt ?? clock.GetUtcNow();
         Errors = exit.Report?.Exceptions is { Count: > 0 } exceptions ? exceptions : [new CrashError(exit.CrashType ?? "", "", "")];
-        Log = exit.Report?.Log ?? [];
     }
 
     public Guid Id { get; }
@@ -96,9 +95,6 @@ public sealed class ErrorReport
     };
     /// <summary>The exception that ended the run, then those that caused it.</summary>
     public IReadOnlyList<CrashError> Errors { get; }
-
-    /// <summary>The run's last log lines, oldest first.</summary>
-    public IReadOnlyList<string> Log { get; }
 
     /// <summary>
     /// The methods each exception passed through, the throwing one first, as the runtime names them; with several
@@ -215,9 +211,6 @@ public sealed class ErrorReport
             }
 
             writer.WriteEndArray();
-            writer.WriteEndObject();
-            writer.WriteStartObject("extra");
-            writer.WriteString("log", string.Join('\n', Log));
             writer.WriteEndObject();
             writer.WriteEndObject();
         }
