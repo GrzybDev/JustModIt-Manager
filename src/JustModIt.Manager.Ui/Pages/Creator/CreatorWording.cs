@@ -117,6 +117,7 @@ internal static class CreatorWording
         ("size", finding.Size is { } size ? Formats.FileSize(size) : ""),
         ("tool", tool),
         ("files", RuntimeFile.MaxPerPackage),
+        ("notices", ThirdPartyNotice.MaxPerPackage),
     ];
 
     // The creator reports the game's own folder as an overlap too, but it is the likelier slip and gets words of its own.

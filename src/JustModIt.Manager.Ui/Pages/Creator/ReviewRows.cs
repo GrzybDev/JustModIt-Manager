@@ -257,8 +257,8 @@ public sealed partial class RuleRow(string key) : ObservableObject, IReviewRow
     /// <summary>The library's game path, for a library's row.</summary>
     public string Path { get; set; } = "";
 
-    /// <summary>The library's file name, which names its notice until the author names the tool.</summary>
-    public string FileName => CreatorWording.GameIndexName(Path);
+    /// <summary>The library's file name as its notice takes it, which names the notice until the author names the tool.</summary>
+    public string FileName => LibraryNotice.NameAfterFile(Path);
 
     /// <summary>What the package's description calls the library.</summary>
     [ObservableProperty]

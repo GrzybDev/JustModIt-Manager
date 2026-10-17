@@ -223,6 +223,29 @@ public sealed class HostingRulesTests : IDisposable
     }
 
     [Fact]
+    public async Task Names_at_most_as_many_tools_and_libraries_as_a_manifest_holds_counting_those_still_to_be_filled_in()
+    {
+        _workspace.Author("dinput8.dll", "loader");
+        for (var i = 0; i < ThirdPartyNotice.MaxPerPackage; i++)
+        {
+            _workspace.Author($"plugins/hook{i}.dll", $"hook {i}");
+        }
+
+        var full = Enumerable.Range(0, ThirdPartyNotice.MaxPerPackage - 1).Aggregate(
+            Project.WithToolNotice(new ToolNotice("asi-loader", "MIT", "https://example.com/loader/source")),
+            (project, i) => project.WithLibraryNotice(new LibraryNotice($"plugins/hook{i}.dll", "MIT", "https://code.example.com/hooks")));
+
+        var atLimit = await PlanAsync(full);
+        var overLimit = await PlanAsync(full.WithLibraryNotice(
+            new LibraryNotice($"plugins/hook{ThirdPartyNotice.MaxPerPackage - 1}.dll", License: "", SourceUrl: "")));
+
+        atLimit.CanBuild.Should().BeTrue();
+        atLimit.ThirdPartyNotices.Should().HaveCount(ThirdPartyNotice.MaxPerPackage);
+        overLimit.Findings.Should().ContainSingle(finding => finding.Kind == FindingKind.TooManyThirdPartyNotices)
+            .Which.BlocksBuild.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Tells_loaders_apart()
     {
         _workspace.Author("scripts/example-mod.asi", "plugin");

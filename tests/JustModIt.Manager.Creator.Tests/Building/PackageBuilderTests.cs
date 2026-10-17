@@ -112,6 +112,27 @@ public sealed class PackageBuilderTests : IDisposable
     }
 
     [Fact]
+    public async Task Builds_a_package_naming_as_many_libraries_as_its_manifest_holds_which_the_app_reads_back()
+    {
+        var longest = "plugins/" + new string('h', PackagePath.MaxNameLength - 4) + ".dll";
+        List<string> libraries = [longest, .. Enumerable.Range(1, ThirdPartyNotice.MaxPerPackage - 1).Select(i => $"plugins/hook{i}.dll")];
+        foreach (var library in libraries)
+        {
+            _workspace.Author(library, library);
+        }
+
+        var plan = await PlanAsync(libraries.Aggregate(Project, (project, library) =>
+            project.WithLibraryNotice(new LibraryNotice(library, "MIT", "https://code.example.com/hooks"))));
+
+        var result = await BuildAsync(plan, "example.examplemod");
+
+        await using var package = await new PackageReader().OpenAsync(result.OutputPath, TestContext.Current.CancellationToken);
+        package.Manifest!.ThirdPartyNotices.Should().HaveCount(ThirdPartyNotice.MaxPerPackage);
+        package.Manifest.ThirdPartyNotices.Should().ContainSingle(notice => notice.Paths!.Contains(longest))
+            .Which.Name.Should().Be(new string('h', ThirdPartyNotice.MaxTextLength), "the file's name is cut to what a manifest takes");
+    }
+
+    [Fact]
     public async Task Records_how_the_game_ships_the_files_its_software_changes_while_the_game_runs()
     {
         var list = Workspace.Bytes(3000, 21);

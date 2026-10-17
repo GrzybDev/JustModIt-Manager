@@ -92,6 +92,9 @@ public enum FindingKind
     /// </summary>
     AddedLibrary,
 
+    /// <summary>More tools and libraries with a licence and source than a manifest names.</summary>
+    TooManyThirdPartyNotices,
+
     /// <summary>The built package is larger than the site takes as a release file.</summary>
     LargerThanSiteTakes,
 

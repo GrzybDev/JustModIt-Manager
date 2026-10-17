@@ -56,6 +56,12 @@ public static class CreatorPlanner
         var libraries = findings.Where(finding => finding.Kind == FindingKind.AddedLibrary)
             .Select(finding => (Path: finding.Path!, Notice: project.LibraryNoticeOf(finding.Path!)))
             .Where(library => library.Notice is not null).ToList();
+        // Notices still to be filled in count too: each one blocks the build until it is complete anyway.
+        if (tools.Count + libraries.Count > ThirdPartyNotice.MaxPerPackage)
+        {
+            findings.Add(new PlanFinding(FindingKind.TooManyThirdPartyNotices));
+        }
+
         var carriesCode = tools.Count > 0 || HostingRules.CarriesCode(resolved, options.Rules);
         if (runtime.Count > 0 && !carriesCode)
         {
@@ -146,7 +152,7 @@ public static class CreatorPlanner
     // The library's file is all the creator knows of the tool, so it names the notice unless the author names the tool.
     private static ThirdPartyNotice NoticeOf(string path, LibraryNotice library) => new()
     {
-        Name = string.IsNullOrWhiteSpace(library.Name) ? GameIndex.NameOf(path) : library.Name.Trim(),
+        Name = string.IsNullOrWhiteSpace(library.Name) ? LibraryNotice.NameAfterFile(path) : library.Name.Trim(),
         License = library.License.Trim(),
         SourceUrl = library.SourceUrl.Trim(),
         Paths = [path],

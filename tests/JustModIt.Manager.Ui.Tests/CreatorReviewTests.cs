@@ -188,6 +188,36 @@ public sealed class CreatorReviewTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task Naming_more_tools_and_libraries_than_the_package_s_description_holds_blocks_the_confirmation_until_one_goes()
+    {
+        for (var i = 1; i <= ThirdPartyNotice.MaxPerPackage; i++)
+        {
+            _work.Author($"plugins/hook{i}.dll", $"hook {i}");
+        }
+
+        using var ui = await OpenAsync();
+        var review = await ReviewAsync(ui);
+        Page(ui).Session!.Describe(project => Enumerable.Range(1, ThirdPartyNotice.MaxPerPackage - 1).Aggregate(
+            project.WithLibraryNotice(new LibraryNotice("dx11/lantern_loc.dll", "MIT", "https://code.example.com/lantern-hook")),
+            (named, i) => named.WithLibraryNotice(new LibraryNotice($"plugins/hook{i}.dll", "MIT", "https://code.example.com/hooks"))));
+        await UiHarness.WaitUntilAsync(() => review.CanConfirm && review.Rules.Count(rule => rule.HasNotice) == ThirdPartyNotice.MaxPerPackage);
+        var last = review.Rules.Single(rule => rule.Path == $"plugins/hook{ThirdPartyNotice.MaxPerPackage}.dll");
+
+        ui.Click(Pill(ui, Strings.Creator_LibraryThirdParty, last));
+        await UiHarness.WaitUntilAsync(() => review.HasProblems);
+
+        review.Problems.Select(line => line.Text).Should().Equal("Opis paczki mieści licencję i kod źródłowy najwyżej 32 narzędzi i bibliotek.");
+        review.CanConfirm.Should().BeFalse();
+        review.ConfirmBlocked.Should().Be(
+            "Najpierw trzeba odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń” na górze strony i rozwiązać problem zaznaczony wyżej.");
+        ui.Find<ItemsControl>().Single(items => items.ItemsSource == review.Problems).BringIntoView();
+        await RenderAsync(ui, "creator-review-too-many-notices", null);
+
+        ui.Click(Pill(ui, Strings.Creator_LibraryOwnCode, last));
+        await UiHarness.WaitUntilAsync(() => !review.HasProblems && review.CanConfirm);
+    }
+
+    [AvaloniaFact]
     public async Task A_store_library_renamed_away_and_replaced_stands_in_one_row_that_leaves_out_both_operations()
     {
         var store = new string('s', 2048);
@@ -610,8 +640,9 @@ public sealed class CreatorReviewTests : IDisposable
         ui.Find<Button>().First(button => button.IsEffectivelyVisible && (context is null || button.DataContext == context)
             && ControlAutomationPeer.CreatePeerForElement(button).GetName() == name);
 
-    private static RadioButton Pill(UiHarness ui, string name) =>
-        ui.Find<RadioButton>().First(pill => pill.IsEffectivelyVisible && ControlAutomationPeer.CreatePeerForElement(pill).GetName() == name);
+    private static RadioButton Pill(UiHarness ui, string name, object? context = null) =>
+        ui.Find<RadioButton>().First(pill => pill.IsEffectivelyVisible && (context is null || pill.DataContext == context)
+            && ControlAutomationPeer.CreatePeerForElement(pill).GetName() == name);
 
     private static TextBox Box(UiHarness ui, string name) =>
         ui.Find<TextBox>().First(box => box.IsEffectivelyVisible && ControlAutomationPeer.CreatePeerForElement(box).GetName() == name);

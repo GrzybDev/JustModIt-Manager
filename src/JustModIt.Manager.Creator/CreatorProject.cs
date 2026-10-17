@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
 
 namespace JustModIt.Manager.Creator;
@@ -98,6 +99,16 @@ public sealed record LibraryNotice(string Path, string License, string SourceUrl
     [JsonIgnore]
     public bool IsComplete => ThirdPartyNotice.IsValidText(License) && ThirdPartyNotice.IsValidSourceUrl(SourceUrl)
         && (string.IsNullOrWhiteSpace(Name) || ThirdPartyNotice.IsValidText(Name));
+
+    /// <summary>The name a library's notice takes after its file, cut to the length a manifest takes.</summary>
+    /// <param name="path">The library's game path.</param>
+    public static string NameAfterFile(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        var name = GameIndex.NameOf(path).Trim();
+        var length = Math.Min(name.Length, ThirdPartyNotice.MaxTextLength);
+        return name[..(length < name.Length && char.IsHighSurrogate(name[length - 1]) ? length - 1 : length)];
+    }
 }
 
 /// <summary>

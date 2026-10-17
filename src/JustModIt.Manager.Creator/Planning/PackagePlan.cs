@@ -121,7 +121,7 @@ public sealed record PackagePlan
 
     public required PackageMetadata Metadata { get; init; }
 
-    /// <summary>What the manifest names: each third-party tool the package carries whose notice the author completed.</summary>
+    /// <summary>What the manifest names: each tool and library the package carries whose notice the author completed.</summary>
     public ValueList<ThirdPartyNotice> ThirdPartyNotices { get; init; }
 
     /// <summary>The game files the package's software writes while the game runs, which the manifest names.</summary>
