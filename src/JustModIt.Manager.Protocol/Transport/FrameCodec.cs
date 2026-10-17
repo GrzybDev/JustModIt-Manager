@@ -8,12 +8,24 @@ internal static class FrameCodec
     public const int HeaderLength = sizeof(int);
     public const int DefaultMaxFrameLength = 16 * 1024 * 1024;
 
-    /// <summary>Serializes a frame's payload only; the header is written next to it so the payload needs no copy.</summary>
+    /// <summary>
+    /// Serializes a frame's payload only, throwing <see cref="InvalidOperationException"/> for one the wire cannot carry; the
+    /// header is written next to it so the payload needs no copy.
+    /// </summary>
     /// <param name="frame">The request, response or event to send.</param>
     /// <param name="maxFrameLength">The limit in bytes; a longer payload throws <see cref="InvalidOperationException"/>.</param>
     public static byte[] Serialize(Frame frame, int maxFrameLength)
     {
-        var payload = JsonSerializer.SerializeToUtf8Bytes(frame, ProtocolJsonContext.Default.Frame);
+        byte[] payload;
+        try
+        {
+            payload = JsonSerializer.SerializeToUtf8Bytes(frame, ProtocolJsonContext.Default.Frame);
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            throw new InvalidOperationException($"The {frame.GetType().Name} cannot be written.", ex);
+        }
+
         if (payload.Length > maxFrameLength)
         {
             throw new InvalidOperationException(

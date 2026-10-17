@@ -74,6 +74,20 @@ public sealed class PipeConnectionTests
     }
 
     [Fact]
+    public async Task Answer_the_wire_cannot_carry_fails_at_once_and_the_connection_keeps_working()
+    {
+        var handler = new TestHandler { OnRequest = (_, _, _) => ValueTask.FromResult<Message?>(new UnknownAnswer()) };
+        await using var server = TestPipes.StartServer(_name, handler);
+        await using var client = await TestPipes.ConnectAsync(_name);
+
+        var request = () => client.RequestAsync(new Activate([]), TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
+
+        (await request.Should().ThrowAsync<RequestFailedException>().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken))
+            .Which.Code.Should().Be(ErrorCode.Failed);
+        (await client.RequestAsync(new Ping(), cancellationToken: TestContext.Current.CancellationToken)).Should().BeNull();
+    }
+
+    [Fact]
     public async Task Client_without_a_handler_answers_the_server_as_unsupported()
     {
         var handler = new TestHandler();
@@ -289,4 +303,6 @@ public sealed class PipeConnectionTests
         await request.Should().ThrowAsync<InvalidOperationException>();
         (await client.RequestAsync(new Ping(), cancellationToken: TestContext.Current.CancellationToken)).Should().BeNull();
     }
+
+    private sealed record UnknownAnswer : Message;
 }

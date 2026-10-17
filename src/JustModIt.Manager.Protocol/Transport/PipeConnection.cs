@@ -64,7 +64,7 @@ public sealed partial class PipeConnection : IAsyncDisposable
     /// <exception cref="TimeoutException">No response arrived in time; a late one is ignored.</exception>
     /// <exception cref="RequestFailedException">The peer answered with an error.</exception>
     /// <exception cref="ConnectionClosedException">The connection closed before the response arrived.</exception>
-    /// <exception cref="InvalidOperationException">The request is over the frame limit.</exception>
+    /// <exception cref="InvalidOperationException">The request is over the frame limit or cannot be written.</exception>
     public async Task<Message?> RequestAsync(
         Message request,
         TimeSpan? timeout = null,
@@ -200,7 +200,7 @@ public sealed partial class PipeConnection : IAsyncDisposable
 
     /// <summary>Queues an event without waiting; a peer that is not reading is disconnected rather than waited for.</summary>
     /// <param name="message">The event's payload.</param>
-    /// <exception cref="InvalidOperationException">The event is over the frame limit.</exception>
+    /// <exception cref="InvalidOperationException">The event is over the frame limit or cannot be written.</exception>
     public void Post(Message message)
     {
         ArgumentNullException.ThrowIfNull(message);
