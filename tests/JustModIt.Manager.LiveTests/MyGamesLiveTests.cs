@@ -32,9 +32,10 @@ public sealed class MyGamesLiveTests
             game.Project!.Plan!.Parts[0].File.Format.Should().NotBeNull();
         }
 
-        state.Find(games.Announced).Should().BeNull("its project has no release yet");
-        GameOffer.For(engine.Catalogue.Current.Index, games.Announced, OperatingSystemKind.Windows, LiveApp.Language)
-            .Projects.Should().ContainSingle().Which.Selection.Unavailable.Should().Be(SelectionUnavailability.NoPublicRelease);
+        state.Find(games.Announced).Should().BeNull("its project is only announced");
+        var announced = engine.Catalogue.Current.Index.Find(games.Announced).Should().ContainSingle().Subject;
+        ReleaseSelector.Select(announced, games.Announced, OperatingSystemKind.Windows).Unavailable
+            .Should().Be(SelectionUnavailability.NoPublicRelease);
         state.Find(games.TargetLanguage)!.OffersTargetLanguage.Should().BeTrue("its Steam page lists the app's target language");
         state.Find(games.AddsFiles)!.OffersTargetLanguage.Should().BeFalse();
     }
