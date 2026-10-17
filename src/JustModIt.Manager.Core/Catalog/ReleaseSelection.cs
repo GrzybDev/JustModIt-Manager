@@ -27,7 +27,10 @@ public enum SelectionUnavailability
 /// </summary>
 public sealed record FeatureOffer
 {
-    /// <summary>The add-on's key, which stays when it is renamed; a variant's name for a release from before add-ons.</summary>
+    /// <summary>
+    /// The add-on's key, which stays when it is renamed; a variant's name for a release from before add-ons, which may be
+    /// empty.
+    /// </summary>
     public required string Key { get; init; }
 
     public required string Name { get; init; }

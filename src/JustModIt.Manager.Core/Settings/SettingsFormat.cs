@@ -252,7 +252,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             var chosen = ImmutableDictionary.CreateBuilder<string, bool>(StringComparer.Ordinal);
             foreach (var feature in project.Value.EnumerateObject())
             {
-                if (feature.Name.Length > 0 && feature.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                if (feature.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
                 {
                     chosen[feature.Name] = feature.Value.GetBoolean();
                 }

@@ -83,6 +83,17 @@ public sealed class SettingsFormatTests : IDisposable
     }
 
     [Fact]
+    public async Task A_chosen_variant_without_a_name_survives_a_round_trip()
+    {
+        var settings = AppSettings.Default
+            .WithGame(Portal, preferences => preferences.WithFeatures(Project, new Dictionary<string, bool> { [""] = true }));
+
+        await SaveAsync(settings);
+
+        (await LoadAsync()).Should().Be(settings);
+    }
+
+    [Fact]
     public async Task A_file_written_by_the_prototype_loads_as_it_was_and_is_saved_in_the_current_format()
     {
         _directory.Write("settings.json", """
