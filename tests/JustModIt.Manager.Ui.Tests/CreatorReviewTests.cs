@@ -481,7 +481,7 @@ public sealed class CreatorReviewTests : IDisposable
         var kept = new LeftoverBackup(Guid.NewGuid(), CreatorWorkspace.Lantern, "Lantern Isle", Path.Combine(_work.GameFolder, ".example"), 2048)
         {
             GameDirectory = _work.GameFolder,
-            Kept = new KeptFilesSummary(KeptReason.OriginalUnknown, ["data/movies.idx"], 1, null, TestStates.Now),
+            Kept = new KeptFilesSummary(["data/movies.idx"], 1, TestStates.Now, KeptReason.OriginalUnknown),
         };
         var leftovers = new List<LeftoverBackup> { kept };
         using var ui = await OpenAsync(answer: request => request is GetLeftoverBackups ? new LeftoverBackups([.. leftovers]) : null);
@@ -506,7 +506,7 @@ public sealed class CreatorReviewTests : IDisposable
             new(Guid.NewGuid(), CreatorWorkspace.Lantern, "Lantern Isle", Path.Combine(folder, ".example"), 2048)
             {
                 GameDirectory = folder,
-                Kept = new KeptFilesSummary(KeptReason.OriginalUnknown, [path], 1, null, TestStates.Now),
+                Kept = new KeptFilesSummary([path], 1, TestStates.Now, KeptReason.OriginalUnknown),
             };
         LeftoverBackups leftovers = new([Kept(_work.GameFolder, "data/sounds.idx"), Kept(_work.GameFolder + " (old)", "data/movies.idx")]);
         using var ui = await OpenAsync(answer: request => request is GetLeftoverBackups ? leftovers : null);

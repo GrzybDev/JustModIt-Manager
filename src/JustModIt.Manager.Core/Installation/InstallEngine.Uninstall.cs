@@ -28,16 +28,16 @@ public sealed record LeftoverBackup(Guid RecordId, GameKey Game, string GameName
 }
 
 /// <summary>The files an uninstall left as a package's software changed them, whose originals' copies it kept.</summary>
+/// <param name="Paths">The files, game-relative, at most <see cref="MaxPaths"/> of them.</param>
+/// <param name="FileCount">How many files it left, also beyond those listed.</param>
+/// <param name="KeptAt">When the uninstall left them.</param>
 /// <param name="Reason">
 /// Why it left them, the most pressing reason when there are several; null for files a replacement that did not finish handed
 /// over.
 /// </param>
-/// <param name="Paths">The files, game-relative, at most <see cref="MaxPaths"/> of them.</param>
-/// <param name="FileCount">How many files it left, also beyond those listed.</param>
 /// <param name="ProjectName">The uninstalled install's project; null when its record names none.</param>
-/// <param name="KeptAt">When the uninstall left them.</param>
-public sealed record KeptFilesSummary(KeptReason? Reason, IReadOnlyList<string> Paths, int FileCount, string? ProjectName,
-    DateTimeOffset KeptAt)
+public sealed record KeptFilesSummary(IReadOnlyList<string> Paths, int FileCount, DateTimeOffset KeptAt, KeptReason? Reason = null,
+    string? ProjectName = null)
 {
     public const int MaxPaths = 80;
 }
@@ -100,9 +100,10 @@ public sealed partial class InstallEngine
                         GameDirectory = record.InstallDirectory,
                         Cover = record.Source?.CoverUrl,
                         Kept = files.KeptAt is { } keptAt
-                            ? new KeptFilesSummary(KeptReasons.MostPressing(files.Files.Select(file => file.Kept).OfType<KeptReason>()),
-                                [.. files.Files.Take(KeptFilesSummary.MaxPaths).Select(file => file.Path)], files.Files.Count,
-                                record.Source?.ProjectName, keptAt)
+                            ? new KeptFilesSummary([.. files.Files.Take(KeptFilesSummary.MaxPaths).Select(file => file.Path)],
+                                files.Files.Count, keptAt,
+                                KeptReasons.MostPressing(files.Files.Select(file => file.Kept).OfType<KeptReason>()),
+                                record.Source?.ProjectName)
                             : null,
                     });
                 }
@@ -200,7 +201,7 @@ public sealed partial class InstallEngine
     }
 
     // Null while their folder is not there or does not answer, or their list names no copies, as a kept-files record holding
-    // only notes of a replacement does.
+    // only notes of files without an original does.
     private async Task<long?> SizeOfLeftoversAsync(InstalledFiles files, InstallRecord record, CancellationToken cancellationToken)
     {
         if (!BackupFolders.KeepsOriginals(files))

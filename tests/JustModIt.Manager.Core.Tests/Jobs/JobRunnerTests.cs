@@ -124,7 +124,7 @@ public sealed class JobRunnerTests
 
         jobs.Catalogue.PageRequests.Should().BeEmpty();
         jobs.Library.ProbeCount.Should().Be(0);
-        jobs.Engine.Recovery.SetResult([new RecoveredOperation(Guid.NewGuid(), "folder", RecoveryOutcome.RolledBack)]);
+        jobs.Engine.Recovery.SetResult([new RecoveredOperation(Guid.NewGuid(), RecoveryOutcome.RolledBack, "folder")]);
         (await handle.Completion).Outcome.Should().Be(JobOutcome.Succeeded);
         (await recovery).Should().ContainSingle();
         (await jobs.Runner.Recovery).Should().ContainSingle();

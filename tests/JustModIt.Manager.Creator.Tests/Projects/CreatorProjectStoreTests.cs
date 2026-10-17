@@ -6,6 +6,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Creator.Tests.TestSupport;
+using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.Creator.Tests.Projects;
 
@@ -183,6 +184,27 @@ public sealed class CreatorProjectStoreTests : IDisposable
 
         project.Choices.Should().ContainSingle();
         project.RuntimeFiles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Opens_a_project_whose_game_has_no_name_and_whose_package_has_no_title()
+    {
+        await File.WriteAllTextAsync(ProjectPath, """
+            { "formatVersion": 4, "game": { "store": "steam", "id": "1000" }, "metadata": { "authors": [ "Lantern Team" ] } }
+            """, TestContext.Current.CancellationToken);
+
+        var project = await CreatorProjectStore.LoadAsync(ProjectPath, TestContext.Current.CancellationToken);
+
+        project.Game!.Name.Should().Be("1000");
+        project.Metadata.Title.Should().BeEmpty();
+        project.Metadata.Version.Should().BeEmpty();
+        project.Metadata.Authors.Should().Equal("Lantern Team");
+    }
+
+    [Fact]
+    public void Every_member_a_project_file_leaves_out_is_optional_when_it_is_opened()
+    {
+        JsonContracts.RequiredButLeftOut(ProjectJsonContext.Default).Should().BeEmpty();
     }
 
     [Fact]

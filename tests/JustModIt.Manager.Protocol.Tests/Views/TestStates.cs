@@ -231,6 +231,6 @@ internal static class TestStates
         CatalogueState = CatalogueState.Stale,
         CatalogueFetchedAt = Now.AddHours(-7),
         CatalogueFailure = CatalogueErrorReason.Offline,
-        PendingRecoveries = [new RecoveredOperation(RecordId, @"D:\Games\Moved", RecoveryOutcome.Unavailable)],
+        PendingRecoveries = [new RecoveredOperation(RecordId, RecoveryOutcome.Unavailable, @"D:\Games\Moved")],
     };
 }

@@ -93,8 +93,8 @@ public sealed class RecoveryTests
 
         var recovered = await engine.RecoverAsync(InstallHarness.Token);
 
-        recovered.Should().BeEquivalentTo([new RecoveredOperation(b, harness.GameRoot, RecoveryOutcome.RolledBack),
-            new RecoveredOperation(c, harness.GameRoot, RecoveryOutcome.CleanedUp)]);
+        recovered.Should().BeEquivalentTo([new RecoveredOperation(b, RecoveryOutcome.RolledBack, harness.GameRoot),
+            new RecoveredOperation(c, RecoveryOutcome.CleanedUp, harness.GameRoot)]);
         (await harness.KeptFilesAsync()).Keys.Should().BeEquivalentTo([c, d], "B never committed, so it keeps nothing");
         File.Exists(Path.Join(harness.AppData, "backups", "steam-1000", c.ToString("N"), "0")).Should().BeTrue("C's copy was kept");
         (await engine.LoadRecordsAsync(InstallHarness.Token)).Select(record => record.Id).Should().BeEquivalentTo([a, b]);

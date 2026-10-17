@@ -23,9 +23,9 @@ public enum RecoveryOutcome
 
 /// <summary>An interrupted operation that recovery looked at.</summary>
 /// <param name="RecordId">The operation's record id.</param>
-/// <param name="GameDirectory">Null when the journal is too damaged to tell.</param>
 /// <param name="Outcome">What recovery did.</param>
-public sealed record RecoveredOperation(Guid RecordId, string? GameDirectory, RecoveryOutcome Outcome);
+/// <param name="GameDirectory">Null when the journal is too damaged to tell.</param>
+public sealed record RecoveredOperation(Guid RecordId, RecoveryOutcome Outcome, string? GameDirectory = null);
 
 /// <summary>Finishes or undoes what a crash or a power cut interrupted, first thing when the agent starts.</summary>
 /// <param name="store">The folders of installs and their journals.</param>
@@ -70,7 +70,7 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallRecordSto
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
             {
                 logger.RecoveryFailed(folder.Id, exception);
-                recovered.Add(new RecoveredOperation(folder.Id, GameDirectory: null, RecoveryOutcome.Failed));
+                recovered.Add(new RecoveredOperation(folder.Id, RecoveryOutcome.Failed));
             }
         }
 
@@ -236,5 +236,5 @@ internal sealed class InstallRecovery(InstallRecordStore store, InstallRecordSto
     private bool IsGoneForGood(TransactionStarted header) => GameFolder.IsGoneForGood(header.GameDirectory, header.GameVolume, volumes);
 
     private static RecoveredOperation Report(TransactionStarted header, RecoveryOutcome outcome) =>
-        new(header.RecordId, header.GameDirectory, outcome);
+        new(header.RecordId, outcome, header.GameDirectory);
 }

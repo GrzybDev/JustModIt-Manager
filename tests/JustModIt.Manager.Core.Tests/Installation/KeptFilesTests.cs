@@ -158,7 +158,7 @@ public sealed class KeptFilesTests : IAsyncDisposable
         {
             GameDirectory = _harness.GameRoot,
             Cover = InstallHarness.Source.CoverUrl,
-            Kept = new KeptFilesSummary(KeptReason.GameUpdatedSinceInstall, [List], 1, "Example Project", kept.KeptAt),
+            Kept = new KeptFilesSummary([List], 1, kept.KeptAt, KeptReason.GameUpdatedSinceInstall, "Example Project"),
         }]);
     }
 

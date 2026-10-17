@@ -32,9 +32,9 @@ internal sealed record ProjectDocument
     public List<RuntimeFileDocument>? RuntimeFiles { get; init; }
 }
 
-internal sealed record GameDocument(string Store, string Id, string? Name);
+internal sealed record GameDocument(string Store, string Id, string? Name = null);
 
-internal sealed record MetadataDocument(string? Title, string? Version, List<string>? Authors);
+internal sealed record MetadataDocument(string? Title = null, string? Version = null, List<string>? Authors = null);
 
 internal sealed record RuntimeFileDocument(string Path, string Kind);
 

@@ -173,10 +173,10 @@ public sealed class StateCoordinatorTests
     public async Task Shows_what_recovery_could_not_finish()
     {
         await using var app = new CoordinatorHarness();
-        var failed = new RecoveredOperation(Guid.NewGuid(), GameFolder(Game), RecoveryOutcome.Failed);
-        var waiting = new RecoveredOperation(Guid.NewGuid(), GameFolder(OtherGame), RecoveryOutcome.Unavailable);
+        var failed = new RecoveredOperation(Guid.NewGuid(), RecoveryOutcome.Failed, GameFolder(Game));
+        var waiting = new RecoveredOperation(Guid.NewGuid(), RecoveryOutcome.Unavailable, GameFolder(OtherGame));
         app.Engine.Recovery = new TaskCompletionSource<IReadOnlyList<RecoveredOperation>>();
-        app.Engine.Recovery.SetResult([failed, new RecoveredOperation(Guid.NewGuid(), GameFolder(Game), RecoveryOutcome.RolledBack), waiting]);
+        app.Engine.Recovery.SetResult([failed, new RecoveredOperation(Guid.NewGuid(), RecoveryOutcome.RolledBack, GameFolder(Game)), waiting]);
 
         var state = await app.StartAsync();
 

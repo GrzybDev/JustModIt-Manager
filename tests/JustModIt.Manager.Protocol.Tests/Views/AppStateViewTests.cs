@@ -202,7 +202,7 @@ public sealed class AppStateViewTests
             Failure = CatalogueErrorReason.Offline,
             SiteName = "Example Site",
         });
-        View.PendingRecoveries.Should().Equal(new RecoveredOperation(RecordId, @"D:\Games\Moved", RecoveryOutcome.Unavailable));
+        View.PendingRecoveries.Should().Equal(new RecoveredOperation(RecordId, RecoveryOutcome.Unavailable, @"D:\Games\Moved"));
     }
 
     [Fact]

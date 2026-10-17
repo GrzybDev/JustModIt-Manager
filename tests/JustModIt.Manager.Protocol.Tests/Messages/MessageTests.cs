@@ -11,6 +11,7 @@ using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Tests;
 using static JustModIt.Manager.Protocol.Tests.Views.TestStates;
 
 namespace JustModIt.Manager.Protocol.Tests.Messages;
@@ -155,10 +156,23 @@ public sealed class MessageTests
             {
                 GameDirectory = @"D:\Games\Example Game",
                 Cover = new Uri("https://images.example.com/covers/example-game.png"),
-                Kept = new KeptFilesSummary(KeptReason.GameUpdatedSinceInstall, ["data/list.dat"], 1, "Example Project",
-                    new DateTimeOffset(2026, 10, 12, 18, 0, 0, TimeSpan.Zero)),
+                Kept = new KeptFilesSummary(["data/list.dat"], 1, new DateTimeOffset(2026, 10, 12, 18, 0, 0, TimeSpan.Zero),
+                    KeptReason.GameUpdatedSinceInstall, "Example Project"),
             },
         ]),
+        new LeftoverBackups(
+        [
+            new LeftoverBackup(RecordId, Game, "Example Game", @"D:\Games\Example Game\.example-app\backups\1", 96)
+            {
+                Kept = new KeptFilesSummary(["data/list.dat"], 1, new DateTimeOffset(2026, 10, 12, 18, 0, 0, TimeSpan.Zero)),
+            },
+        ]),
+        new StateChanged(AppStateView.From(3, State, Settings, new SiteConfiguration { Name = "Example Site" }, new ActivityView(),
+            new AppUpdateView()) with
+        {
+            PendingRecoveries = [new RecoveredOperation(RecordId, RecoveryOutcome.Failed)],
+            UncleanExit = new UncleanExitView("1.0.0"),
+        }),
     ];
 
     public static TheoryData<int> SampleIndexes => [.. Enumerable.Range(0, Samples.Length)];
@@ -182,6 +196,12 @@ public sealed class MessageTests
 
         read.Payload.GetType().Should().Be(Samples[index].GetType());
         FrameCodec.Serialize(read, FrameCodec.DefaultMaxFrameLength).Should().Equal(payload);
+    }
+
+    [Fact]
+    public void Every_member_the_codec_leaves_out_is_optional_when_the_other_side_reads_it()
+    {
+        JsonContracts.RequiredButLeftOut(ProtocolJsonContext.Default).Should().BeEmpty();
     }
 
     [Fact]

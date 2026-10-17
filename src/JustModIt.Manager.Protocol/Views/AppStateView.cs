@@ -145,7 +145,7 @@ public enum AppUpdateState
 /// <summary>A run of the agent, or of the window, that did not exit cleanly, as its session marker tells at the next start.</summary>
 /// <param name="Version">The app's version in that run; empty when its marker was cut short.</param>
 /// <param name="CrashType">The type of the exception that ended it; null when it was killed or the power went out.</param>
-public sealed record UncleanExitView(string Version, string? CrashType)
+public sealed record UncleanExitView(string Version, string? CrashType = null)
 {
     /// <summary>The window's run ended so, rather than the agent's.</summary>
     public bool IsWindow { get; init; }

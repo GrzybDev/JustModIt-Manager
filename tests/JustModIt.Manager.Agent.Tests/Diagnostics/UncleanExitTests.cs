@@ -12,19 +12,22 @@ public sealed class UncleanExitTests : IAsyncDisposable
 
     public UncleanExitTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
 
-    [Fact]
-    public async Task A_run_that_ended_unexpectedly_is_told_once_at_the_next_window_opening_even_after_a_run_with_no_window()
+    [Theory]
+    [InlineData("System.InvalidOperationException")]
+    [InlineData(null)]
+    public async Task A_run_that_ended_unexpectedly_is_told_once_at_the_next_window_opening_even_after_a_run_with_no_window(
+        string? crashType)
     {
         var state = _agent.Options.Locations.StateDirectory;
-        var crash = new UncleanExit(DateTimeOffset.UnixEpoch, "0.9.0", typeof(InvalidOperationException).FullName, DateTimeOffset.UnixEpoch);
-        UntoldExit.Carry(state, crash).Should().NotBeNull("the start after the crash, with the system and no window, keeps it");
+        var crashedAt = crashType is null ? (DateTimeOffset?)null : DateTimeOffset.UnixEpoch;
+        var exit = new UncleanExit(DateTimeOffset.UnixEpoch, "0.9.0", crashType, crashedAt);
+        UntoldExit.Carry(state, exit).Should().NotBeNull("the start after the crash or the kill, with the system and no window, keeps it");
         _agent.Options = _agent.Options with { PreviousExit = UntoldExit.Carry(state, found: null) };
         _agent.Start();
         var window = await _agent.ConnectWindowAsync();
 
         (await window.StateAsync(loaded => loaded.IsLoaded)).UncleanExit
-            .Should().Be(new UncleanExitView("0.9.0", typeof(InvalidOperationException).FullName) { CrashedAt = DateTimeOffset.UnixEpoch },
-                "a later start with a clean exit before it");
+            .Should().Be(new UncleanExitView("0.9.0", crashType) { CrashedAt = crashedAt }, "a later start with a clean exit before it");
         await window.RequestAsync(new DismissUncleanExit());
 
         (await window.StateAsync(told => told.UncleanExit is null)).UncleanExit.Should().BeNull("the next window does not hear it again");
