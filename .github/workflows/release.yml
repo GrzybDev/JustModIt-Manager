@@ -122,8 +122,10 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
           SIGN_COMMAND: ${{ steps.codesign.outputs.command }}
         run: |
+          # No delta: vpk 1.2 diffs the launcher it names after the app's title with a zstd.exe that reads its arguments
+          # in the runner's code page, which lacks the title's letters (velopack/velopack#1105).
           $arguments = @{
-            App = $env:APP; Version = $env:VERSION; Token = $env:GH_TOKEN
+            App = $env:APP; Version = $env:VERSION; Token = $env:GH_TOKEN; NoDelta = $true
             SourceUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/tree/$env:TAG"
           }
           if ($env:SIGN -eq 'true') {
