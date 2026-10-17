@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using JustModIt.Manager.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
@@ -201,14 +202,21 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
         var connection = await PipeClient
             .ConnectAsync(_pipeName, _hello, this, _options, _logger, stopping)
             .ConfigureAwait(false);
+        var connectedAt = Stopwatch.GetTimestamp();
         try
         {
             _connection = connection;
-            backoff.Reset();
             LogConnected(connection.Peer.Role, connection.Peer.ProcessId, connection.Peer.AppVersion);
             SetState(ConnectionState.Connected);
             await connection.Completion.WaitAsync(stopping).ConfigureAwait(false);
             LogDisconnected(connection.Peer.Role, connection.Peer.ProcessId);
+
+            // A connection that ends at once, as one with a frame a side cannot read does, would otherwise come back ten times
+            // a second.
+            if (Stopwatch.GetElapsedTime(connectedAt) >= _options.MaxRetryDelay)
+            {
+                backoff.Reset();
+            }
         }
         finally
         {

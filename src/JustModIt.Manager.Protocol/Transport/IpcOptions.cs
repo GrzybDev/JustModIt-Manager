@@ -19,5 +19,9 @@ public sealed record IpcOptions
     /// <summary>The first delay after a failed listen or connect; each further failure doubles it.</summary>
     public TimeSpan RetryDelay { get; init; } = TimeSpan.FromMilliseconds(100);
 
+    /// <summary>
+    /// The longest delay between attempts; <see cref="ReconnectingPipeClient"/> also counts a connection that ends sooner than
+    /// this as a failed attempt.
+    /// </summary>
     public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromSeconds(5);
 }

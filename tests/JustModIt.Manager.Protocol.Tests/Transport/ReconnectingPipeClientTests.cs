@@ -164,6 +164,38 @@ public sealed class ReconnectingPipeClientTests
     }
 
     [Fact]
+    public async Task Agent_that_ends_every_connection_at_once_is_retried_with_growing_delays()
+    {
+        var handler = new TestHandler();
+        await using var server = TestPipes.StartServer(_name, handler);
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var dropping = DropEveryConnectionAsync(stop.Token);
+        await using var client = StartClient();
+        await _logger.WaitForAsync(entry => entry.Message.StartsWith("Connected to", StringComparison.Ordinal));
+
+        await Task.Delay(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+        await stop.CancelAsync();
+        await dropping;
+
+        _logger.Entries.Count(entry => entry.Message.StartsWith("Connected to", StringComparison.Ordinal))
+            .Should().BeInRange(2, 20, "a connection that ends at once counts as a failed attempt");
+
+        async Task DropEveryConnectionAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await foreach (var connection in handler.Connected.Reader.ReadAllAsync(cancellationToken))
+                {
+                    await connection.DisposeAsync();
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+        }
+    }
+
+    [Fact]
     public async Task Disposing_stops_the_client_for_good()
     {
         var handler = new TestHandler();
