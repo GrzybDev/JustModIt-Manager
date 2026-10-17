@@ -351,8 +351,9 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
-              <Button x:Name="ClearInCard" Classes="link" Margin="8,7,8,0" Content="{x:Static loc:Strings.Catalogue_ClearFilters}"
-                      IsVisible="{Binding ShowsClearInCard}" Command="{Binding ClearFiltersCommand}" Foreground="{StaticResource TextBrush}" />
+              <Button x:Name="ClearInCard" Classes="quiet small" Content="{x:Static loc:Strings.Catalogue_ClearFilters}"
+                      IsVisible="{Binding ShowsClearInCard}" Command="{Binding ClearFiltersCommand}"
+                      ui:ButtonAssist.Icon="{x:Static theme:Icons.RotateCcw}" />
               <Button x:Name="MoreToggle" Classes="quiet small" Content="{Binding MoreText}" IsVisible="{Binding ShowsMore}"
                       Classes.expanded="{Binding AreMoreOpen}" Command="{Binding ToggleMoreCommand}"
                       ui:ButtonAssist.Icon="{x:Static theme:Icons.Funnel}" />

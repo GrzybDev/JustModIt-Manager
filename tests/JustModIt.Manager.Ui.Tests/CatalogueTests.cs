@@ -103,6 +103,31 @@ public sealed class CatalogueTests
     }
 
     [AvaloniaFact]
+    public async Task Clearing_the_filters_stands_beside_more_filters_as_its_pair()
+    {
+        using var ui = Open(Fresh);
+        var page = Page(ui);
+        await UiHarness.WaitUntilAsync(() => page.HasAnswer);
+        ui.Click(Pill(ui, "Ukończone"));
+        await UiHarness.WaitUntilAsync(() => Cards(page).Count() == 6);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("catalogue-filter-actions");
+
+        var clear = ui.Find<Button>("ClearInCard");
+        var more = ui.Find<Button>("MoreToggle");
+        var (clearText, moreText) = (Label(clear), Label(more));
+        (clear.Bounds.Height, clear.Foreground, clearText.FontSize, clearText.FontWeight)
+            .Should().Be((more.Bounds.Height, more.Foreground, moreText.FontSize, moreText.FontWeight));
+        Baseline(ui, clearText).Should().BeApproximately(Baseline(ui, moreText), 0.5, "their words stand on one line");
+        Lead(clear).Bounds.Size.Should().Be(Lead(more).Bounds.Size, "each leads with an icon of the same size");
+
+        static TextBlock Label(Button button) => button.GetVisualDescendants().OfType<TextBlock>().Single(text => text.IsEffectivelyVisible);
+        static Icon Lead(Button button) => button.GetVisualDescendants().OfType<Icon>().Single(icon => icon.IsEffectivelyVisible);
+        static double Baseline(UiHarness ui, TextBlock text) =>
+            text.TranslatePoint(new Point(0, text.TextLayout.TextLines[0].Baseline), ui.Window)!.Value.Y;
+    }
+
+    [AvaloniaFact]
     public async Task An_empty_result_says_whether_the_name_or_the_filters_are_to_blame_and_offers_the_way_back()
     {
         using var ui = Open(Fresh);
