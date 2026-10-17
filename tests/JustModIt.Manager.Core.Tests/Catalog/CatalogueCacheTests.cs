@@ -4,6 +4,7 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Tests.Catalog.TestSupport;
 using JustModIt.Manager.Core.Tests.TestSupport;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Core.Tests.Catalog;
@@ -69,6 +70,23 @@ public sealed class CatalogueCacheTests : IDisposable
         ReleaseSelector.Select(entry, new GameKey(StoreId.Steam, "1000010"), OperatingSystemKind.Windows).Plan(FeatureChoices.None)!.Parts[0].File.Uuid
             .Should().Be(Guid.Parse("a0000000-0000-4000-8000-000000000002"));
         (await _cache.LoadSiteAsync(Token)).Should().BeEquivalentTo(site);
+    }
+
+    [Fact]
+    public async Task Keeps_the_saved_listing_and_logs_why_when_the_new_one_cannot_be_written()
+    {
+        var log = new LogLines<CatalogueCache>();
+        var cache = new CatalogueCache(_directory.Path, TimeProvider.System, log);
+        var listing = await _site.CrawlAsync();
+        await cache.SaveListingAsync(listing, Token);
+        var team = listing.Reference.Teams[0] with { DonationMethods = [new TeamDonationMethod { Uuid = Guid.NewGuid() }] };
+        var unwritable = new CatalogueListing(FetchedAt, listing.Games, listing.Reference with { Teams = [team] });
+
+        await cache.SaveListingAsync(unwritable, Token);
+
+        (await cache.LoadListingAsync(Token))!.FetchedAt.Should().Be(listing.FetchedAt);
+        log.Lines.Should().ContainSingle().Which.Should().Match<LogLine>(line =>
+            line.Level == LogLevel.Warning && line.Exception is InvalidOperationException);
     }
 
     [Fact]

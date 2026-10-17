@@ -66,7 +66,12 @@ public sealed record StorefrontLink
     /// <summary>What the team says the project supports; empty means unknown or every system.</summary>
     public IReadOnlyList<OperatingSystemKind> OperatingSystems { get; init => field = value ?? []; } = [];
 
-    /// <summary>What the backend learned from the store; every key is optional and its meaning depends on the store.</summary>
+    /// <summary>
+    /// What the backend learned from the store, undefined when the site sends none; every key is optional and its meaning
+    /// depends on the store.
+    /// </summary>
+    // The serializer cannot write an undefined element.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public JsonElement AdditionalData { get; init; }
 
     public int Position { get; init; }

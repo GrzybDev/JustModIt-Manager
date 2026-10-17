@@ -149,8 +149,9 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
                 writer.WriteEndObject();
             }, cancellationToken, time).ConfigureAwait(false);
         }
-        // A full or read-only disk only costs the offline copy.
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        // A full or read-only disk, or data the serializer cannot write, costs only the offline copy.
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException
+            or NotSupportedException or InvalidOperationException)
         {
             LogNotSaved(Path.GetFileName(path), exception);
         }

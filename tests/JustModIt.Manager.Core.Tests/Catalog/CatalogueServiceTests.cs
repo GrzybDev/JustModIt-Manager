@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Tests.Catalog.TestSupport;
@@ -38,9 +39,27 @@ public sealed class CatalogueServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Publishes_and_saves_a_catalogue_whose_storefront_link_comes_without_store_data()
+    {
+        WithoutStoreDataOfThePlainLink("/games/v1/?page=2&page_size=48", "games-page-2.json");
+        WithoutStoreDataOfThePlainLink("/games/v1/starlight-harbor/projects/lantern-works/", "project-starlight-harbor.json");
+        var service = Create();
+
+        var snapshot = await service.RefreshAsync(StarlightOnly, Token);
+
+        snapshot.State.Should().Be(CatalogueState.Fresh);
+        snapshot.Index.Find(Starlight).Should().ContainSingle();
+        var saved = Create();
+        var entry = (await saved.LoadCachedAsync(Token)).Index.Find(Starlight).Should().ContainSingle().Subject;
+        entry.StorefrontLinks.Should().Contain(link => link.AdditionalData.ValueKind == JsonValueKind.Undefined);
+        var listed = (await saved.GetListingAsync(Token))!.Find(Starlight).Should().ContainSingle().Subject;
+        listed.Project.StorefrontLinks.Should().Contain(link => link.AdditionalData.ValueKind == JsonValueKind.Undefined);
+    }
+
+    [Fact]
     public async Task The_log_tells_what_a_refresh_before_the_first_scan_and_the_index_after_it_were_built_for()
     {
-        var log = new LogLines();
+        var log = new LogLines<CatalogueService>();
         var service = Create(log);
 
         await service.RefreshAsync(new IndexRequest([], []), Token);
@@ -304,6 +323,14 @@ public sealed class CatalogueServiceTests : IDisposable
         return service;
     }
 
+    private void WithoutStoreDataOfThePlainLink(string route, string fixture)
+    {
+        var json = CatalogueFixtures.Read(fixture);
+        var stripped = json.Replace("\"additional_data\": {},", "", StringComparison.Ordinal);
+        stripped.Should().NotBe(json);
+        _site.Routes[route] = () => FakeHttpHandler.Json(stripped);
+    }
+
     private async Task<T> CompleteAsync<T>(Task<T> task)
     {
         await _site.Time.RunUntilCompletedAsync(task, TimeSpan.FromSeconds(1));
@@ -314,17 +341,4 @@ public sealed class CatalogueServiceTests : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task<WeakReference<CatalogueListing>> WeakListingAsync(CatalogueService service) =>
         new((await service.GetListingAsync(Token))!);
-
-    private sealed class LogLines : ILogger<CatalogueService>
-    {
-        public List<(LogLevel Level, string Message)> Lines { get; } = [];
-
-        public IDisposable? BeginScope<TState>(TState state)
-            where TState : notnull => null;
-
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
-            Lines.Add((logLevel, formatter(state, exception)));
-    }
 }
