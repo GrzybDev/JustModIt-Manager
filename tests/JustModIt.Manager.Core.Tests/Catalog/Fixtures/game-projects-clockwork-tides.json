@@ -1,20 +1,20 @@
 [
   {
-    "uuid": "50d8a47a-0000-4000-8000-000000000011",
+    "uuid": "50e0e0e0-0000-4000-8000-000000000011",
     "slug": "clockwork-tides",
     "name": "Clockwork Tides",
-    "team": {"uuid": "53c4c7cd-0000-4000-8000-000000000002", "slug": "paper-moth", "name": "Paper Moth", "avatar": null},
-    "status": {"uuid": "59760829-0000-4000-8000-000000000001", "name": "Completed", "slug": "completed", "color": "#22c55e", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 5},
-    "types": [{"uuid": "0a7a2657-0000-4000-8000-000000000001", "name": "Text", "slug": "text", "icon": "", "is_default": true, "position": 0}],
+    "team": {"uuid": "53e0e0e0-0000-4000-8000-000000000002", "slug": "paper-moth", "name": "Paper Moth", "avatar": null},
+    "status": {"uuid": "59e0e0e0-0000-4000-8000-000000000001", "name": "Completed", "slug": "completed", "color": "#22c55e", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 5},
+    "types": [{"uuid": "0ae0e0e0-0000-4000-8000-000000000001", "name": "Text", "slug": "text", "icon": "", "is_default": true, "position": 0}],
     "summary": "The first invented project for the game.",
     "primary_progress": null,
     "storefront_links": [
       {
-        "uuid": "3e0bcb90-0000-4000-8000-000000000011",
-        "platform": {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "", "url_pattern_hint": "", "provider": "steam", "position": 2},
+        "uuid": "3ee0e0e0-0000-4000-8000-000000000011",
+        "platform": {"uuid": "d9e0e0e0-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "", "url_pattern_hint": "", "provider": "steam", "position": 2},
         "url": "https://store.example.com/app/1000030/",
         "operating_systems": [],
-        "additional_data": {"appid": 1000030, "buildid": "1412244", "languages": [0, 2]},
+        "additional_data": {"appid": 1000030, "buildid": "6660001", "languages": [0, 2]},
         "position": 0
       }
     ],
@@ -22,18 +22,18 @@
     "first_published_at": "2026-08-04T12:00:00.000000+02:00"
   },
   {
-    "uuid": "50d8a47a-0000-4000-8000-000000000012",
+    "uuid": "50e0e0e0-0000-4000-8000-000000000012",
     "slug": "clockwork-tides",
     "name": "Clockwork Tides",
-    "team": {"uuid": "53c4c7cd-0000-4000-8000-000000000001", "slug": "lantern-works", "name": "Lantern Works", "avatar": "https://storage.example.com/teams/avatars/lantern-works.png"},
-    "status": {"uuid": "968ad28b-0000-4000-8000-000000000001", "name": "Testing", "slug": "testing", "color": "#eab308", "is_completed": false, "is_abandoned": false, "is_creatable": true, "position": 3},
-    "types": [{"uuid": "0a7a2657-0000-4000-8000-000000000001", "name": "Text", "slug": "text", "icon": "", "is_default": true, "position": 0}],
+    "team": {"uuid": "53e0e0e0-0000-4000-8000-000000000001", "slug": "lantern-works", "name": "Lantern Works", "avatar": "https://storage.example.com/teams/avatars/lantern-works.png"},
+    "status": {"uuid": "96e0e0e0-0000-4000-8000-000000000001", "name": "Testing", "slug": "testing", "color": "#eab308", "is_completed": false, "is_abandoned": false, "is_creatable": true, "position": 3},
+    "types": [{"uuid": "0ae0e0e0-0000-4000-8000-000000000001", "name": "Text", "slug": "text", "icon": "", "is_default": true, "position": 0}],
     "summary": "The second invented project for the game.",
     "primary_progress": null,
     "storefront_links": [
       {
-        "uuid": "3e0bcb90-0000-4000-8000-000000000012",
-        "platform": {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "", "url_pattern_hint": "", "provider": "steam", "position": 2},
+        "uuid": "3ee0e0e0-0000-4000-8000-000000000012",
+        "platform": {"uuid": "d9e0e0e0-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "", "url_pattern_hint": "", "provider": "steam", "position": 2},
         "url": "https://store.example.com/app/1000030/",
         "operating_systems": [],
         "additional_data": {"appid": 1000030},

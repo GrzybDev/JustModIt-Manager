@@ -7,26 +7,26 @@ public sealed class SteamAppManifestTests
     private const string Complete = """
         "AppState"
         {
-        	"appid"		"110800"
+        	"appid"		"1000"
         	"Universe"		"1"
         	"LauncherPath"		"C:\\Program Files (x86)\\Steam\\steam.exe"
         	"name"		"Example Detective"
         	"StateFlags"		"4"
         	"installdir"		"Example.Detective"
-        	"LastUpdated"		"1790092126"
-        	"SizeOnDisk"		"14730944938"
-        	"buildid"		"13185632"
+        	"LastUpdated"		"1790000000"
+        	"SizeOnDisk"		"12884901888"
+        	"buildid"		"1234567"
         	"UpdateResult"		"0"
-        	"BytesToDownload"		"14006601632"
-        	"BytesDownloaded"		"14006601632"
-        	"TargetBuildID"		"13185632"
+        	"BytesToDownload"		"12000000000"
+        	"BytesDownloaded"		"12000000000"
+        	"TargetBuildID"		"1234567"
         	"ScheduledAutoUpdate"		"0"
         	"InstalledDepots"
         	{
-        		"110801"
+        		"1001"
         		{
-        			"manifest"		"7802845176688782381"
-        			"size"		"14466771789"
+        			"manifest"		"1234567890123456789"
+        			"size"		"12500000000"
         		}
         	}
         	"UserConfig"
@@ -47,18 +47,18 @@ public sealed class SteamAppManifestTests
 
         manifest.Should().BeEquivalentTo(new SteamAppManifest
         {
-            AppId = 110800,
+            AppId = 1000,
             Name = "Example Detective",
             InstallDir = "Example.Detective",
             StateFlags = SteamAppStates.FullyInstalled,
-            BuildId = "13185632",
-            TargetBuildId = "13185632",
-            SizeOnDisk = 14730944938,
+            BuildId = "1234567",
+            TargetBuildId = "1234567",
+            SizeOnDisk = 12884901888,
             UpdateResult = SteamUpdateResult.NoError,
-            BytesDownloaded = 14006601632,
+            BytesDownloaded = 12000000000,
             ScheduledAutoUpdate = null,
             Language = "polish",
-            InstalledDepots = ["110801@7802845176688782381"],
+            InstalledDepots = ["1001@1234567890123456789"],
         });
         manifest.HasPendingTargetBuild.Should().BeFalse();
     }
@@ -67,7 +67,7 @@ public sealed class SteamAppManifestTests
     public void Installed_depots_are_read_with_their_manifests()
     {
         var manifest = Parse("""
-            "appid" "10" "installdir" "Game"
+            "appid" "1000" "installdir" "Game"
             "InstalledDepots"
             {
                 "11" { "manifest" "5550001" "size" "100" }
@@ -79,14 +79,14 @@ public sealed class SteamAppManifestTests
             """);
 
         manifest.InstalledDepots.Should().Equal("11@5550001", "12@5550002");
-        Parse("\"appid\" \"10\" \"installdir\" \"Game\"").InstalledDepots.Should().BeEmpty();
+        Parse("\"appid\" \"1000\" \"installdir\" \"Game\"").InstalledDepots.Should().BeEmpty();
     }
 
     [Fact]
     public void Optional_fields_are_read()
     {
         var manifest = Parse("""
-            "appid" "10" "installdir" "Game" "StateFlags" "1542" "buildid" "0" "TargetBuildID" "77"
+            "appid" "1000" "installdir" "Game" "StateFlags" "1542" "buildid" "0" "TargetBuildID" "77"
             "UpdateResult" "4" "BytesDownloaded" "5" "ScheduledAutoUpdate" "1790000000"
             "MountedConfig" { "language" "german" }
             """);
@@ -106,10 +106,10 @@ public sealed class SteamAppManifestTests
     public void The_name_falls_back_to_the_user_config_and_may_be_missing()
     {
         Parse("""
-            "appid" "10" "installdir" "Game" "UserConfig" { "name" "Configured Name" }
+            "appid" "1000" "installdir" "Game" "UserConfig" { "name" "Configured Name" }
             """).Name.Should().Be("Configured Name");
         Parse("""
-            "appid" "10" "installdir" "Game" "name" "  "
+            "appid" "1000" "installdir" "Game" "name" "  "
             """).Name.Should().BeNull();
     }
 
@@ -127,7 +127,7 @@ public sealed class SteamAppManifestTests
     [InlineData("/etc")]
     [InlineData(@"C:\\Windows")]
     public void An_unsafe_install_folder_is_rejected(string installDir) =>
-        FluentActions.Invoking(() => Parse($"\"appid\" \"10\" \"installdir\" \"{installDir}\""))
+        FluentActions.Invoking(() => Parse($"\"appid\" \"1000\" \"installdir\" \"{installDir}\""))
             .Should().Throw<FormatException>();
 
     [Theory]
@@ -140,7 +140,7 @@ public sealed class SteamAppManifestTests
 
     [Fact]
     public void A_document_without_app_state_is_rejected() =>
-        FluentActions.Invoking(() => SteamAppManifest.Parse(VdfParser.Parse("\"Other\" { \"appid\" \"10\" }")))
+        FluentActions.Invoking(() => SteamAppManifest.Parse(VdfParser.Parse("\"Other\" { \"appid\" \"1000\" }")))
             .Should().Throw<FormatException>();
 
     private static SteamAppManifest Parse(string body) => SteamAppManifest.Parse(VdfParser.Parse($"\"AppState\" {{ {body} }}"));

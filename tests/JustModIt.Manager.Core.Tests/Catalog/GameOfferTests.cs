@@ -9,8 +9,8 @@ public sealed class GameOfferTests
     private static readonly GameKey Clockwork = new(StoreId.Steam, "1000030");
     private static readonly GameKey Orchard = new(StoreId.Steam, "1000040");
     private static readonly GameKey Starlight = new(StoreId.Steam, "1000010");
-    private static readonly Guid PaperMothProject = Guid.Parse("50d8a47a-0000-4000-8000-000000000011");
-    private static readonly Guid LanternWorksProject = Guid.Parse("50d8a47a-0000-4000-8000-000000000012");
+    private static readonly Guid PaperMothProject = Guid.Parse("50e0e0e0-0000-4000-8000-000000000011");
+    private static readonly Guid LanternWorksProject = Guid.Parse("50e0e0e0-0000-4000-8000-000000000012");
 
     private readonly InstallableIndex _index = new(DateTimeOffset.UnixEpoch,
         new[] { "starlight-harbor", "clockwork-tides-paper-moth", "clockwork-tides-lantern-works", "silent-orchard" }

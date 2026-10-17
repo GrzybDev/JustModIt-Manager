@@ -36,7 +36,7 @@ public static class TestCatalogue
     public static readonly GameKey EmberKey = TestGames.SteamKey("4100");
 
     /// <summary>A game found on this computer that waits for its project, so it is not among the player's games.</summary>
-    public static readonly GameKey MeridianKey = TestGames.SteamKey("4700");
+    public static readonly GameKey MeridianKey = TestGames.SteamKey("4600");
 
     /// <summary>A game found on this computer whose makers ship its project themselves.</summary>
     public static readonly GameKey SignalKey = TestGames.SteamKey("4900");

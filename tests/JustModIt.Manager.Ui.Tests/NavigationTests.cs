@@ -64,10 +64,10 @@ public sealed class NavigationTests
     [AvaloniaFact]
     public void A_link_opens_its_place_on_top_of_its_list_and_never_more_than_that()
     {
-        var game = new GameKey(StoreId.Gog, "1207658924");
+        var game = new GameKey(StoreId.Gog, "1100000001");
 
         var idle = TestStates.Idle();
-        AgentLinks.RoutesFor(new GameTarget("gog", "1207658924"), idle).Should()
+        AgentLinks.RoutesFor(new GameTarget("gog", "1100000001"), idle).Should()
             .Equal(new LibraryRoute(), new GameRoute(game));
         AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow", "lantern-team", "full"), idle).Should()
             .Equal(new CatalogueRoute(), new CatalogueProjectRoute("ember-hollow", "lantern-team", "full"));
@@ -79,7 +79,7 @@ public sealed class NavigationTests
 
         using var ui = new UiHarness(TestStates.Idle());
         ui.Shell.Navigator.Navigate(new SettingsRoute());
-        ui.Agent.Navigate(new GameTarget("gog", "1207658924"));
+        ui.Agent.Navigate(new GameTarget("gog", "1100000001"));
         UiHarness.Settle();
         ui.Shell.Navigator.CurrentRoute.Should().Be(new GameRoute(game));
         ui.Shell.Navigator.GoBackCommand.Execute(null);

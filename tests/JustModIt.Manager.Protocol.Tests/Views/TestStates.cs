@@ -16,7 +16,7 @@ internal static class TestStates
 
     public static readonly GameKey Game = new(StoreId.Steam, "1000");
 
-    public static readonly GameKey FailedGame = new(StoreId.Gog, "1207658924000000001");
+    public static readonly GameKey FailedGame = new(StoreId.Gog, "1100000001000000001");
 
     public static readonly Guid Project = Guid.Parse("11111111-0000-4000-8000-000000000001");
 

@@ -11,7 +11,7 @@ namespace JustModIt.Manager.Core.Tests.Catalog;
 public sealed class CatalogueApiClientTests
 {
     private static readonly ReleaseFileLocator File = new("lantern-works", "starlight-harbor",
-        Guid.Parse("f3713421-0000-4000-8000-000000000032"), Guid.Parse("a0000000-0000-4000-8000-000000000001"));
+        Guid.Parse("f3e0e0e0-0000-4000-8000-000000000032"), Guid.Parse("a0000000-0000-4000-8000-000000000001"));
 
     private readonly FakeTimeProvider _time = new();
 
@@ -67,7 +67,7 @@ public sealed class CatalogueApiClientTests
         stores.Select(store => store.Store).Should().Equal(StoreId.Steam, StoreId.Gog, null);
         stores.Select(store => store.Launcher).Should().Equal("Steam", "GOG Galaxy", "Other Store");
         stores[0].InstallHint.Should().StartWith("Right-click the game");
-        stores[0].GamePlatform.Should().Be(Guid.Parse("8e224cea-0000-4000-8000-000000000001"));
+        stores[0].GamePlatform.Should().Be(Guid.Parse("8ee0e0e0-0000-4000-8000-000000000001"));
         site.Should().BeEquivalentTo(new SiteConfiguration
         {
             Name = "Example Mods",
@@ -152,7 +152,7 @@ public sealed class CatalogueApiClientTests
 
         url.Should().Be(new Uri("https://storage.example.com/releases/a/b/c/package.zip"));
         handler.Paths.Should().Equal(
-            "/projects/v1/teams/lantern-works/starlight-harbor/releases/f3713421-0000-4000-8000-000000000032/files/a0000000-0000-4000-8000-000000000001/download/");
+            "/projects/v1/teams/lantern-works/starlight-harbor/releases/f3e0e0e0-0000-4000-8000-000000000032/files/a0000000-0000-4000-8000-000000000001/download/");
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public sealed class CatalogueApiClientTests
             [File.FileUuid] = new("https://storage.example.com/base.zip"),
             [voices] = new("https://storage.example.com/voices.zip"),
         });
-        handler.Paths.Should().Equal("/projects/v1/teams/lantern-works/starlight-harbor/releases/f3713421-0000-4000-8000-000000000032/download/"
+        handler.Paths.Should().Equal("/projects/v1/teams/lantern-works/starlight-harbor/releases/f3e0e0e0-0000-4000-8000-000000000032/download/"
             + "?files=a0000000-0000-4000-8000-000000000001,a0000000-0000-4000-8000-000000000002");
     }
 

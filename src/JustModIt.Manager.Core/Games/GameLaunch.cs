@@ -7,7 +7,7 @@ namespace JustModIt.Manager.Core.Games;
 /// <summary>How a game starts: the way the store or launcher that installed it starts it.</summary>
 public abstract record GameLaunch;
 
-/// <summary>A link that the store's or launcher's own client handles, such as <c>steam://rungameid/620</c>.</summary>
+/// <summary>A link that the store's or launcher's own client handles, such as <c>steam://rungameid/1000</c>.</summary>
 public sealed record LaunchLink : GameLaunch
 {
     private LaunchLink(string uri) => Uri = uri;

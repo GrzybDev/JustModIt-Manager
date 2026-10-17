@@ -18,7 +18,7 @@ public sealed class GogLibraryProviderTests
     private const string GalaxyLibrary = GalaxyStorage + @"\galaxy-2.0.db";
     private const string GalaxyJobs = GalaxyStorage + @"\jobs.db";
 
-    private static readonly GameKey Example = new(StoreId.Gog, "1207658924");
+    private static readonly GameKey Example = new(StoreId.Gog, "1100000001");
 
     private readonly InMemoryFileSystem _files = new();
     private readonly InMemoryRegistry _registry = new();
@@ -29,8 +29,8 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task The_info_file_names_and_dates_the_game_and_beats_the_registry()
     {
-        AddRecord("1207658924", Folder, name: "Registry Name", buildId: "900", language: "german");
-        _files.AddInfo(Folder, "1207658924", "Proper Name", buildId: "900", languages: "\"pl-PL\"");
+        AddRecord("1100000001", Folder, name: "Registry Name", buildId: "900", language: "german");
+        _files.AddInfo(Folder, "1100000001", "Proper Name", buildId: "900", languages: "\"pl-PL\"");
 
         var scan = await Scan();
 
@@ -55,9 +55,9 @@ public sealed class GogLibraryProviderTests
     public async Task Each_game_starts_through_what_installed_it()
     {
         InstallGalaxy();
-        _sqlite.Add(GalaxyLibrary, ["1207658924", Folder], ["1003", @"D:\GOG Galaxy\Moved Since"]);
-        _files.AddInfo(Folder, "1207658924", "Through Galaxy");
-        AddRecord("1207658924", Folder);
+        _sqlite.Add(GalaxyLibrary, ["1100000001", Folder], ["1003", @"D:\GOG Galaxy\Moved Since"]);
+        _files.AddInfo(Folder, "1100000001", "Through Galaxy");
+        AddRecord("1100000001", Folder);
         _files.AddInfo(@"D:\GOG Games\Offline", "1003", "Through The Offline Installer");
         AddRecord("1003", @"D:\GOG Games\Offline");
         _files.AddInfo(@"D:\Heroic\Another", "1001", "Through Heroic");
@@ -70,7 +70,7 @@ public sealed class GogLibraryProviderTests
 
         scan.Games.ToDictionary(game => game.Name, game => game.Launch).Should().BeEquivalentTo(new Dictionary<string, GameLaunch?>
         {
-            ["Through Galaxy"] = LaunchLink.TryCreate("goggalaxy://openGameView/1207658924"),
+            ["Through Galaxy"] = LaunchLink.TryCreate("goggalaxy://openGameView/1100000001"),
             ["Through The Offline Installer"] = LaunchProgram.TryCreate("game.exe", null, null),
             ["Through Heroic"] = LaunchLink.TryCreate("heroic://launch?appName=1001&runner=gog"),
             ["From Its Folder"] = LaunchProgram.TryCreate("game.exe", null, null),
@@ -86,9 +86,9 @@ public sealed class GogLibraryProviderTests
     public async Task A_game_galaxy_works_on_is_busy_until_its_job_is_gone(string job, GameInstallState state)
     {
         InstallGalaxy();
-        _sqlite.Add(GalaxyLibrary, ["1207658924", Folder]).Add(GalaxyJobs, ["1207658924", job]);
-        _files.AddInfo(Folder, "1207658924", "Example");
-        AddRecord("1207658924", Folder);
+        _sqlite.Add(GalaxyLibrary, ["1100000001", Folder]).Add(GalaxyJobs, ["1100000001", job]);
+        _files.AddInfo(Folder, "1100000001", "Example");
+        AddRecord("1100000001", Folder);
         var provider = CreateProvider();
 
         var scan = await provider.ScanAsync(LibraryScanContext.Empty, Token);
@@ -106,8 +106,8 @@ public sealed class GogLibraryProviderTests
     {
         InstallGalaxy();
         _sqlite.Lock(GalaxyLibrary);
-        _files.AddInfo(Folder, "1207658924", "Example");
-        AddRecord("1207658924", Folder);
+        _files.AddInfo(Folder, "1100000001", "Example");
+        AddRecord("1100000001", Folder);
 
         var scan = await Scan();
 
@@ -119,9 +119,9 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_stale_record_of_a_deleted_folder_does_not_hide_the_real_install()
     {
-        AddRecord("1207658924", @"D:\Old Location", view: RegistryView.Registry32);
-        AddRecord("1207658924", Folder, view: RegistryView.Registry64);
-        _files.AddInfo(Folder, "1207658924", "Example");
+        AddRecord("1100000001", @"D:\Old Location", view: RegistryView.Registry32);
+        AddRecord("1100000001", Folder, view: RegistryView.Registry64);
+        _files.AddInfo(Folder, "1100000001", "Example");
 
         var game = (await Scan()).Games.Single();
 
@@ -147,9 +147,9 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_build_mismatch_means_an_update_even_next_to_an_uninstall_entry()
     {
-        AddRecord("1207658924", Folder, buildId: "901");
-        AddUninstall("1207658924", Folder);
-        _files.AddInfo(Folder, "1207658924", "Example", buildId: "900");
+        AddRecord("1100000001", Folder, buildId: "901");
+        AddUninstall("1100000001", Folder);
+        _files.AddInfo(Folder, "1100000001", "Example", buildId: "900");
 
         var game = (await Scan()).Games.Single();
 
@@ -162,7 +162,7 @@ public sealed class GogLibraryProviderTests
     public async Task A_folder_without_an_info_file_is_installed_with_a_doubt()
     {
         _files.AddDirectory(Folder);
-        AddRecord("1207658924", Folder, name: "Very Old Installer");
+        AddRecord("1100000001", Folder, name: "Very Old Installer");
 
         var game = (await Scan()).Games.Single();
 
@@ -175,11 +175,11 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task Dlc_is_hidden_however_it_is_recorded()
     {
-        _files.AddInfo(Folder, "1207658924", "Example");
-        _files.AddInfo(Folder, "2001", "Example: Expansion", rootGameId: "1207658924", playTasks: false);
-        AddRecord("1207658924", Folder);
+        _files.AddInfo(Folder, "1100000001", "Example");
+        _files.AddInfo(Folder, "2001", "Example: Expansion", rootGameId: "1100000001", playTasks: false);
+        AddRecord("1100000001", Folder);
         AddRecord("2001", Folder);
-        AddRecord("2002", Folder, dependsOn: "1207658924");
+        AddRecord("2002", Folder, dependsOn: "1100000001");
         AddRecord("2003", Folder);
 
         var games = (await Scan()).Games;
@@ -190,7 +190,7 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_record_under_a_pack_id_still_reports_the_game_in_its_folder()
     {
-        _files.AddInfo(Folder, "1207658924", "Example");
+        _files.AddInfo(Folder, "1100000001", "Example");
         AddRecord("1400000000", Folder, name: "Example Complete Edition", buildId: "999");
 
         var game = (await Scan()).Games.Single();
@@ -208,10 +208,10 @@ public sealed class GogLibraryProviderTests
         _files.AddFile(Path.Join(Folder, marker), "");
         if (hasInfo)
         {
-            _files.AddInfo(Folder, "1207658924", "Example");
+            _files.AddInfo(Folder, "1100000001", "Example");
         }
 
-        AddRecord("1207658924", Folder);
+        AddRecord("1100000001", Folder);
 
         var game = (await Scan()).Games.Single();
 
@@ -222,8 +222,8 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_failing_source_leaves_the_others_and_marks_the_scan_incomplete()
     {
-        _files.AddInfo(Folder, "1207658924", "Example");
-        AddRecord("1207658924", Folder);
+        _files.AddInfo(Folder, "1100000001", "Example");
+        AddRecord("1100000001", Folder);
 
         var scan = await CreateProvider(new ThrowingSource()).ScanAsync(LibraryScanContext.Empty, Token);
 
@@ -234,8 +234,8 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task The_registry_and_every_game_folder_are_watched()
     {
-        _files.AddInfo(Folder, "1207658924", "Example");
-        AddRecord("1207658924", Folder);
+        _files.AddInfo(Folder, "1100000001", "Example");
+        AddRecord("1100000001", Folder);
         AddRecord("1001", @"D:\Removed");
 
         var watch = (await Scan()).Watch;
@@ -256,7 +256,7 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task Folders_the_player_added_hold_a_game_or_a_folder_of_games()
     {
-        _files.AddInfo(@"E:\Offline Installs\Example", "1207658924", "Example");
+        _files.AddInfo(@"E:\Offline Installs\Example", "1100000001", "Example");
         _files.AddInfo(@"E:\Offline Installs\Another", "1001", "Another");
         _files.AddDirectory(@"E:\Offline Installs\Not A Game");
         _files.AddInfo(@"F:\Single", "1002", "Single");
@@ -270,7 +270,7 @@ public sealed class GogLibraryProviderTests
             (@"Q:\Unplugged", LibraryState.Offline, true));
         scan.Games.Select(game => (game.Key.StoreGameId, game.LibraryId, game.InstallDirectory)).Should().BeEquivalentTo([
             ("1001", @"E:\Offline Installs", @"E:\Offline Installs\Another"),
-            ("1207658924", @"E:\Offline Installs", @"E:\Offline Installs\Example"),
+            ("1100000001", @"E:\Offline Installs", @"E:\Offline Installs\Example"),
             ("1002", @"F:\Single", @"F:\Single"),
         ]);
     }
@@ -278,8 +278,8 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task Games_whose_drive_does_not_answer_are_reported_while_the_others_are_read()
     {
-        _files.AddInfo(Folder, "1207658924", "Example");
-        AddRecord("1207658924", Folder);
+        _files.AddInfo(Folder, "1100000001", "Example");
+        AddRecord("1100000001", Folder);
         _files.AddInfo(@"Q:\Slow\Game", "1001", "Slow Game");
         AddRecord("1001", @"Q:\Slow\Game");
         _files.AddInfo(@"Q:\Other", "1002", "Other Game");
@@ -303,7 +303,7 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_folder_the_player_added_that_does_not_answer_is_offline()
     {
-        _files.AddInfo(@"E:\Offline Installs\Example", "1207658924", "Example");
+        _files.AddInfo(@"E:\Offline Installs\Example", "1100000001", "Example");
         _files.AddInfo(@"Q:\Slow\Another", "1001", "Another");
         using var files = new HangingFileSystem(_files);
         files.Hang(@"Q:\Slow");
@@ -319,8 +319,8 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_launcher_list_that_does_not_answer_leaves_the_scan_incomplete()
     {
-        _files.AddInfo(Folder, "1207658924", "Example");
-        AddRecord("1207658924", Folder);
+        _files.AddInfo(Folder, "1100000001", "Example");
+        AddRecord("1100000001", Folder);
         using var files = new HangingFileSystem(_files);
         files.Hang(@"R:\Roaming");
 
@@ -333,8 +333,8 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_probe_of_a_game_whose_folder_does_not_answer_is_offline()
     {
-        _files.AddInfo(Folder, "1207658924", "Example");
-        AddRecord("1207658924", Folder);
+        _files.AddInfo(Folder, "1100000001", "Example");
+        AddRecord("1100000001", Folder);
         var known = (await Scan()).Games.Single();
         using var files = new HangingFileSystem(_files);
         files.Hang(Folder);
@@ -349,8 +349,8 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_probe_reads_the_records_again()
     {
-        _files.AddInfo(Folder, "1207658924", "Example", buildId: "900");
-        AddRecord("1207658924", Folder, buildId: "900");
+        _files.AddInfo(Folder, "1100000001", "Example", buildId: "900");
+        AddRecord("1100000001", Folder, buildId: "900");
         var provider = CreateProvider();
         var known = (await provider.ScanAsync(LibraryScanContext.Empty, Token)).Games.Single();
         _files.AddFile(Path.Join(Folder, ".gogdl-resume"), "");
@@ -365,8 +365,8 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_folder_with_a_game_or_games_is_evidence_and_one_with_only_dlc_is_not()
     {
-        _files.AddInfo(@"E:\Offline Installs\Example", "1207658924", "Example");
-        _files.AddInfo(@"F:\Expansion", "2001", "Example: Expansion", rootGameId: "1207658924", playTasks: false);
+        _files.AddInfo(@"E:\Offline Installs\Example", "1100000001", "Example");
+        _files.AddInfo(@"F:\Expansion", "2001", "Example: Expansion", rootGameId: "1100000001", playTasks: false);
         _files.AddDirectory(@"G:\Empty");
         var provider = CreateProvider();
 

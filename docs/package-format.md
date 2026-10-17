@@ -85,8 +85,8 @@ operation's `type` may appear anywhere in its object.
   "createdAt": "2026-09-22T18:00:00+00:00",
   "generator": "JustModIt Manager 0.1.0",
   "targets": [
-    { "store": "steam", "id": "1000", "buildId": "11951484" },
-    { "store": "gog", "id": "1957151704" }
+    { "store": "steam", "id": "1000", "buildId": "1234567" },
+    { "store": "gog", "id": "1000000001" }
   ],
   "requires": ["op:copy", "op:patch", "op:rename", "op:delete"],
   "thirdPartyNotices": [

@@ -37,14 +37,14 @@ public abstract class FileSystemContractTests
     [Fact]
     public void Enumeration_matches_the_pattern_with_the_platform_letter_case()
     {
-        WriteFile("goggame-1207658924.info", "{}");
-        WriteFile("GOGGAME-1495134320.INFO", "{}");
-        WriteFile("goggame-1207658924.id", "{}");
+        WriteFile("goggame-1100000001.info", "{}");
+        WriteFile("GOGGAME-1100000003.INFO", "{}");
+        WriteFile("goggame-1100000001.id", "{}");
 
         var names = Names(FileSystem.Enumerate(Root, "goggame-*.info", new EnumerationOptions()));
 
-        names.Should().Contain("goggame-1207658924.info").And.NotContain("goggame-1207658924.id");
-        names.Contains("GOGGAME-1495134320.INFO").Should().Be(OperatingSystem.IsWindows() || OperatingSystem.IsMacOS());
+        names.Should().Contain("goggame-1100000001.info").And.NotContain("goggame-1100000001.id");
+        names.Contains("GOGGAME-1100000003.INFO").Should().Be(OperatingSystem.IsWindows() || OperatingSystem.IsMacOS());
     }
 
     [Fact]
@@ -90,8 +90,8 @@ public abstract class FileSystemContractTests
         var target = CreateDirectory(Path.Combine("Library", "Games"));
         var link = CreateDirectoryLink("Linked", target);
 
-        FileSystem.GetCanonicalPath(Path.Combine(link, "Witcher"))
-            .Should().Be(Path.Join(FileSystem.GetCanonicalPath(target), "Witcher"));
+        FileSystem.GetCanonicalPath(Path.Combine(link, "Lantern"))
+            .Should().Be(Path.Join(FileSystem.GetCanonicalPath(target), "Lantern"));
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public abstract class FileSystemContractTests
     [Fact]
     public async Task A_file_longer_than_the_limit_is_refused()
     {
-        var file = WriteFile("appmanifest_620.acf", "\"AppState\" {}");
+        var file = WriteFile("appmanifest_1000.acf", "\"AppState\" {}");
 
         var bytes = () => FileSystem.ReadAllBytesAsync(file, 4, TestContext.Current.CancellationToken);
         var text = () => FileSystem.ReadAllTextAsync(file, 4, TestContext.Current.CancellationToken);

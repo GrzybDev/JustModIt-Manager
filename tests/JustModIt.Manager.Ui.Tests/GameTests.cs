@@ -225,7 +225,7 @@ public sealed class GameTests
     [AvaloniaFact]
     public async Task A_game_of_another_store_is_told_its_store_s_check_without_a_button()
     {
-        var installed = Installed("Ember Hollow", "4100", offer: Ember) with { Key = new GameKey(StoreId.Gog, "1207658930") };
+        var installed = Installed("Ember Hollow", "4100", offer: Ember) with { Key = new GameKey(StoreId.Gog, "1100000002") };
         using var ui = Open(State(installed), installed);
         var page = Page(ui);
         var job = Job(installed, JobKind.Uninstall, JobStage.Uninstalling);

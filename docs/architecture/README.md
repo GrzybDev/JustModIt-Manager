@@ -57,7 +57,7 @@ must stay compatible with NativeAOT and trimming.
 
 ## Terms
 
-- **Game**: an installed game, keyed by store and id (`steam:620`).
+- **Game**: an installed game, keyed by store and id (`steam:1000`).
 - **Project**: what a team publishes for a game, such as a translation.
 - **Release**: a version of a project, with base files and optional add-ons.
 - **Package**: a release file as the app installs it, a `.zip` or a [manifest package](../package-format.md).

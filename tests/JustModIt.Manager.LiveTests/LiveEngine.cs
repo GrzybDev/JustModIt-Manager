@@ -137,7 +137,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
     }
 
     /// <summary>The game as its store describes it now; skips the test unless it is installed and idle.</summary>
-    /// <param name="key">One of the owner's games.</param>
+    /// <param name="key">A game from the local live-games file.</param>
     /// <param name="cancellationToken">Stops the probe.</param>
     public async Task<InstalledGame> ReadyGameAsync(GameKey key, CancellationToken cancellationToken)
     {

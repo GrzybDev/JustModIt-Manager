@@ -24,7 +24,7 @@ public sealed class CreatorProjectStoreTests : IDisposable
         var project = new CreatorProject
         {
             Mode = CreatorMode.Advanced,
-            Game = new ProjectGame(new GameKey(StoreId.Gog, "1207658930000000001"), "Example Game"),
+            Game = new ProjectGame(new GameKey(StoreId.Gog, "1100000002000000001"), "Example Game"),
             GameFolder = _workspace.GameDirectory,
             AuthorFolder = _workspace.AuthorDirectory,
             Choices = Choices(("data/fonts.bin", FileChoice.Copy), ("movies/intro.bik", FileChoice.Delete)),

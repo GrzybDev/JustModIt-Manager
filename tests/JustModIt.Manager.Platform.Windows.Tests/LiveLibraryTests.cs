@@ -9,6 +9,7 @@ using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Tests;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Platform.Windows.Tests;
@@ -16,12 +17,6 @@ namespace JustModIt.Manager.Platform.Windows.Tests;
 [SupportedOSPlatform("windows")]
 public sealed class LiveLibraryTests
 {
-    // Games installed on the owner's machine for live testing.
-    private static readonly string[] OwnerSteamGames = ["2592160", "474960", "939850", "3994800"];
-
-    // Installed through Heroic's Legendary into a folder of a Steam library, without a Steam manifest.
-    private static readonly GameKey OwnerEpicGame = new(StoreId.Epic, "2e92a78949e2474aa89271b8b893f3b0");
-
     public LiveLibraryTests() =>
         Assert.SkipUnless(OperatingSystem.IsWindows() && Environment.GetEnvironmentVariable("MANAGER_LIVE_TESTS") == "1",
             "Live tests run only with MANAGER_LIVE_TESTS=1 on Windows.");
@@ -46,8 +41,9 @@ public sealed class LiveLibraryTests
         scan.Games.Select(game => game.Key.StoreGameId).Should().NotContain(["228980", "250820"], "tools are not games");
         scan.Watch.Folders.Should().NotBeEmpty();
 
-        var owned = scan.Games.Where(game => OwnerSteamGames.Contains(game.Key.StoreGameId)).ToList();
-        owned.Select(game => game.Key.StoreGameId).Should().BeEquivalentTo(OwnerSteamGames, "the owner installed the test games through Steam");
+        var steamGames = LiveGames.Load().SteamGames;
+        var owned = scan.Games.Where(game => steamGames.Contains(game.Key.StoreGameId)).ToList();
+        owned.Select(game => game.Key.StoreGameId).Should().BeEquivalentTo(steamGames, "the live tests' games are installed through Steam");
         owned.Should().OnlyContain(game => Directory.Exists(game.InstallDirectory) && !string.IsNullOrEmpty(game.BuildId));
         foreach (var game in owned.Where(game => game.IsReady))
         {
@@ -101,7 +97,8 @@ public sealed class LiveLibraryTests
             service.ActiveWatchCount.Should().BeGreaterThan(0);
             DetectionReport.From(snapshot).Stores.Should().Contain(store => store.Store == StoreId.Steam && store.GameCount > 0)
                 .And.Contain(store => store.Store == StoreId.Epic);
-            var owned = snapshot.Games.Values.FirstOrDefault(game => game.Key.Store == StoreId.Steam && OwnerSteamGames.Contains(game.Key.StoreGameId));
+            var steamGames = LiveGames.TryLoad()?.SteamGames ?? [];
+            var owned = snapshot.Games.Values.FirstOrDefault(game => game.Key.Store == StoreId.Steam && steamGames.Contains(game.Key.StoreGameId));
             if (owned is not null)
             {
                 var probe = await service.ProbeAsync(owned.Key, Token);
@@ -177,7 +174,7 @@ public sealed class LiveLibraryTests
     }
 
     [Fact]
-    public async Task The_real_epic_library_finds_the_owners_game_and_no_engine_content()
+    public async Task The_real_epic_library_finds_the_configured_game_and_no_engine_content()
     {
         var environment = LibraryEnvironment.ForCurrentUser();
         var provider = EpicLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment,
@@ -191,11 +188,13 @@ public sealed class LiveLibraryTests
         scan.Games.Select(game => game.Key).Should().OnlyHaveUniqueItems();
         scan.Games.Should().NotContain(game => game.Key.StoreGameId == "ue" || game.Name.Contains("Unreal", StringComparison.Ordinal),
             "the engine and its plugins are no games");
-        var owned = scan.Games.FirstOrDefault(game => game.Key == OwnerEpicGame);
-        Assert.SkipWhen(owned is null, "The owner's Epic test game is not installed on this machine.");
+        var epic = LiveGames.Load().Epic;
+        Assert.SkipWhen(epic is null, $"{LiveGames.FileName} names no Epic game.");
+        var owned = scan.Games.FirstOrDefault(game => game.Key == epic.Key);
+        Assert.SkipWhen(owned is null, "The Epic game the live tests name is not installed on this machine.");
         owned.Should().Match<InstalledGame>(game => game.IsReady && !string.IsNullOrEmpty(game.BuildId)
             && game.Platform == OperatingSystemKind.Windows && Directory.Exists(game.InstallDirectory));
-        owned.Launch.Should().Be(LaunchLink.TryCreate("heroic://launch?appName=7315f614b0504081bcdceef138075c9c&runner=legendary"));
+        owned.Launch.Should().Be(LaunchLink.TryCreate($"heroic://launch?appName={epic.AppName}&runner=legendary"));
         (await provider.ProbeAsync(owned, LibraryScanContext.Empty, Token)).Should().Be(owned);
         (await provider.InspectFolderAsync(owned.InstallDirectory, Token)).Folder.Should().Be(owned.InstallDirectory);
 

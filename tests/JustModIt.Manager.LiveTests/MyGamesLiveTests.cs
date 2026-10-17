@@ -2,6 +2,7 @@ using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.LiveTests;
 
@@ -10,20 +11,20 @@ public sealed class MyGamesLiveTests
 {
     private static readonly TimeSpan SettleTimeout = TimeSpan.FromMinutes(3);
 
-    private static readonly GameKey[] Installable = [OwnerGames.Dispatch, OwnerGames.QuantumBreak, OwnerGames.ManOfMedan];
-
     [Fact]
     public async Task Lists_only_the_detected_games_with_an_installable_release()
     {
         LiveTest.SkipUnlessEnabledOnWindows();
+        var games = LiveGames.Load();
+        GameKey[] installable = [games.TargetLanguage, games.ReplacesFiles, games.AddsFiles];
         await using var engine = await LiveEngine.StartAsync(nameof(MyGamesLiveTests), LiveTest.Token);
         var coordinator = engine.StartCoordinator();
 
-        // One scan finds all four games, so the index that offers the three also holds White Whisper's project.
+        // One scan finds all four games, so the index that offers the three also holds the announced game's project.
         var state = await SettleAsync(coordinator, state => state is { IsLibraryCached: false, CatalogueState: CatalogueState.Fresh }
-            && Installable.All(key => state.Find(key) is not null));
+            && installable.All(key => state.Find(key) is not null));
 
-        foreach (var key in Installable)
+        foreach (var key in installable)
         {
             var game = state.Find(key)!;
             game.Status.State.Should().Be(MyGameState.NotInstalled, $"{game.Name} is installed and idle, with nothing on it");
@@ -31,11 +32,11 @@ public sealed class MyGamesLiveTests
             game.Project!.Plan!.Parts[0].File.Format.Should().NotBeNull();
         }
 
-        state.Find(OwnerGames.WhiteWhisper).Should().BeNull("its project has no release yet");
-        GameOffer.For(engine.Catalogue.Current.Index, OwnerGames.WhiteWhisper, OperatingSystemKind.Windows, LiveApp.Language)
+        state.Find(games.Announced).Should().BeNull("its project has no release yet");
+        GameOffer.For(engine.Catalogue.Current.Index, games.Announced, OperatingSystemKind.Windows, LiveApp.Language)
             .Projects.Should().ContainSingle().Which.Selection.Unavailable.Should().Be(SelectionUnavailability.NoPublicRelease);
-        state.Find(OwnerGames.Dispatch)!.OffersTargetLanguage.Should().BeTrue("its Steam page lists the app's target language");
-        state.Find(OwnerGames.ManOfMedan)!.OffersTargetLanguage.Should().BeFalse();
+        state.Find(games.TargetLanguage)!.OffersTargetLanguage.Should().BeTrue("its Steam page lists the app's target language");
+        state.Find(games.AddsFiles)!.OffersTargetLanguage.Should().BeFalse();
     }
 
     private static async Task<AppState> SettleAsync(StateCoordinator coordinator, Func<AppState, bool> settled)

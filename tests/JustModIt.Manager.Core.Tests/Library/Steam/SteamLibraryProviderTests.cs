@@ -22,7 +22,7 @@ public sealed class SteamLibraryProviderTests
     {
         var written = new DateTimeOffset(2026, 4, 2, 8, 30, 0, TimeSpan.Zero);
         _steam.AddApp(1001, "Example Quest", writtenAt: written, buildId: "4242",
-            extra: "\"UserConfig\" { \"language\" \"polish\" } \"InstalledDepots\" { \"1002\" { \"manifest\" \"77\" } }");
+            extra: "\"UserConfig\" { \"language\" \"polish\" } \"InstalledDepots\" { \"1003\" { \"manifest\" \"77\" } }");
 
         var scan = await _steam.ScanAsync();
 
@@ -41,7 +41,7 @@ public sealed class SteamLibraryProviderTests
             StoreActivityAt = written,
             Platform = OperatingSystemKind.Windows,
             Languages = ["pl"],
-            Content = ["1002@77"],
+            Content = ["1003@77"],
             Launch = LaunchLink.TryCreate("steam://rungameid/1001"),
         });
     }
@@ -50,7 +50,7 @@ public sealed class SteamLibraryProviderTests
     public async Task Queued_and_uninstalled_apps_are_hidden_even_with_a_leftover_folder()
     {
         _steam.AddApp(1001, "Queued", stateFlags: 2);
-        _steam.AddApp(1002, "Uninstalled", stateFlags: 1);
+        _steam.AddApp(1003, "Uninstalled", stateFlags: 1);
 
         (await _steam.ScanAsync()).Games.Should().BeEmpty();
     }
@@ -73,7 +73,7 @@ public sealed class SteamLibraryProviderTests
         _steam.AddApp(1001, "Example Soundtrack", createFolder: false);
         _steam.Files.AddDirectory(Path.Join(_steam.Root, "steamapps", "music", "Example Soundtrack"));
         _steam.AddApp(228980, "Steamworks Common Redistributables");
-        _steam.AddApp(1002, "Proton 11.0");
+        _steam.AddApp(1003, "Proton 11.0");
 
         (await _steam.ScanAsync()).Games.Should().BeEmpty();
     }
@@ -83,16 +83,16 @@ public sealed class SteamLibraryProviderTests
     {
         _steam.AddApp(1001, "Example Quest");
         var written = new DateTimeOffset(2026, 5, 1, 0, 0, 0, TimeSpan.Zero);
-        _steam.Files.AddFile(_steam.ManifestPath(1002), "\"AppState\" { \"appid\" \"1002\"", written);
-        _steam.Files.AddFile(_steam.ManifestPath(1003), "\"AppState\" { \"appid\" \"1004\" \"installdir\" \"Copy\" }",
+        _steam.Files.AddFile(_steam.ManifestPath(1003), "\"AppState\" { \"appid\" \"1003\"", written);
+        _steam.Files.AddFile(_steam.ManifestPath(1004), "\"AppState\" { \"appid\" \"1005\" \"installdir\" \"Copy\" }",
             SteamTree.WrittenAt);
 
         var scan = await _steam.ScanAsync();
 
         scan.Games.Select(game => game.Key).Should().Equal(Quest);
         scan.UnreadableGames.Should().Equal(
-            new UnreadableGame(new GameKey(StoreId.Steam, "1002"), @"c:\steam", written),
-            new UnreadableGame(new GameKey(StoreId.Steam, "1003"), @"c:\steam", SteamTree.WrittenAt));
+            new UnreadableGame(new GameKey(StoreId.Steam, "1003"), @"c:\steam", written),
+            new UnreadableGame(new GameKey(StoreId.Steam, "1004"), @"c:\steam", SteamTree.WrittenAt));
         scan.Libraries.Single().UnreadableEntries.Should().Be(2);
     }
 
@@ -100,7 +100,7 @@ public sealed class SteamLibraryProviderTests
     public async Task Only_files_named_exactly_like_manifests_are_read()
     {
         _steam.AddApp(1001, "Example Quest");
-        foreach (var name in (string[])["appmanifest_1002.acf.tmp", "appmanifest_1003.acf.bak", "appmanifest_x.acf", "old_appmanifest_1004.acf"])
+        foreach (var name in (string[])["appmanifest_1003.acf.tmp", "appmanifest_1004.acf.bak", "appmanifest_x.acf", "old_appmanifest_1005.acf"])
         {
             _steam.Files.AddFile(Path.Join(_steam.Root, "steamapps", name), "broken");
         }
@@ -117,12 +117,12 @@ public sealed class SteamLibraryProviderTests
         var touched = _steam.Time.GetUtcNow() - TimeSpan.FromSeconds(20);
         _steam.AddApp(1001, "Left Over");
         _steam.AddDownload(1001);
-        _steam.AddApp(1002, "Starting");
-        _steam.AddDownload(1002, changedAt: touched);
-        _steam.AddApp(1003, "First Install", stateFlags: 2);
-        _steam.Files.AddFile(Path.Join(_steam.Root, "steamapps", "downloading", "state_1003_1004.patch"), "");
-        _steam.AddApp(1004, "Updating");
-        _steam.SetUpdating(1004);
+        _steam.AddApp(1003, "Starting");
+        _steam.AddDownload(1003, changedAt: touched);
+        _steam.AddApp(1004, "First Install", stateFlags: 2);
+        _steam.Files.AddFile(Path.Join(_steam.Root, "steamapps", "downloading", "state_1004_1005.patch"), "");
+        _steam.AddApp(1005, "Updating");
+        _steam.SetUpdating(1005);
 
         var scan = await _steam.ScanAsync();
 
@@ -140,7 +140,7 @@ public sealed class SteamLibraryProviderTests
     public async Task A_folder_shared_by_several_apps_is_claimed_by_the_installed_one()
     {
         _steam.AddApp(1001, "Example Quest", installDir: "Shared", sizeOnDisk: 10);
-        _steam.AddApp(1002, "Example Quest Playtest", installDir: "Shared", sizeOnDisk: 50, createFolder: false, stateFlags: 0x24);
+        _steam.AddApp(1003, "Example Quest Playtest", installDir: "Shared", sizeOnDisk: 50, createFolder: false, stateFlags: 0x24);
 
         var game = (await _steam.ScanAsync()).Games.Should().ContainSingle().Subject;
 
@@ -154,8 +154,8 @@ public sealed class SteamLibraryProviderTests
         var now = _steam.Time.GetUtcNow();
         _steam.AddApp(1001, "Slightly Ahead");
         _steam.AddDownload(1001, changedAt: now + SafetyGate.ClockSkewTolerance);
-        _steam.AddApp(1002, "Far Ahead");
-        _steam.AddDownload(1002, changedAt: now + TimeSpan.FromDays(2));
+        _steam.AddApp(1003, "Far Ahead");
+        _steam.AddDownload(1003, changedAt: now + TimeSpan.FromDays(2));
 
         var scan = await _steam.ScanAsync();
 
@@ -170,7 +170,7 @@ public sealed class SteamLibraryProviderTests
     {
         var later = SteamTree.WrittenAt.AddMinutes(5);
         _steam.AddApp(1001, "Example Quest", installDir: "Shared", sizeOnDisk: 50);
-        _steam.AddApp(1002, "Example Quest Episode", installDir: "Shared", stateFlags: 1030, writtenAt: later);
+        _steam.AddApp(1003, "Example Quest Episode", installDir: "Shared", stateFlags: 1030, writtenAt: later);
 
         var game = (await _steam.ScanAsync()).Games.Should().ContainSingle().Subject;
 
@@ -186,7 +186,7 @@ public sealed class SteamLibraryProviderTests
         var library = _steam.AddLibrary(@"D:\SteamLibrary");
         _steam.AddLibrary(@"D:\SteamLibrary\");
         _steam.AddApp(1001, "Example Quest", library: library);
-        _steam.AddApp(1002, "Root Game");
+        _steam.AddApp(1003, "Root Game");
 
         var scan = await _steam.ScanAsync();
 
@@ -316,7 +316,7 @@ public sealed class SteamLibraryProviderTests
         steam.Files.AddDirectory(@"C:\Program Files (x86)");
         var library = steam.AddLibrary(@"D:\Library");
         steam.AddApp(1001, "Example Quest", library: library);
-        steam.AddApp(1002, "Root Game");
+        steam.AddApp(1003, "Root Game");
         var games = (await steam.ScanAsync()).Games;
 
         steam.Files.Remove(@"E:\");
@@ -432,7 +432,7 @@ public sealed class SteamLibraryProviderTests
         var slow = _steam.AddLibrary(@"D:\Slow");
         var other = _steam.AddLibrary(@"E:\Other");
         _steam.AddApp(1001, "Example Quest", library: slow);
-        _steam.AddApp(1002, "Other Quest", library: other);
+        _steam.AddApp(1003, "Other Quest", library: other);
         using var files = new HangingFileSystem(_steam.Files);
         files.Hang(slow);
 
@@ -442,7 +442,7 @@ public sealed class SteamLibraryProviderTests
             (@"c:\steam", LibraryState.Online),
             (@"D:\Slow", LibraryState.Offline),
             (@"E:\Other", LibraryState.Online));
-        scan.Games.Select(game => game.Key.StoreGameId).Should().Equal("1002");
+        scan.Games.Select(game => game.Key.StoreGameId).Should().Equal("1003");
         scan.IsComplete.Should().BeFalse("a listed path that did not answer may stand for a library known under another one");
         scan.Watch.Folders.Should().NotContain(folder => PathComparison.IsWithin(slow, folder.Directory));
     }
@@ -534,13 +534,13 @@ public sealed class SteamLibraryProviderTests
     public async Task A_probe_finds_a_game_moved_to_another_library_and_misses_an_uninstalled_one()
     {
         _steam.AddApp(1001, "Example Quest");
-        _steam.AddApp(1002, "Uninstalled Later");
+        _steam.AddApp(1003, "Uninstalled Later");
         var provider = _steam.CreateProvider();
         var games = (await provider.ScanAsync(LibraryScanContext.Empty, Token)).Games;
         var library = _steam.AddLibrary(@"D:\SteamLibrary");
         _steam.Files.Remove(_steam.ManifestPath(1001));
         _steam.AddApp(1001, "Example Quest", library: library);
-        _steam.Files.Remove(_steam.ManifestPath(1002));
+        _steam.Files.Remove(_steam.ManifestPath(1003));
 
         var moved = await provider.ProbeAsync(games.Single(game => game.Key == Quest), LibraryScanContext.Empty, Token);
         var gone = await provider.ProbeAsync(games.Single(game => game.Key != Quest), LibraryScanContext.Empty, Token);

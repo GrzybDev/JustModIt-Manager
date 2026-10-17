@@ -25,14 +25,14 @@ public sealed class WindowsWatcherTests : IDisposable
         }
 
         using var watch = WindowsRegistryWatcher.Instance.Watch(Key($@"{_root}\Games", includeSubkeys: true), Report);
-        using (var game = Win32.Registry.CurrentUser.CreateSubKey($@"{_root}\Games\1207658924"))
+        using (var game = Win32.Registry.CurrentUser.CreateSubKey($@"{_root}\Games\1100000001"))
         {
             game.SetValue("path", @"D:\Games\Example");
         }
 
         await WaitForSignalAsync("a new game key is reported");
         ForgetSignals();
-        using (var game = Win32.Registry.CurrentUser.OpenSubKey($@"{_root}\Games\1207658924", writable: true)!)
+        using (var game = Win32.Registry.CurrentUser.OpenSubKey($@"{_root}\Games\1100000001", writable: true)!)
         {
             game.SetValue("buildId", "100");
         }

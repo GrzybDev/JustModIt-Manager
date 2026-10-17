@@ -11,7 +11,7 @@ public sealed class ApiKeyTests
     private const string Self = "/api-keys/v1/self/";
 
     private static readonly ReleaseFileLocator File = new("lantern-works", "starlight-harbor",
-        Guid.Parse("f3713421-0000-4000-8000-000000000032"), Guid.Parse("a0000000-0000-4000-8000-000000000001"));
+        Guid.Parse("f3e0e0e0-0000-4000-8000-000000000032"), Guid.Parse("a0000000-0000-4000-8000-000000000001"));
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 

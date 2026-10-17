@@ -10,9 +10,9 @@ public sealed class ReleaseSelectorTests
 {
     private static readonly GameKey OnSteam = new(StoreId.Steam, "1000010");
     private static readonly GameKey OnGog = new(StoreId.Gog, "9007199254740993");
-    private static readonly Guid SteamLink = Guid.Parse("078c3fa4-0000-4000-8000-000000000031");
-    private static readonly Guid GogLink = Guid.Parse("006bece2-0000-4000-8000-000000000032");
-    private static readonly Guid OtherLink = Guid.Parse("0cdf74b7-0000-4000-8000-000000000033");
+    private static readonly Guid SteamLink = Guid.Parse("07e0e0e0-0000-4000-8000-000000000031");
+    private static readonly Guid GogLink = Guid.Parse("00e0e0e0-0000-4000-8000-000000000032");
+    private static readonly Guid OtherLink = Guid.Parse("0ce0e0e0-0000-4000-8000-000000000033");
 
     [Fact]
     public void Reads_a_release_from_before_add_ons_as_one_choice_of_its_variants_recommending_the_default_files()

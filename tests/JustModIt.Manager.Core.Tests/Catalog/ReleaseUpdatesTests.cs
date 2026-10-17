@@ -8,7 +8,7 @@ namespace JustModIt.Manager.Core.Tests.Catalog;
 public sealed class ReleaseUpdatesTests
 {
     private static readonly GameKey OnSteam = new(StoreId.Steam, "1000010");
-    private static readonly Guid CurrentRelease = Guid.Parse("f3713421-0000-4000-8000-000000000032");
+    private static readonly Guid CurrentRelease = Guid.Parse("f3e0e0e0-0000-4000-8000-000000000032");
     private static readonly Guid SteamText = Guid.Parse("a0000000-0000-4000-8000-000000000002");
     private static readonly Guid Voice = Guid.Parse("a0000000-0000-4000-8000-000000000003");
     private static readonly DateTimeOffset Published = new(2026, 8, 7, 16, 53, 35, TimeSpan.Zero);
@@ -216,7 +216,7 @@ public sealed class ReleaseUpdatesTests
             [
                 _project.Releases[0] with
                 {
-                    Files = [_project.Releases[0].Files[0] with { StorefrontLinkUuids = [Guid.Parse("006bece2-0000-4000-8000-000000000032")] }],
+                    Files = [_project.Releases[0].Files[0] with { StorefrontLinkUuids = [Guid.Parse("00e0e0e0-0000-4000-8000-000000000032")] }],
                 },
             ],
         };

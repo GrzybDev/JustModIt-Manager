@@ -11,4 +11,10 @@
   <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <!-- The games of this machine that the live tests use, named in a file that git leaves out. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\LiveGames.cs" Link="Shared\LiveGames.cs" />
+    <None Include="..\live-games.json" Link="live-games.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\live-games.json')" />
+  </ItemGroup>
 </Project>

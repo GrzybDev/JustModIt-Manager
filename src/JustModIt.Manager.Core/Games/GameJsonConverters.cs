@@ -18,7 +18,7 @@ public sealed class StoreIdJsonConverter : JsonConverter<StoreId>
     }
 }
 
-/// <summary>A game as its text form, e.g. <c>"steam:620"</c>.</summary>
+/// <summary>A game as its text form, e.g. <c>"steam:1000"</c>.</summary>
 public sealed class GameKeyJsonConverter : JsonConverter<GameKey>
 {
     public override GameKey Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>

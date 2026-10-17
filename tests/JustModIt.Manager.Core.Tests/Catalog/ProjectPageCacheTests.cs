@@ -10,7 +10,7 @@ namespace JustModIt.Manager.Core.Tests.Catalog;
 public sealed class ProjectPageCacheTests : IDisposable
 {
     private const string PagePath = "/games/v1/starlight-harbor/projects/lantern-works/";
-    private static readonly ProjectLocator Starlight = new("starlight-harbor", "lantern-works", Guid.Parse("50d8a47a-0000-4000-8000-000000000003"));
+    private static readonly ProjectLocator Starlight = new("starlight-harbor", "lantern-works", Guid.Parse("50e0e0e0-0000-4000-8000-000000000003"));
     private static readonly DateTimeOffset PageUpdatedAt = DateTimeOffset.Parse("2026-08-07T19:05:03.414102+02:00", System.Globalization.CultureInfo.InvariantCulture);
 
     private readonly TempDirectory _directory = new();
@@ -124,7 +124,7 @@ public sealed class ProjectPageCacheTests : IDisposable
     public async Task Treats_slugs_that_now_lead_to_another_project_as_gone()
     {
         var replaced = JsonNode.Parse(CatalogueFixtures.Read("project-starlight-harbor.json"))!;
-        replaced["uuid"] = "50d8a47a-0000-4000-8000-000000000099";
+        replaced["uuid"] = "50e0e0e0-0000-4000-8000-000000000099";
         _site.Routes[PagePath] = () => FakeHttpHandler.Json(replaced.ToJsonString());
 
         (await GetAsync(PageFreshness.Current, null)).Should().BeNull();

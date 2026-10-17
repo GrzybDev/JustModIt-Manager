@@ -12,7 +12,7 @@ namespace JustModIt.Manager.Core.Tests.Downloads;
 
 public sealed class ReleaseDownloadTests : IDisposable
 {
-    private static readonly ReleaseLocator Release = new("lantern-works", "starlight-harbor", Guid.Parse("f3713421-0000-4000-8000-000000000032"));
+    private static readonly ReleaseLocator Release = new("lantern-works", "starlight-harbor", Guid.Parse("f3e0e0e0-0000-4000-8000-000000000032"));
     private static readonly Guid BaseFile = Guid.Parse("a0000000-0000-4000-8000-000000000001");
     private static readonly Guid VoicesFile = Guid.Parse("a0000000-0000-4000-8000-000000000002");
     private static readonly Guid MusicFile = Guid.Parse("a0000000-0000-4000-8000-000000000003");

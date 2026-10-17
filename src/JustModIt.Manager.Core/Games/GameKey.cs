@@ -1,7 +1,7 @@
 namespace JustModIt.Manager.Core.Games;
 
 /// <summary>
-/// A game as its store identifies it, e.g. a Steam AppID or a GOG product id, whose text form <c>steam:620</c> keys
+/// A game as its store identifies it, e.g. a Steam AppID or a GOG product id, whose text form <c>steam:1000</c> keys
 /// settings and install records.
 /// </summary>
 public readonly record struct GameKey
@@ -30,7 +30,7 @@ public readonly record struct GameKey
 
     public string StoreGameId => _storeGameId ?? string.Empty;
 
-    /// <summary>Reads a key from its text form, e.g. <c>steam:620</c>; false when the text is none.</summary>
+    /// <summary>Reads a key from its text form, e.g. <c>steam:1000</c>; false when the text is none.</summary>
     /// <param name="text">The text form; null reads as no key.</param>
     /// <param name="key">The key read; the default value when there is none.</param>
     public static bool TryParse(string? text, out GameKey key)

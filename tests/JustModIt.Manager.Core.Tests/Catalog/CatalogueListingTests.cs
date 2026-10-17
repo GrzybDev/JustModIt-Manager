@@ -7,11 +7,11 @@ namespace JustModIt.Manager.Core.Tests.Catalog;
 
 public sealed class CatalogueListingTests : IDisposable
 {
-    private static readonly Guid Adventure = Guid.Parse("d21de9bd-0000-4000-8000-000000000001");
-    private static readonly Guid Testing = Guid.Parse("968ad28b-0000-4000-8000-000000000001");
-    private static readonly Guid Voice = Guid.Parse("fae573dd-0000-4000-8000-000000000001");
-    private static readonly Guid PaperMoth = Guid.Parse("53c4c7cd-0000-4000-8000-000000000002");
-    private static readonly Guid Gog = Guid.Parse("bad65a0d-0000-4000-8000-000000000001");
+    private static readonly Guid Adventure = Guid.Parse("d2e0e0e0-0000-4000-8000-000000000001");
+    private static readonly Guid Testing = Guid.Parse("96e0e0e0-0000-4000-8000-000000000001");
+    private static readonly Guid Voice = Guid.Parse("fae0e0e0-0000-4000-8000-000000000001");
+    private static readonly Guid PaperMoth = Guid.Parse("53e0e0e0-0000-4000-8000-000000000002");
+    private static readonly Guid Gog = Guid.Parse("bae0e0e0-0000-4000-8000-000000000001");
 
     private static readonly StringComparer Names = StringComparer.Create(CultureInfo.GetCultureInfo("pl-PL"), ignoreCase: true);
 
@@ -26,7 +26,7 @@ public sealed class CatalogueListingTests : IDisposable
         var byGog = listing.Find(new GameKey(StoreId.Gog, "9007199254740993"));
 
         bySteam.Should().ContainSingle().Which.Locator.Should().Be(
-            new ProjectLocator("starlight-harbor", "lantern-works", Guid.Parse("50d8a47a-0000-4000-8000-000000000003")));
+            new ProjectLocator("starlight-harbor", "lantern-works", Guid.Parse("50e0e0e0-0000-4000-8000-000000000003")));
         byGog.Should().ContainSingle().Which.Should().Be(bySteam[0]);
         listing.Find(new GameKey(StoreId.Gog, "9007199254740992")).Should().BeEmpty();
     }
@@ -130,7 +130,7 @@ public sealed class CatalogueListingTests : IDisposable
 
     [Theory]
     [InlineData("Łódź Café", "lodz caf", "Łódź,Caf")]
-    [InlineData("The Dark Pictures: Dark", "dark", "Dark,Dark")]
+    [InlineData("The Night Tales: Night", "night", "Night,Night")]
     [InlineData("Saga 2", "aga ag", "aga")]
     [InlineData("Starlight Harbor", "", "")]
     public void Finds_what_to_highlight_where_the_search_matched(string text, string query, string expected) =>

@@ -14,7 +14,7 @@ public sealed class CrawlIndexSourceTests : IDisposable
     private static readonly GameKey Clockwork = new(StoreId.Steam, "1000030");
     private static readonly GameKey Orchard = new(StoreId.Steam, "1000040");
     private static readonly GameKey Grove = new(StoreId.Steam, "1000050");
-    private static readonly ProjectLocator InstalledGrove = new("hidden-grove", "lantern-works", Guid.Parse("50d8a47a-0000-4000-8000-000000000005"));
+    private static readonly ProjectLocator InstalledGrove = new("hidden-grove", "lantern-works", Guid.Parse("50e0e0e0-0000-4000-8000-000000000005"));
 
     private readonly FakeSite _site = new();
 
@@ -44,17 +44,17 @@ public sealed class CrawlIndexSourceTests : IDisposable
 
         var entry = (await BuildAsync(listing, [Starlight])).Entries.Single();
 
-        entry.Locator.Should().Be(new ProjectLocator("starlight-harbor", "lantern-works", Guid.Parse("50d8a47a-0000-4000-8000-000000000003")));
+        entry.Locator.Should().Be(new ProjectLocator("starlight-harbor", "lantern-works", Guid.Parse("50e0e0e0-0000-4000-8000-000000000003")));
         entry.ProjectName.Should().Be("Starlight Harbor");
         entry.Team.Name.Should().Be("Lantern Works");
         entry.Game.Cover.Should().Be("https://storage.example.com/games/covers/starlight-harbor.jpeg");
         entry.PublicRelease!.Version.Should().Be(2);
         entry.PublicRelease.Files.Should().HaveCount(5);
         entry.StorefrontLinks.Where(link => link.GameKey == StarlightOnGog).Should().ContainSingle()
-            .Which.Uuid.Should().Be(Guid.Parse("006bece2-0000-4000-8000-000000000032"));
+            .Which.Uuid.Should().Be(Guid.Parse("00e0e0e0-0000-4000-8000-000000000032"));
         new ReleaseFileLocator(entry.Team.Slug, entry.ProjectSlug, entry.PublicRelease.Uuid, entry.PublicRelease.Files[0].Uuid)
             .Should().Be(new ReleaseFileLocator(
-            "lantern-works", "starlight-harbor", Guid.Parse("f3713421-0000-4000-8000-000000000032"),
+            "lantern-works", "starlight-harbor", Guid.Parse("f3e0e0e0-0000-4000-8000-000000000032"),
             Guid.Parse("a0000000-0000-4000-8000-000000000001")));
     }
 
@@ -75,7 +75,7 @@ public sealed class CrawlIndexSourceTests : IDisposable
     public async Task Follows_the_current_slugs_of_an_installed_project()
     {
         var listing = await _site.CrawlAsync();
-        var installedUnderOldSlugs = new ProjectLocator("ember-road-old", "paper-moth-old", Guid.Parse("50d8a47a-0000-4000-8000-000000000002"));
+        var installedUnderOldSlugs = new ProjectLocator("ember-road-old", "paper-moth-old", Guid.Parse("50e0e0e0-0000-4000-8000-000000000002"));
 
         var index = await BuildAsync(listing, [], [installedUnderOldSlugs]);
 
@@ -89,7 +89,7 @@ public sealed class CrawlIndexSourceTests : IDisposable
         var listing = await _site.CrawlAsync();
         _site.Routes.Remove("/games/v1/starlight-harbor/projects/lantern-works/");
         var replaced = JsonNode.Parse(CatalogueFixtures.Read("project-hidden-grove.json"))!;
-        replaced["uuid"] = "50d8a47a-0000-4000-8000-000000000099";
+        replaced["uuid"] = "50e0e0e0-0000-4000-8000-000000000099";
         _site.Routes["/games/v1/hidden-grove/projects/lantern-works/"] = () => FakeHttpHandler.Json(replaced.ToJsonString());
 
         var index = await BuildAsync(listing, [Starlight, Grove], [InstalledGrove]);

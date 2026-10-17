@@ -141,7 +141,7 @@ public sealed class MessageTests
         new DetectedGames(
         [
             new DetectedGameEntry(Game, "Example Game",
-                new DetectedGameView { InstallDirectory = @"D:\Games\Example Game", LibraryId = "steam-library", BuildId = "1412244" })
+                new DetectedGameView { InstallDirectory = @"D:\Games\Example Game", LibraryId = "steam-library", BuildId = "6660001" })
             {
                 Cover = "https://images.example.com/covers/example-game.png",
                 Projects = [new SiteProjectView(Project, "example-game", "lantern-team")],
@@ -237,9 +237,9 @@ public sealed class MessageTests
     [Fact]
     public void Games_travel_as_their_text_key()
     {
-        Json(new LaunchGame(new GameKey(StoreId.Gog, "1207658924000000001")))
+        Json(new LaunchGame(new GameKey(StoreId.Gog, "1100000001000000001")))
             .Should().Contain("""
-                {"type":"launchGame","game":"gog:1207658924000000001"}
+                {"type":"launchGame","game":"gog:1100000001000000001"}
                 """);
     }
 

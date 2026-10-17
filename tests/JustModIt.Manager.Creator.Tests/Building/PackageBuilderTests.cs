@@ -29,11 +29,11 @@ public sealed class PackageBuilderTests : IDisposable
         var original = Workspace.Bytes(8192, 11);
         var proxy = Workspace.Bytes(6000, 12);
         _workspace.Game("ExampleGame.exe", Workspace.Bytes(4096, 10));
-        _workspace.Game("dx11/loc_x64_f.dll", original);
+        _workspace.Game("dx11/lang_x64.dll", original);
         _workspace.Game("dx11/render.dll", Workspace.Bytes(5000, 13));
         _workspace.Game("data/strings_en.txt", "strings");
-        _workspace.Author("dx11/loc_x64_f.dll", proxy);
-        _workspace.Author("dx11/loc_x64_f_o.dll", original);
+        _workspace.Author("dx11/lang_x64.dll", proxy);
+        _workspace.Author("dx11/lang_x64_o.dll", original);
         _workspace.Author("data/strings_xx.txt", "customized strings");
         _workspace.Author("data/fonts/extra.ttf", Workspace.Bytes(3000, 14));
         var plan = await PlanAsync(Project);
@@ -44,12 +44,12 @@ public sealed class PackageBuilderTests : IDisposable
         await using var package = await new PackageReader().OpenAsync(result.OutputPath, TestContext.Current.CancellationToken);
         package.Kind.Should().Be(PackageKind.Manifest);
         package.Steps.Select(Describe).Should().Equal(
-            "rename dx11/loc_x64_f.dll dx11/loc_x64_f_o.dll",
+            "rename dx11/lang_x64.dll dx11/lang_x64_o.dll",
             "copy data/fonts/extra.ttf",
             "copy data/strings_xx.txt",
-            "copy dx11/loc_x64_f.dll");
+            "copy dx11/lang_x64.dll");
         (await EntriesAsync(result.OutputPath)).Should().NotContain(entry => entry.Content.SequenceEqual(original));
-        (await ReadEntryAsync(package, "files/dx11/loc_x64_f.dll")).Should().Equal(proxy);
+        (await ReadEntryAsync(package, "files/dx11/lang_x64.dll")).Should().Equal(proxy);
         var manifest = package.Manifest!;
         manifest.Should().BeEquivalentTo(result.Manifest);
         manifest.Title.Should().Be("Example package");

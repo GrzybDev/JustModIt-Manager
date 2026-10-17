@@ -4,6 +4,7 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.LiveTests;
 
@@ -12,15 +13,16 @@ public sealed class InstallLiveTests
 {
     private static CancellationToken Token => LiveTest.Token;
 
-    // Man of Medan's release only adds a file, while Quantum Break's replaces one of the game's, whose original is kept.
+    // One game's release only adds files, while the other's replaces one of the game's, whose original is kept.
     [Theory]
-    [InlineData("939850", false)]
-    [InlineData("474960", true)]
-    public async Task Installs_and_uninstalls_the_current_release_without_a_trace(string steamAppId, bool replacesGameFiles)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Installs_and_uninstalls_the_current_release_without_a_trace(bool replacesGameFiles)
     {
         LiveTest.SkipUnlessEnabledOnWindows();
+        var games = LiveGames.Load();
         await using var engine = await LiveEngine.StartAsync(nameof(InstallLiveTests), Token);
-        var game = await engine.ReadyGameAsync(new GameKey(StoreId.Steam, steamAppId), Token);
+        var game = await engine.ReadyGameAsync(replacesGameFiles ? games.ReplacesFiles : games.AddsFiles, Token);
         var release = await engine.FindReleaseAsync(game, Token);
         var content = await PackageContent.ReadAsync((await engine.DownloadAsync(release, Token)).Path, Token);
         var before = await GameFolderState.CaptureAsync(game.InstallDirectory, content.Keys, Token);

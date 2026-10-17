@@ -24,12 +24,12 @@ public sealed class PathCanonicalizerTests : IDisposable
     public void A_junction_or_link_resolves_to_its_target()
     {
         var target = _directory.CreateDirectory(Path.Combine("Library", "Games"));
-        Directory.CreateDirectory(Path.Combine(target, "Witcher"));
+        Directory.CreateDirectory(Path.Combine(target, "Lantern"));
         var link = _directory.CreateDirectoryLink("Shortcut", target);
 
-        var canonical = PathCanonicalizer.Canonicalize(Path.Combine(link, "Witcher"));
+        var canonical = PathCanonicalizer.Canonicalize(Path.Combine(link, "Lantern"));
 
-        canonical.Should().Be(Path.Join(PathCanonicalizer.Canonicalize(target), "Witcher"));
+        canonical.Should().Be(Path.Join(PathCanonicalizer.Canonicalize(target), "Lantern"));
     }
 
     [Fact]

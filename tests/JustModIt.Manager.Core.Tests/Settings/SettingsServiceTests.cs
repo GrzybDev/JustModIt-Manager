@@ -10,7 +10,7 @@ namespace JustModIt.Manager.Core.Tests.Settings;
 
 public sealed class SettingsServiceTests : IAsyncDisposable
 {
-    private static readonly GameKey Witcher = new(StoreId.Gog, "1207658924");
+    private static readonly GameKey GogGame = new(StoreId.Gog, "1100000001");
 
     private readonly FakeTimeProvider _time = new();
     private readonly InMemoryDocumentStore<AppSettings> _store = new();
@@ -71,7 +71,7 @@ public sealed class SettingsServiceTests : IAsyncDisposable
 
         service.Update(settings => settings with { CreatorMode = true });
         service.Update(settings => settings with { ShowNotifications = false });
-        service.Update(settings => settings.WithGame(Witcher, preferences => preferences with { IsHidden = true }));
+        service.Update(settings => settings.WithGame(GogGame, preferences => preferences with { IsHidden = true }));
         await Eventually.SettleAsync();
         _time.Advance(SettingsService.SaveDelay - TimeSpan.FromMilliseconds(1));
         await Eventually.SettleAsync();
@@ -90,14 +90,14 @@ public sealed class SettingsServiceTests : IAsyncDisposable
     public async Task A_change_that_changes_nothing_is_ignored()
     {
         var service = await CreateAsync(new InMemoryDocumentStore<AppSettings>(
-            AppSettings.Default.WithGame(Witcher, preferences => preferences with { IsHidden = true })));
+            AppSettings.Default.WithGame(GogGame, preferences => preferences with { IsHidden = true })));
         var announcements = 0;
         service.Changed += (_, _) => announcements++;
         var before = service.Current;
 
         var result = service.Update(settings => settings
-            .WithGame(Witcher, preferences => preferences with { IsHidden = false })
-            .WithGame(Witcher, preferences => preferences with { IsHidden = true }));
+            .WithGame(GogGame, preferences => preferences with { IsHidden = false })
+            .WithGame(GogGame, preferences => preferences with { IsHidden = true }));
         await service.DisposeAsync();
 
         result.Should().BeSameAs(before);

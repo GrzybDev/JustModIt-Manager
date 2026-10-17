@@ -12,7 +12,7 @@ public sealed class LaunchGameTests : IAsyncDisposable
 {
     private static readonly GameKey Linked = new(StoreId.Steam, "1000");
     private static readonly GameKey FromFolder = new(StoreId.Steam, "1001");
-    private static readonly GameKey WithoutLaunch = new(StoreId.Steam, "1002");
+    private static readonly GameKey WithoutLaunch = new(StoreId.Steam, "1003");
 
     private readonly AgentHarness _agent;
 

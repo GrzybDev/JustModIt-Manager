@@ -1,17 +1,17 @@
 {
-  "uuid": "50d8a47a-0000-4000-8000-000000000002",
+  "uuid": "50e0e0e0-0000-4000-8000-000000000002",
   "slug": "ember-road",
   "name": "Ember Road",
   "game": {"uuid": "6f1d0c3e-1b2a-4c5d-8e9f-000000000002", "slug": "ember-road", "name": "Ember Road", "platform": null, "cover": "https://storage.example.com/games/covers/ember-road.jpeg", "is_adult": true, "genres": [], "visible_project_count": 1, "created_at": "2026-08-01T11:00:00.000000+02:00"},
   "cover_image": null,
-  "status": {"uuid": "59760829-0000-4000-8000-000000000001", "name": "Completed", "slug": "completed", "color": "#22c55e", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 5},
+  "status": {"uuid": "59e0e0e0-0000-4000-8000-000000000001", "name": "Completed", "slug": "completed", "color": "#22c55e", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 5},
   "types": [],
   "summary": "An invented game about a long road.",
   "primary_progress": null,
   "storefront_links": [
     {
-      "uuid": "674c7c13-0000-4000-8000-000000000021",
-      "platform": {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "", "url_pattern_hint": "", "provider": "steam", "position": 2},
+      "uuid": "67e0e0e0-0000-4000-8000-000000000021",
+      "platform": {"uuid": "d9e0e0e0-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "", "url_pattern_hint": "", "provider": "steam", "position": 2},
       "url": "https://store.example.com/app/1000020/",
       "operating_systems": [],
       "additional_data": {"appid": "1000020", "buildid": "5550001", "languages": [0, 2, 3]},
@@ -20,7 +20,7 @@
   ],
   "is_outdated": false,
   "created_at": "2026-08-01T11:05:00.000000+02:00",
-  "team": {"uuid": "53c4c7cd-0000-4000-8000-000000000002", "slug": "paper-moth", "name": "Paper Moth", "summary": "", "avatar": null, "member_count": 1, "has_public_project": true, "donation_message": "", "donation_methods": [], "links": []},
+  "team": {"uuid": "53e0e0e0-0000-4000-8000-000000000002", "slug": "paper-moth", "name": "Paper Moth", "summary": "", "avatar": null, "member_count": 1, "has_public_project": true, "donation_message": "", "donation_methods": [], "links": []},
   "summary_raw": "",
   "description": "",
   "disclaimer": "",
@@ -32,7 +32,7 @@
   "gallery": [],
   "releases": [
     {
-      "uuid": "f3713421-0000-4000-8000-000000000021",
+      "uuid": "f3e0e0e0-0000-4000-8000-000000000021",
       "version": 1,
       "name": "v1",
       "name_raw": "",

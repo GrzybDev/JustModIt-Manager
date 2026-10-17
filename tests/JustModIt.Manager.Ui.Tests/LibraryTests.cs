@@ -345,7 +345,7 @@ public sealed class LibraryTests
     public async Task Every_card_says_in_one_line_what_its_game_is_doing()
     {
         var store = NotReady("Saltmarsh: Hollow Crown", "7100", GameInstallState.Updating);
-        var drive = NotReady("Saltmarsh: Low Tide", "7200", GameInstallState.Offline, GameStateReason.LibraryOffline);
+        var drive = NotReady("Saltmarsh: Low Tide", "7900", GameInstallState.Offline, GameStateReason.LibraryOffline);
         var waiting = Busy(Installed("Glass Orchard", "7300", version: 1),
             Job(Installed("Glass Orchard", "7300"), JobKind.Update, JobStage.Waiting, null, JobWaitReason.GameRunning));
         var queued = Busy(Installed("Saltmarsh: Lantern Wake", "7400"), Job(Installed("Saltmarsh: Lantern Wake", "7400"), JobKind.Repair, JobStage.Queued, null));

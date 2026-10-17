@@ -198,17 +198,17 @@ public sealed class AutomationPolicyTests
     {
         var alpha = Record(source: Source(ReleaseOne, FileOne, 1));
         var legacy = WithParts(Record(source: Source(ReleaseOne, FileOne, 1))) with { Source = Source(ReleaseOne, FileOne, 1) with { HadVariantChoice = true } };
-        var withSerial = Release(ReleaseTwo, 2, File(FileTwo, "Text only")) with
+        var withExtras = Release(ReleaseTwo, 2, File(FileTwo, "Text only")) with
         {
-            Features = [Feature("serial", "Serial", files: AddOn(Guid.NewGuid()))],
+            Features = [Feature("extras", "Extras", files: AddOn(Guid.NewGuid()))],
         };
 
-        var decision = Decide(Game(withSerial, alpha));
+        var decision = Decide(Game(withExtras, alpha));
 
         decision.Should().BeEquivalentTo(new { Action = AutomationAction.Announce, Reason = AutomationReason.ChoiceUnavailable });
-        Game(withSerial, alpha).Installs[0].Status.Update!.Plan!.FeatureKeys.Should().Equal("serial");
-        Decide(Game(withSerial, legacy)).Reason.Should().Be(AutomationReason.ChoiceUnavailable, "an install of a variant meets the same rule");
-        Decide(Game(withSerial, alpha, repair: RepairReason.FilesModified)).Reason.Should().Be(AutomationReason.ChoiceUnavailable);
+        Game(withExtras, alpha).Installs[0].Status.Update!.Plan!.FeatureKeys.Should().Equal("extras");
+        Decide(Game(withExtras, legacy)).Reason.Should().Be(AutomationReason.ChoiceUnavailable, "an install of a variant meets the same rule");
+        Decide(Game(withExtras, alpha, repair: RepairReason.FilesModified)).Reason.Should().Be(AutomationReason.ChoiceUnavailable);
     }
 
     [Fact]

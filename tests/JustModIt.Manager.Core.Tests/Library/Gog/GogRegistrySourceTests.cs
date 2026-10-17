@@ -19,21 +19,21 @@ public sealed class GogRegistrySourceTests
     public async Task Game_keys_are_read_in_any_letter_case()
     {
         _registry
-            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1207658924", "PATH", @"D:\GOG Games\Example")
-            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1207658924", "GAMENAME", "Example Game")
-            .SetValue(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1207658924", "BUILDID",
-                RegistryValue.FromQWord(59534219748634025))
-            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1207658924", "language", "polish")
-            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1207658924", "dependsOn", " ");
+            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1100000001", "PATH", @"D:\GOG Games\Example")
+            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1100000001", "GAMENAME", "Example Game")
+            .SetValue(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1100000001", "BUILDID",
+                RegistryValue.FromQWord(54321098765432109))
+            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1100000001", "language", "polish")
+            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, $@"{GamesKey}\1100000001", "dependsOn", " ");
 
         var scan = await Scan();
 
         scan.Libraries.Should().Equal(new LibraryLocation(GogRegistrySource.LibrarySource, GogRegistrySource.LibrarySource, null,
             LibraryState.Online));
-        scan.Records.Should().Equal(new GogInstallRecord("1207658924", @"D:\GOG Games\Example", GogRegistrySource.LibrarySource)
+        scan.Records.Should().Equal(new GogInstallRecord("1100000001", @"D:\GOG Games\Example", GogRegistrySource.LibrarySource)
         {
             Name = "Example Game",
-            BuildId = "59534219748634025",
+            BuildId = "54321098765432109",
             Language = "polish",
             Platform = OperatingSystemKind.Windows,
         });

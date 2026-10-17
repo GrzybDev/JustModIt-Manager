@@ -15,7 +15,7 @@ public sealed class PhysicalFileSystemTests : FileSystemContractTests, IDisposab
     [Fact]
     public async Task A_file_a_store_holds_open_for_writing_can_be_read()
     {
-        var path = _directory.Write("appmanifest_620.acf", "\"AppState\" {}");
+        var path = _directory.Write("appmanifest_1000.acf", "\"AppState\" {}");
         await using var owner = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
 
         (await FileSystem.ReadAllTextAsync(path, 1024, TestContext.Current.CancellationToken)).Should().Be("\"AppState\" {}");

@@ -19,24 +19,24 @@ public sealed class WindowsRegistryTests : IDisposable
     {
         using (var key = Win32.Registry.CurrentUser.CreateSubKey(_path))
         {
-            key.SetValue("path", @"D:\Games\Witcher", Win32.RegistryValueKind.String);
+            key.SetValue("path", @"D:\Games\Lantern", Win32.RegistryValueKind.String);
             key.SetValue("expanded", @"%SystemRoot%\system32", Win32.RegistryValueKind.ExpandString);
             key.SetValue("languages", (string[])["pl-PL", "en-US"], Win32.RegistryValueKind.MultiString);
             key.SetValue("updating", unchecked((int)0xFFFFFFFF), Win32.RegistryValueKind.DWord);
-            key.SetValue("buildId", 59534219748634025L, Win32.RegistryValueKind.QWord);
+            key.SetValue("buildId", 54321098765432109L, Win32.RegistryValueKind.QWord);
             key.SetValue("blob", new byte[] { 1, 2, 3 }, Win32.RegistryValueKind.Binary);
-            key.CreateSubKey("1207658924").Dispose();
+            key.CreateSubKey("1100000001").Dispose();
             key.CreateSubKey("Settings").Dispose();
         }
 
         var snapshot = _registry.ReadKey(RegistryHive.CurrentUser, RegistryView.Default, _path)!;
 
-        snapshot.SubKeyNames.Should().BeEquivalentTo("1207658924", "Settings");
-        snapshot.GetText("PATH").Should().Be(@"D:\Games\Witcher");
+        snapshot.SubKeyNames.Should().BeEquivalentTo("1100000001", "Settings");
+        snapshot.GetText("PATH").Should().Be(@"D:\Games\Lantern");
         snapshot.GetText("expanded").Should().Be(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "system32"));
         snapshot.GetValue("languages").Should().BeNull();
         snapshot.GetValue("updating")!.AsNumber().Should().Be(uint.MaxValue);
-        snapshot.GetText("buildId").Should().Be("59534219748634025");
+        snapshot.GetText("buildId").Should().Be("54321098765432109");
         snapshot.GetValue("blob").Should().BeNull();
     }
 

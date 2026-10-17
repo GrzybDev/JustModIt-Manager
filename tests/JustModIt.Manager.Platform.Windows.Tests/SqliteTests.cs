@@ -13,7 +13,7 @@ public sealed class SqliteTests : IDisposable
         CREATE TABLE 'InstalledBaseProducts'('productId' INTEGER NOT NULL, 'generation' INTEGER NOT NULL,
             'languageId' INTEGER NOT NULL, 'installationPath' TEXT NOT NULL, 'installationId' INT64 NOT NULL,
             'buildId' INT64 NULL, 'branch' TEXT NULL, 'installationDate' TEXT NULL);
-        INSERT INTO InstalledBaseProducts VALUES (1207658924, 2, 16, 'D:\GOG Galaxy\Example', 1, 55101909912871751, NULL, NULL);
+        INSERT INTO InstalledBaseProducts VALUES (1100000001, 2, 16, 'D:\GOG Galaxy\Example', 1, 52109876543210987, NULL, NULL);
         INSERT INTO InstalledBaseProducts VALUES (1001, 2, 16, 'D:\GOG Galaxy\Another', 2, NULL, NULL, NULL);
         """;
 
@@ -26,7 +26,7 @@ public sealed class SqliteTests : IDisposable
             downloadProgress INT64, patchingProgress INT64, verificationProgress INT64, overallDownloadProgress INT64,
             isVerifying BOOLEAN NOT NULL);
         INSERT INTO InstallProductJobs (jobId, gameName, productId) VALUES (1, 'New Game', 1002);
-        INSERT INTO UpdateProductJobs (jobId, gameName, productId, isVerifying) VALUES (2, 'Example', 1207658924, 0);
+        INSERT INTO UpdateProductJobs (jobId, gameName, productId, isVerifying) VALUES (2, 'Example', 1100000001, 0);
         INSERT INTO UpdateProductJobs (jobId, gameName, productId, isVerifying) VALUES (3, 'Another', 1001, 1);
         """;
 
@@ -94,11 +94,11 @@ public sealed class SqliteTests : IDisposable
 
         withoutDatabase.Should().Be(GalaxyGames.None);
         withoutJobs.Jobs.Should().BeEmpty();
-        games.Installed.Should().Equal(("1207658924", @"D:\GOG Galaxy\Example"), ("1001", @"D:\GOG Galaxy\Another"));
+        games.Installed.Should().Equal(("1100000001", @"D:\GOG Galaxy\Example"), ("1001", @"D:\GOG Galaxy\Another"));
         games.Jobs.Should().BeEquivalentTo(new Dictionary<string, GameInstallState>
         {
             ["1002"] = GameInstallState.Installing,
-            ["1207658924"] = GameInstallState.Updating,
+            ["1100000001"] = GameInstallState.Updating,
             ["1001"] = GameInstallState.Validating,
         });
     }

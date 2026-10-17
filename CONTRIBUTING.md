@@ -26,7 +26,9 @@ dotnet run --project src/MenadzerSpolszczen
 
 - A development build uses its own data folder and link scheme, so it does not interfere with an installed copy.
 - UI tests run headless. Set `UI_RENDERS` to a folder to save screenshots of what they show.
-- Live tests use your real Steam library and the real site. They are off unless you set `MANAGER_LIVE_TESTS=1`.
+- Live tests use your real Steam library and the real site. They are off unless you set `MANAGER_LIVE_TESTS=1`. The
+  games they use are named in `tests/live-games.json`, which git ignores: copy `tests/live-games.example.json` there
+  and fill in games installed on your machine.
 - To build a release package locally: `build\package.ps1 -App MenadzerSpolszczen -Version 0.1.0 -NoDelta`.
 
 [docs/architecture](docs/architecture/README.md) explains how the apps work.

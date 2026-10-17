@@ -29,7 +29,7 @@ public sealed class LibraryModelTests
             .Should().Be(GameStateReason.UnreadableStoreData);
         var offline = Game with { State = GameInstallState.Offline, Reason = GameStateReason.LibraryOffline };
         (Scan(online) with { UnansweredGames = [new UnansweredGame(Game.Key, @"D:\Moved")] }).Describe(Game).Should().Be(offline);
-        (Scan(online) with { UnansweredGames = [new UnansweredGame(new GameKey(StoreId.Steam, "1002"), Game.InstallDirectory)] })
+        (Scan(online) with { UnansweredGames = [new UnansweredGame(new GameKey(StoreId.Steam, "1003"), Game.InstallDirectory)] })
             .Describe(Game).Should().Be(offline, "a record of a pack names the folder of the game found there");
         (Scan(online) with { UnansweredGames = [new UnansweredGame(new GameKey(StoreId.Gog, "1001"), @"D:\Moved")] }).Describe(Game)
             .Should().BeNull();

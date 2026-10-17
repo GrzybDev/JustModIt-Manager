@@ -24,10 +24,10 @@ public sealed class InstallRoundTripTests : IDisposable
     public InstallRoundTripTests()
     {
         _workspace.Game("ExampleGame.exe", Workspace.Bytes(4096, 10));
-        _workspace.Game("dx11/loc_x64_f.dll", Original);
+        _workspace.Game("dx11/lang_x64.dll", Original);
         _workspace.Game("data/strings.bin", Strings);
-        _workspace.Author("dx11/loc_x64_f.dll", Proxy);
-        _workspace.Author("dx11/loc_x64_f_o.dll", Original);
+        _workspace.Author("dx11/lang_x64.dll", Proxy);
+        _workspace.Author("dx11/lang_x64_o.dll", Original);
         _workspace.Author("data/strings.bin", Changed(Strings));
         _workspace.Author("data/fonts/extra.ttf", "font");
     }
@@ -59,8 +59,8 @@ public sealed class InstallRoundTripTests : IDisposable
 
         built.Operations.OfType<RenameOperation>().Should().ContainSingle();
         installed.Warnings.Should().BeEmpty();
-        Read("dx11/loc_x64_f.dll").Should().Equal(Proxy);
-        Read("dx11/loc_x64_f_o.dll").Should().Equal(Original);
+        Read("dx11/lang_x64.dll").Should().Equal(Proxy);
+        Read("dx11/lang_x64_o.dll").Should().Equal(Original);
         Read("data/strings.bin").Should().Equal(Changed(Strings));
         Read("data/fonts/extra.ttf").Should().Equal(Workspace.Text("font"));
 

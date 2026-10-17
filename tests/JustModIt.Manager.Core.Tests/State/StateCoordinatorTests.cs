@@ -17,7 +17,7 @@ namespace JustModIt.Manager.Core.Tests.State;
 
 public sealed class StateCoordinatorTests
 {
-    private static readonly GameKey Unlisted = new(StoreId.Steam, "4000");
+    private static readonly GameKey Unlisted = new(StoreId.Steam, "5000");
 
     private static readonly VerificationResult Modified = new([new FileVerification("data/strings.pak", FileChange.Replaced, FileIntegrity.Modified)]);
 

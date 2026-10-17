@@ -141,7 +141,7 @@ public sealed class CataloguePagesTests
     {
         var lanterns = Offer("Saltmarsh: Low Tide", TestGames.Lanterns);
         var saltmarsh = TestGames.Available("Saltmarsh: Low Tide", "4800", lanterns);
-        var meridian = TestGames.Installed("Iron Meridian", "4700", offer: Offer("Iron Meridian", TestGames.Lanterns)) with { Projects = [], Project = null };
+        var meridian = TestGames.Installed("Iron Meridian", "4600", offer: Offer("Iron Meridian", TestGames.Lanterns)) with { Projects = [], Project = null };
         var ashen = TestGames.Installed("Ashen Reach", "4810", offer: Offer("Ashen Reach", TestGames.Owls)) with { Projects = [], Project = null };
         using var ui = Open(TestGames.State(saltmarsh, meridian, ashen), null, listing: WithoutFiles);
         var answer = Answer(WithoutFiles);

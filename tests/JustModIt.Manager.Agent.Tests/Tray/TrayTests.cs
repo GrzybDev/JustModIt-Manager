@@ -10,7 +10,7 @@ namespace JustModIt.Manager.Agent.Tests.Tray;
 
 public sealed class TrayTests : IAsyncDisposable
 {
-    private static readonly GameKey Game = new(StoreId.Gog, "1207658924");
+    private static readonly GameKey Game = new(StoreId.Gog, "1100000001");
 
     private readonly AgentHarness _agent = new();
 
@@ -56,12 +56,12 @@ public sealed class TrayTests : IAsyncDisposable
         notifier.Notify(new AutomationNotice(NoticeKind.Installed) { Game = Game, GameName = "Example Game" });
 
         var shown = await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token);
-        shown.Should().Be(("Installed for Example Game", "The project is ready. Have fun!", "example-app://game/gog/1207658924"));
+        shown.Should().Be(("Installed for Example Game", "The project is ready. Have fun!", "example-app://game/gog/1100000001"));
 
         _agent.Tray.ClickNotification(shown.Tag);
         await Eventually.HoldsAsync(() => _agent.Starter.Starts == 1);
         var window = await _agent.ConnectWindowAsync();
-        (await window.NextAsync<Navigate>()).Target.Should().Be(new GameTarget("gog", "1207658924"));
+        (await window.NextAsync<Navigate>()).Target.Should().Be(new GameTarget("gog", "1100000001"));
     }
 
     [Fact]

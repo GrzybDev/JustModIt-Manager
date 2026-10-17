@@ -34,7 +34,7 @@ public sealed class LaunchArgumentsTests
     [InlineData("--background")]
     [InlineData("--agent")]
     [InlineData("--agent", "--background")]
-    [InlineData("--ui", "example-app://game/steam/480")]
+    [InlineData("--ui", "example-app://game/steam/1000")]
     [InlineData("--background", "example-app://settings")]
     public void Arguments_turn_back_into_the_command_line_they_came_from(params string[] args)
     {
@@ -52,8 +52,8 @@ public sealed class LaunchArgumentsTests
     [Fact]
     public void App_link_becomes_the_target()
     {
-        Parse("example-app://game/steam/480").Should()
-            .Be(new LaunchArguments(ProcessRole.Launcher, Background: false, new GameTarget("steam", "480")));
+        Parse("example-app://game/steam/1000").Should()
+            .Be(new LaunchArguments(ProcessRole.Launcher, Background: false, new GameTarget("steam", "1000")));
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class LaunchArgumentsTests
     [InlineData("https://example.com")]
     [InlineData("other-app://settings")]
     [InlineData(@"C:\Games\Example")]
-    [InlineData("example-app://uninstall/steam/480")]
+    [InlineData("example-app://uninstall/steam/1000")]
     [InlineData("--agentx")]
     [InlineData("")]
     public void Unknown_arguments_are_ignored(string argument)

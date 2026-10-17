@@ -21,7 +21,7 @@ public sealed class FileSystemFolderWatcherTests : IDisposable
         await Eventually.SettleAsync();
         _signals.Should().BeEmpty();
 
-        _directory.Write(@"steamapps\appmanifest_10.acf", "\"AppState\" {}");
+        _directory.Write(@"steamapps\appmanifest_1000.acf", "\"AppState\" {}");
 
         await Eventually.HoldsAsync(() => _signals.Contains(WatchSignal.Changed), "the manifest is reported");
     }

@@ -16,14 +16,14 @@ public sealed class GogInfoReaderTests
     [Fact]
     public async Task The_base_game_is_picked_among_its_dlc()
     {
-        _files.AddInfo(Folder, "2001", "Card Duel: Expansion", rootGameId: "1971477531", playTasks: false);
-        _files.AddInfo(Folder, "1971477531", "Card Duel", buildId: "59534219748634025", languages: "\"pl-PL\", \"en-US\"");
-        _files.AddInfo(Folder, "2002", "Card Duel: Soundtrack", rootGameId: "1971477531");
+        _files.AddInfo(Folder, "2001", "Card Duel: Expansion", rootGameId: "1100000004", playTasks: false);
+        _files.AddInfo(Folder, "1100000004", "Card Duel", buildId: "54321098765432109", languages: "\"pl-PL\", \"en-US\"");
+        _files.AddInfo(Folder, "2002", "Card Duel: Soundtrack", rootGameId: "1100000004");
 
         var infos = await Read();
 
         infos.Entries.Should().HaveCount(3);
-        infos.Base.Should().Be(new GogGameInfo("1971477531", "1971477531", "Card Duel", "59534219748634025", HasPlayTasks: true,
+        infos.Base.Should().Be(new GogGameInfo("1100000004", "1100000004", "Card Duel", "54321098765432109", HasPlayTasks: true,
             GogFiles.WrittenAt, ["pl-PL", "en-US"], LaunchProgram.TryCreate("game.exe", null, null)));
         infos.Find("2001")!.IsDlc.Should().BeTrue();
     }
@@ -31,13 +31,13 @@ public sealed class GogInfoReaderTests
     [Fact]
     public async Task A_byte_order_mark_trailing_commas_and_numeric_ids_are_accepted()
     {
-        var json = "\uFEFF{ \"gameId\": 1207658924, \"buildId\": 59534219748634025, \"name\": \"Example\", \"playTasks\": [ {}, ], }";
-        _files.AddFile(Path.Join(Folder, "goggame-1207658924.info"), Encoding.UTF8.GetBytes(json));
+        var json = "\uFEFF{ \"gameId\": 1100000001, \"buildId\": 54321098765432109, \"name\": \"Example\", \"playTasks\": [ {}, ], }";
+        _files.AddFile(Path.Join(Folder, "goggame-1100000001.info"), Encoding.UTF8.GetBytes(json));
 
         var info = (await Read()).Base!;
 
-        info.GameId.Should().Be("1207658924");
-        info.BuildId.Should().Be("59534219748634025");
+        info.GameId.Should().Be("1100000001");
+        info.BuildId.Should().Be("54321098765432109");
         info.RootGameId.Should().BeNull();
     }
 

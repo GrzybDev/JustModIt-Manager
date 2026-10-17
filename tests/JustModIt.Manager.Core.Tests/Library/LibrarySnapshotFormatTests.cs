@@ -13,11 +13,11 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
 {
     private static readonly InstalledGame Game = new()
     {
-        Key = new GameKey(StoreId.Gog, "59534219748634025"),
+        Key = new GameKey(StoreId.Gog, "54321098765432109"),
         Name = "Café Racer",
         InstallDirectory = @"D:\GOG Games\Cafe Racer",
         LibraryId = "gog-registry",
-        BuildId = "59534219748634025",
+        BuildId = "54321098765432109",
         State = GameInstallState.Updating,
         Reason = GameStateReason.BuildMismatch,
         StoreActivityAt = new DateTimeOffset(2026, 3, 1, 10, 0, 0, TimeSpan.Zero),
@@ -29,8 +29,8 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
 
     private static readonly InstalledGame LinkedGame = Game with
     {
-        Key = new GameKey(StoreId.Steam, "620"),
-        Launch = LaunchLink.TryCreate("steam://rungameid/620"),
+        Key = new GameKey(StoreId.Steam, "1000"),
+        Launch = LaunchLink.TryCreate("steam://rungameid/1000"),
     };
 
     private readonly TempDirectory _directory = new();
@@ -68,7 +68,7 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
         var snapshot = new LibrarySnapshot
         {
             Games = new ValueDictionary<GameKey, InstalledGame>(ImmutableDictionary<GameKey, InstalledGame>.Empty
-                .Add(LinkedGame.Key, LinkedGame with { Content = ["621@77"] })),
+                .Add(LinkedGame.Key, LinkedGame with { Content = ["1001@77"] })),
         };
         var file = new AppDataLocations(_directory.Path, _directory.Combine("cache"), _directory.Combine("logs")).LibrarySnapshotFile;
 
@@ -87,9 +87,9 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
               "stores": [ { "store": "steam", "libraries": [ { "id": "x" }, { "id": "D:\\Library", "source": "steam-library", "state": "Sideways" } ] },
                           { "store": "" }, 42 ],
               "games": [
-                { "key": "steam:10", "name": "Kept", "installDirectory": "D:\\Library\\Kept", "libraryId": "D:\\Library", "state": "Hovering",
+                { "key": "steam:1003", "name": "Kept", "installDirectory": "D:\\Library\\Kept", "libraryId": "D:\\Library", "state": "Hovering",
                   "launch": { "executable": "..\\Elsewhere\\tool.exe" } },
-                { "key": "steam:11", "name": "Relative", "installDirectory": "Library\\Relative", "libraryId": "D:\\Library" },
+                { "key": "steam:1004", "name": "Relative", "installDirectory": "Library\\Relative", "libraryId": "D:\\Library" },
                 { "key": "no-separator", "name": "Broken", "installDirectory": "D:\\Broken", "libraryId": "D:\\Library" }
               ]
             }

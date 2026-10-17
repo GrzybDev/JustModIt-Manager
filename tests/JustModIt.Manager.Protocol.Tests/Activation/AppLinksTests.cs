@@ -11,7 +11,7 @@ public sealed class AppLinksTests
     {
         { "example-app://library", new LibraryTarget() },
         { "EXAMPLE-APP://LIBRARY/", new LibraryTarget() },
-        { "example-app://game/steam/480", new GameTarget("steam", "480") },
+        { "example-app://game/steam/1000", new GameTarget("steam", "1000") },
         { "example-app://game/gog/1000000001/?from=notification#top", new GameTarget("gog", "1000000001") },
         { "example-app://game/example%20store/id%3D7", new GameTarget("example store", "id=7") },
         { "example-app://catalogue", new CatalogueTarget() },
@@ -34,7 +34,7 @@ public sealed class AppLinksTests
     [Theory]
     [InlineData("example-app://game")]
     [InlineData("example-app://game/steam")]
-    [InlineData("example-app://game/steam/480/extra")]
+    [InlineData("example-app://game/steam/1000/extra")]
     [InlineData("example-app://game/steam/%2E%2E")]
     [InlineData("example-app://game/steam/a%2Fb")]
     [InlineData("example-app://game/steam/a%5Cb")]
@@ -73,7 +73,7 @@ public sealed class AppLinksTests
 
     [Theory]
     [InlineData("example-app://open")]
-    [InlineData("example-app://uninstall/steam/480")]
+    [InlineData("example-app://uninstall/steam/1000")]
     [InlineData("example-app://exit")]
     [InlineData("example-app:library")]
     [InlineData("example-app://")]
@@ -166,7 +166,7 @@ public sealed class AppLinksTests
     public static TheoryData<NavigationTarget> Targets =>
     [
         new LibraryTarget(),
-        new GameTarget("steam", "480"),
+        new GameTarget("steam", "1000"),
         new GameTarget("example store", "id=7&x?#"),
         new CatalogueTarget(),
         new CatalogueTarget("example-ąćź"),

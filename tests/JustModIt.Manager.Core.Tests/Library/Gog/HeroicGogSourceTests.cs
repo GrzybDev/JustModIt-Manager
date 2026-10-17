@@ -25,9 +25,9 @@ public sealed class HeroicGogSourceTests
         _files.AddFile(Installed, """
             {
               "installed": [
-                { "platform": "windows", "executable": "", "install_path": "D:\\Heroic\\Example", "install_size": "43.12 GiB",
-                  "is_dlc": false, "version": "4.04a", "appName": "1495134320", "language": "pl-PL", "buildId": "58136404580296017" },
-                { "platform": "osx", "install_path": "/Applications/Example.app", "is_dlc": false, "appName": 1207658924 },
+                { "platform": "windows", "executable": "", "install_path": "D:\\Heroic\\Example", "install_size": "12.34 GiB",
+                  "is_dlc": false, "version": "1.2a", "appName": "1100000003", "language": "pl-PL", "buildId": "53210987654321097" },
+                { "platform": "osx", "install_path": "/Applications/Example.app", "is_dlc": false, "appName": 1100000001 },
                 { "platform": "linux", "install_path": "D:\\Heroic\\Expansion", "is_dlc": true, "appName": "2001" },
                 { "platform": "someday-os", "install_path": "D:\\Heroic\\Future", "appName": "1003" },
                 { "platform": "windows", "install_path": "D:\\Heroic\\No Id", "appName": "not-a-number" },
@@ -39,8 +39,8 @@ public sealed class HeroicGogSourceTests
             {
               "finished": [ { "params": { "appName": "1003", "runner": "gog" }, "type": "update", "status": "done" } ],
               "queue": [
-                { "params": { "appName": "1495134320", "runner": "gog" }, "type": "update" },
-                { "params": { "appName": "1207658924", "runner": "legendary" }, "type": "install" }
+                { "params": { "appName": "1100000003", "runner": "gog" }, "type": "update" },
+                { "params": { "appName": "1100000001", "runner": "legendary" }, "type": "install" }
               ]
             }
             """);
@@ -49,18 +49,18 @@ public sealed class HeroicGogSourceTests
 
         scan.Libraries.Should().Equal(new LibraryLocation(Installed, HeroicLauncher.LibrarySource, Installed, LibraryState.Online));
         scan.Records.Should().Equal(
-            new GogInstallRecord("1495134320", @"D:\Heroic\Example", Installed)
+            new GogInstallRecord("1100000003", @"D:\Heroic\Example", Installed)
             {
-                BuildId = "58136404580296017",
+                BuildId = "53210987654321097",
                 Language = "pl-PL",
                 Platform = OperatingSystemKind.Windows,
-                Launch = HeroicLink("1495134320"),
+                Launch = HeroicLink("1100000003"),
                 Activity = GameInstallState.Updating,
             },
-            new GogInstallRecord("1207658924", "/Applications/Example.app", Installed)
+            new GogInstallRecord("1100000001", "/Applications/Example.app", Installed)
             {
                 Platform = OperatingSystemKind.MacOS,
-                Launch = HeroicLink("1207658924"),
+                Launch = HeroicLink("1100000001"),
             },
             new GogInstallRecord("2001", @"D:\Heroic\Expansion", Installed)
             {
@@ -125,12 +125,12 @@ public sealed class HeroicGogSourceTests
     public async Task A_game_known_to_the_registry_and_heroic_is_reported_once_and_heroic_dlc_is_hidden()
     {
         var registry = new InMemoryRegistry()
-            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\GOG.com\Games\1207658924", "path", @"D:\Games\Example");
-        _files.AddInfo(@"D:\Games\Example", "1207658924", "Example");
+            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\GOG.com\Games\1100000001", "path", @"D:\Games\Example");
+        _files.AddInfo(@"D:\Games\Example", "1100000001", "Example");
         _files.AddInfo(@"D:\Heroic\Other", "1001", "Other");
         _files.AddFile(Installed, """
             { "installed": [
-                { "appName": "1207658924", "install_path": "D:\\Games\\Example", "is_dlc": false },
+                { "appName": "1100000001", "install_path": "D:\\Games\\Example", "is_dlc": false },
                 { "appName": "1001", "install_path": "D:\\Heroic\\Other", "is_dlc": false, "platform": "linux" },
                 { "appName": "1002", "install_path": "D:\\Heroic\\Other", "is_dlc": true }
             ] }
@@ -139,7 +139,7 @@ public sealed class HeroicGogSourceTests
         var scan = await Provider(registry).ScanAsync(LibraryScanContext.Empty, Token);
 
         scan.Games.Select(game => (game.Key.StoreGameId, game.Platform)).Should().BeEquivalentTo([
-            ("1207658924", OperatingSystemKind.Windows),
+            ("1100000001", OperatingSystemKind.Windows),
             ("1001", OperatingSystemKind.Linux),
         ]);
         scan.Libraries.Select(library => library.Source).Should().Equal(GogRegistrySource.LibrarySource, HeroicLauncher.LibrarySource);
@@ -149,14 +149,14 @@ public sealed class HeroicGogSourceTests
     public async Task A_damaged_heroic_file_does_not_hide_the_registry_games()
     {
         var registry = new InMemoryRegistry()
-            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\GOG.com\Games\1207658924", "path", @"D:\Games\Example");
-        _files.AddInfo(@"D:\Games\Example", "1207658924", "Example");
+            .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\GOG.com\Games\1100000001", "path", @"D:\Games\Example");
+        _files.AddInfo(@"D:\Games\Example", "1100000001", "Example");
         _files.AddFile(Installed, "{");
 
         var scan = await Provider(registry).ScanAsync(LibraryScanContext.Empty, Token);
 
         scan.IsComplete.Should().BeTrue();
-        scan.Games.Select(game => game.Key).Should().Equal(new GameKey(StoreId.Gog, "1207658924"));
+        scan.Games.Select(game => game.Key).Should().Equal(new GameKey(StoreId.Gog, "1100000001"));
         scan.Libraries.Single(library => library.Source == HeroicLauncher.LibrarySource).State.Should().Be(LibraryState.Unreadable);
     }
 

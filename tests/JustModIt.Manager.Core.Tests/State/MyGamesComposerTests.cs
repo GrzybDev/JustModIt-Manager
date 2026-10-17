@@ -17,7 +17,7 @@ public sealed class MyGamesComposerTests
 {
     private static readonly GameKey Unmatched = new(StoreId.Steam, "3000");
 
-    private static readonly GameKey NothingToInstall = new(StoreId.Gog, "1207658924");
+    private static readonly GameKey NothingToInstall = new(StoreId.Gog, "1100000001");
 
     [Fact]
     public void Lists_only_detected_games_with_something_installable()

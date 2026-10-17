@@ -683,7 +683,7 @@ public sealed class SettingsTests
             Cover = new Uri(Cover("ember-hollow")),
             Kept = new KeptFilesSummary(["data/list.dat"], 1, TestStates.Now.AddDays(-1), KeptReason.GameUpdatedSinceInstall, "Ember Hollow PL"),
         },
-        new(Guid.NewGuid(), new GameKey(StoreId.Gog, "1207658930"), "Glass Orchard", @"D:\Games\Glass Orchard\.example-app\backups\2",
+        new(Guid.NewGuid(), new GameKey(StoreId.Gog, "1100000002"), "Glass Orchard", @"D:\Games\Glass Orchard\.example-app\backups\2",
             1_468_006)
         {
             GameDirectory = @"D:\Games\Glass Orchard",

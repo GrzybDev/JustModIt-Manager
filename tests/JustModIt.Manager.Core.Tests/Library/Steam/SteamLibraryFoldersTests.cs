@@ -10,7 +10,7 @@ public sealed class SteamLibraryFoldersTests
         var folders = SteamLibraryFolders.Parse(VdfParser.Parse("""
             "libraryfolders"
             {
-                "0" { "path" "C:\\Steam" "label" "" "apps" { "10" "100" } }
+                "0" { "path" "C:\\Steam" "label" "" "apps" { "1000" "100" } }
                 "1" { "path" "D:\\Library" "mounted" "0" }
                 "2" { "path" "E:\\Library" "mounted" "1" }
                 "3" { "path" "F:\\Library" "mounted" "maybe" }

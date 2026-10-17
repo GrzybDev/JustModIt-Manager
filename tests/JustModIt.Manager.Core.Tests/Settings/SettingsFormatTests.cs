@@ -9,8 +9,8 @@ namespace JustModIt.Manager.Core.Tests.Settings;
 
 public sealed class SettingsFormatTests : IDisposable
 {
-    private static readonly GameKey Witcher = new(StoreId.Gog, "1207658924");
-    private static readonly GameKey Portal = new(StoreId.Steam, "400");
+    private static readonly GameKey GogGame = new(StoreId.Gog, "1100000001");
+    private static readonly GameKey SteamGame = new(StoreId.Steam, "1000");
     private static readonly Guid Project = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920");
 
     private readonly TempDirectory _directory = new();
@@ -45,14 +45,14 @@ public sealed class SettingsFormatTests : IDisposable
             RecentCreatorProjects = [Rooted("Second.exampleproj"), Rooted("First.exampleproj")],
             InstallationId = Guid.Parse("c0ffee00-0000-4000-8000-000000000042"),
         }
-            .WithGame(Witcher, preferences => (preferences with
+            .WithGame(GogGame, preferences => (preferences with
             {
                 AutoInstall = false,
                 AutoUpdate = true,
                 ProjectId = Project,
                 IsHidden = true,
             }).WithFeatures(Project, new Dictionary<string, bool> { ["voice-over"] = false, ["signs"] = true }))
-            .WithGame(Portal, preferences => preferences.WithFeatures(Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e921"),
+            .WithGame(SteamGame, preferences => preferences.WithFeatures(Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e921"),
                 new Dictionary<string, bool> { ["Text only"] = true }))
             .WithLibraryFolder(new LibraryFolder(StoreId.Steam, Rooted("SteamLibrary")))
             .WithLibraryFolder(new LibraryFolder(StoreId.Gog, Rooted("GOG Games")));
@@ -66,8 +66,8 @@ public sealed class SettingsFormatTests : IDisposable
     public async Task The_file_is_readable_json_with_named_values_and_sorted_games()
     {
         await SaveAsync(AppSettings.Default
-            .WithGame(Witcher, preferences => preferences.WithFeatures(Project, new Dictionary<string, bool> { ["Café + voice-over"] = true }))
-            .WithGame(Portal, preferences => preferences with { IsHidden = true }));
+            .WithGame(GogGame, preferences => preferences.WithFeatures(Project, new Dictionary<string, bool> { ["Café + voice-over"] = true }))
+            .WithGame(SteamGame, preferences => preferences with { IsHidden = true }));
 
         var text = await File.ReadAllTextAsync(_path, TestContext.Current.CancellationToken);
         var stored = JsonNode.Parse(text)!.AsObject();
@@ -76,9 +76,9 @@ public sealed class SettingsFormatTests : IDisposable
         stored["closeBehavior"]!.GetValue<string>().Should().Be("Ask");
         stored["backupLocation"]!.GetValue<string>().Should().Be("GameFolder");
         stored.ContainsKey("customBackupFolder").Should().BeFalse();
-        stored["games"]!.AsObject().Select(game => game.Key).Should().Equal("gog:1207658924", "steam:400");
-        stored["games"]!["steam:400"]!.ToJsonString().Should().Be("""{"isHidden":true}""");
-        stored["games"]!["gog:1207658924"]!["features"]![Project.ToString("D")]!["Café + voice-over"]!.GetValue<bool>().Should().BeTrue();
+        stored["games"]!.AsObject().Select(game => game.Key).Should().Equal("gog:1100000001", "steam:1000");
+        stored["games"]!["steam:1000"]!.ToJsonString().Should().Be("""{"isHidden":true}""");
+        stored["games"]!["gog:1100000001"]!["features"]![Project.ToString("D")]!["Café + voice-over"]!.GetValue<bool>().Should().BeTrue();
         text.Should().Contain("Café + voice-over");
     }
 
@@ -86,7 +86,7 @@ public sealed class SettingsFormatTests : IDisposable
     public async Task A_chosen_variant_without_a_name_survives_a_round_trip()
     {
         var settings = AppSettings.Default
-            .WithGame(Portal, preferences => preferences.WithFeatures(Project, new Dictionary<string, bool> { [""] = true }));
+            .WithGame(SteamGame, preferences => preferences.WithFeatures(Project, new Dictionary<string, bool> { [""] = true }));
 
         await SaveAsync(settings);
 
@@ -111,7 +111,7 @@ public sealed class SettingsFormatTests : IDisposable
               "creatorMode": true,
               "checkIntervalMinutes": 30,
               "games": {
-                "gog:1207658924": {
+                "gog:1100000001": {
                   "autoInstall": false,
                   "projectId": "0b2c4d6e-8f10-4a12-b314-c516d718e920",
                   "variantName": "Caf\u00E9 \u002B voice-over",
@@ -132,8 +132,8 @@ public sealed class SettingsFormatTests : IDisposable
         stored["autoInstallProjects"]!.GetValue<bool>().Should().BeTrue();
         stored["autoUpdateProjects"]!.GetValue<bool>().Should().BeFalse();
         stored["checkIntervalMinutes"]!.GetValue<int>().Should().Be(30, "a value this version does not know is kept");
-        stored["games"]!["gog:1207658924"]!.AsObject().ContainsKey("variantName").Should().BeFalse("a variant chosen before add-ons is never written");
-        (await LoadAsync()).Should().Be(settings!.WithGame(Witcher, preferences => preferences with { VariantName = null }));
+        stored["games"]!["gog:1100000001"]!.AsObject().ContainsKey("variantName").Should().BeFalse("a variant chosen before add-ons is never written");
+        (await LoadAsync()).Should().Be(settings!.WithGame(GogGame, preferences => preferences with { VariantName = null }));
         settings.Should().Be(new AppSettings
         {
             CloseBehavior = CloseBehavior.MinimizeToTray,
@@ -147,7 +147,7 @@ public sealed class SettingsFormatTests : IDisposable
             TrayNoticeShown = true,
             OnboardingCompleted = true,
             CreatorMode = true,
-        }.WithGame(Witcher, preferences => preferences with
+        }.WithGame(GogGame, preferences => preferences with
         {
             AutoInstall = false,
             ProjectId = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920"),
@@ -181,7 +181,7 @@ public sealed class SettingsFormatTests : IDisposable
               "startWithSystem": null,
               "preferredTeams": [ "not a team", 7, "5a6b7c8d-0000-4000-8000-000000000001", "5A6B7C8D-0000-4000-8000-000000000001" ],
               "games": {
-                "steam:400": { "autoInstall": "maybe", "isHidden": true, "projectId": 12 },
+                "steam:1000": { "autoInstall": "maybe", "isHidden": true, "projectId": 12 },
                 "not a key": { "isHidden": true },
                 "gog:1": "hidden",
                 "gog:2": { "isHidden": false }
@@ -202,8 +202,8 @@ public sealed class SettingsFormatTests : IDisposable
         settings.StartWithSystem.Should().BeTrue();
         settings.CreatorMode.Should().BeTrue();
         settings.PreferredTeams.Should().Equal(Guid.Parse("5a6b7c8d-0000-4000-8000-000000000001"));
-        settings.Games.Keys.Should().Equal(Portal);
-        settings.GetGame(Portal).Should().Be(new GamePreferences { IsHidden = true });
+        settings.Games.Keys.Should().Equal(SteamGame);
+        settings.GetGame(SteamGame).Should().Be(new GamePreferences { IsHidden = true });
         settings.LibraryFolders.Should().BeEmpty();
     }
 

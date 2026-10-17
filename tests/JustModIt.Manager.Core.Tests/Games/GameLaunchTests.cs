@@ -34,12 +34,12 @@ public sealed class GameLaunchTests
     }
 
     [Theory]
-    [InlineData("steam://rungameid/620", true)]
+    [InlineData("steam://rungameid/1000", true)]
     [InlineData("com.epicgames.launcher://apps/example%3Aa1b2c3%3AExampleGame?action=launch&silent=true", true)]
     [InlineData(@"C:\Games\game.exe", false)]
     [InlineData(@"\\server\share\game.exe", false)]
     [InlineData("file:///C:/Games/game.exe", false)]
-    [InlineData("rungameid/620", false)]
+    [InlineData("rungameid/1000", false)]
     public void A_link_goes_to_a_client_and_never_runs_a_file(string uri, bool accepted) =>
         (LaunchLink.TryCreate(uri) is not null).Should().Be(accepted);
 }

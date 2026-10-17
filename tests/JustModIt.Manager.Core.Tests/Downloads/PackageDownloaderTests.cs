@@ -17,7 +17,7 @@ public sealed class PackageDownloaderTests : IDisposable
     private const int Length = 300 * 1024;
     private static readonly Guid FileUuid = Guid.Parse("a0000000-0000-4000-8000-000000000001");
     private static readonly ReleaseFileLocator Locator = new("lantern-works", "starlight-harbor",
-        Guid.Parse("f3713421-0000-4000-8000-000000000032"), FileUuid);
+        Guid.Parse("f3e0e0e0-0000-4000-8000-000000000032"), FileUuid);
 
     private readonly TempDirectory _directory = new();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero));

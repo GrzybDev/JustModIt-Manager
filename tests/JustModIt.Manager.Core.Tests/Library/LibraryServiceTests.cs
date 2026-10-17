@@ -53,13 +53,13 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     {
         var saved = new LibrarySnapshot { Games = Games(Game("1001")), Stores = [new StoreStatus(StoreId.Steam, true, false, true, [SteamLibrary])] };
         await _snapshots.SaveAsync(saved, Token);
-        _steam.Finds(Game("1002"));
+        _steam.Finds(Game("1003"));
 
         await StartAsync();
 
         _published.Select(snapshot => (snapshot.IsCached, snapshot.Version, Keys: string.Join(",", snapshot.Games.Keys))).Should().Equal(
             (true, 1L, "steam:1001"),
-            (false, 2L, "steam:1002"));
+            (false, 2L, "steam:1003"));
         Service.Snapshot.ScannedAt.Should().Be(_time.GetUtcNow());
         await Eventually.HoldsAsync(() => _snapshots.Saves.Count == 2, "the scanned snapshot is saved");
         _snapshots.Saves[^1].Should().BeSameAs(Service.Snapshot);
@@ -238,7 +238,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     public async Task An_unreadable_library_or_list_keeps_the_last_good_games_as_stale()
     {
         var other = new LibraryLocation(@"E:\Other", "steam-library", @"E:\Other", LibraryState.Online);
-        _steam.Result = _steam.Result with { Libraries = [SteamLibrary, other], Games = [Game("1001"), Game("1002", library: other.Id)] };
+        _steam.Result = _steam.Result with { Libraries = [SteamLibrary, other], Games = [Game("1001"), Game("1003", library: other.Id)] };
         await StartAsync();
 
         _steam.Result = _steam.Result with { Libraries = [SteamLibrary with { State = LibraryState.Unreadable }], Games = [], IsComplete = false };
@@ -309,7 +309,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
 
         await Service.CheckNowAsync(Token);
         await Eventually.HoldsAsync(() => !_snapshots.FailsNextSave, "the save of the change fails");
-        _steam.Finds(Game("1001"), Game("1002"));
+        _steam.Finds(Game("1001"), Game("1003"));
         await Service.CheckNowAsync(Token);
 
         Service.Snapshot.Games.Should().HaveCount(2);
@@ -397,14 +397,14 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     {
         _steam.Finds(Game("1001"));
         await StartAsync();
-        _steam.Finds(Game("1001"), Game("1002"));
+        _steam.Finds(Game("1001"), Game("1003"));
 
-        var probe = await Service.ProbeAsync(Key("1002"), Token);
+        var probe = await Service.ProbeAsync(Key("1003"), Token);
 
-        probe.Game.Should().Be(Game("1002"));
+        probe.Game.Should().Be(Game("1003"));
         (probe.AllowsChange(forUninstall: false) && probe.RunningProcesses.Count == 0).Should().BeTrue();
         _steam.Scans.Should().Be(2);
-        _running.Directories.Should().Equal(Game("1002").InstallDirectory);
+        _running.Directories.Should().Equal(Game("1003").InstallDirectory);
     }
 
     [Fact]
@@ -494,7 +494,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         var steam = new SteamTree();
         var slow = steam.AddLibrary(@"D:\Slow");
         steam.AddApp(1001, "Slow Quest", library: slow);
-        steam.AddApp(1002, "Root Quest");
+        steam.AddApp(1003, "Root Quest");
         using var files = new HangingFileSystem(steam.Files);
         _gog.Finds(Game("2001", store: StoreId.Gog));
         await StartWithSteamAsync(steam, files);
@@ -506,9 +506,9 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         var snapshot = Service.Snapshot;
         snapshot.Find(Key("1001")).Should().Match<InstalledGame>(game =>
             game.State == GameInstallState.Offline && game.Reason == GameStateReason.LibraryOffline && game.Name == "Slow Quest");
-        snapshot.Find(Key("1002"))!.IsReady.Should().BeTrue();
+        snapshot.Find(Key("1003"))!.IsReady.Should().BeTrue();
         snapshot.Find(Key("2001", StoreId.Gog))!.IsReady.Should().BeTrue();
-        snapshot.ConfirmsGone(Key("1003"), Game("1003").InstallDirectory).Should().BeFalse();
+        snapshot.ConfirmsGone(Key("1004"), Game("1004").InstallDirectory).Should().BeFalse();
         files.HungCalls.Should().Be(1, "a drive whose read still hangs is not read again");
     }
 
@@ -592,7 +592,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     public async Task The_report_counts_games_per_store_and_library()
     {
         var offline = new LibraryLocation(@"E:\Unplugged", "steam-library", @"E:\Unplugged", LibraryState.Offline);
-        _steam.Result = _steam.Result with { Libraries = [SteamLibrary, offline with { UnreadableEntries = 1 }], Games = [Game("1001"), Game("1002")] };
+        _steam.Result = _steam.Result with { Libraries = [SteamLibrary, offline with { UnreadableEntries = 1 }], Games = [Game("1001"), Game("1003")] };
         _gog.Result = _gog.Result with { IsPresent = false };
         await StartAsync();
 

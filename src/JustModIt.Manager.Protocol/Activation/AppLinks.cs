@@ -3,7 +3,7 @@ using JustModIt.Manager.Protocol.Messages;
 namespace JustModIt.Manager.Protocol.Activation;
 
 /// <summary>
-/// Reads and writes links such as <c>scheme://game/steam/480</c>; any website can open one, so a link only navigates and
+/// Reads and writes links such as <c>scheme://game/steam/1000</c>; any website can open one, so a link only navigates and
 /// none installs, uninstalls or changes anything.
 /// </summary>
 public sealed class AppLinks

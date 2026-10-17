@@ -13,8 +13,8 @@ public sealed class LinkResolverTests : IDisposable
         var target = _directory.CreateDirectory(Path.Combine("Library", "Games"));
         var link = _directory.CreateDirectoryLink("Shortcut", target);
 
-        LinkResolver.Resolve(Path.Combine(link, "Witcher", "game.exe"))
-            .Should().Be(Path.Combine(target, "Witcher", "game.exe"));
+        LinkResolver.Resolve(Path.Combine(link, "Lantern", "game.exe"))
+            .Should().Be(Path.Combine(target, "Lantern", "game.exe"));
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public sealed class LinkResolverTests : IDisposable
         var inner = _directory.CreateDirectoryLink("Inner", target);
         var outer = _directory.CreateDirectoryLink("Outer", inner);
 
-        LinkResolver.Resolve(Path.Combine(outer, "Witcher")).Should().Be(Path.Combine(target, "Witcher"));
+        LinkResolver.Resolve(Path.Combine(outer, "Lantern")).Should().Be(Path.Combine(target, "Lantern"));
     }
 
     [Fact]
@@ -35,9 +35,9 @@ public sealed class LinkResolverTests : IDisposable
         _directory.CreateDirectoryLink("First", second);
         _directory.CreateDirectoryLink("Second", first);
 
-        var resolved = LinkResolver.Resolve(Path.Combine(first, "Witcher"));
+        var resolved = LinkResolver.Resolve(Path.Combine(first, "Lantern"));
 
-        resolved.Should().EndWith("Witcher");
+        resolved.Should().EndWith("Lantern");
     }
 
     public void Dispose() => _directory.Dispose();

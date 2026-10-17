@@ -72,7 +72,7 @@ public sealed class CatalogueCrawlerTests : IDisposable
         var listing = await _site.CrawlAsync();
 
         listing.Games.Should().HaveCount(4);
-        listing.FindProject(Guid.Parse("50d8a47a-0000-4000-8000-000000000002"))!.Game.Slug.Should().Be("ember-road");
+        listing.FindProject(Guid.Parse("50e0e0e0-0000-4000-8000-000000000002"))!.Game.Slug.Should().Be("ember-road");
     }
 
     [Fact]

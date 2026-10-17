@@ -51,7 +51,7 @@ public sealed class PathRedactorTests
 
     [Fact]
     public void A_root_folder_is_never_a_rule() =>
-        new PathRedactor([("/", "~")], userName: null).Redact("/opt/games/Witcher").Should().Be("/opt/games/Witcher");
+        new PathRedactor([("/", "~")], userName: null).Redact("/opt/games/Lantern").Should().Be("/opt/games/Lantern");
 
     [Fact]
     public void The_current_user_profile_and_temp_folder_are_hidden()

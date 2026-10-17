@@ -8,17 +8,13 @@ using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Building;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
+using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.LiveTests;
 
 [SupportedOSPlatform("windows")]
 public sealed class CreatorLiveTests : IDisposable
 {
-    private const string Library = "dx11/loc_x64_f.dll";
-    private const string RenamedLibrary = "dx11/loc_x64_f_o.dll";
-    private const string List = "data/videoList.rmdj";
-    private const string ListCopy = "data/videoList_original.rmdj";
-
     private readonly string _workspace = Path.Combine(LiveApp.TestFolder, nameof(CreatorLiveTests) + ".work");
 
     private static CancellationToken Token => LiveTest.Token;
@@ -27,39 +23,41 @@ public sealed class CreatorLiveTests : IDisposable
 
     public void Dispose() => ClearWorkspace();
 
-    // The release split as the site will offer it: a base of the in-game subtitles, and Serial, the library that wraps the
-    // game's own (Quantum Streamer) with the episodes' subtitles, whose library rewrites the game's list of videos while the
-    // game runs and keeps the list as Steam ships it beside it.
+    // The release split as the site will offer it: a base, and an add-on whose library takes the place of one of the game's,
+    // renamed away, and whose software rewrites a game file while the game runs, keeping the file as the store ships it
+    // beside it.
     [Fact]
-    public async Task Turns_the_released_files_into_a_base_and_a_serial_whose_software_changes_files_that_its_undo_puts_back()
+    public async Task Turns_the_released_files_into_a_base_and_an_add_on_whose_software_changes_files_that_its_undo_puts_back()
     {
         LiveTest.SkipUnlessEnabledOnWindows();
+        var release = LiveGames.Load().Creator;
+        var (library, rewritten, created) = (release.RenamedFile, release.RewrittenFile, release.CreatedFile);
         await using var engine = await LiveEngine.StartAsync(nameof(CreatorLiveTests), Token);
-        var (game, author, released) = await PrepareAsync(engine);
-        List<string> touched = [.. released, List, ListCopy];
+        var (game, author, released) = await PrepareAsync(engine, release);
+        List<string> touched = [.. released, rewritten, created];
         var before = await GameFolderState.CaptureAsync(game.InstallDirectory, touched, Token);
-        var original = before.Hashes[Library];
+        var original = before.Hashes[library];
         var releasedContent = await HashAsync(author, released);
-        releasedContent[RenamedLibrary].Should().Be(original, "the release carries the game's own library under its new name");
-        var serialFiles = released.Where(IsSerial).ToList();
-        var baseFiles = released.Where(path => !IsSerial(path)).ToList();
-        baseFiles.Should().NotBeEmpty("the release brings the in-game subtitles");
-        var serial = CopyFiles(author, serialFiles, "serial");
-        var comparison = await CompareAsync(engine, game, serial);
+        releasedContent[release.RenamedTo].Should().Be(original, "the release carries the game's own library under its new name");
+        var addOnFiles = released.Where(path => IsAddOn(release, path)).ToList();
+        var baseFiles = released.Where(path => !IsAddOn(release, path)).ToList();
+        baseFiles.Should().NotBeEmpty("the release has a base beside the add-on");
+        var addOn = CopyFiles(author, addOnFiles, "add-on");
+        var comparison = await CompareAsync(engine, game, addOn);
         var project = new CreatorProject
         {
             Game = new ProjectGame(game.Key, game.Name),
-            Metadata = new PackageMetadata { Title = game.Name + " Serial", Version = "2" },
+            Metadata = new PackageMetadata { Title = game.Name + " add-on", Version = "2" },
         }
-            .WithRuntimeFile(new RuntimeFileChoice(List, RuntimeFileKind.ChangesGameFile))
-            .WithRuntimeFile(new RuntimeFileChoice(ListCopy, RuntimeFileKind.CreatesFile));
+            .WithRuntimeFile(new RuntimeFileChoice(rewritten, RuntimeFileKind.ChangesGameFile))
+            .WithRuntimeFile(new RuntimeFileChoice(created, RuntimeFileKind.CreatesFile));
 
         var plan = CreatorPlanner.Plan(comparison, project, Options).Plan;
 
-        AssertRenamesTheOriginalAway(plan, serialFiles);
+        AssertRenamesTheOriginalAway(plan, release, addOnFiles);
         plan.Format.Should().Be(new PackageFormatDecision(PackageKind.Manifest, [FormatReason.RenamesFiles, FormatReason.DeclaresRuntimeFiles]));
         plan.RuntimeFiles.Select(file => (file.Path, file.GameFile is not null, file.WrittenByPackage)).Should()
-            .Equal((List, true, false), (ListCopy, false, false));
+            .Equal((rewritten, true, false), (created, false, false));
         plan.CarriesCode.Should().BeTrue();
         plan.Findings.Should().NotContain(finding => finding.Severity == FindingSeverity.Error);
         var advanced = CreatorPlanner.Plan(comparison, project.ToAdvanced(plan), Options).Plan;
@@ -67,21 +65,21 @@ public sealed class CreatorLiveTests : IDisposable
             .Should().Equal(plan.Operations.Select(Describe), "advanced mode builds the same package from the steps simple mode found");
         advanced.RuntimeFiles.Select(file => (file.Path, file.Kind)).Should().Equal(plan.RuntimeFiles.Select(file => (file.Path, file.Kind)));
 
-        var built = await BuildAsync(engine, game, comparison, project, plan, "serial");
+        var built = await BuildAsync(engine, game, comparison, project, plan, "add-on");
 
         built.Kind.Should().Be(PackageKind.Manifest);
         await using (var package = await new PackageReader().OpenAsync(built.OutputPath, Token))
         {
             var steps = package.Steps.ToList();
-            steps.Should().HaveCount(serialFiles.Count);
-            steps.OfType<RenameStep>().Should().ContainSingle().Which.Should().Be(new RenameStep(Library, RenamedLibrary));
-            steps.FindIndex(step => step is RenameStep).Should().BeLessThan(steps.FindIndex(step => step is CopyStep { Path: Library }));
+            steps.Should().HaveCount(addOnFiles.Count);
+            steps.OfType<RenameStep>().Should().ContainSingle().Which.Should().Be(new RenameStep(library, release.RenamedTo));
+            steps.FindIndex(step => step is RenameStep).Should().BeLessThan(steps.FindIndex(step => step is CopyStep copy && copy.Path == library));
             steps.OfType<CopyStep>().Should().NotContain(copy => copy.Sha256 == original, "the package never carries the original");
             package.Manifest!.Requires.Should().Contain(PackageCapabilities.RuntimeFiles);
             package.Manifest.RuntimeFiles.Should().BeEquivalentTo(
             [
-                new RuntimeFile(List, [new FileContent(before.Files[List].Size, before.Hashes[List].ToLowerInvariant())]),
-                new RuntimeFile(ListCopy),
+                new RuntimeFile(rewritten, [new FileContent(before.Files[rewritten].Size, before.Hashes[rewritten].ToLowerInvariant())]),
+                new RuntimeFile(created),
             ]);
         }
 
@@ -99,19 +97,19 @@ public sealed class CreatorLiveTests : IDisposable
         var during = await GameFolderState.CaptureAsync(game.InstallDirectory, touched, Token);
         during.Hashes.Where(hash => released.Contains(hash.Key, StringComparer.OrdinalIgnoreCase)).Should()
             .BeEquivalentTo(releasedContent, "the game holds the release's files, the original library renamed");
-        during.Hashes[List].Should().Be(before.Hashes[List], "only the software changes the list, once the game runs");
+        during.Hashes[rewritten].Should().Be(before.Hashes[rewritten], "only the software changes the file, once the game runs");
         during.StrayChangesSince(before, released, LiveApp.Identity.HiddenFolderName)
             .Should().BeEmpty("only the package's files and their new folders change in the game");
 
-        // As Quantum Streamer does on the first video: it keeps the list as Steam ships it and writes its own in its place.
-        var listPath = GameFolderState.FullPath(game.InstallDirectory, List);
-        File.Copy(listPath, GameFolderState.FullPath(game.InstallDirectory, ListCopy));
-        await File.WriteAllBytesAsync(listPath, [.. Enumerable.Range(0, 4096).Select(i => (byte)(i * 7 % 251))], Token);
+        // As the software does once the game runs: it keeps the file as the store ships it and writes its own in its place.
+        var rewrittenPath = GameFolderState.FullPath(game.InstallDirectory, rewritten);
+        File.Copy(rewrittenPath, GameFolderState.FullPath(game.InstallDirectory, created));
+        await File.WriteAllBytesAsync(rewrittenPath, [.. Enumerable.Range(0, 4096).Select(i => (byte)(i * 7 % 251))], Token);
 
         var reverted = await engine.RunAsync(new UninstallJobRequest(installed.Installed), Token);
 
         reverted.Outcome.Should().Be(JobOutcome.Succeeded, $"{reverted.Failure}");
-        reverted.KeptFiles.Should().BeEmpty("the list was Steam's own when the package was installed");
+        reverted.KeptFiles.Should().BeEmpty("the file was the store's own when the package was installed");
         var after = await GameFolderState.CaptureAsync(game.InstallDirectory, touched, Token);
         after.ChangesSince(before).Should().BeEmpty("the game is as its store left it");
         after.Hashes.Should().BeEquivalentTo(before.Hashes);
@@ -136,23 +134,23 @@ public sealed class CreatorLiveTests : IDisposable
             .Should().BeEquivalentTo(added, options => options.Using(StringComparer.OrdinalIgnoreCase));
     }
 
-    private static void AssertRenamesTheOriginalAway(PackagePlan plan, List<string> released)
+    private static void AssertRenamesTheOriginalAway(PackagePlan plan, LiveCreatorCase release, List<string> released)
     {
         plan.Operations.Should().HaveCount(released.Count, "each released file is written, except the original library, which is renamed");
         plan.Operations.Where(operation => operation.Kind == OperationKind.Rename).Should().ContainSingle()
-            .Which.Should().Match<PlannedOperation>(rename => rename.From == Library && rename.Path == RenamedLibrary);
+            .Which.Should().Match<PlannedOperation>(rename => rename.From == release.RenamedFile && rename.Path == release.RenamedTo);
         var renameAt = IndexOf(plan, operation => operation.Kind == OperationKind.Rename);
-        var writeAt = IndexOf(plan, operation => operation.HasPayload && operation.Path == Library);
+        var writeAt = IndexOf(plan, operation => operation.HasPayload && operation.Path == release.RenamedFile);
         plan.Operations[writeAt].Kind.Should().Be(OperationKind.Copy, "the new library is carried whole once the original is renamed away");
         renameAt.Should().BeLessThan(writeAt, "the original must make way before the new library takes its name");
         plan.Operations.Where(operation => operation.HasPayload).Select(operation => operation.Path)
-            .Should().BeEquivalentTo(released.Where(path => path != RenamedLibrary), options => options.Using(StringComparer.OrdinalIgnoreCase),
+            .Should().BeEquivalentTo(released.Where(path => path != release.RenamedTo), options => options.Using(StringComparer.OrdinalIgnoreCase),
                 "the package carries the release's files except the original library");
         plan.Format.Kind.Should().Be(PackageKind.Manifest);
     }
 
-    private static bool IsSerial(string path) =>
-        path.StartsWith("dx11/", StringComparison.OrdinalIgnoreCase) || path.StartsWith("videos/", StringComparison.OrdinalIgnoreCase);
+    private static bool IsAddOn(LiveCreatorCase release, string path) =>
+        release.AddOnFolders.Any(folder => path.StartsWith(folder, StringComparison.OrdinalIgnoreCase));
 
     private string CopyFiles(string from, IEnumerable<string> paths, string name)
     {
@@ -185,13 +183,14 @@ public sealed class CreatorLiveTests : IDisposable
     }
 
     // The files of the game's current release, laid out like the game, serve as the author's folder against the clean game.
-    private async Task<(InstalledGame Game, string Author, IReadOnlyList<string> Released)> PrepareAsync(LiveEngine engine)
+    private async Task<(InstalledGame Game, string Author, IReadOnlyList<string> Released)> PrepareAsync(LiveEngine engine,
+        LiveCreatorCase release)
     {
-        var game = await engine.ReadyGameAsync(OwnerGames.QuantumBreak, Token);
-        Assert.SkipUnless(File.Exists(GameFolderState.FullPath(game.InstallDirectory, Library))
-            && !File.Exists(GameFolderState.FullPath(game.InstallDirectory, RenamedLibrary))
-            && File.Exists(GameFolderState.FullPath(game.InstallDirectory, List))
-            && !File.Exists(GameFolderState.FullPath(game.InstallDirectory, ListCopy)), $"{game.Name} is not a clean install.");
+        var game = await engine.ReadyGameAsync(release.Game, Token);
+        Assert.SkipUnless(File.Exists(GameFolderState.FullPath(game.InstallDirectory, release.RenamedFile))
+            && !File.Exists(GameFolderState.FullPath(game.InstallDirectory, release.RenamedTo))
+            && File.Exists(GameFolderState.FullPath(game.InstallDirectory, release.RewrittenFile))
+            && !File.Exists(GameFolderState.FullPath(game.InstallDirectory, release.CreatedFile)), $"{game.Name} is not a clean install.");
         var package = await engine.DownloadAsync(await engine.FindReleaseAsync(game, Token), Token);
         ClearWorkspace();
         var author = Path.Combine(_workspace, "author");
@@ -201,7 +200,7 @@ public sealed class CreatorLiveTests : IDisposable
             .. Directory.EnumerateFiles(author, "*", SearchOption.AllDirectories)
                 .Select(path => Path.GetRelativePath(author, path).Replace(Path.DirectorySeparatorChar, '/')),
         ];
-        released.Should().Contain([Library, RenamedLibrary]);
+        released.Should().Contain([release.RenamedFile, release.RenamedTo]);
         return (game, author, released);
     }
 

@@ -4,33 +4,33 @@
     "next": null,
     "previous": null,
     "results": [
-      {"uuid": "53c4c7cd-0000-4000-8000-000000000001", "slug": "lantern-works", "name": "Lantern Works", "summary": "An invented team.", "avatar": "https://storage.example.com/teams/avatars/lantern-works.png", "member_count": 3, "is_listed": true, "is_pending_deletion": false, "has_public_project": true, "created_at": "2026-07-01T18:31:46.589717+02:00", "updated_at": "2026-08-01T23:31:26.077397+02:00"},
-      {"uuid": "53c4c7cd-0000-4000-8000-000000000002", "slug": "paper-moth", "name": "Paper Moth", "summary": "", "avatar": null, "member_count": 1, "is_listed": true, "is_pending_deletion": false, "has_public_project": true, "created_at": "2026-07-02T18:31:46.589717+02:00", "updated_at": "2026-08-02T23:31:26.077397+02:00"}
+      {"uuid": "53e0e0e0-0000-4000-8000-000000000001", "slug": "lantern-works", "name": "Lantern Works", "summary": "An invented team.", "avatar": "https://storage.example.com/teams/avatars/lantern-works.png", "member_count": 3, "is_listed": true, "is_pending_deletion": false, "has_public_project": true, "created_at": "2026-07-01T18:31:46.589717+02:00", "updated_at": "2026-08-01T23:31:26.077397+02:00"},
+      {"uuid": "53e0e0e0-0000-4000-8000-000000000002", "slug": "paper-moth", "name": "Paper Moth", "summary": "", "avatar": null, "member_count": 1, "is_listed": true, "is_pending_deletion": false, "has_public_project": true, "created_at": "2026-07-02T18:31:46.589717+02:00", "updated_at": "2026-08-02T23:31:26.077397+02:00"}
     ]
   },
   "statuses": [
-    {"uuid": "e3882715-0000-4000-8000-000000000001", "name": "Official now", "slug": "official", "color": "#3b82f6", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 6, "allows_public_releases": false, "shows_progress": false, "description": "The game ships this itself."},
-    {"uuid": "59760829-0000-4000-8000-000000000001", "name": "Completed", "slug": "completed", "color": "#22c55e", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 5},
-    {"uuid": "968ad28b-0000-4000-8000-000000000001", "name": "Testing", "slug": "testing", "color": "#eab308", "is_completed": false, "is_abandoned": false, "is_creatable": true, "position": 3},
-    {"uuid": "a1686594-0000-4000-8000-000000000001", "name": "Abandoned", "slug": "abandoned", "color": "#71717a", "is_completed": false, "is_abandoned": true, "is_creatable": false, "position": 0},
-    {"uuid": "06d521ad-0000-4000-8000-000000000001", "name": "Announced", "slug": "announced", "color": "#71717a", "is_completed": false, "is_abandoned": false, "is_creatable": true, "position": 0}
+    {"uuid": "e3e0e0e0-0000-4000-8000-000000000001", "name": "Official now", "slug": "official", "color": "#3b82f6", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 6, "allows_public_releases": false, "shows_progress": false, "description": "The game ships this itself."},
+    {"uuid": "59e0e0e0-0000-4000-8000-000000000001", "name": "Completed", "slug": "completed", "color": "#22c55e", "is_completed": true, "is_abandoned": false, "is_creatable": true, "position": 5},
+    {"uuid": "96e0e0e0-0000-4000-8000-000000000001", "name": "Testing", "slug": "testing", "color": "#eab308", "is_completed": false, "is_abandoned": false, "is_creatable": true, "position": 3},
+    {"uuid": "a1e0e0e0-0000-4000-8000-000000000001", "name": "Abandoned", "slug": "abandoned", "color": "#71717a", "is_completed": false, "is_abandoned": true, "is_creatable": false, "position": 0},
+    {"uuid": "06e0e0e0-0000-4000-8000-000000000001", "name": "Announced", "slug": "announced", "color": "#71717a", "is_completed": false, "is_abandoned": false, "is_creatable": true, "position": 0}
   ],
   "types": [
-    {"uuid": "fae573dd-0000-4000-8000-000000000001", "name": "Voice", "slug": "voice", "icon": "FaMicrophone", "is_default": false, "position": 0},
-    {"uuid": "0a7a2657-0000-4000-8000-000000000001", "name": "Text", "slug": "text", "icon": "", "is_default": true, "position": 0}
+    {"uuid": "fae0e0e0-0000-4000-8000-000000000001", "name": "Voice", "slug": "voice", "icon": "FaMicrophone", "is_default": false, "position": 0},
+    {"uuid": "0ae0e0e0-0000-4000-8000-000000000001", "name": "Text", "slug": "text", "icon": "", "is_default": true, "position": 0}
   ],
   "genres": [
-    {"uuid": "d21de9bd-0000-4000-8000-000000000001", "name": "Adventure", "slug": "adventure", "icon": "", "position": 0},
-    {"uuid": "d21de9bd-0000-4000-8000-000000000002", "name": "Horror", "slug": "horror", "icon": "", "position": 0},
-    {"uuid": "d21de9bd-0000-4000-8000-000000000003", "name": "Story rich", "slug": "story-rich", "icon": "", "position": 0}
+    {"uuid": "d2e0e0e0-0000-4000-8000-000000000001", "name": "Adventure", "slug": "adventure", "icon": "", "position": 0},
+    {"uuid": "d2e0e0e0-0000-4000-8000-000000000002", "name": "Horror", "slug": "horror", "icon": "", "position": 0},
+    {"uuid": "d2e0e0e0-0000-4000-8000-000000000003", "name": "Story rich", "slug": "story-rich", "icon": "", "position": 0}
   ],
   "platforms": [
-    {"uuid": "8e224cea-0000-4000-8000-000000000001", "name": "PC", "slug": "pc", "icon": "FaComputer", "position": 0, "has_operating_systems": true}
+    {"uuid": "8ee0e0e0-0000-4000-8000-000000000001", "name": "PC", "slug": "pc", "icon": "FaComputer", "position": 0, "has_operating_systems": true}
   ],
   "storefront_platforms": [
-    {"uuid": "d9a4ea64-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "^https://store\\.example\\.com/app/", "url_pattern_hint": "", "provider": "steam", "launcher_name": "", "install_hint": "Right-click the game, then **Manage** and **Browse local files**.", "game_platform": "8e224cea-0000-4000-8000-000000000001", "position": 2},
-    {"uuid": "bad65a0d-0000-4000-8000-000000000001", "name": "GOG", "icon": "SiGogdotcom", "color": "#6239ff", "url_pattern": "^https://shop\\.example\\.com/game/", "url_pattern_hint": "", "provider": "gog", "launcher_name": "GOG Galaxy", "install_hint": "", "game_platform": null, "position": 1},
-    {"uuid": "f45fb021-0000-4000-8000-000000000001", "name": "Other Store", "icon": "", "color": "#f97316", "url_pattern": "^https://other\\.example\\.com/", "url_pattern_hint": "", "provider": "", "position": 3}
+    {"uuid": "d9e0e0e0-0000-4000-8000-000000000001", "name": "Steam", "icon": "FaSteam", "color": "#71717a", "url_pattern": "^https://store\\.example\\.com/app/", "url_pattern_hint": "", "provider": "steam", "launcher_name": "", "install_hint": "Right-click the game, then **Manage** and **Browse local files**.", "game_platform": "8ee0e0e0-0000-4000-8000-000000000001", "position": 2},
+    {"uuid": "bae0e0e0-0000-4000-8000-000000000001", "name": "GOG", "icon": "SiGogdotcom", "color": "#6239ff", "url_pattern": "^https://shop\\.example\\.com/game/", "url_pattern_hint": "", "provider": "gog", "launcher_name": "GOG Galaxy", "install_hint": "", "game_platform": null, "position": 1},
+    {"uuid": "f4e0e0e0-0000-4000-8000-000000000001", "name": "Other Store", "icon": "", "color": "#f97316", "url_pattern": "^https://other\\.example\\.com/", "url_pattern_hint": "", "provider": "", "position": 3}
   ],
   "config": {
     "contact": {"email": "contact@example.com"},

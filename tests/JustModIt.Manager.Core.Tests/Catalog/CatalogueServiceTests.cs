@@ -35,7 +35,7 @@ public sealed class CatalogueServiceTests : IDisposable
         _announced.Select(announced => announced.State).Should().Equal(CatalogueState.Refreshing, CatalogueState.Fresh);
         service.Current.Should().BeSameAs(snapshot);
         _directory.Files().Should().BeEquivalentTo(
-            "listing.json", "index.json", "site.json", Path.Combine("projects", "50d8a47a-0000-4000-8000-000000000003.json"));
+            "listing.json", "index.json", "site.json", Path.Combine("projects", "50e0e0e0-0000-4000-8000-000000000003.json"));
     }
 
     [Fact]
@@ -271,7 +271,7 @@ public sealed class CatalogueServiceTests : IDisposable
     {
         var service = Create();
         await service.RefreshAsync(StarlightOnly, Token);
-        var locator = new ProjectLocator("ember-road", "paper-moth", Guid.Parse("50d8a47a-0000-4000-8000-000000000002"));
+        var locator = new ProjectLocator("ember-road", "paper-moth", Guid.Parse("50e0e0e0-0000-4000-8000-000000000002"));
 
         await service.GetProjectPageAsync(locator, PageFreshness.Current, Token);
         await service.GetProjectPageAsync(locator, PageFreshness.Current, Token);

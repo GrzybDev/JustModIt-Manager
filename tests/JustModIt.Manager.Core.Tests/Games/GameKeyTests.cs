@@ -22,9 +22,9 @@ public sealed class GameKeyTests
     [Fact]
     public void A_key_round_trips_through_its_text()
     {
-        var key = new GameKey(StoreId.Gog, "59534219748634025");
+        var key = new GameKey(StoreId.Gog, "54321098765432109");
 
-        key.ToString().Should().Be("gog:59534219748634025");
+        key.ToString().Should().Be("gog:54321098765432109");
         GameKey.TryParse(key.ToString(), out var parsed).Should().BeTrue();
         parsed.Should().Be(key);
     }
@@ -43,7 +43,7 @@ public sealed class GameKeyTests
     [InlineData("")]
     [InlineData("steam")]
     [InlineData("steam:")]
-    [InlineData(":620")]
+    [InlineData(":1000")]
     [InlineData("steam: ")]
     public void Malformed_keys_are_rejected(string? text) => GameKey.TryParse(text, out _).Should().BeFalse();
 }

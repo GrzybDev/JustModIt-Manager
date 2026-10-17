@@ -23,7 +23,7 @@ public sealed class InstallLinkTests
         var link = new InstallTarget("ember-hollow", "lantern-team", "ember-hollow", ["tekstury"]);
         var steam = Available("Ember Hollow", "4100", Ember);
         var otherSteam = Available("Ember Hollow", "4101", Ember);
-        var gog = Installed("Ember Hollow", "4100", offer: Ember) with { Key = new GameKey(StoreId.Gog, "1207658924") };
+        var gog = Installed("Ember Hollow", "4100", offer: Ember) with { Key = new GameKey(StoreId.Gog, "1100000001") };
 
         ShouldOpenGame(AgentLinks.RoutesFor(link, State(steam, gog)), gog.Key);
         ShouldOpenGame(AgentLinks.RoutesFor(link, State(steam, otherSteam)), steam.Key);

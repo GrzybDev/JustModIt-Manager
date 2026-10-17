@@ -23,6 +23,9 @@ Thumbs.db
 .env.*
 *.pfx
 
+# The games of the developer's machine that the live tests use
+/tests/live-games.json
+
 # Claude Code local state
 .claude/worktrees/
 .claude/settings.local.json

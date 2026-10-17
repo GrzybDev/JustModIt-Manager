@@ -5,8 +5,8 @@ namespace JustModIt.Manager.Core.Tests.Settings;
 
 public sealed class AppSettingsTests
 {
-    private static readonly GameKey Witcher = new(StoreId.Gog, "1207658924");
-    private static readonly GameKey Portal = new(StoreId.Steam, "400");
+    private static readonly GameKey GogGame = new(StoreId.Gog, "1100000001");
+    private static readonly GameKey SteamGame = new(StoreId.Steam, "1000");
 
     [Fact]
     public void Every_setting_starts_at_its_intended_default()
@@ -36,14 +36,14 @@ public sealed class AppSettingsTests
     public void A_game_back_at_its_defaults_is_no_longer_stored_and_others_stay()
     {
         var settings = AppSettings.Default
-            .WithGame(Witcher, preferences => preferences with { IsHidden = true })
-            .WithGame(Portal, preferences => preferences with { ProjectId = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920") });
+            .WithGame(GogGame, preferences => preferences with { IsHidden = true })
+            .WithGame(SteamGame, preferences => preferences with { ProjectId = Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920") });
 
-        var updated = settings.WithGame(Witcher, preferences => preferences with { IsHidden = false });
+        var updated = settings.WithGame(GogGame, preferences => preferences with { IsHidden = false });
 
-        updated.Games.Keys.Should().Equal(Portal);
-        updated.GetGame(Witcher).Should().Be(GamePreferences.Default);
-        updated.GetGame(Portal).ProjectId.Should().Be(Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920"));
+        updated.Games.Keys.Should().Equal(SteamGame);
+        updated.GetGame(GogGame).Should().Be(GamePreferences.Default);
+        updated.GetGame(SteamGame).ProjectId.Should().Be(Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e920"));
     }
 
     [Fact]
@@ -51,22 +51,22 @@ public sealed class AppSettingsTests
     {
         var settings = AppSettings.Default with { AutoInstallProjects = true, AutoUpdateProjects = false };
 
-        settings.ResolveAutoInstall(Witcher).Should().BeTrue();
-        settings.ResolveAutoUpdate(Witcher).Should().BeFalse();
-        settings.WithGame(Witcher, preferences => preferences with { AutoInstall = false }).ResolveAutoInstall(Witcher).Should().BeFalse();
+        settings.ResolveAutoInstall(GogGame).Should().BeTrue();
+        settings.ResolveAutoUpdate(GogGame).Should().BeFalse();
+        settings.WithGame(GogGame, preferences => preferences with { AutoInstall = false }).ResolveAutoInstall(GogGame).Should().BeFalse();
     }
 
     [Fact]
     public void A_choice_equal_to_the_global_setting_is_stored_as_following_it()
     {
-        var settings = AppSettings.Default.ChooseAutoInstall(Witcher, true).ChooseAutoUpdate(Witcher, false);
+        var settings = AppSettings.Default.ChooseAutoInstall(GogGame, true).ChooseAutoUpdate(GogGame, false);
 
-        settings.GetGame(Witcher).AutoInstall.Should().BeTrue();
-        settings.GetGame(Witcher).AutoUpdate.Should().BeFalse();
+        settings.GetGame(GogGame).AutoInstall.Should().BeTrue();
+        settings.GetGame(GogGame).AutoUpdate.Should().BeFalse();
 
-        var back = settings.ChooseAutoInstall(Witcher, false).ChooseAutoUpdate(Witcher, true);
+        var back = settings.ChooseAutoInstall(GogGame, false).ChooseAutoUpdate(GogGame, true);
 
-        back.GetGame(Witcher).Should().Be(GamePreferences.Default);
+        back.GetGame(GogGame).Should().Be(GamePreferences.Default);
         back.Games.Should().BeEmpty();
     }
 

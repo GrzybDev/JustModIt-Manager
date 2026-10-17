@@ -1,0 +1,30 @@
+// The games installed on this machine that the live tests use. Copy this file to live-games.json beside it, which git
+// ignores, and replace these invented values with games of your own, each installed as its store left it.
+{
+  // Steam app ids of games with a project on the site.
+  "steam": {
+    // Its release installs, and its Steam page lists the app's target language.
+    "targetLanguage": "1000010",
+    // Its release only adds files, and its Steam page does not list the target language.
+    "addsFiles": "1000020",
+    // Its release replaces one of the game's files.
+    "replacesFiles": "1000030",
+    // Its project is only announced, with no release yet.
+    "announced": "1000040"
+  },
+  // A Steam game whose release has an add-on that renames one of the game's libraries away and puts its own in its
+  // place, and whose software rewrites a game file while the game runs, keeping the file as the store ships it beside it.
+  "creator": {
+    "game": "1000030",
+    "renamedFile": "bin/library.dll",
+    "renamedTo": "bin/library_original.dll",
+    "rewrittenFile": "data/list.idx",
+    "createdFile": "data/list_original.idx",
+    "addOnFolders": ["bin/", "movies/"]
+  },
+  // An Epic game that Heroic's Legendary installed into a Steam library's folder; leave it out when there is none.
+  "epic": {
+    "namespace": "0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+    "appName": "fedcba9876543210fedcba9876543210"
+  }
+}

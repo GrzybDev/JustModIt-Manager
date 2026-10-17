@@ -134,11 +134,11 @@ public sealed class CatalogueTests
         var page = Page(ui);
         await UiHarness.WaitUntilAsync(() => page.HasAnswer);
 
-        Type(ui, "metro exodus");
+        Type(ui, "sunken lagoon");
         await UiHarness.WaitUntilAsync(() => page.Content == CatalogueContent.NoResults);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render("catalogue-no-results");
-        page.EmptyTitle.Should().Be("Nic nie pasuje do „metro exodus”");
+        page.EmptyTitle.Should().Be("Nic nie pasuje do „sunken lagoon”");
         page.ShowsTeams.Should().BeFalse("no team has a game to show");
         page.AllCount.Should().Be(0);
 
@@ -189,13 +189,13 @@ public sealed class CatalogueTests
     [AvaloniaFact]
     public void A_card_tells_what_its_project_last_did_by_its_status_as_the_sites_cards_do()
     {
-        var card = new CatalogueCardViewModel(Id("White Whisper"));
+        var card = new CatalogueCardViewModel(Id("Quiet Bell"));
         void Show(ProjectStatusView status, int announcedDaysAgo, int changedDaysAgo, int? completedDaysAgo = null) => card.Update(
-            new CatalogueGameView(card.Id, "white-whisper", "White Whisper")
+            new CatalogueGameView(card.Id, "quiet-bell", "Quiet Bell")
             {
                 Projects =
                 [
-                    new CatalogueProjectView(Id("White Whisper project"), "white-whisper", "White Whisper", TestGames.Lanterns)
+                    new CatalogueProjectView(Id("Quiet Bell project"), "quiet-bell", "Quiet Bell", TestGames.Lanterns)
                     {
                         Status = status,
                         FirstPublishedAt = TestStates.Now.AddDays(-announcedDaysAgo),

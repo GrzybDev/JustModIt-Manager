@@ -69,8 +69,8 @@ public sealed class FrameCodecTests
     [Fact]
     public void Navigation_target_names_its_page()
     {
-        Json(new EventFrame(new Navigate(new GameTarget("steam", "480"))))
-            .Should().Be("""{"kind":"event","payload":{"type":"navigate","target":{"page":"game","store":"steam","gameId":"480"}}}""");
+        Json(new EventFrame(new Navigate(new GameTarget("steam", "1000"))))
+            .Should().Be("""{"kind":"event","payload":{"type":"navigate","target":{"page":"game","store":"steam","gameId":"1000"}}}""");
     }
 
     [Fact]
