@@ -26,7 +26,7 @@ internal sealed class EpicFolderSource(IFileSystem fileSystem, AppPlatform platf
                 {
                     AppName = manifest.AppName!,
                     CatalogItemId = LauncherJson.NullIfBlank(manifest.CatalogItemId),
-                    Name = Path.GetFileName(folder),
+                    Name = LauncherJson.NullIfBlank(Path.GetFileName(folder)),
                     Platform = platform.AsOperatingSystem(),
                 },
             ];

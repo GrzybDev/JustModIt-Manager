@@ -1,3 +1,6 @@
+using System.Buffers;
+using System.Collections.Immutable;
+using System.Text.Json;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
@@ -235,6 +238,32 @@ public sealed class EpicLibraryProviderTests
         (await provider.InspectFolderAsync(Folder, Token)).Should().Be(LibraryFolderEvidence.Accepted(Folder));
         (await provider.InspectFolderAsync(@"D:\Copied", Token)).Should().Be(LibraryFolderEvidence.None);
         (await provider.InspectFolderAsync(@"D:\Empty", Token)).Should().Be(LibraryFolderEvidence.None);
+    }
+
+    [Fact]
+    public async Task A_game_folder_at_a_drive_root_is_named_after_its_app_and_survives_the_saved_snapshot()
+    {
+        const string root = @"E:\";
+        AddManifest(root, Namespace, "ExampleApp");
+
+        var scan = await CreateProvider().ScanAsync(new LibraryScanContext(new ValueList<string>([root])), Token);
+        var game = scan.Games.Should().ContainSingle().Which;
+        var saved = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(saved))
+        {
+            writer.WriteStartObject();
+            LibrarySnapshotFormat.Instance.Write(writer, new LibrarySnapshot
+            {
+                Games = new ValueDictionary<GameKey, InstalledGame>(ImmutableDictionary<GameKey, InstalledGame>.Empty.Add(game.Key, game)),
+            });
+            writer.WriteEndObject();
+        }
+
+        using var json = JsonDocument.Parse(saved.WrittenMemory);
+        var loaded = LibrarySnapshotFormat.Instance.Read(json.RootElement, LibrarySnapshotFormat.Instance.CurrentVersion);
+
+        game.Name.Should().Be("ExampleApp");
+        loaded.Find(Example).Should().Be(game);
     }
 
     [Fact]
