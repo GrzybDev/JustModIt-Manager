@@ -7,6 +7,6 @@
     <ProjectReference Include="..\JustModIt.Manager.Core\JustModIt.Manager.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="JustModIt.Manager.Protocol.Tests" />
+    <InternalsVisibleTo Include="JustModIt.Manager.Ui.Tests" />
   </ItemGroup>
 </Project>

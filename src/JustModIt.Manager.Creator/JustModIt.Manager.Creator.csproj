@@ -5,7 +5,4 @@
   <ItemGroup>
     <EmbeddedResource Include="Rules\HostingRules.json" LogicalName="JustModIt.Manager.Creator.HostingRules.json" />
   </ItemGroup>
-  <ItemGroup>
-    <InternalsVisibleTo Include="JustModIt.Manager.Creator.Tests" />
-  </ItemGroup>
 </Project>
