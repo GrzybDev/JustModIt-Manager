@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <AvaloniaVersion>12.1.3</AvaloniaVersion>
-    <MicrosoftExtensionsVersion>10.0.13</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsVersion>10.0.14</MicrosoftExtensionsVersion>
   </PropertyGroup>
 
   <ItemGroup Label="UI">

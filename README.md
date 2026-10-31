@@ -66,7 +66,7 @@ This repository holds the shared platform and the two apps built on it:
 
 ## Building from source
 
-Requirements: Windows 10/11 x64, the [.NET SDK](https://dotnet.microsoft.com/download) from `global.json` (10.0.402),
+Requirements: Windows 10/11 x64, the [.NET SDK](https://dotnet.microsoft.com/download) version from `global.json`,
 and Visual Studio 2022/2026 or Build Tools with the "Desktop development with C++" workload for the native xdelta3 shim.
 
 ```bash

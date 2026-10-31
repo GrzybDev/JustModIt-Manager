@@ -67,7 +67,7 @@ Dokumentacja techniczna jest po angielsku.
 
 ## Budowanie ze źródeł
 
-Wymagania: Windows 10/11 x64, [.NET SDK](https://dotnet.microsoft.com/download) z `global.json` (10.0.402) oraz
+Wymagania: Windows 10/11 x64, [.NET SDK](https://dotnet.microsoft.com/download) w wersji z `global.json` oraz
 Visual Studio 2022/2026 albo Build Tools z komponentem „Programowanie aplikacji klasycznych w języku C++” do natywnej
 biblioteki xdelta3.
 

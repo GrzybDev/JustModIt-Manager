@@ -21,7 +21,7 @@ identify what they refer to, which does not mean that their owners endorse the a
 - Website: https://github.com/dotnet/runtime
 - Licence: MIT (see "MIT License")
 - Copyright: Copyright (c) .NET Foundation and Contributors
-- NuGet packages: Microsoft.DotNet.ILCompiler 10.0.13, runtime.win-x64.Microsoft.DotNet.ILCompiler 10.0.13
+- NuGet packages: Microsoft.DotNet.ILCompiler 10.0.14, runtime.win-x64.Microsoft.DotNet.ILCompiler 10.0.14
 - Use: the runtime and the base class libraries, compiled into the app's executable by the NativeAOT compiler that
   these packages hold; the compiler itself does not ship.
 
@@ -33,7 +33,7 @@ compiled app does not show which of them it contains, so ".NET – THIRD-PARTY-N
 - Website: https://github.com/dotnet/runtime
 - Licence: MIT (see "MIT License")
 - Copyright: Copyright (c) .NET Foundation and Contributors
-- NuGet packages: Microsoft.Extensions.DependencyInjection 10.0.13, Microsoft.Extensions.DependencyInjection.Abstractions 10.0.13, Microsoft.Extensions.Logging 10.0.13, Microsoft.Extensions.Logging.Abstractions 10.0.13, Microsoft.Extensions.Options 10.0.13, Microsoft.Extensions.Primitives 10.0.13
+- NuGet packages: Microsoft.Extensions.DependencyInjection 10.0.14, Microsoft.Extensions.DependencyInjection.Abstractions 10.0.14, Microsoft.Extensions.Logging 10.0.14, Microsoft.Extensions.Logging.Abstractions 10.0.14, Microsoft.Extensions.Options 10.0.14, Microsoft.Extensions.Primitives 10.0.14
 - Use: dependency injection and logging, compiled into the app's executable.
 
 These packages come from the same repository as .NET and carry the same notices, reproduced in ".NET –
@@ -996,7 +996,7 @@ in "SkiaSharp and HarfBuzzSharp – THIRD-PARTY-NOTICES.txt".
 ### .NET – THIRD-PARTY-NOTICES.TXT
 
 `THIRD-PARTY-NOTICES.TXT` of the packages Microsoft.DotNet.ILCompiler and runtime.win-x64.Microsoft.DotNet.ILCompiler
-10.0.13, which every Microsoft.Extensions package listed above carries too:
+10.0.14, which every Microsoft.Extensions package listed above carries too:
 
 ```text
 .NET Runtime uses third-party libraries or other resources that may be
