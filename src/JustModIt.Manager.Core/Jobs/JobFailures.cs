@@ -83,6 +83,11 @@ internal static class JobFailures
             return new JobFailure(JobFailureReason.BackupFolderUnavailable) { Location = backups.Directory };
         }
 
+        if (issues.OfType<OriginalsMissingIssue>().FirstOrDefault() is { } originals)
+        {
+            return new JobFailure(JobFailureReason.OriginalsMissing) { Files = originals.Paths };
+        }
+
         if (issues.OfType<GameManagedByOtherAppIssue>().FirstOrDefault() is { } managed)
         {
             return new JobFailure(JobFailureReason.ManagedByOtherApp) { OtherApp = managed.App, Location = managed.Directory };

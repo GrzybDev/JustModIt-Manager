@@ -102,16 +102,22 @@ public sealed class KeptFilesTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Kept_copies_an_install_takes_over_from_a_folder_that_is_not_there_refuse_it()
+    public async Task Kept_copies_on_an_unplugged_drive_refuse_an_install_while_deleted_ones_leave_the_original_uncertain()
     {
-        var first = await InstallAsync(Software());
-        Play(_harness);
-        await _harness.Engine.UninstallAsync(first.Record.Id, [_harness.ManifestPackage(Software())], null, InstallHarness.Token);
-        Directory.Move(first.Record.Backup.Directory, first.Record.Backup.Directory + " on an unplugged drive");
+        await using var harness = WithList(InstallHarness.At("custom folder on another drive"));
+        var first = await harness.InstallAsync(harness.ManifestPackage(Software()));
+        Play(harness);
+        await harness.Engine.UninstallAsync(first.Record.Id, [harness.ManifestPackage(Software())], null, InstallHarness.Token);
+        var unplugged = harness.CustomFolder + " on an unplugged drive";
+        Directory.Move(harness.CustomFolder, unplugged);
 
-        var blocked = await _harness.InstallBlockedAsync(_harness.ManifestPackage(Software()));
+        var blocked = await harness.InstallBlockedAsync(harness.ManifestPackage(Software()));
+        Directory.Move(unplugged, harness.CustomFolder);
+        Directory.Delete(first.Record.Backup.Directory, recursive: true);
+        var second = await harness.InstallAsync(harness.ManifestPackage(Software()));
 
-        blocked.Issues.Should().Equal(new BackupFolderUnavailableIssue(first.Record.Backup.Directory));
+        blocked.Issues.Should().Contain(new BackupFolderUnavailableIssue(first.Record.Backup.Directory));
+        (await harness.FilesOnDiskAsync(second.Record.Id)).Files.Single(file => file.Path == List).OriginalUncertain.Should().BeTrue();
     }
 
     [Fact]

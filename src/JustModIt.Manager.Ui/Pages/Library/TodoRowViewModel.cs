@@ -250,8 +250,12 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
     private void ShowBackups(GameView game, InstallView install)
     {
         Kind = TodoKind.Backups;
-        Line = new LineContent(Icons.TriangleAlert, Tone.Warning, Strings.Library_StateBackups,
-            Text.Format(Strings.Library_BackupsDetail, ("folder", install.Status.BackupDirectory ?? install.BackupDirectory)));
+        Line = install.MissingOriginals.Count > 0
+            ? new LineContent(Icons.TriangleAlert, Tone.Warning, Strings.Library_StateOriginalsMissing,
+                Text.Format(Strings.Library_OriginalsMissingDetail, ("store", GameWording.StoreName(game.Key.Store)),
+                    ("storeId", game.Key.Store.Value)))
+            : new LineContent(Icons.TriangleAlert, Tone.Warning, Strings.Library_StateBackups,
+                Text.Format(Strings.Library_BackupsDetail, ("folder", install.Status.BackupDirectory ?? install.BackupDirectory)));
         Act(Strings.Library_Open, Icons.ArrowRight, Text.Format(Strings.Library_OpenName, ("game", game.Name)));
     }
 

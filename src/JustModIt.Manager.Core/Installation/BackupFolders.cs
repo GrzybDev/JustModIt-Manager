@@ -79,6 +79,14 @@ internal static class BackupFolders
     /// <param name="backupDirectory">The record's backup folder.</param>
     public static bool IsAvailable(string backupDirectory) => Directory.Exists(backupDirectory);
 
+    /// <summary>
+    /// Whether the folder is there, or else was deleted: the folder it lives in (the game's, the app's data folder or the
+    /// player's) is there, which a disconnected drive or a renamed folder of the player's would not leave.
+    /// </summary>
+    /// <param name="backupDirectory">The record's backup folder.</param>
+    public static bool IsReachable(string backupDirectory) =>
+        Directory.Exists(backupDirectory) || Directory.Exists(Path.GetDirectoryName(OwnedRootOf(backupDirectory)));
+
     /// <summary>Whether an install keeps any originals in its backup folder.</summary>
     /// <param name="files">The install's files.</param>
     public static bool KeepsOriginals(InstalledFiles files) => files.Files.Any(file => file.Backup is not null);

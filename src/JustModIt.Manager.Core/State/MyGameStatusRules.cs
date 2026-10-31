@@ -18,7 +18,7 @@ internal static class MyGameStatusRules
     /// <param name="project">The installed project as the catalogue has it now; null when it does not have it.</param>
     /// <param name="repair">What verification found wrong with the install; null while it is intact or unchecked.</param>
     /// <param name="hasJob">The game has a job, which keeps every install on it from changing otherwise.</param>
-    /// <param name="backupsUnavailable">The folder holding the install's originals is not there.</param>
+    /// <param name="backupsUnavailable">The originals the install would put back cannot be reached or were deleted.</param>
     /// <param name="choices">The player's choices and the install's record, which an update or a repair follows.</param>
     public static MyGameStatus Resolve(InstalledGame? game, InstallRecord record, ProjectOffer? project, RepairReason? repair,
         bool hasJob, bool backupsUnavailable, FeatureChoices choices)

@@ -251,6 +251,23 @@ public sealed class AutomationScenarioTests
     }
 
     [Fact]
+    public async Task Looks_at_the_backups_before_it_updates_on_its_own()
+    {
+        using var drive = new TempDirectory();
+        await using var app = new CoordinatorHarness(AutoInstall).WithGameAndProject();
+        var record = app.Engine.Add(Record(backup: new BackupFolder(BackupLocation.CustomFolder,
+            Path.Join(drive.Path, "unplugged", "ExampleApp", "steam-1", "install"))));
+        app.Engine.Backups[record.Id] = true;
+        app.PublishReleaseTwo();
+
+        await app.StartAsync();
+
+        await app.GameAsync(game => game.Status.State == MyGameState.BackupsUnavailable, "the originals cannot be reached");
+        await Eventually.SettleAsync();
+        app.Downloader.Downloads.Should().BeEmpty("an update the backups would refuse is not downloaded, and counted, in vain");
+    }
+
+    [Fact]
     public async Task A_player_who_cancels_an_automatic_update_gets_the_game_left_alone()
     {
         await using var app = new CoordinatorHarness(AutoInstall).WithGameAndProject();

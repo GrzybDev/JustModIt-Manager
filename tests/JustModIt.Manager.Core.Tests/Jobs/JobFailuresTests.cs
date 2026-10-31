@@ -195,6 +195,7 @@ public sealed class JobFailuresTests
         nameof(PermissionRequiredIssue) => new PermissionRequiredIssue("a"),
         nameof(NotEnoughSpaceIssue) => new NotEnoughSpaceIssue("folder", 2, 1),
         nameof(BackupFolderUnavailableIssue) => new BackupFolderUnavailableIssue("folder"),
+        nameof(OriginalsMissingIssue) => new OriginalsMissingIssue(["a.pak"]),
         _ => throw new InvalidOperationException($"{type.Name} needs an example here."),
     };
 }

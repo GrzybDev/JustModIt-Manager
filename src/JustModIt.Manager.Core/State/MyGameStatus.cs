@@ -32,8 +32,9 @@ public enum MyGameState
     Orphaned,
 
     /// <summary>
-    /// Installed, but the folder holding the originals is not there, e.g. on a disconnected drive, so the install can be
-    /// neither uninstalled nor replaced; see <see cref="MyGameStatus.BackupDirectory"/>.
+    /// Installed, but the originals it would put back cannot be had: their folder cannot be reached, e.g. on a disconnected
+    /// drive, or their copies were deleted (<see cref="MyInstall.MissingOriginals"/>) until the store brings the originals
+    /// back; so the install can be neither uninstalled nor replaced. See <see cref="MyGameStatus.BackupDirectory"/>.
     /// </summary>
     BackupsUnavailable,
 

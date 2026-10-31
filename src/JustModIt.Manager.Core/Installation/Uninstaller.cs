@@ -92,10 +92,20 @@ internal sealed record UninstallPlan(IReadOnlyList<UndoStep> Steps, IReadOnlyLis
     /// </summary>
     public IReadOnlyList<InstalledFile> Left { get; init; } = [];
 
+    /// <summary>
+    /// Files whose originals the uninstall would put back but whose copies are gone, game-relative; while there are any, the
+    /// uninstall is refused, since it would leave the package's files with nothing to tell the store's from.
+    /// </summary>
+    public IReadOnlyList<string> MissingOriginals { get; init; } = [];
+
     /// <summary>This plan together with the plan for the files the package's software changes.</summary>
     /// <param name="runtime">The plan for those files.</param>
     public UninstallPlan With(RuntimeUndoPlan runtime) =>
-        new([.. Steps, .. runtime.Steps], [.. Kept, .. runtime.Kept]) { Left = [.. Left, .. runtime.Left] };
+        new([.. Steps, .. runtime.Steps], [.. Kept, .. runtime.Kept])
+        {
+            Left = [.. Left, .. runtime.Left],
+            MissingOriginals = MissingOriginals,
+        };
 }
 
 /// <summary>
@@ -125,6 +135,7 @@ internal static class Uninstaller
             FileInspector.BytesToHash(checkedFiles));
         var steps = new List<UndoStep>();
         var kept = new List<KeptFile>();
+        var missing = new List<string>();
         foreach (var (file, path, integrity) in await FileInspector.InspectAllAsync(checkedFiles, game, tracker, cancellationToken)
                      .ConfigureAwait(false))
         {
@@ -135,8 +146,8 @@ internal static class Uninstaller
                     break;
                 case UndoAction.Nothing:
                     break;
-                case UndoAction.Restore when file.Backup is null || !File.Exists(Path.Join(record.Backup.Directory, file.Backup)):
-                    kept.Add(new KeptFile(file.Path, KeptReason.BackupMissing));
+                case UndoAction.Restore when !HasCopy(file, record.Backup.Directory):
+                    missing.Add(file.Path);
                     break;
                 case { } action:
                     steps.Add(new UndoStep(file, path!, action));
@@ -144,8 +155,15 @@ internal static class Uninstaller
             }
         }
 
-        return new UninstallPlan(steps, kept);
+        return new UninstallPlan(steps, kept) { MissingOriginals = missing };
     }
+
+    /// <summary>Whether an uninstall would put the file's original back from a copy that is not there.</summary>
+    /// <param name="file">The file as the install's record lists it.</param>
+    /// <param name="integrity">What the file is now.</param>
+    /// <param name="backupDirectory">The install's backup folder.</param>
+    public static bool MissesOriginal(InstalledFile file, FileIntegrity integrity, string backupDirectory) =>
+        Decide(file, integrity) == UndoAction.Restore && !HasCopy(file, backupDirectory);
 
     /// <summary>What a file holds once the uninstall is done: its original, nothing, or whatever it holds now.</summary>
     /// <param name="step">What the uninstall does with the file.</param>
@@ -291,6 +309,9 @@ internal static class Uninstaller
         // A deleted original is intact while it is absent, and a missing replaced file gets its original back.
         _ => UndoAction.Restore,
     };
+
+    private static bool HasCopy(InstalledFile file, string backupDirectory) =>
+        file.Backup is { } name && File.Exists(Path.Join(backupDirectory, name));
 
     // The backup is checked against its original before it may go back, moved as it is or copied to staging. Returns the
     // file to rename into place, or null when the backup no longer holds the original.

@@ -113,9 +113,18 @@ public sealed record PermissionRequiredIssue(string Path) : InstallIssue;
 /// <param name="AvailableBytes">The bytes free there.</param>
 public sealed record NotEnoughSpaceIssue(string Location, long RequiredBytes, long AvailableBytes) : InstallIssue;
 
-/// <summary>The folder holding the originals is not there, e.g. on a disconnected drive; it is never recreated empty.</summary>
+/// <summary>
+/// The folder holding the originals cannot be reached, e.g. on a disconnected drive; it is never recreated empty.
+/// </summary>
 /// <param name="Directory">A full path.</param>
 public sealed record BackupFolderUnavailableIssue(string Directory) : InstallIssue;
+
+/// <summary>
+/// Files the operation would have to put back hold no original any more: their copies were deleted, e.g. with the backup
+/// folder. The store brings the originals back by checking or reinstalling the game's files.
+/// </summary>
+/// <param name="Paths">The files, game-relative.</param>
+public sealed record OriginalsMissingIssue(ValueList<string> Paths) : InstallIssue;
 
 /// <summary>Something to tell the player about an operation that can go ahead.</summary>
 public abstract record InstallWarning;

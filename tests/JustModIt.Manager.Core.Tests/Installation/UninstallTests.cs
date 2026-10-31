@@ -73,26 +73,47 @@ public sealed class UninstallTests : IAsyncDisposable
         _harness.ReadGameFile("mods/pack/notes.txt").Should().Be("mine");
     }
 
-    [Theory]
-    [InlineData(false, KeptReason.BackupMissing)]
-    [InlineData(true, KeptReason.BackupDamaged)]
-    public async Task Keeps_the_installed_file_when_its_backup_is_missing_or_damaged(bool damaged, KeptReason reason)
+    [Fact]
+    public async Task Keeps_the_installed_file_when_its_backup_is_damaged()
     {
         var result = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed"));
-        var backup = Path.Join(result.Record.Backup.Directory, "0");
-        if (damaged)
-        {
-            await File.WriteAllTextAsync(backup, "Read m3", InstallHarness.Token);
-        }
-        else
-        {
-            File.Delete(backup);
-        }
+        await File.WriteAllTextAsync(Path.Join(result.Record.Backup.Directory, "0"), "Read m3", InstallHarness.Token);
 
         var uninstalled = await _harness.UninstallAsync(result.Record.Id);
 
-        uninstalled.KeptFiles.Should().Equal(new KeptFile("readme.txt", reason));
+        uninstalled.KeptFiles.Should().Equal(new KeptFile("readme.txt", KeptReason.BackupDamaged));
         _harness.ReadGameFile("readme.txt").Should().Be("Changed");
+    }
+
+    [Fact]
+    public async Task Waits_for_the_store_to_bring_back_originals_deleted_with_the_backup_folder()
+    {
+        var result = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed").Copy("new.txt", "New").Delete("movies/intro.bik"));
+        Directory.Delete(_harness.HiddenDirectory, recursive: true);
+        OriginalsMissingIssue missing = new(["readme.txt", "movies/intro.bik"]);
+
+        var failure = InstallBlockedException(await UninstallFailureAsync(result.Record.Id));
+        var prediction = await _harness.Engine.PredictReplacementAsync(result.Record.Id,
+            _harness.Request(_harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Newer"))), null, InstallHarness.Token);
+        var verified = await _harness.Engine.VerifyAsync(result.Record.Id, null, InstallHarness.Token);
+
+        failure.Issues.Should().Equal(missing);
+        prediction.Issues.Should().Contain(missing);
+        verified.MissingOriginals.Should().Equal(missing.Paths);
+        (await _harness.Engine.CheckOriginalsAsync(result.Record.Id, InstallHarness.Token)).Should().Equal(missing);
+        _harness.ReadGameFile("readme.txt").Should().Be("Changed");
+        _harness.ReadGameFile("new.txt").Should().Be("New");
+        Directory.Exists(result.Record.Backup.Directory).Should().BeFalse("a deleted backup folder is never recreated empty");
+
+        // The store's check of the files brings its own files back and leaves the one the project added.
+        _harness.WriteGameFile("readme.txt", "Read me");
+        _harness.WriteGameFile("movies/intro.bik", "video");
+        (await _harness.Engine.CheckOriginalsAsync(result.Record.Id, InstallHarness.Token)).Should().BeEmpty();
+        var uninstalled = await _harness.UninstallAsync(result.Record.Id);
+
+        uninstalled.KeptFiles.Should().BeEmpty();
+        _harness.Snapshot().Should().BeEquivalentTo(_before);
+        _harness.AppFiles().Should().BeEmpty();
     }
 
     [Fact]

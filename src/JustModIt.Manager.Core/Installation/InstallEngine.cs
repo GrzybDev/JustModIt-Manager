@@ -444,9 +444,10 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         }
     }
 
-    // A record that keeps backups needs its backup folder; one on a disconnected drive is never recreated empty.
+    // A record that keeps backups needs its backup folder; one on a disconnected drive is never recreated empty. A deleted
+    // one is no reason by itself: only originals the operation has to put back are missed, and the plan names them.
     private static BackupFolderUnavailableIssue? BackupsUnavailable(InstallRecord record, InstalledFiles files) =>
-        BackupFolders.KeepsOriginals(files) && !BackupFolders.IsAvailable(record.Backup.Directory)
+        BackupFolders.KeepsOriginals(files) && !BackupFolders.IsReachable(record.Backup.Directory)
             ? new BackupFolderUnavailableIssue(record.Backup.Directory)
             : null;
 

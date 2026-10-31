@@ -57,6 +57,7 @@ internal static class GameWording
         return Text.Format(Strings.GamePage_FailureReason,
             ("reason", failure.Reason.ToString()),
             ("store", StoreName(store)),
+            ("storeId", store.Value),
             ("game", game),
             ("state", state),
             ("processes", string.Join(", ", failure.Processes)),

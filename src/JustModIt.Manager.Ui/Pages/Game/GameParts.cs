@@ -102,6 +102,9 @@ public sealed record NextStep(StepKind Kind, Tone Tone, Geometry Icon, string Ti
     /// <summary>The step points to the team's notes further down.</summary>
     public bool PointsToNotes { get; init; }
 
+    /// <summary>The files the step is about, unfolded under its text on request; null for none.</summary>
+    public FileListView? Files { get; init; }
+
     public bool HasWarning => Warning.Length > 0;
 
     public bool HasPrimary => Primary is not null;
@@ -190,7 +193,7 @@ public sealed record InstallRow(Guid Id, string Title, string When, string Detai
     public Message? ActionRequest { get; init; }
 
     /// <summary>The files the install's software changes while the game runs; null when it changes none.</summary>
-    public RuntimeFilesView? RuntimeFiles { get; init; }
+    public FileListView? RuntimeFiles { get; init; }
 
     /// <summary>The software the install's packages carry, with its licences; null when they carry none.</summary>
     public LicensesView? Licenses { get; init; }
@@ -204,11 +207,13 @@ public sealed record InstallRow(Guid Id, string Title, string When, string Detai
 }
 
 /// <summary>
-/// The game files an install's software changes while the game runs, listed under the line that tells of them once the
-/// player unfolds them; kept across the page's states, so unfolding them keeps the row and the toggle's focus.
+/// Game files listed under the line that tells of them once the player unfolds them, such as those an install's software
+/// changes while the game runs; kept across the page's states, so unfolding them keeps the row and the toggle's focus.
 /// </summary>
 /// <param name="paths">The files, game-relative.</param>
-public sealed partial class RuntimeFilesView(IReadOnlyList<string> paths) : ObservableObject
+/// <param name="show">The toggle's label while the files are folded.</param>
+/// <param name="hide">The toggle's label while they are unfolded.</param>
+public sealed partial class FileListView(IReadOnlyList<string> paths, string show, string hide) : ObservableObject
 {
     public IReadOnlyList<string> Paths { get; } = paths;
 
@@ -216,7 +221,7 @@ public sealed partial class RuntimeFilesView(IReadOnlyList<string> paths) : Obse
     [NotifyPropertyChangedFor(nameof(Toggle), nameof(ToggleIcon))]
     public partial bool AreShown { get; set; }
 
-    public string Toggle => AreShown ? Strings.GamePage_RuntimeHide : Strings.GamePage_RuntimeShow;
+    public string Toggle => AreShown ? hide : show;
 
     public Geometry ToggleIcon => AreShown ? Theme.Icons.ChevronUp : Theme.Icons.ChevronDown;
 

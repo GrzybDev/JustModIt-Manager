@@ -282,20 +282,48 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
-    public async Task An_install_whose_originals_are_gone_is_reported_until_the_player_finds_them_back()
+    public async Task An_install_whose_originals_cannot_be_reached_is_reported_until_the_player_finds_them_back()
     {
         using var drive = new TempDirectory();
         await using var app = new CoordinatorHarness().WithGameAndProject();
-        var record = app.Engine.Add(Record(backup: new BackupFolder(BackupLocation.AppData, drive.Combine("backups"))));
+        var record = app.Engine.Add(Record(backup: new BackupFolder(BackupLocation.CustomFolder,
+            Path.Join(drive.Path, "unplugged", "ExampleApp", "steam-1", "install"))));
         app.Engine.Backups[record.Id] = true;
 
         await app.StartAsync();
 
-        var state = await app.GameAsync(game => game.Status.State == MyGameState.BackupsUnavailable, "the originals are missing");
+        var state = await app.GameAsync(game => game.Status.State == MyGameState.BackupsUnavailable, "the originals cannot be reached");
         state.Find(Game)!.Status.BackupDirectory.Should().Be(record.Backup.Directory);
+        state.Find(Game)!.Installs.Single().BackupsUnavailable.Should().BeTrue();
         Directory.CreateDirectory(record.Backup.Directory);
         app.Coordinator.RequestVerification(Game);
         await app.GameAsync(game => game.Status.State == MyGameState.Installed, "the originals are back");
+    }
+
+    [Fact]
+    public async Task A_deleted_backup_folder_has_the_files_checked_at_once_and_holds_the_install_until_the_store_brings_the_originals_back()
+    {
+        using var drive = new TempDirectory();
+        await using var app = new CoordinatorHarness().WithGameAndProject();
+        var record = app.Engine.Add(Record(backup: new BackupFolder(BackupLocation.AppData, Path.Join(drive.Path, "backups", "steam-1", "install"))));
+        app.Engine.Backups[record.Id] = true;
+        Directory.CreateDirectory(record.Backup.Directory);
+        ValueList<string> missing = [];
+        app.Engine.OnVerify = _ => new VerificationResult([]) { MissingOriginals = missing };
+        await app.StartAsync();
+        await app.GameAsync(game => game.Status.State == MyGameState.Installed, "the originals are there");
+        await Eventually.SettleAsync();
+
+        Directory.Delete(record.Backup.Directory);
+        missing = ["data/strings.pak"];
+        app.Library.Publish(Installed());
+
+        var state = await app.GameAsync(game => game.Status.State == MyGameState.BackupsUnavailable, "the originals are gone");
+        state.Find(Game)!.Installs.Single().MissingOriginals.Should().Equal("data/strings.pak");
+        state.Find(Game)!.Installs.Single().BackupsUnavailable.Should().BeFalse("the folder's drive is there");
+        missing = [];
+        app.Coordinator.RequestVerification(Game);
+        await app.GameAsync(game => game.Status.State == MyGameState.Installed, "the store brought the originals back");
     }
 
     [Fact]
@@ -665,7 +693,8 @@ public sealed class StateCoordinatorTests
         var there = app.Engine.Add(Record(backup: new BackupFolder(BackupLocation.CustomFolder,
             Path.Join(drive.Path, "ExampleApp", "steam-1", "there"))));
         var elsewhere = app.Engine.Add(Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject)));
-        var gone = app.Engine.Add(Record(OtherGame, backup: new BackupFolder(BackupLocation.AppData, drive.Combine("gone"))));
+        var gone = app.Engine.Add(Record(OtherGame, backup: new BackupFolder(BackupLocation.CustomFolder,
+            Path.Join(drive.Path, "unplugged", "ExampleApp", "steam-2", "gone"))));
         app.Engine.Backups[gone.Id] = true;
         await app.StartAsync();
         await app.StateAsync(state => state.Find(OtherGame)?.Installs.SingleOrDefault()?.Status.State == MyGameState.BackupsUnavailable,
@@ -737,15 +766,16 @@ public sealed class StateCoordinatorTests
     }
 
     [Fact]
-    public async Task Uninstalls_every_install_one_job_at_a_time_on_each_game_but_one_whose_originals_cannot_be_reached()
+    public async Task Uninstalls_every_install_one_job_at_a_time_on_each_game_but_one_whose_originals_were_deleted()
     {
         using var drive = new TempDirectory();
         await using var app = new CoordinatorHarness().WithGameAndProject();
         app.Library.Publish(Installed(), Installed(OtherGame));
         app.Engine.Add(Record());
         app.Engine.Add(Record(source: Source(ReleaseOne, FileOne, 1, project: OtherProject)));
-        var gone = app.Engine.Add(Record(OtherGame, backup: new BackupFolder(BackupLocation.AppData, drive.Combine("gone"))));
+        var gone = app.Engine.Add(Record(OtherGame, backup: new BackupFolder(BackupLocation.AppData, Path.Join(drive.Path, "backups", "steam-2", "gone"))));
         app.Engine.Backups[gone.Id] = true;
+        app.Engine.OnVerify = id => new VerificationResult([]) { MissingOriginals = id == gone.Id ? ["data/strings.pak"] : [] };
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var uninstalls = 0;
         app.Engine.OnUninstall = async (record, token) =>
@@ -761,7 +791,7 @@ public sealed class StateCoordinatorTests
         };
         await app.StartAsync();
         await app.StateAsync(state => state.Find(OtherGame)?.Installs.SingleOrDefault()?.Status.State == MyGameState.BackupsUnavailable,
-            "the originals of one install cannot be reached");
+            "the originals of one install were deleted");
 
         app.Coordinator.UninstallEverything();
         await app.StateAsync(state => state.Jobs.Any(job => job.Kind == JobKind.Uninstall) && state.PendingUninstalls == 0,

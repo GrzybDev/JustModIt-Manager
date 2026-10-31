@@ -23,6 +23,9 @@ internal class StubEngine : IInstallEngine
     public Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<GameManagedByOtherAppIssue>>([]);
 
+    public Task<IReadOnlyList<InstallIssue>> CheckOriginalsAsync(Guid recordId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<InstallIssue>>([]);
+
     public Task<PreflightReport> CheckInstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => throw new NotSupportedException();
 

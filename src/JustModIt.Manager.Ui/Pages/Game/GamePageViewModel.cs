@@ -37,7 +37,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private readonly UiServices _services;
     private readonly GameKey _key;
     private readonly List<(DateTimeOffset At, long Bytes)> _samples = [];
-    private readonly Dictionary<Guid, RuntimeFilesView> _runtimeFiles = [];
+    private readonly Dictionary<Guid, FileListView> _runtimeFiles = [];
+    private readonly Dictionary<Guid, FileListView> _missingOriginals = [];
     private readonly Dictionary<Guid, LicensesView> _licenses = [];
     private readonly Dictionary<Guid, FeaturePanel> _features = [];
     private GameView? _game;
@@ -784,6 +785,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         var drive = Path.GetPathRoot(install.InstallDirectory)?.TrimEnd('\\', '/') ?? "";
         var (detail, warning) = install.Status switch
         {
+            { State: MyGameState.BackupsUnavailable } when install.MissingOriginals.Count > 0 =>
+                (Text.Format(Strings.GamePage_OriginalsMissingLine, ("count", install.MissingOriginals.Count)), true),
+            { State: MyGameState.BackupsUnavailable } => (Strings.GamePage_BackupsTitle, true),
             { State: MyGameState.NeedsRepair } status => (Text.Format(Strings.GamePage_FilesChanged, ("reason", status.Repair?.ToString() ?? ""),
                 ("store", GameWording.StoreName(game.Key.Store))), true),
             _ when install.LeftOut.Count > 0 => (string.Join(" ", install.LeftOut.Select(feature => Text.Format(Strings.GamePage_FeatureLeftOut,
@@ -812,7 +816,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             Action = action,
             ActionIcon = icon,
             ActionRequest = request,
-            RuntimeFiles = RuntimeFilesOf(install),
+            RuntimeFiles = FileList(_runtimeFiles, install.Id, install.RuntimeFiles, Strings.GamePage_RuntimeShow,
+                Strings.GamePage_RuntimeHide),
             Licenses = LicensesOf(install),
             Features = FeaturesOf(install, install.Project),
         };
@@ -841,8 +846,10 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                 .ToHashSet(StringComparer.Ordinal)
             : [];
         panel.Follow(offer.Features, offer.IsLegacy ? Strings.GamePage_RowVariant : null, leftOut, pill => Turned(panel, pill));
-        // An install changes its add-ons through the current release, so only while that is its own or an update of it.
-        panel.CanChange = _job is null && install?.Status.Update is null or UpdateState.UpToDate or UpdateState.Available;
+        // An install changes its add-ons through the current release, so only while that is its own or an update of it, and
+        // only while its originals can be put back, which a change needs as much as an update.
+        panel.CanChange = _job is null && install?.Status.Update is null or UpdateState.UpToDate or UpdateState.Available
+            && install?.Status.State != MyGameState.BackupsUnavailable;
         if (!panel.CanChange)
         {
             panel.IsOpen = false;
@@ -924,18 +931,19 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         return at < 0 ? (sentence, "") : (sentence[..at], sentence[at..]);
     }
 
-    // The same list stays while the install declares the same files, so a state that changes nothing else folds nothing.
-    private RuntimeFilesView? RuntimeFilesOf(InstallView install)
+    // The same list stays while the install names the same files, so a state that changes nothing else folds nothing.
+    private static FileListView? FileList(Dictionary<Guid, FileListView> lists, Guid install, IReadOnlyList<string> paths, string show,
+        string hide)
     {
-        if (install.RuntimeFiles.Count == 0)
+        if (paths.Count == 0)
         {
-            _runtimeFiles.Remove(install.Id);
+            lists.Remove(install);
             return null;
         }
 
-        if (!_runtimeFiles.TryGetValue(install.Id, out var files) || !files.Paths.SequenceEqual(install.RuntimeFiles, StringComparer.Ordinal))
+        if (!lists.TryGetValue(install, out var files) || !files.Paths.SequenceEqual(paths, StringComparer.Ordinal))
         {
-            _runtimeFiles[install.Id] = files = new RuntimeFilesView(install.RuntimeFiles) { AreShown = files?.AreShown ?? false };
+            lists[install] = files = new FileListView(paths, show, hide) { AreShown = files?.AreShown ?? false };
         }
 
         return files;
@@ -1064,6 +1072,17 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                 case MyGameState.Orphaned:
                     return Outlined(StepKind.NotInCatalogue, Tone.Info, Icons.Unlink, Strings.GamePage_NotInCatalogueTitle,
                         Strings.GamePage_NotInCatalogueText);
+                case MyGameState.BackupsUnavailable when install.MissingOriginals.Count > 0:
+                    return new NextStep(StepKind.Backups, Tone.Warning, Icons.TriangleAlert, Strings.GamePage_OriginalsMissingTitle,
+                        Text.Format(Strings.GamePage_OriginalsMissingText, ("count", install.MissingOriginals.Count), ("store", store),
+                            ("storeId", game.Key.Store.Value)))
+                    {
+                        Files = FileList(_missingOriginals, install.Id, install.MissingOriginals,
+                            Text.Format(Strings.GamePage_OriginalsMissingShow, ("count", install.MissingOriginals.Count)),
+                            Text.Format(Strings.GamePage_OriginalsMissingHide, ("count", install.MissingOriginals.Count))),
+                        CheckFiles = PageLinks.ValidateFiles(_key),
+                        CheckFilesLabel = CheckFilesLabel(),
+                    };
                 case MyGameState.BackupsUnavailable:
                     return new NextStep(StepKind.Backups, Tone.Warning, Icons.TriangleAlert, Strings.GamePage_BackupsTitle,
                         Text.Format(Strings.GamePage_BackupsText, ("folder", install.Status.BackupDirectory ?? install.BackupDirectory)));
@@ -1246,7 +1265,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             failure.LostPrevious ? Strings.GamePage_LostTitle : Text.Format(Strings.GamePage_FailedTitle, ("kind", failure.Kind.ToString())),
             reason + kept)
         {
-            CheckFiles = failure.Failure?.Reason == JobFailureReason.KeptFilesPending ? PageLinks.ValidateFiles(_key) : null,
+            CheckFiles = failure.Failure?.Reason is JobFailureReason.KeptFilesPending or JobFailureReason.OriginalsMissing
+                ? PageLinks.ValidateFiles(_key)
+                : null,
             CheckFilesLabel = CheckFilesLabel(),
             Meta = Formats.RelativeTime(failure.At, _services.Clock),
             OffersHelp = true,

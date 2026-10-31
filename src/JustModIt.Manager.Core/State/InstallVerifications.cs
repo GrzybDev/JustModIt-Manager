@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
@@ -19,6 +20,14 @@ internal sealed class InstallVerifications
     /// <summary>What the last checks found to repair, by install.</summary>
     public ImmutableDictionary<Guid, RepairReason> Repairs() =>
         _found.Where(pair => pair.Value.Repair is not null).ToImmutableDictionary(pair => pair.Key, pair => pair.Value.Repair!.Value);
+
+    /// <summary>What the last checks found missing from the installs' backups, by install.</summary>
+    public ImmutableDictionary<Guid, ValueList<string>> MissingOriginals() =>
+        _found.Where(pair => pair.Value.MissingOriginals.Count > 0).ToImmutableDictionary(pair => pair.Key, pair => pair.Value.MissingOriginals);
+
+    /// <summary>Whether the last check found originals of the install missing from its backups.</summary>
+    /// <param name="record">The install.</param>
+    public bool MissesOriginals(Guid record) => _found.TryGetValue(record, out var found) && found.MissingOriginals.Count > 0;
 
     /// <summary>Checks the installs at the next chance, however recently they were checked.</summary>
     /// <param name="records">The installs to check.</param>

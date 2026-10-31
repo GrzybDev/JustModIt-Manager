@@ -142,7 +142,8 @@ internal static class KeptFiles
                 }
             }
 
-            if (needsCopies && !BackupFolders.IsAvailable(record.Record.Backup.Directory))
+            // Copies deleted with their folder are gone like any other copy; a folder that cannot be reached may come back.
+            if (needsCopies && !BackupFolders.IsReachable(record.Record.Backup.Directory))
             {
                 issues.Add(new BackupFolderUnavailableIssue(record.Record.Backup.Directory));
             }

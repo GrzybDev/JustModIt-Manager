@@ -314,6 +314,9 @@ internal sealed class FakeInstallEngine : IInstallEngine
 
     public IReadOnlyList<GameManagedByOtherAppIssue> OtherApps { get; set; } = [];
 
+    /// <summary>What <see cref="CheckOriginalsAsync"/> finds missing, by record id.</summary>
+    public Dictionary<Guid, IReadOnlyList<InstallIssue>> MissingOriginals { get; } = [];
+
     public Func<Guid, VerificationResult>? OnVerify { get; set; }
 
     public Func<Guid, InstalledGame, InstallRecord?>? OnAdopt { get; set; }
@@ -345,6 +348,9 @@ internal sealed class FakeInstallEngine : IInstallEngine
 
     public Task<IReadOnlyList<GameManagedByOtherAppIssue>> FindOtherAppsAsync(string gameDirectory, CancellationToken cancellationToken) =>
         Task.FromResult(OtherApps);
+
+    public Task<IReadOnlyList<InstallIssue>> CheckOriginalsAsync(Guid recordId, CancellationToken cancellationToken) =>
+        Task.FromResult(MissingOriginals.GetValueOrDefault(recordId) ?? []);
 
     public Task<PreflightReport> CheckInstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => Task.FromResult(new PreflightReport([], []));

@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
@@ -11,6 +12,9 @@ namespace JustModIt.Manager.Core.State;
 /// <param name="Repair">Null when the files were as the install left them.</param>
 internal sealed record Verification(DateTimeOffset At, string? BuildId, RepairReason? Repair)
 {
+    /// <inheritdoc cref="VerificationResult.MissingOriginals"/>
+    public ValueList<string> MissingOriginals { get; init; }
+
     /// <summary>The most urgent thing wrong with the files; null when they are intact.</summary>
     /// <param name="result">What the check found for each file.</param>
     public static RepairReason? RepairOf(VerificationResult result)

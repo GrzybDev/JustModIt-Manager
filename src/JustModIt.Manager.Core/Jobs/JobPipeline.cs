@@ -140,6 +140,12 @@ internal sealed partial class JobPipeline(
             job.Protect(installedFile);
         }
 
+        // Originals that cannot be put back would refuse the replacement, so the package is not downloaded, and counted, in vain.
+        if (await engine.CheckOriginalsAsync(record.Id, job.Token).ConfigureAwait(false) is { Count: > 0 } missing)
+        {
+            throw new InstallBlockedException(missing);
+        }
+
         // Downloading first means a missing connection or package leaves the installed release as it is.
         // The add-ons of the project's own install count; another project's say nothing about this one's.
         var same = record.Source?.ProjectUuid == project.ProjectUuid;

@@ -241,6 +241,52 @@ public sealed class GameTests
     }
 
     [AvaloniaFact]
+    public async Task An_install_whose_originals_were_deleted_asks_the_store_to_bring_them_back_and_names_the_files()
+    {
+        var installed = Installed("Ember Hollow", "4100", state: MyGameState.BackupsUnavailable, offer: Ember);
+        var game = installed with { Installs = [installed.Installs[0] with { BackupsUnavailable = false, MissingOriginals = ["data/strings.pak", "bin/loader.dll"] }] };
+        using var ui = Open(State(game), game, Ember);
+        var page = Page(ui);
+        await UiHarness.WaitUntilAsync(() => page.Details is not null);
+
+        page.Step!.Title.Should().Be("Brakuje kopii oryginałów");
+        page.Step.Text.Should().Be("Usunięto kopię oryginałów 2 plików. Zanim spolszczenie da się zaktualizować, naprawić albo odinstalować, "
+            + "Steam musi przywrócić oryginalne pliki gry. Aplikacja sama zauważy, gdy sprawdzenie plików się skończy.");
+        var row = page.Installs.Single();
+        (row.Detail, row.IsWarning, row.CanUninstall).Should().Be(("Brakuje kopii oryginałów 2 plików", true, false));
+        row.Features!.CanChange.Should().BeFalse("a change of add-ons replaces the install, which needs its originals");
+        var toggle = ui.Find<Button>("StepFilesToggle");
+        AutomationProperties.GetName(toggle).Should().Be("Pokaż pliki czekające na oryginał (2)");
+        ui.Click(toggle);
+        var list = ui.Find<PathList>().Single(shown => shown.IsEffectivelyVisible);
+        list.Paths.Should().Equal("data/strings.pak", "bin/loader.dll");
+        AutomationProperties.GetName(list).Should().Be("Pliki czekające na oryginał");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("originals-missing-steam");
+        ui.Click(ui.Find<Button>("CheckFilesButton"));
+        ui.Links.Opened.Should().Equal(new Uri("steam://validate/4100"));
+
+        ui.Push(State(game with { Key = new GameKey(StoreId.Gog, "1100000002") }) with { Version = 2 });
+        ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(new GameKey(StoreId.Gog, "1100000002"))]);
+        UiHarness.Settle();
+        page = Page(ui);
+        page.Step!.Text.Should().EndWith("grę trzeba zainstalować ponownie w GOG, żeby wróciły jej oryginalne pliki. Aplikacja sama zauważy, "
+            + "gdy pliki będą znów oryginalne.");
+        page.Step.HasCheckFiles.Should().BeFalse("only Steam starts its check from a link");
+
+        ui.Push(State(installed) with { Version = 3 });
+        ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(installed.Key)]);
+        UiHarness.Settle();
+        page = Page(ui);
+        page.Step!.Text.Should().Be(@"Folder z kopią oryginałów (D:\Games\Ember Hollow\.example-app) jest niedostępny: dysk, na którym leży, "
+            + "jest odłączony albo nie odpowiada, albo folder zmienił nazwę lub miejsce. Do jego powrotu spolszczenia nie da się "
+            + "odinstalować ani zaktualizować.");
+        (page.Installs.Single().Detail, page.Step.Files).Should().Be(("Kopia oryginałów jest niedostępna", null));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("originals-unreachable");
+    }
+
+    [AvaloniaFact]
     public async Task An_install_whose_software_changes_files_says_so_and_unfolds_them()
     {
         var game = WithRuntimeFiles(Installed("Ember Hollow", "4100", offer: Ember));

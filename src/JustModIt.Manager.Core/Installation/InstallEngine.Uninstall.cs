@@ -64,8 +64,14 @@ public sealed partial class InstallEngine
             var tracker = new ProgressTracker(progress, InstallStage.Verifying, FileInspector.Checked(files).Count(),
                 FileInspector.BytesToHash(files));
             var inspected = await FileInspector.InspectAllAsync(files, game, tracker, cancellationToken).ConfigureAwait(false);
+            var backups = record.Backup.Directory;
             return new VerificationResult([.. inspected.Select(file => new FileVerification(file.File.Path, file.File.Change,
-                file.Integrity))]);
+                file.Integrity))])
+            {
+                MissingOriginals = BackupsUnavailable(record, files) is null
+                    ? [.. inspected.Where(file => Uninstaller.MissesOriginal(file.File, file.Integrity, backups)).Select(file => file.File.Path)]
+                    : [],
+            };
         }, cancellationToken);
 
     // Leftovers are read and removed apart from the queue, which a long install may hold: forgetting adds whole folders at
@@ -233,6 +239,7 @@ public sealed partial class InstallEngine
             var game = OpenGame(record.InstallDirectory);
             var records = await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false);
             var id = Guid.NewGuid();
+            IReadOnlyList<string> missing = [];
             var (report, _, _, _) = await CheckLeavingOutAsync(package, replacement.Parts, async (included, hashes) =>
             {
                 // The paths the new packages declare go over as they are, so they find them as they are now.
@@ -241,6 +248,7 @@ public sealed partial class InstallEngine
                         .ConfigureAwait(false))
                     .With(await RuntimeUndo.PlanAsync(record, files, game, handedOver, replacement.Game, progress: null, cancellationToken)
                         .ConfigureAwait(false));
+                missing = plan.MissingOriginals;
                 var afterUninstall = plan.Steps.ToDictionary(step => step.Path, Uninstaller.AfterUndo, PathComparison.Comparer);
                 var left = plan.Left.Count > 0
                     ? new KeptFilesRecord(_leftovers.FolderOf(recordId), record, KeptFilesRecordOf(plan.Left, files, game))
@@ -249,11 +257,26 @@ public sealed partial class InstallEngine
                     path => afterUninstall.TryGetValue(path, out var file) ? file : SimulatedFile.OnDisk(path), left, hashes, progress,
                     cancellationToken).ConfigureAwait(false);
             }).ConfigureAwait(false);
-            return BackupsUnavailable(record, files) is { } unavailable
-                ? report with { Issues = report.Issues.Add(unavailable) }
-                : report;
+            InstallIssue? originals = BackupsUnavailable(record, files) is { } unavailable ? unavailable
+                : missing.Count > 0 ? new OriginalsMissingIssue([.. missing])
+                : null;
+            return originals is null ? report : report with { Issues = report.Issues.Add(originals) };
         }
     }
+
+    public Task<IReadOnlyList<InstallIssue>> CheckOriginalsAsync(Guid recordId, CancellationToken cancellationToken) =>
+        EnqueueAsync<IReadOnlyList<InstallIssue>>(async () =>
+        {
+            var (record, files) = await LoadAsync(recordId, cancellationToken).ConfigureAwait(false);
+            if (BackupsUnavailable(record, files) is { } unavailable)
+            {
+                return [unavailable];
+            }
+
+            var plan = await Uninstaller.PlanAsync(record, files, OpenGame(record.InstallDirectory), new HashSet<string>(),
+                progress: null, cancellationToken).ConfigureAwait(false);
+            return plan.MissingOriginals.Count > 0 ? [new OriginalsMissingIssue([.. plan.MissingOriginals])] : [];
+        }, cancellationToken);
 
     private async Task<UninstallResult> UninstallCoreAsync(Guid recordId, IReadOnlyList<string>? replacedBy,
         IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
@@ -276,6 +299,11 @@ public sealed partial class InstallEngine
         using var gameLock = Lock(game);
         var handedOver = await DeclaredByAsync(replacedBy, game, cancellationToken).ConfigureAwait(false);
         var plan = await Uninstaller.PlanAsync(record, files, game, handedOver, progress, cancellationToken).ConfigureAwait(false);
+        if (plan.MissingOriginals.Count > 0)
+        {
+            throw new InstallBlockedException([new OriginalsMissingIssue([.. plan.MissingOriginals])]);
+        }
+
         // The files the package's software changes are read only once nothing runs from the game's folder.
         var probe = await _games.ProbeAsync(record.Game, cancellationToken).ConfigureAwait(false);
         ThrowIfAny([.. ReadinessIssues(probe, forUninstall: true)]);

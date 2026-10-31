@@ -23,6 +23,12 @@ public sealed record FileVerification(string Path, FileChange Change, FileIntegr
 public sealed record VerificationResult(ValueList<FileVerification> Files)
 {
     public bool IsIntact => Files.All(file => file.Integrity == FileIntegrity.Intact);
+
+    /// <summary>
+    /// The files whose originals an uninstall would put back but whose copies were deleted; empty while the backup folder
+    /// cannot be reached, which tells nothing about them.
+    /// </summary>
+    public ValueList<string> MissingOriginals { get; init; }
 }
 
 /// <summary>An installed file and what is at its path now.</summary>

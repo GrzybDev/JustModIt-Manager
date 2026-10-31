@@ -1020,6 +1020,12 @@
   <data name="Library_StateBackups" xml:space="preserve">
     <value>Originals unavailable</value>
   </data>
+  <data name="Library_StateOriginalsMissing" xml:space="preserve">
+    <value>Originals missing</value>
+  </data>
+  <data name="Library_OriginalsMissingDetail" xml:space="preserve">
+    <value>{storeId, select, gog {Reinstalling the game in {store} brings back its original files.} other {Checking the game's files in {store} brings back its original files.}}</value>
+  </data>
   <data name="Library_BackupsDetail" xml:space="preserve">
     <value>The folder {folder} with the copy of the original files is not available.</value>
   </data>
@@ -1117,7 +1123,7 @@
     <value>The job was cancelled.</value>
   </data>
   <data name="GamePage_FailureReason" xml:space="preserve">
-    <value>{reason, select, AlreadyRunning {Another job runs for this game.} GameNotDetected {{store} no longer reports this game.} GameNotReady {The game was not ready: {state}.} GameRunning {The game was running ({processes}).} GameFolderMissing {The game's folder is missing.} GameBusy {Another install was changing the game's files at the time.} FilesLocked {Some of the game's files are in use by: {processes}.} PermissionRequired {There is no permission to change the game's files ({file}).} NotEnoughSpace {Not enough space on {drive} ({required} needed, {available} free).} OtherGame {The package was made for another game.} UnsupportedGameVersion {The game's files are another version than the package was made for.} NewReleaseIncompatible {The new release was made for another version of the game, so the installed one stayed.} AlreadyApplied {The game's files already have the package's content.} ConflictingInstall {Another installed project changes the same files.} KeptFilesPending {Files kept after an earlier uninstall still hold what its software left, so checking the game's files in {store} comes first.} KeptFilesBlockReplacement {Uninstalling the installed release would leave the files its software changed as they are, and the new packages write the same files, so uninstalling comes first, then checking the game's files in {store}, then installing again.} OtherProjectInstalled {Another project is installed on this game.} ManagedByOtherApp {Another app manages the game's files ({app}).} RecoveryPending {An earlier operation on this game waits to be finished.} InstallNotFound {This install is gone.} UnreadableInstall {The install's record cannot be read; a newer version of the app may have written it.} BackupFolderUnavailable {The folder with the original files is not available ({location}).} ProjectNotFound {The project is no longer on the site.} ProjectNotCompleted {The project is not completed yet.} ReleaseUnavailable {This release can no longer be downloaded.} NoPackage {This release has no package for this game.} Offline {There is no connection to the internet.} ServerError {The site did not answer properly.} DownloadCorrupt {The downloaded file was damaged.} InvalidPackage {The package is damaged.} AppUpdateRequired {The package needs a newer version of the app.} InstallFailed {Something went wrong, so every change was undone.} RollbackIncomplete {Not every change could be undone yet; the app tries again when it starts.} AccessDenied {A file could not be accessed.} DiskError {Writing to the disk failed.} other {Something unexpected went wrong.}}</value>
+    <value>{reason, select, AlreadyRunning {Another job runs for this game.} GameNotDetected {{store} no longer reports this game.} GameNotReady {The game was not ready: {state}.} GameRunning {The game was running ({processes}).} GameFolderMissing {The game's folder is missing.} GameBusy {Another install was changing the game's files at the time.} FilesLocked {Some of the game's files are in use by: {processes}.} PermissionRequired {There is no permission to change the game's files ({file}).} NotEnoughSpace {Not enough space on {drive} ({required} needed, {available} free).} OtherGame {The package was made for another game.} UnsupportedGameVersion {The game's files are another version than the package was made for.} NewReleaseIncompatible {The new release was made for another version of the game, so the installed one stayed.} AlreadyApplied {The game's files already have the package's content.} ConflictingInstall {Another installed project changes the same files.} KeptFilesPending {Files kept after an earlier uninstall still hold what its software left, so checking the game's files in {store} comes first.} KeptFilesBlockReplacement {Uninstalling the installed release would leave the files its software changed as they are, and the new packages write the same files, so uninstalling comes first, then checking the game's files in {store}, then installing again.} OtherProjectInstalled {Another project is installed on this game.} ManagedByOtherApp {Another app manages the game's files ({app}).} RecoveryPending {An earlier operation on this game waits to be finished.} InstallNotFound {This install is gone.} UnreadableInstall {The install's record cannot be read; a newer version of the app may have written it.} BackupFolderUnavailable {The folder with the original files is not available ({location}).} OriginalsMissing {The copy of the {files, plural, one {original of # file} other {originals of # files}} is missing, so {storeId, select, gog {reinstalling the game in {store}} other {checking the game's files in {store}}} comes first.} ProjectNotFound {The project is no longer on the site.} ProjectNotCompleted {The project is not completed yet.} ReleaseUnavailable {This release can no longer be downloaded.} NoPackage {This release has no package for this game.} Offline {There is no connection to the internet.} ServerError {The site did not answer properly.} DownloadCorrupt {The downloaded file was damaged.} InvalidPackage {The package is damaged.} AppUpdateRequired {The package needs a newer version of the app.} InstallFailed {Something went wrong, so every change was undone.} RollbackIncomplete {Not every change could be undone yet; the app tries again when it starts.} AccessDenied {A file could not be accessed.} DiskError {Writing to the disk failed.} other {Something unexpected went wrong.}}</value>
   </data>
   <data name="Library_Joined" xml:space="preserve">
     <value>{first} · {second}</value>
@@ -1144,10 +1150,28 @@
     <value>The copy of the original files still takes space on {drive}</value>
   </data>
   <data name="GamePage_BackupsText" xml:space="preserve">
-    <value>The folder {folder} is not available, e.g. its drive is disconnected. Until it is back, the project can be neither uninstalled nor updated.</value>
+    <value>The folder with the copy of the originals ({folder}) cannot be reached: its drive is disconnected or does not answer, or the folder was renamed or moved. Until it is back, the project can be neither uninstalled nor updated.</value>
   </data>
   <data name="GamePage_BackupsTitle" xml:space="preserve">
     <value>The copy of the originals is unavailable</value>
+  </data>
+  <data name="GamePage_OriginalsMissingTitle" xml:space="preserve">
+    <value>The copy of the originals is missing</value>
+  </data>
+  <data name="GamePage_OriginalsMissingText" xml:space="preserve">
+    <value>The copy of the {count, plural, one {original of # file} other {originals of # files}} was deleted. Before the project can be updated, repaired or uninstalled, {storeId, select, gog {the game has to be reinstalled in {store}, which brings back its original files. The app notices by itself once they are back.} steam {{store} has to bring back the game's original files. The app notices by itself once the check of the files is done.} other {{store} has to bring back the game's original files when it checks them. The app notices by itself once the check is done.}}</value>
+  </data>
+  <data name="GamePage_OriginalsMissingLine" xml:space="preserve">
+    <value>The copy of the {count, plural, one {original of # file} other {originals of # files}} is missing</value>
+  </data>
+  <data name="GamePage_OriginalsMissingShow" xml:space="preserve">
+    <value>{count, plural, one {Show the file waiting for its original (#)} other {Show the files waiting for their originals (#)}}</value>
+  </data>
+  <data name="GamePage_OriginalsMissingHide" xml:space="preserve">
+    <value>{count, plural, one {Hide the file waiting for its original} other {Hide the files waiting for their originals}}</value>
+  </data>
+  <data name="GamePage_OriginalsMissingFiles" xml:space="preserve">
+    <value>Files waiting for their originals</value>
   </data>
   <data name="GamePage_Build" xml:space="preserve">
     <value>build {build}</value>

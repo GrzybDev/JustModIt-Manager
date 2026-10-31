@@ -65,10 +65,12 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     private CatalogueSnapshot _catalogueSnapshot = CatalogueSnapshot.Empty;
     private AppSettings _current = AppSettings.Default;
     private ImmutableHashSet<Guid> _unavailableBackups = [];
+    private ImmutableHashSet<Guid> _deletedBackups = [];
     private ImmutableDictionary<FailureKey, FailedAttempt> _failures = ImmutableDictionary<FailureKey, FailedAttempt>.Empty;
     private IReadOnlyList<RecoveredOperation> _recoveries = [];
     private bool _checkingBackups;
     private bool _backupsChanged = true;
+    private bool _backupsKnown;
     private bool _pruneWanted;
     private CancellationToken _stopping;
 
@@ -291,7 +293,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
             // again after a failure.
             case UninstallsRequested:
                 _uninstalls.UnionWith(_records.Values
-                    .Where(record => !_unavailableBackups.Contains(record.Id) && !IsRunning(JobKind.Uninstall, record))
+                    .Where(record => !_unavailableBackups.Contains(record.Id) && !_verifications.MissesOriginals(record.Id)
+                        && !IsRunning(JobKind.Uninstall, record))
                     .Select(record => record.Id));
                 break;
             case GoneChecked gone:
@@ -299,7 +302,11 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                 break;
             case BackupsChecked checkedBackups:
                 _checkingBackups = false;
+                _backupsKnown = true;
                 _unavailableBackups = checkedBackups.Unavailable;
+                // Copies deleted with their folder, or put back with it, show in the next check of the install's files.
+                _verifications.Request(checkedBackups.Deleted.SymmetricExcept(_deletedBackups));
+                _deletedBackups = checkedBackups.Deleted;
                 foreach (var (record, hasBackups) in checkedBackups.HasBackups)
                 {
                     _hasBackups[record] = hasBackups;
@@ -450,6 +457,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
             Jobs = _activeJobs.ToImmutableDictionary(),
             Repairs = _verifications.Repairs(),
             UnavailableBackups = _unavailableBackups,
+            MissingOriginals = _verifications.MissingOriginals(),
             Failures = _failures,
             Running = _running.ToImmutableDictionary(),
         });
@@ -603,7 +611,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     // app was not running.
     private bool Automate()
     {
-        if (!_current.OnboardingCompleted || _snapshot.IsCached || _snapshot.ScannedAt is null)
+        // Before the first look at the backups, an install whose originals are gone looks ready for an update.
+        if (!_current.OnboardingCompleted || _snapshot.IsCached || _snapshot.ScannedAt is null || !_backupsKnown)
         {
             return false;
         }
@@ -690,7 +699,10 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         try
         {
             var result = await engine.VerifyAsync(recordId, null, _stopping).ConfigureAwait(false);
-            verification = new Verification(time.GetUtcNow(), buildId, Verification.RepairOf(result));
+            verification = new Verification(time.GetUtcNow(), buildId, Verification.RepairOf(result))
+            {
+                MissingOriginals = result.MissingOriginals,
+            };
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
         {
@@ -705,7 +717,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         Post(new Verified(recordId, buildId, verification));
     }
 
-    // An originals' folder may be gone, e.g. with a disconnected drive.
+    // An originals' folder may be out of reach, e.g. with a disconnected drive, or deleted with the originals in it.
     private void CheckBackups()
     {
         if (_checkingBackups || !_backupsChanged)
@@ -715,24 +727,25 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
 
         _checkingBackups = true;
         _backupsChanged = false;
-        _ = CheckBackupsAsync([.. _records.Values], new Dictionary<Guid, bool>(_hasBackups), _unavailableBackups);
+        _ = CheckBackupsAsync([.. _records.Values], new Dictionary<Guid, bool>(_hasBackups), _unavailableBackups, _deletedBackups);
     }
 
     // Every folder is checked at once, so a drive that does not answer holds up only the installs on it.
     private async Task CheckBackupsAsync(IReadOnlyList<InstallRecord> records, Dictionary<Guid, bool> known,
-        ImmutableHashSet<Guid> wasUnavailable)
+        ImmutableHashSet<Guid> wasUnavailable, ImmutableHashSet<Guid> wasDeleted)
     {
-        var checks = await Task.WhenAll(records.Select(record => CheckBackupAsync(record, known, wasUnavailable))).ConfigureAwait(false);
+        var checks = await Task.WhenAll(records.Select(record => CheckBackupAsync(record, known, wasUnavailable, wasDeleted)))
+            .ConfigureAwait(false);
         if (!_stopping.IsCancellationRequested)
         {
-            Post(new BackupsChecked([.. checks.Where(check => check.IsUnavailable).Select(check => check.Id)], checks
-                .Where(check => check.KeepsOriginals is not null)
-                .ToDictionary(check => check.Id, check => check.KeepsOriginals!.Value)));
+            Post(new BackupsChecked([.. checks.Where(check => check.Found == BackupsFound.Unreachable).Select(check => check.Id)],
+                [.. checks.Where(check => check.Found == BackupsFound.Deleted).Select(check => check.Id)],
+                checks.Where(check => check.KeepsOriginals is not null).ToDictionary(check => check.Id, check => check.KeepsOriginals!.Value)));
         }
     }
 
-    private async Task<(Guid Id, bool? KeepsOriginals, bool IsUnavailable)> CheckBackupAsync(InstallRecord record,
-        Dictionary<Guid, bool> known, ImmutableHashSet<Guid> wasUnavailable)
+    private async Task<(Guid Id, bool? KeepsOriginals, BackupsFound Found)> CheckBackupAsync(InstallRecord record,
+        Dictionary<Guid, bool> known, ImmutableHashSet<Guid> wasUnavailable, ImmutableHashSet<Guid> wasDeleted)
     {
         bool? has = known.TryGetValue(record.Id, out var knownHas) ? knownHas : null;
         try
@@ -740,22 +753,26 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
             // An install that only added files keeps no originals, and its empty backup folder was removed.
             has ??= BackupFolders.KeepsOriginals(await engine.LoadFilesAsync(record.Id, _stopping).ConfigureAwait(false));
             var directory = record.Backup.Directory;
-            return (record.Id, has, has.Value && !await _backupChecks.ReadAsync(directory,
-                _ => Task.FromResult(BackupFolders.IsAvailable(directory)), _stopping).ConfigureAwait(false));
+            return (record.Id, has, !has.Value ? BackupsFound.There : await _backupChecks.ReadAsync(directory,
+                _ => Task.FromResult(BackupFolders.IsAvailable(directory) ? BackupsFound.There
+                    : BackupFolders.IsReachable(directory) ? BackupsFound.Deleted
+                    : BackupsFound.Unreachable), _stopping).ConfigureAwait(false));
         }
         catch (TimeoutException)
         {
             // A drive that does not answer keeps what was last known of the folder on it.
-            return (record.Id, has, wasUnavailable.Contains(record.Id));
+            return (record.Id, has, wasUnavailable.Contains(record.Id) ? BackupsFound.Unreachable
+                : wasDeleted.Contains(record.Id) ? BackupsFound.Deleted
+                : BackupsFound.There);
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
         {
-            return (record.Id, has, false);
+            return (record.Id, has, BackupsFound.There);
         }
         catch (Exception exception)
         {
             LogBackupCheckFailed(record.Id, exception.GetType().Name);
-            return (record.Id, has, false);
+            return (record.Id, has, BackupsFound.There);
         }
     }
 
@@ -899,7 +916,15 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
 
     private sealed record GoneChecked(GameKey Game, IReadOnlyList<(InstallRecord Record, ForgetOutcome Outcome)> Outcomes) : Trigger;
 
-    private sealed record BackupsChecked(ImmutableHashSet<Guid> Unavailable, IReadOnlyDictionary<Guid, bool> HasBackups) : Trigger;
+    private sealed record BackupsChecked(ImmutableHashSet<Guid> Unavailable, ImmutableHashSet<Guid> Deleted,
+        IReadOnlyDictionary<Guid, bool> HasBackups) : Trigger;
+
+    private enum BackupsFound
+    {
+        There,
+        Deleted,
+        Unreachable,
+    }
 
     private sealed record BackupsMoveRequested(BackupChoice Destination) : Trigger;
 

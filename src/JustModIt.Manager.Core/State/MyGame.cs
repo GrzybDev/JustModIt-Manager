@@ -82,9 +82,15 @@ public sealed record MyInstall
     public required MyGameStatus Status { get; init; }
 
     /// <summary>
-    /// The folder holding the install's originals is not there, also while <see cref="Status"/> tells something else first.
+    /// The folder holding the install's originals cannot be reached, also while <see cref="Status"/> tells something else first.
     /// </summary>
     public bool BackupsUnavailable { get; init; }
+
+    /// <summary>
+    /// The files whose originals an uninstall would put back but whose copies were deleted, game-relative, also while
+    /// <see cref="Status"/> tells something else first; until the store brings the originals back, the install stays as it is.
+    /// </summary>
+    public ValueList<string> MissingOriginals { get; init; }
 
     /// <summary>
     /// The installed project as the catalogue has it now, also once it is no longer on offer, since the player chose it and

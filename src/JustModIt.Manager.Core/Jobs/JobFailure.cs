@@ -78,8 +78,14 @@ public enum JobFailureReason
     /// <summary>The install's record cannot be read, e.g. it was written by a newer version of the app.</summary>
     UnreadableInstall,
 
-    /// <summary>The folder holding the originals is not there, e.g. on a disconnected drive; see <see cref="JobFailure.Location"/>.</summary>
+    /// <summary>The folder holding the originals cannot be reached, e.g. on a disconnected drive; see <see cref="JobFailure.Location"/>.</summary>
     BackupFolderUnavailable,
+
+    /// <summary>
+    /// Files the job would have to put back hold no original any more (<see cref="JobFailure.Files"/>), since their copies
+    /// were deleted; checking or reinstalling the game's files in the store brings the originals back.
+    /// </summary>
+    OriginalsMissing,
 
     ProjectNotFound,
 

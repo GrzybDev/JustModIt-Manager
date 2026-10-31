@@ -79,6 +79,16 @@ public interface IInstallEngine
     Task<UninstallResult> UninstallAsync(Guid recordId, IReadOnlyList<string>? replacedBy, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// What keeps an install from being undone for want of its originals: a backup folder that cannot be reached, or files
+    /// that hold no original any more until the store brings it back; asked before an update is downloaded.
+    /// </summary>
+    /// <param name="recordId">The install's record id.</param>
+    /// <param name="cancellationToken">Stops the check.</param>
+    /// <returns>A <see cref="BackupFolderUnavailableIssue"/> or an <see cref="OriginalsMissingIssue"/>; empty when nothing is missing.</returns>
+    /// <exception cref="InstallBlockedException">The install or its game folder is gone.</exception>
+    Task<IReadOnlyList<InstallIssue>> CheckOriginalsAsync(Guid recordId, CancellationToken cancellationToken);
+
     /// <summary>Checks an install's files against what it installed.</summary>
     /// <param name="recordId">The install's record id.</param>
     /// <param name="progress">Reports the check.</param>

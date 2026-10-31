@@ -79,7 +79,10 @@ internal static class GameLines
             MyGameState.NeedsRepair => new LineContent(Icons.Wrench, Tone.Warning, Strings.Library_StateRepair),
             MyGameState.GameNotReady => new LineContent(Icons.Clock, Tone.Neutral, Strings.Library_CardNotReady, NotReady(game)),
             MyGameState.Orphaned => Orphaned(game.Status),
-            MyGameState.BackupsUnavailable => new LineContent(Icons.TriangleAlert, Tone.Warning, Strings.Library_StateBackups),
+            MyGameState.BackupsUnavailable => new LineContent(Icons.TriangleAlert, Tone.Warning,
+                game.Installs.Any(each => each.Status.State == MyGameState.BackupsUnavailable && each.MissingOriginals.Count > 0)
+                    ? Strings.Library_StateOriginalsMissing
+                    : Strings.Library_StateBackups),
             MyGameState.TestInstalled => new LineContent(Icons.Package, Tone.Neutral, Strings.Library_CardTest),
             MyGameState.Busy => new LineContent(Icons.Clock, Tone.Accent, Strings.Library_JobQueued),
             _ when game.Project is null && game.Projects.Count > 1 => new LineContent(Icons.Users, Tone.Neutral,

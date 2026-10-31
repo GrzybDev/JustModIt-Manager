@@ -242,6 +242,21 @@ public sealed class JobRunnerTests
     }
 
     [Fact]
+    public async Task An_update_whose_originals_were_deleted_fails_before_anything_is_downloaded()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var installed = jobs.Installed();
+        jobs.PublishReleaseTwo();
+        jobs.Engine.MissingOriginals[installed.Id] = [new OriginalsMissingIssue(["data/strings.pak"])];
+
+        var update = await jobs.RunAsync(new UpdateJobRequest(installed));
+
+        update.Failure.Should().BeEquivalentTo(new JobFailure(JobFailureReason.OriginalsMissing) { Files = ["data/strings.pak"] });
+        jobs.Downloader.Downloads.Should().BeEmpty();
+        jobs.Engine.Calls.Should().Equal("recover");
+    }
+
+    [Fact]
     public async Task A_pending_store_update_fails_as_not_ready_before_anything_is_downloaded()
     {
         await using var jobs = await JobsHarness.CreateAsync();

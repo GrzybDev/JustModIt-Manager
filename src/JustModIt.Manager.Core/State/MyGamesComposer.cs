@@ -31,8 +31,12 @@ public sealed record MyGamesInput
     /// <summary>What verification found wrong with installs, by record id.</summary>
     public IReadOnlyDictionary<Guid, RepairReason> Repairs { get; init; } = ImmutableDictionary<Guid, RepairReason>.Empty;
 
-    /// <summary>Installs whose originals' folder is not there, by record id.</summary>
+    /// <summary>Installs whose originals' folder cannot be reached, by record id.</summary>
     public IReadOnlySet<Guid> UnavailableBackups { get; init; } = ImmutableHashSet<Guid>.Empty;
+
+    /// <summary>The files whose originals an uninstall needs but whose copies were deleted, by record id.</summary>
+    public IReadOnlyDictionary<Guid, ValueList<string>> MissingOriginals { get; init; } =
+        ImmutableDictionary<Guid, ValueList<string>>.Empty;
 
     public IReadOnlyDictionary<FailureKey, FailedAttempt> Failures { get; init; } = ImmutableDictionary<FailureKey, FailedAttempt>.Empty;
 
@@ -125,11 +129,14 @@ public static class MyGamesComposer
             : null;
         RepairReason? repair = input.Repairs.TryGetValue(record.Id, out var found) ? found : null;
         var backupsUnavailable = input.UnavailableBackups.Contains(record.Id);
+        var missingOriginals = input.MissingOriginals.GetValueOrDefault(record.Id);
         return new MyInstall
         {
             Record = record,
-            Status = MyGameStatusRules.Resolve(current, record, project, repair, hasJob, backupsUnavailable, choices),
+            Status = MyGameStatusRules.Resolve(current, record, project, repair, hasJob, backupsUnavailable || missingOriginals.Count > 0,
+                choices),
             BackupsUnavailable = backupsUnavailable,
+            MissingOriginals = missingOriginals,
             Project = project,
             LastFailure = input.Failures.GetValueOrDefault(new FailureKey(key, record.Id)),
         };

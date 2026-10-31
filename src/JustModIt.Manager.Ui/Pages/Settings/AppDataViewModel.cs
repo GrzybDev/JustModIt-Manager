@@ -4,6 +4,7 @@ using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
+using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
@@ -73,10 +74,10 @@ public sealed partial class AppDataViewModel : ObservableObject
             ClearText = Strings.Settings_ClearCacheDescription;
         }
 
-        // The agent leaves out the installs whose originals cannot be reached, whatever their status tells first.
+        // The agent leaves out the installs whose originals cannot be reached or were deleted, whatever their status tells first.
         var installed = state.Games.Where(game => game.Installs.Count > 0).ToList();
-        _uninstallable = installed.Count(game => game.Installs.Any(install => !install.BackupsUnavailable));
-        _unreachable = installed.Count(game => game.Installs.Any(install => install.BackupsUnavailable));
+        _uninstallable = installed.Count(game => game.Installs.Any(install => !LacksOriginals(install)));
+        _unreachable = installed.Count(game => game.Installs.Any(LacksOriginals));
         var uninstalling = state.Jobs.Where(job => job.Kind == JobKind.Uninstall).Select(job => job.Game).Distinct().Count()
             + state.PendingUninstalls;
         UninstallText = installed.Count == 0 ? Strings.Settings_UninstallAllNothing
@@ -146,4 +147,6 @@ public sealed partial class AppDataViewModel : ObservableObject
             return null;
         }
     }
+
+    private static bool LacksOriginals(InstallView install) => install.BackupsUnavailable || install.MissingOriginals.Count > 0;
 }

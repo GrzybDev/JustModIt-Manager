@@ -510,6 +510,12 @@
               </ItemsControl>
             </WrapPanel>
             <TextBlock Classes="bandText" Text="{Binding Text}" />
+            <Button x:Name="StepFilesToggle" Classes="link filesToggle" HorizontalAlignment="Left" Content="{Binding Files.Toggle}"
+                    ui:ButtonAssist.Icon="{Binding Files.ToggleIcon}" AutomationProperties.Name="{Binding Files.Toggle}"
+                    Command="{Binding Files.ToggleShownCommand}" IsVisible="{Binding Files, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            <ui:PathList Paths="{Binding Files.Paths}" Margin="0,4,0,2" theme:Motion.Enter="True"
+                         IsVisible="{Binding Files.AreShown, FallbackValue=False}"
+                         AutomationProperties.Name="{x:Static loc:Strings.GamePage_OriginalsMissingFiles}" />
             <ui:StatusLine x:Name="StepWarning" FontSize="14" LineHeight="21" Icon="{x:Static theme:Icons.TriangleAlert}" Tone="Warning"
                            Label="{Binding Warning}" IsVisible="{Binding HasWarning}" />
             <Button x:Name="CheckFilesUnder" Classes="outline onArt checkFiles" Margin="0,8,0,0" HorizontalAlignment="Left"
