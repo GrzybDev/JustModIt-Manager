@@ -57,7 +57,18 @@ env:
   AVALONIA_TELEMETRY_OPTOUT: '1'
 
 jobs:
+  checks:
+    permissions:
+      contents: read
+    uses: GrzybDev/actions/.github/workflows/dotnet-checks.yml@v1
+    with:
+      solution: JustModIt.Manager.slnx
+      runners: '["windows-latest"]'
+      # The native shim builds from them.
+      submodules: true
+
   release:
+    needs: checks
     runs-on: windows-latest
     # Besides the build, two signing rounds may each wait up to an hour for the signing machine. sign-pending.ps1 never
     # signs a file uploaded longer ago, so the two change together.
@@ -88,7 +99,11 @@ jobs:
             ./build/version.ps1 -App $env:APP -Bump $env:BUMP -PreRelease $env:LABEL -Version $env:VERSION
           }
 
-      - uses: ./.github/actions/build
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
 
       - name: Set up code signing
         id: codesign

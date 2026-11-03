@@ -19,7 +19,16 @@ env:
   AVALONIA_TELEMETRY_OPTOUT: '1'
 
 jobs:
-  windows:
+  checks:
+    uses: GrzybDev/actions/.github/workflows/dotnet-checks.yml@v1
+    with:
+      solution: JustModIt.Manager.slnx
+      runners: '["windows-latest"]'
+      # The native shim builds from them.
+      submodules: true
+
+  package:
+    needs: checks
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -28,7 +37,11 @@ jobs:
           # A CI package's version follows its app's tags.
           fetch-depth: 0
 
-      - uses: ./.github/actions/build
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
 
       - name: Test the build scripts
         shell: pwsh
