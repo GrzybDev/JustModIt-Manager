@@ -84,7 +84,9 @@ public static class AtomicFile
         }
     }
 
-    private static void TryDelete(string path)
+    /// <summary>Deletes a file if it can; what cannot be deleted stays behind.</summary>
+    /// <param name="path">The file.</param>
+    public static void TryDelete(string path)
     {
         try
         {

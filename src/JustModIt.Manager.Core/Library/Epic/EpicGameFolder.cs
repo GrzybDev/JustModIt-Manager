@@ -49,7 +49,8 @@ public static class EpicGameFolder
         var manifests = new List<EpicFolderManifest>();
         foreach (var file in fileSystem.DirectoryExists(store) ? List(fileSystem, store, "*.mancpn") : [])
         {
-            if (await TryReadAsync(fileSystem, file.FullPath, cancellationToken).ConfigureAwait(false) is { } manifest
+            if (await LauncherJson.TryReadAsync(fileSystem, file.FullPath, LauncherJsonContext.Default.EpicFolderManifest, cancellationToken)
+                .ConfigureAwait(false) is { } manifest
                 && LauncherJson.NullIfBlank(manifest.CatalogNamespace) is not null && LauncherJson.NullIfBlank(manifest.AppName) is not null)
             {
                 manifests.Add(manifest);
@@ -57,19 +58,6 @@ public static class EpicGameFolder
         }
 
         return manifests;
-    }
-
-    private static async Task<EpicFolderManifest?> TryReadAsync(IFileSystem fileSystem, string path, CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await LauncherJson.ReadAsync(fileSystem, path, LauncherJsonContext.Default.EpicFolderManifest, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (Exception exception) when (LauncherJson.IsUnreadable(exception))
-        {
-            return null;
-        }
     }
 
     private static List<FileEntry> List(IFileSystem fileSystem, string folder, string pattern) =>

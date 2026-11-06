@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 using Microsoft.Extensions.Logging;
 using SkiaSharp;
@@ -406,7 +407,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         }
         finally
         {
-            TryDelete(partial);
+            AtomicFile.TryDelete(partial);
         }
     }
 
@@ -452,7 +453,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
 
         // Not an image the window can show; it is asked for again next time, in case the site replaced it.
         LogUndecodable(_logger, address, failure);
-        TryDelete(path);
+        AtomicFile.TryDelete(path);
         return null;
     }
 
@@ -548,7 +549,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
             var folder = new DirectoryInfo(_directory);
             foreach (var partial in folder.EnumerateFiles("*" + PartialExtension).Where(file => file.LastWriteTimeUtc < DateTime.UtcNow.AddHours(-1)))
             {
-                TryDelete(partial.FullName);
+                AtomicFile.TryDelete(partial.FullName);
             }
 
             var images = folder.EnumerateFiles("*" + Extension).OrderByDescending(file => file.LastWriteTimeUtc).ToList();
@@ -558,7 +559,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
                 kept += image.Length;
                 if (kept > DiskBudget)
                 {
-                    TryDelete(image.FullName);
+                    AtomicFile.TryDelete(image.FullName);
                 }
             }
         }
@@ -574,17 +575,6 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         try
         {
             File.SetLastWriteTimeUtc(path, DateTime.UtcNow);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-        }
-    }
-
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            File.Delete(path);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

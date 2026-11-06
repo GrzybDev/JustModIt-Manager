@@ -98,7 +98,8 @@ internal sealed partial class GogInfoReader(IFileSystem fileSystem)
         }
 
         var gameId = match.Groups[1].Value;
-        var info = await TryParseAsync(file.FullPath, LauncherJsonContext.Default.GogInfoFile, cancellationToken).ConfigureAwait(false);
+        var info = await LauncherJson.TryReadAsync(fileSystem, file.FullPath, LauncherJsonContext.Default.GogInfoFile, cancellationToken)
+            .ConfigureAwait(false);
 
         // A copied or renamed file would otherwise lend its content to another product.
         if (info is null || info.GameId != gameId)
@@ -107,7 +108,7 @@ internal sealed partial class GogInfoReader(IFileSystem fileSystem)
         }
 
         var buildId = LauncherJson.NullIfBlank(info.BuildId)
-            ?? LauncherJson.NullIfBlank((await TryParseAsync(Path.ChangeExtension(file.FullPath, ".id"),
+            ?? LauncherJson.NullIfBlank((await LauncherJson.TryReadAsync(fileSystem, Path.ChangeExtension(file.FullPath, ".id"),
                 LauncherJsonContext.Default.GogIdFile, cancellationToken).ConfigureAwait(false))?.BuildId);
         List<string> languages = [.. (info.Languages ?? []).Select(LanguageNames.FromTag).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)];
         if (languages.Count == 0 && LanguageNames.FromName(info.Language) is { } language)
@@ -126,20 +127,6 @@ internal sealed partial class GogInfoReader(IFileSystem fileSystem)
         && primary.GetTextOrNull("type") is null or "FileTask"
             ? LaunchProgram.TryCreate(primary.GetTextOrNull("path"), primary.GetTextOrNull("arguments"), primary.GetTextOrNull("workingDir"))
             : null;
-
-    private async Task<T?> TryParseAsync<T>(string path, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
-        CancellationToken cancellationToken)
-        where T : class
-    {
-        try
-        {
-            return await LauncherJson.ReadAsync(fileSystem, path, typeInfo, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception exception) when (LauncherJson.IsUnreadable(exception))
-        {
-            return null;
-        }
-    }
 
     [GeneratedRegex("^goggame-([0-9]{1,20})\\.info$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex InfoFileName();

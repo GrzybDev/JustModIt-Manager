@@ -50,6 +50,25 @@ internal static class LauncherJson
         }
     }
 
+    /// <summary>Reads a file that a launcher may be writing; null when it cannot be read.</summary>
+    /// <param name="fileSystem">The file system.</param>
+    /// <param name="path">The file.</param>
+    /// <param name="typeInfo">The file's type.</param>
+    /// <param name="cancellationToken">Stops the read.</param>
+    public static async Task<T?> TryReadAsync<T>(IFileSystem fileSystem, string path, JsonTypeInfo<T> typeInfo,
+        CancellationToken cancellationToken)
+        where T : class
+    {
+        try
+        {
+            return await ReadAsync(fileSystem, path, typeInfo, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (IsUnreadable(exception))
+        {
+            return null;
+        }
+    }
+
     /// <summary>
     /// Whether reading a launcher's file failed because it is missing, locked, too large or caught mid-write, which the
     /// launcher's next write usually fixes.

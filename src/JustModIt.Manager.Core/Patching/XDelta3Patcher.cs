@@ -61,7 +61,7 @@ public sealed class XDelta3Patcher(long? memoryBudget = null)
         }
         catch
         {
-            TryDelete(outputPath);
+            AtomicFile.TryDelete(outputPath);
             throw;
         }
     }
@@ -109,17 +109,6 @@ public sealed class XDelta3Patcher(long? memoryBudget = null)
                 return new PatchInfo(sourceLength, sourceSha256, encoded, Convert.ToHexStringLower(targetHash.GetHashAndReset()),
                     patchSize);
             }
-        }
-    }
-
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            File.Delete(path);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
         }
     }
 
