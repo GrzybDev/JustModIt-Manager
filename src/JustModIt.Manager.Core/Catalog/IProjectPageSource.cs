@@ -8,22 +8,9 @@ namespace JustModIt.Manager.Core.Catalog;
 /// Projects installed here, resolved even once the catalogue no longer lists them, so they can still be updated or
 /// repaired.
 /// </param>
-/// <param name="Listing">The catalogue as last read; a source with an index of its own may ignore it.</param>
+/// <param name="Listing">The catalogue as last read, which links the games to their projects.</param>
 public sealed record IndexScope(IReadOnlyCollection<GameKey> Games, IReadOnlyCollection<ProjectLocator> InstalledProjects,
     CatalogueListing Listing);
-
-/// <summary>
-/// Where the installable index comes from, so an index endpoint of the backend can replace today's gathering from the
-/// site's public pages without changing any caller.
-/// </summary>
-public interface IIndexSource
-{
-    /// <summary>Builds the index of the projects the scope's games and installs may use.</summary>
-    /// <param name="scope">The games, installed projects and listing to index.</param>
-    /// <param name="cancellationToken">Cancels the build.</param>
-    /// <exception cref="CatalogueException">The index could not be built; nothing partial is returned.</exception>
-    Task<InstallableIndex> BuildAsync(IndexScope scope, CancellationToken cancellationToken);
-}
 
 /// <summary>Project pages for the index, which a cache may answer while they are current.</summary>
 public interface IProjectPageSource

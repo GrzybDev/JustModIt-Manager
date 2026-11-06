@@ -6,11 +6,15 @@ namespace JustModIt.Manager.Core.Catalog;
 /// </summary>
 /// <param name="pages">Gives each project's page, reusing a saved one while current.</param>
 /// <param name="time">Dates the index.</param>
-public sealed class CrawlIndexSource(IProjectPageSource pages, TimeProvider time) : IIndexSource
+public sealed class CrawlIndexSource(IProjectPageSource pages, TimeProvider time)
 {
     // A few pages at a time: a first run for a large library stays quick without hammering the site.
     private const int ParallelPages = 4;
 
+    /// <summary>Builds the index of the projects the scope's games and installs may use.</summary>
+    /// <param name="scope">The games, installed projects and listing to index.</param>
+    /// <param name="cancellationToken">Cancels the build.</param>
+    /// <exception cref="CatalogueException">The index could not be built; nothing partial is returned.</exception>
     public async Task<InstallableIndex> BuildAsync(IndexScope scope, CancellationToken cancellationToken)
     {
         var wanted = new Dictionary<Guid, (ProjectLocator Locator, DateTimeOffset? ListedUpdatedAt)>();

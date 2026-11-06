@@ -3,12 +3,17 @@ using JustModIt.Manager.Ui.Connection;
 
 namespace JustModIt.Manager.Ui;
 
-/// <summary>The window's process: the Avalonia application with its main window, until the window closes.</summary>
-public sealed class WindowHost : IUiHost
+/// <summary>
+/// The window's process, started by the agent when the player asks for the window: the Avalonia application with its main
+/// window, until the window closes.
+/// </summary>
+public static class WindowHost
 {
-    public int Run(UiContext context)
+    /// <summary>Runs on the process's main thread until the window closes.</summary>
+    /// <param name="context">The app's names, the agent's pipe and this process's command line.</param>
+    /// <returns>The process's exit code.</returns>
+    public static int Run(UiContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
         AgentConnection? agent = null;
         var exitCode = AppBuilder.Configure(() => new App(context,
                 () => agent = new AgentConnection(context.PipeName, context.Version, context.Loggers)))

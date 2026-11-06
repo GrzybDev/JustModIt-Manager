@@ -51,7 +51,7 @@ internal static partial class Roles
     /// <param name="args">The command line as given, for a hand-over.</param>
     public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
         RunClaimed(environment, environment.Names.UiLock, UiRole, args,
-            (loggers, _, previous) => (options.Ui ?? new WindowHost()).Run(environment.WindowContext(options, launch, loggers, previous)));
+            (loggers, _, previous) => WindowHost.Run(environment.WindowContext(options, launch, loggers, previous)));
 
     /// <summary>
     /// Ends the session markers of the runs that the installer stopped to replace the app, so the next start does not take

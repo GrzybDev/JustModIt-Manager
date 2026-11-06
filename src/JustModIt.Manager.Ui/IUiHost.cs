@@ -78,12 +78,3 @@ public sealed record UiContext
     /// <summary>The app's own views, pages, styles and resources, added after the shared ones so they win.</summary>
     public Action<UiComposition>? Compose { get; init; }
 }
-
-/// <summary>The window's process, started by the agent when the player asks for the window and ended when it closes.</summary>
-public interface IUiHost
-{
-    /// <summary>Runs on the process's main thread until the window closes.</summary>
-    /// <param name="context">The app's names, the agent's pipe and this process's command line.</param>
-    /// <returns>The process's exit code.</returns>
-    int Run(UiContext context);
-}

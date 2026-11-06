@@ -60,7 +60,7 @@ public sealed record IndexRequest(IReadOnlyCollection<GameKey> Games, IReadOnlyC
 /// <param name="logger">Logs refreshes, failed saves and listeners.</param>
 public sealed partial class CatalogueService(
     CatalogueCrawler crawler,
-    IIndexSource indexSource,
+    CrawlIndexSource indexSource,
     ProjectPageCache pages,
     CatalogueCache cache,
     ILogger<CatalogueService> logger) : ICatalogue
