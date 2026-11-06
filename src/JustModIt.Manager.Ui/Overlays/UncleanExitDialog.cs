@@ -47,8 +47,6 @@ public sealed partial class UncleanExitDialogViewModel : DialogViewModel<bool>
     public UncleanExitDialogViewModel(UiServices services, UncleanExitView exit)
         : base(false)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(exit);
         _services = services;
         _report = ProblemReports.Address(services.Context);
         Title = Text.Format(exit.IsWindow ? Strings.Shell_UncleanExitWindowTitle : Strings.Shell_UncleanExitTitle,

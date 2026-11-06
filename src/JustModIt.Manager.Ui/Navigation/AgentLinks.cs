@@ -15,8 +15,6 @@ public static class AgentLinks
     /// <param name="state">The agent's state: the player's games a project link looks in, and whether the package creator is on.</param>
     public static IReadOnlyList<Route> RoutesFor(NavigationTarget target, AppStateView state)
     {
-        ArgumentNullException.ThrowIfNull(target);
-        ArgumentNullException.ThrowIfNull(state);
         return target switch
         {
             GameTarget game when StoreId.TryParse(game.Store, out var store) && !string.IsNullOrWhiteSpace(game.GameId) =>

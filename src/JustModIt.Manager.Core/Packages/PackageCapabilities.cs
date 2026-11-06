@@ -35,7 +35,6 @@ public static class PackageCapabilities
     /// <param name="declaresFiles">The package declares files its software changes while the game runs.</param>
     public static IReadOnlyList<string> Of(IEnumerable<PackageOperation> operations, bool declaresFiles = false)
     {
-        ArgumentNullException.ThrowIfNull(operations);
         return
         [
             .. operations

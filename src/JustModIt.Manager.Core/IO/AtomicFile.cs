@@ -29,7 +29,6 @@ public static class AtomicFile
     public static Task WriteJsonAsync(string path, JsonWriterOptions options, Action<Utf8JsonWriter> write,
         CancellationToken cancellationToken, TimeProvider? time = null)
     {
-        ArgumentNullException.ThrowIfNull(write);
         return WriteAsync(path, async (stream, token) =>
         {
             var writer = new Utf8JsonWriter(stream, options);
@@ -50,8 +49,6 @@ public static class AtomicFile
     public static async Task WriteAsync(string path, Func<Stream, CancellationToken, ValueTask> write,
         CancellationToken cancellationToken, TimeProvider? time = null, int bufferSize = DefaultBufferSize)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        ArgumentNullException.ThrowIfNull(write);
         time ??= TimeProvider.System;
 
         var target = Path.GetFullPath(path);

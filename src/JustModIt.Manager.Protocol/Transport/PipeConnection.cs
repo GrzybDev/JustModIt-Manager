@@ -70,8 +70,6 @@ public sealed partial class PipeConnection : IAsyncDisposable
         TimeSpan? timeout = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-
         var id = Interlocked.Increment(ref _lastRequestId);
         var response = new TaskCompletionSource<Message?>(TaskCreationOptions.RunContinuationsAsynchronously);
         _pending[id] = response;
@@ -97,7 +95,6 @@ public sealed partial class PipeConnection : IAsyncDisposable
     /// <param name="cancellationToken">Stops waiting for room in the queue.</param>
     public ValueTask SendEventAsync(Message message, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(message);
         return EnqueueAsync(new EventFrame(message), cancellationToken);
     }
 
@@ -203,7 +200,6 @@ public sealed partial class PipeConnection : IAsyncDisposable
     /// <exception cref="InvalidOperationException">The event is over the frame limit or cannot be written.</exception>
     public void Post(Message message)
     {
-        ArgumentNullException.ThrowIfNull(message);
         if (!_outgoing.Writer.TryWrite(FrameCodec.Serialize(new EventFrame(message), _options.MaxFrameLength)) && !_sendingCompleted)
         {
             LogPeerNotReading(Peer.Role, Peer.ProcessId);

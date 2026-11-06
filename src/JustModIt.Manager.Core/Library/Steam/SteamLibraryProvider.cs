@@ -36,7 +36,6 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
 
     public async Task<StoreScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(context);
         var access = context.Access;
         var candidates = await Task.WhenAll(_roots.Candidates().Select(candidate => FindRootAsync(candidate, access, cancellationToken)))
             .ConfigureAwait(false);
@@ -65,8 +64,6 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
 
     public async Task<InstalledGame?> ProbeAsync(InstalledGame game, LibraryScanContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(game);
-        ArgumentNullException.ThrowIfNull(context);
         var library = await DescribeAsync(new LibraryCandidate(game.LibraryId, IsMounted: null, IsManual: false), context.Access,
             cancellationToken).ConfigureAwait(false);
         var probed = Combine([await ReadLibraryAsync(library, context.Access, cancellationToken).ConfigureAwait(false)]).Describe(game);

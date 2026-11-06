@@ -61,8 +61,6 @@ public sealed partial class WindowsTrayHost : ITrayHost
     /// <param name="logger">Logs failures of the tray window.</param>
     public WindowsTrayHost(string iconPath, ILogger<WindowsTrayHost> logger)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(iconPath);
-        ArgumentNullException.ThrowIfNull(logger);
         _iconPath = iconPath;
         _logger = logger;
         _thread = new Thread(Run) { IsBackground = true, Name = "Tray" };
@@ -80,8 +78,6 @@ public sealed partial class WindowsTrayHost : ITrayHost
 
     public void Show(string tooltip, IReadOnlyList<TrayMenuItem> menu)
     {
-        ArgumentNullException.ThrowIfNull(tooltip);
-        ArgumentNullException.ThrowIfNull(menu);
         lock (_gate)
         {
             _tooltip = Clip(tooltip, MaxTooltipLength);
@@ -94,8 +90,6 @@ public sealed partial class WindowsTrayHost : ITrayHost
 
     public void ShowNotification(string title, string message, string? tag)
     {
-        ArgumentNullException.ThrowIfNull(title);
-        ArgumentNullException.ThrowIfNull(message);
         lock (_gate)
         {
             _notifications.Enqueue((Clip(title, MaxTitleLength), Clip(message, MaxMessageLength), tag));

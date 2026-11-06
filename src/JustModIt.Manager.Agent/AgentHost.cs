@@ -18,10 +18,6 @@ public static class AgentHost
     public static async Task RunAsync(AgentOptions options, LaunchArguments start, ILoggerFactory loggers,
         Action<IServiceCollection>? configure = null, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(start);
-        ArgumentNullException.ThrowIfNull(loggers);
-
         // Loaded before anything else, since most services read them; saving waits until everything else has stopped.
         var settings = await SettingsService.LoadAsync(options.Locations, TimeProvider.System, loggers, cancellationToken)
             .ConfigureAwait(false);

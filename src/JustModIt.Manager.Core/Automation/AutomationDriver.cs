@@ -129,7 +129,6 @@ internal sealed class AutomationDriver : IAsyncDisposable
     /// <param name="game">The game as it was before the job's outcome was applied.</param>
     public IReadOnlyList<AutomationNotice> OnFinished(JobResult result, MyGame? game)
     {
-        ArgumentNullException.ThrowIfNull(result);
         var before = History;
         var notices = new List<AutomationNotice>();
         if (_running.Remove(result.Job.Id, out var attempt))

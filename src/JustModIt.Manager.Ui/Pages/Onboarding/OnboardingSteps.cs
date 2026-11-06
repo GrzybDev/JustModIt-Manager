@@ -84,7 +84,6 @@ public sealed record StoreLine(string Store, string Name, string Detail, bool Is
     /// <param name="store">The store's part of the detection report.</param>
     public static StoreLine From(StoreDetectionView store)
     {
-        ArgumentNullException.ThrowIfNull(store);
         var name = store.Launcher is { Length: > 0 } launcher ? launcher
             : store.Name is { Length: > 0 } site ? site
             : store.Store switch

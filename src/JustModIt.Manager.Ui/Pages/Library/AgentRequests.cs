@@ -24,7 +24,6 @@ internal static class AgentRequests
     /// <returns>Whether the agent took the request, and its answer.</returns>
     public static async Task<(bool Sent, Message? Answer)> AskAsync(UiServices services, Message request, string? busy = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
         try
         {
             return (true, await services.Agent.RequestAsync(request).ConfigureAwait(true));

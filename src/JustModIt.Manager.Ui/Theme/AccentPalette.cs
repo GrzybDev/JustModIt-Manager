@@ -58,7 +58,6 @@ public sealed record AccentPalette(Color Accent, Color Hover, Color Pressed, Col
     /// <param name="resources">The application's resources, which win over the theme's defaults.</param>
     public void Apply(IResourceDictionary resources)
     {
-        ArgumentNullException.ThrowIfNull(resources);
         resources["AccentColor"] = Accent;
         resources["AccentHoverColor"] = Hover;
         resources["AccentPressedColor"] = Pressed;

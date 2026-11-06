@@ -37,8 +37,6 @@ internal sealed class GogRegistrySource(IRegistry registry, GalaxyDatabase? gala
 
     public async Task<SourceScan<GogInstallRecord>> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         // The uninstall entries are not watched: every program changes them, and they only back up a missing GOG.com key.
         var watch = new WatchPlan(galaxy?.Watch is { } database ? [database] : [],
             [.. SearchOrder.Select(location => new WatchedRegistryKey(location.Hive, location.View, GamesKey, IncludeSubkeys: true))]);

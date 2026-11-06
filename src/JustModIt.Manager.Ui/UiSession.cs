@@ -43,8 +43,6 @@ public sealed class UiSession : IDisposable
     public static UiSession Create(Application application, UiContext context, IAgent agent, IImageLoader? images = null,
         IExternalLinks? links = null, TimeProvider? clock = null, IFilePickers? pickers = null, IErrorReports? errorReports = null)
     {
-        ArgumentNullException.ThrowIfNull(application);
-        ArgumentNullException.ThrowIfNull(context);
         AccentPalette.From(context.AccentColor).Apply(application.Resources);
         var composition = new UiComposition(application.Resources, application.Styles);
         composition.Views.Register<ConfirmDialogViewModel>(() => new ConfirmDialogView());

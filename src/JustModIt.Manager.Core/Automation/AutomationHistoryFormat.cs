@@ -30,8 +30,6 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
 
     public void Write(Utf8JsonWriter writer, AutomationHistory document)
     {
-        ArgumentNullException.ThrowIfNull(writer);
-        ArgumentNullException.ThrowIfNull(document);
         writer.WriteIfSet(BaselineProperty, document.BaselineAt);
         writer.WriteStartArray(AttemptsProperty);
         foreach (var (key, attempt) in document.Attempts.OrderBy(pair => pair.Key.Game.ToString(), StringComparer.Ordinal)

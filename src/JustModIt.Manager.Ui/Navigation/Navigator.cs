@@ -39,7 +39,6 @@ public sealed partial class Navigator(Func<Route, PageViewModel> create) : Obser
     /// <param name="route">Where to go; the route shown already changes nothing.</param>
     public void Navigate(Route route)
     {
-        ArgumentNullException.ThrowIfNull(route);
         if (route == CurrentRoute)
         {
             return;
@@ -80,7 +79,6 @@ public sealed partial class Navigator(Func<Route, PageViewModel> create) : Obser
     /// <param name="route">Where to go instead.</param>
     public void Replace(Route route)
     {
-        ArgumentNullException.ThrowIfNull(route);
         if (route.IsRoot || CurrentRoute is not { IsRoot: false } left || Current is not { } page)
         {
             Navigate(route);
@@ -101,7 +99,6 @@ public sealed partial class Navigator(Func<Route, PageViewModel> create) : Obser
     /// <param name="routes">The routes in order, from <see cref="AgentLinks.RoutesFor"/>.</param>
     public void Open(IEnumerable<Route> routes)
     {
-        ArgumentNullException.ThrowIfNull(routes);
         foreach (var route in routes)
         {
             Navigate(route);
@@ -131,12 +128,9 @@ public sealed partial class Navigator(Func<Route, PageViewModel> create) : Obser
             return;
         }
 
-        var left = CurrentRoute is { } route && Current is { } page ? new Entry(route, page) : null;
+        var left = new Entry(CurrentRoute!, Current!);
         Show(previous, wentBack: true);
-        if (left is not null)
-        {
-            Drop(left);
-        }
+        Drop(left);
     }
 
     private void Show(Entry entry, bool wentBack)

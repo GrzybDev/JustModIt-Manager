@@ -28,7 +28,6 @@ public sealed record WatchPlan(ValueList<WatchedFolder> Folders, ValueList<Watch
     /// <param name="other">The plan of another source of the store.</param>
     public WatchPlan Merge(WatchPlan other)
     {
-        ArgumentNullException.ThrowIfNull(other);
         return new WatchPlan([.. Folders.Concat(other.Folders).Distinct()], [.. RegistryKeys.Concat(other.RegistryKeys).Distinct()]);
     }
 }
@@ -44,7 +43,6 @@ public sealed class WatchedFolder : IEquatable<WatchedFolder>
     /// <param name="filters">Names or wildcard patterns of the entries that matter; none means every entry.</param>
     public WatchedFolder(string directory, IEnumerable<string> filters)
     {
-        ArgumentNullException.ThrowIfNull(filters);
         Directory = PathComparison.Normalize(directory);
         Filters = [.. filters.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase)];
     }
@@ -62,7 +60,6 @@ public sealed class WatchedFolder : IEquatable<WatchedFolder>
     /// <returns>Null when not even the drive exists.</returns>
     public static WatchedFolder? Toward(IFileSystem fileSystem, string path)
     {
-        ArgumentNullException.ThrowIfNull(fileSystem);
         var full = PathComparison.Normalize(path);
         var name = Path.GetFileName(full);
         var directory = Path.GetDirectoryName(full);

@@ -29,7 +29,6 @@ internal sealed class LegendarySource(IFileSystem fileSystem, string legendaryDi
     /// <param name="environment">The user's folders and environment variables.</param>
     public static string StandaloneDirectory(LibraryEnvironment environment)
     {
-        ArgumentNullException.ThrowIfNull(environment);
         return environment.LegendaryConfigPath
             ?? Path.Join(environment.XdgConfigHome ?? Path.Join(environment.HomeDirectory, ".config"), "legendary");
     }
@@ -42,7 +41,6 @@ internal sealed class LegendarySource(IFileSystem fileSystem, string legendaryDi
 
     public Task<SourceScan<EpicInstallRecord>> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(context);
         return context.Access.ReadAsync(InstalledFile, ReadInstalledAsync, cancellationToken);
     }
 

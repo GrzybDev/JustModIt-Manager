@@ -14,7 +14,6 @@ public sealed class ActivationHandler(UiLauncher ui, ISettingsService settings)
     /// <param name="launch">This process's command line, or one a later launch handed over.</param>
     public void Handle(LaunchArguments launch)
     {
-        ArgumentNullException.ThrowIfNull(launch);
         if (ShowsWindow(launch, settings.Current))
         {
             ui.Show(launch.Target);

@@ -116,7 +116,6 @@ public sealed record AppSettings
     /// <param name="change">Turns the game's current choices into the new ones.</param>
     public AppSettings WithGame(GameKey key, Func<GamePreferences, GamePreferences> change)
     {
-        ArgumentNullException.ThrowIfNull(change);
         var updated = change(GetGame(key));
         return this with { Games = updated == GamePreferences.Default ? Games.Remove(key) : Games.SetItem(key, updated) };
     }
@@ -173,7 +172,6 @@ public sealed record AppSettings
     /// <param name="folder">A folder the player added, canonical.</param>
     public AppSettings WithLibraryFolder(LibraryFolder folder)
     {
-        ArgumentNullException.ThrowIfNull(folder);
         return LibraryFolders.Any(existing => IsSameFolder(existing, folder))
             ? this
             : this with { LibraryFolders = LibraryFolders.Add(folder) };
@@ -183,7 +181,6 @@ public sealed record AppSettings
     /// <param name="folder">The folder to remove.</param>
     public AppSettings WithoutLibraryFolder(LibraryFolder folder)
     {
-        ArgumentNullException.ThrowIfNull(folder);
         return this with { LibraryFolders = LibraryFolders.RemoveAll(existing => IsSameFolder(existing, folder)) };
     }
 

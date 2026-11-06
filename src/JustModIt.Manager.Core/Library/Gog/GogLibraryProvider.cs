@@ -26,9 +26,6 @@ public sealed class GogLibraryProvider : ILibraryProvider
     internal GogLibraryProvider(IFileSystem fileSystem, IEnumerable<IInstallSource<GogInstallRecord>> sources, AppPlatform platform,
         ILogger<GogLibraryProvider> logger)
     {
-        ArgumentNullException.ThrowIfNull(fileSystem);
-        ArgumentNullException.ThrowIfNull(sources);
-        ArgumentNullException.ThrowIfNull(logger);
         _fileSystem = fileSystem;
         _folders = new GogFolderSource(fileSystem, platform);
         _scanner = new InstallRecordScanner<GogInstallRecord>(Store, [.. sources, _folders], logger);
@@ -49,7 +46,6 @@ public sealed class GogLibraryProvider : ILibraryProvider
     public static GogLibraryProvider Create(IFileSystem fileSystem, IRegistry registry, ISqliteReader sqlite, LibraryEnvironment environment,
         ILogger<GogLibraryProvider> logger)
     {
-        ArgumentNullException.ThrowIfNull(environment);
         List<IInstallSource<GogInstallRecord>> sources = environment.Platform == AppPlatform.Windows
             ? [new GogRegistrySource(registry, GalaxyDatabase.Locate(fileSystem, sqlite, environment))]
             : [];
@@ -62,8 +58,6 @@ public sealed class GogLibraryProvider : ILibraryProvider
 
     public async Task<InstalledGame?> ProbeAsync(InstalledGame game, LibraryScanContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(game);
-
         // Whether a record is DLC depends on every other record, so the probe reads them all; there are only a few.
         return (await ScanAsync(context, cancellationToken).ConfigureAwait(false)).Describe(game);
     }

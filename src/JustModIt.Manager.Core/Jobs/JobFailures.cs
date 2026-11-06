@@ -57,7 +57,6 @@ internal static class JobFailures
     /// <param name="issues">Every problem the engine found.</param>
     public static JobFailure FromIssues(IReadOnlyList<InstallIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(issues);
         if (issues.OfType<GameRunningIssue>().ToList() is { Count: > 0 } running)
         {
             return new JobFailure(JobFailureReason.GameRunning) { Processes = Distinct(running.Select(issue => issue.ProcessName)) };
@@ -166,7 +165,6 @@ internal static class JobFailures
     /// <param name="exception">The catalogue's or the download's error.</param>
     public static JobFailure FromCatalogue(CatalogueException exception)
     {
-        ArgumentNullException.ThrowIfNull(exception);
         return new JobFailure(exception switch
         {
             { Reason: CatalogueErrorReason.NotFound } => JobFailureReason.ProjectNotFound,

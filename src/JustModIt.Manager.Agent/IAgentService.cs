@@ -24,7 +24,6 @@ public static class StartupDelays
     /// <param name="start">How this agent was started.</param>
     public static TimeSpan Catalogue(LaunchArguments start)
     {
-        ArgumentNullException.ThrowIfNull(start);
         return start.Background ? TimeSpan.FromMinutes(2) : TimeSpan.Zero;
     }
 
@@ -32,7 +31,6 @@ public static class StartupDelays
     /// <param name="start">How this agent was started.</param>
     public static TimeSpan UpdateCheck(LaunchArguments start)
     {
-        ArgumentNullException.ThrowIfNull(start);
         return start.Background ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(1);
     }
 }

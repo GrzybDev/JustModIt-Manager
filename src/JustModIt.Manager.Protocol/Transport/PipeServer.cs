@@ -20,7 +20,7 @@ public sealed partial class PipeServer : IAsyncDisposable
     private readonly SemaphoreSlim _slots;
     private readonly CancellationTokenSource _stopping = new();
     private Task _acceptLoop = Task.CompletedTask;
-    private int _state;
+    private int _disposed;
 
     /// <summary>Creates the server, which listens once started.</summary>
     /// <param name="pipeName">The agent's pipe.</param>
@@ -30,11 +30,6 @@ public sealed partial class PipeServer : IAsyncDisposable
     /// <param name="options">The transport's settings; null for the defaults.</param>
     public PipeServer(string pipeName, Hello hello, IConnectionHandler handler, ILogger logger, IpcOptions? options = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(pipeName);
-        ArgumentNullException.ThrowIfNull(hello);
-        ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(logger);
-
         _pipeName = pipeName;
         _hello = hello;
         _handler = handler;
@@ -43,20 +38,15 @@ public sealed partial class PipeServer : IAsyncDisposable
         _slots = new SemaphoreSlim(_options.MaxConnections, _options.MaxConnections);
     }
 
-    /// <summary>Starts accepting connections in the background; a server starts only once.</summary>
+    /// <summary>Starts accepting connections in the background.</summary>
     public void Start()
     {
-        if (Interlocked.CompareExchange(ref _state, 1, 0) != 0)
-        {
-            throw new InvalidOperationException("The pipe server can be started only once.");
-        }
-
         _acceptLoop = Task.Run(AcceptLoopAsync);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _state, 2) == 2)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }

@@ -57,7 +57,6 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
     /// <param name="cancellationToken">Cancels the write, leaving the last listing.</param>
     public Task SaveListingAsync(CatalogueListing listing, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(listing);
         return WriteAsync(ListingFile, ListingVersion, listing.FetchedAt,
             writer => JsonSerializer.Serialize(writer, new ListingData(listing.Games, listing.Reference), Json.ListingData),
             cancellationToken);
@@ -75,7 +74,6 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
     /// <param name="cancellationToken">Cancels the write, leaving the last index.</param>
     public Task SaveIndexAsync(InstallableIndex index, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(index);
         return WriteAsync(IndexFile, IndexVersion, index.BuiltAt,
             writer => JsonSerializer.Serialize(writer, new IndexData(index.Entries), Json.IndexData), cancellationToken);
     }
@@ -93,7 +91,6 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
     /// <param name="cancellationToken">Cancels the write, leaving the last configuration.</param>
     public Task SaveSiteAsync(SiteConfiguration site, DateTimeOffset fetchedAt, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(site);
         return WriteAsync(SiteFile, SiteVersion, fetchedAt, writer => JsonSerializer.Serialize(writer, site, Json.SiteConfiguration),
             cancellationToken);
     }
@@ -127,7 +124,6 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
     /// <param name="cancellationToken">Cancels the write, leaving the page saved earlier.</param>
     public Task SavePageAsync(ProjectPageDocument page, DateTimeOffset fetchedAt, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(page);
         return WriteAsync(PageFile(page.Page.Uuid), PageVersion, fetchedAt, writer => writer.WriteRawValue(page.Json.Span),
             cancellationToken);
     }

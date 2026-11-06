@@ -29,8 +29,6 @@ public sealed class PhysicalFileSystem : IFileSystem
     public IEnumerable<FileEntry> Enumerate(string directory, string searchPattern, EnumerationOptions options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        ArgumentNullException.ThrowIfNull(searchPattern);
-        ArgumentNullException.ThrowIfNull(options);
         return new FileSystemEnumerable<FileEntry>(Path.GetFullPath(directory),
             (ref entry) => new FileEntry(entry.ToFullPath(), entry.Attributes, entry.IsDirectory ? 0 : entry.Length,
                 entry.LastWriteTimeUtc),

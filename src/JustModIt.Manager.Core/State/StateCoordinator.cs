@@ -137,7 +137,6 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     /// <param name="destination">Where the settings now keep backups.</param>
     public void MoveBackups(BackupChoice destination)
     {
-        ArgumentNullException.ThrowIfNull(destination);
         Post(new BackupsMoveRequested(destination));
     }
 

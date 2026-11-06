@@ -21,7 +21,6 @@ internal sealed class EpicLauncherSource(IFileSystem fileSystem, IRegistry regis
 
     public Task<SourceScan<EpicInstallRecord>> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(context);
         var manifests = Path.Join(DataDirectory(), "Manifests");
         return context.Access.ReadAsync(manifests, token => ReadAsync(manifests, token), cancellationToken);
     }

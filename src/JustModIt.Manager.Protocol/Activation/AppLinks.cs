@@ -38,7 +38,6 @@ public sealed class AppLinks
     /// <param name="argument">An argument as the process received it.</param>
     public bool IsLink(string argument)
     {
-        ArgumentNullException.ThrowIfNull(argument);
         return argument.StartsWith(_prefix, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -50,7 +49,6 @@ public sealed class AppLinks
     /// </returns>
     public NavigationTarget? Parse(string link)
     {
-        ArgumentNullException.ThrowIfNull(link);
         if (link.Length > MaxLinkLength)
         {
             // The site's download makes these links, so one too long to read still opens the catalogue rather than nothing.
@@ -92,8 +90,7 @@ public sealed class AppLinks
         CatalogueTarget => $"{Scheme}://catalogue",
         InstallTarget install => Install(install),
         SettingsTarget => $"{Scheme}://settings",
-        CreatorTarget => $"{Scheme}://creator",
-        _ => throw new ArgumentOutOfRangeException(nameof(target), target, "Unknown navigation target."),
+        _ => $"{Scheme}://creator",
     };
 
     // A broken project link still opens its game, and a broken game link the catalogue.

@@ -62,7 +62,6 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     /// <param name="firstRun">The first-run setup's page; null when the app has none.</param>
     public ShellViewModel(UiServices services, Func<UiServices, PageViewModel>? firstRun = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _firstRun = firstRun;
         Status = new StatusCardViewModel(services.Agent, services.Context.Version);

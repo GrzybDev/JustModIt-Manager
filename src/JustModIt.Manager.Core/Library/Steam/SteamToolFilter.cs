@@ -31,8 +31,6 @@ internal static partial class SteamToolFilter
     /// <param name="manifest">The app's manifest.</param>
     public static bool IsTool(SteamAppManifest manifest)
     {
-        ArgumentNullException.ThrowIfNull(manifest);
-
         // The id list cannot keep up with new Proton and runtime releases; their names and folders are stable.
         return ToolAppIds.Contains(manifest.AppId)
             || (manifest.Name is { } name && ToolName().IsMatch(name))

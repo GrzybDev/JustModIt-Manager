@@ -70,7 +70,6 @@ internal sealed class StorageProviderPickers(Func<TopLevel?> window) : IFilePick
 
     public async Task<string?> PickSaveFileAsync(string title, string suggestedName, FileKind kind, string? startIn = null)
     {
-        ArgumentNullException.ThrowIfNull(kind);
         if (window() is not { StorageProvider: { CanSave: true } storage })
         {
             return null;

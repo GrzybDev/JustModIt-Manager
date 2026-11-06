@@ -10,7 +10,6 @@ public static class EventRaising
     /// <param name="onFailure">Logs a handler's failure.</param>
     public static void RaiseEach<T>(EventHandler<T>? handlers, object sender, T args, Action<Exception> onFailure)
     {
-        ArgumentNullException.ThrowIfNull(onFailure);
         foreach (var handler in handlers?.GetInvocationList() ?? [])
         {
             try

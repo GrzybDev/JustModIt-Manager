@@ -33,9 +33,6 @@ internal static class TransientFileRetry
     /// <param name="cancellationToken">Stops the retries.</param>
     public static async Task<T> RunAsync<T>(Func<Task<T>> operation, TimeProvider time, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(operation);
-        ArgumentNullException.ThrowIfNull(time);
-
         for (var attempt = 0; ; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();

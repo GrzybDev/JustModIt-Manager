@@ -44,7 +44,6 @@ public sealed record StoreScan
     /// <param name="known">The game as an earlier scan found it.</param>
     public InstalledGame? Describe(InstalledGame known)
     {
-        ArgumentNullException.ThrowIfNull(known);
         if (Games.FirstOrDefault(game => game.Key == known.Key) is { } found)
         {
             return found;
@@ -85,7 +84,6 @@ public sealed record UnansweredGame(GameKey Key, string Folder)
     /// <param name="game">A game an earlier scan found.</param>
     public bool Matches(InstalledGame game)
     {
-        ArgumentNullException.ThrowIfNull(game);
         return game.Key == Key || (game.Key.Store == Key.Store && PathComparison.AreSame(game.InstallDirectory, Folder));
     }
 }

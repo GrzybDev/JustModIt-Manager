@@ -32,7 +32,6 @@ internal sealed partial class DesktopShell(ILogger<DesktopShell> logger) : IDesk
     // Through the shell, as a shortcut would start it, so a game that needs elevation asks for it.
     public bool Start(ProgramStart program)
     {
-        ArgumentNullException.ThrowIfNull(program);
         return Run(new ProcessStartInfo(program.Executable, program.Arguments)
         {
             UseShellExecute = true,

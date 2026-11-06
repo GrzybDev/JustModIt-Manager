@@ -29,7 +29,6 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
     public Task<FolderComparison> CompareAsync(ComparisonRequest request, IProgress<CompareProgress>? progress,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         return Task.Run(() => CompareCoreAsync(request, progress, cancellationToken), cancellationToken);
     }
 
@@ -76,7 +75,6 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
     /// <param name="cancellationToken">Cancels the check.</param>
     public Task<bool> HasChangedAsync(FolderComparison comparison, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(comparison);
         return Task.Run(() =>
         {
             var stamps = comparison.Files.Where(file => file.AuthorPath is not null)

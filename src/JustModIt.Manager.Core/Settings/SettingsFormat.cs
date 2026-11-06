@@ -107,8 +107,6 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
 
     public void Write(Utf8JsonWriter writer, AppSettings document)
     {
-        ArgumentNullException.ThrowIfNull(writer);
-        ArgumentNullException.ThrowIfNull(document);
         writer.WriteBoolean(StartWithSystem, document.StartWithSystem);
         writer.WriteString(CloseBehaviorName, document.CloseBehavior.ToString());
         writer.WriteBoolean(AutoInstallProjects, document.AutoInstallProjects);

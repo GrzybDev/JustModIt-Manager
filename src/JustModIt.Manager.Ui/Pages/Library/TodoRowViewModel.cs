@@ -97,7 +97,6 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
     /// <param name="existing">The rows shown now, updated and reused by key.</param>
     public static List<TodoRowViewModel> Build(AppStateView state, TimeProvider clock, IReadOnlyDictionary<string, TodoRowViewModel> existing)
     {
-        ArgumentNullException.ThrowIfNull(state);
         var offline = state.Catalogue.Failure is not null;
         var rows = new List<TodoRowViewModel>();
         foreach (var game in state.Games.Where(game => !game.IsHidden && game.Job is null))

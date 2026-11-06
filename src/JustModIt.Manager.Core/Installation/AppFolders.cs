@@ -32,8 +32,6 @@ public static class AppFolders
     /// <returns>The copy of the app the folder belongs to; null when it is not an app's folder.</returns>
     public static string? OwnerOf(IFileSystem fileSystem, string directory)
     {
-        ArgumentNullException.ThrowIfNull(fileSystem);
-        ArgumentNullException.ThrowIfNull(directory);
         // Games keep folders and files of their own under any name, so only a hidden folder with an owner file that reads
         // as this format counts.
         if (!Path.GetFileName(Path.TrimEndingDirectorySeparator(directory)).StartsWith('.'))
@@ -81,7 +79,6 @@ public static class AppFolders
     public static IReadOnlyList<OtherAppFolder> FindOthers(IFileSystem fileSystem, string gameRoot, string app,
         IEnumerable<string>? paths = null)
     {
-        ArgumentNullException.ThrowIfNull(fileSystem);
         ArgumentException.ThrowIfNullOrWhiteSpace(gameRoot);
         var root = Path.TrimEndingDirectorySeparator(gameRoot);
         var directories = new List<string>();
@@ -118,7 +115,6 @@ public static class AppFolders
     /// <param name="relativePath">A game-relative package path.</param>
     public static bool WouldMark(string relativePath)
     {
-        ArgumentNullException.ThrowIfNull(relativePath);
         var separator = relativePath.LastIndexOf(PackagePath.Separator);
         if (separator < 0 || !relativePath.AsSpan(separator + 1).Equals(OwnerFileName, StringComparison.OrdinalIgnoreCase))
         {

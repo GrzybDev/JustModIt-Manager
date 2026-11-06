@@ -27,7 +27,6 @@ public static class SettingsServiceExtensions
     /// <param name="settings">The app's settings, which keep the id.</param>
     public static Guid InstallationId(this ISettingsService settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
         return settings.Current.InstallationId
             ?? settings.Update(current => current.InstallationId is null ? current with { InstallationId = Guid.NewGuid() } : current)
                 .InstallationId!.Value;

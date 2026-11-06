@@ -17,8 +17,6 @@ public sealed class SessionEnd : IAgentService, IDisposable
     /// <param name="options">This run's session marker.</param>
     public SessionEnd(ITrayHost tray, AgentOptions options)
     {
-        ArgumentNullException.ThrowIfNull(tray);
-        ArgumentNullException.ThrowIfNull(options);
         _tray = tray;
         _session = options.Session;
         _tray.SessionEnding += OnSessionEnding;

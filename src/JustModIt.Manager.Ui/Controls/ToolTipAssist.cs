@@ -44,7 +44,6 @@ public static class ToolTipAssist
     /// <param name="control">The control.</param>
     public static bool GetShowOnFocus(Control control)
     {
-        ArgumentNullException.ThrowIfNull(control);
         return control.GetValue(ShowOnFocusProperty);
     }
 
@@ -53,7 +52,6 @@ public static class ToolTipAssist
     /// <param name="value">True to open it while the keyboard focuses the control.</param>
     public static void SetShowOnFocus(Control control, bool value)
     {
-        ArgumentNullException.ThrowIfNull(control);
         control.SetValue(ShowOnFocusProperty, value);
     }
 
@@ -61,7 +59,6 @@ public static class ToolTipAssist
     /// <param name="control">The element.</param>
     public static bool GetIsBoundary(Control control)
     {
-        ArgumentNullException.ThrowIfNull(control);
         return control.GetValue(IsBoundaryProperty);
     }
 
@@ -70,7 +67,6 @@ public static class ToolTipAssist
     /// <param name="value">True to keep them within its padding.</param>
     public static void SetIsBoundary(Control control, bool value)
     {
-        ArgumentNullException.ThrowIfNull(control);
         control.SetValue(IsBoundaryProperty, value);
     }
 

@@ -106,7 +106,6 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     /// <param name="fileSystem">Reads the folders and files the creator works with; null for the real file system.</param>
     public CreatorPageViewModel(UiServices services, IFileSystem? fileSystem = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
         Services = services;
         FileSystem = fileSystem;
         Log = services.Context.Loggers.CreateLogger<CreatorPageViewModel>();

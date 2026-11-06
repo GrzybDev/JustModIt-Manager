@@ -59,7 +59,6 @@ internal static class SafetyGate
     /// <param name="now">The current time, against which the store's last touch is measured.</param>
     public static GateVerdict Check(GameProbe probe, JobKind kind, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(probe);
         if (probe.Game is not { } game)
         {
             return GateVerdict.Failing(new JobFailure(JobFailureReason.GameNotDetected));
@@ -105,7 +104,6 @@ internal static class SafetyGate
     /// <param name="issues">Every problem the engine found.</param>
     public static bool IsOnlyInUse(IReadOnlyList<InstallIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(issues);
         return issues.Count > 0 && issues.All(issue => issue is GameRunningIssue
             || (issue is GameNotReadyIssue notReady && (IsStoreBusy(notReady.State, notReady.Reason)
                 || notReady.State == GameInstallState.Running)));

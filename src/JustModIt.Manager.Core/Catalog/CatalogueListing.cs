@@ -165,8 +165,6 @@ public sealed class CatalogueListing
     /// <param name="games">Only these games, e.g. those found on this computer; null for all of them.</param>
     public IReadOnlyList<ListedGame> Search(CatalogueQuery query, IComparer<string> names, IReadOnlySet<Guid>? games = null)
     {
-        ArgumentNullException.ThrowIfNull(query);
-        ArgumentNullException.ThrowIfNull(names);
         var found = Matching(query.Text, games).Where(listed => Fits(listed, query));
         return query.Order switch
         {
@@ -185,7 +183,6 @@ public sealed class CatalogueListing
     /// <param name="games">Only these games; null for all of them.</param>
     public int Count(CatalogueQuery query, IReadOnlySet<Guid>? games = null)
     {
-        ArgumentNullException.ThrowIfNull(query);
         return Matching(query.Text, games).Count(listed => Fits(listed, query));
     }
 
@@ -194,7 +191,6 @@ public sealed class CatalogueListing
     /// <param name="games">Only these games; null for all of them.</param>
     public CatalogueFacets Facets(CatalogueQuery query, IReadOnlySet<Guid>? games = null)
     {
-        ArgumentNullException.ThrowIfNull(query);
         var matching = Matching(query.Text, games).ToList();
 
         CatalogueFacet Facet(CatalogueQuery without, Func<ListedGame, IEnumerable<Guid>> values)
@@ -225,8 +221,6 @@ public sealed class CatalogueListing
     /// <param name="query">The filters the player chose.</param>
     public static IEnumerable<ProjectSummary> CardProjects(ListedGame listed, CatalogueQuery query)
     {
-        ArgumentNullException.ThrowIfNull(listed);
-        ArgumentNullException.ThrowIfNull(query);
         return listed.Projects.Where(project => IsListed(project)
             && (query.StatusUuid is not { } status || project.Status?.Uuid == status)
             && (query.TypeUuid is not { } type || project.Types.Any(candidate => candidate.Uuid == type))

@@ -34,7 +34,6 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
     /// <param name="options">The transport's settings; null for the defaults.</param>
     public AgentConnection(string pipeName, string version, ILoggerFactory loggers, IpcOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(loggers);
         _client = new ReconnectingPipeClient(pipeName, Hello.ForCurrentProcess(ProcessRole.Ui, version),
             loggers.CreateLogger<ReconnectingPipeClient>(), options, HandleRequestAsync);
         _client.StateChanged += (_, state) => Dispatcher.UIThread.Post(() => OnLinkChanged(state));

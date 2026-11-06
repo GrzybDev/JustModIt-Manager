@@ -44,8 +44,6 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
 
     public void Write(Utf8JsonWriter writer, FailedAttempts document)
     {
-        ArgumentNullException.ThrowIfNull(writer);
-        ArgumentNullException.ThrowIfNull(document);
         writer.WriteStartArray(GamesProperty);
         foreach (var (key, attempt) in document.Failures.OrderBy(pair => pair.Key.Game.ToString(), StringComparer.Ordinal)
             .ThenBy(pair => pair.Key.Install))

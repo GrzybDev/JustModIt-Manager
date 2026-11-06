@@ -41,7 +41,6 @@ public sealed class UntoldExit
     /// <returns>Null when there is nothing to tell.</returns>
     public static UntoldExit? Carry(string directory, UncleanExit? found)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         var path = Path.Combine(directory, FileName);
         try
         {

@@ -23,7 +23,6 @@ public static class Text
     /// <param name="catalog">The texts the app's build merged (<see cref="TextCatalog.Load"/>).</param>
     public static void Use(TextCatalog catalog)
     {
-        ArgumentNullException.ThrowIfNull(catalog);
         _current = new Language(catalog);
     }
 

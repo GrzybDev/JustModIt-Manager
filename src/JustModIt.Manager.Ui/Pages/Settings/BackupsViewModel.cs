@@ -29,7 +29,6 @@ public sealed partial class LeftoverRow : ObservableObject
     /// <param name="removeName">What the remove button does, for screen readers.</param>
     public LeftoverRow(LeftoverBackup backup, string detail, string removeName)
     {
-        ArgumentNullException.ThrowIfNull(backup);
         Backup = backup;
         Detail = detail;
         RemoveName = removeName;

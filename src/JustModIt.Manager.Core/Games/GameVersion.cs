@@ -26,7 +26,6 @@ public sealed record GameVersion(
     /// <param name="game">The game as its store describes it.</param>
     public static GameVersion Of(InstalledGame game)
     {
-        ArgumentNullException.ThrowIfNull(game);
         return new GameVersion(game.BuildId, game.Languages, game.Content);
     }
 
@@ -38,7 +37,6 @@ public sealed record GameVersion(
     /// <param name="other">The other version.</param>
     public bool Matches(GameVersion other)
     {
-        ArgumentNullException.ThrowIfNull(other);
         if (IsUnrecorded || other.IsUnrecorded || !Languages.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(other.Languages))
         {
             return false;

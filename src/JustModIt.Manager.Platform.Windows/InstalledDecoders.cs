@@ -38,7 +38,6 @@ internal static class InstalledDecoders
     /// <param name="mimeType">The picture's MIME type, such as image/avif.</param>
     public static bool HasPictureDecoder(string mimeType)
     {
-        ArgumentException.ThrowIfNullOrEmpty(mimeType);
         if (MultithreadedApartment.Keep().Failed
             || PInvoke.CoCreateInstance(PInvoke.CLSID_WICImagingFactory, null, CLSCTX.CLSCTX_INPROC_SERVER,
                 typeof(IWICImagingFactory).GUID, out var instance).Failed)

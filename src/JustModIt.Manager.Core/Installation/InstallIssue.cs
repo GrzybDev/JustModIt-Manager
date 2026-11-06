@@ -181,7 +181,6 @@ public sealed record LeftOutPart(int Index, InstallPart Part, PartLeftOutReason 
     /// <param name="issues">The issues the part's own check raised.</param>
     public static PartLeftOutReason ReasonOf(IEnumerable<InstallIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(issues);
         var found = issues.ToList();
         return found.Exists(issue => issue is NewerAppRequiredIssue) ? PartLeftOutReason.NewerApp
             : found.TrueForAll(issue => issue is FileOwnedByOtherInstallIssue) ? PartLeftOutReason.OtherInstall

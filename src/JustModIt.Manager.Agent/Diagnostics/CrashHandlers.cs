@@ -12,10 +12,6 @@ public static partial class CrashHandlers
     /// <returns>Removes the handlers again.</returns>
     public static IDisposable Install(ILogger logger, SessionMarker session, IDisposable flush)
     {
-        ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(session);
-        ArgumentNullException.ThrowIfNull(flush);
-
         void OnUnhandled(object? sender, UnhandledExceptionEventArgs args)
         {
             if (args.ExceptionObject is Exception exception)
@@ -50,7 +46,6 @@ public static partial class CrashHandlers
     /// <param name="previous">What <see cref="SessionMarker.Begin"/> found; null after a clean exit.</param>
     public static void Report(ILogger logger, UncleanExit? previous)
     {
-        ArgumentNullException.ThrowIfNull(logger);
         if (previous is { CrashType: { } crash })
         {
             LogPreviousCrash(logger, previous.Version, crash, previous.CrashedAt);

@@ -82,7 +82,6 @@ public static partial class PackagePath
     /// <param name="name">One segment of a path.</param>
     public static bool IsValidName(string name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         return name.Length is > 0 and <= MaxNameLength
             && Encoding.UTF8.GetByteCount(name) <= MaxNameLength
             && !name.EndsWith('.')
@@ -95,7 +94,6 @@ public static partial class PackagePath
     /// <param name="name">The entry name as the archive holds it.</param>
     public static string NormalizeEntryName(string name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         return name.Replace('\\', Separator);
     }
 
@@ -104,7 +102,6 @@ public static partial class PackagePath
     /// <param name="relativePath">A game-relative path with '/' separators.</param>
     public static string ToFullPath(string root, string relativePath)
     {
-        ArgumentNullException.ThrowIfNull(relativePath);
         return Path.Join(root, relativePath.Replace(Separator, Path.DirectorySeparatorChar));
     }
 
@@ -121,7 +118,6 @@ public static partial class PackagePath
     /// <param name="path">A game-relative path with '/' separators.</param>
     public static bool HasShortName(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
         return path.Split(Separator).Any(ShortName().IsMatch);
     }
 
@@ -129,7 +125,6 @@ public static partial class PackagePath
     /// <param name="path">A game-relative path with '/' separators.</param>
     public static string FirstSegment(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
         var separator = path.IndexOf(Separator, StringComparison.Ordinal);
         return separator < 0 ? path : path[..separator];
     }

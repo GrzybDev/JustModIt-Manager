@@ -63,7 +63,6 @@ public class Icon : Control
     /// <param name="pen">The stroke; null for none.</param>
     protected void Draw(DrawingContext context, Geometry geometry, IBrush? fill, IPen? pen)
     {
-        ArgumentNullException.ThrowIfNull(context);
         var scale = Math.Min(Bounds.Width / DesignSize.Width, Bounds.Height / DesignSize.Height);
         var offset = new Point((Bounds.Width - (DesignSize.Width * scale)) / 2, (Bounds.Height - (DesignSize.Height * scale)) / 2);
         using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(offset)))

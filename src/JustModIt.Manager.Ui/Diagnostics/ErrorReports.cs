@@ -57,8 +57,6 @@ public sealed class ErrorReport
     /// <param name="clock">Dates a report whose crash has no time.</param>
     public ErrorReport(UncleanExitView exit, string appId, string productName, TimeProvider clock)
     {
-        ArgumentNullException.ThrowIfNull(exit);
-        ArgumentNullException.ThrowIfNull(clock);
         Id = Guid.NewGuid();
         AppId = appId;
         ProductName = productName;
@@ -232,7 +230,6 @@ public sealed class ErrorReports(ErrorReportTarget? target, string client, HttpM
 
     public async Task<string?> SendAsync(ErrorReport report, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(report);
         if (target is null)
         {
             return null;

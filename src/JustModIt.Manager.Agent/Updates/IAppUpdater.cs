@@ -50,8 +50,7 @@ internal sealed class VelopackUpdater : IAppUpdater
     /// <param name="settings">Whether the player takes the app's test versions.</param>
     public VelopackUpdater(AgentOptions options, ISettingsService settings)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _settings = settings;
         if (options.Updates is { } feed)
         {
             _includesPrereleases = settings.Current.UpdatePrereleases;

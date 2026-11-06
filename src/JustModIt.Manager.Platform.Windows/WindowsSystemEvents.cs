@@ -31,7 +31,6 @@ public sealed partial class WindowsSystemEvents : ISystemEvents, IDisposable
     /// <param name="logger">Logs a registration the system refused and a listener that failed.</param>
     public WindowsSystemEvents(ILogger<WindowsSystemEvents> logger)
     {
-        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
         _self = GCHandle.Alloc(this);
         var context = GCHandle.ToIntPtr(_self);

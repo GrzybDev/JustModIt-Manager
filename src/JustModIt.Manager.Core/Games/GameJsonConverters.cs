@@ -13,7 +13,6 @@ public sealed class StoreIdJsonConverter : JsonConverter<StoreId>
 
     public override void Write(Utf8JsonWriter writer, StoreId value, JsonSerializerOptions options)
     {
-        ArgumentNullException.ThrowIfNull(writer);
         writer.WriteStringValue(value.Value);
     }
 }
@@ -28,7 +27,6 @@ public sealed class GameKeyJsonConverter : JsonConverter<GameKey>
 
     public override void Write(Utf8JsonWriter writer, GameKey value, JsonSerializerOptions options)
     {
-        ArgumentNullException.ThrowIfNull(writer);
         writer.WriteStringValue(value.ToString());
     }
 }

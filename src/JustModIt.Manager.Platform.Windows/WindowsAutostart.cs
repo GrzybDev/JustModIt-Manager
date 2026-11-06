@@ -17,8 +17,6 @@ public sealed class WindowsAutostart : IAutostart
     /// <param name="softwareKey">The current user's key that holds <c>Microsoft\Windows</c>; tests pass one of their own.</param>
     public WindowsAutostart(string name, string softwareKey = "Software")
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(softwareKey);
         _name = name;
         _runKey = $@"{softwareKey}\Microsoft\Windows\CurrentVersion\Run";
         _approvedKey = $@"{softwareKey}\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
@@ -43,7 +41,6 @@ public sealed class WindowsAutostart : IAutostart
 
     public void Enable(string command)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(command);
         using (var run = Win32.Registry.CurrentUser.CreateSubKey(_runKey))
         {
             if (!string.Equals(run.GetValue(_name) as string, command, StringComparison.Ordinal))

@@ -40,9 +40,6 @@ public sealed partial class SettingsService : ISettingsService, IAsyncDisposable
     public static async Task<SettingsService> LoadAsync(IDocumentStore<AppSettings> store, TimeProvider time,
         ILogger<SettingsService> logger, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(store);
-        ArgumentNullException.ThrowIfNull(time);
-        ArgumentNullException.ThrowIfNull(logger);
         var settings = await store.LoadAsync(cancellationToken).ConfigureAwait(false);
         return new SettingsService(store, settings ?? AppSettings.Default, time, logger);
     }
@@ -55,8 +52,6 @@ public sealed partial class SettingsService : ISettingsService, IAsyncDisposable
     public static Task<SettingsService> LoadAsync(AppDataLocations locations, TimeProvider time, ILoggerFactory loggers,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(locations);
-        ArgumentNullException.ThrowIfNull(loggers);
         var store = new JsonDocumentStore<AppSettings>(locations.SettingsFile, SettingsFormat.Instance, time,
             loggers.CreateLogger<JsonDocumentStore<AppSettings>>());
         return LoadAsync(store, time, loggers.CreateLogger<SettingsService>(), cancellationToken);
@@ -64,7 +59,6 @@ public sealed partial class SettingsService : ISettingsService, IAsyncDisposable
 
     public AppSettings Update(Func<AppSettings, AppSettings> change)
     {
-        ArgumentNullException.ThrowIfNull(change);
         AppSettings updated;
         lock (_gate)
         {

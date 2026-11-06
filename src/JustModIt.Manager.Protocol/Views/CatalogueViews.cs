@@ -35,7 +35,6 @@ public sealed record CatalogueGameView(Guid Id, string Slug, string Name)
     /// <param name="listed">The game with its listed projects.</param>
     public static CatalogueGameView From(ListedGame listed)
     {
-        ArgumentNullException.ThrowIfNull(listed);
         var game = listed.Game;
         return new CatalogueGameView(game.Uuid, game.Slug, game.Name)
         {
@@ -74,7 +73,6 @@ public sealed record CatalogueProjectView(Guid Id, string Slug, string Name, Tea
     /// <param name="project">The project as the games list shows it.</param>
     public static CatalogueProjectView From(ProjectSummary project)
     {
-        ArgumentNullException.ThrowIfNull(project);
         return new CatalogueProjectView(project.Uuid, project.Slug, project.Name, TeamView.From(project.Team))
         {
             Status = project.Status is { } status ? ProjectStatusView.From(status) : null,
@@ -122,7 +120,6 @@ public sealed record CatalogueFiltersView
     /// <param name="reference">The lists the catalogue's listing holds.</param>
     public static CatalogueFiltersView From(CatalogueReference reference)
     {
-        ArgumentNullException.ThrowIfNull(reference);
         return new CatalogueFiltersView
         {
             Platforms = [.. reference.Platforms.Select(item => new CatalogueOptionView(item.Uuid, item.Name))],

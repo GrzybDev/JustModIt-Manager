@@ -63,7 +63,6 @@ public sealed record GameView
     /// <param name="game">The game as the engine's state holds it.</param>
     public static GameView From(MyGame game)
     {
-        ArgumentNullException.ThrowIfNull(game);
         return new GameView
         {
             Key = game.Key,
@@ -120,7 +119,6 @@ public sealed record GameStatusView(MyGameState State)
     /// <param name="status">The status of a game or of an install on it.</param>
     public static GameStatusView From(MyGameStatus status)
     {
-        ArgumentNullException.ThrowIfNull(status);
         return new GameStatusView(status.State)
         {
             GameState = status.GameState,
@@ -160,7 +158,6 @@ public sealed record DetectedGameView
     /// <param name="game">The game from the library's snapshot.</param>
     public static DetectedGameView From(InstalledGame game)
     {
-        ArgumentNullException.ThrowIfNull(game);
         return new DetectedGameView
         {
             InstallDirectory = game.InstallDirectory,

@@ -23,7 +23,6 @@ internal static class MyGameStatusRules
     public static MyGameStatus Resolve(InstalledGame? game, InstallRecord record, ProjectOffer? project, RepairReason? repair,
         bool hasJob, bool backupsUnavailable, FeatureChoices choices)
     {
-        ArgumentNullException.ThrowIfNull(record);
         if (hasJob)
         {
             return new MyGameStatus(MyGameState.Busy);
@@ -82,7 +81,6 @@ internal static class MyGameStatusRules
     /// <param name="installs">What each install on the game is.</param>
     public static MyGameStatus Resolve(InstalledGame? game, bool hasJob, IEnumerable<MyGameStatus> installs)
     {
-        ArgumentNullException.ThrowIfNull(installs);
         return hasJob ? new MyGameStatus(MyGameState.Busy)
             : installs.MinBy(Urgency) is { } first ? first
             : game is { IsReady: true } ? new MyGameStatus(MyGameState.NotInstalled)

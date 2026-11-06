@@ -52,11 +52,6 @@ public static partial class SingleInstance
         ILogger? logger = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(lockName);
-        ArgumentException.ThrowIfNullOrEmpty(pipeName);
-        ArgumentNullException.ThrowIfNull(hello);
-        ArgumentNullException.ThrowIfNull(args);
-
         options ??= IpcOptions.Default;
         logger ??= NullLogger.Instance;
         var started = Stopwatch.GetTimestamp();

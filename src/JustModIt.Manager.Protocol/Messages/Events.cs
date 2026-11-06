@@ -32,7 +32,6 @@ public sealed record JobEnded(JobView Job, JobOutcome Outcome, JobFailureView? F
     /// <param name="result">The job's result.</param>
     public static JobEnded From(JobResult result)
     {
-        ArgumentNullException.ThrowIfNull(result);
         var kept = result.KeptFiles.GroupBy(file => file.Reason).OrderBy(files => files.Key)
             .Select(files => new KeptFilesView(files.Key, files.Count()));
         return new JobEnded(JobView.From(result.Job), result.Outcome, result.Failure is { } failure ? JobFailureView.From(failure) : null)

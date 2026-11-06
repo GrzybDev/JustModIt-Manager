@@ -60,12 +60,8 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
     internal PackageDownloader(ICatalogueApi api, HttpClient storage, string directory, string packageExtension, TimeProvider time,
         ILogger<PackageDownloader> logger, Func<string, long?> availableSpace)
     {
-        ArgumentNullException.ThrowIfNull(api);
-        ArgumentNullException.ThrowIfNull(storage);
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         ArgumentException.ThrowIfNullOrWhiteSpace(packageExtension);
-        ArgumentNullException.ThrowIfNull(time);
-        ArgumentNullException.ThrowIfNull(logger);
         _api = api;
         _storage = storage;
         _directory = Path.GetFullPath(directory);
@@ -80,7 +76,6 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
     public async Task<DownloadedPackage> DownloadAsync(PackageRequest request, IProgress<DownloadProgress>? progress,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         var download = new ReleaseDownload(request.Locator.Release, [request], ResolveTogether: false);
         return (await DownloadReleaseAsync(download, progress, cancellationToken).ConfigureAwait(false))[0];
     }
@@ -88,7 +83,6 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
     public async Task<IReadOnlyList<DownloadedPackage>> DownloadReleaseAsync(ReleaseDownload download, IProgress<DownloadProgress>? progress,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(download);
         var kept = new List<DownloadedPackage>();
         foreach (var request in download.Files)
         {
@@ -119,7 +113,6 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
 
     public async Task<DownloadedPackage?> FindCachedAsync(PackageRequest request, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         // Only reads, without the slot: a job reinstalling a kept package, e.g. after a failed update, must not wait for
         // another game's download.
         try
@@ -137,7 +130,6 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
 
     public async Task<int> PruneAsync(IReadOnlySet<Guid> keep, bool keepPartial, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(keep);
         await _slot.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {

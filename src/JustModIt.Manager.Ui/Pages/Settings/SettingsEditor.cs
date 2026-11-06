@@ -26,7 +26,6 @@ internal sealed class SettingsEditor(UiServices services)
     /// <returns>False when the agent did not take them, and <see cref="Current"/> is the agent's again.</returns>
     public async Task<bool> ChangeAsync(Func<SettingsView, SettingsView> change)
     {
-        ArgumentNullException.ThrowIfNull(change);
         var settings = change(Current);
         _sent = settings;
         _answeredAt = long.MaxValue;

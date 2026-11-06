@@ -55,7 +55,6 @@ public sealed record SettingsView
     /// <param name="settings">The current settings.</param>
     public static SettingsView From(AppSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
         return new SettingsView
         {
             StartWithSystem = settings.StartWithSystem,
@@ -82,7 +81,6 @@ public sealed record SettingsView
     /// <param name="settings">The current settings.</param>
     public AppSettings ApplyTo(AppSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
         return settings with
         {
             StartWithSystem = StartWithSystem,

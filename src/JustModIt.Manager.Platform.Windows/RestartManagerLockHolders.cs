@@ -19,7 +19,6 @@ public sealed class RestartManagerLockHolders : ILockHolderSource
 
     public IReadOnlyList<string> FindHolders(IReadOnlyList<string> paths)
     {
-        ArgumentNullException.ThrowIfNull(paths);
         if (paths.Count == 0)
         {
             return [];

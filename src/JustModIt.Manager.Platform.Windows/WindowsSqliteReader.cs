@@ -28,8 +28,6 @@ public sealed partial class WindowsSqliteReader : ISqliteReader
 
     public IReadOnlyList<string?[]>? Query(string path, string sql)
     {
-        ArgumentException.ThrowIfNullOrEmpty(path);
-        ArgumentException.ThrowIfNullOrEmpty(sql);
         if (!File.Exists(path))
         {
             return null;

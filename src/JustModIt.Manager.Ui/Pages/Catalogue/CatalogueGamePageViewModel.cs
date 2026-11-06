@@ -68,8 +68,6 @@ public sealed partial class CatalogueGamePageViewModel : PageViewModel, IProject
     /// <param name="gone">The projects whose page the site no longer has.</param>
     public CatalogueGamePageViewModel(UiServices services, string gameSlug, (string Team, string Project)? project, GoneProjects gone)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(gone);
         _services = services;
         _gameSlug = gameSlug;
         _wanted = project;

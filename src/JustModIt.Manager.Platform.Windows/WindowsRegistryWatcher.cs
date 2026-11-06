@@ -19,8 +19,6 @@ public sealed class WindowsRegistryWatcher : IRegistryWatcher
 
     public IDisposable Watch(WatchedRegistryKey key, Action<WatchSignal> onSignal)
     {
-        ArgumentNullException.ThrowIfNull(key);
-        ArgumentNullException.ThrowIfNull(onSignal);
         return new KeyWatch(key, onSignal);
     }
 

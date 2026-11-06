@@ -23,7 +23,6 @@ public sealed class AgentRequestHandler(
 {
     public void OnConnected(PipeConnection connection)
     {
-        ArgumentNullException.ThrowIfNull(connection);
         if (connection.Peer.Role == ProcessRole.Ui)
         {
             ui.OnConnected(connection);
@@ -32,7 +31,6 @@ public sealed class AgentRequestHandler(
 
     public void OnDisconnected(PipeConnection connection)
     {
-        ArgumentNullException.ThrowIfNull(connection);
         if (connection.Peer.Role == ProcessRole.Ui)
         {
             ui.OnDisconnected(connection);
@@ -41,7 +39,6 @@ public sealed class AgentRequestHandler(
 
     public void OnEvent(PipeConnection connection, Message message)
     {
-        ArgumentNullException.ThrowIfNull(connection);
         if (message is WindowActivity activity)
         {
             ui.OnActivity(connection, activity.IsActive);
@@ -50,7 +47,6 @@ public sealed class AgentRequestHandler(
 
     public ValueTask<Message?> HandleRequestAsync(PipeConnection connection, Message request, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(connection);
         if (request is Activate activate)
         {
             // A launch during an exit waits for this process to end and takes over, so it is not lost.

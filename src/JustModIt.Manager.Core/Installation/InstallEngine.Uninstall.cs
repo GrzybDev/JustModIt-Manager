@@ -47,7 +47,6 @@ public sealed partial class InstallEngine
     public Task<PreflightReport> PredictReplacementAsync(Guid recordId, InstallRequest replacement,
         IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(replacement);
         return EnqueueAsync(() => PredictCoreAsync(recordId, replacement, progress, cancellationToken), cancellationToken);
     }
 

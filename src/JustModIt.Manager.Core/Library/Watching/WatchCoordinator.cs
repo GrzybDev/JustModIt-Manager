@@ -39,7 +39,6 @@ internal sealed partial class WatchCoordinator(IFolderWatcher folders, IRegistry
     /// <returns>Whether a watch started, since a change made before it started went unseen.</returns>
     public bool Apply(StoreId store, WatchPlan plan)
     {
-        ArgumentNullException.ThrowIfNull(plan);
         lock (_gate)
         {
             if (_disposed)

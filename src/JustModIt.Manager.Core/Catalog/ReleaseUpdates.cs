@@ -36,7 +36,6 @@ public sealed record InstalledRelease(Guid ReleaseUuid, int ReleaseVersion, Date
     /// <param name="file">A file of a release's plan.</param>
     public bool Holds(ReleaseFile file)
     {
-        ArgumentNullException.ThrowIfNull(file);
         return Has(file.Uuid) || (file.CopiedFrom is { } original && Has(original));
     }
 
@@ -97,9 +96,6 @@ public static class ReleaseUpdates
     /// <param name="choices">The player's choices and the add-ons the install went without, which the plan follows.</param>
     public static UpdateCheck Check(InstalledRelease installed, ReleaseSelection selection, FeatureChoices choices)
     {
-        ArgumentNullException.ThrowIfNull(installed);
-        ArgumentNullException.ThrowIfNull(selection);
-        ArgumentNullException.ThrowIfNull(choices);
         if (selection.Release is not { } release)
         {
             return new UpdateCheck(UpdateState.Withdrawn);

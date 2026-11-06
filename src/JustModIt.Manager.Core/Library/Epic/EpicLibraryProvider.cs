@@ -22,9 +22,6 @@ public sealed class EpicLibraryProvider : ILibraryProvider
     internal EpicLibraryProvider(IFileSystem fileSystem, IEnumerable<IInstallSource<EpicInstallRecord>> sources, AppPlatform platform,
         ILogger<EpicLibraryProvider> logger)
     {
-        ArgumentNullException.ThrowIfNull(fileSystem);
-        ArgumentNullException.ThrowIfNull(sources);
-        ArgumentNullException.ThrowIfNull(logger);
         _fileSystem = fileSystem;
         _scanner = new InstallRecordScanner<EpicInstallRecord>(Store, [.. sources, new EpicFolderSource(fileSystem, platform)], logger);
     }
@@ -42,7 +39,6 @@ public sealed class EpicLibraryProvider : ILibraryProvider
     public static EpicLibraryProvider Create(IFileSystem fileSystem, IRegistry registry, LibraryEnvironment environment,
         ILogger<EpicLibraryProvider> logger)
     {
-        ArgumentNullException.ThrowIfNull(environment);
         List<IInstallSource<EpicInstallRecord>> sources = environment is { Platform: AppPlatform.Windows, ProgramData: { } programData }
             ? [new EpicLauncherSource(fileSystem, registry, programData)]
             : [];
@@ -56,8 +52,6 @@ public sealed class EpicLibraryProvider : ILibraryProvider
 
     public async Task<InstalledGame?> ProbeAsync(InstalledGame game, LibraryScanContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(game);
-
         // A game's records may be in any launcher, and its DLC's records tell whether its folder is written; there are few.
         return (await ScanAsync(context, cancellationToken).ConfigureAwait(false)).Describe(game);
     }

@@ -124,7 +124,6 @@ public sealed record JobSnapshot
     /// <param name="other">Another snapshot of the job.</param>
     public bool HasSameStep(JobSnapshot other)
     {
-        ArgumentNullException.ThrowIfNull(other);
         return Stage == other.Stage && WaitReason == other.WaitReason && RunningProcesses == other.RunningProcesses;
     }
 }

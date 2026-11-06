@@ -19,7 +19,6 @@ public sealed class PathRedactor
     /// <param name="userName">The user name, replaced wherever it forms a whole path segment; null for none.</param>
     public PathRedactor(IEnumerable<(string Folder, string Placeholder)> folders, string? userName)
     {
-        ArgumentNullException.ThrowIfNull(folders);
         _prefixes =
         [
             .. folders
@@ -62,7 +61,6 @@ public sealed class PathRedactor
     /// <param name="text">Any text, such as an exception with its stack trace.</param>
     public string Redact(string text)
     {
-        ArgumentNullException.ThrowIfNull(text);
         if (text.AsSpan().IndexOfAny('\\', '/') < 0)
         {
             return text;

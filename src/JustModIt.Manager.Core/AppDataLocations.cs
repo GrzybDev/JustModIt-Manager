@@ -70,7 +70,6 @@ public sealed class AppDataLocations
     /// <exception cref="AppDataUnavailableException">The system does not say where the user's data belongs.</exception>
     public static AppDataLocations ForCurrentUser(AppIdentity identity)
     {
-        ArgumentNullException.ThrowIfNull(identity);
         return Resolve(AppPlatforms.Current, Environment.GetEnvironmentVariable,
             folder => Environment.GetFolderPath(folder, Environment.SpecialFolderOption.DoNotVerify), identity.VendorId,
             identity.InstanceName);
@@ -129,7 +128,6 @@ public sealed class AppDataLocations
 
     private static string RequireFullyQualified(string path)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return Path.IsPathFullyQualified(path)
             ? path
             : throw new ArgumentException("An app data location must be a fully qualified path.", nameof(path));

@@ -60,7 +60,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     /// <param name="choice">What a link from the site chose, set on the page until the player installs it; null for none.</param>
     public GamePageViewModel(UiServices services, GameKey game, SiteChoice? choice = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _key = game;
         _choice = choice;

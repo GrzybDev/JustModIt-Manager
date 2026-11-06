@@ -49,11 +49,6 @@ public static class AgentServices
     public static IServiceCollection AddAgent(this IServiceCollection services, AgentOptions options, ISettingsService settings,
         ILoggerFactory loggers)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(loggers);
-
         services.AddSingleton(options);
         services.AddSingleton(new AppLinks(options.Identity.Slug));
         services.AddSingleton(TimeProvider.System);

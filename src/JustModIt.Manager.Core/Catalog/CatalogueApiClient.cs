@@ -37,8 +37,6 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
     public CatalogueApiClient(CatalogueApiOptions options, TimeProvider time, HttpMessageHandler? connection = null,
         Func<Guid>? installation = null)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(time);
         _apiAddress = options.ApiAddress;
         _hasKey = options.ApiKey is not null;
         _time = time;
@@ -107,12 +105,6 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
     public async Task<IReadOnlyDictionary<Guid, Uri>> ResolveDownloadsAsync(ReleaseLocator release, IReadOnlyList<Guid> files,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(files);
-        if (files.Count == 0)
-        {
-            throw new ArgumentException("At least one file is needed.", nameof(files));
-        }
-
         var path = $"{ReleasePath(release)}download/?files={string.Join(',', files.Select(file => file.ToString("D")))}";
         var json = await GetDownloadAsync(path, cancellationToken).ConfigureAwait(false);
         var links = Parse(path, () => JsonSerializer.Deserialize(json, Json.ReleaseDownloadLinks)).Files
@@ -195,7 +187,6 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
 
     private static string PageQuery(int page)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(page, 1);
         return "?page=" + page.ToString(CultureInfo.InvariantCulture);
     }
 

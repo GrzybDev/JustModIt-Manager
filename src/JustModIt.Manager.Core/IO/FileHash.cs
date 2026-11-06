@@ -45,7 +45,6 @@ public static class FileHash
     public static Task<(long Length, string Hash)> CopyAndComputeAsync(Stream source, Stream destination,
         HashAlgorithmName algorithm, IProgress<long>? progress, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(destination);
         return HashAsync(source, destination, algorithm, progress, cancellationToken);
     }
 
@@ -58,7 +57,6 @@ public static class FileHash
     private static async Task<(long Length, string Hash)> HashAsync(Stream source, Stream? destination,
         HashAlgorithmName algorithm, IProgress<long>? progress, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(source);
         using var hash = IncrementalHash.CreateHash(algorithm);
         var buffer = ArrayPool<byte>.Shared.Rent(ChunkSize);
         try

@@ -65,7 +65,6 @@ public sealed partial class LicensesPageViewModel : PageViewModel
     /// <param name="services">The window's services.</param>
     public LicensesPageViewModel(UiServices services)
     {
-        ArgumentNullException.ThrowIfNull(services);
         _services = services;
         var product = services.Context.ProductName;
         Subtitle = Text.Format(Strings.Licenses_Subtitle, ("product", product));

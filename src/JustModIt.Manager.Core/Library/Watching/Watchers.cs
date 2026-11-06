@@ -34,8 +34,6 @@ public sealed class FileSystemFolderWatcher : IFolderWatcher
 
     public IDisposable Watch(WatchedFolder folder, Action<WatchSignal> onSignal)
     {
-        ArgumentNullException.ThrowIfNull(folder);
-        ArgumentNullException.ThrowIfNull(onSignal);
         var watcher = new FileSystemWatcher(folder.Directory)
         {
             IncludeSubdirectories = false,

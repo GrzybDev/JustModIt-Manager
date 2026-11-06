@@ -57,13 +57,6 @@ public sealed class CompositePackage : IPackage
     public static async Task<CompositePackage> OpenAsync(PackageReader reader, IReadOnlyList<(string Path, bool IsOptional)> files,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(files);
-        if (files.Count == 0)
-        {
-            throw new ArgumentException("A composite needs at least one package.", nameof(files));
-        }
-
         var parts = new List<CompositePart>(files.Count);
         try
         {
@@ -92,13 +85,11 @@ public sealed class CompositePackage : IPackage
     /// <param name="leftOut">The indexes of the packages to go without.</param>
     public CompositePackage Without(IReadOnlySet<int> leftOut)
     {
-        ArgumentNullException.ThrowIfNull(leftOut);
         return new CompositePackage(_opened, [.. Parts.Where(part => !leftOut.Contains(part.Index))], owns: false);
     }
 
     public Task<Stream> OpenEntryAsync(string entry, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(entry);
         var separator = entry.IndexOf(EntrySeparator, StringComparison.Ordinal);
         return separator > 0 && int.TryParse(entry.AsSpan(0, separator), NumberStyles.None, CultureInfo.InvariantCulture, out var index)
             && Parts.FirstOrDefault(part => part.Index == index)?.Package is { } package

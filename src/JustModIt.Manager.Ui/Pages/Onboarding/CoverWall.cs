@@ -35,7 +35,6 @@ public sealed class CoverWall : Panel
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        ArgumentNullException.ThrowIfNull(change);
         base.OnPropertyChanged(change);
         if (change.Property == CoversProperty)
         {

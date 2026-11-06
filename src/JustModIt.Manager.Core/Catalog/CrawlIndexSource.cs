@@ -13,7 +13,6 @@ public sealed class CrawlIndexSource(IProjectPageSource pages, TimeProvider time
 
     public async Task<InstallableIndex> BuildAsync(IndexScope scope, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(scope);
         var wanted = new Dictionary<Guid, (ProjectLocator Locator, DateTimeOffset? ListedUpdatedAt)>();
         foreach (var listed in scope.Games.SelectMany(scope.Listing.Find))
         {

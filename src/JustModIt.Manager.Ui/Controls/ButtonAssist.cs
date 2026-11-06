@@ -31,7 +31,6 @@ public static class ButtonAssist
     /// <param name="button">The button.</param>
     public static Geometry? GetIcon(Button button)
     {
-        ArgumentNullException.ThrowIfNull(button);
         return button.GetValue(IconProperty);
     }
 
@@ -40,7 +39,6 @@ public static class ButtonAssist
     /// <param name="value">A geometry of <see cref="Theme.Icons"/>.</param>
     public static void SetIcon(Button button, Geometry? value)
     {
-        ArgumentNullException.ThrowIfNull(button);
         button.SetValue(IconProperty, value);
     }
 
@@ -48,7 +46,6 @@ public static class ButtonAssist
     /// <param name="button">The button.</param>
     public static bool GetHasIcon(Button button)
     {
-        ArgumentNullException.ThrowIfNull(button);
         return button.GetValue(HasIconProperty);
     }
 
@@ -56,7 +53,6 @@ public static class ButtonAssist
     /// <param name="button">The button.</param>
     public static bool GetIconAfter(Button button)
     {
-        ArgumentNullException.ThrowIfNull(button);
         return button.GetValue(IconAfterProperty);
     }
 
@@ -65,7 +61,6 @@ public static class ButtonAssist
     /// <param name="value">True for an icon after the text.</param>
     public static void SetIconAfter(Button button, bool value)
     {
-        ArgumentNullException.ThrowIfNull(button);
         button.SetValue(IconAfterProperty, value);
     }
 }

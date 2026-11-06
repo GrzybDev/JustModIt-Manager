@@ -62,11 +62,6 @@ public sealed record AppStateView
     public static AppStateView From(long version, AppState state, AppSettings settings, SiteConfiguration site, ActivityView activity,
         AppUpdateView update)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(site);
-        ArgumentNullException.ThrowIfNull(activity);
-        ArgumentNullException.ThrowIfNull(update);
         return new AppStateView
         {
             Version = version,

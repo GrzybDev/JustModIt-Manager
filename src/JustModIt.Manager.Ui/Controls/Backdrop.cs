@@ -33,7 +33,6 @@ public sealed class Backdrop : Control
 
     public override void Render(DrawingContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
         if (_bitmap is { } bitmap)
         {
             var size = new Size(bitmap.PixelSize.Width / _scale, bitmap.PixelSize.Height / _scale);
@@ -43,7 +42,6 @@ public sealed class Backdrop : Control
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        ArgumentNullException.ThrowIfNull(change);
         base.OnPropertyChanged(change);
         if (change.Property == RecipeProperty || change.Property == BoundsProperty || change.Property == RemoteImage.LoaderProperty)
         {

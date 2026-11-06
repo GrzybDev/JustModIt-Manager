@@ -35,8 +35,6 @@ public sealed class LibrarySnapshotFormat : IJsonDocumentFormat<LibrarySnapshot>
 
     public void Write(Utf8JsonWriter writer, LibrarySnapshot document)
     {
-        ArgumentNullException.ThrowIfNull(writer);
-        ArgumentNullException.ThrowIfNull(document);
         writer.WriteIfSet(ScannedAt, document.ScannedAt);
         writer.WriteStartArray(Stores);
         foreach (var store in document.Stores)

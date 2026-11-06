@@ -45,7 +45,6 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
     /// <param name="services">What the setup talks to.</param>
     public OnboardingViewModel(UiServices services)
     {
-        ArgumentNullException.ThrowIfNull(services);
         _services = services;
         Ready = new ReadyStep(this, services.Agent);
         Steps = [new WelcomeStep(this), new AutomationStep(this), new BackgroundStep(this), new CreatorStep(this), Ready];

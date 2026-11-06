@@ -38,9 +38,6 @@ public static class CreatorPlanner
     public static CreatorReview Plan(FolderComparison comparison, CreatorProject project, CreatorOptions options,
         IReadOnlySet<string>? keptPaths = null)
     {
-        ArgumentNullException.ThrowIfNull(comparison);
-        ArgumentNullException.ThrowIfNull(project);
-        ArgumentNullException.ThrowIfNull(options);
         var (entries, operations) = project.Mode == CreatorMode.Advanced
             ? ([], [.. project.Steps.Select((step, index) => ToOperation(step, OperationReason.Step, index, comparison.Game))])
             : Simple(comparison, project);
@@ -113,8 +110,6 @@ public static class CreatorPlanner
     /// <returns>The finding the plan would report for the path; null when nothing keeps it.</returns>
     public static FindingKind? RuntimePathProblem(string path, CreatorOptions options)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        ArgumentNullException.ThrowIfNull(options);
         return PlanReplay.RuntimePathProblem(path, options.HiddenFolderName);
     }
 

@@ -23,8 +23,6 @@ public sealed class TextCatalog
     /// <param name="texts">The texts by key; a missing one falls back to the English base.</param>
     public TextCatalog(string language, IEnumerable<KeyValuePair<string, string>> texts)
     {
-        ArgumentNullException.ThrowIfNull(language);
-        ArgumentNullException.ThrowIfNull(texts);
         Culture = CultureInfo.GetCultureInfo(language.Length == 0 ? "en" : language);
         _texts = texts.ToFrozenDictionary(StringComparer.Ordinal);
     }
@@ -48,7 +46,6 @@ public sealed class TextCatalog
 
     private static TextCatalog Read(string language, Assembly assembly, string resourceName)
     {
-        ArgumentNullException.ThrowIfNull(assembly);
         using var stream = assembly.GetManifestResourceStream(resourceName)
             ?? throw new MissingManifestResourceException($"{assembly.FullName} has no {resourceName}.");
         using var reader = new ResourceReader(stream);

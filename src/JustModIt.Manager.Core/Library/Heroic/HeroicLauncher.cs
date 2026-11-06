@@ -15,7 +15,6 @@ internal static class HeroicLauncher
     /// <param name="environment">The user's folders and environment variables.</param>
     public static IReadOnlyList<string> ConfigDirectories(LibraryEnvironment environment)
     {
-        ArgumentNullException.ThrowIfNull(environment);
         var home = environment.HomeDirectory;
         return environment.Platform switch
         {

@@ -19,7 +19,6 @@ public sealed record PackageRequest(ReleaseFileLocator Locator, PackageFormat Fo
     /// <exception cref="ArgumentException">The file is in a format the app does not install.</exception>
     public static PackageRequest For(ReleaseFileLocator locator, ReleaseFile file)
     {
-        ArgumentNullException.ThrowIfNull(file);
         var format = file.Format ?? throw new ArgumentException($"Release file {file.Uuid:D} is in no format the app installs.", nameof(file));
         return new PackageRequest(locator, format, file.Size, file.Md5.ToLowerInvariant(), file.Sha256.ToLowerInvariant())
         {

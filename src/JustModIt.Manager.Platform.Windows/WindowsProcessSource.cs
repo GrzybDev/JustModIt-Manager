@@ -35,7 +35,6 @@ public sealed class WindowsProcessSource : IProcessSource
 
     public async Task<bool> WaitForExitAsync(int processId, string name, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(name);
         Process process;
         try
         {

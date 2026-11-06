@@ -42,7 +42,6 @@ public sealed record IndexEntry
     /// <param name="page">The page as the site sent it.</param>
     public static IndexEntry From(ProjectPage page)
     {
-        ArgumentNullException.ThrowIfNull(page);
         return new IndexEntry
         {
             Game = page.Game,

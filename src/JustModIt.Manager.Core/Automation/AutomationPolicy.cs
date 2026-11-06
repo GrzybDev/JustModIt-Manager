@@ -22,9 +22,6 @@ internal static class AutomationPolicy
     /// </returns>
     public static IReadOnlyList<AutomationDecision> Decide(MyGame game, AppSettings settings, AutomationHistory history, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(game);
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(history);
         if (!settings.OnboardingCompleted)
         {
             return [AutomationDecision.Skip(AutomationReason.OnboardingPending)];

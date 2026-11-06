@@ -95,7 +95,6 @@ public sealed class TargetLanguage
     /// <param name="link">A project's link to the game in one store.</param>
     public bool IsOfferedBy(StorefrontLink link)
     {
-        ArgumentNullException.ThrowIfNull(link);
         if (!IsSet)
         {
             return false;
@@ -115,7 +114,6 @@ public sealed class TargetLanguage
     /// <param name="links">The projects' links to the player's store version of the game.</param>
     public bool IsOfferedByAny(IEnumerable<StorefrontLink> links)
     {
-        ArgumentNullException.ThrowIfNull(links);
         return links.Any(IsOfferedBy);
     }
 

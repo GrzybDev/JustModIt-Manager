@@ -91,7 +91,6 @@ public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? M
     /// <param name="package">The package.</param>
     public static InstalledPackage From(IPackage package)
     {
-        ArgumentNullException.ThrowIfNull(package);
         return new InstalledPackage(package.Kind, package.FileName, package.Manifest?.Id, package.Manifest?.Title,
             package.Manifest?.Version, package.Manifest?.ThirdPartyNotices,
             package.RuntimeFiles.Count > 0 ? [.. package.RuntimeFiles.Select(file => file.Path)] : null);
@@ -218,7 +217,6 @@ public sealed record FileSnapshot(long Size, string Sha256, DateTime? LastWriteT
     /// <param name="other">Another snapshot.</param>
     public bool HasSameContent(FileSnapshot other)
     {
-        ArgumentNullException.ThrowIfNull(other);
         return Size == other.Size && FileHash.Matches(Sha256, other.Sha256);
     }
 }

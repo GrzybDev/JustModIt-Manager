@@ -16,7 +16,6 @@ internal abstract class ManualFolderSource<TRecord>(IFileSystem fileSystem, stri
 
     public async Task<SourceScan<TRecord>> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(context);
         var folders = await Task.WhenAll(context.ManualFolders.Distinct(PathComparison.Comparer)
             .Select(folder => ReadFolderAsync(folder, context.Access, cancellationToken))).ConfigureAwait(false);
         return new([.. folders.Select(folder => folder.Library)], [.. folders.SelectMany(folder => folder.Records)],

@@ -49,7 +49,6 @@ public sealed partial class UndetectedGamesViewModel : PageViewModel, IDisposabl
     /// <param name="services">The window's services.</param>
     public UndetectedGamesViewModel(UiServices services)
     {
-        ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _services.Agent.PropertyChanged += OnAgentChanged;
         ShowScan();

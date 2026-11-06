@@ -43,7 +43,6 @@ public sealed partial class AgentRuntime(
     /// <param name="cancellationToken">Tears the agent down without the usual exit, e.g. at the end of a test.</param>
     public async Task RunAsync(LaunchArguments start, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(start);
         LogStarting(options.Version, start.Background);
         server.Start();
         using var stopping = new CancellationTokenSource();

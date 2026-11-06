@@ -60,7 +60,6 @@ internal static class ImageBaking
     /// <param name="target">The rows, one after another, of a picture of <paramref name="scaled"/>'s size.</param>
     public static void Cover(SKPixmap source, SKBitmap scaled, Span<byte> target)
     {
-        ArgumentNullException.ThrowIfNull(scaled);
         using (var canvas = new SKCanvas(scaled))
         {
             canvas.Clear(SKColors.Transparent);
@@ -81,7 +80,6 @@ internal static class ImageBaking
     /// <param name="size">Their size.</param>
     public static WriteableBitmap FromPixels(byte[] pixels, PixelSize size)
     {
-        ArgumentNullException.ThrowIfNull(pixels);
         var bitmap = new WriteableBitmap(size, new Vector(96, 96), PixelFormats.Bgra8888, AlphaFormat.Premul);
         using var buffer = bitmap.Lock();
         var row = size.Width * 4;

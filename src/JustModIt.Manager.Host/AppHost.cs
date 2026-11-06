@@ -14,9 +14,6 @@ public static class AppHost
     /// <param name="options">What the app hands the startup about itself.</param>
     public static int Run(string[] args, AppOptions options)
     {
-        ArgumentNullException.ThrowIfNull(args);
-        ArgumentNullException.ThrowIfNull(options);
-
         // The installer starts the app with hook arguments and expects it to end inside Run, so this comes first. Its own
         // applying of updates at start is off, since it would run in every process, including launches that only hand
         // over; the agent applies them itself.

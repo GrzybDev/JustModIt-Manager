@@ -18,7 +18,6 @@ public sealed class ViewRegistry : IDataTemplate
     public void Register<TViewModel>(Func<Control> view)
         where TViewModel : class
     {
-        ArgumentNullException.ThrowIfNull(view);
         _views[typeof(TViewModel)] = view;
     }
 
@@ -41,19 +40,14 @@ public sealed class PageRegistry
     public void Register<TRoute>(Func<TRoute, UiServices, PageViewModel> page)
         where TRoute : Route
     {
-        ArgumentNullException.ThrowIfNull(page);
         _pages[typeof(TRoute)] = (route, services) => page((TRoute)route, services);
     }
 
     /// <summary>Creates the page of a route.</summary>
     /// <param name="route">The route to show.</param>
     /// <param name="services">What the page talks to.</param>
-    /// <exception cref="InvalidOperationException">No screen registered a page for the route's type.</exception>
     public PageViewModel Create(Route route, UiServices services)
     {
-        ArgumentNullException.ThrowIfNull(route);
-        return _pages.TryGetValue(route.GetType(), out var page)
-            ? page(route, services)
-            : throw new InvalidOperationException($"No page is registered for {route.GetType().Name}.");
+        return _pages[route.GetType()](route, services);
     }
 }

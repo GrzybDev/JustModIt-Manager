@@ -34,7 +34,6 @@ public sealed record LibraryFolderEvidence(string? Folder, LibraryFolderRejectio
     /// <param name="folder">The canonical folder to add.</param>
     public static LibraryFolderEvidence Accepted(string folder)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(folder);
         return new(folder, null);
     }
 

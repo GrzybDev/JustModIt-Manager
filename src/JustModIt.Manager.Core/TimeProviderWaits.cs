@@ -11,8 +11,6 @@ public static class TimeProviderWaits
     public static async Task WaitForSignalAsync(this TimeProvider time, Func<CancellationToken, Task> signal, TimeSpan? timeout,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(time);
-        ArgumentNullException.ThrowIfNull(signal);
         using var waiting = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var signalled = signal(waiting.Token);
         await (timeout is { } limit

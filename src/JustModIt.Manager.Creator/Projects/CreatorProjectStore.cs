@@ -55,8 +55,6 @@ public static class CreatorProjectStore
     /// <param name="cancellationToken">Cancels the save.</param>
     public static Task SaveAsync(CreatorProject project, string path, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(project);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
         return Task.Run(() => AtomicFile.WriteAllBytesAsync(path, Serialize(project, directory), cancellationToken), cancellationToken);
     }
@@ -67,7 +65,6 @@ public static class CreatorProjectStore
     /// <exception cref="ProjectLoadException">The file cannot be read, is damaged or was written by a newer app.</exception>
     public static Task<CreatorProject> LoadAsync(string path, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return Task.Run(async () =>
         {
             byte[] content;

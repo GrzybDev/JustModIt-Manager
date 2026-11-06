@@ -26,8 +26,6 @@ public static class ShellRegistration
     public static void Register(ILinkRegistration links, IAutostart autostart, string scheme, string productName, string executable,
         bool startWithSystem)
     {
-        ArgumentNullException.ThrowIfNull(links);
-        ArgumentNullException.ThrowIfNull(autostart);
         links.Register(scheme, productName, executable);
         if (!startWithSystem || autostart.GetState() != AutostartState.DisabledBySystem)
         {
@@ -41,8 +39,6 @@ public static class ShellRegistration
     /// <param name="scheme">The app's link scheme.</param>
     public static void Unregister(ILinkRegistration links, IAutostart autostart, string scheme)
     {
-        ArgumentNullException.ThrowIfNull(links);
-        ArgumentNullException.ThrowIfNull(autostart);
         links.Unregister(scheme);
         autostart.Disable();
     }
@@ -53,7 +49,6 @@ public static class ShellRegistration
     /// <param name="startWithSystem">The new setting.</param>
     public static void ApplyAutostart(IAutostart autostart, string executable, bool startWithSystem)
     {
-        ArgumentNullException.ThrowIfNull(autostart);
         if (startWithSystem)
         {
             autostart.Enable(AutostartCommand(executable));

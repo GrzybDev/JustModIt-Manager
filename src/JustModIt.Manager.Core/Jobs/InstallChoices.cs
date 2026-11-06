@@ -17,7 +17,6 @@ public static class InstallChoices
     /// <param name="gameBuild">The game's build now, against which the add-ons the install went without hold.</param>
     public static FeatureChoices For(GamePreferences preferences, Guid project, InstallRecord? record, string? gameBuild)
     {
-        ArgumentNullException.ThrowIfNull(preferences);
         var chosen = preferences.FeaturesOf(project);
         // A variant chosen before add-ons existed was the game's choice, which only its project's variants follow.
         var variant = chosen.Count == 0 && (preferences.ProjectId is null || preferences.ProjectId == project) ? preferences.VariantName : null;
@@ -37,7 +36,6 @@ public static class InstallChoices
     /// <param name="record">The install's record.</param>
     public static InstalledRelease? InstalledReleaseOf(InstallRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
         if (record.Source is not { ReleaseUuid: { } release } source)
         {
             return null;
@@ -65,7 +63,6 @@ public static class InstallChoices
     /// <param name="record">The install's record.</param>
     public static IReadOnlyList<InstalledFeature> FeaturesOf(InstallRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
         return [.. (record.Parts ?? []).Where(part => part.FeatureKey is not null)
             .Select(part => new InstalledFeature(part.FeatureKey!, part.FeatureName ?? part.FeatureKey!))];
     }

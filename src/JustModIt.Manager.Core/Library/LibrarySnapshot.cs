@@ -62,7 +62,6 @@ public sealed record LibrarySnapshot
     /// <param name="other">The snapshot to compare with.</param>
     public bool HasSameContent(LibrarySnapshot other)
     {
-        ArgumentNullException.ThrowIfNull(other);
         return Games == other.Games && Stores == other.Stores && IsCached == other.IsCached;
     }
 }

@@ -71,7 +71,6 @@ public static class Motion
     /// <param name="control">A panel or an items control.</param>
     public static bool GetStagger(Control control)
     {
-        ArgumentNullException.ThrowIfNull(control);
         return control.GetValue(StaggerProperty);
     }
 
@@ -80,7 +79,6 @@ public static class Motion
     /// <param name="value">True to stagger.</param>
     public static void SetStagger(Control control, bool value)
     {
-        ArgumentNullException.ThrowIfNull(control);
         control.SetValue(StaggerProperty, value);
     }
 
@@ -88,7 +86,6 @@ public static class Motion
     /// <param name="control">The control.</param>
     public static bool GetEnter(Control control)
     {
-        ArgumentNullException.ThrowIfNull(control);
         return control.GetValue(EnterProperty);
     }
 
@@ -97,7 +94,6 @@ public static class Motion
     /// <param name="value">True to animate its entrance.</param>
     public static void SetEnter(Control control, bool value)
     {
-        ArgumentNullException.ThrowIfNull(control);
         control.SetValue(EnterProperty, value);
     }
 
@@ -105,7 +101,6 @@ public static class Motion
     /// <param name="control">The control, which inherits it from the window.</param>
     public static bool GetLoops(Control control)
     {
-        ArgumentNullException.ThrowIfNull(control);
         return control.GetValue(LoopsProperty);
     }
 
@@ -114,7 +109,6 @@ public static class Motion
     /// <param name="value">True while the window can be seen and motion is not reduced.</param>
     public static void SetLoops(Control control, bool value)
     {
-        ArgumentNullException.ThrowIfNull(control);
         control.SetValue(LoopsProperty, value);
     }
 
@@ -122,7 +116,6 @@ public static class Motion
     /// <param name="control">The part.</param>
     public static bool GetShown(Control control)
     {
-        ArgumentNullException.ThrowIfNull(control);
         return control.GetValue(ShownProperty);
     }
 
@@ -131,7 +124,6 @@ public static class Motion
     /// <param name="value">True to show it.</param>
     public static void SetShown(Control control, bool value)
     {
-        ArgumentNullException.ThrowIfNull(control);
         control.SetValue(ShownProperty, value);
     }
 
@@ -151,7 +143,6 @@ public static class Motion
     /// <param name="delay">How long it waits, invisible, before it enters.</param>
     public static void Enter(Control control, TimeSpan delay)
     {
-        ArgumentNullException.ThrowIfNull(control);
         var reduced = IsReduced;
         var animation = new Animation
         {
@@ -172,7 +163,6 @@ public static class Motion
     /// <param name="control">The control that appears.</param>
     public static void FadeIn(Control control)
     {
-        ArgumentNullException.ThrowIfNull(control);
         var animation = new Animation
         {
             Duration = TimeSpan.FromMilliseconds(IsReduced ? 120 : 260),
@@ -190,7 +180,6 @@ public static class Motion
     /// <param name="control">The control whose content changed.</param>
     public static void Refresh(Control control)
     {
-        ArgumentNullException.ThrowIfNull(control);
         var animation = new Animation
         {
             Duration = TimeSpan.FromMilliseconds(IsReduced ? 120 : 220),

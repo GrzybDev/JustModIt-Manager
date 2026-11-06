@@ -54,10 +54,8 @@ public sealed record HostingRuleSet
 
     private static HostingRuleSet Load()
     {
-        using var stream = typeof(HostingRuleSet).Assembly.GetManifestResourceStream(ResourceName)
-            ?? throw new InvalidOperationException($"The resource {ResourceName} is missing.");
-        return JsonSerializer.Deserialize(stream, HostingRulesJsonContext.Default.HostingRuleSet)
-            ?? throw new InvalidOperationException($"The resource {ResourceName} is empty.");
+        using var stream = typeof(HostingRuleSet).Assembly.GetManifestResourceStream(ResourceName)!;
+        return JsonSerializer.Deserialize(stream, HostingRulesJsonContext.Default.HostingRuleSet)!;
     }
 }
 

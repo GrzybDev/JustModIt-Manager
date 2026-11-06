@@ -151,7 +151,6 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     /// <param name="folder">The folder's full path.</param>
     public void UseFolder(string folder)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(folder);
         DroppedFiles = false;
         if (_page.Game is { } game && PathComparison.Overlaps(game.Game.InstallDirectory, folder))
         {

@@ -20,7 +20,6 @@ public sealed record ReplacementMarker(InstallRecord Previous, JobKind Kind, Job
     /// <param name="record">An install the app has.</param>
     public bool IsSettledBy(InstallRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
         return record.Id == Previous.Id
             || (record.Game == Previous.Game && record.Source?.ProjectUuid is { } project
                 && (project == Previous.Source?.ProjectUuid || project == ReplacementProject));
@@ -53,9 +52,6 @@ public sealed partial class ReplacementMarkers
     /// <param name="logger">Logs markers that cannot be read or removed.</param>
     public ReplacementMarkers(string directory, TimeProvider time, ILogger<ReplacementMarkers> logger)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        ArgumentNullException.ThrowIfNull(time);
-        ArgumentNullException.ThrowIfNull(logger);
         _directory = directory;
         _time = time;
         _logger = logger;
@@ -66,7 +62,6 @@ public sealed partial class ReplacementMarkers
     /// <param name="cancellationToken">Stops the write, which leaves no marker.</param>
     public Task SaveAsync(ReplacementMarker marker, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(marker);
         return AtomicFile.WriteJsonAsync(PathOf(marker.Previous.Id), WriterOptions, writer =>
         {
             writer.WriteStartObject();

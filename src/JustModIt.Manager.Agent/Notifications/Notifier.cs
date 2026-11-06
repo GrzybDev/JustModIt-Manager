@@ -60,7 +60,6 @@ public sealed class Notifier : IAgentService, IDisposable
     /// <param name="notice">A typed notice of the automation.</param>
     public void Notify(AutomationNotice notice)
     {
-        ArgumentNullException.ThrowIfNull(notice);
         if (_ui.IsActive && _ui.Window is { } window)
         {
             window.Post(new Notify(NoticeView.From(notice)));

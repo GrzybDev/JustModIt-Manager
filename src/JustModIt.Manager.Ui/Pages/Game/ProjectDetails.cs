@@ -22,7 +22,6 @@ public sealed record GalleryItemView(string Image, Uri? Video, string Caption)
     /// <param name="item">The item as the site sent it.</param>
     public static GalleryItemView? From(GalleryItem item)
     {
-        ArgumentNullException.ThrowIfNull(item);
         if (item.Kind == "youtube")
         {
             return YouTube.IsId(item.YoutubeId)

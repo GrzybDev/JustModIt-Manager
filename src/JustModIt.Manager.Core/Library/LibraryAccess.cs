@@ -24,7 +24,6 @@ public sealed class LibraryAccess
     /// </param>
     public LibraryAccess(TimeProvider time, Action? onLateAnswer = null)
     {
-        ArgumentNullException.ThrowIfNull(time);
         _time = time;
         _onLateAnswer = onLateAnswer;
     }
@@ -45,7 +44,6 @@ public sealed class LibraryAccess
     /// </exception>
     public async Task<T> ReadAsync<T>(string path, Func<CancellationToken, Task<T>> read, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(read);
         if (_time is not { } time)
         {
             return await read(cancellationToken).ConfigureAwait(false);

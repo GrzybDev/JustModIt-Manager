@@ -56,7 +56,6 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     public InstallEngine(InstallEngineOptions options, PackageReader packages, FileLockProbe locks,
         IGameProbe games, IVolumes volumes, TimeProvider time, ILogger<InstallEngine> logger)
     {
-        ArgumentNullException.ThrowIfNull(options);
         _options = options;
         _packages = packages;
         _locks = locks;
@@ -86,7 +85,6 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     public Task<PreflightReport> CheckInstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         return EnqueueAsync(async () =>
         {
             var package = await OpenAsync(request, cancellationToken).ConfigureAwait(false);
@@ -106,14 +104,12 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     public Task<InstallResult> InstallAsync(InstallRequest request, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         return EnqueueAsync(() => InstallCoreAsync(request, progress, cancellationToken), cancellationToken);
     }
 
     public Task<InstallRecord> MoveBackupsAsync(Guid recordId, BackupChoice destination, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(destination);
         return EnqueueAsync(() => MoveBackupsCoreAsync(recordId, destination, progress, cancellationToken), cancellationToken);
     }
 

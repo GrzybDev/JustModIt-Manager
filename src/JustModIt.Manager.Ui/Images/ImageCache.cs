@@ -110,10 +110,6 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     public ImageCache(string directory, IEnumerable<string> sources, HttpClient http, ILogger logger, IMediaCodecs? codecs = null,
         long? memoryBudget = null, long? framesBudget = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(directory);
-        ArgumentNullException.ThrowIfNull(sources);
-        ArgumentNullException.ThrowIfNull(http);
-        ArgumentNullException.ThrowIfNull(logger);
         _directory = directory;
         _sources = [.. sources.Select(source => source.IndexOf('/', StringComparison.Ordinal) is var slash and >= 0
             ? (source[..slash], source[slash..]) : (source, "/"))];
@@ -129,7 +125,6 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     /// <param name="context">The site, the image hosts, the system's decoders and the cache folder.</param>
     public static ImageCache For(UiContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
         return new ImageCache(context.ImageCacheDirectory, context.ImageHosts, CatalogueHttp.CreateStorageClient(context.Site),
             context.Loggers.CreateLogger<ImageCache>(), context.Codecs);
     }
@@ -138,7 +133,6 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     /// <param name="address">The image's address.</param>
     public bool IsAllowed(Uri address)
     {
-        ArgumentNullException.ThrowIfNull(address);
         return address.IsAbsoluteUri && address.Scheme == Uri.UriSchemeHttps && address.IsDefaultPort && address.UserInfo.Length == 0
             && _sources.Any(source => string.Equals(source.Host, address.IdnHost, StringComparison.OrdinalIgnoreCase)
                 && address.AbsolutePath.StartsWith(source.Path, StringComparison.Ordinal));
@@ -208,7 +202,6 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
 
     public async Task<Bitmap?> LoadBackdropAsync(BackdropRecipe recipe, PixelSize size, double scale, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(recipe);
         if (size.Width <= 0 || size.Height <= 0)
         {
             return null;

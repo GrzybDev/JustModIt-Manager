@@ -33,7 +33,6 @@ internal sealed class StringListJsonConverter : JsonConverter<ValueList<string>>
 
     public override void Write(Utf8JsonWriter writer, ValueList<string> value, JsonSerializerOptions options)
     {
-        ArgumentNullException.ThrowIfNull(writer);
         writer.WriteStartArray();
         foreach (var item in value)
         {

@@ -96,8 +96,6 @@ public sealed partial class GameCardViewModel(GameKey key) : ObservableObject
     /// <param name="state">The agent's state, which tells whether an adult cover is veiled.</param>
     public void Update(GameView game, AppStateView state)
     {
-        ArgumentNullException.ThrowIfNull(game);
-        ArgumentNullException.ThrowIfNull(state);
         var offer = game.Project ?? game.Installs.Select(install => install.Project).FirstOrDefault(project => project is not null)
             ?? (game.Projects.Count > 0 ? game.Projects[0] : null);
         Name = game.Name;
@@ -130,7 +128,6 @@ public sealed partial class GameCardViewModel(GameKey key) : ObservableObject
     /// <param name="store">The game's store, which a wait may name.</param>
     public void Apply(JobView job, StoreId store)
     {
-        ArgumentNullException.ThrowIfNull(job);
         if (_job is not { } known || known.Id != job.Id || known.Sequence >= job.Sequence)
         {
             return;

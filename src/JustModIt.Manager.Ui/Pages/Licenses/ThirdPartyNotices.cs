@@ -22,7 +22,6 @@ internal static partial class ThirdPartyNotices
     /// <param name="markdown">The whole notices file.</param>
     public static IReadOnlyList<ThirdPartyComponent> Parse(string markdown)
     {
-        ArgumentNullException.ThrowIfNull(markdown);
         var sections = Sections(markdown);
         var texts = sections.Where(section => section.Part != Components)
             .ToDictionary(section => section.Title, section => $"### {section.Title}\n\n{section.Body}", StringComparer.Ordinal);

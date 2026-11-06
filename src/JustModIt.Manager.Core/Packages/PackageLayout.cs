@@ -19,7 +19,6 @@ public static class PackageLayout
     /// <param name="name">The entry's name with '/' separators.</param>
     public static bool IsPayload(string name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         return IsFolderOrWithin(name, FilesFolder) || IsFolderOrWithin(name, PatchesFolder);
     }
 

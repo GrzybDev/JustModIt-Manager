@@ -16,7 +16,6 @@ internal static class SteamLibraryFolders
     /// <exception cref="FormatException">The document has no <c>libraryfolders</c> object.</exception>
     public static IReadOnlyList<SteamLibraryFolder> Parse(VdfNode document)
     {
-        ArgumentNullException.ThrowIfNull(document);
         var root = document["libraryfolders"] is { IsObject: true } node
             ? node
             : throw new FormatException("The file has no libraryfolders object.");

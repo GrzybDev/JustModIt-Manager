@@ -91,7 +91,6 @@ public sealed record InstallView
     /// <param name="install">The install as the engine's state holds it.</param>
     public static InstallView From(MyInstall install)
     {
-        ArgumentNullException.ThrowIfNull(install);
         var record = install.Record;
         var source = record.Source;
         return new InstallView
@@ -148,7 +147,6 @@ public sealed record ThirdPartyNoticeView(string Name, string License, string So
     /// <param name="notice">The notice as the install record keeps it.</param>
     public static ThirdPartyNoticeView From(ThirdPartyNotice notice)
     {
-        ArgumentNullException.ThrowIfNull(notice);
         return new ThirdPartyNoticeView(notice.Name, notice.License, notice.SourceUrl);
     }
 }

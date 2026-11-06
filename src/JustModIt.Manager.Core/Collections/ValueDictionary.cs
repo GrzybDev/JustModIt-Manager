@@ -17,7 +17,6 @@ public readonly struct ValueDictionary<TKey, TValue> : IReadOnlyDictionary<TKey,
     /// <param name="items">The entries.</param>
     public ValueDictionary(ImmutableDictionary<TKey, TValue> items)
     {
-        ArgumentNullException.ThrowIfNull(items);
         _items = items;
     }
 

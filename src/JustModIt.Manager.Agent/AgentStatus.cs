@@ -65,7 +65,6 @@ public sealed class AgentStatus(AgentOptions options)
     private void Change<T>(ref T field, Func<T, T> change)
         where T : class?
     {
-        ArgumentNullException.ThrowIfNull(change);
         bool changed;
         lock (_gate)
         {

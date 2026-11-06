@@ -69,7 +69,6 @@ public sealed class GameIndex
     /// <param name="cancellationToken">Cancels the listing.</param>
     public static GameIndex Build(IFileSystem fileSystem, string root, string hiddenFolderName, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(fileSystem);
         var index = new GameIndex(root, hiddenFolderName);
         foreach (var entry in fileSystem.Enumerate(root, "*", TopLevel))
         {
@@ -111,7 +110,6 @@ public sealed class GameIndex
     /// <param name="path">Game-relative, in any letter case.</param>
     public string Spell(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
         if (_files.TryGetValue(path, out var file))
         {
             return file.Path;

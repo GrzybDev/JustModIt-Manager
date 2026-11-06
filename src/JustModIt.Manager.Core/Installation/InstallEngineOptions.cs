@@ -32,8 +32,6 @@ public sealed record InstallEngineOptions
     /// <param name="locations">The app's data folders.</param>
     public static InstallEngineOptions For(AppIdentity identity, AppDataLocations locations)
     {
-        ArgumentNullException.ThrowIfNull(identity);
-        ArgumentNullException.ThrowIfNull(locations);
         return new InstallEngineOptions
         {
             InstanceName = identity.InstanceName,

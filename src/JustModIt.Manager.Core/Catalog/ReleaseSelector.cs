@@ -15,7 +15,6 @@ public static class ReleaseSelector
     /// <param name="gameSystem">The system the installed build is made for.</param>
     public static ReleaseSelection Select(IndexEntry project, GameKey game, OperatingSystemKind gameSystem)
     {
-        ArgumentNullException.ThrowIfNull(project);
         return Select(project.StorefrontLinks, project.Status, project.PublicRelease, game, gameSystem);
     }
 
@@ -25,7 +24,6 @@ public static class ReleaseSelector
     /// <param name="gameSystem">The system the installed build is made for.</param>
     public static ReleaseSelection Select(ProjectPage project, GameKey game, OperatingSystemKind gameSystem)
     {
-        ArgumentNullException.ThrowIfNull(project);
         return Select(project.StorefrontLinks, project.Status, project.PublicRelease, game, gameSystem);
     }
 
@@ -37,7 +35,6 @@ public static class ReleaseSelector
     /// <returns>The names, and whether they are variants; none when there is nothing to choose.</returns>
     public static (IReadOnlyList<string> Names, bool AreVariants) FeatureNames(Release release)
     {
-        ArgumentNullException.ThrowIfNull(release);
         if (release.Features is { Count: > 0 } features)
         {
             return ([.. features.Where(feature => feature.Files.Any(file => file.IsReady)).Select(feature => feature.Name)], false);
@@ -56,7 +53,6 @@ public static class ReleaseSelector
     private static ReleaseSelection Select(IReadOnlyList<StorefrontLink> projectLinks, ProjectStatus? status, Release? release,
         GameKey game, OperatingSystemKind gameSystem)
     {
-        ArgumentNullException.ThrowIfNull(projectLinks);
         var links = projectLinks.Where(link => link.GameKey == game).OrderBy(link => link.Position).ToList();
         // A backend that holds a release back already leaves it out for anonymous visitors; this covers one that does not.
         if (release is null || status?.AllowsPublicReleases == false)

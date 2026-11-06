@@ -37,8 +37,6 @@ public sealed partial class MainWindow : Window
     public MainWindow(ShellViewModel shell, IDataTemplate views, WindowIcon? icon, ISystemMotion? systemMotion, IWindowFrames? frames = null)
         : this()
     {
-        ArgumentNullException.ThrowIfNull(shell);
-        ArgumentNullException.ThrowIfNull(views);
         _shell = shell;
         _systemMotion = systemMotion;
         _frames = frames;
@@ -77,7 +75,6 @@ public sealed partial class MainWindow : Window
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        ArgumentNullException.ThrowIfNull(e);
         base.OnClosing(e);
         // Signing out or shutting down the system does not wait for an answer.
         if (_shell is null || _closeDecided || e.CloseReason is WindowCloseReason.OSShutdown or WindowCloseReason.ApplicationShutdown)

@@ -70,7 +70,6 @@ public sealed class CardGrid
     /// <returns>Whether the focus moved.</returns>
     public bool MoveFocus(ItemsControl list, object item, Key key)
     {
-        ArgumentNullException.ThrowIfNull(list);
         var index = Enumerable.Range(0, _items.Count).FirstOrDefault(at => _items[at] == item, -1);
         var step = key switch
         {
@@ -111,8 +110,6 @@ public sealed class CardGrid
     /// <param name="desired">The items it should hold.</param>
     public static void Sync<T>(ObservableCollection<T> target, IReadOnlyList<T> desired)
     {
-        ArgumentNullException.ThrowIfNull(target);
-        ArgumentNullException.ThrowIfNull(desired);
         for (var index = 0; index < desired.Count; index++)
         {
             var item = desired[index];

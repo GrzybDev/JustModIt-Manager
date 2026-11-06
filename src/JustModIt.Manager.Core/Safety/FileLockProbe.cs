@@ -44,7 +44,6 @@ public sealed class FileLockProbe(ILockHolderSource? holders)
     /// <param name="cancellationToken">Stops the check.</param>
     public FileLockReport Probe(IEnumerable<string> paths, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(paths);
         var inUse = new List<string>();
         var accessDenied = new List<string>();
         foreach (var path in paths.Distinct(PathComparison.Comparer))

@@ -27,7 +27,6 @@ public sealed partial class StatusCardViewModel : ObservableObject, IDisposable
     /// <param name="version">This app's version, shown until the agent reports its own.</param>
     public StatusCardViewModel(IAgent agent, string version)
     {
-        ArgumentNullException.ThrowIfNull(agent);
         _agent = agent;
         _version = version;
         _agent.PropertyChanged += OnAgentChanged;

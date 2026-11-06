@@ -82,7 +82,6 @@ public sealed partial class CataloguePageViewModel : PageViewModel, IDisposable
     /// <param name="services">The window's services.</param>
     public CataloguePageViewModel(UiServices services)
     {
-        ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _typing = new DispatcherTimer { Interval = TypingPause };
         _typing.Tick += (_, _) =>

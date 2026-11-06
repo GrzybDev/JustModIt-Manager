@@ -14,7 +14,6 @@ public sealed class CatalogueApiOptions
     /// <param name="apiKey">Sent with every API request when not empty; the API is used anonymously otherwise.</param>
     public CatalogueApiOptions(Uri apiAddress, Uri? siteAddress, string productName, string productVersion, string? apiKey = null)
     {
-        ArgumentNullException.ThrowIfNull(apiAddress);
         ArgumentException.ThrowIfNullOrWhiteSpace(productName);
         ArgumentException.ThrowIfNullOrWhiteSpace(productVersion);
         if (!apiAddress.IsAbsoluteUri || (apiAddress.Scheme != Uri.UriSchemeHttps && apiAddress.Scheme != Uri.UriSchemeHttp))

@@ -171,7 +171,6 @@ public sealed class StatusLine : Grid
     /// <param name="tone">The tone.</param>
     public static IBrush ToneBrush(Control control, Tone tone)
     {
-        ArgumentNullException.ThrowIfNull(control);
         var key = tone switch
         {
             Tone.Accent => "AccentTextBrush",
@@ -340,7 +339,6 @@ public sealed class TeamBadge : Border
     /// <param name="name">The team's name.</param>
     public static string Initials(string name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         var words = name.Split([' ', '-', '_', '.'], StringSplitOptions.RemoveEmptyEntries);
         var letters = words.Length >= 2
             ? string.Concat(words.Take(2).Select(word => word[0]))

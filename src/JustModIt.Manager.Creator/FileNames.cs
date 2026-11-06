@@ -16,8 +16,6 @@ public static class FileNames
     /// <param name="extension">With its dot, e.g. <c>.zip</c>.</param>
     public static string Suggest(string? name, string fallback, string extension)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fallback);
-        ArgumentNullException.ThrowIfNull(extension);
         var cleaned = new StringBuilder();
         foreach (var character in name ?? string.Empty)
         {

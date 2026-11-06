@@ -55,7 +55,6 @@ public sealed record ProjectOfferView
     /// <param name="installed">The packages the project's install holds already; null for a new install.</param>
     public static ProjectOfferView From(ProjectOffer offer, InstalledRelease? installed = null)
     {
-        ArgumentNullException.ThrowIfNull(offer);
         var project = offer.Project;
         var selection = offer.Selection;
         var plan = offer.Plan;
@@ -93,7 +92,6 @@ public sealed record TeamView(Guid Id, string Slug, string Name)
     /// <param name="team">The team a project belongs to.</param>
     public static TeamView From(TeamReference team)
     {
-        ArgumentNullException.ThrowIfNull(team);
         return new TeamView(team.Uuid, team.Slug, team.Name) { Avatar = team.Avatar };
     }
 }
@@ -121,7 +119,6 @@ public sealed record ProjectStatusView(Guid Id, string Name)
     /// <param name="status">The status as the site defines it.</param>
     public static ProjectStatusView From(ProjectStatus status)
     {
-        ArgumentNullException.ThrowIfNull(status);
         return new ProjectStatusView(status.Uuid, status.Name)
         {
             Color = status.Color,
@@ -153,7 +150,6 @@ public sealed record ReleaseView(Guid Id, int Version)
     /// <param name="release">The release as the project's page holds it.</param>
     public static ReleaseView From(Release release)
     {
-        ArgumentNullException.ThrowIfNull(release);
         // The site dates a release by its creation, on its pages and as a game's newest release, until it tells when the
         // release first went public.
         var released = release.FirstPublishedAt ?? release.CreatedAt;
@@ -194,7 +190,6 @@ public sealed record FeatureView(string Key, string Name, string Description, bo
     /// <param name="installed">The packages the project's install holds already; null for a new install.</param>
     public static FeatureView From(FeatureOffer feature, bool isOn, InstalledRelease? installed)
     {
-        ArgumentNullException.ThrowIfNull(feature);
         return new FeatureView(feature.Key, feature.Name, feature.Description, feature.IsDefault, isOn)
         {
             Group = feature.Group,
@@ -215,7 +210,6 @@ public sealed record PackageView(Guid FileId, string FileName)
     /// <param name="file">The file as the release lists it.</param>
     public static PackageView From(ReleaseFile file)
     {
-        ArgumentNullException.ThrowIfNull(file);
         return new PackageView(file.Uuid, file.DownloadFilename) { Size = file.Size, Format = file.Format };
     }
 }

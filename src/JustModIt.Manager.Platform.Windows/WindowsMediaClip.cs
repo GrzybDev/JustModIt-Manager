@@ -61,7 +61,6 @@ internal sealed class WindowsMediaClip : IMediaClip
     /// <returns>The clip; null when it cannot be read.</returns>
     internal static WindowsMediaClip? Open(string path, out HRESULT status)
     {
-        ArgumentException.ThrowIfNullOrEmpty(path);
         if (Sniff(path) is not { } contentType)
         {
             status = HRESULT.MF_E_UNSUPPORTED_BYTESTREAM_TYPE;

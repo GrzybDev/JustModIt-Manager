@@ -16,7 +16,6 @@ internal static class VdfParser
     /// <exception cref="VdfFormatException">The text is not well-formed KeyValues.</exception>
     public static VdfNode Parse(string text)
     {
-        ArgumentNullException.ThrowIfNull(text);
         var reader = new Reader(text);
         var document = VdfNode.CreateObject();
         ParseObjectBody(ref reader, document, depth: 0);
@@ -31,7 +30,6 @@ internal static class VdfParser
     /// <exception cref="InvalidDataException">The file is too large to be Steam's.</exception>
     public static async Task<VdfNode> ParseFileAsync(IFileSystem fileSystem, string path, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(fileSystem);
         return Parse(await fileSystem.ReadAllTextAsync(path, LauncherJson.MaxFileLength, cancellationToken).ConfigureAwait(false));
     }
 

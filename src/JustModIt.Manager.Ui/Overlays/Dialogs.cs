@@ -1,5 +1,4 @@
 using Avalonia.Media;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Localization;
@@ -169,8 +168,6 @@ public sealed partial class DialogHost : ObservableObject
     /// <typeparam name="TResult">The answer's type.</typeparam>
     public Task<TResult> ShowAsync<TResult>(DialogViewModel<TResult> dialog)
     {
-        ArgumentNullException.ThrowIfNull(dialog);
-        Dispatcher.UIThread.VerifyAccess();
         if (Current is null)
         {
             _ = PresentAsync(dialog);

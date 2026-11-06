@@ -12,7 +12,6 @@ public static class PackageVersions
     /// <param name="number">The release's number on the site, counted from 1; 0 when unknown.</param>
     public static string Next(string name, int number)
     {
-        ArgumentNullException.ThrowIfNull(name);
         var end = name.Length;
         while (end > 0 && !char.IsAsciiDigit(name[end - 1]))
         {

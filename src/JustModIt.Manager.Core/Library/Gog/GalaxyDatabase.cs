@@ -50,7 +50,6 @@ public sealed class GalaxyDatabase(IFileSystem fileSystem, ISqliteReader sqlite,
     /// <returns>Null without the system's shared application data folder.</returns>
     public static GalaxyDatabase? Locate(IFileSystem fileSystem, ISqliteReader sqlite, LibraryEnvironment environment)
     {
-        ArgumentNullException.ThrowIfNull(environment);
         return environment.ProgramData is { } programData
             ? new GalaxyDatabase(fileSystem, sqlite, Path.Join(programData, "GOG.com", "Galaxy", "storage"))
             : null;

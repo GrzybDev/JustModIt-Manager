@@ -46,7 +46,6 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
     public static PackageFormatDecision For(IReadOnlyList<PlannedOperation> operations, bool carriesThirdPartyTools,
         bool declaresRuntimeFiles = false)
     {
-        ArgumentNullException.ThrowIfNull(operations);
         List<FormatReason> reasons =
         [
             .. operations.Select(operation => operation.Kind switch
@@ -87,7 +86,6 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
     /// <param name="number">Counts the payloads of one path from 1.</param>
     public string EntryFor(PlannedOperation operation, int number = 1)
     {
-        ArgumentNullException.ThrowIfNull(operation);
         var suffix = number > 1 ? "." + number.ToString(CultureInfo.InvariantCulture) : string.Empty;
         return operation.Kind == OperationKind.Patch
             ? PackageLayout.PatchesFolder + operation.Path + suffix + PackageLayout.PatchExtension

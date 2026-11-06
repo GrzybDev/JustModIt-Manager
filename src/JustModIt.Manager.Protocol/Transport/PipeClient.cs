@@ -25,9 +25,6 @@ public static class PipeClient
         ILogger? logger = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(pipeName);
-        ArgumentNullException.ThrowIfNull(hello);
-
         options ??= IpcOptions.Default;
         var stream = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
         try

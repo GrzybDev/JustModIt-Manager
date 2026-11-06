@@ -72,7 +72,6 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
     /// <param name="services">The window's services.</param>
     public LibraryPageViewModel(UiServices services)
     {
-        ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _services.Agent.PropertyChanged += OnAgentChanged;
         _services.Agent.JobsProgressed += OnJobsProgressed;

@@ -37,7 +37,6 @@ public sealed record CreatorOptions
     /// <param name="projectExtension">The app's extension for project files, with its dot.</param>
     public static CreatorOptions For(AppIdentity identity, string generator, string packageExtension, string projectExtension)
     {
-        ArgumentNullException.ThrowIfNull(identity);
         ArgumentException.ThrowIfNullOrWhiteSpace(generator);
         ArgumentException.ThrowIfNullOrWhiteSpace(packageExtension);
         ArgumentException.ThrowIfNullOrWhiteSpace(projectExtension);

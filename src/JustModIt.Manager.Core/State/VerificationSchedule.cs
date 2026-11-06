@@ -19,7 +19,6 @@ internal sealed record Verification(DateTimeOffset At, string? BuildId, RepairRe
     /// <param name="result">What the check found for each file.</param>
     public static RepairReason? RepairOf(VerificationResult result)
     {
-        ArgumentNullException.ThrowIfNull(result);
         return result.Files.Any(file => file.Integrity == FileIntegrity.Modified) ? RepairReason.FilesModified
             : result.Files.Any(file => file.Integrity == FileIntegrity.OriginalRestored) ? RepairReason.OriginalsRestored
             : result.Files.Any(file => file.Integrity == FileIntegrity.Missing) ? RepairReason.FilesMissing
@@ -49,7 +48,6 @@ internal static class VerificationSchedule
     public static DateTimeOffset? DueAt(InstallRecord record, InstalledGame? game, bool hasJob, Verification? last, bool requested,
         DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(record);
         if (hasJob || record.IsTest || game is not { IsReady: true } || !PathComparison.AreSame(game.InstallDirectory, record.InstallDirectory))
         {
             return null;

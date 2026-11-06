@@ -47,7 +47,6 @@ public sealed partial class LibraryService : ILibraryService, IAsyncDisposable
     private bool _checkRequested;
     private bool _stopped;
     private LibrarySnapshot _snapshot = LibrarySnapshot.Empty;
-    private int _started;
 
     /// <summary>Creates the service; <see cref="RunAsync"/> starts its loop.</summary>
     /// <param name="providers">One provider per supported store.</param>
@@ -64,14 +63,6 @@ public sealed partial class LibraryService : ILibraryService, IAsyncDisposable
         IFileSystem fileSystem, IFolderWatcher folderWatcher, IRegistryWatcher? registryWatcher, ISystemEvents systemEvents,
         IDocumentStore<LibrarySnapshot> snapshots, TimeProvider time, ILogger<LibraryService> logger)
     {
-        ArgumentNullException.ThrowIfNull(providers);
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(runningGames);
-        ArgumentNullException.ThrowIfNull(fileSystem);
-        ArgumentNullException.ThrowIfNull(systemEvents);
-        ArgumentNullException.ThrowIfNull(snapshots);
-        ArgumentNullException.ThrowIfNull(time);
-        ArgumentNullException.ThrowIfNull(logger);
         _providers = [.. providers];
         _settings = settings;
         _runningGames = runningGames;
@@ -102,11 +93,6 @@ public sealed partial class LibraryService : ILibraryService, IAsyncDisposable
     /// <param name="cancellationToken">Stops the loop.</param>
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        if (Interlocked.Exchange(ref _started, 1) != 0)
-        {
-            throw new InvalidOperationException("The library service is already running.");
-        }
-
         _settings.Changed += OnSettingsChanged;
         _systemEvents.Resumed += OnSystemChanged;
         _systemEvents.VolumeArrived += OnSystemChanged;
@@ -235,7 +221,6 @@ public sealed partial class LibraryService : ILibraryService, IAsyncDisposable
 
     public void RemoveLibraryFolder(LibraryFolder folder)
     {
-        ArgumentNullException.ThrowIfNull(folder);
         _settings.Update(settings => settings.WithoutLibraryFolder(folder));
         RequestCheck();
     }

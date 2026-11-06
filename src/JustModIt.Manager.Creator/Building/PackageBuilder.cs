@@ -40,8 +40,6 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
     public Task<PackageBuildResult> BuildAsync(ConfirmedPlan plan, BuildRequest request, IProgress<BuildProgress>? progress,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(plan);
-        ArgumentNullException.ThrowIfNull(request);
         return Task.Run(() => BuildCoreAsync(plan.Plan, request, progress, cancellationToken), cancellationToken);
     }
 
@@ -75,7 +73,6 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
 
     private string CheckRequest(PackagePlan plan, BuildRequest request)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.OutputPath);
         var output = Path.GetFullPath(request.OutputPath);
         if (!Path.GetExtension(output).Equals(options.ExtensionFor(plan.Format.Kind), StringComparison.OrdinalIgnoreCase))
         {
@@ -292,7 +289,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
 
         private async Task<CopyOperation> CopyAsync(PlannedOperation operation, CancellationToken cancellationToken)
         {
-            var file = operation.SourceFile ?? throw Unresolved(operation);
+            var file = operation.SourceFile!;
             tracker.StartFile(operation.Path, file.Stamp.Size);
             var name = EntryFor(operation);
             long done = 0;
@@ -319,8 +316,8 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
 
         private async Task<PatchOperation> PatchAsync(PlannedOperation operation, int index, CancellationToken cancellationToken)
         {
-            var target = operation.SourceFile ?? throw Unresolved(operation);
-            var original = operation.Original ?? throw Unresolved(operation);
+            var target = operation.SourceFile!;
+            var original = operation.Original!;
             tracker.StartFile(operation.Path, original.Stamp.Size + target.Stamp.Size);
             var name = EntryFor(operation);
             var encoding = new InlineProgress<PatchProgress>(report => tracker.Report(
@@ -385,9 +382,6 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
                 throw new PackageBuildException(BuildFailure.TooLarge);
             }
         }
-
-        private static InvalidOperationException Unresolved(PlannedOperation operation) =>
-            new($"The plan left {operation.Path} unresolved, which a confirmed plan cannot.");
     }
 
     private sealed class Tracker(IProgress<BuildProgress>? sink, int fileCount, long bytesTotal)

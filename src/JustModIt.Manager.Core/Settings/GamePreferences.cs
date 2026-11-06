@@ -45,7 +45,6 @@ public sealed record GamePreferences
     /// <param name="chosen">The add-ons turned on or off, only where that differs from the author's default.</param>
     public GamePreferences WithFeatures(Guid project, IReadOnlyDictionary<string, bool> chosen)
     {
-        ArgumentNullException.ThrowIfNull(chosen);
         return this with
         {
             Features = chosen.Count == 0

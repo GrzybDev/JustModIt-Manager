@@ -59,7 +59,6 @@ public sealed record LaunchProgram : GameLaunch
     /// <returns>Null when either is missing or a link leads out of the game's folder.</returns>
     public ProgramStart? Resolve(IFileSystem fileSystem, string gameDirectory)
     {
-        ArgumentNullException.ThrowIfNull(fileSystem);
         var root = fileSystem.GetCanonicalPath(gameDirectory);
         var program = fileSystem.GetCanonicalPath(PackagePath.ToFullPath(root, Executable));
         var folder = fileSystem.GetCanonicalPath(PackagePath.ToFullPath(root, WorkingDirectory));

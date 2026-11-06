@@ -30,7 +30,6 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     /// <param name="services">The window's services.</param>
     public SettingsPageViewModel(UiServices services)
     {
-        ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _editor = new SettingsEditor(services);
         Backups = new BackupsViewModel(services, _editor, Sync);

@@ -14,7 +14,6 @@ public sealed record BackupChoice(BackupLocation Location, string? CustomFolder 
     /// <param name="settings">The player's settings.</param>
     public static BackupChoice From(AppSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
         return new BackupChoice(settings.BackupLocation, settings.CustomBackupFolder);
     }
 }

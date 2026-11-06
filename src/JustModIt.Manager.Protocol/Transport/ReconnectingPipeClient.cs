@@ -31,7 +31,7 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
     private volatile PipeConnection? _connection;
     private volatile ConnectionState _state = ConnectionState.Stopped;
     private Task _loop = Task.CompletedTask;
-    private int _started;
+    private int _disposed;
 
     /// <summary>Creates the client, which connects once started.</summary>
     /// <param name="pipeName">The agent's pipe.</param>
@@ -49,10 +49,6 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
         IpcOptions? options = null,
         Func<Message, CancellationToken, ValueTask<Message?>>? handleRequest = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(pipeName);
-        ArgumentNullException.ThrowIfNull(hello);
-        ArgumentNullException.ThrowIfNull(logger);
-
         _pipeName = pipeName;
         _hello = hello;
         _logger = logger;
@@ -67,14 +63,9 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
 
     public Hello? Peer => _connection?.Peer;
 
-    /// <summary>Starts connecting in the background, and again whenever the connection drops; a client starts only once.</summary>
+    /// <summary>Starts connecting in the background, and again whenever the connection drops.</summary>
     public void Start()
     {
-        if (Interlocked.CompareExchange(ref _started, 1, 0) != 0)
-        {
-            throw new InvalidOperationException("The client can be started only once.");
-        }
-
         SetState(ConnectionState.Connecting);
         _loop = Task.Run(RunAsync);
     }
@@ -96,7 +87,6 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
     /// <returns>False when there was no connection to send it on.</returns>
     public bool Post(Message message)
     {
-        ArgumentNullException.ThrowIfNull(message);
         if (_connection is not { } connection)
         {
             return false;
@@ -111,8 +101,6 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
     public IDisposable Subscribe<TMessage>(Action<TMessage> handler)
         where TMessage : Message
     {
-        ArgumentNullException.ThrowIfNull(handler);
-
         var subscription = new Subscription(this, message =>
         {
             if (message is TMessage typed)
@@ -126,7 +114,7 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _started, 2) == 2)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }

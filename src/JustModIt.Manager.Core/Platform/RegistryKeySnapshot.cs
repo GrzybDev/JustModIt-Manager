@@ -9,9 +9,6 @@ public sealed class RegistryKeySnapshot
     /// <param name="values">The values by name; the default value has the empty name.</param>
     public RegistryKeySnapshot(string path, IEnumerable<string> subKeyNames, IEnumerable<KeyValuePair<string, RegistryValue>> values)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        ArgumentNullException.ThrowIfNull(subKeyNames);
-        ArgumentNullException.ThrowIfNull(values);
         Path = path;
         SubKeyNames = [.. subKeyNames];
         Values = values.ToDictionary(StringComparer.OrdinalIgnoreCase);

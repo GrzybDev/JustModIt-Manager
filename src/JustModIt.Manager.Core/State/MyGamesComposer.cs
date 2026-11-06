@@ -55,7 +55,6 @@ public static class MyGamesComposer
     /// <param name="input">Everything the list is made from.</param>
     public static ImmutableArray<MyGame> Compose(MyGamesInput input)
     {
-        ArgumentNullException.ThrowIfNull(input);
         var recordsByGame = input.Records.GroupBy(record => record.Game).ToDictionary(group => group.Key, group => group.ToList());
         var games = new List<MyGame>();
         foreach (var key in input.Library.Games.Keys.Union(recordsByGame.Keys))

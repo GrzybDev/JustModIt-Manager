@@ -47,9 +47,6 @@ public sealed class AutomationHistory
     public AutomationHistory(IEnumerable<KeyValuePair<AttemptKey, AttemptEntry>> attempts, IEnumerable<Announcement> announcements,
         IEnumerable<RepairAnnouncement> repairAnnouncements, DateTimeOffset? baselineAt)
     {
-        ArgumentNullException.ThrowIfNull(attempts);
-        ArgumentNullException.ThrowIfNull(announcements);
-        ArgumentNullException.ThrowIfNull(repairAnnouncements);
         _attempts = attempts.ToImmutableDictionary();
         _announcements = [.. announcements];
         _repairAnnouncements = [.. repairAnnouncements];
@@ -179,7 +176,6 @@ public sealed class AutomationHistory
     /// <param name="installs">The record ids of the installs that exist.</param>
     public AutomationHistory KeepRepairAnnouncementsOf(IReadOnlySet<Guid> installs)
     {
-        ArgumentNullException.ThrowIfNull(installs);
         return WithRepairs(_repairAnnouncements.Except(
             _repairAnnouncements.Where(announcement => !installs.Contains(announcement.Install))));
     }

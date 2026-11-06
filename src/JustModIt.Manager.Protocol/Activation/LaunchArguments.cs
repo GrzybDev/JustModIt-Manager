@@ -19,9 +19,6 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
     /// <param name="links">The app's links, to tell a link from other arguments.</param>
     public static LaunchArguments Parse(IReadOnlyList<string> args, AppLinks links)
     {
-        ArgumentNullException.ThrowIfNull(args);
-        ArgumentNullException.ThrowIfNull(links);
-
         var agent = false;
         var ui = false;
         var background = false;
@@ -56,7 +53,6 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
     /// <param name="links">The app's links, to write the target as one.</param>
     public IReadOnlyList<string> ToArgs(AppLinks links)
     {
-        ArgumentNullException.ThrowIfNull(links);
         List<string> args = Role switch
         {
             ProcessRole.Agent => [AgentSwitch],

@@ -31,8 +31,6 @@ public static class BackupFolderPolicy
     /// <returns>Null when the folder is fine.</returns>
     public static BackupFolderProblem? Check(string folder, IEnumerable<string> gameFolders, string appFolder, IVolumes volumes)
     {
-        ArgumentNullException.ThrowIfNull(gameFolders);
-        ArgumentNullException.ThrowIfNull(volumes);
         if (string.IsNullOrWhiteSpace(folder) || !Path.IsPathFullyQualified(folder))
         {
             return BackupFolderProblem.NotFullyQualified;

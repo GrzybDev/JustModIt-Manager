@@ -146,7 +146,6 @@ public static class Formats
     /// <param name="name">The release's name as the site gives it.</param>
     public static string Version(string name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         return Text.VersionWord.Replace(name.Trim(), "", 1);
     }
 

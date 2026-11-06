@@ -44,7 +44,6 @@ public sealed record GameOffer(GameKey Game, IReadOnlyList<ProjectOffer> Project
     /// <returns>Null while several teams offer one and none is chosen or preferred, which the automation must not decide.</returns>
     public ProjectOffer? Choose(Guid? preferredProject, IReadOnlyList<Guid> preferredTeams)
     {
-        ArgumentNullException.ThrowIfNull(preferredTeams);
         return Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == preferredProject)
             ?? (Projects.Count == 1 ? Projects[0] : null)
             ?? preferredTeams.Select(team => Projects.FirstOrDefault(offer => offer.Project.Team.Uuid == team))
@@ -58,8 +57,6 @@ public sealed record GameOffer(GameKey Game, IReadOnlyList<ProjectOffer> Project
     /// <param name="language">The app's target language, checked against the game's store version.</param>
     public static GameOffer For(InstallableIndex index, GameKey game, OperatingSystemKind gameSystem, TargetLanguage language)
     {
-        ArgumentNullException.ThrowIfNull(index);
-        ArgumentNullException.ThrowIfNull(language);
         var projects = index.Find(game)
             .Select(project => new ProjectOffer(project, ReleaseSelector.Select(project, game, gameSystem)))
             .ToList();

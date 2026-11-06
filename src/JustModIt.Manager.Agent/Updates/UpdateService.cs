@@ -63,7 +63,6 @@ public sealed partial class UpdateService(
     /// <returns>Whether the app now exits to be updated.</returns>
     public bool ApplyPending(LaunchArguments start)
     {
-        ArgumentNullException.ThrowIfNull(start);
         if (Pending() is not { } pending)
         {
             return false;

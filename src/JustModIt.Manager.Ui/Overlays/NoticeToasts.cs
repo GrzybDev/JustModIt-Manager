@@ -21,9 +21,6 @@ public static class NoticeToasts
     /// <param name="showSettings">Opens the settings, where kept copies are listed.</param>
     public static ToastViewModel Create(NoticeView notice, Action<NoticeView> showGame, Action showSettings)
     {
-        ArgumentNullException.ThrowIfNull(notice);
-        ArgumentNullException.ThrowIfNull(showGame);
-        ArgumentNullException.ThrowIfNull(showSettings);
         var subject = notice.ProjectName is { } project
             ? Text.Format(Strings.Toast_ProjectOfGame, ("project", project), ("game", notice.GameName ?? ""))
             : notice.GameName ?? "";

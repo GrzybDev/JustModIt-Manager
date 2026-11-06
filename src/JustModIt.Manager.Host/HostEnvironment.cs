@@ -60,8 +60,6 @@ internal sealed record HostEnvironment
     /// <exception cref="AppDataUnavailableException">The system does not say where the user's data belongs.</exception>
     public static HostEnvironment Create(ProductSettings product, InstallLocation install)
     {
-        ArgumentNullException.ThrowIfNull(product);
-        ArgumentNullException.ThrowIfNull(install);
         var identity = product.Identity;
         return new HostEnvironment
         {
@@ -103,7 +101,6 @@ internal sealed record HostEnvironment
     /// <param name="previous">How the window's previous run ended uncleanly; null after a clean exit.</param>
     public UiContext WindowContext(AppOptions options, LaunchArguments launch, ILoggerFactory loggers, UncleanExit? previous = null)
     {
-        ArgumentNullException.ThrowIfNull(options);
         return new UiContext
         {
             ProductName = Product.ProductName,

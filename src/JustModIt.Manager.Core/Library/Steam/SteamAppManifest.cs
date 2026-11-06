@@ -46,7 +46,6 @@ internal sealed record SteamAppManifest
     /// <exception cref="FormatException">The document is not a usable app manifest.</exception>
     public static SteamAppManifest Parse(VdfNode document)
     {
-        ArgumentNullException.ThrowIfNull(document);
         var state = document["AppState"] is { IsObject: true } node
             ? node
             : throw new FormatException("The manifest has no AppState object.");

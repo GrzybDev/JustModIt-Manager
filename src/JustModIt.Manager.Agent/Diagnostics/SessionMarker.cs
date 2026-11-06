@@ -39,10 +39,6 @@ public sealed class SessionMarker
     /// <param name="redactor">Hides the user's name in what a crash records; null records no error report.</param>
     public SessionMarker(string directory, string role, string version, TimeProvider time, PathRedactor? redactor = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        ArgumentException.ThrowIfNullOrWhiteSpace(role);
-        ArgumentNullException.ThrowIfNull(version);
-        ArgumentNullException.ThrowIfNull(time);
         _path = PathOf(directory, role);
         _version = version;
         _time = time;
@@ -72,7 +68,6 @@ public sealed class SessionMarker
     /// <param name="exception">The exception that ends the process.</param>
     public void RecordCrash(Exception exception)
     {
-        ArgumentNullException.ThrowIfNull(exception);
         CrashReportView? report = null;
         try
         {
@@ -112,8 +107,6 @@ public sealed class SessionMarker
     /// <param name="role">The role whose run was stopped.</param>
     public static void EndStopped(string directory, string role)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        ArgumentException.ThrowIfNullOrWhiteSpace(role);
         var path = PathOf(directory, role);
         try
         {

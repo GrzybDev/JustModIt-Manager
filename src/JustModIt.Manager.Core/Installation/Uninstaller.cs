@@ -38,7 +38,6 @@ public static class KeptReasons
     /// <returns>The most pressing reason; null when there is none.</returns>
     public static KeptReason? MostPressing(IEnumerable<KeptReason> reasons)
     {
-        ArgumentNullException.ThrowIfNull(reasons);
         return reasons.Select(reason => (KeptReason?)reason).MinBy(reason => Rank(reason!.Value));
     }
 

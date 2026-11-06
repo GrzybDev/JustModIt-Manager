@@ -108,9 +108,6 @@ public sealed partial class CatalogueCardViewModel(Guid id) : ObservableObject
     /// <param name="clock">The clock ages are told against.</param>
     public void Update(CatalogueGameView game, string query, AppStateView state, TimeProvider clock)
     {
-        ArgumentNullException.ThrowIfNull(game);
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(clock);
         var projects = Best(game.Projects);
         var best = projects.FirstOrDefault();
         Name = game.Name;

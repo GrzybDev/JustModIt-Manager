@@ -56,7 +56,6 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
 {
     public void Open(Uri address)
     {
-        ArgumentNullException.ThrowIfNull(address);
         if (IsAllowed(address))
         {
             Start(address.AbsoluteUri);
@@ -65,7 +64,6 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
 
     public void OpenFolder(string folder)
     {
-        ArgumentNullException.ThrowIfNull(folder);
         if (Path.IsPathFullyQualified(folder))
         {
             Start(folder);
@@ -74,7 +72,6 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
 
     public void Open(ClientLink client)
     {
-        ArgumentNullException.ThrowIfNull(client);
         Start(client.Address);
     }
 
@@ -85,7 +82,6 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
     /// <param name="address">The address.</param>
     public static bool IsAllowed(Uri address)
     {
-        ArgumentNullException.ThrowIfNull(address);
         return address.IsAbsoluteUri && (address.Scheme == Uri.UriSchemeHttps || address.Scheme == PageLinks.SteamScheme);
     }
 
@@ -135,7 +131,6 @@ public static class PageLinks
     /// <param name="store">What detection found for the store.</param>
     public static ClientLink? StoreClient(StoreDetectionView store)
     {
-        ArgumentNullException.ThrowIfNull(store);
         if (!store.IsFound)
         {
             return null;

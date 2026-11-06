@@ -10,7 +10,6 @@ public sealed partial class InstallEngine
     public Task<InstallRecord?> AdoptMovedAsync(Guid recordId, InstalledGame game, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(game);
         return EnqueueAsync(() => AdoptCoreAsync(recordId, game, progress, cancellationToken), cancellationToken);
     }
 

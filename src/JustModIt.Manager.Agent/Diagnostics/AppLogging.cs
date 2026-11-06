@@ -27,9 +27,6 @@ public static class AppLogging
     /// <param name="redactor">Hides the user's name in every line.</param>
     public static Logger Create(string logsDirectory, string role, bool verbose, PathRedactor redactor)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(logsDirectory);
-        ArgumentException.ThrowIfNullOrWhiteSpace(role);
-        ArgumentNullException.ThrowIfNull(redactor);
         var configuration = new LoggerConfiguration()
             .MinimumLevel.Is(verbose ? LogEventLevel.Debug : LogEventLevel.Information)
             .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
@@ -86,7 +83,6 @@ internal sealed class RedactingFormatter(ITextFormatter inner, PathRedactor reda
 {
     public void Format(LogEvent logEvent, TextWriter output)
     {
-        ArgumentNullException.ThrowIfNull(output);
         using var line = new StringWriter(CultureInfo.InvariantCulture);
         inner.Format(logEvent, line);
         output.Write(redactor.Redact(line.ToString()));

@@ -37,7 +37,6 @@ public static class VolumesExtensions
     /// <param name="second">Another such path.</param>
     public static bool AreOnSameVolume(this IVolumes volumes, string first, string second)
     {
-        ArgumentNullException.ThrowIfNull(volumes);
         return volumes.GetVolumeId(first) is { } a && volumes.GetVolumeId(second) is { } b
             && string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
     }

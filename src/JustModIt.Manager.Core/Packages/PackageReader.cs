@@ -43,7 +43,6 @@ public sealed class PackageReader(PackageLimits? limits = null)
     /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
     public async Task<IPackage> OpenAsync(string path, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize,
             FileOptions.Asynchronous | FileOptions.RandomAccess);
         ZipArchive archive;

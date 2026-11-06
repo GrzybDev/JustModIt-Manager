@@ -50,15 +50,6 @@ public sealed partial class JobRunner : IAsyncDisposable
         IRunningGameDetector runningGames, ISettingsService settings, ReplacementMarkers markers, TimeProvider time,
         ILogger<JobRunner> logger, IInstallPolicy? installPolicy = null)
     {
-        ArgumentNullException.ThrowIfNull(engine);
-        ArgumentNullException.ThrowIfNull(catalogue);
-        ArgumentNullException.ThrowIfNull(downloader);
-        ArgumentNullException.ThrowIfNull(library);
-        ArgumentNullException.ThrowIfNull(runningGames);
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(markers);
-        ArgumentNullException.ThrowIfNull(time);
-        ArgumentNullException.ThrowIfNull(logger);
         _engine = engine;
         _downloader = downloader;
         _markers = markers;
@@ -151,7 +142,6 @@ public sealed partial class JobRunner : IAsyncDisposable
     /// </returns>
     public JobHandle Start(JobRequest request)
     {
-        ArgumentNullException.ThrowIfNull(request);
         JobContext job;
         lock (_gate)
         {
@@ -244,7 +234,6 @@ public sealed partial class JobRunner : IAsyncDisposable
     /// <returns>How many files were deleted; none while a job runs.</returns>
     public Task<int> PruneDownloadsAsync(IReadOnlySet<Guid> keep, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(keep);
         HashSet<Guid> kept;
         lock (_gate)
         {
@@ -269,7 +258,6 @@ public sealed partial class JobRunner : IAsyncDisposable
     /// <returns>False when a job runs, and nothing was deleted.</returns>
     public async Task<bool> ClearDownloadsAsync(IReadOnlySet<Guid> keep, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(keep);
         HashSet<Guid> kept;
         lock (_gate)
         {

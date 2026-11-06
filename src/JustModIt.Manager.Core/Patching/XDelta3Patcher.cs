@@ -21,8 +21,6 @@ public sealed class XDelta3Patcher(long? memoryBudget = null)
     public static async Task DecodeAsync(string sourcePath, Stream patch, string outputPath, PatchTarget target,
         IProgress<long>? progress, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(patch);
-        ArgumentNullException.ThrowIfNull(target);
         XDelta3Native.EnsureAvailable();
         // Writers are locked out, so the source cannot change while it is read in blocks.
         using var source = File.OpenHandle(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
@@ -77,7 +75,6 @@ public sealed class XDelta3Patcher(long? memoryBudget = null)
     public async Task<PatchInfo> EncodeAsync(string sourcePath, string targetPath, Stream patch,
         IProgress<PatchProgress>? progress, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(patch);
         XDelta3Native.EnsureAvailable();
         var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 0,
             FileOptions.Asynchronous | FileOptions.SequentialScan);

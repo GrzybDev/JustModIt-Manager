@@ -35,7 +35,6 @@ internal static class LongPath
     /// <param name="path">A path in any form.</param>
     public static string StripPrefix(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
         if (path.StartsWith(UncDevicePrefix, StringComparison.OrdinalIgnoreCase))
         {
             return string.Concat(UncPrefix, path.AsSpan(UncDevicePrefix.Length));

@@ -11,8 +11,6 @@ public static class DiagnosticReport
     /// <param name="cancellationToken">Stops writing, leaving no report.</param>
     public static Task WriteAsync(string logsDirectory, string destination, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(logsDirectory);
-        ArgumentException.ThrowIfNullOrWhiteSpace(destination);
         return Task.Run(() =>
         {
             var partial = destination + ".partial";

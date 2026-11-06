@@ -45,10 +45,6 @@ public sealed class JsonDocumentStore<T> : IDocumentStore<T>
     /// <param name="logger">Logs files that could not be read or moved aside.</param>
     public JsonDocumentStore(string path, IJsonDocumentFormat<T> format, TimeProvider time, ILogger logger)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        ArgumentNullException.ThrowIfNull(format);
-        ArgumentNullException.ThrowIfNull(time);
-        ArgumentNullException.ThrowIfNull(logger);
         _path = Path.GetFullPath(path);
         _format = format;
         _time = time;
@@ -93,7 +89,6 @@ public sealed class JsonDocumentStore<T> : IDocumentStore<T>
 
     public Task SaveAsync(T document, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(document);
         var version = Math.Max(_format.CurrentVersion, _storedVersion);
         var unknownProperties = _unknownProperties;
         return AtomicFile.WriteJsonAsync(_path, WriteOptions, writer =>

@@ -30,7 +30,6 @@ public sealed record GalleryTile(GalleryItemView Item, int Row, int Column, int 
     /// <param name="gallery">The gallery's items in order.</param>
     public static IReadOnlyList<GalleryTile> Lay(IReadOnlyList<GalleryItemView> gallery)
     {
-        ArgumentNullException.ThrowIfNull(gallery);
         (int Row, int Column, int RowSpan, int ColumnSpan)[] places = gallery.Count switch
         {
             0 => [],
@@ -78,7 +77,6 @@ public sealed partial class GalleryViewerViewModel : DialogViewModel<bool>
     public GalleryViewerViewModel(string game, IReadOnlyList<GalleryItemView> images, int start, IExternalLinks links)
         : base(false)
     {
-        ArgumentNullException.ThrowIfNull(images);
         _links = links;
         Images = images;
         Thumbs = [.. images.Select(image => new GalleryThumb(image))];

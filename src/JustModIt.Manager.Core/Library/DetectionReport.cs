@@ -15,7 +15,6 @@ public sealed record DetectionReport(ValueList<StoreDetection> Stores, DateTimeO
     /// <param name="snapshot">The library's latest snapshot.</param>
     public static DetectionReport From(LibrarySnapshot snapshot)
     {
-        ArgumentNullException.ThrowIfNull(snapshot);
         return new DetectionReport(
             [
                 .. snapshot.Stores.Select(store => new StoreDetection(

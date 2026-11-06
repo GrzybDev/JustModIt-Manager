@@ -14,9 +14,6 @@ public static class NoticeSummary
     public static string Format<TGame>(IReadOnlyCollection<TGame> games, IReadOnlyCollection<TGame> updates,
         IReadOnlyCollection<TGame> repairs)
     {
-        ArgumentNullException.ThrowIfNull(games);
-        ArgumentNullException.ThrowIfNull(updates);
-        ArgumentNullException.ThrowIfNull(repairs);
         (string Pattern, int Count)[] parts =
         [
             (Strings.NoticeAvailableSummary, games.Count(game => !updates.Contains(game) && !repairs.Contains(game))),

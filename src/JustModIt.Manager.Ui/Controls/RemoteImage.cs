@@ -122,7 +122,6 @@ public sealed class RemoteImage : Control
     /// <param name="control">The control where it was set, or one inside it.</param>
     public static IImageLoader? GetLoader(Control control)
     {
-        ArgumentNullException.ThrowIfNull(control);
         return control.GetValue(LoaderProperty);
     }
 
@@ -131,13 +130,11 @@ public sealed class RemoteImage : Control
     /// <param name="value">The service.</param>
     public static void SetLoader(Control control, IImageLoader? value)
     {
-        ArgumentNullException.ThrowIfNull(control);
         control.SetValue(LoaderProperty, value);
     }
 
     public override void Render(DrawingContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
         if (Bitmap is not { } bitmap || Bounds.Width <= 0 || Bounds.Height <= 0)
         {
             return;
@@ -174,7 +171,6 @@ public sealed class RemoteImage : Control
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        ArgumentNullException.ThrowIfNull(change);
         base.OnPropertyChanged(change);
         if (change.Property == SourceProperty || change.Property == FallbackProperty || change.Property == ClipSourceProperty
             || change.Property == LoaderProperty || change.Property == IsBlurredProperty)

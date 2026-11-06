@@ -163,7 +163,6 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
     /// <param name="entry">A detected game.</param>
     public void Choose(DetectedGameEntry entry)
     {
-        ArgumentNullException.ThrowIfNull(entry);
         var project = _session.Project;
         if (project.Game?.Key != entry.Key || project.GameFolder != entry.Game.InstallDirectory)
         {

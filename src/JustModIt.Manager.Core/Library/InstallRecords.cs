@@ -80,7 +80,6 @@ internal sealed class InstallRecordScanner<TRecord>(StoreId store, IReadOnlyList
     public async Task<StoreScan> ScanAsync(LibraryScanContext context,
         Func<TRecord, CancellationToken, Task<IReadOnlyList<RecordFinding>>> evaluateFolder, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(context);
         var scans = await Task.WhenAll(sources.Select(source => ScanSourceAsync(source, context, cancellationToken))).ConfigureAwait(false);
         List<TRecord> records = [.. scans.SelectMany(scan => scan?.Records ?? [])];
         var evaluations = await Task.WhenAll(records.Select(record => EvaluateAsync(record, context.Access, evaluateFolder, cancellationToken)))

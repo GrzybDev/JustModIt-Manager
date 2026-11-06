@@ -29,8 +29,6 @@ public sealed class WindowsMediaCodecs : IMediaCodecs
     /// <returns>The picture; null when it could not be decoded.</returns>
     internal static MediaPicture? Decode(string path, Func<int, int, (int Width, int Height)> sizeFor, out HRESULT status)
     {
-        ArgumentException.ThrowIfNullOrEmpty(path);
-        ArgumentNullException.ThrowIfNull(sizeFor);
         // The decoder reads a copy, since the collector releases it at a time of its own and a file it read would stay open
         // until then, which keeps the cache from removing or replacing it.
         var content = File.ReadAllBytes(path);

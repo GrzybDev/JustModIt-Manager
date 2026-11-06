@@ -18,7 +18,6 @@ public sealed class RegistryValue
     /// <param name="text">The string as read.</param>
     public static RegistryValue FromText(string text)
     {
-        ArgumentNullException.ThrowIfNull(text);
         return new(text, null);
     }
 

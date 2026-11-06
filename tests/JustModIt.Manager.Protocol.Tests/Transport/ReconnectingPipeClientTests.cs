@@ -207,8 +207,6 @@ public sealed class ReconnectingPipeClientTests
 
         await _states.ExpectAsync(ConnectionState.Stopped);
         await handler.Disconnected.NextAsync();
-        var restart = client.Start;
-        restart.Should().Throw<InvalidOperationException>();
     }
 
     private ReconnectingPipeClient StartClient(Func<Message, CancellationToken, ValueTask<Message?>>? handleRequest = null)

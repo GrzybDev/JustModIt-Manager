@@ -104,7 +104,6 @@ public sealed record LibraryNotice(string Path, string License, string SourceUrl
     /// <param name="path">The library's game path.</param>
     public static string NameAfterFile(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
         var name = GameIndex.NameOf(path).Trim();
         var length = Math.Min(name.Length, ThirdPartyNotice.MaxTextLength);
         return name[..(length < name.Length && char.IsHighSurrogate(name[length - 1]) ? length - 1 : length)];
@@ -157,15 +156,8 @@ public sealed record CreatorProject
     /// <summary>A copy of the project with the author's choice for a reviewed file.</summary>
     /// <param name="entry">The file as the review lists it.</param>
     /// <param name="choice">One of the entry's choices; its detected one clears the author's choice.</param>
-    /// <exception cref="ArgumentException">The file does not offer <paramref name="choice"/>.</exception>
     public CreatorProject WithChoice(ReviewEntry entry, FileChoice choice)
     {
-        ArgumentNullException.ThrowIfNull(entry);
-        if (!entry.Choices.Contains(choice))
-        {
-            throw new ArgumentException($"{entry.File.Path} does not offer {choice}.", nameof(choice));
-        }
-
         var choices = Choices.Count > 0 ? Choices : new ValueDictionary<string, FileChoice>(
             ImmutableDictionary.Create<string, FileChoice>(PackagePath.Comparer));
         return this with
@@ -178,7 +170,6 @@ public sealed record CreatorProject
     /// <param name="step">The step to add.</param>
     public CreatorProject WithExtraStep(ProjectStep step)
     {
-        ArgumentNullException.ThrowIfNull(step);
         return this with { ExtraSteps = ExtraSteps.Add(step) };
     }
 
@@ -190,7 +181,6 @@ public sealed record CreatorProject
     /// <param name="file">The file and how it stands to the game.</param>
     public CreatorProject WithRuntimeFile(RuntimeFileChoice file)
     {
-        ArgumentNullException.ThrowIfNull(file);
         var without = WithoutRuntimeFile(file.Path);
         return without with { RuntimeFiles = without.RuntimeFiles.Add(file) };
     }
@@ -206,7 +196,6 @@ public sealed record CreatorProject
     /// <param name="key">The warning's <see cref="PlanFinding.AcknowledgementKey"/>.</param>
     public CreatorProject Acknowledge(string key)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
         return Acknowledged.Contains(key) ? this : this with { Acknowledged = Acknowledged.Add(key) };
     }
 
@@ -214,7 +203,6 @@ public sealed record CreatorProject
     /// <param name="notice">The licence and source the author gave.</param>
     public CreatorProject WithToolNotice(ToolNotice notice)
     {
-        ArgumentNullException.ThrowIfNull(notice);
         return this with
         {
             ToolNotices = ToolNotices.RemoveAll(existing => string.Equals(existing.ToolId, notice.ToolId, StringComparison.Ordinal))
@@ -231,7 +219,6 @@ public sealed record CreatorProject
     /// <param name="notice">The library, with what the author gave of its licence and source.</param>
     public CreatorProject WithLibraryNotice(LibraryNotice notice)
     {
-        ArgumentNullException.ThrowIfNull(notice);
         var without = WithoutLibraryNotice(notice.Path);
         return without with { LibraryNotices = without.LibraryNotices.Add(notice) };
     }
@@ -246,7 +233,6 @@ public sealed record CreatorProject
     /// <param name="plan">The project's plan as it is now.</param>
     public CreatorProject ToAdvanced(PackagePlan plan)
     {
-        ArgumentNullException.ThrowIfNull(plan);
         return this with
         {
             Mode = CreatorMode.Advanced,

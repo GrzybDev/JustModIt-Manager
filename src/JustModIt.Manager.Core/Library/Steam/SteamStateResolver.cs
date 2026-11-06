@@ -120,7 +120,6 @@ internal static class SteamStateResolver
     /// <param name="live">What Steam shows outside the manifest; none by default.</param>
     public static SteamInstallStatus Resolve(SteamAppManifest manifest, bool installDirectoryExists, SteamLiveSignals live = default)
     {
-        ArgumentNullException.ThrowIfNull(manifest);
         var flags = manifest.StateFlags;
         var paused = flags.HasFlag(SteamAppStates.UpdatePaused)
             || manifest.UpdateResult is SteamUpdateResult.Paused or SteamUpdateResult.Canceled or SteamUpdateResult.Suspended;

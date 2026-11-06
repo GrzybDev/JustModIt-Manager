@@ -48,7 +48,6 @@ public sealed record NoticeView(NoticeKind Kind)
     /// <param name="notice">The typed notice the engine produced.</param>
     public static NoticeView From(AutomationNotice notice)
     {
-        ArgumentNullException.ThrowIfNull(notice);
         return new NoticeView(notice.Kind)
         {
             Game = notice.Game,

@@ -33,7 +33,6 @@ public static class TrayContent
     /// <param name="product">The app's name as players see it.</param>
     public static IReadOnlyList<TrayMenuItem> Menu(AppStateView state, string product)
     {
-        ArgumentNullException.ThrowIfNull(state);
         List<TrayMenuItem> menu =
         [
             new(TrayCommands.Open, Text.Format(Strings.TrayOpen, ("product", product))) { IsDefault = true },
@@ -64,7 +63,6 @@ public static class TrayContent
     /// <param name="state">The newest snapshot.</param>
     public static string Status(AppStateView state)
     {
-        ArgumentNullException.ThrowIfNull(state);
         if (!state.IsLoaded)
         {
             return Strings.StatusStarting;

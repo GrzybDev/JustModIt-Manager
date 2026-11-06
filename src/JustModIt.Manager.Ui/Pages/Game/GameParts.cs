@@ -268,7 +268,6 @@ public sealed record LicenseItem(string Name, string License, string Address, Ur
     /// <param name="notice">The notice as the install's view carries it.</param>
     public static LicenseItem From(ThirdPartyNoticeView notice)
     {
-        ArgumentNullException.ThrowIfNull(notice);
         var link = Uri.TryCreate(notice.SourceUrl, UriKind.Absolute, out var address) && address.Scheme == Uri.UriSchemeHttps ? address : null;
         return new LicenseItem(notice.Name, notice.License, notice.SourceUrl, link);
     }
@@ -284,7 +283,6 @@ public sealed partial class FeaturePill : ObservableObject
     /// <param name="turned">Told when the player turns or chooses the pill.</param>
     public FeaturePill(FeatureView feature, Action<FeaturePill> turned)
     {
-        ArgumentNullException.ThrowIfNull(feature);
         _turned = turned;
         Key = feature.Key;
         Name = feature.Name;
@@ -437,8 +435,6 @@ public sealed partial class FeaturePanel(Guid? install, Guid project) : Observab
     /// <param name="turned">Told when the player turns or chooses a pill.</param>
     public void Follow(IReadOnlyList<FeatureView> features, string? variantCaption, IReadOnlySet<string> leftOut, Action<FeaturePill> turned)
     {
-        ArgumentNullException.ThrowIfNull(features);
-        ArgumentNullException.ThrowIfNull(leftOut);
         if (!Pills.Select(pill => pill.Key).SequenceEqual(Ordered(features).Select(feature => feature.Key)))
         {
             Toggles.Clear();

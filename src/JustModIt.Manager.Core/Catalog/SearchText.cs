@@ -13,7 +13,6 @@ public static class SearchText
     /// <param name="text">A name or the player's query.</param>
     public static string Fold(string text)
     {
-        ArgumentNullException.ThrowIfNull(text);
         var decomposed = text.Normalize(NormalizationForm.FormD);
         var folded = new StringBuilder(decomposed.Length);
         var separate = false;
@@ -47,7 +46,6 @@ public static class SearchText
     /// <param name="query">The player's query.</param>
     public static IReadOnlyList<(int Start, int Length)> Find(string text, string query)
     {
-        ArgumentNullException.ThrowIfNull(text);
         var words = Fold(query).Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0)
         {

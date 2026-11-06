@@ -18,7 +18,6 @@ internal sealed class HeroicGogSource(IFileSystem fileSystem, string configDirec
 
     public Task<SourceScan<GogInstallRecord>> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(context);
         return context.Access.ReadAsync(InstalledFile, ReadInstalledAsync, cancellationToken);
     }
 

@@ -75,7 +75,6 @@ public sealed class RunningGameDetector(IProcessSource processSource, IFileSyste
 
     public async Task WaitForExitAsync(IEnumerable<RunningProcess> processes, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(processes);
         foreach (var process in processes)
         {
             var name = ProcessName(process.Name);

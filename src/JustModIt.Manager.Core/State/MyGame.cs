@@ -142,7 +142,6 @@ public sealed record FailedAttempt(JobKind Kind, JobOrigin Origin, DateTimeOffse
     /// <param name="now">When it ended.</param>
     public static FailedAttempt? From(JobResult result, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(result);
         var failed = result.Outcome == JobOutcome.Failed && result.Failure?.Reason != JobFailureReason.AlreadyRunning;
         return failed || result.LostPrevious
             ? new FailedAttempt(result.Job.Kind, result.Job.Origin, now, result.Failure)
@@ -161,7 +160,6 @@ public sealed record FailedAttempt(JobKind Kind, JobOrigin Origin, DateTimeOffse
     /// <param name="result">How the job ended.</param>
     public static FailureKey KeyOf(JobResult result)
     {
-        ArgumentNullException.ThrowIfNull(result);
         var install = result.Job.InstallId is null || result.LostPrevious ? null : result.Installed?.Id ?? result.Job.InstallId;
         return new FailureKey(result.Job.Game, install);
     }

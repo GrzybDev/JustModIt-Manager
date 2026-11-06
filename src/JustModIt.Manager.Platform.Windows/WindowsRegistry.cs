@@ -12,7 +12,6 @@ public sealed class WindowsRegistry : IRegistry
 
     public RegistryKeySnapshot? ReadKey(RegistryHive hive, RegistryView view, string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
         try
         {
             using var root = Win32.RegistryKey.OpenBaseKey(ToWin32(hive), ToWin32(view));
@@ -69,17 +68,15 @@ public sealed class WindowsRegistry : IRegistry
     internal static Win32.RegistryHive ToWin32(RegistryHive hive) => hive switch
     {
         RegistryHive.CurrentUser => Win32.RegistryHive.CurrentUser,
-        RegistryHive.LocalMachine => Win32.RegistryHive.LocalMachine,
-        _ => throw new ArgumentOutOfRangeException(nameof(hive), hive, null),
+        _ => Win32.RegistryHive.LocalMachine,
     };
 
     /// <summary>The Win32 counterpart of a registry view.</summary>
     /// <param name="view">Which of the 32-bit and 64-bit views to read.</param>
     internal static Win32.RegistryView ToWin32(RegistryView view) => view switch
     {
-        RegistryView.Default => Win32.RegistryView.Default,
         RegistryView.Registry32 => Win32.RegistryView.Registry32,
         RegistryView.Registry64 => Win32.RegistryView.Registry64,
-        _ => throw new ArgumentOutOfRangeException(nameof(view), view, null),
+        _ => Win32.RegistryView.Default,
     };
 }

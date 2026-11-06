@@ -23,7 +23,6 @@ public static class CatalogueHttp
     /// <param name="connection">Replaces the network connection, e.g. in tests.</param>
     public static HttpClient CreateStorageClient(CatalogueApiOptions options, HttpMessageHandler? connection = null)
     {
-        ArgumentNullException.ThrowIfNull(options);
         var client = new HttpClient(connection ?? CreateConnectionHandler(DecompressionMethods.None))
         {
             Timeout = Timeout.InfiniteTimeSpan,

@@ -11,8 +11,6 @@ public sealed class InstanceLock : IDisposable
     /// <param name="name">One of the names in <see cref="InstanceNames"/>.</param>
     public static InstanceLock? TryAcquire(string name)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-
         Mutex mutex;
         bool createdNew;
         try

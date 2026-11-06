@@ -26,7 +26,7 @@ internal sealed class UiProcessStarter(AgentOptions options) : IUiStarter
     {
         var start = new ProcessStartInfo(options.ExecutablePath) { UseShellExecute = false };
         start.ArgumentList.Add(LaunchArguments.UiSwitch);
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("The window's process did not start.");
+        using var process = Process.Start(start)!;
         return process.Id;
     }
 }
@@ -66,11 +66,6 @@ public sealed partial class UiLauncher : IDisposable
     public UiLauncher(IUiStarter starter, IForegroundHandoff foreground, StatePublisher publisher, TimeProvider time,
         ILogger<UiLauncher> logger)
     {
-        ArgumentNullException.ThrowIfNull(starter);
-        ArgumentNullException.ThrowIfNull(foreground);
-        ArgumentNullException.ThrowIfNull(publisher);
-        ArgumentNullException.ThrowIfNull(time);
-        ArgumentNullException.ThrowIfNull(logger);
         _starter = starter;
         _foreground = foreground;
         _publisher = publisher;

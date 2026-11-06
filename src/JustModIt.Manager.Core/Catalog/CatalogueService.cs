@@ -96,7 +96,6 @@ public sealed partial class CatalogueService(
     /// <param name="cancellationToken">Cancels the refresh, leaving the snapshot as it was.</param>
     public Task<CatalogueSnapshot> RefreshAsync(IndexRequest request, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         return Enqueue(async () =>
         {
             var before = Current;
@@ -138,7 +137,6 @@ public sealed partial class CatalogueService(
 
     public Task<CatalogueSnapshot> RebuildIndexAsync(IndexRequest request, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         return Enqueue(async () =>
         {
             var listing = await GetListingAsync(cancellationToken).ConfigureAwait(false);

@@ -60,7 +60,6 @@ public sealed partial class CreatorSession : ObservableObject
     /// <param name="change">Turns the project into the changed one.</param>
     public void Change(Func<CreatorProject, CreatorProject> change)
     {
-        ArgumentNullException.ThrowIfNull(change);
         IsConfirmed = false;
         Describe(change);
     }
@@ -69,7 +68,6 @@ public sealed partial class CreatorSession : ObservableObject
     /// <param name="change">Turns the project into the changed one.</param>
     public void Describe(Func<CreatorProject, CreatorProject> change)
     {
-        ArgumentNullException.ThrowIfNull(change);
         var changed = change(Project);
         if (changed == Project)
         {

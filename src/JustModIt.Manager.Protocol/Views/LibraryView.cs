@@ -24,8 +24,6 @@ public sealed record LibraryView
     /// <param name="settings">The settings that hold the added folders.</param>
     public static LibraryView From(AppState state, AppSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(settings);
         return new LibraryView
         {
             IsCached = state.IsLibraryCached,
@@ -98,8 +96,6 @@ public sealed record DetectedGameEntry(GameKey Key, string Name, DetectedGameVie
     /// <param name="index">The site's projects matched to the detected games, which give the cover and the projects.</param>
     public static DetectedGameEntry From(InstalledGame game, InstallableIndex index)
     {
-        ArgumentNullException.ThrowIfNull(game);
-        ArgumentNullException.ThrowIfNull(index);
         var projects = index.Find(game.Key);
         var completed = projects.Where(entry => entry.Status is { IsCompleted: true })
             .Select(entry => ReleaseSelector.Select(entry, game.Key, game.Platform))
@@ -127,8 +123,6 @@ public sealed record DetectionReportView(IReadOnlyList<StoreDetectionView> Store
     /// <param name="storefronts">The site's stores in its order; each of the app's stores takes the first of its kind.</param>
     public static DetectionReportView From(DetectionReport report, IReadOnlyList<StorefrontPlatform> storefronts)
     {
-        ArgumentNullException.ThrowIfNull(report);
-        ArgumentNullException.ThrowIfNull(storefronts);
         return new DetectionReportView(
             [.. report.Stores.Select(store => StoreDetectionView.From(store, storefronts.FirstOrDefault(site => site.Store == store.Store)))],
             report.ScannedAt);
@@ -164,7 +158,6 @@ public sealed record StoreDetectionView(string Store)
     /// <param name="site">The site's store of the same kind, if it has one.</param>
     public static StoreDetectionView From(StoreDetection store, StorefrontPlatform? site)
     {
-        ArgumentNullException.ThrowIfNull(store);
         return new StoreDetectionView(store.Store.Value)
         {
             Name = site?.Name ?? "",

@@ -12,7 +12,6 @@ public static class NoticeTexts
     /// <param name="notice">A typed notice of the automation.</param>
     public static (string Title, string Message) For(AutomationNotice notice)
     {
-        ArgumentNullException.ThrowIfNull(notice);
         var game = notice.GameName ?? notice.Game?.ToString() ?? "";
         var job = ("job", (object?)notice.Job?.ToString() ?? "");
         string Title(string pattern) => Text.Format(pattern, ("game", game), job);

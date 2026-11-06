@@ -134,7 +134,6 @@ public sealed record ReleaseSelection
     /// <returns>Null when nothing can be installed.</returns>
     public ReleasePlan? Plan(FeatureChoices choices)
     {
-        ArgumentNullException.ThrowIfNull(choices);
         if (!IsInstallable)
         {
             return null;
@@ -187,9 +186,6 @@ public sealed record ReleaseSelection
     public IReadOnlyDictionary<string, bool> Remember(IReadOnlyDictionary<string, bool> chosen, IReadOnlyDictionary<string, bool?> changes,
         IReadOnlyCollection<string> installed)
     {
-        ArgumentNullException.ThrowIfNull(chosen);
-        ArgumentNullException.ThrowIfNull(changes);
-        ArgumentNullException.ThrowIfNull(installed);
         var result = new Dictionary<string, bool>(chosen, StringComparer.Ordinal);
         foreach (var (key, value) in changes)
         {

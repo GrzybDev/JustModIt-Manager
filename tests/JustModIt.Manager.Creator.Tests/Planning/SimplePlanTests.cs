@@ -95,8 +95,6 @@ public sealed class SimplePlanTests : IDisposable
         Entry(again, "data/fonts.bin").Should().Match<ReviewEntry>(entry =>
             entry.Choice == FileChoice.Copy && entry.Reason == OperationReason.NewFile && !entry.IsChangedByAuthor);
         Entry(again, "data/strings.bin").Choice.Should().Be(FileChoice.Patch);
-        var offered = () => project.WithChoice(Entry(again, "data/fonts.bin"), FileChoice.Patch);
-        offered.Should().Throw<ArgumentException>();
     }
 
     [Fact]

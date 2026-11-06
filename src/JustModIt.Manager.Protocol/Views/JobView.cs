@@ -41,7 +41,6 @@ public sealed record JobView
     /// <param name="job">The job's newest snapshot.</param>
     public static JobView From(JobSnapshot job)
     {
-        ArgumentNullException.ThrowIfNull(job);
         return new JobView
         {
             Id = job.Id,
@@ -90,7 +89,6 @@ public sealed record JobFailureView(JobFailureReason Reason)
     /// <param name="failure">The failure with its details.</param>
     public static JobFailureView From(JobFailure failure)
     {
-        ArgumentNullException.ThrowIfNull(failure);
         return new JobFailureView(failure.Reason)
         {
             Files = [.. failure.Files],
@@ -126,7 +124,6 @@ public sealed record FailureView(JobKind Kind, JobOrigin Origin, DateTimeOffset 
     /// <param name="attempt">The attempt as the engine's state keeps it.</param>
     public static FailureView From(FailedAttempt attempt)
     {
-        ArgumentNullException.ThrowIfNull(attempt);
         return new FailureView(attempt.Kind, attempt.Origin, attempt.At,
             attempt.Failure is { } failure ? JobFailureView.From(failure) : null)
         {

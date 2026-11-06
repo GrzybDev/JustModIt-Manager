@@ -106,8 +106,6 @@ public sealed partial class ToastHost : ObservableObject
     /// <param name="toast">The notification.</param>
     public void Show(ToastViewModel toast)
     {
-        ArgumentNullException.ThrowIfNull(toast);
-        Dispatcher.UIThread.VerifyAccess();
         toast.Attach(Dismiss);
         toast.ShownAt = DateTime.UtcNow;
         Items.Add(toast);
@@ -123,7 +121,6 @@ public sealed partial class ToastHost : ObservableObject
     /// <param name="toast">The notification.</param>
     public void Dismiss(ToastViewModel toast)
     {
-        ArgumentNullException.ThrowIfNull(toast);
         if (toast.IsClosing)
         {
             return;

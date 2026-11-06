@@ -33,8 +33,6 @@ internal sealed partial class LatestDocumentWriter<T> : IAsyncDisposable
     public LatestDocumentWriter(IDocumentStore<T> store, string name, ILogger logger, TimeSpan delay = default,
         TimeProvider? time = null)
     {
-        ArgumentNullException.ThrowIfNull(store);
-        ArgumentNullException.ThrowIfNull(logger);
         _store = store;
         _name = name;
         _logger = logger;
@@ -47,7 +45,6 @@ internal sealed partial class LatestDocumentWriter<T> : IAsyncDisposable
     /// <param name="document">The latest version of the document.</param>
     public void Save(T document)
     {
-        ArgumentNullException.ThrowIfNull(document);
         _pending.Writer.TryWrite(document);
     }
 
