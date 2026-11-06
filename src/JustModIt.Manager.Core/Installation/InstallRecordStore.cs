@@ -40,12 +40,6 @@ internal sealed class InstallRecordStore(string installsDirectory, TimeProvider 
     private const string InstallDirectoryProperty = "installDirectory";
 
     // People read these files, so letters stay letters instead of escapes.
-    private static readonly JsonWriterOptions RecordWriterOptions = new()
-    {
-        Indented = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
-
     private static readonly JsonWriterOptions FilesWriterOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     /// <summary>The folder of an install, which may not exist yet.</summary>
@@ -203,7 +197,7 @@ internal sealed class InstallRecordStore(string installsDirectory, TimeProvider 
     /// <param name="record">The install's record.</param>
     /// <param name="cancellationToken">Stops the write.</param>
     public Task SaveRecordAsync(InstallRecord record, CancellationToken cancellationToken) =>
-        AtomicFile.WriteJsonAsync(FolderOf(record.Id).RecordFile, RecordWriterOptions,
+        AtomicFile.WriteJsonAsync(FolderOf(record.Id).RecordFile, AtomicFile.ReadableJson,
             writer => JsonSerializer.Serialize(writer, record, InstallationJsonContext.Default.InstallRecord), cancellationToken, time);
 
     /// <summary>Removes the files the app keeps for an install, and the folder when nothing else is in it.</summary>

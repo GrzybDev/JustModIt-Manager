@@ -17,8 +17,7 @@ public static class LenientJson
     /// <param name="element">The JSON object.</param>
     /// <param name="name">The property's name.</param>
     public static string? GetTextOrNull(this JsonElement element, string name) =>
-        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
-        && value.GetString() is { } text && !string.IsNullOrWhiteSpace(text)
+        element.GetOrNull(name, JsonValueKind.String)?.GetString() is { } text && !string.IsNullOrWhiteSpace(text)
             ? text
             : null;
 
@@ -135,18 +134,6 @@ internal static class OptionalJsonWriting
         }
     }
 
-    /// <summary>Writes a GUID property in its hyphenated form when it has a value.</summary>
-    /// <param name="writer">The writer inside an object.</param>
-    /// <param name="name">The property's name.</param>
-    /// <param name="value">The value; null leaves the property out.</param>
-    public static void WriteIfSet(this Utf8JsonWriter writer, string name, Guid? value)
-    {
-        if (value is { } set)
-        {
-            writer.WriteString(name, set.ToString("D"));
-        }
-    }
-
     /// <summary>Writes a date and time property when it has a value.</summary>
     /// <param name="writer">The writer inside an object.</param>
     /// <param name="name">The property's name.</param>
@@ -159,30 +146,24 @@ internal static class OptionalJsonWriting
         }
     }
 
-    /// <summary>Writes an enum property as its member's name when it has a value.</summary>
-    /// <param name="writer">The writer inside an object.</param>
-    /// <param name="name">The property's name.</param>
-    /// <param name="value">The value; null leaves the property out.</param>
-    public static void WriteEnumIfSet<TEnum>(this Utf8JsonWriter writer, string name, TEnum? value)
-        where TEnum : struct, Enum
-    {
-        if (value is { } set)
-        {
-            writer.WriteString(name, set.ToString());
-        }
-    }
-
     /// <summary>Writes an array of texts when there is any.</summary>
     /// <param name="writer">The writer inside an object.</param>
     /// <param name="name">The property's name.</param>
     /// <param name="values">The texts; none leaves the property out.</param>
     public static void WriteStringsIfAny(this Utf8JsonWriter writer, string name, IReadOnlyCollection<string> values)
     {
-        if (values.Count == 0)
+        if (values.Count > 0)
         {
-            return;
+            writer.WriteStrings(name, values);
         }
+    }
 
+    /// <summary>Writes an array of texts.</summary>
+    /// <param name="writer">The writer inside an object.</param>
+    /// <param name="name">The property's name.</param>
+    /// <param name="values">The texts.</param>
+    public static void WriteStrings(this Utf8JsonWriter writer, string name, IEnumerable<string> values)
+    {
         writer.WriteStartArray(name);
         foreach (var value in values)
         {

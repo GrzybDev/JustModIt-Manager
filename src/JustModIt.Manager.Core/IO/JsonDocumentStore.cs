@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Globalization;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
 using Microsoft.Extensions.Logging;
@@ -21,13 +20,6 @@ public sealed class JsonDocumentStore<T> : IDocumentStore<T>
     {
         AllowTrailingCommas = true,
         CommentHandling = JsonCommentHandling.Skip,
-    };
-
-    // The files are only read by this app and by people, who should see letters rather than escapes.
-    private static readonly JsonWriterOptions WriteOptions = new()
-    {
-        Indented = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     private readonly string _path;
@@ -91,7 +83,7 @@ public sealed class JsonDocumentStore<T> : IDocumentStore<T>
     {
         var version = Math.Max(_format.CurrentVersion, _storedVersion);
         var unknownProperties = _unknownProperties;
-        return AtomicFile.WriteJsonAsync(_path, WriteOptions, writer =>
+        return AtomicFile.WriteJsonAsync(_path, AtomicFile.ReadableJson, writer =>
         {
             writer.WriteStartObject();
             writer.WriteNumber(VersionProperty, version);

@@ -50,12 +50,12 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
         {
             writer.WriteStartObject();
             writer.WriteString("game", key.Game.ToString());
-            writer.WriteIfSet("install", key.Install);
+            writer.WriteIfSet("install", key.Install?.ToString());
             writer.WriteString("kind", attempt.Kind.ToString());
             writer.WriteString("origin", attempt.Origin.ToString());
             writer.WriteString("at", attempt.At);
             writer.WriteBoolean("lostPrevious", attempt.LostPrevious);
-            writer.WriteIfSet("releaseId", attempt.ReleaseId);
+            writer.WriteIfSet("releaseId", attempt.ReleaseId?.ToString());
             writer.WriteStringsIfAny("packageFileIds", [.. attempt.PackageFileIds.Select(file => file.ToString("D"))]);
             if (attempt.Failure is { } failure)
             {
@@ -116,10 +116,10 @@ public sealed class FailedAttemptsFormat : IJsonDocumentFormat<FailedAttempts>
         writer.WriteString("reason", failure.Reason.ToString());
         writer.WriteStringsIfAny("files", failure.Files);
         writer.WriteStringsIfAny("processes", failure.Processes);
-        writer.WriteEnumIfSet("gameState", failure.GameState);
-        writer.WriteEnumIfSet("stateReason", failure.StateReason);
-        writer.WriteEnumIfSet("unavailability", failure.Unavailability);
-        writer.WriteEnumIfSet("catalogueError", failure.CatalogueError);
+        writer.WriteIfSet("gameState", failure.GameState?.ToString());
+        writer.WriteIfSet("stateReason", failure.StateReason?.ToString());
+        writer.WriteIfSet("unavailability", failure.Unavailability?.ToString());
+        writer.WriteIfSet("catalogueError", failure.CatalogueError?.ToString());
         writer.WriteIfSet("requiredBytes", failure.RequiredBytes);
         writer.WriteIfSet("availableBytes", failure.AvailableBytes);
         writer.WriteIfSet("location", failure.Location);

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace JustModIt.Manager.Core.IO;
@@ -10,6 +11,13 @@ namespace JustModIt.Manager.Core.IO;
 public static class AtomicFile
 {
     private const int DefaultBufferSize = 16 * 1024;
+
+    /// <summary>For files only this app and people read: people should see letters rather than escapes.</summary>
+    public static readonly JsonWriterOptions ReadableJson = new()
+    {
+        Indented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
 
     /// <summary>Replaces the file at <paramref name="path"/> with <paramref name="content"/>.</summary>
     /// <param name="path">The file; its folder is created when missing.</param>

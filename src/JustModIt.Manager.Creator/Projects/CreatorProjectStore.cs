@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
@@ -45,9 +44,6 @@ public static class CreatorProjectStore
 
     private const string FormatVersionProperty = "formatVersion";
     private const long MaxLength = 16 << 20;
-
-    // People read these files, so letters stay letters instead of escapes.
-    private static readonly JsonWriterOptions WriterOptions = new() { Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     /// <summary>Writes the project file atomically, off the calling thread.</summary>
     /// <param name="project">The project to save.</param>
@@ -109,7 +105,7 @@ public static class CreatorProjectStore
                 : null,
         };
         using var buffer = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(buffer, WriterOptions))
+        using (var writer = new Utf8JsonWriter(buffer, AtomicFile.ReadableJson))
         {
             JsonSerializer.Serialize(writer, document, ProjectJsonContext.Default.ProjectDocument);
         }

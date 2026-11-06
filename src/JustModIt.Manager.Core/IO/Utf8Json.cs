@@ -10,9 +10,4 @@ public static class Utf8Json
     /// <param name="json">The bytes as read from the file.</param>
     public static ReadOnlyMemory<byte> WithoutByteOrderMark(ReadOnlyMemory<byte> json) =>
         json.Span.StartsWith(ByteOrderMark) ? json[ByteOrderMark.Length..] : json;
-
-    /// <summary>The JSON without the byte order mark it may start with.</summary>
-    /// <param name="json">The bytes as read from the file.</param>
-    public static ReadOnlySpan<byte> WithoutByteOrderMark(ReadOnlySpan<byte> json) =>
-        json.StartsWith(ByteOrderMark) ? json[ByteOrderMark.Length..] : json;
 }

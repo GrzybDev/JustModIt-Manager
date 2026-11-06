@@ -95,12 +95,12 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             TrayNoticeShown = root.GetBooleanOrNull(TrayNoticeShown) ?? defaults.TrayNoticeShown,
             BackupLocation = backupLocation,
             CustomBackupFolder = customBackupFolder,
-            PreferredTeams = ReadIds(root.GetOrNull(PreferredTeams, JsonValueKind.Array)),
+            PreferredTeams = ReadIds(root, PreferredTeams),
             Games = ReadGames(root.GetOrNull(Games, JsonValueKind.Object)),
-            LibraryFolders = ReadLibraryFolders(root.GetOrNull(LibraryFolders, JsonValueKind.Array)),
+            LibraryFolders = ReadLibraryFolders(root),
             AdultContentConfirmedUntil = root.GetDateTimeOffsetOrNull(AdultContentConfirmedUntil),
-            RevealedAdultGames = ReadIds(root.GetOrNull(RevealedAdultGames, JsonValueKind.Array)),
-            RecentCreatorProjects = ReadPaths(root.GetOrNull(RecentCreatorProjects, JsonValueKind.Array)),
+            RevealedAdultGames = ReadIds(root, RevealedAdultGames),
+            RecentCreatorProjects = AppSettings.RecentProjects(root.GetStrings(RecentCreatorProjects)),
             InstallationId = root.GetGuidOrNull(InstallationId),
         };
     }
@@ -123,7 +123,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteBoolean(TrayNoticeShown, document.TrayNoticeShown);
         writer.WriteString(BackupLocationName, document.BackupLocation.ToString());
         writer.WriteIfSet(CustomBackupFolder, document.CustomBackupFolder);
-        WriteIds(writer, PreferredTeams, document.PreferredTeams);
+        writer.WriteStrings(PreferredTeams, document.PreferredTeams.Select(id => id.ToString()));
 
         writer.WriteStartObject(Games);
         // Sorted, so a file changes only where a game changed.
@@ -132,7 +132,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             writer.WriteStartObject(key.ToString());
             writer.WriteIfSet(AutoInstall, preferences.AutoInstall);
             writer.WriteIfSet(AutoUpdate, preferences.AutoUpdate);
-            writer.WriteIfSet(ProjectId, preferences.ProjectId);
+            writer.WriteIfSet(ProjectId, preferences.ProjectId?.ToString());
             WriteFeatures(writer, preferences.Features);
             if (preferences.IsHidden)
             {
@@ -155,15 +155,9 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
 
         writer.WriteEndArray();
         writer.WriteIfSet(AdultContentConfirmedUntil, document.AdultContentConfirmedUntil);
-        WriteIds(writer, RevealedAdultGames, document.RevealedAdultGames);
-        writer.WriteStartArray(RecentCreatorProjects);
-        foreach (var project in document.RecentCreatorProjects)
-        {
-            writer.WriteStringValue(project);
-        }
-
-        writer.WriteEndArray();
-        writer.WriteIfSet(InstallationId, document.InstallationId);
+        writer.WriteStrings(RevealedAdultGames, document.RevealedAdultGames.Select(id => id.ToString()));
+        writer.WriteStrings(RecentCreatorProjects, document.RecentCreatorProjects);
+        writer.WriteIfSet(InstallationId, document.InstallationId?.ToString());
     }
 
     private static void WriteFeatures(Utf8JsonWriter writer, ValueDictionary<Guid, ValueDictionary<string, bool>> features)
@@ -186,17 +180,6 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         }
 
         writer.WriteEndObject();
-    }
-
-    private static void WriteIds(Utf8JsonWriter writer, string name, ValueList<Guid> ids)
-    {
-        writer.WriteStartArray(name);
-        foreach (var id in ids)
-        {
-            writer.WriteStringValue(id);
-        }
-
-        writer.WriteEndArray();
     }
 
     private static ValueDictionary<GameKey, GamePreferences> ReadGames(JsonElement? games)
@@ -265,39 +248,23 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         return new ValueDictionary<Guid, ValueDictionary<string, bool>>(result.ToImmutable());
     }
 
-    private static ValueList<Guid> ReadIds(JsonElement? ids) =>
-        ids is { } entries
-            ? [.. entries.EnumerateArray()
-                .Select(id => id.ValueKind == JsonValueKind.String && Guid.TryParse(id.GetString(), out var uuid) ? uuid : Guid.Empty)
-                .Where(uuid => uuid != Guid.Empty)
-                .Distinct()]
-            : [];
+    private static ValueList<Guid> ReadIds(JsonElement root, string name) =>
+    [
+        .. root.GetStrings(name).Select(id => Guid.TryParse(id, out var uuid) ? uuid : Guid.Empty)
+            .Where(uuid => uuid != Guid.Empty).Distinct(),
+    ];
 
-    private static ValueList<string> ReadPaths(JsonElement? paths) =>
-        AppSettings.RecentProjects(paths is { } entries
-            ? entries.EnumerateArray().Where(path => path.ValueKind == JsonValueKind.String).Select(path => path.GetString()!)
-            : []);
-
-    private static ValueList<LibraryFolder> ReadLibraryFolders(JsonElement? folders)
+    private static ValueList<LibraryFolder> ReadLibraryFolders(JsonElement root)
     {
-        var result = new ValueList<LibraryFolder>();
-        if (folders is not { } entries)
+        var settings = AppSettings.Default;
+        foreach (var entry in root.GetItems(LibraryFolders))
         {
-            return result;
-        }
-
-        foreach (var entry in entries.EnumerateArray())
-        {
-            if (entry.ValueKind == JsonValueKind.Object
-                && StoreId.TryParse(entry.GetTextOrNull(Store), out var store)
-                && entry.GetFullPathOrNull(FolderPath) is { } path
-                && new LibraryFolder(store, path) is var folder
-                && !result.Any(existing => AppSettings.IsSameFolder(existing, folder)))
+            if (StoreId.TryParse(entry.GetTextOrNull(Store), out var store) && entry.GetFullPathOrNull(FolderPath) is { } path)
             {
-                result = result.Add(folder);
+                settings = settings.WithLibraryFolder(new LibraryFolder(store, path));
             }
         }
 
-        return result;
+        return settings.LibraryFolders;
     }
 }

@@ -28,7 +28,7 @@ internal static class LauncherJson
         CancellationToken cancellationToken)
     {
         var content = await fileSystem.ReadAllBytesAsync(path, MaxFileLength, cancellationToken).ConfigureAwait(false);
-        return JsonSerializer.Deserialize(Utf8Json.WithoutByteOrderMark(content.AsSpan()), typeInfo);
+        return JsonSerializer.Deserialize(Utf8Json.WithoutByteOrderMark(content).Span, typeInfo);
     }
 
     /// <summary>Reads a launcher's JSON file as <see cref="ReadAsync"/> does; null when there is no such file.</summary>

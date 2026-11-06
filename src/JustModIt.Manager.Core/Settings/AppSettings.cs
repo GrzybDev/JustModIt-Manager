@@ -128,7 +128,7 @@ public sealed record AppSettings
     /// <param name="paths">Newest first.</param>
     public static ValueList<string> RecentProjects(IEnumerable<string> paths) =>
     [
-        .. paths.Where(path => path.Length > 0 && Path.IsPathFullyQualified(path))
+        .. paths.Where(Path.IsPathFullyQualified)
             .Distinct(PathComparison.Comparer)
             .Take(MaxRecentCreatorProjects),
     ];

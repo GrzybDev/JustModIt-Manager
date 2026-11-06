@@ -41,7 +41,7 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
             writer.WriteString("action", key.Action.ToString());
             writer.WriteString("at", attempt.At);
             writer.WriteNumber("failures", attempt.Failures);
-            writer.WriteEnumIfSet("reason", attempt.Reason);
+            writer.WriteIfSet("reason", attempt.Reason?.ToString());
             writer.WriteIfSet("build", attempt.Build);
             writer.WriteEndObject();
         }

@@ -1,4 +1,3 @@
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
@@ -36,12 +35,6 @@ public sealed partial class ReplacementMarkers
     private const long MaxFileLength = 16L << 20;
     private const string Extension = ".json";
 
-    private static readonly JsonWriterOptions WriterOptions = new()
-    {
-        Indented = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
-
     private readonly string _directory;
     private readonly TimeProvider _time;
     private readonly ILogger<ReplacementMarkers> _logger;
@@ -62,13 +55,13 @@ public sealed partial class ReplacementMarkers
     /// <param name="cancellationToken">Stops the write, which leaves no marker.</param>
     public Task SaveAsync(ReplacementMarker marker, CancellationToken cancellationToken)
     {
-        return AtomicFile.WriteJsonAsync(PathOf(marker.Previous.Id), WriterOptions, writer =>
+        return AtomicFile.WriteJsonAsync(PathOf(marker.Previous.Id), AtomicFile.ReadableJson, writer =>
         {
             writer.WriteStartObject();
             writer.WriteNumber("formatVersion", FormatVersion);
             writer.WriteString("kind", marker.Kind.ToString());
             writer.WriteString("origin", marker.Origin.ToString());
-            writer.WriteIfSet("replacementProject", marker.ReplacementProject);
+            writer.WriteIfSet("replacementProject", marker.ReplacementProject?.ToString());
             writer.WritePropertyName("previous");
             JsonSerializer.Serialize(writer, marker.Previous, InstallationJsonContext.Default.InstallRecord);
             writer.WriteEndObject();
