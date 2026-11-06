@@ -89,26 +89,17 @@ public sealed partial class ShellIntegration(
         settings.Changed += OnSettingsChanged;
         try
         {
-            await _applying.WaitAsync(cancellationToken).ConfigureAwait(false);
-            try
+            await ApplyAsync(() =>
             {
-                Apply(() =>
+                if (autostart.GetState() == AutostartState.DisabledBySystem && settings.Current.StartWithSystem)
                 {
-                    if (autostart.GetState() == AutostartState.DisabledBySystem && settings.Current.StartWithSystem)
-                    {
-                        LogDisabledBySystem();
-                        settings.Update(current => current with { StartWithSystem = false });
-                    }
+                    LogDisabledBySystem();
+                    settings.Update(current => current with { StartWithSystem = false });
+                }
 
-                    ShellRegistration.Register(links, autostart, options.Identity.Slug, options.ProductName, options.ExecutablePath,
-                        settings.Current.StartWithSystem);
-                });
-            }
-            finally
-            {
-                _applying.Release();
-            }
-
+                ShellRegistration.Register(links, autostart, options.Identity.Slug, options.ProductName, options.ExecutablePath,
+                    settings.Current.StartWithSystem);
+            }, cancellationToken).ConfigureAwait(false);
             await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -123,25 +114,13 @@ public sealed partial class ShellIntegration(
     {
         if (e.Previous.StartWithSystem != e.Current.StartWithSystem)
         {
-            _ = ApplyAutostartAsync();
+            _ = ApplyAsync(() => ShellRegistration.ApplyAutostart(autostart, options.ExecutablePath, settings.Current.StartWithSystem));
         }
     }
 
-    private async Task ApplyAutostartAsync()
+    private async Task ApplyAsync(Action change, CancellationToken cancellationToken = default)
     {
-        await _applying.WaitAsync().ConfigureAwait(false);
-        try
-        {
-            Apply(() => ShellRegistration.ApplyAutostart(autostart, options.ExecutablePath, settings.Current.StartWithSystem));
-        }
-        finally
-        {
-            _applying.Release();
-        }
-    }
-
-    private void Apply(Action change)
-    {
+        await _applying.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             change();
@@ -150,6 +129,10 @@ public sealed partial class ShellIntegration(
         catch (Exception exception) when (exception is UnauthorizedAccessException or SecurityException or IOException)
         {
             LogRegistrationFailed(exception);
+        }
+        finally
+        {
+            _applying.Release();
         }
     }
 

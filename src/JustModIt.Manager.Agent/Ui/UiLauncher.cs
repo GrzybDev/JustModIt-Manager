@@ -80,16 +80,7 @@ public sealed partial class UiLauncher : IDisposable
     public event EventHandler? Closed;
 
     /// <summary>The connection of the running window; null while none runs.</summary>
-    public PipeConnection? Window
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _window;
-            }
-        }
-    }
+    public PipeConnection? Window => Volatile.Read(ref _window);
 
     /// <summary>The window is in front, so notices belong in it rather than in the tray.</summary>
     public bool IsActive

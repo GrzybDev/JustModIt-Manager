@@ -140,11 +140,14 @@ public sealed class AgentCommands(
         coordinator.Current.Games.Select(game => game.FindInstall(install)).OfType<MyInstall>().FirstOrDefault()
         ?? throw Invalid("The install is not among the player's games.");
 
+    private ProjectOffer Offer(GameKey game, Guid project) =>
+        Find(game).Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == project)
+        ?? throw Invalid("The project is not on offer for the game.");
+
     private InstallJobRequest Install(InstallProject request)
     {
         var game = Detected(request.Game);
-        var offer = Find(request.Game).Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == request.ProjectId)
-            ?? throw Invalid("The project is not on offer for the game.");
+        var offer = Offer(request.Game, request.ProjectId);
         if (request.Choices is { Count: > 0 } choices)
         {
             settings.Update(current => current.WithGame(request.Game, preferences =>
@@ -156,8 +159,7 @@ public sealed class AgentCommands(
 
     private void ChooseFeatures(ChooseFeatures request)
     {
-        var offer = Find(request.Game).Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == request.ProjectId)
-            ?? throw Invalid("The project is not on offer for the game.");
+        var offer = Offer(request.Game, request.ProjectId);
         settings.Update(current => current.WithGame(request.Game, preferences =>
             Remember(preferences, offer.Selection, request.ProjectId, request.Choices, [])));
     }

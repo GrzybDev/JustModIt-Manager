@@ -17,39 +17,12 @@ public sealed class AgentStatus(AgentOptions options)
     /// <summary>Raised after every change, outside the lock; handlers must return quickly.</summary>
     public event EventHandler? Changed;
 
-    public ActivityView Activity
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _activity;
-            }
-        }
-    }
+    public ActivityView Activity => Volatile.Read(ref _activity);
 
-    public AppUpdateView Update
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _update;
-            }
-        }
-    }
+    public AppUpdateView Update => Volatile.Read(ref _update);
 
     /// <summary>How the previous run ended when it did not exit cleanly, until the window has told the player.</summary>
-    public UncleanExitView? UncleanExit
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _uncleanExit;
-            }
-        }
-    }
+    public UncleanExitView? UncleanExit => Volatile.Read(ref _uncleanExit);
 
     /// <summary>Forgets how the previous run ended, once the window has told the player.</summary>
     public void ForgetUncleanExit() => Change(ref _uncleanExit, _ => null);
