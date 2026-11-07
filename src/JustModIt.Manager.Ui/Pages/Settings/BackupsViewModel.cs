@@ -110,10 +110,7 @@ public sealed partial class BackupsViewModel : ObservableObject
 
     /// <summary>The folder the player picked; null before one was.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasCustomFolder))]
     public partial string? CustomFolder { get; private set; }
-
-    public bool HasCustomFolder => CustomFolder is not null;
 
     [ObservableProperty]
     public partial bool ShowsFolder { get; private set; }

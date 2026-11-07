@@ -11,8 +11,8 @@ namespace JustModIt.Manager.Ui.Controls;
 
 /// <summary>
 /// Opens a control's tooltip while the keyboard has brought focus to it, so a description that the pointer shows on hover
-/// reaches a player who uses the keyboard too: <c>ui:ToolTipAssist.ShowOnFocus="True"</c>. Such a tooltip keeps beside its
-/// control: placed to the right, it wraps within the element around marked <c>ui:ToolTipAssist.IsBoundary="True"</c>, and
+/// reaches a player who uses the keyboard too: <c>ui:ToolTipAssist.ShowOnFocus="True"</c>. Such a tooltip, placed to the
+/// right, keeps beside its control: it wraps within the border around marked <c>ui:ToolTipAssist.IsBoundary="True"</c>, and
 /// it follows the control when the page scrolls or lays out again.
 /// </summary>
 public static class ToolTipAssist
@@ -21,7 +21,7 @@ public static class ToolTipAssist
         AvaloniaProperty.RegisterAttached<Control, bool>("ShowOnFocus", typeof(ToolTipAssist));
 
     public static readonly AttachedProperty<bool> IsBoundaryProperty =
-        AvaloniaProperty.RegisterAttached<Control, bool>("IsBoundary", typeof(ToolTipAssist));
+        AvaloniaProperty.RegisterAttached<Border, bool>("IsBoundary", typeof(ToolTipAssist));
 
     // Where the control stood in its window when its tooltip was last placed, while the tooltip follows it.
     private static readonly AttachedProperty<Point?> PlacedAtProperty =
@@ -55,19 +55,19 @@ public static class ToolTipAssist
         control.SetValue(ShowOnFocusProperty, value);
     }
 
-    /// <summary>Reads whether the tooltips of the controls inside the element stay within it.</summary>
-    /// <param name="control">The element.</param>
-    public static bool GetIsBoundary(Control control)
+    /// <summary>Reads whether the tooltips of the controls inside the border stay within it.</summary>
+    /// <param name="border">The border.</param>
+    public static bool GetIsBoundary(Border border)
     {
-        return control.GetValue(IsBoundaryProperty);
+        return border.GetValue(IsBoundaryProperty);
     }
 
-    /// <summary>Sets whether the tooltips of the controls inside the element stay within it.</summary>
-    /// <param name="control">The element.</param>
+    /// <summary>Sets whether the tooltips of the controls inside the border stay within it.</summary>
+    /// <param name="border">The border.</param>
     /// <param name="value">True to keep them within its padding.</param>
-    public static void SetIsBoundary(Control control, bool value)
+    public static void SetIsBoundary(Border border, bool value)
     {
-        control.SetValue(IsBoundaryProperty, value);
+        border.SetValue(IsBoundaryProperty, value);
     }
 
     private static void OnShowOnFocusChanged(Control control, AvaloniaPropertyChangedEventArgs change)
@@ -99,20 +99,32 @@ public static class ToolTipAssist
 
     private static void OnLostFocus(object? sender, RoutedEventArgs e)
     {
-        if (sender is Control control)
-        {
-            control.ClearValue(IsFocusedByKeyboardProperty);
-            ToolTip.SetIsOpen(control, false);
-            StopFollowing(control);
-        }
+        var control = (Control)sender!;
+        control.ClearValue(IsFocusedByKeyboardProperty);
+        ToolTip.SetIsOpen(control, false);
+        StopFollowing(control);
     }
 
+    // A tooltip without room to its right would flip over the control's neighbours, so it wraps to the room there is.
     private static void OnOpening(object? sender, CancelRoutedEventArgs e)
     {
-        if (sender is Control control)
+        var control = (Control)sender!;
+        if (ToolTip.GetTip(control) is not ToolTip tip)
         {
-            FitBeside(control);
+            return;
         }
+
+        tip.ClearValue(Layoutable.MaxWidthProperty);
+        if (control.GetVisualAncestors().OfType<Border>().FirstOrDefault(GetIsBoundary) is not { } boundary
+            || TopLevel.GetTopLevel(control) is not { } window
+            || boundary.TranslatePoint(new Point(boundary.Bounds.Width - boundary.Padding.Right, 0), window) is not { } end
+            || control.TranslatePoint(new Point(control.Bounds.Width, 0), window) is not { } start)
+        {
+            return;
+        }
+
+        var room = end.X - start.X - ToolTip.GetHorizontalOffset(control);
+        tip.MaxWidth = Math.Max(NarrowestWidth, Math.Min(tip.MaxWidth, room));
     }
 
     // Opening a tooltip closes it first, so its being open, not its events, tells when to follow the control; one the
@@ -194,32 +206,4 @@ public static class ToolTipAssist
         return control.TranslatePoint(default, scroller) is { } at && at.X >= 0 && at.Y >= 0
             && at.X + control.Bounds.Width <= scroller.Bounds.Width && at.Y + control.Bounds.Height <= scroller.Bounds.Height;
     }
-
-    // A tooltip without room to its right would flip over the control's neighbours, so it wraps to the room there is.
-    private static void FitBeside(Control control)
-    {
-        if (ToolTip.GetTip(control) is not ToolTip tip || ToolTip.GetPlacement(control) != PlacementMode.Right)
-        {
-            return;
-        }
-
-        tip.ClearValue(Layoutable.MaxWidthProperty);
-        if (control.GetVisualAncestors().OfType<Control>().FirstOrDefault(GetIsBoundary) is not { } boundary
-            || TopLevel.GetTopLevel(control) is not { } window
-            || boundary.TranslatePoint(new Point(boundary.Bounds.Width - PaddingOf(boundary), 0), window) is not { } end
-            || control.TranslatePoint(new Point(control.Bounds.Width, 0), window) is not { } start)
-        {
-            return;
-        }
-
-        var room = end.X - start.X - ToolTip.GetHorizontalOffset(control);
-        tip.MaxWidth = Math.Max(NarrowestWidth, Math.Min(tip.MaxWidth, room));
-    }
-
-    private static double PaddingOf(Control boundary) => boundary switch
-    {
-        Decorator decorator => decorator.Padding.Right,
-        TemplatedControl templated => templated.Padding.Right,
-        _ => 0,
-    };
 }

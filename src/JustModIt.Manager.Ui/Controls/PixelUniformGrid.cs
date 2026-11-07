@@ -6,7 +6,8 @@ namespace JustModIt.Manager.Ui.Controls;
 
 /// <summary>
 /// A uniform grid whose cells start and end on whole device pixels at any display scale, so their borders stay crisp and
-/// the last column ends exactly where the grid does.
+/// the last column ends exactly where the grid does. It lays the cells out in rows of <see cref="UniformGrid.Columns"/>, or
+/// all in one row while that is unset, and ignores <see cref="UniformGrid.FirstColumn"/>.
 /// </summary>
 public sealed class PixelUniformGrid : UniformGrid
 {
@@ -14,7 +15,9 @@ public sealed class PixelUniformGrid : UniformGrid
     // cell spills past the grid. Rounding each edge where it falls keeps every cell within a pixel of its share instead.
     protected override Size ArrangeOverride(Size finalSize)
     {
-        var (rows, columns, first) = Shape();
+        var cells = Children.Count(child => child.IsVisible);
+        var columns = Columns > 0 ? Columns : cells;
+        var rows = Rows > 0 ? Rows : (cells + columns - 1) / columns;
         if (rows == 0 || columns == 0)
         {
             return finalSize;
@@ -26,7 +29,7 @@ public sealed class PixelUniformGrid : UniformGrid
         var scale = LayoutHelper.GetLayoutScale(this);
         double Snap(double value) => UseLayoutRounding ? LayoutHelper.RoundLayoutValue(value, scale) : value;
 
-        var cell = first;
+        var cell = 0;
         foreach (var child in Children)
         {
             if (!child.IsVisible)
@@ -42,30 +45,5 @@ public sealed class PixelUniformGrid : UniformGrid
         }
 
         return finalSize;
-    }
-
-    // The rows and columns the stock grid measured with: a count left at zero follows from the visible cells.
-    private (int Rows, int Columns, int First) Shape()
-    {
-        var first = FirstColumn < Columns ? FirstColumn : 0;
-        var cells = first + Children.Count(child => child.IsVisible);
-        var (rows, columns) = (Rows, Columns);
-        if (rows == 0)
-        {
-            if (columns == 0)
-            {
-                rows = columns = (int)Math.Ceiling(Math.Sqrt(cells));
-            }
-            else
-            {
-                rows = (cells + columns - 1) / columns;
-            }
-        }
-        else if (columns == 0)
-        {
-            columns = (cells + rows - 1) / rows;
-        }
-
-        return (rows, columns, first);
     }
 }

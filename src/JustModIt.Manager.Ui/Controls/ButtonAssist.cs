@@ -27,13 +27,6 @@ public static class ButtonAssist
     static ButtonAssist() =>
         IconProperty.Changed.AddClassHandler<Button>((button, change) => button.SetValue(HasIconProperty, change.NewValue is not null));
 
-    /// <summary>Reads the icon of a button.</summary>
-    /// <param name="button">The button.</param>
-    public static Geometry? GetIcon(Button button)
-    {
-        return button.GetValue(IconProperty);
-    }
-
     /// <summary>Sets the icon of a button.</summary>
     /// <param name="button">The button.</param>
     /// <param name="value">A geometry of <see cref="Theme.Icons"/>.</param>
@@ -47,13 +40,6 @@ public static class ButtonAssist
     public static bool GetHasIcon(Button button)
     {
         return button.GetValue(HasIconProperty);
-    }
-
-    /// <summary>Reads whether the icon follows the text.</summary>
-    /// <param name="button">The button.</param>
-    public static bool GetIconAfter(Button button)
-    {
-        return button.GetValue(IconAfterProperty);
     }
 
     /// <summary>Sets whether the icon follows the text.</summary>

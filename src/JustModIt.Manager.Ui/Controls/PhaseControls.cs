@@ -99,11 +99,9 @@ public sealed class ProgressStripe : PhaseControl
     }
 }
 
-/// <summary>A round progress indicator: an arc for a known share, or a turning quarter while the share is unknown.</summary>
+/// <summary>A round progress indicator: a quarter turning on its track.</summary>
 public sealed class ProgressRing : PhaseControl
 {
-    public static readonly StyledProperty<double?> ValueProperty = AvaloniaProperty.Register<ProgressRing, double?>(nameof(Value));
-
     public static readonly StyledProperty<double> ThicknessProperty =
         AvaloniaProperty.Register<ProgressRing, double>(nameof(Thickness), 3);
 
@@ -111,16 +109,9 @@ public sealed class ProgressRing : PhaseControl
 
     static ProgressRing()
     {
-        AffectsRender<ProgressRing>(ValueProperty, ThicknessProperty, TrackProperty);
+        AffectsRender<ProgressRing>(ThicknessProperty, TrackProperty);
         WidthProperty.OverrideDefaultValue<ProgressRing>(20);
         HeightProperty.OverrideDefaultValue<ProgressRing>(20);
-    }
-
-    /// <summary>From 0 to 1; null while the share is unknown.</summary>
-    public double? Value
-    {
-        get => GetValue(ValueProperty);
-        set => SetValue(ValueProperty, value);
     }
 
     public double Thickness
@@ -145,38 +136,18 @@ public sealed class ProgressRing : PhaseControl
         }
 
         var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
-        if (Track is { } track)
-        {
-            context.DrawEllipse(null, new Pen(track, Thickness), center, radius, radius);
-        }
+        Point At(double degrees) => new(center.X + (radius * Math.Cos(degrees * Math.PI / 180)), center.Y + (radius * Math.Sin(degrees * Math.PI / 180)));
 
-        var (start, sweep) = Value is { } value ? (-90.0, Math.Clamp(value, 0, 1) * 360) : ((Phase * 360) - 90, 90.0);
-        if (sweep <= 0 || Foreground is not { } brush)
-        {
-            return;
-        }
-
-        var pen = new Pen(brush, Thickness, lineCap: PenLineCap.Round);
-        if (sweep >= 360)
-        {
-            context.DrawEllipse(null, pen, center, radius, radius);
-            return;
-        }
-
-        context.DrawGeometry(null, pen, Arc(center, radius, start, sweep));
-    }
-
-    private static StreamGeometry Arc(Point center, double radius, double startDegrees, double sweepDegrees)
-    {
-        static Point At(Point center, double radius, double degrees) =>
-            new(center.X + (radius * Math.Cos(degrees * Math.PI / 180)), center.Y + (radius * Math.Sin(degrees * Math.PI / 180)));
-
+        context.DrawEllipse(null, new Pen(Track, Thickness), center, radius, radius);
+        var start = (Phase * 360) - 90;
         var geometry = new StreamGeometry();
-        using var arc = geometry.Open();
-        arc.BeginFigure(At(center, radius, startDegrees), isFilled: false);
-        arc.ArcTo(At(center, radius, startDegrees + sweepDegrees), new Size(radius, radius), 0, sweepDegrees > 180,
-            SweepDirection.Clockwise);
-        arc.EndFigure(isClosed: false);
-        return geometry;
+        using (var arc = geometry.Open())
+        {
+            arc.BeginFigure(At(start), isFilled: false);
+            arc.ArcTo(At(start + 90), new Size(radius, radius), 0, false, SweepDirection.Clockwise);
+            arc.EndFigure(isClosed: false);
+        }
+
+        context.DrawGeometry(null, new Pen(Foreground, Thickness, lineCap: PenLineCap.Round), geometry);
     }
 }

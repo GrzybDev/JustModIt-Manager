@@ -79,6 +79,9 @@ public sealed class StoreIcon : Icon
 
     static StoreIcon() => AffectsRender<StoreIcon>(StoreProperty);
 
+    /// <summary>Creates the icon, which shows Lucide's store icon until its store has a mark.</summary>
+    public StoreIcon() => Data = Icons.Store;
+
     /// <summary>A store id such as <c>steam</c>, or a library source such as <c>heroic</c>.</summary>
     public string? Store
     {
@@ -88,18 +91,13 @@ public sealed class StoreIcon : Icon
 
     public override void Render(DrawingContext context)
     {
-        if (Foreground is not { } brush)
-        {
-            return;
-        }
-
         if (StoreIcons.MarkOf(Store) is { } mark)
         {
-            Draw(context, mark, brush, null);
+            Draw(context, mark, Foreground, null);
         }
         else
         {
-            Draw(context, Icons.Store, null, new Pen(brush, StrokeThickness, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+            base.Render(context);
         }
     }
 }

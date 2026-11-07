@@ -42,7 +42,7 @@ public sealed class CardGrid
     public void Show(IReadOnlyList<object> items)
     {
         _items = [.. items];
-        LayOut(force: false);
+        LayOut();
     }
 
     /// <summary>Lays the cards out in a new number of columns.</summary>
@@ -50,14 +50,14 @@ public sealed class CardGrid
     /// <returns>Whether the count changed.</returns>
     public bool SetColumns(int columns)
     {
-        columns = Math.Max(1, columns);
         if (columns == Columns)
         {
             return false;
         }
 
         Columns = columns;
-        LayOut(force: true);
+        Rows.Clear();
+        LayOut();
         return true;
     }
 
@@ -201,14 +201,9 @@ public sealed class CardGrid
         }
     }
 
-    private void LayOut(bool force)
+    private void LayOut()
     {
         var chunks = _items.Chunk(Columns).ToList();
-        if (force || Rows.Count > 0 && Rows[0].Columns != Columns)
-        {
-            Rows.Clear();
-        }
-
         for (var index = 0; index < chunks.Count; index++)
         {
             if (index == Rows.Count)

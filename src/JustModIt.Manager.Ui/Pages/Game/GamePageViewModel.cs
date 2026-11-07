@@ -226,7 +226,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     public partial bool ShowsOfficial { get; private set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasStep))]
     public partial NextStep? Step { get; private set; }
 
     [ObservableProperty]
@@ -313,8 +312,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     public bool HasSummary => Summary.Length > 0;
 
     public bool HasBuild => Build.Length > 0;
-
-    public bool HasStep => Step is not null;
 
     public bool HasSavedFeatures => SavedFeatures.Length > 0;
 

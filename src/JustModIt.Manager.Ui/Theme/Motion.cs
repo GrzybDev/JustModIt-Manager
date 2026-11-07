@@ -67,26 +67,12 @@ public static class Motion
     /// <summary>The system asks for reduced motion: transitions turn into short fades and loops stop.</summary>
     public static bool IsReduced { get; private set; }
 
-    /// <summary>Reads whether a control's children enter one after another.</summary>
-    /// <param name="control">A panel or an items control.</param>
-    public static bool GetStagger(Control control)
-    {
-        return control.GetValue(StaggerProperty);
-    }
-
     /// <summary>Sets whether a control's children enter one after another.</summary>
     /// <param name="control">A panel or an items control.</param>
     /// <param name="value">True to stagger.</param>
     public static void SetStagger(Control control, bool value)
     {
         control.SetValue(StaggerProperty, value);
-    }
-
-    /// <summary>Reads whether a control enters with a fade and a rise.</summary>
-    /// <param name="control">The control.</param>
-    public static bool GetEnter(Control control)
-    {
-        return control.GetValue(EnterProperty);
     }
 
     /// <summary>Sets whether a control enters with a fade and a rise.</summary>
@@ -110,13 +96,6 @@ public static class Motion
     public static void SetLoops(Control control, bool value)
     {
         control.SetValue(LoopsProperty, value);
-    }
-
-    /// <summary>Reads whether a part of the window that fades in and out is shown.</summary>
-    /// <param name="control">The part.</param>
-    public static bool GetShown(Control control)
-    {
-        return control.GetValue(ShownProperty);
     }
 
     /// <summary>Shows a part of the window that fades in and out at once, or lets it go once it has faded out.</summary>
@@ -161,32 +140,21 @@ public static class Motion
 
     /// <summary>Fades a control in from nothing, as an image that has arrived.</summary>
     /// <param name="control">The control that appears.</param>
-    public static void FadeIn(Control control)
-    {
-        var animation = new Animation
-        {
-            Duration = TimeSpan.FromMilliseconds(IsReduced ? 120 : 260),
-            Easing = new CubicEaseOut(),
-            Children =
-            {
-                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(Visual.OpacityProperty, 0d) } },
-                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(Visual.OpacityProperty, 1d) } },
-            },
-        };
-        _ = animation.RunAsync(control);
-    }
+    public static void FadeIn(Control control) => Fade(control, 0, 260);
 
     /// <summary>Fades a control in anew, as when what it shows has changed.</summary>
     /// <param name="control">The control whose content changed.</param>
-    public static void Refresh(Control control)
+    public static void Refresh(Control control) => Fade(control, 0.15, 220);
+
+    private static void Fade(Control control, double from, int milliseconds)
     {
         var animation = new Animation
         {
-            Duration = TimeSpan.FromMilliseconds(IsReduced ? 120 : 220),
+            Duration = TimeSpan.FromMilliseconds(IsReduced ? 120 : milliseconds),
             Easing = new CubicEaseOut(),
             Children =
             {
-                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(Visual.OpacityProperty, 0.15) } },
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(Visual.OpacityProperty, from) } },
                 new KeyFrame { Cue = new Cue(1), Setters = { new Setter(Visual.OpacityProperty, 1d) } },
             },
         };
@@ -236,19 +204,11 @@ public static class Motion
 
     private static void OnEnterChanged(Control control, AvaloniaPropertyChangedEventArgs change)
     {
-        if (change.NewValue is true)
-        {
-            control.AttachedToVisualTree += (_, _) => Enter(control, TimeSpan.Zero);
-        }
+        control.AttachedToVisualTree += (_, _) => Enter(control, TimeSpan.Zero);
     }
 
     private static void OnStaggerChanged(Control control, AvaloniaPropertyChangedEventArgs change)
     {
-        if (change.NewValue is not true)
-        {
-            return;
-        }
-
         if (control is ItemsControl items)
         {
             items.ContainerPrepared += OnContainerPrepared;
@@ -267,11 +227,7 @@ public static class Motion
 
     private static void OnContainerPrepared(object? sender, ContainerPreparedEventArgs e)
     {
-        if (sender is not ItemsControl items)
-        {
-            return;
-        }
-
+        var items = (ItemsControl)sender!;
         var now = DateTime.UtcNow;
         var burst = items.GetValue(BurstProperty);
         if (burst is null || now - burst.Last > BurstPause)
