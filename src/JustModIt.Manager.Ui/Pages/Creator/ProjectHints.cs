@@ -1,6 +1,4 @@
-using System.Text;
 using System.Text.Json;
-using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Ui.Pages.Game;
 using JustModIt.Manager.Ui.Pages.Library;
@@ -18,12 +16,7 @@ internal sealed record ProjectHints(string Project, string Release, string NextV
     /// <param name="page">The page's JSON, from the agent.</param>
     public static ProjectHints? Read(JsonElement page)
     {
-        ProjectPage project;
-        try
-        {
-            project = ProjectPageDocument.Parse(Encoding.UTF8.GetBytes(page.GetRawText())).Page;
-        }
-        catch (JsonException)
+        if (ProjectDetails.Parse(page) is not { } project)
         {
             return null;
         }

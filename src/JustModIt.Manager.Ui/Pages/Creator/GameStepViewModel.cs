@@ -95,7 +95,7 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
     public partial string Query { get; set; } = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsGames), nameof(ShowsNoResults))]
+    [NotifyPropertyChangedFor(nameof(ShowsNoResults))]
     public partial bool IsLoaded { get; private set; }
 
     [ObservableProperty]
@@ -104,8 +104,6 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowsNoResults))]
     public partial bool HasResults { get; private set; }
-
-    public bool ShowsGames => IsLoaded;
 
     public bool ShowsNoResults => IsLoaded && !HasResults;
 
@@ -124,8 +122,6 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
         }
     }
 
-    public Task<bool> CanLeaveAsync() => Task.FromResult(true);
-
     public void Dispose() => _page.Agent.PropertyChanged -= OnAgentChanged;
 
     /// <summary>Reads the detected games from the agent once; the reading under way serves every caller.</summary>
@@ -135,7 +131,7 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
     private async Task ReadAsync()
     {
         _scannedAt = _page.Agent.State.Library.ScannedAt;
-        var (_, answer) = await _page.AskAsync(new GetDetectedGames()).ConfigureAwait(true);
+        var (_, answer) = await AgentRequests.AskAsync(_page.Services, new GetDetectedGames()).ConfigureAwait(true);
         if (answer is DetectedGames detected)
         {
             var chosen = Selected?.Entry.Key;
@@ -203,7 +199,7 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
     private async Task CheckNowAsync()
     {
         IsChecking = true;
-        await _page.AskAsync(new CheckNow()).ConfigureAwait(true);
+        await AgentRequests.AskAsync(_page.Services, new CheckNow()).ConfigureAwait(true);
     }
 
     [RelayCommand]

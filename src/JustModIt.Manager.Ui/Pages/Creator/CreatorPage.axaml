@@ -81,7 +81,7 @@
                   Title="{Binding ProblemTitle}" Message="{Binding ProblemText}" IsVisible="{Binding HasProblem}"
                   theme:Motion.Enter="True">
         <Button Classes="quiet small" Content="{x:Static loc:Strings.Creator_DismissProblem}" HorizontalAlignment="Left"
-                Margin="-12,0,0,0" Command="{Binding DismissProblemCommand}" />
+                Margin="-12,0,0,0" Command="{Binding ClearProblemCommand}" />
       </ui:Callout>
 
       <!-- The start: without a project, the one red button starts one. -->

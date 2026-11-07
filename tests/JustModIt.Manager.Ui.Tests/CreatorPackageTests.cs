@@ -46,7 +46,7 @@ public sealed class CreatorPackageTests : IDisposable
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
 
-        package.IsZip.Should().BeTrue();
+        package.IsManifest.Should().BeFalse();
         package.FormatTitle.Should().Be(Strings.Creator_ZipTitle);
         package.FormatText.Should().StartWith(Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.CopiesOnly))));
         package.FormatRows.Single(row => row.IsChosen).Extension.Should().Be(".zip");
@@ -117,7 +117,7 @@ public sealed class CreatorPackageTests : IDisposable
         Page(ui).Step.Should().Be(CreatorStep.Package);
         package.IsBuilding.Should().BeTrue();
 
-        ui.Click(Button(ui, CreatorPage.StopText));
+        ui.Click(Button(ui, Strings.Dialog_Cancel));
         files.Reads.Set();
         await BuildEndedAsync(package);
         package.ProblemTitle.Should().Be(Strings.Creator_BuildCancelledTitle);

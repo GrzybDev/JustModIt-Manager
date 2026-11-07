@@ -49,10 +49,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsSimple))]
     public partial bool IsAdvanced { get; private set; }
-
-    public bool IsSimple => !IsAdvanced;
 
     [ObservableProperty]
     public partial string Lead { get; private set; } = "";
@@ -205,8 +202,6 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
         Show();
         _ = _page.ReadKeptPathsAsync();
     }
-
-    public Task<bool> CanLeaveAsync() => Task.FromResult(true);
 
     public void Dispose() => _session.PropertyChanged -= OnSessionChanged;
 
@@ -510,14 +505,10 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
     }
 
     [RelayCommand]
-    private async Task CompareAgainAsync()
+    private Task CompareAgainAsync()
     {
         _runtimeFoldsWhenSolved = true;
-        _page.GoTo(CreatorStep.Files);
-        if (_page.Content is FilesStepViewModel files)
-        {
-            await files.CompareAsync().ConfigureAwait(true);
-        }
+        return _page.CompareAgainAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanConfirm))]

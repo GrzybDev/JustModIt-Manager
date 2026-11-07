@@ -237,12 +237,8 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         RefreshSteps();
     }
 
-    /// <summary>Sends a request to the agent; a refusal or a lost connection shows a toast.</summary>
-    /// <param name="request">The request.</param>
-    /// <returns>The answer, and whether the agent took the request.</returns>
-    internal Task<(bool Sent, Message? Answer)> AskAsync(Message request) => AgentRequests.AskAsync(Services, request);
-
     /// <summary>Takes back a problem shown, once the author acts again.</summary>
+    [RelayCommand]
     internal void ClearProblem() => ProblemTitle = ProblemText = "";
 
     /// <summary>Says why opening or saving a project failed.</summary>
@@ -342,9 +338,6 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
 
         GoTo(step.Step);
     }
-
-    [RelayCommand]
-    private void DismissProblem() => ClearProblem();
 
     private async Task OpenAsync(string path)
     {
@@ -504,6 +497,14 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         }
     }
 
+    /// <summary>Opens the files step and compares the folders again.</summary>
+    /// <returns>Completes once the comparison ended, was cancelled or refused.</returns>
+    internal Task CompareAgainAsync()
+    {
+        GoTo(CreatorStep.Files);
+        return Content is FilesStepViewModel files ? files.CompareAsync() : Task.CompletedTask;
+    }
+
     /// <summary>Whether the author's files only repeat the game's, so a simple project has nothing to package.</summary>
     /// <param name="session">The project with its comparison.</param>
     internal static bool HasNothingToPackage(CreatorSession session) =>
@@ -594,5 +595,5 @@ public interface ICreatorStepView : IDisposable
     void OnShown();
 
     /// <summary>Whether the project may be closed now; a step with work under way asks first.</summary>
-    Task<bool> CanLeaveAsync();
+    Task<bool> CanLeaveAsync() => Task.FromResult(true);
 }

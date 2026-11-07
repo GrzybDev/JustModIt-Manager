@@ -17,6 +17,4 @@ public sealed partial class PackageStepView : UserControl
     public static string FormatOverline => Strings.Creator_FormatChosen.ToUpper(Text.Culture);
 
     public static string NextOverline => Strings.Creator_Next.ToUpper(Text.Culture);
-
-    public static string VersionPrefix => Strings.Creator_VersionPrefix;
 }

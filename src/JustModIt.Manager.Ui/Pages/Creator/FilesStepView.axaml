@@ -26,7 +26,7 @@
           </Grid>
         </StackPanel>
         <Button Grid.Column="2" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_ChangeGame}"
-                ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}" Command="{Binding ChangeGameCommand}" />
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}" Command="{Binding BackCommand}" />
       </Grid>
     </Border>
 
@@ -165,7 +165,7 @@
                          Foreground="{StaticResource TextStrongBrush}" />
               <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_ComparingText}" />
             </StackPanel>
-            <Button x:Name="CancelButton" Grid.Column="2" Classes="outline headerAction" Content="{x:Static creator:CreatorPage.StopText}"
+            <Button x:Name="CancelButton" Grid.Column="2" Classes="outline headerAction" Content="{x:Static loc:Strings.Dialog_Cancel}"
                     Command="{Binding CancelCommand}" />
           </Grid>
           <StackPanel Spacing="10">
@@ -187,7 +187,7 @@
       <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
                   Title="{Binding ProblemTitle}" Message="{Binding ProblemText}" IsVisible="{Binding IsStopped}" theme:Motion.Enter="True">
         <Button Classes="primary compact" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_CompareAgain}"
-                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CompareAgainCommand}" />
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CompareCommand}" />
       </ui:Callout>
 
       <StackPanel Spacing="8" IsVisible="{Binding HasNothingToPackage}">
@@ -195,7 +195,7 @@
                     Title="{Binding NothingTitle}" Message="{Binding NothingText}" theme:Motion.Enter="True">
           <Button x:Name="CompareAgainButton" Classes="primary compact" HorizontalAlignment="Left"
                   Content="{x:Static loc:Strings.Creator_CompareAgain}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
-                  Command="{Binding CompareAgainCommand}" />
+                  Command="{Binding CompareCommand}" />
         </ui:Callout>
         <Button Classes="quiet" HorizontalAlignment="Left" Margin="-12,0,0,0" Content="{Binding IdenticalCount}"
                 ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}" Classes.expanded="{Binding ShowsIdentical}"
@@ -212,7 +212,7 @@
       <ui:Callout Classes="success" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleCheck}"
                   Title="{Binding Summary}" IsVisible="{Binding IsCompared}">
         <Button Classes="quiet small" HorizontalAlignment="Left" Margin="-12,0,0,0" Content="{x:Static loc:Strings.Creator_CompareAgain}"
-                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CompareAgainCommand}" />
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CompareCommand}" />
       </ui:Callout>
     </StackPanel>
 

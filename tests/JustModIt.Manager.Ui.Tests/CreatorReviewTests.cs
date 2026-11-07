@@ -324,7 +324,7 @@ public sealed class CreatorReviewTests : IDisposable
 
         ui.Click(Button(ui, Strings.Creator_ToSimpleButton));
         await Answer(ui, Strings.Creator_ToSimpleConfirm);
-        await UiHarness.WaitUntilAsync(() => review.IsSimple && review.CanConfirm);
+        await UiHarness.WaitUntilAsync(() => !review.IsAdvanced && review.CanConfirm);
         Page(ui).Session!.Project.Steps.Should().BeEmpty();
         Page(ui).Steps[(int)CreatorStep.Review].Title.Should().Be(Strings.Creator_StepReview);
     }

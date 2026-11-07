@@ -31,9 +31,6 @@ public sealed partial class CreatorPage : UserControl
 
     public static string DetectsTitle => Strings.Creator_Detects.ToUpper(Text.Culture);
 
-    /// <summary>The label of the buttons that stop the work under way, as the dialogs' own.</summary>
-    public static string StopText => Strings.Dialog_Cancel;
-
     private void Arrange(bool narrow)
     {
         Grid.SetColumn(HowItWorksBox, narrow ? 0 : 1);

@@ -102,10 +102,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     public bool IsBuilt => State == PackageState.Built;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsZip))]
     public partial bool IsManifest { get; private set; }
-
-    public bool IsZip => !IsManifest;
 
     [ObservableProperty]
     public partial string FormatTitle { get; private set; } = "";
@@ -404,14 +401,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private void Accept(string key) => _session.Describe(project => project.Acknowledge(key));
 
     [RelayCommand]
-    private async Task CompareAgainAsync()
-    {
-        _page.GoTo(CreatorStep.Files);
-        if (_page.Content is FilesStepViewModel files)
-        {
-            await files.CompareAsync().ConfigureAwait(true);
-        }
-    }
+    private Task CompareAgainAsync() => _page.CompareAgainAsync();
 
     [RelayCommand]
     private void Reveal()
@@ -451,7 +441,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
         (_testNote, _undoJob) = ("", null);
         _ended.Clear();
-        var (sent, answer) = await _page.AskAsync(new TestInstallPackage(game.Key, packages)).ConfigureAwait(true);
+        var (sent, answer) = await AgentRequests.AskAsync(_page.Services, new TestInstallPackage(game.Key, packages)).ConfigureAwait(true);
         if (sent && answer is JobStarted started)
         {
             _testJob = started.JobId;
@@ -469,7 +459,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
         (_testNote, _testJob) = ("", null);
         _ended.Clear();
-        var (sent, answer) = await _page.AskAsync(new UninstallProject(install.Id)).ConfigureAwait(true);
+        var (sent, answer) = await AgentRequests.AskAsync(_page.Services, new UninstallProject(install.Id)).ConfigureAwait(true);
         if (sent && answer is JobStarted started)
         {
             _undoJob = started.JobId;
@@ -482,7 +472,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     {
         if (_page.Game is { } game)
         {
-            await _page.AskAsync(new LaunchGame(game.Key)).ConfigureAwait(true);
+            await AgentRequests.AskAsync(_page.Services, new LaunchGame(game.Key)).ConfigureAwait(true);
         }
     }
 
@@ -535,9 +525,10 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             NeedsComparison = failed.Failure is BuildFailure.FilesChanged or BuildFailure.OtherGame;
             _buildFindings = [.. failed.Findings.Where(finding => finding.BlocksBuild)
                 .Select(finding => (finding, finding.OperationIndex is { } index ? plan.Operations[index] : null))];
+            // The next build asks for a place again rather than going back to one the build refused or could not write to.
             if (failed.Failure is BuildFailure.WrongExtension or BuildFailure.OutputInGameFolder or BuildFailure.OutputInAuthorFolder)
             {
-                ForgetTarget();
+                _target = null;
             }
 
             Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_BuildFailed, ("failure", failed.Failure.ToString()),
@@ -550,7 +541,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            ForgetTarget();
+            _target = null;
             Fail(Strings.Creator_BuildFailedTitle, Strings.Creator_BuildWriteFailed);
         }
         // Anything else, such as a patch the encoder could not make, ends the build like the failures above rather than the
@@ -573,7 +564,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     private async Task<InstalledGame?> CurrentGameAsync(DetectedGameEntry game)
     {
-        var (_, answer) = await _page.AskAsync(new GetDetectedGames()).ConfigureAwait(true);
+        var (_, answer) = await AgentRequests.AskAsync(_page.Services, new GetDetectedGames()).ConfigureAwait(true);
         var current = (answer as DetectedGames)?.Games.FirstOrDefault(entry => entry.Key == game.Key) ?? game;
         var view = current.Game;
         return new InstalledGame
@@ -620,9 +611,6 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         (ProblemTitle, ProblemText) = (title, text);
         State = PackageState.Ready;
     }
-
-    // The next build asks for a place again rather than going back to one the build refused or could not write to.
-    private void ForgetTarget() => _target = null;
 
     // The author's folder is laid out like the game's, so a file of either reads by its path in the game, without the folders
     // above it, which may name the user's profile.

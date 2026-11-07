@@ -139,8 +139,6 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         }
     }
 
-    public Task<bool> CanLeaveAsync() => Task.FromResult(true);
-
     public void Dispose()
     {
         _session.PropertyChanged -= OnSessionChanged;
@@ -175,6 +173,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
 
     /// <summary>Compares the project's folder with its game, then opens the check of the operations.</summary>
     /// <returns>Completes once the comparison ended, was cancelled or refused.</returns>
+    [RelayCommand]
     public async Task CompareAsync()
     {
         if (_page.Game is not { } game || _session.Project.AuthorFolder is not { Length: > 0 } folder)
@@ -252,9 +251,6 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     private void Cancel() => _comparing?.Cancel();
 
     [RelayCommand]
-    private Task CompareAgainAsync() => CompareAsync();
-
-    [RelayCommand]
     private void ChangeFolder()
     {
         _comparing?.Cancel();
@@ -262,9 +258,6 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         (ProblemTitle, ProblemText, DroppedFiles) = ("", "", false);
         State = FilesState.Empty;
     }
-
-    [RelayCommand]
-    private void ChangeGame() => _page.GoTo(CreatorStep.Game);
 
     [RelayCommand]
     private void Back() => _page.GoTo(CreatorStep.Game);
