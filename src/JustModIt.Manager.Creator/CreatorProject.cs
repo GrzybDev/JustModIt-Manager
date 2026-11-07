@@ -188,9 +188,7 @@ public sealed record CreatorProject
     /// <summary>A copy of the project that no longer declares a file as one its software writes.</summary>
     /// <param name="path">The file's game path.</param>
     public CreatorProject WithoutRuntimeFile(string path) =>
-        RuntimeFiles.Any(file => PackagePath.Comparer.Equals(file.Path, path))
-            ? this with { RuntimeFiles = RuntimeFiles.RemoveAll(file => PackagePath.Comparer.Equals(file.Path, path)) }
-            : this;
+        this with { RuntimeFiles = RuntimeFiles.RemoveAll(file => PackagePath.Comparer.Equals(file.Path, path)) };
 
     /// <summary>A copy of the project that records a warning as acknowledged.</summary>
     /// <param name="key">The warning's <see cref="PlanFinding.AcknowledgementKey"/>.</param>
@@ -225,9 +223,8 @@ public sealed record CreatorProject
 
     /// <summary>A copy of the project in which an added library is the author's own code without a licence.</summary>
     /// <param name="path">The library's game path.</param>
-    public CreatorProject WithoutLibraryNotice(string path) => LibraryNoticeOf(path) is null
-        ? this
-        : this with { LibraryNotices = LibraryNotices.RemoveAll(notice => PackagePath.Comparer.Equals(notice.Path, path)) };
+    public CreatorProject WithoutLibraryNotice(string path) =>
+        this with { LibraryNotices = LibraryNotices.RemoveAll(notice => PackagePath.Comparer.Equals(notice.Path, path)) };
 
     /// <summary>Turns a simple project into the steps its plan runs, so the package stays the same.</summary>
     /// <param name="plan">The project's plan as it is now.</param>

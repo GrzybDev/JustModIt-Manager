@@ -67,43 +67,6 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
         return new FolderComparison(gameDirectory, authorDirectory, compared, game);
     }
 
-    /// <summary>
-    /// Whether the author's files, or the game files they were compared with, changed since the comparison, so it has
-    /// to run again before its plan can be built.
-    /// </summary>
-    /// <param name="comparison">A comparison this comparer made.</param>
-    /// <param name="cancellationToken">Cancels the check.</param>
-    public Task<bool> HasChangedAsync(FolderComparison comparison, CancellationToken cancellationToken)
-    {
-        return Task.Run(() =>
-        {
-            var stamps = comparison.Files.Where(file => file.AuthorPath is not null)
-                .ToDictionary(file => file.AuthorPath!, file => file.Author!.Value, PackagePath.Comparer);
-            try
-            {
-                var listed = 0;
-                foreach (var entry in AuthorFilesIn(comparison.AuthorDirectory, cancellationToken))
-                {
-                    if (!stamps.TryGetValue(PackagePath.FromFullPath(comparison.AuthorDirectory, entry.FullPath), out var stamp)
-                        || !stamp.Matches(entry))
-                    {
-                        return true;
-                    }
-
-                    listed++;
-                }
-
-                return listed != stamps.Count
-                    || comparison.Files.Select(file => file.Game).OfType<GameFile>()
-                        .Any(game => !game.Stamp.Matches(_fileSystem.GetEntry(game.FullPath)));
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                return true;
-            }
-        }, cancellationToken);
-    }
-
     private (string Game, string Author) OpenFolders(ComparisonRequest request)
     {
         var blocks = new List<CreatorBlock>();

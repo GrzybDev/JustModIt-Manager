@@ -95,9 +95,6 @@ public sealed class FolderComparerTests : IDisposable
 
         comparison.Files.Select(file => file.Path).Should().Equal("data/real.bin");
         comparison.Game.FileCount.Should().Be(1);
-        File.WriteAllText(Path.Combine(outside, "data.bin"), "changed outside");
-        File.WriteAllText(Path.Combine(outside, "new.txt"), "changed outside");
-        (await new FolderComparer(Workspace.Options).HasChangedAsync(comparison, TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -197,30 +194,6 @@ public sealed class FolderComparerTests : IDisposable
             file.ExpectedFolder == "movies" && file.RenameFrom == null && file.CopyOf == "movies/intro.bik");
         comparison.FindAuthorFile("config.ini")!.ExpectedFolder.Should().BeNull();
         comparison.FindAuthorFile("extra/strings.txt")!.ExpectedFolder.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task Tells_when_the_files_changed_since_the_comparison()
-    {
-        _workspace.Game("data/strings.bin", "original");
-        _workspace.Author("data/strings.bin", "customized");
-        _workspace.Author("data/new.txt", "new");
-        var comparer = new FolderComparer(Workspace.Options);
-        var token = TestContext.Current.CancellationToken;
-        var comparison = await _workspace.CompareAsync();
-
-        (await comparer.HasChangedAsync(comparison, token)).Should().BeFalse();
-        _workspace.Author("data/other.txt", "added");
-        (await comparer.HasChangedAsync(comparison, token)).Should().BeTrue();
-        File.Delete(_workspace.AuthorFile("data/other.txt"));
-        File.Delete(_workspace.AuthorFile("data/new.txt"));
-        (await comparer.HasChangedAsync(comparison, token)).Should().BeTrue();
-        _workspace.Author("data/new.txt", "new, edited");
-        (await comparer.HasChangedAsync(comparison, token)).Should().BeTrue();
-
-        comparison = await _workspace.CompareAsync();
-        _workspace.Game("data/strings.bin", "updated by the store");
-        (await comparer.HasChangedAsync(comparison, token)).Should().BeTrue();
     }
 
     [Fact]
