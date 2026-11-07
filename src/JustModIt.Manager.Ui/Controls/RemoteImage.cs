@@ -118,13 +118,6 @@ public sealed class RemoteImage : Control
     /// <summary>The frames playing; null while the image shows still.</summary>
     internal FramePlayer? Player => _player;
 
-    /// <summary>Gets the service images in a part of the window load through.</summary>
-    /// <param name="control">The control where it was set, or one inside it.</param>
-    public static IImageLoader? GetLoader(Control control)
-    {
-        return control.GetValue(LoaderProperty);
-    }
-
     /// <summary>Sets the service images in a part of the window load through.</summary>
     /// <param name="control">The window, or the part of it whose images load through the service.</param>
     /// <param name="value">The service.</param>
@@ -480,15 +473,8 @@ public sealed class RemoteImage : Control
         }
     }
 
-    private async Task<RemotePicture?> LoadOneAsync(IImageLoader loader, string address, PixelSize size, CancellationToken cancellationToken)
-    {
-        if (!IsBlurred)
-        {
-            return await loader.LoadAsync(address, size, cancellationToken);
-        }
-
-        return await loader.LoadBlurredAsync(address, size, cancellationToken) is { } blur ? new RemotePicture(blur, blur.PixelSize) : null;
-    }
+    private Task<RemotePicture?> LoadOneAsync(IImageLoader loader, string address, PixelSize size, CancellationToken cancellationToken) =>
+        IsBlurred ? loader.LoadBlurredAsync(address, size, cancellationToken) : loader.LoadAsync(address, size, cancellationToken);
 
     private void Show(RemotePicture? picture, bool failed)
     {

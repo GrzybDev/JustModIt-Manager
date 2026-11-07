@@ -199,10 +199,10 @@ public sealed class FakeImages : IImageLoader
         return Task.FromResult<IFrameSource?>(frames);
     }
 
-    public Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken)
+    public Task<RemotePicture?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken)
     {
         Blurred.Add(address);
-        return Task.FromResult<Bitmap?>(ImageBaking.Blur(TestImages.Cover(address, 8, 12), size));
+        return Task.FromResult<RemotePicture?>(new RemotePicture(ImageBaking.Blur(TestImages.Cover(address, 8, 12), size), size));
     }
 
     public Task<Bitmap?> LoadBackdropAsync(BackdropRecipe recipe, PixelSize size, double scale, CancellationToken cancellationToken)

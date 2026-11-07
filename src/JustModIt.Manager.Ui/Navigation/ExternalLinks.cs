@@ -112,20 +112,14 @@ public static class PageLinks
 
     /// <summary>The game's page in its store's client; null for a store the window has no link for.</summary>
     /// <param name="game">The game.</param>
-    public static Uri? StorePage(Core.Games.GameKey game) =>
-        game.Store == Core.Games.StoreId.Steam && int.TryParse(game.StoreGameId, out var id)
-            ? new Uri(FormattableString.Invariant($"{SteamScheme}://nav/games/details/{id}"))
-            : null;
+    public static Uri? StorePage(Core.Games.GameKey game) => SteamLink(game, "nav/games/details");
 
     /// <summary>
     /// Steam's check of a game's files, which its client starts at once and which brings back every file Steam ships; null for
     /// a game of another store, which offers no such link.
     /// </summary>
     /// <param name="game">The game.</param>
-    public static Uri? ValidateFiles(Core.Games.GameKey game) =>
-        game.Store == Core.Games.StoreId.Steam && int.TryParse(game.StoreGameId, out var id)
-            ? new Uri(FormattableString.Invariant($"{SteamScheme}://validate/{id}"))
-            : null;
+    public static Uri? ValidateFiles(Core.Games.GameKey game) => SteamLink(game, "validate");
 
     /// <summary>
     /// The client that detection found for a store, opened on its library: the store's own where it is there, otherwise
@@ -176,4 +170,10 @@ public static class PageLinks
     /// <param name="section">The anchor of a part of the help, e.g. the projects' statuses; null for the top.</param>
     public static Uri? Help(Uri? site, string? section = null) =>
         site is null ? null : new Uri(site, section is null ? "help" : "help#" + section);
+
+    // A link from any website can name a game, so only a real app id goes into the client's link.
+    private static Uri? SteamLink(Core.Games.GameKey game, string action) =>
+        game.Store == Core.Games.StoreId.Steam && int.TryParse(game.StoreGameId, out var id)
+            ? new Uri(FormattableString.Invariant($"{SteamScheme}://{action}/{id}"))
+            : null;
 }

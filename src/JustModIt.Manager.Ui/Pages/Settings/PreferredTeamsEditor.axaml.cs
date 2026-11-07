@@ -81,12 +81,12 @@ internal sealed partial class PreferredTeamsEditor : UserControl
         }
 
         e.Pointer.Capture(null);
-        EndDrag(save: true);
+        EndDrag();
     }
 
-    private void OnCaptureLost(object? sender, PointerCaptureLostEventArgs e) => EndDrag(save: true);
+    private void OnCaptureLost(object? sender, PointerCaptureLostEventArgs e) => EndDrag();
 
-    private void EndDrag(bool save)
+    private void EndDrag()
     {
         if (_dragged is null)
         {
@@ -96,7 +96,7 @@ internal sealed partial class PreferredTeamsEditor : UserControl
         _draggedRow?.Classes.Remove("dragged");
         _dragged = null;
         _draggedRow = null;
-        if (save && ViewModel is { } teams)
+        if (ViewModel is { } teams)
         {
             _ = teams.SaveAsync();
         }

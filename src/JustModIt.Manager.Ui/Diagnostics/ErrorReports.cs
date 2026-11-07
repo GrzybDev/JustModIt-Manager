@@ -150,8 +150,7 @@ public sealed class ErrorReport
         [
             .. stackTrace.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Where(line => !line.StartsWith("---", StringComparison.Ordinal))
-                .Select(line => line.StartsWith("at ", StringComparison.Ordinal) ? line[3..] : line)
-                .Where(line => line.Length > 0),
+                .Select(line => line.StartsWith("at ", StringComparison.Ordinal) ? line[3..] : line),
         ];
 
     private byte[] Event(string id)

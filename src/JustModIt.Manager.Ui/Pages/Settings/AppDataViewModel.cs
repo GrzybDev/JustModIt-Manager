@@ -111,7 +111,7 @@ public sealed partial class AppDataViewModel : ObservableObject
             message += " " + Text.Format(Strings.Settings_UninstallAllSkipped, ("count", _unreachable));
         }
 
-        if (await _services.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(Strings.Settings_UninstallAllTitle, message,
+        if (await _services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.Settings_UninstallAllTitle, message,
                 Strings.Settings_UninstallAllButton, Icons.Trash, DialogTone.Danger) { ConfirmIcon = Icons.Trash }).ConfigureAwait(true))
         {
             await AgentRequests.SendAsync(_services, new UninstallEverything()).ConfigureAwait(true);

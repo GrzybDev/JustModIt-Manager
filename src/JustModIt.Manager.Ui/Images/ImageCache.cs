@@ -32,7 +32,7 @@ public interface IImageLoader
     /// <param name="size">The box it fills, in physical pixels.</param>
     /// <param name="cancellationToken">Stops waiting once the image is no longer needed.</param>
     /// <returns>The blur; null when the image is not allowed, cannot be downloaded or is not an image.</returns>
-    Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken);
+    Task<RemotePicture?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken);
 
     /// <summary>Bakes a page's backdrop from its images, once per recipe and size, since the window never blends live.</summary>
     /// <param name="recipe">The backdrop's images and colour.</param>
@@ -139,15 +139,30 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
                 && address.AbsolutePath.StartsWith(source.Path, StringComparison.Ordinal));
     }
 
-    public async Task<RemotePicture?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken)
+    public Task<RemotePicture?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken)
     {
-        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || !IsAllowed(uri) || size.Width <= 0 || size.Height <= 0)
+        var box = new PixelSize(RoundUp(size.Width), RoundUp(size.Height));
+        return LoadDecodedAsync(address, size, FormattableString.Invariant($"{box.Width}x{box.Height}"), (uri, file) => Decode(uri, file, box),
+            cancellationToken);
+    }
+
+    public Task<RemotePicture?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken) =>
+        LoadDecodedAsync(address, size, FormattableString.Invariant($"blur {size.Width}x{size.Height}"), (uri, file) =>
+        {
+            // Decoding to a few pixels throws away the detail, so the blur needs no large kernel.
+            using var tiny = Decode(uri, file, new PixelSize(BlurSource, BlurSource))?.Bitmap;
+            return tiny is null ? null : new RemotePicture(ImageBaking.Blur(tiny, size), size);
+        }, cancellationToken);
+
+    private async Task<RemotePicture?> LoadDecodedAsync(string address, PixelSize size, string keyPrefix, Func<Uri, string, RemotePicture?> decode,
+        CancellationToken cancellationToken)
+    {
+        if (size.Width <= 0 || size.Height <= 0 || AllowedUri(address) is not { } uri)
         {
             return null;
         }
 
-        var decodeSize = new PixelSize(RoundUp(size.Width), RoundUp(size.Height));
-        var key = FormattableString.Invariant($"{decodeSize.Width}x{decodeSize.Height} {uri.AbsoluteUri}");
+        var key = $"{keyPrefix} {uri.AbsoluteUri}";
         if (Recall(key) is { } kept)
         {
             return kept;
@@ -159,46 +174,13 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
             return null;
         }
 
-        var picture = await Task.Run(() => Decode(uri, file, decodeSize), cancellationToken).ConfigureAwait(false);
+        var picture = await Task.Run(() => decode(uri, file), cancellationToken).ConfigureAwait(false);
         if (picture is not null)
         {
             Remember(key, picture);
         }
 
         return picture;
-    }
-
-    public async Task<Bitmap?> LoadBlurredAsync(string address, PixelSize size, CancellationToken cancellationToken)
-    {
-        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || !IsAllowed(uri) || size.Width <= 0 || size.Height <= 0)
-        {
-            return null;
-        }
-
-        var key = FormattableString.Invariant($"blur {size.Width}x{size.Height} {uri.AbsoluteUri}");
-        if (Recall(key) is { } kept)
-        {
-            return kept.Bitmap;
-        }
-
-        var file = await FileAsync(uri).WaitAsync(cancellationToken).ConfigureAwait(false);
-        if (file is null)
-        {
-            return null;
-        }
-
-        var blurred = await Task.Run(() =>
-        {
-            // Decoding to a few pixels throws away the detail, so the blur needs no large kernel.
-            using var tiny = Decode(uri, file, new PixelSize(BlurSource, BlurSource))?.Bitmap;
-            return tiny is null ? null : ImageBaking.Blur(tiny, size);
-        }, cancellationToken).ConfigureAwait(false);
-        if (blurred is not null)
-        {
-            Remember(key, new RemotePicture(blurred, blurred.PixelSize));
-        }
-
-        return blurred;
     }
 
     public async Task<Bitmap?> LoadBackdropAsync(BackdropRecipe recipe, PixelSize size, double scale, CancellationToken cancellationToken)
@@ -252,7 +234,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
 
     public async Task<IFrameSource?> OpenFramesAsync(string address, PixelSize size, CancellationToken cancellationToken)
     {
-        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || !IsAllowed(uri) || size.Width <= 0 || size.Height <= 0)
+        if (size.Width <= 0 || size.Height <= 0 || AllowedUri(address) is not { } uri)
         {
             return null;
         }
@@ -311,13 +293,15 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     // An empty address or one the window may not load reads as no image, so a backdrop goes without that layer.
     private async Task<(Uri Address, string Path)?> FileAsync(string address)
     {
-        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || !IsAllowed(uri))
+        if (AllowedUri(address) is not { } uri)
         {
             return null;
         }
 
         return await FileAsync(uri).ConfigureAwait(false) is { } file ? (uri, file) : null;
     }
+
+    private Uri? AllowedUri(string address) => Uri.TryCreate(address, UriKind.Absolute, out var uri) && IsAllowed(uri) ? uri : null;
 
     public void Dispose()
     {
