@@ -33,7 +33,7 @@ public sealed record LineContent(Geometry Icon, Tone Tone, string Label, string?
 internal static class GameLines
 {
     /// <summary>The line of a job: queued, waiting and for what, or its stage and how far it is.</summary>
-    public static LineContent Job(JobView job, StoreId store) => job.Stage switch
+    public static LineContent Job(JobView job) => job.Stage switch
     {
         JobStage.Queued => new LineContent(Icons.Clock, Tone.Accent, Strings.Library_JobQueued),
         JobStage.Waiting => job.WaitReason switch
@@ -41,7 +41,7 @@ internal static class GameLines
             JobWaitReason.GameRunning => new LineContent(Icons.Hourglass, Tone.Accent, Strings.Library_JobWaitingForGame,
                 Text.Format(Strings.Library_JobThen, ("kind", job.Kind.ToString()))),
             JobWaitReason.StoreBusy or JobWaitReason.QuietPeriod => new LineContent(Icons.Hourglass, Tone.Accent,
-                Text.Format(Strings.Library_JobWaitingForStore, ("store", GameWording.StoreName(store))),
+                Text.Format(Strings.Library_JobWaitingForStore, ("store", GameWording.StoreName(job.Game.Store))),
                 Text.Format(Strings.Library_JobThen, ("kind", job.Kind.ToString()))),
             JobWaitReason.Recovery => new LineContent(Icons.Hourglass, Tone.Accent, Strings.Library_JobWaitingForRecovery),
             _ => new LineContent(Icons.Clock, Tone.Accent, Strings.Library_JobQueued),
@@ -60,7 +60,7 @@ internal static class GameLines
     {
         if (game.Job is { } job)
         {
-            return Job(job, game.Key.Store);
+            return Job(job);
         }
 
         if (game.IsHidden)

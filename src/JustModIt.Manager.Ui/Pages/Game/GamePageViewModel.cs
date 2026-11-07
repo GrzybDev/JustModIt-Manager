@@ -229,10 +229,10 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     public partial NextStep? Step { get; private set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ChangesToggle))]
     public partial bool AreChangesOpen { get; set; }
 
-    [ObservableProperty]
-    public partial string ChangesToggle { get; private set; } = "";
+    public string ChangesToggle => AreChangesOpen ? Strings.GamePage_ChangesHide : Strings.GamePage_ChangesShow;
 
     [ObservableProperty]
     public partial string ChangesTitle { get; private set; } = "";
@@ -349,9 +349,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                 installed ? new SetGameAutomation(_key, AutoUpdate: value) : new SetGameAutomation(_key, AutoInstall: value));
         }
     }
-
-    partial void OnAreChangesOpenChanged(bool value) =>
-        ChangesToggle = value ? Strings.GamePage_ChangesHide : Strings.GamePage_ChangesShow;
 
     partial void OnIsCompactChanged(bool value) => Compose();
 
@@ -510,7 +507,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
     private async Task ConfirmUninstallAsync(Guid install)
     {
-        if (await _services.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(Strings.GamePage_UninstallTitle,
+        if (await _services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.GamePage_UninstallTitle,
                 Text.Format(Strings.GamePage_UninstallMessage, ("game", Name)), Strings.GamePage_Uninstall, Icons.Trash, DialogTone.Danger)
             {
                 ConfirmIcon = Icons.Trash,
@@ -700,7 +697,6 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         }
 
         Step = step is null ? null : step with { IsCompact = IsCompact };
-        ChangesToggle = AreChangesOpen ? Strings.GamePage_ChangesHide : Strings.GamePage_ChangesShow;
         ChangesTitle = Text.Format(Strings.GamePage_ChangesTitle, ("version", GameWording.Version(project?.Release)));
         OnPropertyChanged(nameof(ShowsChangesSection));
         if (_job is { } job && step?.Kind == StepKind.Job)
@@ -1358,28 +1354,22 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     }
 
     // A change of an install's add-ons removes it before installing anew, as an update does.
-    private static (string Name, JobStage[] Stages)[] Stages(JobView job) => job.Kind switch
+    private static (string Name, JobStage[] Stages)[] Stages(JobView job) => job switch
     {
-        JobKind.Install when job.InstallId is null =>
+        { Kind: JobKind.TestInstall } or { Kind: JobKind.Install, InstallId: null } =>
         [
             ("Download", [JobStage.Preparing, JobStage.Downloading]),
             ("Check", [JobStage.Checking]),
             ("Install", [JobStage.Installing, JobStage.Verifying, JobStage.RollingBack]),
         ],
-        JobKind.TestInstall =>
-        [
-            ("Download", [JobStage.Preparing, JobStage.Downloading]),
-            ("Check", [JobStage.Checking]),
-            ("Install", [JobStage.Installing, JobStage.Verifying, JobStage.RollingBack]),
-        ],
-        JobKind.Update or JobKind.Repair or JobKind.Install =>
+        { Kind: JobKind.Update or JobKind.Repair or JobKind.Install } =>
         [
             ("Download", [JobStage.Preparing, JobStage.Downloading]),
             ("Check", [JobStage.Checking]),
             ("Remove", [JobStage.Uninstalling]),
             ("Install", [JobStage.Installing, JobStage.Verifying, JobStage.RollingBack, JobStage.RestoringPrevious]),
         ],
-        JobKind.Uninstall =>
+        { Kind: JobKind.Uninstall } =>
         [
             ("Check", [JobStage.Checking]),
             ("Restore", [JobStage.Uninstalling, JobStage.Installing, JobStage.Verifying, JobStage.RollingBack]),

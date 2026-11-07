@@ -10,7 +10,7 @@ internal static class CatalogueScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
-        var gone = new GoneProjects();
+        var gone = new HashSet<Guid>();
         ui.Pages.Register<CatalogueRoute>((_, services) => new CataloguePageViewModel(services));
         ui.Pages.Register<CatalogueGameRoute>((route, services) => new CatalogueGamePageViewModel(services, route.GameSlug, null, gone));
         ui.Pages.Register<CatalogueProjectRoute>((route, services) =>

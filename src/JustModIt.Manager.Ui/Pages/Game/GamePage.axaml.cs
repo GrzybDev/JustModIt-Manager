@@ -1,10 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data.Converters;
-using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.VisualTree;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Ui.Controls;
 
 namespace JustModIt.Manager.Ui.Pages.Game;
 
@@ -22,8 +20,8 @@ public sealed partial class GamePage : UserControl
     public GamePage()
     {
         InitializeComponent();
-        AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
-        AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        LightDismiss.Connect(this, StatusPopover, StatusChip, () => DataContext is GamePageViewModel { IsStatusOpen: true },
+            () => ((GamePageViewModel)DataContext!).IsStatusOpen = false);
         SizeChanged += (_, e) =>
         {
             if (DataContext is GamePageViewModel page)
@@ -41,25 +39,6 @@ public sealed partial class GamePage : UserControl
         if (DataContext is GamePageViewModel page && Bounds.Height > 0)
         {
             page.IsCompact = Bounds.Height < CompactHeight;
-        }
-    }
-
-    // A click anywhere outside the status's explanation closes it, as a popup would close.
-    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (DataContext is GamePageViewModel { IsStatusOpen: true } page && e.Source is Visual source
-            && !StatusPopover.IsVisualAncestorOf(source) && !StatusChip.IsVisualAncestorOf(source) && source != StatusChip)
-        {
-            page.IsStatusOpen = false;
-        }
-    }
-
-    private void OnKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Escape && DataContext is GamePageViewModel { IsStatusOpen: true } page)
-        {
-            page.IsStatusOpen = false;
-            e.Handled = true;
         }
     }
 }

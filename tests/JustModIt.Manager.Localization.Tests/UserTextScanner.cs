@@ -70,7 +70,9 @@ internal static partial class UserTextScanner
         var document = XDocument.Parse(source, LoadOptions.SetLineInfo);
         var attributes = document.Descendants().Attributes()
             .Where(attribute => !attribute.IsNamespaceDeclaration)
-            .Where(attribute => IsShownText(attribute) || HasInterfaceWord(attribute.Value))
+            // A resource's key may name what its text says, such as Library_Retry.
+            .Where(attribute => IsShownText(attribute)
+                || (!attribute.Value.StartsWith("{x:Static loc:", StringComparison.Ordinal) && HasInterfaceWord(attribute.Value)))
             .Select(attribute => Finding(attribute, attribute.Value));
         var texts = document.DescendantNodes().OfType<XText>()
             .Where(text => HasInterfaceWord(text.Value))

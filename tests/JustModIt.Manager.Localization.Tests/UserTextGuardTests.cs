@@ -87,7 +87,7 @@ public sealed class UserTextGuardTests
                          xmlns:loc="using:JustModIt.Manager.Localization">
               <!-- Główny panel -->
               <StackPanel Classes="page" Margin="0,4">
-                <TextBlock Text="{x:Static loc:Strings.GameCount}" />
+                <TextBlock Text="{x:Static loc:Strings.Library_Retry}" />
                 <Button Content="Anuluj" />
                 <TextBlock>Brak gier</TextBlock>
                 <TextBlock Text="Install" />

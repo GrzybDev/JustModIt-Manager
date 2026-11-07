@@ -194,7 +194,7 @@
             <Run Text="{Binding BannerTitle}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
             <Run Text="{Binding BannerText}" />
           </TextBlock>
-          <Button Grid.Column="2" Classes="quiet" Content="{x:Static cat:CataloguePage.RetryText}" FontWeight="SemiBold"
+          <Button Grid.Column="2" Classes="quiet" Content="{x:Static loc:Strings.Library_Retry}" FontWeight="SemiBold"
                   ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding RefreshCatalogueCommand}" />
         </Grid>
       </Border>
@@ -202,7 +202,7 @@
       <ui:EmptyState x:Name="Unavailable" Icon="{x:Static theme:Icons.WifiOff}" Title="{x:Static loc:Strings.Catalogue_UnavailableTitle}"
                      Message="{x:Static loc:Strings.Catalogue_UnavailableText}" IsVisible="{Binding IsUnavailable}" Padding="24,72,24,64"
                      theme:Motion.Enter="True">
-        <Button Classes="outline" Content="{x:Static cat:CataloguePage.RetryText}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
+        <Button Classes="outline" Content="{x:Static loc:Strings.Library_Retry}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
                 Command="{Binding RefreshCatalogueCommand}" />
       </ui:EmptyState>
 
@@ -270,7 +270,7 @@
                   </DataTemplate>
                   <DataTemplate x:DataType="cat:StatusesHelp">
                     <Button Classes="icon" CornerRadius="999" ToolTip.Tip="{x:Static loc:Strings.GamePage_StatusesLink}"
-                            AutomationProperties.Name="{x:Static cat:CataloguePage.StatusesHelpName}"
+                            AutomationProperties.Name="{x:Static loc:Strings.Catalogue_StatusesHelp}"
                             Command="{Binding $parent[UserControl].((cat:CataloguePageViewModel)DataContext).OpenStatusesCommand}">
                       <ui:Icon Data="{x:Static theme:Icons.CircleHelp}" Foreground="{StaticResource TextSecondaryBrush}" />
                     </Button>

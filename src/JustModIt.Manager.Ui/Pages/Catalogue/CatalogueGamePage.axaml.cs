@@ -1,11 +1,7 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data.Converters;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
-using Avalonia.VisualTree;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Controls;
 
@@ -29,8 +25,7 @@ public sealed partial class CatalogueGamePage : UserControl
     public CatalogueGamePage()
     {
         InitializeComponent();
-        AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
-        AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        LightDismiss.Connect(this, StatusPopover, StatusChip, () => Page is { IsStatusOpen: true }, () => Page!.IsStatusOpen = false);
         PageContent.SizeChanged += (_, e) => Fit(e.NewSize.Width);
     }
 
@@ -49,25 +44,6 @@ public sealed partial class CatalogueGamePage : UserControl
         if (Page is { } page && width > 0)
         {
             page.IsCompact = width < CompactWidth;
-        }
-    }
-
-    // A click anywhere outside the status's explanation closes it, as a popup would close.
-    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (Page is { IsStatusOpen: true } page && e.Source is Visual source
-            && !StatusPopover.IsVisualAncestorOf(source) && !StatusChip.IsVisualAncestorOf(source) && source != StatusChip)
-        {
-            page.IsStatusOpen = false;
-        }
-    }
-
-    private void OnKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Escape && Page is { IsStatusOpen: true } page)
-        {
-            page.IsStatusOpen = false;
-            e.Handled = true;
         }
     }
 }

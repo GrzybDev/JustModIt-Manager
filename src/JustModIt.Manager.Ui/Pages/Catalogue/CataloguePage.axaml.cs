@@ -41,10 +41,6 @@ public sealed partial class CataloguePage : UserControl
 
     public static string OpenInLibrary => Text.Format(Strings.Catalogue_OpenInLibrary, ("library", Strings.Shell_Library));
 
-    public static string StatusesHelpName => Strings.Catalogue_StatusesHelp;
-
-    public static string RetryText => Strings.Library_Retry;
-
     private CataloguePageViewModel? Page => DataContext as CataloguePageViewModel;
 
     protected override void OnDataContextChanged(EventArgs e)

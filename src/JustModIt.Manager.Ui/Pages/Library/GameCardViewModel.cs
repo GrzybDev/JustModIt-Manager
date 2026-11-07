@@ -157,8 +157,7 @@ public sealed partial class GameCardViewModel(GameKey key) : GameCardBaseViewMod
     /// Moves the card's job on, touching only what the job changes; a report of another job, or an older one, changes nothing.
     /// </summary>
     /// <param name="job">A newer snapshot of the job the card shows.</param>
-    /// <param name="store">The game's store, which a wait may name.</param>
-    public void Apply(JobView job, StoreId store)
+    public void Apply(JobView job)
     {
         if (_job is not { } known || known.Id != job.Id || known.Sequence >= job.Sequence)
         {
@@ -166,7 +165,7 @@ public sealed partial class GameCardViewModel(GameKey key) : GameCardBaseViewMod
         }
 
         _job = job;
-        Show(GameLines.Job(job, store));
+        Show(GameLines.Job(job));
     }
 
     private void Show(LineContent line)

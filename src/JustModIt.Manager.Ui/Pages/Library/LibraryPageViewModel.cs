@@ -301,7 +301,7 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
         {
             if (_cards.TryGetValue(job.Game, out var card))
             {
-                card.Apply(job, job.Game.Store);
+                card.Apply(job);
             }
         }
     }

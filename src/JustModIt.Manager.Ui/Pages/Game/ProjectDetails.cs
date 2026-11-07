@@ -130,12 +130,7 @@ public sealed record ProjectDetails
     /// <param name="page">The page's JSON, from the agent.</param>
     public static ProjectDetails? Read(JsonElement page)
     {
-        ProjectPage project;
-        try
-        {
-            project = ProjectPageDocument.Parse(Encoding.UTF8.GetBytes(page.GetRawText())).Page;
-        }
-        catch (JsonException)
+        if (Parse(page) is not { } project)
         {
             return null;
         }
@@ -194,4 +189,19 @@ public sealed record ProjectDetails
     /// <param name="credit">A credit of a project page.</param>
     internal static string CreditName(Credit credit) =>
         credit.Name.Length > 0 ? credit.Name : credit.DisplayName.Length > 0 ? credit.DisplayName : credit.User?.Display ?? "";
+
+    /// <summary>Reads a project page as the site sent it.</summary>
+    /// <param name="page">The page's JSON, from the agent.</param>
+    /// <returns>Null when it is not a project page.</returns>
+    internal static ProjectPage? Parse(JsonElement page)
+    {
+        try
+        {
+            return ProjectPageDocument.Parse(Encoding.UTF8.GetBytes(page.GetRawText())).Page;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 }

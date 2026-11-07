@@ -72,7 +72,7 @@ public sealed partial class FilterOption(CatalogueFilter filter, Guid id, string
 /// <summary>A row of pills of one filter, such as the types, under its name.</summary>
 /// <param name="filter">The filter.</param>
 /// <param name="title">Its name.</param>
-public sealed partial class FilterGroup(CatalogueFilter filter, string title) : ObservableObject
+public sealed class FilterGroup(CatalogueFilter filter, string title)
 {
     public CatalogueFilter Filter { get; } = filter;
 

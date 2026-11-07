@@ -1019,7 +1019,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     private void ShowJob(JobView job)
     {
-        var line = GameLines.Job(job, job.Game.Store);
+        var line = GameLines.Job(job);
         TestProgress = line.Label;
         TestFraction = job.Fraction;
     }

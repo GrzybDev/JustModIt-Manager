@@ -47,7 +47,7 @@ public sealed record StoreFact(string Name, string Store, Uri? Address, bool Sep
 public sealed partial class CatalogueGamePageViewModel : PageViewModel, IProjectComparison, IDisposable
 {
     private readonly UiServices _services;
-    private readonly GoneProjects _gone;
+    private readonly HashSet<Guid> _gone;
     private readonly string _gameSlug;
     private readonly (string Team, string Project)? _wanted;
     private readonly Dictionary<Guid, ProjectDetails> _compared = [];
@@ -65,8 +65,11 @@ public sealed partial class CatalogueGamePageViewModel : PageViewModel, IProject
     /// <param name="services">The window's services.</param>
     /// <param name="gameSlug">The game's slug in the site's addresses.</param>
     /// <param name="project">The project's team and project slugs; null shows the game's projects side by side.</param>
-    /// <param name="gone">The projects whose page the site no longer has.</param>
-    public CatalogueGamePageViewModel(UiServices services, string gameSlug, (string Team, string Project)? project, GoneProjects gone)
+    /// <param name="gone">
+    /// The projects whose page the site no longer has, though the saved catalogue lists them until its next refresh; left out
+    /// for the window's life, so a game page and a gone project's page never lead to each other in turn.
+    /// </param>
+    public CatalogueGamePageViewModel(UiServices services, string gameSlug, (string Team, string Project)? project, HashSet<Guid> gone)
     {
         _services = services;
         _gameSlug = gameSlug;
@@ -95,7 +98,6 @@ public sealed partial class CatalogueGamePageViewModel : PageViewModel, IProject
     public partial bool IsAdult { get; private set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanReveal))]
     public partial bool IsCoverBlurred { get; private set; }
 
     [ObservableProperty]
@@ -263,8 +265,6 @@ public sealed partial class CatalogueGamePageViewModel : PageViewModel, IProject
     public bool IsComparison => Mode == CatalogueGameMode.Comparison;
 
     public bool IsLoading => Mode == CatalogueGameMode.Loading;
-
-    public bool CanReveal => IsCoverBlurred;
 
     public bool HasStatus => Status.Length > 0;
 

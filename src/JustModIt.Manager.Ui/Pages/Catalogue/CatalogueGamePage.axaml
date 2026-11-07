@@ -152,7 +152,7 @@
                   <TextBlock Text="{x:Static loc:Strings.Library_Adult}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}"
                              VerticalAlignment="Center" />
                 </Border>
-                <Button x:Name="RevealButton" Classes="quiet small" Content="{x:Static loc:Strings.Catalogue_ShowPictures}" IsVisible="{Binding CanReveal}"
+                <Button x:Name="RevealButton" Classes="quiet small" Content="{x:Static loc:Strings.Catalogue_ShowPictures}" IsVisible="{Binding IsCoverBlurred}"
                         ui:ButtonAssist.Icon="{x:Static theme:Icons.Eye}" Command="{Binding RevealCommand}" />
               </StackPanel>
               <TextBlock Classes="displayL" Classes.compact="{Binding IsCompact}" Text="{Binding Name}" TextWrapping="Wrap" Margin="0,14,0,0" />
@@ -207,7 +207,7 @@
                 </Grid.ColumnDefinitions>
                 <ui:Callout x:Name="Offline" Classes="warning" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.WifiOff}" theme:Motion.Enter="True"
                             Title="{x:Static loc:Strings.Catalogue_PageOfflineTitle}" Message="{x:Static loc:Strings.Catalogue_PageOfflineText}">
-                  <Button Classes="outline" Content="{x:Static cat:CataloguePage.RetryText}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
+                  <Button Classes="outline" Content="{x:Static loc:Strings.Library_Retry}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
                           Command="{Binding RetryCommand}" HorizontalAlignment="Left" />
                 </ui:Callout>
               </Grid>
@@ -302,8 +302,6 @@
       </Panel>
     </ScrollViewer>
 
-    <StackPanel Spacing="12" VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding IsLoading}">
-      <ui:ProgressRing Width="28" Height="28" />
-    </StackPanel>
+    <ui:ProgressRing Width="28" Height="28" VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding IsLoading}" />
   </Panel>
 </UserControl>
