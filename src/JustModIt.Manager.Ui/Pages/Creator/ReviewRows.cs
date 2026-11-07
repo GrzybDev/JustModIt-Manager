@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Globalization;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -496,56 +495,6 @@ internal static class ReviewRows
         }
 
         return rows;
-    }
-
-    /// <summary>Removes, moves and adds as few rows as it can, so a row that stays keeps its controls and their focus.</summary>
-    /// <param name="rows">The rows shown.</param>
-    /// <param name="wanted">The rows to show, in order, each instance once.</param>
-    /// <typeparam name="TRow">The rows' type.</typeparam>
-    public static void Show<TRow>(ObservableCollection<TRow> rows, IReadOnlyList<TRow> wanted)
-        where TRow : class
-    {
-        var keep = new HashSet<TRow>(wanted, ReferenceEqualityComparer.Instance);
-        for (var i = rows.Count - 1; i >= 0; i--)
-        {
-            if (!keep.Contains(rows[i]))
-            {
-                rows.RemoveAt(i);
-            }
-        }
-
-        var shown = new HashSet<TRow>(rows, ReferenceEqualityComparer.Instance);
-        for (var i = 0; i < wanted.Count; i++)
-        {
-            var row = wanted[i];
-            if (i < rows.Count && ReferenceEquals(rows[i], row))
-            {
-                continue;
-            }
-
-            if (shown.Contains(row))
-            {
-                rows.Move(IndexOf(rows, row, i + 1), i);
-            }
-            else
-            {
-                rows.Insert(i, row);
-            }
-        }
-    }
-
-    private static int IndexOf<TRow>(ObservableCollection<TRow> rows, TRow row, int start)
-        where TRow : class
-    {
-        for (var i = start; i < rows.Count; i++)
-        {
-            if (ReferenceEquals(rows[i], row))
-            {
-                return i;
-            }
-        }
-
-        throw new ArgumentException("The row is not shown.", nameof(row));
     }
 }
 

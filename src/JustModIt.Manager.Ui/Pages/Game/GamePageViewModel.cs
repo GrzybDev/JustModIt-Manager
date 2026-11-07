@@ -769,7 +769,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             _features.Remove(gone.Key);
         }
 
-        Sync(Installs, rows);
+        CardGrid.Sync(Installs, rows);
     }
 
     private InstallRow Row(GameView game, InstallView install, bool several, bool isSubject)
@@ -1002,7 +1002,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                     ("version", version)),
             };
         }).ToList();
-        Sync(Choices, choices);
+        CardGrid.Sync(Choices, choices);
     }
 
     private void ShowSaved(InstallView? install)
@@ -1331,7 +1331,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         var steps = stages.Select((stage, index) => new JobStepView(index + 1,
             Text.Format(Strings.GamePage_Step, ("step", stage.Name)),
             index < current ? StepState.Done : index == current ? StepState.Current : StepState.Pending)).ToList();
-        Sync(Steps, steps);
+        CardGrid.Sync(Steps, steps);
 
         var stage = GameWording.Stage(job);
         var speed = Speed(job);
@@ -1509,17 +1509,4 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             ? Formats.RelativeTime(at, _services.Clock)
             : Text.Format(Strings.GamePage_When, ("age", Formats.CalendarAge(at, _services.Clock)), ("date", Formats.LongDate(at, _services.Clock.LocalTimeZone)));
 
-    private static void Sync<T>(ObservableCollection<T> target, IReadOnlyList<T> items)
-    {
-        if (target.SequenceEqual(items))
-        {
-            return;
-        }
-
-        target.Clear();
-        foreach (var item in items)
-        {
-            target.Add(item);
-        }
-    }
 }

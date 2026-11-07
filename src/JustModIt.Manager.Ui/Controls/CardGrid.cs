@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 
 namespace JustModIt.Manager.Ui.Controls;
@@ -105,28 +106,98 @@ public sealed class CardGrid
         return true;
     }
 
-    /// <summary>Makes a collection hold the items in order, keeping those that stay.</summary>
-    /// <param name="target">The collection a view shows.</param>
-    /// <param name="desired">The items it should hold.</param>
-    public static void Sync<T>(ObservableCollection<T> target, IReadOnlyList<T> desired)
+    /// <summary>Gives a page of a grid its keyboard: Ctrl+F reaches its search, Escape empties it and the arrows move between cards.</summary>
+    /// <param name="page">The page, which takes the shortcut only while it is the one shown.</param>
+    /// <param name="search">The page's search box.</param>
+    /// <param name="list">The list that shows <see cref="Rows"/>.</param>
+    /// <param name="grid">The page's grid; null before the page has its view model.</param>
+    /// <param name="clearSearch">Empties the search, and tells whether it held anything.</param>
+    public static void ConnectKeys(Control page, TextBox search, ItemsControl list, Func<CardGrid?> grid, Func<bool> clearSearch)
     {
-        for (var index = 0; index < desired.Count; index++)
+        TopLevel? top = null;
+        void OnWindowKeyDown(object? sender, KeyEventArgs e)
         {
-            var item = desired[index];
-            var at = target.IndexOf(item);
-            if (at < 0)
+            if (e.Key == Key.F && e.KeyModifiers == KeyModifiers.Control && page.IsEffectivelyVisible && search.IsEffectivelyVisible)
             {
-                target.Insert(index, item);
-            }
-            else if (at != index)
-            {
-                target.Move(at, index);
+                search.Focus(NavigationMethod.Tab);
+                search.SelectAll();
+                e.Handled = true;
             }
         }
 
-        while (target.Count > desired.Count)
+        page.AttachedToVisualTree += (_, _) =>
         {
-            target.RemoveAt(target.Count - 1);
+            top = TopLevel.GetTopLevel(page);
+            top?.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Bubble);
+        };
+        page.DetachedFromVisualTree += (_, _) =>
+        {
+            top?.RemoveHandler(InputElement.KeyDownEvent, OnWindowKeyDown);
+            top = null;
+        };
+        // Before the list's own arrow handling, which looks for the next row and may recycle the focused one meanwhile.
+        list.AddHandler(InputElement.KeyDownEvent, (_, e) =>
+        {
+            if (grid() is { } cards && e.Source is Control { DataContext: { } item })
+            {
+                e.Handled = cards.MoveFocus(list, item, e.Key);
+            }
+        }, RoutingStrategies.Tunnel);
+        // The window's Escape, which closes dialogs, marks the key handled on its way down, so the box listens to it anyway.
+        search.AddHandler(InputElement.KeyDownEvent, (_, e) =>
+        {
+            if (e.Key == Key.Escape && clearSearch())
+            {
+                e.Handled = true;
+            }
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    /// <summary>
+    /// Makes a collection hold the items in order, removing, moving and adding as few as it can, so an item that stays keeps
+    /// its controls and their focus.
+    /// </summary>
+    /// <param name="target">The collection a view shows.</param>
+    /// <param name="desired">The items it should hold.</param>
+    public static void Sync<T>(ObservableCollection<T> target, IReadOnlyList<T> desired)
+        where T : notnull
+    {
+        // Counted, since equal items may repeat, such as two store facts alike.
+        var wanted = desired.CountBy(item => item).ToDictionary();
+        for (var index = target.Count - 1; index >= 0; index--)
+        {
+            if (wanted.GetValueOrDefault(target[index]) > 0)
+            {
+                wanted[target[index]]--;
+            }
+            else
+            {
+                target.RemoveAt(index);
+            }
+        }
+
+        for (var index = 0; index < desired.Count; index++)
+        {
+            var item = desired[index];
+            if (index < target.Count && Equals(target[index], item))
+            {
+                continue;
+            }
+
+            var at = index + 1;
+            while (at < target.Count && !Equals(target[at], item))
+            {
+                at++;
+            }
+
+            if (at < target.Count)
+            {
+                target.Move(at, index);
+            }
+            else
+            {
+                target.Insert(index, item);
+            }
         }
     }
 

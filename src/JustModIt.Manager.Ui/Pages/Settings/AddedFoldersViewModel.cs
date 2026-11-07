@@ -5,6 +5,7 @@ using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Pages.Library;
 
 namespace JustModIt.Manager.Ui.Pages.Settings;
@@ -46,12 +47,7 @@ public sealed partial class AddedFoldersViewModel(UiServices services) : Observa
         var state = services.Agent.State;
         var rows = state.Library.AddedFolders.Select(folder => new AddedFolderRow(folder, Detail(folder, state),
             Text.Format(Strings.Settings_RemoveFolderName, ("folder", folder.Path)))).ToList();
-        if (!rows.SequenceEqual(Rows))
-        {
-            Rows.Clear();
-            rows.ForEach(Rows.Add);
-        }
-
+        CardGrid.Sync(Rows, rows);
         HasFolders = Rows.Count > 0;
         Load();
     }

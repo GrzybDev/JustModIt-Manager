@@ -251,7 +251,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
     {
         group.IsExpanded = !group.IsExpanded;
         _expanded[group.Key] = group.IsExpanded;
-        ReviewRows.Show(Operations, Visible(_operations));
+        Controls.CardGrid.Sync(Operations, Visible(_operations));
     }
 
     [RelayCommand]
@@ -608,7 +608,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
         }
         else
         {
-            ReviewRows.Show(Steps, ReviewRows.Reuse(_stepRows, [], null));
+            Controls.CardGrid.Sync(Steps, ReviewRows.Reuse(_stepRows, [], null));
             ShowOperations(OperationRows(review, findings));
         }
 
@@ -642,7 +642,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
         var fresh = plan.RuntimeFiles.Select((file, index) => RuntimeRowOf(file, keys.Next("runtime:" + file.Path), entries, findings[index]))
             .ToList();
         var rows = ReviewRows.Reuse(_runtimeRows, fresh, CopyRuntime);
-        ReviewRows.Show(RuntimeRows, rows);
+        Controls.CardGrid.Sync(RuntimeRows, rows);
         RuntimeRowCount = rows.Count;
         RuntimeCount = rows.Count > 0 ? Text.Format(Strings.Creator_RuntimeCount, ("count", rows.Count)) : "";
         var problems = rows.Count(row => row.HasProblem);
@@ -722,7 +722,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
             .Select(found => RuleOf(found.Key, [.. found]))
             .ToList();
         var rows = ReviewRows.Reuse(_ruleRows, fresh, Update);
-        ReviewRows.Show(Rules, rows);
+        Controls.CardGrid.Sync(Rules, rows);
         foreach (var row in rows)
         {
             ShowNotice(row);
@@ -839,7 +839,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
             }
         }
 
-        ReviewRows.Show(Operations, Visible(_operations));
+        Controls.CardGrid.Sync(Operations, Visible(_operations));
     }
 
     private static List<IReviewRow> Visible(List<IReviewRow> rows) =>
@@ -1026,7 +1026,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
             Fill(rows[i], i, project.Steps, plan, findings[i]);
         }
 
-        ReviewRows.Show(Steps, rows);
+        Controls.CardGrid.Sync(Steps, rows);
         var problems = plan.Findings.Count(finding => finding.StepIndex is not null && finding.BlocksBuild && !IsHosting(finding.Kind))
             + rows.Count(row => row.MoveBefore is not null);
         StepsInOrder = problems == 0;
