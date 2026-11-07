@@ -311,7 +311,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             return true;
         }
 
-        if (!await _page.Services.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(Strings.Creator_StopBuildTitle, Strings.Creator_StopBuild,
+        if (!await _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.Creator_StopBuildTitle, Strings.Creator_StopBuild,
                 Strings.Creator_StopBuildConfirm, Icons.CircleX, DialogTone.Danger)
             {
                 ConfirmIcon = Icons.CircleX,

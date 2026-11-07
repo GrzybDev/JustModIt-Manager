@@ -33,7 +33,4 @@ public sealed partial class ReleaseNotesDialogViewModel : DialogViewModel<bool>
 
     [RelayCommand]
     private void OpenLink(Uri? address) => _links.Open(address);
-
-    [RelayCommand]
-    private void Close() => Cancel();
 }

@@ -16,7 +16,7 @@
         </StackPanel>
       </Grid>
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-        <Button Classes="quiet" Content="{Binding CancelText}" Command="{Binding DismissCommand}" />
+        <Button Classes="quiet" Content="{Binding CancelText}" Command="{Binding CancelCommand}" />
         <Button Classes="outline" Classes.dangerTint="{Binding IsDanger}" Content="{Binding ConfirmText}"
                 ui:ButtonAssist.Icon="{Binding ConfirmIcon}" Command="{Binding ConfirmCommand}" />
       </StackPanel>

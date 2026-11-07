@@ -286,7 +286,7 @@ public sealed partial class BackupsViewModel : ObservableObject
     {
         var backup = row.Backup;
         var size = Formats.FileSize(backup.Bytes);
-        if (!await _services.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(
+        if (!await _services.Dialogs.ShowAsync(new ConfirmDialogViewModel(
                 Text.Format(Strings.Settings_RemoveLeftoverTitle, ("game", backup.GameName)),
                 backup.Kept is null
                     ? Text.Format(Strings.Settings_RemoveLeftoverMessage, ("folder", backup.Directory), ("size", size))

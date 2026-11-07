@@ -416,7 +416,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
             return true;
         }
 
-        var answer = await Services.Dialogs.ChooseAsync(new ChoiceDialogViewModel(Strings.Creator_UnsavedTitle,
+        var answer = await Services.Dialogs.ShowAsync(new ChoiceDialogViewModel(Strings.Creator_UnsavedTitle,
             session.Path is null ? Strings.Creator_UnsavedNew : Text.Format(Strings.Creator_UnsavedMessage, ("project", ProjectName)),
         [
             new DialogChoice(SaveChoice, Icons.Save, Strings.Creator_UnsavedSave, Strings.Creator_UnsavedSaveDescription),

@@ -119,20 +119,6 @@
     <Style Selector=":is(Window).reducedMotion Border.catalogueCard:pointerover">
       <Setter Property="RenderTransform" Value="translateY(0px)" />
     </Style>
-    <Style Selector="Border.catalogueCard ui|RemoteImage.cover">
-      <Setter Property="RenderTransform" Value="scale(1)" />
-      <Setter Property="Transitions">
-        <Transitions>
-          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
-        </Transitions>
-      </Setter>
-    </Style>
-    <Style Selector="Border.catalogueCard:pointerover ui|RemoteImage.cover">
-      <Setter Property="RenderTransform" Value="scale(1.05)" />
-    </Style>
-    <Style Selector=":is(Window).reducedMotion Border.catalogueCard:pointerover ui|RemoteImage.cover">
-      <Setter Property="RenderTransform" Value="scale(1)" />
-    </Style>
     <Style Selector="Button.cardLink">
       <Setter Property="Height" Value="NaN" />
       <Setter Property="Padding" Value="0" />

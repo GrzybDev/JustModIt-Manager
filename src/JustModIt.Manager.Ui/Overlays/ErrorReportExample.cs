@@ -1,4 +1,3 @@
-using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Diagnostics;
@@ -18,7 +17,4 @@ public sealed partial class ErrorReportExampleViewModel(string productName, stri
         new(Strings.Shell_ReportFieldSystem, $"{ErrorReport.ThisSystem}, {ErrorReport.ThisArchitecture}"),
         new(Strings.Shell_ReportFieldError, Strings.Settings_ReportExampleError),
     ];
-
-    [RelayCommand]
-    private void Close() => Cancel();
 }

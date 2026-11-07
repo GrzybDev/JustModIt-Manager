@@ -34,7 +34,7 @@
           <TextBlock Classes="switchLabel" Text="{Binding RememberText}" />
           <TextBlock Classes="small" Text="{Binding RememberHint}" />
         </StackPanel>
-        <Button Grid.Column="2" Classes="quiet" Content="{Binding CancelText}" Command="{Binding DismissCommand}" />
+        <Button Grid.Column="2" Classes="quiet" Content="{Binding CancelText}" Command="{Binding CancelCommand}" />
       </Grid>
     </StackPanel>
   </Border>

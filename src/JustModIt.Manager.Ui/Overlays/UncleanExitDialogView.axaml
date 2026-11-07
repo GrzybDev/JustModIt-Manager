@@ -95,7 +95,7 @@
         <Button x:Name="SaveReport" Classes="quiet" KeyboardNavigation.TabIndex="1" Content="{x:Static loc:Strings.Shell_SaveReport}"
                 ui:ButtonAssist.Icon="{x:Static theme:Icons.Save}" Command="{Binding SaveReportCommand}" />
         <Button x:Name="CloseDialog" Grid.Column="2" Classes="quiet" KeyboardNavigation.TabIndex="2" Content="{x:Static loc:Strings.Shell_Close}"
-                Command="{Binding CloseCommand}" />
+                Command="{Binding CancelCommand}" />
         <Button x:Name="ReportProblem" Grid.Column="3" Classes="outline" KeyboardNavigation.TabIndex="3" IsVisible="{Binding CanReport}"
                 Content="{x:Static loc:Strings.Settings_ReportProblem}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ExternalLink}"
                 ui:ButtonAssist.IconAfter="True" Command="{Binding ReportCommand}" />

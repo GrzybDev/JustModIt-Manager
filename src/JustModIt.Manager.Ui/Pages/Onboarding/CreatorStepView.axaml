@@ -8,15 +8,7 @@
              x:DataType="onboarding:CreatorStep">
   <ScrollViewer Classes="setupStep">
     <StackPanel Classes="setupStep" theme:Motion.Stagger="True">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
-        <StackPanel Spacing="6">
-          <TextBlock Classes="displayS" TextWrapping="Wrap" Text="{Binding Title}" />
-          <TextBlock Classes="subtitle stepLead" Text="{Binding Lead}" />
-        </StackPanel>
-        <Border Grid.Column="1" Classes="stepIcon">
-          <ui:Icon Data="{x:Static theme:Icons.WandSparkles}" />
-        </Border>
-      </Grid>
+      <ui:StepHeader Icon="{x:Static theme:Icons.WandSparkles}" Title="{Binding Title}" Message="{Binding Lead}" />
 
       <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
         <RadioButton Theme="{StaticResource ChoiceTile}"

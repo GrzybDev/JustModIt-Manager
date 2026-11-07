@@ -259,7 +259,7 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
             return;
         }
 
-        if (row.IsDanger && !await _services.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(Strings.GamePage_UninstallTitle,
+        if (row.IsDanger && !await _services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.GamePage_UninstallTitle,
                 Text.Format(Strings.GamePage_UninstallMessage, ("game", row.Name)), Strings.GamePage_Uninstall, Icons.Trash, DialogTone.Danger)
             {
                 ConfirmIcon = Icons.Trash,

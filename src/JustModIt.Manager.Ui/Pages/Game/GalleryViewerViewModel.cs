@@ -136,7 +136,4 @@ public sealed partial class GalleryViewerViewModel : DialogViewModel<bool>
             _links.Open(address);
         }
     }
-
-    [RelayCommand]
-    private void Close() => Cancel();
 }

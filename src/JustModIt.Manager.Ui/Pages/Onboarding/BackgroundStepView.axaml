@@ -9,15 +9,7 @@
              x:DataType="onboarding:BackgroundStep">
   <ScrollViewer Classes="setupStep">
     <StackPanel Classes="setupStep" theme:Motion.Stagger="True">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
-        <StackPanel Spacing="6">
-          <TextBlock Classes="displayS" TextWrapping="Wrap" Text="{Binding Title}" />
-          <TextBlock Classes="subtitle stepLead" Text="{Binding Lead}" />
-        </StackPanel>
-        <Border Grid.Column="1" Classes="stepIcon">
-          <ui:Icon Data="{x:Static theme:Icons.MonitorDown}" />
-        </Border>
-      </Grid>
+      <ui:StepHeader Icon="{x:Static theme:Icons.MonitorDown}" Title="{Binding Title}" Message="{Binding Lead}" />
 
       <Border Classes="inset">
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">

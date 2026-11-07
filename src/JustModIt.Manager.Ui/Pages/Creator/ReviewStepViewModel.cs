@@ -349,7 +349,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
     [RelayCommand]
     private async Task ToAdvancedAsync()
     {
-        if (_session.Review is not { } review || !await _page.Services.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(
+        if (_session.Review is not { } review || !await _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(
                 Strings.Creator_ToAdvancedTitle, Strings.Creator_ToAdvanced, Strings.Creator_ToAdvancedConfirm, Icons.ListOrdered)
             {
                 ConfirmIcon = Icons.ListOrdered,
@@ -364,7 +364,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
     [RelayCommand]
     private async Task ToSimpleAsync()
     {
-        if (await _page.Services.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(Strings.Creator_ToSimpleTitle, Strings.Creator_ToSimple,
+        if (await _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.Creator_ToSimpleTitle, Strings.Creator_ToSimple,
                 Strings.Creator_ToSimpleConfirm, Icons.Undo, DialogTone.Danger)
             {
                 ConfirmIcon = Icons.Undo,

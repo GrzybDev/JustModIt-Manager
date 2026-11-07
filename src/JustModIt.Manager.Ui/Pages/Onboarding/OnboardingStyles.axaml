@@ -90,6 +90,21 @@
     <Setter Property="Margin" Value="40,34,40,24" />
     <Setter Property="Spacing" Value="22" />
   </Style>
+  <Style Selector="ui|StepHeader">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="displayS" TextWrapping="Wrap" Text="{TemplateBinding Title}" />
+            <TextBlock Classes="subtitle stepLead" Text="{TemplateBinding Message}" />
+          </StackPanel>
+          <Border Grid.Column="1" Classes="stepIcon">
+            <ui:Icon Data="{TemplateBinding Icon}" />
+          </Border>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
   <Style Selector="TextBlock.stepLead">
     <Setter Property="MaxWidth" Value="580" />
     <Setter Property="HorizontalAlignment" Value="Left" />

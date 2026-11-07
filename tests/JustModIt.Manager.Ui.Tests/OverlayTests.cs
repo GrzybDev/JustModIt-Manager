@@ -55,7 +55,7 @@ public sealed class OverlayTests
         var first = new ConfirmDialogViewModel("First", "One", "Yes", Icons.Info);
         var second = new ConfirmDialogViewModel("Second", "Two", "Yes", Icons.Info);
 
-        var answers = (ui.Shell.Dialogs.ConfirmAsync(first), ui.Shell.Dialogs.ConfirmAsync(second));
+        var answers = (ui.Shell.Dialogs.ShowAsync(first), ui.Shell.Dialogs.ShowAsync(second));
         ui.Shell.Dialogs.Current.Should().BeSameAs(first);
         first.Cancel();
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current == second);
@@ -218,7 +218,7 @@ public sealed class OverlayTests
 
     private static Task<T> Within<T>(Task<T> answer) => answer.WaitAsync(TimeSpan.FromSeconds(5));
 
-    private static Task<bool> Ask(UiHarness ui) => ui.Shell.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(
+    private static Task<bool> Ask(UiHarness ui) => ui.Shell.Dialogs.ShowAsync(new ConfirmDialogViewModel(
         "Remove the project?", "The game gets its original files back; the project can be installed again at any time.", Remove,
         Icons.Trash, DialogTone.Danger)
     {

@@ -99,20 +99,6 @@
     <Style Selector=":is(Window).reducedMotion Button.gameCard:pointerover">
       <Setter Property="RenderTransform" Value="translateY(0px)" />
     </Style>
-    <Style Selector="Button.gameCard ui|RemoteImage.cover">
-      <Setter Property="RenderTransform" Value="scale(1)" />
-      <Setter Property="Transitions">
-        <Transitions>
-          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
-        </Transitions>
-      </Setter>
-    </Style>
-    <Style Selector="Button.gameCard:pointerover ui|RemoteImage.cover">
-      <Setter Property="RenderTransform" Value="scale(1.05)" />
-    </Style>
-    <Style Selector=":is(Window).reducedMotion Button.gameCard:pointerover ui|RemoteImage.cover">
-      <Setter Property="RenderTransform" Value="scale(1)" />
-    </Style>
     <Style Selector="Button.gameCard:pointerover TextBlock.cardName">
       <Setter Property="TextDecorations" Value="Underline" />
     </Style>

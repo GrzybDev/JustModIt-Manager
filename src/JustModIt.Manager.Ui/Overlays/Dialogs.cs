@@ -42,6 +42,7 @@ public abstract partial class DialogViewModel<TResult>(TResult cancelled) : Dial
 
     public override Task Completion => _result.Task;
 
+    [RelayCommand]
     public override void Cancel() => Complete(cancelled);
 
     /// <summary>Gives the dialog its answer.</summary>
@@ -89,9 +90,6 @@ public sealed partial class ConfirmDialogViewModel : DialogViewModel<bool>
 
     [RelayCommand]
     private void Confirm() => Complete(true);
-
-    [RelayCommand]
-    private void Dismiss() => Cancel();
 }
 
 /// <summary>A choice of a dialog: an action tile with an icon, a title and what it does.</summary>
@@ -134,9 +132,6 @@ public sealed partial class ChoiceDialogViewModel(string title, string message, 
 
     [RelayCommand]
     private void Choose(DialogChoice choice) => Complete(new ChoiceAnswer(choice.Key, CanRemember && Remember));
-
-    [RelayCommand]
-    private void Dismiss() => Cancel();
 }
 
 /// <summary>Shows one dialog at a time over the window's content; one asked for meanwhile waits its turn.</summary>
@@ -153,15 +148,6 @@ public sealed partial class DialogHost : ObservableObject
     public partial DialogViewModel? Current { get; private set; }
 
     public bool IsOpen => Current is not null;
-
-    /// <summary>Asks a question and waits for the answer.</summary>
-    /// <param name="dialog">The question.</param>
-    /// <returns>True when the player confirmed.</returns>
-    public Task<bool> ConfirmAsync(ConfirmDialogViewModel dialog) => ShowAsync(dialog);
-
-    /// <summary>Offers a choice and waits for the answer.</summary>
-    /// <param name="dialog">The choice.</param>
-    public Task<ChoiceAnswer> ChooseAsync(ChoiceDialogViewModel dialog) => ShowAsync(dialog);
 
     /// <summary>Shows a dialog, after the one shown has gone, and waits for its answer.</summary>
     /// <param name="dialog">The dialog.</param>

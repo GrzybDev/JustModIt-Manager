@@ -43,7 +43,7 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
                 return await ExitAsync().ConfigureAwait(true);
         }
 
-        var answer = await dialogs.ChooseAsync(new ChoiceDialogViewModel(Strings.Shell_CloseTitle, Strings.Shell_CloseMessage,
+        var answer = await dialogs.ShowAsync(new ChoiceDialogViewModel(Strings.Shell_CloseTitle, Strings.Shell_CloseMessage,
         [
             new DialogChoice(Tray, Icons.MonitorDown, Strings.Shell_CloseToTray, Strings.Shell_CloseToTrayDescription),
             new DialogChoice(Exit, Icons.Power, Strings.Shell_CloseExit, Strings.Shell_CloseExitDescription, IsDanger: true),
@@ -77,7 +77,7 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
             return true;
         }
 
-        var confirmed = await dialogs.ConfirmAsync(new ConfirmDialogViewModel(Strings.Shell_ExitAfterJobsTitle, Strings.Shell_ExitAfterJobsMessage,
+        var confirmed = await dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.Shell_ExitAfterJobsTitle, Strings.Shell_ExitAfterJobsMessage,
             Strings.Shell_ExitAfterJobs, Icons.Clock)
         {
             ConfirmIcon = Icons.Clock,

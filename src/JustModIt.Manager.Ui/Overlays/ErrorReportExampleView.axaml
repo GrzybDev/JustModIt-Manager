@@ -26,7 +26,7 @@
       </Border>
       <TextBlock Classes="small" TextWrapping="Wrap" Text="{x:Static loc:Strings.Settings_ErrorReportsDialogNote}" />
       <Button x:Name="CloseExample" Classes="quiet" HorizontalAlignment="Right" Content="{x:Static loc:Strings.Shell_Close}"
-              Command="{Binding CloseCommand}" />
+              Command="{Binding CancelCommand}" />
     </StackPanel>
   </Border>
 </UserControl>

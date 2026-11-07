@@ -34,7 +34,7 @@ internal static class AdultContent
             return true;
         }
 
-        return await services.Dialogs.ConfirmAsync(new ConfirmDialogViewModel(Strings.Catalogue_AgeTitle, Strings.Catalogue_AgeText,
+        return await services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.Catalogue_AgeTitle, Strings.Catalogue_AgeText,
                 Strings.Catalogue_AgeConfirm, Icons.ShieldAlert, DialogTone.Warning)).ConfigureAwait(true)
             && await AgentRequests.SendAsync(services, new ConfirmAdultContent()).ConfigureAwait(true);
     }

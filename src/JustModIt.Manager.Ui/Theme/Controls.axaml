@@ -491,4 +491,20 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="BoxShadow" Value="0 24 48 -28 #E6000000, 0 8 24 0 #66000000" />
   </Style>
+
+  <!-- A game card's cover grows under the pointer. -->
+  <Style Selector="Button.gameCard ui|RemoteImage.cover, Border.catalogueCard ui|RemoteImage.cover">
+    <Setter Property="RenderTransform" Value="scale(1)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.gameCard:pointerover ui|RemoteImage.cover, Border.catalogueCard:pointerover ui|RemoteImage.cover">
+    <Setter Property="RenderTransform" Value="scale(1.05)" />
+  </Style>
+  <Style Selector=":is(Window).reducedMotion Button.gameCard:pointerover ui|RemoteImage.cover, :is(Window).reducedMotion Border.catalogueCard:pointerover ui|RemoteImage.cover">
+    <Setter Property="RenderTransform" Value="scale(1)" />
+  </Style>
 </Styles>

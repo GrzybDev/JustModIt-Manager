@@ -196,9 +196,6 @@ public sealed partial class UncleanExitDialogViewModel : DialogViewModel<bool>
         Complete(true);
     }
 
-    [RelayCommand]
-    private void Close() => Cancel();
-
     private async Task SendAsync(bool automatic)
     {
         ReportState = ErrorReportState.Sending;

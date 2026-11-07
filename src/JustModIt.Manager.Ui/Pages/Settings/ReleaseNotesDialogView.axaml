@@ -20,7 +20,7 @@
                          LinkCommand="{Binding OpenLinkCommand}" />
       </ScrollViewer>
       <Button x:Name="CloseNotes" Classes="outline" HorizontalAlignment="Right" Content="{x:Static loc:Strings.Shell_Close}"
-              Command="{Binding CloseCommand}" />
+              Command="{Binding CancelCommand}" />
     </StackPanel>
   </Border>
 </UserControl>

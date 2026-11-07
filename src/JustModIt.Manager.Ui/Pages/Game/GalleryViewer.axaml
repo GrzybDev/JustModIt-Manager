@@ -42,7 +42,7 @@
         </StackPanel>
         <Button Grid.Column="1" Classes="outline small" Content="{x:Static loc:Strings.GamePage_OpenOriginal}" VerticalAlignment="Center"
                 ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUpRight}" ui:ButtonAssist.IconAfter="True" Command="{Binding OpenOriginalCommand}" />
-        <Button Grid.Column="2" Classes="icon" VerticalAlignment="Center" ToolTip.Tip="{x:Static loc:Strings.Shell_Close}" Command="{Binding CloseCommand}">
+        <Button Grid.Column="2" Classes="icon" VerticalAlignment="Center" ToolTip.Tip="{x:Static loc:Strings.Shell_Close}" Command="{Binding CancelCommand}">
           <ui:Icon Data="{x:Static theme:Icons.X}" />
         </Button>
       </Grid>
