@@ -72,39 +72,39 @@
         <Border Classes="settingsCard">
           <StackPanel>
             <ui:SettingRow Icon="{x:Static theme:Icons.Sunrise}" Title="{x:Static loc:Strings.Settings_StartWithSystem}"
-                           Description="{Binding StartWithSystemDescription}">
+                           Message="{Binding StartWithSystemDescription}">
               <ToggleSwitch IsChecked="{Binding StartWithSystem}" AutomationProperties.Name="{x:Static loc:Strings.Settings_StartWithSystem}"
                             AutomationProperties.HelpText="{Binding StartWithSystemDescription}" />
             </ui:SettingRow>
             <ui:SettingRow Classes="divided stacked" Icon="{x:Static theme:Icons.PanelBottomClose}"
                            Title="{x:Static loc:Strings.Settings_CloseBehavior}"
-                           Description="{x:Static loc:Strings.Settings_CloseBehaviorDescription}">
+                           Message="{x:Static loc:Strings.Settings_CloseBehaviorDescription}">
               <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
                 <RadioButton x:Name="CloseAsk" Theme="{StaticResource ChoiceTile}"
                              IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Ask}}"
                              AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CloseAsk}"
                              AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_CloseAskDescription}">
                   <ui:TileContent Icon="{x:Static theme:Icons.CircleHelp}" Title="{x:Static loc:Strings.Onboarding_CloseAsk}"
-                                  Description="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
+                                  Message="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
                 </RadioButton>
                 <RadioButton x:Name="CloseTray" Grid.Column="1" Theme="{StaticResource ChoiceTile}"
                              IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.MinimizeToTray}}"
                              AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseToTray}"
                              AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseToTrayDescription}">
                   <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static loc:Strings.Shell_CloseToTray}"
-                                  Description="{x:Static loc:Strings.Shell_CloseToTrayDescription}" />
+                                  Message="{x:Static loc:Strings.Shell_CloseToTrayDescription}" />
                 </RadioButton>
                 <RadioButton x:Name="CloseExit" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
                              IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Exit}}"
                              AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseExit}"
                              AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseExitDescription}">
                   <ui:TileContent Icon="{x:Static theme:Icons.Power}" Title="{x:Static loc:Strings.Shell_CloseExit}"
-                                  Description="{x:Static loc:Strings.Shell_CloseExitDescription}" />
+                                  Message="{x:Static loc:Strings.Shell_CloseExitDescription}" />
                 </RadioButton>
               </Grid>
             </ui:SettingRow>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.EyeOff}" Title="{x:Static loc:Strings.Settings_BlurAdult}"
-                           Description="{x:Static loc:Strings.Settings_BlurAdultDescription}">
+                           Message="{x:Static loc:Strings.Settings_BlurAdultDescription}">
               <ToggleSwitch IsChecked="{Binding BlurAdultContent}" AutomationProperties.Name="{x:Static loc:Strings.Settings_BlurAdult}"
                             AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BlurAdultDescription}" />
             </ui:SettingRow>
@@ -117,27 +117,27 @@
         <Border Classes="settingsCard">
           <StackPanel>
             <ui:SettingRow Icon="{x:Static theme:Icons.Download}" Title="{x:Static loc:Strings.Settings_AutoInstall}"
-                           Description="{x:Static loc:Strings.Settings_AutoInstallDescription}">
+                           Message="{x:Static loc:Strings.Settings_AutoInstallDescription}">
               <ToggleSwitch IsChecked="{Binding AutoInstallProjects}" AutomationProperties.Name="{x:Static loc:Strings.Settings_AutoInstall}"
                             AutomationProperties.HelpText="{x:Static loc:Strings.Settings_AutoInstallDescription}" />
             </ui:SettingRow>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.RefreshCw}" Title="{x:Static loc:Strings.Settings_AutoUpdate}"
-                           Description="{x:Static loc:Strings.Settings_AutoUpdateDescription}">
+                           Message="{x:Static loc:Strings.Settings_AutoUpdateDescription}">
               <ToggleSwitch IsChecked="{Binding AutoUpdateProjects}" AutomationProperties.Name="{x:Static loc:Strings.Settings_AutoUpdate}"
                             AutomationProperties.HelpText="{x:Static loc:Strings.Settings_AutoUpdateDescription}" />
             </ui:SettingRow>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.RotateCcw}" Title="{x:Static loc:Strings.Settings_Reapply}"
-                           Description="{x:Static loc:Strings.Settings_ReapplyDescription}">
+                           Message="{x:Static loc:Strings.Settings_ReapplyDescription}">
               <ToggleSwitch IsChecked="{Binding ReapplyAfterGameUpdate}" AutomationProperties.Name="{x:Static loc:Strings.Settings_Reapply}"
                             AutomationProperties.HelpText="{x:Static loc:Strings.Settings_ReapplyDescription}" />
             </ui:SettingRow>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Bell}" Title="{x:Static loc:Strings.Settings_Notifications}"
-                           Description="{x:Static loc:Strings.Settings_NotificationsDescription}">
+                           Message="{x:Static loc:Strings.Settings_NotificationsDescription}">
               <ToggleSwitch IsChecked="{Binding ShowNotifications}" AutomationProperties.Name="{x:Static loc:Strings.Settings_Notifications}"
                             AutomationProperties.HelpText="{x:Static loc:Strings.Settings_NotificationsDescription}" />
             </ui:SettingRow>
             <ui:SettingRow Classes="divided stacked" Icon="{x:Static theme:Icons.ListOrdered}" Title="{x:Static loc:Strings.Settings_Teams}"
-                           Description="{x:Static loc:Strings.Settings_TeamsDescription}">
+                           Message="{x:Static loc:Strings.Settings_TeamsDescription}">
               <settings:PreferredTeamsEditor DataContext="{Binding Teams}" Margin="52,0,0,0" />
             </ui:SettingRow>
           </StackPanel>
@@ -150,7 +150,7 @@
         <Border Classes="settingsCard">
           <StackPanel>
             <ui:SettingRow Classes="stacked" Icon="{x:Static theme:Icons.Archive}" Title="{x:Static loc:Strings.Settings_BackupLocation}"
-                           Description="{x:Static loc:Strings.Settings_BackupLocationDescription}">
+                           Message="{x:Static loc:Strings.Settings_BackupLocationDescription}">
               <StackPanel Spacing="16">
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
                   <RadioButton x:Name="BackupsInGameFolder" Theme="{StaticResource ChoiceTile}"
@@ -159,7 +159,7 @@
                                AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupGameFolderDescription}">
                     <Panel>
                       <ui:TileContent Icon="{x:Static theme:Icons.Folder}" Title="{x:Static loc:Strings.Settings_BackupGameFolder}"
-                                      Description="{x:Static loc:Strings.Settings_BackupGameFolderDescription}" />
+                                      Message="{x:Static loc:Strings.Settings_BackupGameFolderDescription}" />
                       <Border Classes="recommended">
                         <TextBlock Text="{x:Static loc:Strings.Settings_Recommended}" />
                       </Border>
@@ -170,14 +170,14 @@
                                AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupAppData}"
                                AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupAppDataDescription}">
                     <ui:TileContent Icon="{x:Static theme:Icons.AppWindow}" Title="{x:Static loc:Strings.Settings_BackupAppData}"
-                                    Description="{x:Static loc:Strings.Settings_BackupAppDataDescription}" />
+                                    Message="{x:Static loc:Strings.Settings_BackupAppDataDescription}" />
                   </RadioButton>
                   <RadioButton x:Name="BackupsInFolder" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
                                IsChecked="{Binding Backups.Location, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.CustomFolder}}"
                                AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupCustom}"
                                AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupCustomDescription}">
                     <ui:TileContent Icon="{x:Static theme:Icons.HardDrive}" Title="{x:Static loc:Strings.Settings_BackupCustom}"
-                                    Description="{x:Static loc:Strings.Settings_BackupCustomDescription}" />
+                                    Message="{x:Static loc:Strings.Settings_BackupCustomDescription}" />
                   </RadioButton>
                 </Grid>
 
@@ -249,7 +249,7 @@
             </StackPanel>
 
             <ui:SettingRow Classes="divided stacked" Icon="{x:Static theme:Icons.Copy}" Title="{x:Static loc:Strings.Settings_Leftovers}"
-                           Description="{x:Static loc:Strings.Settings_LeftoversDescription}" IsVisible="{Binding Backups.HasLeftovers}">
+                           Message="{x:Static loc:Strings.Settings_LeftoversDescription}" IsVisible="{Binding Backups.HasLeftovers}">
               <ItemsControl x:Name="Leftovers" ItemsSource="{Binding Backups.Leftovers}" Margin="52,-4,0,0">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="settings:LeftoverRow">
@@ -321,7 +321,7 @@
         <TextBlock Classes="overline" Text="{Binding LibrariesHeading}" />
         <Border Classes="settingsCard">
           <ui:SettingRow Classes="stacked" Icon="{x:Static theme:Icons.FolderPlus}" Title="{x:Static loc:Strings.Settings_AddedFolders}"
-                         Description="{Binding Folders.Description}">
+                         Message="{Binding Folders.Description}">
             <ItemsControl x:Name="AddedFolders" ItemsSource="{Binding Folders.Rows}" Margin="52,-4,0,0" ItemsPanel="{StaticResource StackItems12}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="settings:AddedFolderRow">
@@ -351,7 +351,7 @@
         <TextBlock Classes="overline" Text="{Binding CreatorsHeading}" />
         <Border Classes="settingsCard">
           <ui:SettingRow Icon="{x:Static theme:Icons.WandSparkles}" Title="{x:Static loc:Strings.Settings_CreatorMode}"
-                         Description="{Binding CreatorModeDescription}">
+                         Message="{Binding CreatorModeDescription}">
             <ToggleSwitch IsChecked="{Binding CreatorMode}" AutomationProperties.Name="{x:Static loc:Strings.Settings_CreatorMode}"
                           AutomationProperties.HelpText="{Binding CreatorModeDescription}" />
           </ui:SettingRow>
@@ -362,7 +362,7 @@
         <TextBlock Classes="overline" Text="{Binding AppDataHeading}" />
         <Border Classes="settingsCard">
           <StackPanel>
-            <ui:SettingRow Icon="{x:Static theme:Icons.ChartPie}" Title="{x:Static loc:Strings.Settings_DiskUsage}" Description="{Binding Data.Usage}">
+            <ui:SettingRow Icon="{x:Static theme:Icons.ChartPie}" Title="{x:Static loc:Strings.Settings_DiskUsage}" Message="{Binding Data.Usage}">
               <Button x:Name="OpenDataFolder" Classes="quiet" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
                       Content="{x:Static loc:Strings.Settings_OpenDataFolder}" Command="{Binding Data.OpenFolderCommand}" />
             </ui:SettingRow>
@@ -391,13 +391,13 @@
               </Grid>
             </WrapPanel>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Eraser}" Title="{x:Static loc:Strings.Settings_ClearCache}"
-                           Description="{Binding Data.ClearText}">
+                           Message="{Binding Data.ClearText}">
               <Button x:Name="ClearCache" Classes="outline" ui:ButtonAssist.Icon="{x:Static theme:Icons.Eraser}"
                       Content="{x:Static loc:Strings.Settings_Clear}" Command="{Binding Data.ClearCommand}"
                       AutomationProperties.Name="{x:Static loc:Strings.Settings_ClearCache}" AutomationProperties.HelpText="{Binding Data.ClearText}" />
             </ui:SettingRow>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Trash}" Title="{x:Static loc:Strings.Settings_UninstallAll}"
-                           Description="{Binding Data.UninstallText}">
+                           Message="{Binding Data.UninstallText}">
               <Button x:Name="UninstallAll" Classes="danger" ui:ButtonAssist.Icon="{x:Static theme:Icons.Trash}"
                       Content="{x:Static loc:Strings.Settings_UninstallAllButton}" Command="{Binding Data.UninstallAllCommand}"
                       AutomationProperties.Name="{x:Static loc:Strings.Settings_UninstallAll}"
@@ -433,19 +433,19 @@
                       Command="{Binding CheckForUpdatesCommand}" IsVisible="{Binding ShowsCheck}" />
             </Grid>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Sparkles}" Title="{x:Static loc:Strings.Settings_AutoUpdateApp}"
-                           Description="{Binding AutoUpdateAppDescription}">
+                           Message="{Binding AutoUpdateAppDescription}">
               <ToggleSwitch x:Name="AutoUpdateApp" IsChecked="{Binding AutoUpdateApp}" IsEnabled="{Binding CanUpdateApp}"
                             AutomationProperties.Name="{x:Static loc:Strings.Settings_AutoUpdateApp}"
                             AutomationProperties.HelpText="{Binding AutoUpdateAppDescription}" />
             </ui:SettingRow>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Rocket}" Title="{x:Static loc:Strings.Settings_UpdatePrereleases}"
-                           Description="{Binding UpdatePrereleasesDescription}">
+                           Message="{Binding UpdatePrereleasesDescription}">
               <ToggleSwitch x:Name="UpdatePrereleases" IsChecked="{Binding UpdatePrereleases}" IsEnabled="{Binding CanUpdateApp}"
                             AutomationProperties.Name="{x:Static loc:Strings.Settings_UpdatePrereleases}"
                             AutomationProperties.HelpText="{Binding UpdatePrereleasesDescription}" />
             </ui:SettingRow>
             <ui:SettingRow x:Name="ErrorReports" Classes="divided" Icon="{x:Static theme:Icons.Send}" Title="{x:Static loc:Strings.Settings_ErrorReports}"
-                           Description="{x:Static loc:Strings.Settings_ErrorReportsDescription}" IsVisible="{Binding CanSendErrorReports}">
+                           Message="{x:Static loc:Strings.Settings_ErrorReportsDescription}" IsVisible="{Binding CanSendErrorReports}">
               <ToggleSwitch x:Name="SendErrorReports" IsChecked="{Binding SendErrorReports}"
                             AutomationProperties.Name="{x:Static loc:Strings.Settings_ErrorReports}"
                             AutomationProperties.HelpText="{x:Static loc:Strings.Settings_ErrorReportsDescription}" />

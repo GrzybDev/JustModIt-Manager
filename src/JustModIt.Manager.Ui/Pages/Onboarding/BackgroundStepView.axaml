@@ -42,21 +42,21 @@
                        AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CloseAsk}"
                        AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_CloseAskDescription}">
             <ui:TileContent Icon="{x:Static theme:Icons.CircleHelp}" Title="{x:Static loc:Strings.Onboarding_CloseAsk}"
-                            Description="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
+                            Message="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
           </RadioButton>
           <RadioButton Grid.Column="1" Theme="{StaticResource ChoiceTile}" Classes="compact"
                        IsChecked="{Binding Setup.CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static settings:CloseBehavior.MinimizeToTray}}"
                        AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseToTray}"
                        AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseToTrayDescription}">
             <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static loc:Strings.Shell_CloseToTray}"
-                            Description="{x:Static loc:Strings.Shell_CloseToTrayDescription}" />
+                            Message="{x:Static loc:Strings.Shell_CloseToTrayDescription}" />
           </RadioButton>
           <RadioButton Grid.Column="2" Theme="{StaticResource ChoiceTile}" Classes="compact"
                        IsChecked="{Binding Setup.CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static settings:CloseBehavior.Exit}}"
                        AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseExit}"
                        AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseExitDescription}">
             <ui:TileContent Icon="{x:Static theme:Icons.Power}" Title="{x:Static loc:Strings.Shell_CloseExit}"
-                            Description="{x:Static loc:Strings.Shell_CloseExitDescription}" />
+                            Message="{x:Static loc:Strings.Shell_CloseExitDescription}" />
           </RadioButton>
         </Grid>
       </StackPanel>

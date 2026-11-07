@@ -262,7 +262,7 @@
                   <DataTemplate x:DataType="cat:FilterOption">
                     <ui:StatusFilterPill Hex="{Binding Color}" IsChecked="{Binding IsSelected}" AutomationProperties.Name="{Binding AccessibleName}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Ellipse Width="6" Height="6" Fill="{Binding $parent[ui:StatusFilterPill].Label}" VerticalAlignment="Center" />
+                        <Ellipse Width="6" Height="6" Fill="{Binding $parent[ui:StatusFilterPill].Tints.Label}" VerticalAlignment="Center" />
                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
                         <TextBlock Classes="count" Text="{Binding Count}" />
                       </StackPanel>

@@ -164,16 +164,13 @@
     </Style>
   </ControlTheme>
 
-  <!-- The order of a list: three quiet pills instead of a dropdown. -->
-  <ControlTheme x:Key="SortPill" TargetType="RadioButton">
+  <!-- The pills' shape and template; each theme below gives its colours. -->
+  <ControlTheme x:Key="Pill" TargetType="ToggleButton">
     <Setter Property="Height" Value="32" />
     <Setter Property="Padding" Value="12,0" />
     <Setter Property="CornerRadius" Value="999" />
     <Setter Property="FontSize" Value="13" />
     <Setter Property="FontWeight" Value="Medium" />
-    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
-    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource FillStrongerBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="Template">
@@ -192,6 +189,13 @@
         </ContentPresenter>
       </ControlTemplate>
     </Setter>
+  </ControlTheme>
+
+  <!-- The order of a list: three quiet pills instead of a dropdown. -->
+  <ControlTheme x:Key="SortPill" TargetType="RadioButton" BasedOn="{StaticResource Pill}">
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource FillStrongerBrush}" />
     <Style Selector="^:pointerover">
       <Setter Property="Background" Value="{StaticResource FillBrush}" />
       <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
@@ -205,33 +209,13 @@
 
   <!-- One of a few choices under a button, such as one add-on of a group: a pill whose selection the accent alone shows, no
        radio dot, the recommended one chosen at the start. -->
-  <ControlTheme x:Key="ChoicePill" TargetType="RadioButton">
+  <ControlTheme x:Key="ChoicePill" TargetType="RadioButton" BasedOn="{StaticResource Pill}">
     <Setter Property="Height" Value="36" />
     <Setter Property="Padding" Value="14,0" />
-    <Setter Property="CornerRadius" Value="999" />
     <Setter Property="FontSize" Value="14" />
-    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
     <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Cursor" Value="Hand" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
-                          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                          CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
-                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
-                          VerticalContentAlignment="Center">
-          <ContentPresenter.Transitions>
-            <Transitions>
-              <BrushTransition Property="Background" Duration="0:0:0.15" />
-              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
-            </Transitions>
-          </ContentPresenter.Transitions>
-        </ContentPresenter>
-      </ControlTemplate>
-    </Setter>
     <Style Selector="^:pointerover">
       <Setter Property="Background" Value="{StaticResource FillBrush}" />
       <Setter Property="BorderBrush" Value="{StaticResource BorderHoverBrush}" />
@@ -246,33 +230,10 @@
   </ControlTheme>
 
   <!-- A filter of a list, tinted by its tone class (accent by default; success, info, warning, neutral, or all). -->
-  <ControlTheme x:Key="FilterPill" TargetType="ToggleButton">
-    <Setter Property="Height" Value="32" />
-    <Setter Property="Padding" Value="12,0" />
-    <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="FontWeight" Value="Medium" />
+  <ControlTheme x:Key="FilterPill" TargetType="ToggleButton" BasedOn="{StaticResource Pill}">
     <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
     <Setter Property="Background" Value="{DynamicResource AccentFilterBrush}" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Cursor" Value="Hand" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
-                          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                          CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
-                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
-                          VerticalContentAlignment="Center">
-          <ContentPresenter.Transitions>
-            <Transitions>
-              <BrushTransition Property="Background" Duration="0:0:0.15" />
-              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
-            </Transitions>
-          </ContentPresenter.Transitions>
-        </ContentPresenter>
-      </ControlTemplate>
-    </Setter>
     <Style Selector="^:checked">
       <Setter Property="Background" Value="{DynamicResource AccentFilterStrongBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource AccentFilterEdgeBrush}" />
@@ -322,19 +283,13 @@
   </ControlTheme>
 
   <!-- A filter by a project's status, in the site's colour: 13% when not chosen, 26% with a 70% edge once chosen. -->
-  <ControlTheme x:Key="{x:Type ui:StatusFilterPill}" TargetType="ui:StatusFilterPill">
-    <Setter Property="Height" Value="32" />
+  <ControlTheme x:Key="{x:Type ui:StatusFilterPill}" TargetType="ui:StatusFilterPill" BasedOn="{StaticResource Pill}">
     <Setter Property="Padding" Value="11,0" />
-    <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="FontWeight" Value="Medium" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Cursor" Value="Hand" />
     <Setter Property="Template">
       <ControlTemplate>
-        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Tint}" BorderBrush="Transparent"
-                          BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
-                          Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Label}"
+        <ContentPresenter Name="PART_ContentPresenter" BorderBrush="Transparent" BorderThickness="{TemplateBinding BorderThickness}"
+                          CornerRadius="{TemplateBinding CornerRadius}"
+                          Padding="{TemplateBinding Padding}" Foreground="{Binding $parent[ui:StatusFilterPill].Tints.Label}"
                           Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
                           VerticalContentAlignment="Center">
           <ContentPresenter.Transitions>
@@ -346,46 +301,27 @@
         </ContentPresenter>
       </ControlTemplate>
     </Setter>
+    <Style Selector="^ /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].Tints.Tint}" />
+    </Style>
     <Style Selector="^:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].StrongTint}" />
+      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].Tints.StrongTint}" />
     </Style>
     <Style Selector="^:checked">
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="^:checked /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].StrongTint}" />
-      <Setter Property="BorderBrush" Value="{Binding $parent[ui:StatusFilterPill].Edge}" />
+      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].Tints.StrongTint}" />
+      <Setter Property="BorderBrush" Value="{Binding $parent[ui:StatusFilterPill].Tints.Edge}" />
     </Style>
   </ControlTheme>
 
   <!-- A filter by a value without a colour of its own, such as a team: quiet, with a light edge once chosen. -->
-  <ControlTheme x:Key="OptionPill" TargetType="ToggleButton">
-    <Setter Property="Height" Value="32" />
+  <ControlTheme x:Key="OptionPill" TargetType="ToggleButton" BasedOn="{StaticResource Pill}">
     <Setter Property="Padding" Value="11,0" />
-    <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
     <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Cursor" Value="Hand" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
-                          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                          CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
-                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
-                          VerticalContentAlignment="Center">
-          <ContentPresenter.Transitions>
-            <Transitions>
-              <BrushTransition Property="Background" Duration="0:0:0.15" />
-              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
-            </Transitions>
-          </ContentPresenter.Transitions>
-        </ContentPresenter>
-      </ControlTemplate>
-    </Setter>
     <Style Selector="^:pointerover">
       <Setter Property="Background" Value="{StaticResource FillBrush}" />
       <Setter Property="BorderBrush" Value="{StaticResource BorderHoverBrush}" />
@@ -415,9 +351,9 @@
           <StackPanel Spacing="4">
             <TextBlock Name="TileTitle" Text="{TemplateBinding Title}" FontSize="15" LineHeight="20" FontWeight="SemiBold"
                        TextAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" />
-            <TextBlock Text="{TemplateBinding Description}" FontSize="13" LineHeight="18" FontWeight="Normal" TextAlignment="Center"
+            <TextBlock Text="{TemplateBinding Message}" FontSize="13" LineHeight="18" FontWeight="Normal" TextAlignment="Center"
                        TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"
-                       IsVisible="{TemplateBinding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                       IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
         </StackPanel>
       </ControlTemplate>
@@ -440,8 +376,8 @@
             <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
               <TextBlock Text="{TemplateBinding Title}" FontSize="14" LineHeight="20" FontWeight="SemiBold" TextWrapping="Wrap"
                          Foreground="{StaticResource TextBrush}" />
-              <TextBlock Classes="caption" Text="{TemplateBinding Description}" MaxWidth="640" HorizontalAlignment="Left"
-                         IsVisible="{TemplateBinding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <TextBlock Classes="caption" Text="{TemplateBinding Message}" MaxWidth="640" HorizontalAlignment="Left"
+                         IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             </StackPanel>
             <ContentPresenter Name="PART_ContentPresenter" Grid.Column="2" Content="{TemplateBinding Content}"
                               ContentTemplate="{TemplateBinding ContentTemplate}" VerticalAlignment="Center" />
@@ -563,15 +499,18 @@
       <ControlTemplate>
         <Border Name="Base" Height="{TemplateBinding Height}" CornerRadius="{TemplateBinding CornerRadius}">
           <Border Name="Pill" Padding="{TemplateBinding Padding}" CornerRadius="{TemplateBinding CornerRadius}"
-                  Background="{TemplateBinding Tint}" BorderThickness="1" BorderBrush="Transparent">
+                  BorderThickness="1" BorderBrush="Transparent">
             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-              <Ellipse Width="6" Height="6" Fill="{TemplateBinding Label}" VerticalAlignment="Center" />
-              <TextBlock Classes="chip" Text="{TemplateBinding Text}" Foreground="{TemplateBinding Label}" VerticalAlignment="Center" />
+              <Ellipse Width="6" Height="6" Fill="{Binding $parent[ui:StatusPill].Tints.Label}" VerticalAlignment="Center" />
+              <TextBlock Classes="chip" Text="{TemplateBinding Text}" Foreground="{Binding $parent[ui:StatusPill].Tints.Label}" VerticalAlignment="Center" />
             </StackPanel>
           </Border>
         </Border>
       </ControlTemplate>
     </Setter>
+    <Style Selector="^ /template/ Border#Pill">
+      <Setter Property="Background" Value="{Binding $parent[ui:StatusPill].Tints.Tint}" />
+    </Style>
     <Style Selector="^.seam /template/ Border#Base">
       <Setter Property="Background" Value="{StaticResource SurfaceSeamBrush}" />
       <Setter Property="BoxShadow" Value="{StaticResource ElevSeamPill}" />
@@ -580,8 +519,8 @@
       <Setter Property="Background" Value="#C7030712" />
     </Style>
     <Style Selector="^.seam /template/ Border#Pill, ^.onArt /template/ Border#Pill">
-      <Setter Property="Background" Value="{Binding $parent[ui:StatusPill].StrongTint}" />
-      <Setter Property="BorderBrush" Value="{Binding $parent[ui:StatusPill].Edge}" />
+      <Setter Property="Background" Value="{Binding $parent[ui:StatusPill].Tints.StrongTint}" />
+      <Setter Property="BorderBrush" Value="{Binding $parent[ui:StatusPill].Tints.Edge}" />
     </Style>
   </ControlTheme>
 </ResourceDictionary>

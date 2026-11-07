@@ -22,7 +22,7 @@
             <Button Classes="tile" Margin="6" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}"
                     Command="{Binding $parent[ItemsControl].((overlays:ChoiceDialogViewModel)DataContext).ChooseCommand}"
                     CommandParameter="{Binding}">
-              <ui:TileContent Icon="{Binding Icon}" Title="{Binding Title}" Description="{Binding Description}"
+              <ui:TileContent Icon="{Binding Icon}" Title="{Binding Title}" Message="{Binding Description}"
                               Classes.danger="{Binding IsDanger}" />
             </Button>
           </DataTemplate>

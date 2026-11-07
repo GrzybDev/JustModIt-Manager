@@ -58,21 +58,21 @@
                        AutomationProperties.Name="{x:Static loc:Strings.Onboarding_AutomateEverything}"
                        AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_AutomateEverythingDescription}">
             <ui:TileContent Icon="{x:Static theme:Icons.Zap}" Title="{x:Static loc:Strings.Onboarding_AutomateEverything}"
-                            Description="{x:Static loc:Strings.Onboarding_AutomateEverythingDescription}" />
+                            Message="{x:Static loc:Strings.Onboarding_AutomateEverythingDescription}" />
           </RadioButton>
           <RadioButton Grid.Column="1" Theme="{StaticResource ChoiceTile}" Classes="compact"
                        IsChecked="{Binding Setup.Automation, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static onboarding:AutomationChoice.UpdatesOnly}}"
                        AutomationProperties.Name="{x:Static loc:Strings.Onboarding_AutomateUpdates}"
                        AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_AutomateUpdatesDescription}">
             <ui:TileContent Icon="{x:Static theme:Icons.RefreshCw}" Title="{x:Static loc:Strings.Onboarding_AutomateUpdates}"
-                            Description="{x:Static loc:Strings.Onboarding_AutomateUpdatesDescription}" />
+                            Message="{x:Static loc:Strings.Onboarding_AutomateUpdatesDescription}" />
           </RadioButton>
           <RadioButton Grid.Column="2" Theme="{StaticResource ChoiceTile}" Classes="compact"
                        IsChecked="{Binding Setup.Automation, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static onboarding:AutomationChoice.Nothing}}"
                        AutomationProperties.Name="{x:Static loc:Strings.Onboarding_AutomateNothing}"
                        AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_AutomateNothingDescription}">
             <ui:TileContent Icon="{x:Static theme:Icons.Hand}" Title="{x:Static loc:Strings.Onboarding_AutomateNothing}"
-                            Description="{x:Static loc:Strings.Onboarding_AutomateNothingDescription}" />
+                            Message="{x:Static loc:Strings.Onboarding_AutomateNothingDescription}" />
           </RadioButton>
         </Grid>
       </StackPanel>

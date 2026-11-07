@@ -6,6 +6,17 @@ using Avalonia.Media.Immutable;
 
 namespace JustModIt.Manager.Ui.Controls;
 
+/// <summary>The brushes a pill in the site's colour for a status is drawn with.</summary>
+/// <param name="Tint">The fill.</param>
+/// <param name="StrongTint">The stronger fill.</param>
+/// <param name="Label">The text and dot colour, readable on the fill.</param>
+/// <param name="Edge">The edge around the stronger fill.</param>
+public sealed record StatusTints(IBrush Tint, IBrush StrongTint, IBrush Label, IBrush Edge)
+{
+    /// <summary>What a pill shows before it is given a colour.</summary>
+    public static StatusTints None { get; } = new(Brushes.Transparent, Brushes.Transparent, Brushes.Gray, Brushes.Transparent);
+}
+
 /// <summary>
 /// A project's status on the site: a dot and its name in a pill tinted with the site's own colour for it, which is data
 /// and never written into the app. Classes <c>seam</c> (on the edge of a cover) and <c>onArt</c> (on artwork) change its
@@ -18,22 +29,10 @@ public sealed class StatusPill : TemplatedControl
     /// <summary>The site's colour as <c>#rrggbb</c>; anything unreadable shows as grey.</summary>
     public static readonly StyledProperty<string?> HexProperty = AvaloniaProperty.Register<StatusPill, string?>(nameof(Hex));
 
-    public static readonly DirectProperty<StatusPill, IBrush> TintProperty =
-        AvaloniaProperty.RegisterDirect<StatusPill, IBrush>(nameof(Tint), pill => pill.Tint);
+    public static readonly DirectProperty<StatusPill, StatusTints> TintsProperty =
+        AvaloniaProperty.RegisterDirect<StatusPill, StatusTints>(nameof(Tints), pill => pill.Tints);
 
-    public static readonly DirectProperty<StatusPill, IBrush> StrongTintProperty =
-        AvaloniaProperty.RegisterDirect<StatusPill, IBrush>(nameof(StrongTint), pill => pill.StrongTint);
-
-    public static readonly DirectProperty<StatusPill, IBrush> LabelProperty =
-        AvaloniaProperty.RegisterDirect<StatusPill, IBrush>(nameof(Label), pill => pill.Label);
-
-    public static readonly DirectProperty<StatusPill, IBrush> EdgeProperty =
-        AvaloniaProperty.RegisterDirect<StatusPill, IBrush>(nameof(Edge), pill => pill.Edge);
-
-    private IBrush _tint = Brushes.Transparent;
-    private IBrush _strongTint = Brushes.Transparent;
-    private IBrush _label = Brushes.Gray;
-    private IBrush _edge = Brushes.Transparent;
+    private StatusTints _tints = StatusTints.None;
 
     /// <summary>Creates a pill, grey until it is given the site's colour.</summary>
     public StatusPill() => Update();
@@ -50,32 +49,11 @@ public sealed class StatusPill : TemplatedControl
         set => SetValue(HexProperty, value);
     }
 
-    /// <summary>The site's colour at 15%, the pill's fill on a surface.</summary>
-    public IBrush Tint
+    /// <summary>The fill at 15% on a surface and at 22% on a cover's edge or on artwork, and the label at 40% as the edge there.</summary>
+    public StatusTints Tints
     {
-        get => _tint;
-        private set => SetAndRaise(TintProperty, ref _tint, value);
-    }
-
-    /// <summary>The site's colour at 22%, the pill's fill on a cover's edge or on artwork.</summary>
-    public IBrush StrongTint
-    {
-        get => _strongTint;
-        private set => SetAndRaise(StrongTintProperty, ref _strongTint, value);
-    }
-
-    /// <summary>The text and dot colour, readable on the fill.</summary>
-    public IBrush Label
-    {
-        get => _label;
-        private set => SetAndRaise(LabelProperty, ref _label, value);
-    }
-
-    /// <summary>The label colour at 40%, the edge of a pill on a cover.</summary>
-    public IBrush Edge
-    {
-        get => _edge;
-        private set => SetAndRaise(EdgeProperty, ref _edge, value);
+        get => _tints;
+        private set => SetAndRaise(TintsProperty, ref _tints, value);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -91,10 +69,11 @@ public sealed class StatusPill : TemplatedControl
     {
         var color = StatusColors.Parse(Hex);
         var label = StatusColors.Label(color);
-        Tint = new ImmutableSolidColorBrush(color, 0.15);
-        StrongTint = new ImmutableSolidColorBrush(color, 0.22);
-        Label = new ImmutableSolidColorBrush(label);
-        Edge = new ImmutableSolidColorBrush(label, 0.4);
+        Tints = new StatusTints(
+            Tint: new ImmutableSolidColorBrush(color, 0.15),
+            StrongTint: new ImmutableSolidColorBrush(color, 0.22),
+            Label: new ImmutableSolidColorBrush(label),
+            Edge: new ImmutableSolidColorBrush(label, 0.4));
     }
 }
 
@@ -104,22 +83,10 @@ public sealed class StatusFilterPill : ToggleButton
     /// <summary>The site's colour as <c>#rrggbb</c>; anything unreadable shows as grey.</summary>
     public static readonly StyledProperty<string?> HexProperty = AvaloniaProperty.Register<StatusFilterPill, string?>(nameof(Hex));
 
-    public static readonly DirectProperty<StatusFilterPill, IBrush> TintProperty =
-        AvaloniaProperty.RegisterDirect<StatusFilterPill, IBrush>(nameof(Tint), pill => pill.Tint);
+    public static readonly DirectProperty<StatusFilterPill, StatusTints> TintsProperty =
+        AvaloniaProperty.RegisterDirect<StatusFilterPill, StatusTints>(nameof(Tints), pill => pill.Tints);
 
-    public static readonly DirectProperty<StatusFilterPill, IBrush> StrongTintProperty =
-        AvaloniaProperty.RegisterDirect<StatusFilterPill, IBrush>(nameof(StrongTint), pill => pill.StrongTint);
-
-    public static readonly DirectProperty<StatusFilterPill, IBrush> LabelProperty =
-        AvaloniaProperty.RegisterDirect<StatusFilterPill, IBrush>(nameof(Label), pill => pill.Label);
-
-    public static readonly DirectProperty<StatusFilterPill, IBrush> EdgeProperty =
-        AvaloniaProperty.RegisterDirect<StatusFilterPill, IBrush>(nameof(Edge), pill => pill.Edge);
-
-    private IBrush _tint = Brushes.Transparent;
-    private IBrush _strongTint = Brushes.Transparent;
-    private IBrush _label = Brushes.Gray;
-    private IBrush _edge = Brushes.Transparent;
+    private StatusTints _tints = StatusTints.None;
 
     /// <summary>Creates a pill, grey until it is given the site's colour.</summary>
     public StatusFilterPill() => Update();
@@ -130,32 +97,11 @@ public sealed class StatusFilterPill : ToggleButton
         set => SetValue(HexProperty, value);
     }
 
-    /// <summary>The site's colour at 13%, the fill of a pill not chosen.</summary>
-    public IBrush Tint
+    /// <summary>The fill at 13%, and once chosen at 26% with the site's colour at 70% as the edge.</summary>
+    public StatusTints Tints
     {
-        get => _tint;
-        private set => SetAndRaise(TintProperty, ref _tint, value);
-    }
-
-    /// <summary>The site's colour at 26%, the fill of the chosen pill.</summary>
-    public IBrush StrongTint
-    {
-        get => _strongTint;
-        private set => SetAndRaise(StrongTintProperty, ref _strongTint, value);
-    }
-
-    /// <summary>The text and dot colour, readable on the fill.</summary>
-    public IBrush Label
-    {
-        get => _label;
-        private set => SetAndRaise(LabelProperty, ref _label, value);
-    }
-
-    /// <summary>The site's colour at 70%, the edge of the chosen pill.</summary>
-    public IBrush Edge
-    {
-        get => _edge;
-        private set => SetAndRaise(EdgeProperty, ref _edge, value);
+        get => _tints;
+        private set => SetAndRaise(TintsProperty, ref _tints, value);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -170,10 +116,11 @@ public sealed class StatusFilterPill : ToggleButton
     private void Update()
     {
         var color = StatusColors.Parse(Hex);
-        Tint = new ImmutableSolidColorBrush(color, 0.13);
-        StrongTint = new ImmutableSolidColorBrush(color, 0.26);
-        Label = new ImmutableSolidColorBrush(StatusColors.Label(color));
-        Edge = new ImmutableSolidColorBrush(color, 0.7);
+        Tints = new StatusTints(
+            Tint: new ImmutableSolidColorBrush(color, 0.13),
+            StrongTint: new ImmutableSolidColorBrush(color, 0.26),
+            Label: new ImmutableSolidColorBrush(StatusColors.Label(color)),
+            Edge: new ImmutableSolidColorBrush(color, 0.7));
     }
 }
 
