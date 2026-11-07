@@ -125,6 +125,23 @@
     </Style>
   </ControlTheme>
 
+  <!-- The body of a pill or a choice tile. -->
+  <ControlTemplate x:Key="ToggleBody" TargetType="ToggleButton">
+    <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                      CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
+                      Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}">
+      <ContentPresenter.Transitions>
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.15" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+        </Transitions>
+      </ContentPresenter.Transitions>
+    </ContentPresenter>
+  </ControlTemplate>
+
   <!-- A choice among a few options: a centred tile whose selection shows through the accent alone, no radio dot. -->
   <ControlTheme x:Key="ChoiceTile" TargetType="RadioButton">
     <Setter Property="Padding" Value="16,18,16,16" />
@@ -137,23 +154,7 @@
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="VerticalContentAlignment" Value="Top" />
     <Setter Property="Cursor" Value="Hand" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
-                          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                          CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
-                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
-                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}">
-          <ContentPresenter.Transitions>
-            <Transitions>
-              <BrushTransition Property="Background" Duration="0:0:0.15" />
-              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
-            </Transitions>
-          </ContentPresenter.Transitions>
-        </ContentPresenter>
-      </ControlTemplate>
-    </Setter>
+    <Setter Property="Template" Value="{StaticResource ToggleBody}" />
     <Style Selector="^:pointerover">
       <Setter Property="Background" Value="{StaticResource FillBrush}" />
       <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
@@ -173,22 +174,8 @@
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Cursor" Value="Hand" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}"
-                          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                          CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
-                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
-                          VerticalContentAlignment="Center">
-          <ContentPresenter.Transitions>
-            <Transitions>
-              <BrushTransition Property="Background" Duration="0:0:0.15" />
-              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
-            </Transitions>
-          </ContentPresenter.Transitions>
-        </ContentPresenter>
-      </ControlTemplate>
-    </Setter>
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Template" Value="{StaticResource ToggleBody}" />
   </ControlTheme>
 
   <!-- The order of a list: three quiet pills instead of a dropdown. -->
@@ -285,34 +272,16 @@
   <!-- A filter by a project's status, in the site's colour: 13% when not chosen, 26% with a 70% edge once chosen. -->
   <ControlTheme x:Key="{x:Type ui:StatusFilterPill}" TargetType="ui:StatusFilterPill" BasedOn="{StaticResource Pill}">
     <Setter Property="Padding" Value="11,0" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <ContentPresenter Name="PART_ContentPresenter" BorderBrush="Transparent" BorderThickness="{TemplateBinding BorderThickness}"
-                          CornerRadius="{TemplateBinding CornerRadius}"
-                          Padding="{TemplateBinding Padding}" Foreground="{Binding $parent[ui:StatusFilterPill].Tints.Label}"
-                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
-                          VerticalContentAlignment="Center">
-          <ContentPresenter.Transitions>
-            <Transitions>
-              <BrushTransition Property="Background" Duration="0:0:0.15" />
-              <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
-            </Transitions>
-          </ContentPresenter.Transitions>
-        </ContentPresenter>
-      </ControlTemplate>
-    </Setter>
-    <Style Selector="^ /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].Tints.Tint}" />
-    </Style>
-    <Style Selector="^:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].Tints.StrongTint}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{Binding $self.Tints.Label}" />
+    <Setter Property="Background" Value="{Binding $self.Tints.Tint}" />
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{Binding $self.Tints.StrongTint}" />
     </Style>
     <Style Selector="^:checked">
       <Setter Property="FontWeight" Value="SemiBold" />
-    </Style>
-    <Style Selector="^:checked /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{Binding $parent[ui:StatusFilterPill].Tints.StrongTint}" />
-      <Setter Property="BorderBrush" Value="{Binding $parent[ui:StatusFilterPill].Tints.Edge}" />
+      <Setter Property="Background" Value="{Binding $self.Tints.StrongTint}" />
+      <Setter Property="BorderBrush" Value="{Binding $self.Tints.Edge}" />
     </Style>
   </ControlTheme>
 

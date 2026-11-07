@@ -422,6 +422,16 @@
     </DataTemplate>
 
     <!-- The next step, used at the panel's foot or, in a short window, at its head. -->
+    <DataTemplate x:Key="CheckFilesBody" x:DataType="game:NextStep">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <ui:StoreIcon Store="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).Store}" Width="16" Height="16"
+                      VerticalAlignment="Center" />
+        <TextBlock Text="{Binding CheckFilesLabel}" VerticalAlignment="Center" />
+        <ui:Icon Data="{x:Static theme:Icons.ArrowUpRight}" Width="14" Height="14" VerticalAlignment="Center"
+                 Foreground="{StaticResource TextSecondaryBrush}" />
+      </StackPanel>
+    </DataTemplate>
+
     <DataTemplate x:Key="StepTemplate" x:DataType="game:NextStep">
       <Border Classes="band" Classes.accent="{Binding IsAccent}" Classes.info="{Binding IsInfo}" Classes.success="{Binding IsSuccess}"
               Classes.warning="{Binding IsWarning}" Classes.danger="{Binding IsDanger}" Classes.neutral="{Binding IsNeutral}"
@@ -473,15 +483,7 @@
                            Label="{Binding Warning}" IsVisible="{Binding HasWarning}" />
             <Button x:Name="CheckFilesUnder" Classes="outline onArt checkFiles" Margin="0,8,0,0" HorizontalAlignment="Left"
                     IsVisible="{Binding ChecksUnder}" AutomationProperties.Name="{Binding CheckFilesLabel}"
-                    Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).CheckFilesCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <ui:StoreIcon Store="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).Store}" Width="16" Height="16"
-                             VerticalAlignment="Center" />
-                <TextBlock Text="{Binding CheckFilesLabel}" VerticalAlignment="Center" />
-                <ui:Icon Data="{x:Static theme:Icons.ArrowUpRight}" Width="14" Height="14" VerticalAlignment="Center"
-                         Foreground="{StaticResource TextSecondaryBrush}" />
-              </StackPanel>
-            </Button>
+                    Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).CheckFilesCommand}" Content="{Binding}" ContentTemplate="{StaticResource CheckFilesBody}" />
             <Grid Margin="0,8,0,0" IsVisible="{Binding IsJob}">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" MaxWidth="640" />
@@ -541,15 +543,7 @@
                     IsVisible="{Binding HasSecondary}" Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).SecondaryCommand}" />
             <Button x:Name="CheckFilesButton" Classes="outline onArt checkFiles" IsVisible="{Binding ChecksBeside}"
                     AutomationProperties.Name="{Binding CheckFilesLabel}"
-                    Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).CheckFilesCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <ui:StoreIcon Store="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).Store}" Width="16" Height="16"
-                             VerticalAlignment="Center" />
-                <TextBlock Text="{Binding CheckFilesLabel}" VerticalAlignment="Center" />
-                <ui:Icon Data="{x:Static theme:Icons.ArrowUpRight}" Width="14" Height="14" VerticalAlignment="Center"
-                         Foreground="{StaticResource TextSecondaryBrush}" />
-              </StackPanel>
-            </Button>
+                    Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).CheckFilesCommand}" Content="{Binding}" ContentTemplate="{StaticResource CheckFilesBody}" />
           </Panel>
           <Button x:Name="DismissStep" Grid.Column="3" Classes="icon" VerticalAlignment="Top" Margin="0,-10,0,0" IsVisible="{Binding CanDismiss}"
                   ToolTip.Tip="{x:Static loc:Strings.GamePage_Dismiss}"

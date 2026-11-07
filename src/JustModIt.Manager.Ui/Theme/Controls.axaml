@@ -185,11 +185,18 @@
     <Setter Property="Foreground" Value="{StaticResource DangerTextStrongBrush}" />
   </Style>
 
-  <!-- A link: underlined in white at 30%, in the text's colour under the pointer. -->
-  <Style Selector="Button.link">
+  <Style Selector="Button.link, Button.inlineLink">
     <Setter Property="Height" Value="NaN" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.inlineLink:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+
+  <!-- A link: underlined in white at 30%, in the text's colour under the pointer. -->
+  <Style Selector="Button.link">
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="ContentTemplate">
       <DataTemplate x:DataType="x:String">
@@ -207,10 +214,6 @@
       </DataTemplate>
     </Setter>
   </Style>
-  <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
-  </Style>
 
   <!-- Game files listed in a frame, as wide as their longest path and no wider than the line. -->
   <Style Selector="ui|PathList">
@@ -222,25 +225,12 @@
     <Setter Property="HorizontalAlignment" Value="Left" />
   </Style>
 
-  <!-- The link that unfolds such a list, at the end of the line that counts its files. -->
-  <Style Selector="Button.filesToggle">
+  <!-- The link that unfolds such a list, at the end of the line that counts its files; a link inside a sentence or a fact
+       line: no box, only its text, brighter under the pointer. -->
+  <Style Selector="Button.filesToggle, Button.inlineLink">
     <Setter Property="FontSize" Value="13" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-  </Style>
-
-  <!-- A link inside a sentence or a fact line: no box, only its text, brighter under the pointer. -->
-  <Style Selector="Button.inlineLink">
-    <Setter Property="Height" Value="NaN" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-  </Style>
-  <Style Selector="Button.inlineLink:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
   </Style>
 
   <!-- A square of 32 px (40 with .large) around a 16 px icon, named by its tooltip. -->
@@ -426,7 +416,7 @@
   </Style>
 
   <!-- A page: only its content scrolls; 40 px of margin, 32 px when the content is narrower than 1040 px. -->
-  <Style Selector="ScrollViewer.page">
+  <Style Selector="ScrollViewer.page, ScrollViewer.setupStep">
     <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
     <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
   </Style>

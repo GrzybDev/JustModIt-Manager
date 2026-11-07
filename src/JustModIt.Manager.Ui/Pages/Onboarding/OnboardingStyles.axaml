@@ -82,10 +82,6 @@
   </Style>
 
   <!-- A step: a header with the step's icon, then its sections 22 px apart. -->
-  <Style Selector="ScrollViewer.setupStep">
-    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
-    <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
-  </Style>
   <Style Selector="StackPanel.setupStep">
     <Setter Property="Margin" Value="40,34,40,24" />
     <Setter Property="Spacing" Value="22" />

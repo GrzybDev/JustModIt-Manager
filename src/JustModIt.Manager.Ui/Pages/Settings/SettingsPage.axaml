@@ -51,12 +51,6 @@
     <Style Selector="Grid.size">
       <Setter Property="ColumnSpacing" Value="10" />
     </Style>
-    <Style Selector="Grid.size > ui|Icon">
-      <Setter Property="Width" Value="16" />
-      <Setter Property="Height" Value="16" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-    </Style>
     <Style Selector="Border.footer">
       <Setter Property="Background" Value="#05FFFFFF" />
       <Setter Property="Padding" Value="20,14,20,16" />

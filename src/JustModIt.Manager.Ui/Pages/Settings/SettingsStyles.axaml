@@ -65,7 +65,7 @@
     <Setter Property="FontSize" Value="14" />
     <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
   </Style>
-  <Style Selector="Button.aboutLink ui|Icon">
+  <Style Selector="Button.aboutLink ui|Icon, Grid.size > ui|Icon">
     <Setter Property="Width" Value="16" />
     <Setter Property="Height" Value="16" />
     <Setter Property="VerticalAlignment" Value="Center" />
