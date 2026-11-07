@@ -53,19 +53,14 @@ public sealed record SiteConfiguration
             IsUnderMaintenance = maintenance.ValueKind == JsonValueKind.Object && (maintenance.GetBooleanOrNull("active") ?? false),
             ReleaseFiles = new ReleaseFileRules
             {
-                MaxBytes = limits?.GetOrNull("release_file_max_bytes", JsonValueKind.Number) is { } max
-                    && max.TryGetInt64(out var bytes) && bytes > 0
-                        ? bytes
-                        : null,
-                Formats = root.GetOrNull("release_file_formats", JsonValueKind.Array) is { } formats
-                    ? [.. formats.EnumerateArray().Select(ReadFormat).OfType<ReleaseFileFormat>()]
-                    : [],
+                MaxBytes = limits?.GetInt64OrNull("release_file_max_bytes") is { } bytes and > 0 ? bytes : null,
+                Formats = [.. root.GetItems("release_file_formats").Select(ReadFormat).OfType<ReleaseFileFormat>()],
             },
         };
     }
 
     private static ReleaseFileFormat? ReadFormat(JsonElement format) =>
-        format.ValueKind == JsonValueKind.Object && format.GetTextOrNull("extension") is { } extension
+        format.GetTextOrNull("extension") is { } extension
             ? new ReleaseFileFormat
             {
                 Extension = extension,
