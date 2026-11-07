@@ -158,11 +158,11 @@ public sealed class AppLinks
 
     private static string? Decode(string segment)
     {
-        var value = Uri.UnescapeDataString(segment);
-        var valid = value.Length <= MaxSegmentLength
-            && !string.IsNullOrWhiteSpace(value)
-            && value is not ("." or "..")
-            && !value.Any(character => char.IsControl(character) || character is '/' or '\\');
-        return valid ? value : null;
+        if (DecodeName(segment) is not { } name || name is "." or ".." || name.Any(character => character is '/' or '\\'))
+        {
+            return null;
+        }
+
+        return name;
     }
 }
