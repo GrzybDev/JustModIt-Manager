@@ -180,8 +180,14 @@ public sealed class StatusLine : Grid
             Tone.Danger => "DangerTextBrush",
             _ => "NeutralTextBrush",
         };
-        return control.TryFindResource(key, control.ActualThemeVariant, out var brush) && brush is IBrush found ? found : Brushes.Gray;
+        return ThemeBrush(control, key) ?? Brushes.Gray;
     }
+
+    /// <summary>A brush of the theme; null when the control's resources hold none of that key.</summary>
+    /// <param name="control">A control in the window, whose resources hold the theme.</param>
+    /// <param name="key">The brush's key.</param>
+    public static IBrush? ThemeBrush(Control control, string key) =>
+        control.TryFindResource(key, control.ActualThemeVariant, out var brush) ? brush as IBrush : null;
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -203,8 +209,8 @@ public sealed class StatusLine : Grid
     private void Rebuild()
     {
         var tone = ToneBrush(this, Tone);
-        var muted = this.TryFindResource("TextMutedBrush", ActualThemeVariant, out var mutedBrush) ? mutedBrush as IBrush : null;
-        var secondary = this.TryFindResource("TextSecondaryBrush", ActualThemeVariant, out var secondaryBrush) ? secondaryBrush as IBrush : null;
+        var muted = ThemeBrush(this, "TextMutedBrush");
+        var secondary = ThemeBrush(this, "TextSecondaryBrush");
         _icon.Data = Icon;
         _icon.IsVisible = Icon is not null;
         _icon.Foreground = tone;

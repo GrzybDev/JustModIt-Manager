@@ -173,7 +173,7 @@ public sealed partial class CataloguePageViewModel : PageViewModel, IDisposable
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowsGames), nameof(IsLoading), nameof(ShowsEmptyState), nameof(ShowsFilters), nameof(IsUnavailable),
-        nameof(ShowsClearInCard), nameof(ArePillsLoading), nameof(OffersMine), nameof(ShowsWideMine), nameof(ShowsCompactMine))]
+        nameof(ShowsClearInCard), nameof(OffersMine), nameof(ShowsWideMine), nameof(ShowsCompactMine))]
     public partial CatalogueContent Content { get; private set; }
 
     [ObservableProperty]
@@ -302,11 +302,8 @@ public sealed partial class CataloguePageViewModel : PageViewModel, IDisposable
 
     public bool ShowsFilters => Content != CatalogueContent.Unavailable;
 
-    /// <summary>The pills wait for the catalogue as the cards do.</summary>
-    public bool ArePillsLoading => Content == CatalogueContent.Loading;
-
     /// <summary>"On this computer" is offered once the games found here are matched, and while one of them fits the rest.</summary>
-    public bool OffersMine => !ArePillsLoading && (DetectedCount > 0 || DetectedOnly);
+    public bool OffersMine => !IsLoading && (DetectedCount > 0 || DetectedOnly);
 
     public bool ShowsWideMine => OffersMine && !IsCompact;
 
@@ -630,8 +627,8 @@ public sealed partial class CataloguePageViewModel : PageViewModel, IDisposable
         CardGrid.Sync(StatusOptions, Options(CatalogueFilter.Status, filters.Statuses, facets.Statuses, Status, byCount: false));
         CardGrid.Sync(StatusPills, [_allStatuses, .. StatusOptions, _statusesHelp]);
         CardGrid.Sync(TeamOptions, Options(CatalogueFilter.Team, filters.Teams, facets.Teams, Team, byCount: true));
-        ShowsTeams = TeamOptions.Count > 0 && !ArePillsLoading;
-        ShowsTeamLabel = ShowsTeams || ArePillsLoading;
+        ShowsTeams = TeamOptions.Count > 0 && !IsLoading;
+        ShowsTeamLabel = ShowsTeams || IsLoading;
         var shown = new List<FilterGroup>();
         foreach (var group in MoreGroups)
         {
@@ -652,7 +649,7 @@ public sealed partial class CataloguePageViewModel : PageViewModel, IDisposable
         }
 
         CardGrid.Sync(ShownGroups, shown);
-        ShowsMore = (ShownGroups.Count > 0 || OffersAdult) && !ArePillsLoading;
+        ShowsMore = (ShownGroups.Count > 0 || OffersAdult) && !IsLoading;
         ShowMoreText();
     }
 

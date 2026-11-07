@@ -100,7 +100,7 @@ public sealed class TrailingAction : Panel
         base.OnAttachedToLogicalTree(e);
         _text.LineHeight = LineHeight;
         _separator.LineHeight = LineHeight;
-        if (this.TryFindResource("TextMutedBrush", ActualThemeVariant, out var muted) && muted is IBrush brush)
+        if (StatusLine.ThemeBrush(this, "TextMutedBrush") is { } brush)
         {
             _separator.Foreground = brush;
         }

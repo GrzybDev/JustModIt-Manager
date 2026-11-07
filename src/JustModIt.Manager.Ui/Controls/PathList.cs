@@ -48,8 +48,8 @@ public sealed class PathList : Border
     private void Rebuild()
     {
         _lines.Children.Clear();
-        var secondary = Brush("TextSecondaryBrush");
-        var bright = Brush("TextBrush");
+        var secondary = StatusLine.ThemeBrush(this, "TextSecondaryBrush");
+        var bright = StatusLine.ThemeBrush(this, "TextBrush");
         foreach (var path in Paths ?? [])
         {
             var cut = path.LastIndexOf('/') + 1;
@@ -71,6 +71,4 @@ public sealed class PathList : Border
             _lines.Children.Add(line);
         }
     }
-
-    private IBrush? Brush(string key) => this.TryFindResource(key, ActualThemeVariant, out var brush) ? brush as IBrush : null;
 }

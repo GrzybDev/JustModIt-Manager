@@ -239,14 +239,14 @@
 
           <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="8">
             <Panel>
-              <WrapPanel ItemSpacing="8" LineSpacing="8" IsVisible="{Binding ArePillsLoading}">
+              <WrapPanel ItemSpacing="8" LineSpacing="8" IsVisible="{Binding IsLoading}">
                 <ui:Skeleton Width="106" Height="32" CornerRadius="999" />
                 <ui:Skeleton Width="132" Height="32" CornerRadius="999" />
                 <ui:Skeleton Width="98" Height="32" CornerRadius="999" />
                 <ui:Skeleton Width="186" Height="32" CornerRadius="999" />
                 <ui:Skeleton Width="146" Height="32" CornerRadius="999" />
               </WrapPanel>
-              <ItemsControl x:Name="StatusRow" ItemsSource="{Binding StatusPills}" IsVisible="{Binding !ArePillsLoading}"
+              <ItemsControl x:Name="StatusRow" ItemsSource="{Binding StatusPills}" IsVisible="{Binding !IsLoading}"
                             AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Statuses}" ItemsPanel="{StaticResource WrapItems8}">
                 <ItemsControl.DataTemplates>
                   <DataTemplate x:DataType="cat:AllStatusesPill">
@@ -303,7 +303,7 @@
 
           <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
             <TextBlock Classes="rowLabel" Text="{x:Static loc:Strings.Catalogue_Team}" IsVisible="{Binding ShowsTeamLabel}" />
-            <WrapPanel Grid.Column="1" ItemSpacing="8" LineSpacing="8" IsVisible="{Binding ArePillsLoading}">
+            <WrapPanel Grid.Column="1" ItemSpacing="8" LineSpacing="8" IsVisible="{Binding IsLoading}">
               <ui:Skeleton Width="130" Height="32" CornerRadius="999" />
               <ui:Skeleton Width="104" Height="32" CornerRadius="999" />
               <ui:Skeleton Width="118" Height="32" CornerRadius="999" />
