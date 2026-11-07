@@ -5,8 +5,10 @@ What a JustModIt site needs for the apps to work with it.
 ## API
 
 The apps use the site's public API, without cookies and without a player's account. They read `system/v1/config`, the
-`games/v1/` listing and its filters, and each project's page at `games/v1/<game>/projects/<team>/`. Fields other than
-ids and names are optional, so older backends keep working.
+`games/v1/` listing, the lists behind its filters (teams, statuses, project types, genres, platforms and store
+platforms) and each project's page at `games/v1/<game>/projects/<team>/`. A list that the backend does not offer leaves
+its filter empty, and without the configuration the apps use their defaults. Fields other than ids, slugs, names and
+add-on keys, and a project's game and team, are optional, so older backends keep working.
 
 ## Matching games
 
