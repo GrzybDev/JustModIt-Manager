@@ -262,14 +262,10 @@
                       </ItemsControl>
                     </WrapPanel>
                   </StackPanel>
-                  <Panel Grid.Column="2" VerticalAlignment="Center">
-                    <Button Classes="outline rowAction" Content="{Binding ActionText}" ui:ButtonAssist.Icon="{Binding ActionIcon}"
-                            IsVisible="{Binding !IsDanger}" AutomationProperties.Name="{Binding ActionName}"
-                            Command="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).ActCommand}" CommandParameter="{Binding}" />
-                    <Button Classes="danger rowAction" Content="{Binding ActionText}" ui:ButtonAssist.Icon="{Binding ActionIcon}"
-                            IsVisible="{Binding IsDanger}" AutomationProperties.Name="{Binding ActionName}"
-                            Command="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).ActCommand}" CommandParameter="{Binding}" />
-                  </Panel>
+                  <Button Grid.Column="2" Classes="rowAction" Classes.outline="{Binding !IsDanger}" Classes.danger="{Binding IsDanger}"
+                          VerticalAlignment="Center" Content="{Binding ActionText}" ui:ButtonAssist.Icon="{Binding ActionIcon}"
+                          AutomationProperties.Name="{Binding ActionName}"
+                          Command="{Binding $parent[UserControl].((lib:LibraryPageViewModel)DataContext).ActCommand}" CommandParameter="{Binding}" />
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -300,7 +296,8 @@
             <TextBlock Classes="h3" Text="{x:Static loc:Strings.Library_Others}" Margin="0,0,8,0" VerticalAlignment="Center"
                        IsVisible="{Binding ShowsTodo}" />
             <StackPanel Orientation="Horizontal" Spacing="8" AutomationProperties.Name="{x:Static loc:Strings.Library_Filters}">
-              <RadioButton x:Name="FilterAll" Theme="{StaticResource FilterPill}" Classes="all" GroupName="filter" IsChecked="{Binding ShowsAll}"
+              <RadioButton x:Name="FilterAll" Theme="{StaticResource FilterPill}" Classes="all" GroupName="filter"
+                           IsChecked="{Binding Filter, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static lib:LibraryFilter.All}}"
                            AutomationProperties.Name="{x:Static loc:Strings.Library_FilterAll}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <TextBlock Text="{x:Static loc:Strings.Library_FilterAll}" />
@@ -308,14 +305,16 @@
                 </StackPanel>
               </RadioButton>
               <RadioButton x:Name="FilterInstalled" Theme="{StaticResource FilterPill}" Classes="success" GroupName="filter"
-                           IsChecked="{Binding ShowsInstalled}" AutomationProperties.Name="{x:Static loc:Strings.Library_FilterInstalled}">
+                           IsChecked="{Binding Filter, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static lib:LibraryFilter.Installed}}"
+                           AutomationProperties.Name="{x:Static loc:Strings.Library_FilterInstalled}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <Ellipse Classes="dot" />
                   <TextBlock Text="{x:Static loc:Strings.Library_FilterInstalled}" />
                   <TextBlock Classes="pillCount" Text="{Binding InstalledCount}" />
                 </StackPanel>
               </RadioButton>
-              <RadioButton x:Name="FilterAvailable" Theme="{StaticResource FilterPill}" GroupName="filter" IsChecked="{Binding ShowsAvailable}"
+              <RadioButton x:Name="FilterAvailable" Theme="{StaticResource FilterPill}" GroupName="filter"
+                           IsChecked="{Binding Filter, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static lib:LibraryFilter.Available}}"
                            AutomationProperties.Name="{x:Static loc:Strings.Library_FilterAvailable}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <Ellipse Classes="dot" />
@@ -324,8 +323,8 @@
                 </StackPanel>
               </RadioButton>
               <RadioButton x:Name="FilterHidden" Theme="{StaticResource FilterPill}" Classes="neutral" GroupName="filter"
-                           IsChecked="{Binding ShowsHidden}" IsVisible="{Binding ShowsHiddenFilter}"
-                           AutomationProperties.Name="{x:Static loc:Strings.Library_FilterHidden}">
+                           IsChecked="{Binding Filter, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static lib:LibraryFilter.Hidden}}"
+                           IsVisible="{Binding ShowsHiddenFilter}" AutomationProperties.Name="{x:Static loc:Strings.Library_FilterHidden}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <ui:Icon Data="{x:Static theme:Icons.EyeOff}" Width="12" Height="12" VerticalAlignment="Center" />
                   <TextBlock Text="{x:Static loc:Strings.Library_FilterHidden}" />
@@ -339,9 +338,9 @@
             <ui:Icon Data="{x:Static theme:Icons.ArrowDownWideNarrow}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
                      Margin="0,0,2,0" />
             <RadioButton Theme="{StaticResource SortPill}" GroupName="sort" Content="{x:Static loc:Strings.Library_SortName}"
-                         IsChecked="{Binding SortsByName}" />
+                         IsChecked="{Binding Sort, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static lib:LibrarySort.Name}}" />
             <RadioButton Theme="{StaticResource SortPill}" GroupName="sort" Content="{x:Static loc:Strings.Library_SortRecent}"
-                         IsChecked="{Binding SortsByRecent}" />
+                         IsChecked="{Binding Sort, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static lib:LibrarySort.Recent}}" />
           </StackPanel>
         </Grid>
 
@@ -408,13 +407,10 @@
                             <Grid RowDefinitions="Auto,Auto,*,Auto">
                               <TextBlock Classes="cardName" Text="{Binding Name}" />
                               <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6" Margin="0,6,0,0">
-                                <Panel VerticalAlignment="Center">
-                                  <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" IsVisible="{Binding !HasManyTeams}" />
-                                  <StackPanel Orientation="Horizontal" Spacing="-4" IsVisible="{Binding HasManyTeams}">
-                                    <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" />
-                                    <ui:TeamBadge NameText="{Binding OtherBadgeName}" Avatar="{Binding OtherBadgeAvatar}" />
-                                  </StackPanel>
-                                </Panel>
+                                <StackPanel Orientation="Horizontal" Spacing="-4" VerticalAlignment="Center">
+                                  <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" />
+                                  <ui:TeamBadge NameText="{Binding OtherBadgeName}" Avatar="{Binding OtherBadgeAvatar}" IsVisible="{Binding HasManyTeams}" />
+                                </StackPanel>
                                 <TextBlock Grid.Column="1" Text="{Binding TeamName}" FontSize="13" LineHeight="18"
                                            Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 <Border Grid.Column="2" Classes="adultMark" IsVisible="{Binding IsAdult}" VerticalAlignment="Center"

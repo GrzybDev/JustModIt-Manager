@@ -131,7 +131,6 @@ public sealed partial class CataloguePageViewModel : PageViewModel, IDisposable
     public partial bool DetectedOnly { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SortsByReleased), nameof(SortsByPopularity), nameof(SortsByName))]
     public partial CatalogueOrder Order { get; set; }
 
     /// <summary>Adult games too; turning it on asks for the player's age first.</summary>
@@ -170,24 +169,6 @@ public sealed partial class CataloguePageViewModel : PageViewModel, IDisposable
                 Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsAllStatuses)));
             }
         }
-    }
-
-    public bool SortsByReleased
-    {
-        get => Order == CatalogueOrder.Released;
-        set => Sort(value, CatalogueOrder.Released);
-    }
-
-    public bool SortsByPopularity
-    {
-        get => Order == CatalogueOrder.Popular;
-        set => Sort(value, CatalogueOrder.Popular);
-    }
-
-    public bool SortsByName
-    {
-        get => Order == CatalogueOrder.Alphabetical;
-        set => Sort(value, CatalogueOrder.Alphabetical);
     }
 
     [ObservableProperty]
@@ -450,14 +431,6 @@ public sealed partial class CataloguePageViewModel : PageViewModel, IDisposable
         if (await AdultContent.ConfirmAsync(_services).ConfigureAwait(true) && SetProperty(ref _includeAdult, true, nameof(IncludeAdult)))
         {
             Requery(keep: false);
-        }
-    }
-
-    private void Sort(bool value, CatalogueOrder order)
-    {
-        if (value)
-        {
-            Order = order;
         }
     }
 

@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:settings="using:JustModIt.Manager.Ui.Pages.Settings"
-             xmlns:onboarding="using:JustModIt.Manager.Ui.Pages.Onboarding"
              xmlns:core="using:JustModIt.Manager.Core.Settings"
              xmlns:ui="using:JustModIt.Manager.Ui.Controls"
              xmlns:theme="using:JustModIt.Manager.Ui.Theme"
@@ -82,21 +81,21 @@
                            Description="{x:Static loc:Strings.Settings_CloseBehaviorDescription}">
               <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
                 <RadioButton x:Name="CloseAsk" Theme="{StaticResource ChoiceTile}"
-                             IsChecked="{Binding CloseBehavior, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Ask}}"
+                             IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Ask}}"
                              AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CloseAsk}"
                              AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_CloseAskDescription}">
                   <ui:TileContent Icon="{x:Static theme:Icons.CircleHelp}" Title="{x:Static loc:Strings.Onboarding_CloseAsk}"
                                   Description="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
                 </RadioButton>
                 <RadioButton x:Name="CloseTray" Grid.Column="1" Theme="{StaticResource ChoiceTile}"
-                             IsChecked="{Binding CloseBehavior, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.MinimizeToTray}}"
+                             IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.MinimizeToTray}}"
                              AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseToTray}"
                              AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseToTrayDescription}">
                   <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static loc:Strings.Shell_CloseToTray}"
                                   Description="{x:Static loc:Strings.Shell_CloseToTrayDescription}" />
                 </RadioButton>
                 <RadioButton x:Name="CloseExit" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
-                             IsChecked="{Binding CloseBehavior, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Exit}}"
+                             IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Exit}}"
                              AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseExit}"
                              AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseExitDescription}">
                   <ui:TileContent Icon="{x:Static theme:Icons.Power}" Title="{x:Static loc:Strings.Shell_CloseExit}"
@@ -155,7 +154,7 @@
               <StackPanel Spacing="16">
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
                   <RadioButton x:Name="BackupsInGameFolder" Theme="{StaticResource ChoiceTile}"
-                               IsChecked="{Binding Backups.Location, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.GameFolder}}"
+                               IsChecked="{Binding Backups.Location, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.GameFolder}}"
                                AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupGameFolder}"
                                AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupGameFolderDescription}">
                     <Panel>
@@ -167,14 +166,14 @@
                     </Panel>
                   </RadioButton>
                   <RadioButton x:Name="BackupsInAppData" Grid.Column="1" Theme="{StaticResource ChoiceTile}"
-                               IsChecked="{Binding Backups.Location, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.AppData}}"
+                               IsChecked="{Binding Backups.Location, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.AppData}}"
                                AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupAppData}"
                                AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupAppDataDescription}">
                     <ui:TileContent Icon="{x:Static theme:Icons.AppWindow}" Title="{x:Static loc:Strings.Settings_BackupAppData}"
                                     Description="{x:Static loc:Strings.Settings_BackupAppDataDescription}" />
                   </RadioButton>
                   <RadioButton x:Name="BackupsInFolder" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
-                               IsChecked="{Binding Backups.Location, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.CustomFolder}}"
+                               IsChecked="{Binding Backups.Location, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.CustomFolder}}"
                                AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupCustom}"
                                AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupCustomDescription}">
                     <ui:TileContent Icon="{x:Static theme:Icons.HardDrive}" Title="{x:Static loc:Strings.Settings_BackupCustom}"

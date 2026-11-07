@@ -165,7 +165,7 @@ public sealed class LibraryTests
         page.GridItems.OfType<GameCardViewModel>().Select(card => card.Name).Should().Equal(StoreUpdating.Name);
         page.AllCount.Should().Be(1);
 
-        page.ShowsAvailable = true;
+        page.Filter = LibraryFilter.Available;
         page.Content.Should().Be(LibraryContent.FilteredOut);
         page.EmptyMessage.Should().Be("Wśród gier pasujących do „saltmarsh” nie ma spolszczeń do zainstalowania.");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));

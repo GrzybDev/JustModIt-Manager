@@ -16,8 +16,6 @@ internal static class GameWording
         _ => store.Value,
     };
 
-    public static string DetectedIn(StoreId store) => Text.Format(Strings.Library_DetectedIn, ("store", StoreName(store)));
-
     /// <summary>A release's version as the site names it, or its number; empty when neither says anything.</summary>
     public static string Version(string? label, int? number)
     {

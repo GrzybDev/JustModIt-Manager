@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:cat="using:JustModIt.Manager.Ui.Pages.Catalogue"
+             xmlns:catalog="using:JustModIt.Manager.Core.Catalog"
              xmlns:ui="using:JustModIt.Manager.Ui.Controls"
              xmlns:theme="using:JustModIt.Manager.Ui.Theme"
              xmlns:loc="using:JustModIt.Manager.Localization"
@@ -297,11 +298,11 @@
               <ui:Icon Data="{x:Static theme:Icons.ArrowDownWideNarrow}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
                        ToolTip.Tip="{x:Static loc:Strings.Catalogue_Order}" />
               <RadioButton Theme="{StaticResource SortPill}" GroupName="catalogueOrder" Content="{x:Static loc:Strings.Catalogue_OrderReleased}"
-                           IsChecked="{Binding SortsByReleased}" />
+                           IsChecked="{Binding Order, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static catalog:CatalogueOrder.Released}}" />
               <RadioButton Theme="{StaticResource SortPill}" GroupName="catalogueOrder" Content="{x:Static loc:Strings.Catalogue_OrderPopular}"
-                           IsChecked="{Binding SortsByPopularity}" />
+                           IsChecked="{Binding Order, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static catalog:CatalogueOrder.Popular}}" />
               <RadioButton Theme="{StaticResource SortPill}" GroupName="catalogueOrder" Content="{x:Static loc:Strings.Library_SortName}"
-                           IsChecked="{Binding SortsByName}" />
+                           IsChecked="{Binding Order, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static catalog:CatalogueOrder.Alphabetical}}" />
             </StackPanel>
           </Grid>
 
@@ -461,13 +462,10 @@
                               <Grid RowDefinitions="Auto,Auto,*,Auto">
                                 <ui:MarkedText Classes="cardName" Value="{Binding Name}" Query="{Binding Query}" />
                                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" Margin="0,6,0,0">
-                                  <Panel VerticalAlignment="Center">
-                                    <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" IsVisible="{Binding !HasManyTeams}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="-4" IsVisible="{Binding HasManyTeams}">
-                                      <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" />
-                                      <ui:TeamBadge NameText="{Binding OtherBadgeName}" Avatar="{Binding OtherBadgeAvatar}" />
-                                    </StackPanel>
-                                  </Panel>
+                                  <StackPanel Orientation="Horizontal" Spacing="-4" VerticalAlignment="Center">
+                                    <ui:TeamBadge NameText="{Binding BadgeName}" Avatar="{Binding BadgeAvatar}" />
+                                    <ui:TeamBadge NameText="{Binding OtherBadgeName}" Avatar="{Binding OtherBadgeAvatar}" IsVisible="{Binding HasManyTeams}" />
+                                  </StackPanel>
                                   <ui:MarkedText Grid.Column="1" Value="{Binding TeamName}" Query="{Binding Query}" FontSize="13" LineHeight="18"
                                                  Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"
                                                  VerticalAlignment="Center" />

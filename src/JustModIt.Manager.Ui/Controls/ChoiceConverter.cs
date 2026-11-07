@@ -2,11 +2,11 @@ using System.Globalization;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
 
-namespace JustModIt.Manager.Ui.Pages.Onboarding;
+namespace JustModIt.Manager.Ui.Controls;
 
 /// <summary>
-/// Binds a choice tile to the value it stands for, given as the converter's parameter: the tile is checked while the
-/// value is chosen, and checking it chooses the value.
+/// Binds a tile or a pill of a choice to the value it stands for, given as the converter's parameter: it is checked while
+/// the value is chosen, and checking it chooses the value.
 /// </summary>
 internal sealed class ChoiceConverter : IValueConverter
 {

@@ -13,51 +13,13 @@ namespace JustModIt.Manager.Ui.Pages.Catalogue;
 /// card per game, so a new answer never replays its entrance.
 /// </summary>
 /// <param name="id">The game's id on the site.</param>
-public sealed partial class CatalogueCardViewModel(Guid id) : ObservableObject
+public sealed partial class CatalogueCardViewModel(Guid id) : GameCardBaseViewModel
 {
     public Guid Id { get; } = id;
-
-    [ObservableProperty]
-    public partial string Name { get; private set; } = "";
 
     /// <summary>The player's search, which marks what it matched in the name and the team.</summary>
     [ObservableProperty]
     public partial string Query { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string Cover { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial bool IsAdult { get; private set; }
-
-    [ObservableProperty]
-    public partial bool IsCoverBlurred { get; private set; }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasStatus))]
-    public partial string Status { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string StatusColor { get; private set; } = "";
-
-    /// <summary>The team's name, or how many projects several teams made.</summary>
-    [ObservableProperty]
-    public partial string TeamName { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string BadgeName { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string BadgeAvatar { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial bool HasManyTeams { get; private set; }
-
-    [ObservableProperty]
-    public partial string OtherBadgeName { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string OtherBadgeAvatar { get; private set; } = "";
 
     /// <summary>When the project came out, was announced or last changed; empty while it shows progress instead.</summary>
     [ObservableProperty]
@@ -87,15 +49,10 @@ public sealed partial class CatalogueCardViewModel(Guid id) : ObservableObject
     public partial bool AwaitsProject { get; private set; }
 
     [ObservableProperty]
-    public partial string AccessibleName { get; private set; } = "";
-
-    [ObservableProperty]
     public partial string BarName { get; private set; } = "";
 
     /// <summary>Where the card leads: the project's page, or the game's comparison of several.</summary>
     public Route Route { get; private set; } = new CatalogueRoute();
-
-    public bool HasStatus => Status.Length > 0;
 
     public bool OpensGame => IsDetected && PlayerGame is not null;
 
@@ -115,14 +72,8 @@ public sealed partial class CatalogueCardViewModel(Guid id) : ObservableObject
         Cover = game.Cover;
         IsAdult = game.IsAdult;
         IsCoverBlurred = AdultContent.IsVeiled(state, game.IsAdult, [game.Id]);
-        Status = best?.Status?.Name ?? "";
-        StatusColor = best?.Status?.Color ?? "";
-        HasManyTeams = projects.Count > 1;
-        BadgeName = best?.Team.Name ?? "";
-        BadgeAvatar = best?.Team.Avatar ?? "";
-        OtherBadgeName = HasManyTeams ? projects[1].Team.Name : "";
-        OtherBadgeAvatar = HasManyTeams ? projects[1].Team.Avatar : "";
-        TeamName = HasManyTeams ? Text.Format(Strings.Catalogue_CardProjects, ("count", projects.Count)) : BadgeName;
+        ShowTeams(best?.Status, best?.Team.Name ?? "", best?.Team.Avatar ?? "", projects.Count > 1 ? projects[1].Team : null,
+            Text.Format(Strings.Catalogue_CardProjects, ("count", projects.Count)));
 
         var progress = best is { Status.ShowsProgress: true, Progress: { } percent } ? percent : (int?)null;
         ShowsProgress = progress is not null;

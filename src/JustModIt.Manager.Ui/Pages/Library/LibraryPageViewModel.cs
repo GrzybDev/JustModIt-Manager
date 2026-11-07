@@ -63,7 +63,6 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
 
     private readonly UiServices _services;
     private readonly Dictionary<GameKey, GameCardViewModel> _cards = [];
-    private readonly Dictionary<string, TodoRowViewModel> _rows = [];
     private readonly HelpTileViewModel _help = new();
     private readonly CardGrid _grid = new();
     private List<TodoRowViewModel> _allRows = [];
@@ -85,11 +84,9 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
     public partial string Query { get; set; } = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsAll), nameof(ShowsInstalled), nameof(ShowsAvailable), nameof(ShowsHidden))]
     public partial LibraryFilter Filter { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SortsByName), nameof(SortsByRecent))]
     public partial LibrarySort Sort { get; set; }
 
     [ObservableProperty]
@@ -195,54 +192,6 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
     /// <summary>Under an empty state the help leads to what detection found, since a missing game is the likely cause.</summary>
     public bool ShowsHelpRow => Content is LibraryContent.Empty or LibraryContent.NoResults or LibraryContent.FilteredOut;
 
-    public bool ShowsAll
-    {
-        get => Filter == LibraryFilter.All;
-        set => Pick(value, LibraryFilter.All);
-    }
-
-    public bool ShowsInstalled
-    {
-        get => Filter == LibraryFilter.Installed;
-        set => Pick(value, LibraryFilter.Installed);
-    }
-
-    public bool ShowsAvailable
-    {
-        get => Filter == LibraryFilter.Available;
-        set => Pick(value, LibraryFilter.Available);
-    }
-
-    public bool ShowsHidden
-    {
-        get => Filter == LibraryFilter.Hidden;
-        set => Pick(value, LibraryFilter.Hidden);
-    }
-
-    public bool SortsByName
-    {
-        get => Sort == LibrarySort.Name;
-        set
-        {
-            if (value)
-            {
-                Sort = LibrarySort.Name;
-            }
-        }
-    }
-
-    public bool SortsByRecent
-    {
-        get => Sort == LibrarySort.Recent;
-        set
-        {
-            if (value)
-            {
-                Sort = LibrarySort.Recent;
-            }
-        }
-    }
-
     /// <summary>How many cards fit in a row of the grid; the view sets it from its width.</summary>
     public int Columns
     {
@@ -288,29 +237,17 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
     private void OpenUndetected() => _services.Navigator.Navigate(new UndetectedGamesRoute());
 
     [RelayCommand]
-    private void ClearSearch() => Query = "";
-
-    [RelayCommand]
-    private void ShowEverything()
-    {
-        Query = "";
-        Filter = LibraryFilter.All;
-    }
-
-    [RelayCommand]
     private void ToggleTodo() => IsTodoExpanded = !IsTodoExpanded;
 
     [RelayCommand]
     private void RunEmptyAction()
     {
-        if (Content == LibraryContent.NoResults)
+        if (Content != LibraryContent.NoResults)
         {
-            ClearSearch();
+            Filter = LibraryFilter.All;
         }
-        else
-        {
-            ShowEverything();
-        }
+
+        Query = "";
     }
 
     [RelayCommand]
@@ -349,14 +286,6 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
 
     private IEnumerable<TodoRowViewModel> BatchRows() =>
         _allRows.Where(row => row.Kind is TodoKind.Repair or TodoKind.Update && !row.WaitsForConnection && row.Request is not null);
-
-    private void Pick(bool value, LibraryFilter filter)
-    {
-        if (value)
-        {
-            Filter = filter;
-        }
-    }
 
     private void OnAgentChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -404,13 +333,7 @@ public sealed partial class LibraryPageViewModel : PageViewModel, IDisposable
         var query = SearchText.Fold(Query);
         bool Matches(string text) => query.Length == 0 || SearchText.Fold(text).Contains(query, StringComparison.Ordinal);
 
-        _allRows = TodoRowViewModel.Build(state, _services.Clock, _rows);
-        _rows.Clear();
-        foreach (var row in _allRows)
-        {
-            _rows[row.Key] = row;
-        }
-
+        _allRows = TodoRowViewModel.Build(state, _services.Clock, _allRows);
         var matchingRows = _allRows.Where(row => Matches(_cards[row.Game].SearchText)).ToList();
         var inPanel = _allRows.Select(row => row.Game).ToHashSet();
         var rest = visible.Where(game => !inPanel.Contains(game.Key)).Select(game => (Game: game, Card: _cards[game.Key])).ToList();

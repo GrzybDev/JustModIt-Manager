@@ -35,28 +35,13 @@ public sealed record TeamOffer(string Name, string Avatar, string Status, string
 
 /// <summary>A row of the to-do panel: a game or one of its installs, what it needs, and the action that sees to it.</summary>
 /// <param name="key">What the row is about, stable across states, so an updated row keeps its place on screen.</param>
-public sealed partial class TodoRowViewModel(string key) : ObservableObject
+public sealed partial class TodoRowViewModel(string key) : GameItemViewModel
 {
     public string Key { get; } = key;
 
     public GameKey Game { get; private set; }
 
     public TodoKind Kind { get; private set; }
-
-    [ObservableProperty]
-    public partial string Name { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string Cover { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial bool IsCoverBlurred { get; private set; }
-
-    [ObservableProperty]
-    public partial string Store { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string StoreTip { get; private set; } = "";
 
     [ObservableProperty]
     public partial LineContent Line { get; private set; } = new(Icons.Info, Tone.Neutral, "");
@@ -94,17 +79,19 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
     /// <summary>The rows of the to-do panel for the agent's state, in the panel's order.</summary>
     /// <param name="state">The agent's newest state.</param>
     /// <param name="clock">The clock release dates are told against.</param>
-    /// <param name="existing">The rows shown now, updated and reused by key.</param>
-    public static List<TodoRowViewModel> Build(AppStateView state, TimeProvider clock, IReadOnlyDictionary<string, TodoRowViewModel> existing)
+    /// <param name="shown">The rows shown now, updated and reused by key.</param>
+    public static List<TodoRowViewModel> Build(AppStateView state, TimeProvider clock, IEnumerable<TodoRowViewModel> shown)
     {
+        var existing = shown.ToDictionary(row => row.Key);
         var offline = state.Catalogue.Failure is not null;
         var rows = new List<TodoRowViewModel>();
         foreach (var game in state.Games.Where(game => !game.IsHidden && game.Job is null))
         {
-            TodoRowViewModel Row(string kind, Guid? install)
+            TodoRowViewModel Row(TodoKind kind, Guid? install)
             {
                 var key = $"{game.Key}|{install}|{kind}";
                 var row = existing.TryGetValue(key, out var kept) ? kept : new TodoRowViewModel(key);
+                row.Kind = kind;
                 row.Show(game, state);
                 rows.Add(row);
                 return row;
@@ -112,40 +99,40 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
 
             if (game.LastFailure is { } failure)
             {
-                Row("failure", null).ShowFailure(game, null, failure);
+                Row(TodoKind.Failure, null).ShowFailure(game, null, failure);
             }
 
             foreach (var install in game.Installs)
             {
                 if (install.LastFailure is { } installFailure)
                 {
-                    Row("failure", install.Id).ShowFailure(game, install, installFailure);
+                    Row(TodoKind.Failure, install.Id).ShowFailure(game, install, installFailure);
                     continue;
                 }
 
                 switch (install.Status)
                 {
                     case { State: MyGameState.NeedsRepair }:
-                        Row("repair", install.Id).ShowRepair(game, install);
+                        Row(TodoKind.Repair, install.Id).ShowRepair(game, install);
                         break;
                     case { State: MyGameState.UpdateAvailable }:
-                        Row("update", install.Id).ShowUpdate(game, install, clock, offline);
+                        Row(TodoKind.Update, install.Id).ShowUpdate(game, install, clock, offline);
                         break;
                     case { State: MyGameState.Orphaned, Orphan: OrphanReason.GameNotDetected }:
-                        Row("gone", install.Id).ShowOrphan(game, install, TodoKind.Gone);
+                        Row(TodoKind.Gone, install.Id).ShowOrphan(game, install);
                         break;
                     case { State: MyGameState.Orphaned, Orphan: OrphanReason.GameMoved }:
-                        Row("moved", install.Id).ShowOrphan(game, install, TodoKind.Moved);
+                        Row(TodoKind.Moved, install.Id).ShowOrphan(game, install);
                         break;
                     case { State: MyGameState.BackupsUnavailable }:
-                        Row("backups", install.Id).ShowBackups(game, install);
+                        Row(TodoKind.Backups, install.Id).ShowBackups(game, install);
                         break;
                 }
             }
 
             if (game.Installs.Count == 0 && game.LastFailure is null && game.Project is null && game.Projects.Count > 1)
             {
-                Row("choice", null).ShowChoice(game);
+                Row(TodoKind.Choice, null).ShowChoice(game);
             }
         }
 
@@ -155,13 +142,7 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
     private void Show(GameView game, AppStateView state)
     {
         Game = game.Key;
-        Name = game.Name;
-        var offer = game.Project ?? game.Installs.Select(install => install.Project).FirstOrDefault(project => project is not null)
-            ?? (game.Projects.Count > 0 ? game.Projects[0] : null);
-        Cover = offer?.Cover is { Length: > 0 } cover ? cover : game.Installs.Select(install => install.CoverUrl?.AbsoluteUri).FirstOrDefault(url => url is not null) ?? "";
-        IsCoverBlurred = AdultContent.IsVeiled(state, game.IsAdult, game.SiteIds);
-        Store = game.Key.Store.Value;
-        StoreTip = GameWording.DetectedIn(game.Key.Store);
+        ShowGame(game, state);
         Teams = [];
         Request = null;
         BatchLine = null;
@@ -171,7 +152,6 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
 
     private void ShowFailure(GameView game, InstallView? install, FailureView failure)
     {
-        Kind = TodoKind.Failure;
         Line = new LineContent(Icons.CircleX, Tone.Danger, Text.Format(Strings.Library_StateFailed, ("kind", failure.Kind.ToString())),
             failure.LostPrevious ? Strings.Library_PreviousLost : GameWording.FailureReason(failure.Failure, game.Key.Store, game.Name));
         // Trying again is refused the same way until the player uninstalls and the store checks the game's files, which the
@@ -187,28 +167,26 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
         };
         if (Request is null)
         {
-            Act(Strings.Library_Open, Icons.ArrowRight, Text.Format(Strings.Library_OpenName, ("game", game.Name)));
+            Act(Strings.Library_Open, Icons.ArrowRight, Strings.Library_OpenName);
         }
         else
         {
-            Act(Strings.Library_Retry, Icons.RotateCcw, Text.Format(Strings.Library_RetryName, ("game", game.Name)));
+            Act(Strings.Library_Retry, Icons.RotateCcw, Strings.Library_RetryName);
         }
     }
 
     private void ShowRepair(GameView game, InstallView install)
     {
-        Kind = TodoKind.Repair;
         Line = new LineContent(Icons.Wrench, Tone.Warning, Strings.Library_StateRepair,
             Text.Format(Strings.Library_RepairReason, ("reason", install.Status.Repair?.ToString() ?? ""),
                 ("store", GameWording.StoreName(game.Key.Store))));
         Request = new RepairProject(install.Id);
         BatchLine = Text.Format(Strings.Library_BatchTipRepair, ("game", game.Name));
-        Act(Strings.Library_Repair, Icons.Wrench, Text.Format(Strings.Library_RepairName, ("game", game.Name)));
+        Act(Strings.Library_Repair, Icons.Wrench, Strings.Library_RepairName);
     }
 
     private void ShowUpdate(GameView game, InstallView install, TimeProvider clock, bool offline)
     {
-        Kind = TodoKind.Update;
         var release = install.Project?.Release;
         var size = install.Status.UpdateSize;
         var detail = GameWording.Join([release is null ? "" : GameWording.Released(release, clock), size is { } bytes ? Formats.FileSize(bytes) : ""]);
@@ -222,46 +200,43 @@ public sealed partial class TodoRowViewModel(string key) : ObservableObject
         var version = GameWording.ShortVersion(GameWording.Version(release));
         BatchLine = Text.Format(offline ? Strings.Library_BatchTipWaiting : Strings.Library_BatchTipUpdate, ("game", game.Name),
             ("version", version));
-        Act(Strings.Library_Update, Icons.CircleArrowUp, Text.Format(Strings.Library_UpdateName, ("game", game.Name)));
+        Act(Strings.Library_Update, Icons.CircleArrowUp, Strings.Library_UpdateName);
     }
 
     private void ShowChoice(GameView game)
     {
-        Kind = TodoKind.Choice;
         Line = new LineContent(Icons.Users, Tone.Neutral, Text.Format(Strings.Library_StateChoice, ("count", game.Projects.Count)));
         Teams = [.. game.Projects.Select(project => new TeamOffer(project.Team.Name, project.Team.Avatar, project.Status?.Name ?? "",
             project.Status?.Color ?? ""))];
-        Act(Strings.Library_Compare, Icons.Columns, Text.Format(Strings.Library_CompareName, ("game", game.Name)));
+        Act(Strings.Library_Compare, Icons.Columns, Strings.Library_CompareName);
     }
 
-    private void ShowOrphan(GameView game, InstallView install, TodoKind kind)
+    private void ShowOrphan(GameView game, InstallView install)
     {
-        Kind = kind;
         var store = GameWording.StoreName(game.Key.Store);
-        Line = kind == TodoKind.Gone
+        Line = Kind == TodoKind.Gone
             ? new LineContent(Icons.TriangleAlert, Tone.Warning, Strings.Library_StateGone, Text.Format(Strings.Library_GoneDetail, ("store", store)))
             : new LineContent(Icons.FolderInput, Tone.Warning, Strings.Library_StateMoved, Text.Format(Strings.Library_MovedDetail, ("store", store)));
         Request = new UninstallProject(install.Id);
         IsDanger = true;
-        Act(Strings.Library_Uninstall, Icons.Trash, Text.Format(Strings.Library_UninstallName, ("game", game.Name)));
+        Act(Strings.Library_Uninstall, Icons.Trash, Strings.Library_UninstallName);
     }
 
     private void ShowBackups(GameView game, InstallView install)
     {
-        Kind = TodoKind.Backups;
         Line = install.MissingOriginals.Count > 0
             ? new LineContent(Icons.TriangleAlert, Tone.Warning, Strings.Library_StateOriginalsMissing,
                 Text.Format(Strings.Library_OriginalsMissingDetail, ("store", GameWording.StoreName(game.Key.Store)),
                     ("storeId", game.Key.Store.Value)))
             : new LineContent(Icons.TriangleAlert, Tone.Warning, Strings.Library_StateBackups,
                 Text.Format(Strings.Library_BackupsDetail, ("folder", install.Status.BackupDirectory ?? install.BackupDirectory)));
-        Act(Strings.Library_Open, Icons.ArrowRight, Text.Format(Strings.Library_OpenName, ("game", game.Name)));
+        Act(Strings.Library_Open, Icons.ArrowRight, Strings.Library_OpenName);
     }
 
     private void Act(string text, Geometry icon, string name)
     {
         ActionText = text;
         ActionIcon = icon;
-        ActionName = name;
+        ActionName = Text.Format(name, ("game", Name));
     }
 }

@@ -20,14 +20,14 @@
 
       <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
         <RadioButton Theme="{StaticResource ChoiceTile}"
-                     IsChecked="{Binding Setup.CreatorMode, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:False}}"
+                     IsChecked="{Binding Setup.CreatorMode, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:False}}"
                      AutomationProperties.Name="{x:Static loc:Strings.Onboarding_PlayerTile}"
                      AutomationProperties.HelpText="{Binding PlayerDescription}">
           <ui:TileContent Icon="{x:Static theme:Icons.Gamepad}" Title="{x:Static loc:Strings.Onboarding_PlayerTile}"
                           Description="{Binding PlayerDescription}" />
         </RadioButton>
         <RadioButton Grid.Column="1" Theme="{StaticResource ChoiceTile}"
-                     IsChecked="{Binding Setup.CreatorMode, Converter={x:Static onboarding:ChoiceConverter.Instance}, ConverterParameter={x:True}}"
+                     IsChecked="{Binding Setup.CreatorMode, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:True}}"
                      AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CreatorTile}"
                      AutomationProperties.HelpText="{Binding CreatorDescription}">
           <ui:TileContent Icon="{x:Static theme:Icons.WandSparkles}" Title="{x:Static loc:Strings.Onboarding_CreatorTile}"
