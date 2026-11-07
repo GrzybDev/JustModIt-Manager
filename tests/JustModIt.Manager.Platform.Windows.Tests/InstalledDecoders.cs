@@ -6,7 +6,7 @@ using Windows.Win32.Graphics.Imaging;
 using Windows.Win32.Media.MediaFoundation;
 using Windows.Win32.System.Com;
 
-namespace JustModIt.Manager.Platform.Windows;
+namespace JustModIt.Manager.Platform.Windows.Tests;
 
 /// <summary>
 /// Tells which of the system's optional decoders are registered, without decoding anything: AVIF and VP9 come with
