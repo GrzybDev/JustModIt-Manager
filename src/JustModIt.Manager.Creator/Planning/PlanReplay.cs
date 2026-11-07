@@ -287,7 +287,7 @@ internal sealed class PlanReplay
 
     private bool IsValid(PlannedOperation operation, string path)
     {
-        if (PathProblem(path) is { } problem)
+        if (PathProblem(path, _game.HiddenFolderName) is { } problem)
         {
             Add(problem, operation, path);
             return false;
@@ -302,8 +302,6 @@ internal sealed class PlanReplay
     internal static FindingKind? RuntimePathProblem(string path, string hiddenFolderName) =>
         // A file the software has not created yet keeps the name it is given, which a short name would never meet.
         PathProblem(path, hiddenFolderName) ?? (PackagePath.HasShortName(path) ? FindingKind.InvalidPath : null);
-
-    private FindingKind? PathProblem(string path) => PathProblem(path, _game.HiddenFolderName);
 
     private static FindingKind? PathProblem(string path, string hiddenFolderName) => PackagePath.Check(path) switch
     {

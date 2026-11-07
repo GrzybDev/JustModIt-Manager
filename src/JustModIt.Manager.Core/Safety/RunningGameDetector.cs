@@ -131,7 +131,7 @@ public sealed class RunningGameDetector(IProcessSource processSource, IFileSyste
         while (remaining > 0 && pending.TryDequeue(out var next))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (var entry in List(next.Path, remaining))
+            foreach (var entry in fileSystem.TryList(next.Path, "*", FileListing.Everything, remaining))
             {
                 remaining--;
                 if (entry.IsDirectory)
@@ -154,7 +154,4 @@ public sealed class RunningGameDetector(IProcessSource processSource, IFileSyste
     // The system names a process after its executable without the .exe; any other extension stays.
     private static string ProcessName(string fileName) =>
         fileName.EndsWith(ExecutableExtension, StringComparison.OrdinalIgnoreCase) ? fileName[..^ExecutableExtension.Length] : fileName;
-
-    private List<FileEntry> List(string directory, int maxEntries) =>
-        fileSystem.TryList(directory, "*", FileListing.Everything, maxEntries);
 }
