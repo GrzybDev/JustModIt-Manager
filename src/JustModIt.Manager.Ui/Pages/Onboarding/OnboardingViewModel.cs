@@ -11,6 +11,7 @@ using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Onboarding;
@@ -294,17 +295,11 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
         }
 
         _coversFor = fetchedAt;
-        try
+        // Without an answer the wall stays a glow until the catalogue is read again.
+        var query = new GetCataloguePage(new CatalogueQuery { Order = CatalogueOrder.Popular }, 0, WallCovers);
+        if (await AgentRequests.AskQuietlyAsync(Agent, query).ConfigureAwait(true) is CataloguePageResult page)
         {
-            var query = new GetCataloguePage(new CatalogueQuery { Order = CatalogueOrder.Popular }, 0, WallCovers);
-            if (await Agent.RequestAsync(query).ConfigureAwait(true) is CataloguePageResult page)
-            {
-                Covers = [.. page.Games.Select(game => game.Cover).Where(cover => cover.Length > 0)];
-            }
-        }
-        // The wall stays a glow until the catalogue is read again.
-        catch (Exception exception) when (exception is IOException or TimeoutException or RequestFailedException)
-        {
+            Covers = [.. page.Games.Select(game => game.Cover).Where(cover => cover.Length > 0)];
         }
     }
 }

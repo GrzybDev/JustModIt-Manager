@@ -7,7 +7,6 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
-using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Controls;
@@ -168,31 +167,25 @@ public sealed partial class UndetectedGamesViewModel : PageViewModel, IDisposabl
 
     private async Task LoadReportAsync()
     {
-        try
+        if (await AgentRequests.AskQuietlyAsync(_services.Agent, new GetDetectionReport()).ConfigureAwait(true) is not DetectionReportResult result)
         {
-            if (await _services.Agent.RequestAsync(new GetDetectionReport()).ConfigureAwait(true) is not DetectionReportResult result)
-            {
-                return;
-            }
-
-            var hints = await Task.Run(() => result.Report.Stores
-                .Select(store => store.InstallHint.Length > 0 ? MarkdownDocument.Parse(store.InstallHint) : null).ToList()).ConfigureAwait(true);
-            _report = result.Report;
-            var games = _services.Agent.State.Games;
-            Stores.Clear();
-            for (var index = 0; index < _report.Stores.Count; index++)
-            {
-                Stores.Add(Section(_report.Stores[index], hints[index], games));
-            }
-
-            IsLoading = false;
-            ShowResult();
-        }
-        // The page keeps what it showed; the next scan reads the report again.
-        catch (Exception exception) when (exception is IOException or TimeoutException or RequestFailedException)
-        {
+            // The page keeps what it showed; the next scan reads the report again.
             _reportFor = null;
+            return;
         }
+
+        var hints = await Task.Run(() => result.Report.Stores
+            .Select(store => store.InstallHint.Length > 0 ? MarkdownDocument.Parse(store.InstallHint) : null).ToList()).ConfigureAwait(true);
+        _report = result.Report;
+        var games = _services.Agent.State.Games;
+        Stores.Clear();
+        for (var index = 0; index < _report.Stores.Count; index++)
+        {
+            Stores.Add(Section(_report.Stores[index], hints[index], games));
+        }
+
+        IsLoading = false;
+        ShowResult();
     }
 
     private static StoreSection Section(StoreDetectionView store, MarkdownDocument? hint, IReadOnlyList<GameView> games)

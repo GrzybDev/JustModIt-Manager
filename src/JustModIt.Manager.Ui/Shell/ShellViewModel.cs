@@ -13,6 +13,7 @@ using JustModIt.Manager.Ui.Images;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Shell;
@@ -276,14 +277,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         if (agent is not null)
         {
-            try
-            {
-                await Agent.RequestAsync(new DismissUncleanExit()).ConfigureAwait(true);
-            }
-            catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
-            {
-            }
-
+            await AgentRequests.AskQuietlyAsync(Agent, new DismissUncleanExit()).ConfigureAwait(true);
             await Dialogs.ShowAsync(new UncleanExitDialogViewModel(_services, agent)).ConfigureAwait(true);
         }
 

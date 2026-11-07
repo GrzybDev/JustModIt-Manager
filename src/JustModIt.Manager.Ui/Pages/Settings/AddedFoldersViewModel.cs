@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
-using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Pages.Library;
@@ -72,17 +71,14 @@ public sealed partial class AddedFoldersViewModel(UiServices services) : Observa
 
     private async Task LoadReportAsync()
     {
-        try
+        if (await AgentRequests.AskQuietlyAsync(services.Agent, new GetDetectionReport()).ConfigureAwait(true) is DetectionReportResult result)
         {
-            if (await services.Agent.RequestAsync(new GetDetectionReport()).ConfigureAwait(true) is DetectionReportResult result)
-            {
-                _report = result.Report;
-                Refresh();
-            }
+            _report = result.Report;
+            Refresh();
         }
-        // The folders show without their games until the next scan.
-        catch (Exception exception) when (exception is IOException or TimeoutException or RequestFailedException)
+        else
         {
+            // The folders show without their games until the next scan.
             _reportFor = null;
         }
     }

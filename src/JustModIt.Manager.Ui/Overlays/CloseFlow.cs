@@ -1,9 +1,9 @@
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
-using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Overlays;
@@ -59,7 +59,7 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
 
         if (answer.Remember)
         {
-            await SendAsync(new ChangeSettings(settings with
+            await AgentRequests.AskQuietlyAsync(agent, new ChangeSettings(settings with
             {
                 CloseBehavior = answer.Key == Exit ? CloseBehavior.Exit : CloseBehavior.MinimizeToTray,
             })).ConfigureAwait(true);
@@ -90,22 +90,11 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
         return confirmed;
     }
 
-    // The agent asks the window to close before it exits, while the window closes on its own already.
-    private Task SendExitAsync(ExitMode mode)
+    // The agent asks the window to close before it exits, while the window closes on its own already; the window closes
+    // either way, and an agent that cannot be told keeps running in the tray, as it would without the window.
+    private Task<Message?> SendExitAsync(ExitMode mode)
     {
         agent.AcceptShutdown();
-        return SendAsync(new ExitApp(mode));
-    }
-
-    // The window closes either way; an agent that cannot be told keeps running in the tray, as it would without the window.
-    private async Task SendAsync(Message request)
-    {
-        try
-        {
-            await agent.RequestAsync(request).ConfigureAwait(true);
-        }
-        catch (Exception exception) when (exception is IOException or TimeoutException or RequestFailedException)
-        {
-        }
+        return AgentRequests.AskQuietlyAsync(agent, new ExitApp(mode));
     }
 }

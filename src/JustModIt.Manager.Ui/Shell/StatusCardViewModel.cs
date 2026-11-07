@@ -8,6 +8,7 @@ using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
+using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Shell;
@@ -101,18 +102,10 @@ public sealed partial class StatusCardViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task ActAsync()
     {
-        if (ActionMessage is not { } message)
-        {
-            return;
-        }
-
-        try
-        {
-            await _agent.RequestAsync(message).ConfigureAwait(true);
-        }
         // The card shows the outcome once the agent's state changes; a request that did not get through changes nothing.
-        catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
+        if (ActionMessage is { } message)
         {
+            await AgentRequests.AskQuietlyAsync(_agent, message).ConfigureAwait(true);
         }
     }
 

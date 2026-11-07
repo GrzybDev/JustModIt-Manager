@@ -568,7 +568,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
             return;
         }
 
-        if (await AskQuietlyAsync(new GetLeftoverBackups()).ConfigureAwait(true) is LeftoverBackups found && Session == session
+        if (await AgentRequests.AskQuietlyAsync(Agent, new GetLeftoverBackups()).ConfigureAwait(true) is LeftoverBackups found && Session == session
             && Game?.Key == game.Key)
         {
             await session.UseKeptPathsAsync(found.Backups
@@ -578,23 +578,8 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         }
     }
 
-    /// <summary>Asks the agent for something the creator can do without, so a refusal or a lost connection says nothing.</summary>
-    /// <param name="request">The request.</param>
-    /// <returns>The answer; null when there is none.</returns>
-    internal async Task<Message?> AskQuietlyAsync(Message request)
-    {
-        try
-        {
-            return await Agent.RequestAsync(request).ConfigureAwait(true);
-        }
-        catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
-        {
-            return null;
-        }
-    }
-
     // The list lives in the settings, which the agent keeps; a list that could not be updated only misses this file.
-    private void Remember(string path) => _ = AskQuietlyAsync(new RememberCreatorProject(path));
+    private void Remember(string path) => _ = AgentRequests.AskQuietlyAsync(Agent, new RememberCreatorProject(path));
 
     private static string? FolderOf(CreatorSession session) =>
         session.Path is { } path ? Path.GetDirectoryName(path)

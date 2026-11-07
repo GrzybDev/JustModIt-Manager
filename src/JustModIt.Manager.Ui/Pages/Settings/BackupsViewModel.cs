@@ -352,22 +352,16 @@ public sealed partial class BackupsViewModel : ObservableObject
 
     private async Task LoadLeftoversAsync()
     {
-        try
+        // Without an answer the list stays as it was; the page reads it again when it is shown again.
+        if (await AgentRequests.AskQuietlyAsync(_services.Agent, new GetLeftoverBackups()).ConfigureAwait(true) is LeftoverBackups found)
         {
-            if (await _services.Agent.RequestAsync(new GetLeftoverBackups()).ConfigureAwait(true) is LeftoverBackups found)
+            Leftovers.Clear();
+            foreach (var backup in found.Backups.OrderBy(backup => backup.GameName, Text.Comparer))
             {
-                Leftovers.Clear();
-                foreach (var backup in found.Backups.OrderBy(backup => backup.GameName, Text.Comparer))
-                {
-                    Leftovers.Add(Row(backup));
-                }
-
-                HasLeftovers = Leftovers.Count > 0;
+                Leftovers.Add(Row(backup));
             }
-        }
-        // The list stays as it was; the page reads it again when it is shown again.
-        catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
-        {
+
+            HasLeftovers = Leftovers.Count > 0;
         }
     }
 

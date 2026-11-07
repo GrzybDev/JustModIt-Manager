@@ -843,7 +843,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             return;
         }
 
-        var answer = await _page.AskQuietlyAsync(new GetProjectPage(project.GameSlug, project.TeamSlug, project.ProjectId))
+        var answer = await AgentRequests.AskQuietlyAsync(_page.Agent, new GetProjectPage(project.GameSlug, project.TeamSlug, project.ProjectId))
             .ConfigureAwait(true);
         var hints = answer is ProjectPageResult { Page: { } page } ? await Task.Run(() => ProjectHints.Read(page)).ConfigureAwait(true) : null;
         if (_page.Game?.Key != game.Key)

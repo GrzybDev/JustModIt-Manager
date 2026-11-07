@@ -1,6 +1,7 @@
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
+using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Theme;
 
@@ -43,6 +44,22 @@ internal static class AgentRequests
         }
 
         return (false, null);
+    }
+
+    /// <summary>Asks the agent for something the window can do without, so a refusal or a lost connection only means no answer.</summary>
+    /// <param name="agent">The agent.</param>
+    /// <param name="request">The request.</param>
+    /// <returns>The answer; null when there is none.</returns>
+    public static async Task<Message?> AskQuietlyAsync(IAgent agent, Message request)
+    {
+        try
+        {
+            return await agent.RequestAsync(request).ConfigureAwait(true);
+        }
+        catch (Exception exception) when (exception is IOException or TimeoutException or RequestFailedException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Asks the agent for a folder and shows it in the file manager.</summary>

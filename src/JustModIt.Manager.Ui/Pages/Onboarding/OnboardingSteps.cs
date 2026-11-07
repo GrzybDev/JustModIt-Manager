@@ -3,9 +3,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
-using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
+using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Onboarding;
@@ -218,16 +218,10 @@ public sealed partial class ReadyStep : OnboardingStep
     private async Task LoadReportAsync(DateTimeOffset? scannedAt)
     {
         _reportFor = scannedAt;
-        try
+        // Without an answer the stores stay as they were; the next scan asks again.
+        if (await AgentRequests.AskQuietlyAsync(_agent, new GetDetectionReport()).ConfigureAwait(true) is DetectionReportResult result)
         {
-            if (await _agent.RequestAsync(new GetDetectionReport()).ConfigureAwait(true) is DetectionReportResult result)
-            {
-                Stores = [.. result.Report.Stores.Select(StoreLine.From)];
-            }
-        }
-        // The stores stay as they were; the next scan asks again.
-        catch (Exception exception) when (exception is IOException or TimeoutException or RequestFailedException)
-        {
+            Stores = [.. result.Report.Stores.Select(StoreLine.From)];
         }
     }
 }

@@ -404,17 +404,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     // A game the stores report stays off the list while no project for it can be installed.
     private async Task FindDetectedAsync()
     {
-        Message? answer;
-        try
-        {
-            answer = await _services.Agent.RequestAsync(new GetDetectedGames()).ConfigureAwait(true);
-        }
-        catch (Exception exception) when (exception is IOException or TimeoutException or Protocol.Transport.RequestFailedException)
-        {
-            return;
-        }
-
-        if (answer is DetectedGames detected && detected.Games.FirstOrDefault(entry => entry.Key == _key) is { } game)
+        if (await AgentRequests.AskQuietlyAsync(_services.Agent, new GetDetectedGames()).ConfigureAwait(true) is DetectedGames detected
+            && detected.Games.FirstOrDefault(entry => entry.Key == _key) is { } game)
         {
             (MissingTitle, MissingText) = game.Unavailable is { } reason
                 ? (Strings.GamePage_WaitingFileTitle, Text.Format(Strings.GamePage_WaitingFileText, ("reason", reason.ToString())))

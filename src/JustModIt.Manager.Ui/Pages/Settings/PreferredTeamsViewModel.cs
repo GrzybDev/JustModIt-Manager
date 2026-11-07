@@ -5,7 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
-using JustModIt.Manager.Protocol.Transport;
+using JustModIt.Manager.Ui.Pages.Library;
 
 namespace JustModIt.Manager.Ui.Pages.Settings;
 
@@ -177,19 +177,16 @@ public sealed partial class PreferredTeamsViewModel : ObservableObject
 
     private async Task LoadTeamsAsync()
     {
-        try
+        if (await AgentRequests.AskQuietlyAsync(_services.Agent, new GetCatalogueFilters()).ConfigureAwait(true) is CatalogueFiltersResult result)
         {
-            if (await _services.Agent.RequestAsync(new GetCatalogueFilters()).ConfigureAwait(true) is CatalogueFiltersResult result)
-            {
-                _names = result.Filters.Teams.GroupBy(team => team.Id).ToDictionary(group => group.Key, group => group.First().Name);
-                Rows.Clear();
-                CanAdd = _names.Count > 0;
-                Refresh();
-            }
+            _names = result.Filters.Teams.GroupBy(team => team.Id).ToDictionary(group => group.Key, group => group.First().Name);
+            Rows.Clear();
+            CanAdd = _names.Count > 0;
+            Refresh();
         }
-        // The list keeps the names it has; the next catalogue read asks again.
-        catch (Exception exception) when (exception is IOException or TimeoutException or RequestFailedException)
+        else
         {
+            // The list keeps the names it has; the next catalogue read asks again.
             _teamsFor = null;
         }
     }
