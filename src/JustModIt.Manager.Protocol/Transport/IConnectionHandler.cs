@@ -13,13 +13,15 @@ public interface IConnectionHandler
 
     /// <summary>
     /// Answers a request other than <see cref="Ping"/>, which the connection answers itself; throw
-    /// <see cref="RequestFailedException"/> to answer with a typed error.
+    /// <see cref="RequestFailedException"/> to answer with a typed error. Without an answer of its own a handler refuses it
+    /// as unsupported.
     /// </summary>
     /// <param name="connection">The connection the request came on.</param>
     /// <param name="request">The request's payload.</param>
     /// <param name="cancellationToken">Cancelled when the connection closes.</param>
     /// <returns>The answer's payload; null for an empty answer.</returns>
-    ValueTask<Message?> HandleRequestAsync(PipeConnection connection, Message request, CancellationToken cancellationToken);
+    ValueTask<Message?> HandleRequestAsync(PipeConnection connection, Message request, CancellationToken cancellationToken) =>
+        throw new RequestFailedException(ErrorCode.Unsupported);
 
     /// <summary>Receives an event; it must not block, since the next ones wait for it.</summary>
     /// <param name="connection">The connection the event came on.</param>

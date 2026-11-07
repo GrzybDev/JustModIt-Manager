@@ -69,74 +69,61 @@ public sealed partial class PipeServer : IAsyncDisposable
         var stopping = _stopping.Token;
         var backoff = new Backoff(_options.RetryDelay, _options.MaxRetryDelay);
         var failures = 0;
-        while (true)
+        try
         {
-            try
+            while (true)
             {
                 await _slots.WaitAsync(stopping).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-
-            NamedPipeServerStream? stream = null;
-            try
-            {
-                stream = new NamedPipeServerStream(
-                    _pipeName,
-                    PipeDirection.InOut,
-                    NamedPipeServerStream.MaxAllowedServerInstances,
-                    PipeTransmissionMode.Byte,
-                    PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly,
-                    BufferSize,
-                    BufferSize);
-                await stream.WaitForConnectionAsync(stopping).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                if (stream is not null)
-                {
-                    await stream.DisposeAsync().ConfigureAwait(false);
-                }
-
-                _slots.Release();
-                if (stopping.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                // Another process can hold the pipe name for a long time; retrying at once would burn a whole core.
-                var delay = backoff.Next();
-                if (++failures == 1)
-                {
-                    LogListenFailed(ex, _pipeName, delay);
-                }
-                else
-                {
-                    LogListenStillFailing(ex, failures, delay);
-                }
-
+                NamedPipeServerStream? stream = null;
                 try
                 {
-                    await Task.Delay(delay, stopping).ConfigureAwait(false);
+                    stream = new NamedPipeServerStream(
+                        _pipeName,
+                        PipeDirection.InOut,
+                        NamedPipeServerStream.MaxAllowedServerInstances,
+                        PipeTransmissionMode.Byte,
+                        PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly,
+                        BufferSize,
+                        BufferSize);
+                    await stream.WaitForConnectionAsync(stopping).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch (Exception ex)
                 {
-                    return;
+                    if (stream is not null)
+                    {
+                        await stream.DisposeAsync().ConfigureAwait(false);
+                    }
+
+                    _slots.Release();
+                    stopping.ThrowIfCancellationRequested();
+
+                    // Another process can hold the pipe name for a long time; retrying at once would burn a whole core.
+                    var delay = backoff.Next();
+                    if (++failures == 1)
+                    {
+                        LogListenFailed(ex, _pipeName, delay);
+                    }
+                    else
+                    {
+                        LogListenStillFailing(ex, failures, delay);
+                    }
+
+                    await Task.Delay(delay, stopping).ConfigureAwait(false);
+                    continue;
                 }
 
-                continue;
-            }
+                if (failures > 0)
+                {
+                    LogListenRecovered(failures);
+                    failures = 0;
+                    backoff.Reset();
+                }
 
-            if (failures > 0)
-            {
-                LogListenRecovered(failures);
-                failures = 0;
-                backoff.Reset();
+                _ = ServeAsync(stream);
             }
-
-            _ = ServeAsync(stream);
+        }
+        catch (OperationCanceledException) when (stopping.IsCancellationRequested)
+        {
         }
     }
 

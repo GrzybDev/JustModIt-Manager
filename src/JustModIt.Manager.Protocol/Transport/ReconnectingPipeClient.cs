@@ -84,17 +84,7 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
 
     /// <summary>Queues an event on the current connection without waiting; while there is none it is dropped.</summary>
     /// <param name="message">The event's payload.</param>
-    /// <returns>False when there was no connection to send it on.</returns>
-    public bool Post(Message message)
-    {
-        if (_connection is not { } connection)
-        {
-            return false;
-        }
-
-        connection.Post(message);
-        return true;
-    }
+    public void Post(Message message) => _connection?.Post(message);
 
     /// <summary>Hands the agent's events of one type to a handler, across reconnects, until the result is disposed.</summary>
     /// <param name="handler">Runs on the connection's reader in the order events arrive, so it must not block.</param>
@@ -152,36 +142,31 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
     {
         var stopping = _stopping.Token;
         var backoff = new Backoff(_options.RetryDelay, _options.MaxRetryDelay);
-        while (true)
+        try
         {
-            try
+            while (true)
             {
-                await StayConnectedAsync(backoff, stopping).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stopping.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (ProtocolMismatchException ex)
-            {
-                if (SetState(ConnectionState.Incompatible))
+                try
                 {
-                    LogIncompatible(ex.Peer.Role, ex.Peer.ProcessId, ex.Peer.ProtocolVersion, ex.Peer.AppVersion);
+                    await StayConnectedAsync(backoff, stopping).ConfigureAwait(false);
                 }
-            }
-            catch (Exception ex)
-            {
-                LogConnectFailed(ex);
-            }
+                catch (ProtocolMismatchException ex)
+                {
+                    if (SetState(ConnectionState.Incompatible))
+                    {
+                        LogIncompatible(ex.Peer.Role, ex.Peer.ProcessId, ex.Peer.ProtocolVersion, ex.Peer.AppVersion);
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException || !stopping.IsCancellationRequested)
+                {
+                    LogConnectFailed(ex);
+                }
 
-            try
-            {
                 await Task.Delay(backoff.Next(), stopping).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
+        }
+        catch (OperationCanceledException) when (stopping.IsCancellationRequested)
+        {
         }
     }
 
@@ -237,9 +222,6 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
         return true;
     }
 
-    private void Unsubscribe(Subscription subscription) =>
-        ImmutableInterlocked.Update(ref _subscriptions, static (list, item) => list.Remove(item), subscription);
-
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to {Role} {ProcessId} running {AppVersion}")]
     private partial void LogConnected(ProcessRole role, int processId, string appVersion);
 
@@ -259,6 +241,6 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
     {
         public void Deliver(Message message) => deliver(message);
 
-        public void Dispose() => owner.Unsubscribe(this);
+        public void Dispose() => ImmutableInterlocked.Update(ref owner._subscriptions, static (list, item) => list.Remove(item), this);
     }
 }

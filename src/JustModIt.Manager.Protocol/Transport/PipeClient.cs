@@ -47,11 +47,5 @@ public static class PipeClient
     private sealed class UnsupportedRequests : IConnectionHandler
     {
         public static UnsupportedRequests Instance { get; } = new();
-
-        public ValueTask<Message?> HandleRequestAsync(
-            PipeConnection connection,
-            Message request,
-            CancellationToken cancellationToken) =>
-            throw new RequestFailedException(ErrorCode.Unsupported);
     }
 }

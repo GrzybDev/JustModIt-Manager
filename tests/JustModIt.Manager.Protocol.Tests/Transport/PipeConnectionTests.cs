@@ -233,7 +233,7 @@ public sealed class PipeConnectionTests
         for (var i = 0; i < 50; i++)
         {
             accepted.Post(new Navigate(new CatalogueTarget($"game-{i}")));
-            await client.SendEventAsync(new Navigate(new CatalogueTarget($"game-{i}")), TestContext.Current.CancellationToken);
+            client.Post(new Navigate(new CatalogueTarget($"game-{i}")));
         }
 
         for (var i = 0; i < 50; i++)
@@ -252,7 +252,7 @@ public sealed class PipeConnectionTests
 
         for (var i = 0; i < 20; i++)
         {
-            await client.SendEventAsync(new Navigate(new CatalogueTarget($"game-{i}")), TestContext.Current.CancellationToken);
+            client.Post(new Navigate(new CatalogueTarget($"game-{i}")));
         }
 
         await client.DisposeAsync();

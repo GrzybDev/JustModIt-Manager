@@ -77,8 +77,12 @@ public sealed partial class PipeConnection : IAsyncDisposable
         deadline.CancelAfter(timeout ?? _options.RequestTimeout);
         try
         {
-            await EnqueueAsync(new RequestFrame(id, request), deadline.Token).ConfigureAwait(false);
+            await _outgoing.Writer.WriteAsync(Serialize(new RequestFrame(id, request)), deadline.Token).ConfigureAwait(false);
             return await response.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
+        }
+        catch (ChannelClosedException)
+        {
+            throw new ConnectionClosedException();
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -88,14 +92,6 @@ public sealed partial class PipeConnection : IAsyncDisposable
         {
             _pending.TryRemove(id, out _);
         }
-    }
-
-    /// <summary>Sends an event, waiting while the send queue is full.</summary>
-    /// <param name="message">The event's payload.</param>
-    /// <param name="cancellationToken">Stops waiting for room in the queue.</param>
-    public ValueTask SendEventAsync(Message message, CancellationToken cancellationToken = default)
-    {
-        return EnqueueAsync(new EventFrame(message), cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -191,8 +187,10 @@ public sealed partial class PipeConnection : IAsyncDisposable
             LogHandlerFailed(ex, nameof(IConnectionHandler.OnConnected));
         }
 
-        _writeLoop = Task.Run(WriteLoopAsync);
-        _readLoop = Task.Run(ReadLoopAsync);
+        _writeLoop = Task.Run(() => PumpAsync(nameof(WriteLoopAsync), WriteLoopAsync,
+            exception => LogWriteEnded(exception, Peer.Role, Peer.ProcessId)));
+        _readLoop = Task.Run(() => PumpAsync(nameof(ReadLoopAsync), ReadLoopAsync,
+            exception => LogReadEnded(exception, Peer.Role, Peer.ProcessId)));
     }
 
     /// <summary>Queues an event without waiting; a peer that is not reading is disconnected rather than waited for.</summary>
@@ -200,34 +198,20 @@ public sealed partial class PipeConnection : IAsyncDisposable
     /// <exception cref="InvalidOperationException">The event is over the frame limit or cannot be written.</exception>
     public void Post(Message message)
     {
-        if (!_outgoing.Writer.TryWrite(FrameCodec.Serialize(new EventFrame(message), _options.MaxFrameLength)) && !_sendingCompleted)
+        if (!_outgoing.Writer.TryWrite(Serialize(new EventFrame(message))) && !_sendingCompleted)
         {
             LogPeerNotReading(Peer.Role, Peer.ProcessId);
             Close();
         }
     }
 
-    private async ValueTask EnqueueAsync(Frame frame, CancellationToken cancellationToken)
-    {
-        var payload = FrameCodec.Serialize(frame, _options.MaxFrameLength);
-        try
-        {
-            await _outgoing.Writer.WriteAsync(payload, cancellationToken).ConfigureAwait(false);
-        }
-        catch (ChannelClosedException)
-        {
-            throw new ConnectionClosedException();
-        }
-    }
+    private byte[] Serialize(Frame frame) => FrameCodec.Serialize(frame, _options.MaxFrameLength);
 
-    private async Task ReadLoopAsync()
+    private async Task PumpAsync(string loop, Func<Task> pump, Action<Exception> ended)
     {
         try
         {
-            while (await _reader.ReadAsync(_closing.Token).ConfigureAwait(false) is { } frame)
-            {
-                Dispatch(frame);
-            }
+            await pump().ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_closing.IsCancellationRequested)
         {
@@ -238,11 +222,11 @@ public sealed partial class PipeConnection : IAsyncDisposable
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)
         {
-            LogReadEnded(ex, Peer.Role, Peer.ProcessId);
+            ended(ex);
         }
         catch (Exception ex)
         {
-            LogLoopFailed(ex, nameof(ReadLoopAsync));
+            LogLoopFailed(ex, loop);
         }
         finally
         {
@@ -250,29 +234,19 @@ public sealed partial class PipeConnection : IAsyncDisposable
         }
     }
 
+    private async Task ReadLoopAsync()
+    {
+        while (await _reader.ReadAsync(_closing.Token).ConfigureAwait(false) is { } frame)
+        {
+            Dispatch(frame);
+        }
+    }
+
     private async Task WriteLoopAsync()
     {
-        try
+        await foreach (var payload in _outgoing.Reader.ReadAllAsync(_closing.Token).ConfigureAwait(false))
         {
-            await foreach (var payload in _outgoing.Reader.ReadAllAsync(_closing.Token).ConfigureAwait(false))
-            {
-                await _writer.WriteAsync(payload, _closing.Token).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException) when (_closing.IsCancellationRequested)
-        {
-        }
-        catch (Exception ex) when (ex is IOException or ObjectDisposedException)
-        {
-            LogWriteEnded(ex, Peer.Role, Peer.ProcessId);
-        }
-        catch (Exception ex)
-        {
-            LogLoopFailed(ex, nameof(WriteLoopAsync));
-        }
-        finally
-        {
-            Close();
+            await _writer.WriteAsync(payload, _closing.Token).ConfigureAwait(false);
         }
     }
 
@@ -310,17 +284,17 @@ public sealed partial class PipeConnection : IAsyncDisposable
 
     private async Task AnswerAsync(RequestFrame request)
     {
-        ResponseFrame response;
+        byte[] response;
         try
         {
             var result = request.Payload is Ping
                 ? null
                 : await _handler.HandleRequestAsync(this, request.Payload, _closing.Token).ConfigureAwait(false);
-            response = new ResponseFrame(request.Id, result);
+            response = Serialize(new ResponseFrame(request.Id, result));
         }
         catch (RequestFailedException ex)
         {
-            response = new ResponseFrame(request.Id, Error: new RemoteError(ex.Code, ex.Detail));
+            response = Serialize(new ResponseFrame(request.Id, Error: new RemoteError(ex.Code, ex.Detail)));
         }
         catch (OperationCanceledException) when (_closing.IsCancellationRequested)
         {
@@ -329,30 +303,14 @@ public sealed partial class PipeConnection : IAsyncDisposable
         catch (Exception ex)
         {
             LogHandlerFailed(ex, request.Payload.GetType().Name);
-            response = new ResponseFrame(request.Id, Error: new RemoteError(ErrorCode.Failed));
+            response = Serialize(new ResponseFrame(request.Id, Error: new RemoteError(ErrorCode.Failed)));
         }
 
         try
         {
-            await EnqueueAsync(response, _closing.Token).ConfigureAwait(false);
+            await _outgoing.Writer.WriteAsync(response, _closing.Token).ConfigureAwait(false);
         }
-        catch (InvalidOperationException ex)
-        {
-            LogHandlerFailed(ex, request.Payload.GetType().Name);
-            await TryEnqueueAsync(new ResponseFrame(request.Id, Error: new RemoteError(ErrorCode.Failed))).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is ConnectionClosedException or OperationCanceledException)
-        {
-        }
-    }
-
-    private async Task TryEnqueueAsync(Frame frame)
-    {
-        try
-        {
-            await EnqueueAsync(frame, _closing.Token).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is ConnectionClosedException or OperationCanceledException)
+        catch (Exception ex) when (ex is ChannelClosedException or OperationCanceledException)
         {
         }
     }
