@@ -31,7 +31,7 @@
     </Border>
 
     <StackPanel Spacing="4">
-      <TextBlock Classes="heading" Text="{x:Static loc:Strings.Creator_FilesTitle}" />
+      <TextBlock Classes="h2" Text="{x:Static loc:Strings.Creator_FilesTitle}" />
       <TextBlock Classes="lead" Text="{x:Static loc:Strings.Creator_FilesLead}" />
     </StackPanel>
 

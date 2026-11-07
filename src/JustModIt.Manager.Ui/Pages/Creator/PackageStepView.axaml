@@ -9,8 +9,8 @@
   <StackPanel Spacing="20">
     <StackPanel Spacing="4">
       <Panel>
-        <TextBlock Classes="heading" Text="{x:Static loc:Strings.Creator_BuildHeading}" IsVisible="{Binding !IsBuilt}" />
-        <TextBlock Classes="heading" Text="{x:Static loc:Strings.Creator_BuiltHeading}" IsVisible="{Binding IsBuilt}" />
+        <TextBlock Classes="h2" Text="{x:Static loc:Strings.Creator_BuildHeading}" IsVisible="{Binding !IsBuilt}" />
+        <TextBlock Classes="h2" Text="{x:Static loc:Strings.Creator_BuiltHeading}" IsVisible="{Binding IsBuilt}" />
       </Panel>
       <TextBlock Classes="lead" Text="{Binding Lead}" IsVisible="{Binding !IsBuilt}" />
     </StackPanel>

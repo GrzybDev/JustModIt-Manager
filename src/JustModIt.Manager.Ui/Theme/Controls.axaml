@@ -335,31 +335,6 @@
     <Setter Property="ClipToBounds" Value="True" />
     <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
   </Style>
-  <!-- A card that is one link: under the pointer it rises 4 px, its edge turns to the accent and it casts a shadow. -->
-  <Style Selector="Border.card.lift">
-    <Setter Property="RenderTransform" Value="translateY(0px)" />
-    <Setter Property="Transitions">
-      <Transitions>
-        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
-        <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
-        <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.3" />
-      </Transitions>
-    </Setter>
-  </Style>
-  <Style Selector="Border.card.lift:pointerover">
-    <Setter Property="RenderTransform" Value="translateY(-4px)" />
-    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
-    <Setter Property="BoxShadow" Value="{DynamicResource ElevLift}" />
-  </Style>
-  <Style Selector=":is(Window).reducedMotion Border.card.lift:pointerover">
-    <Setter Property="RenderTransform" Value="translateY(0px)" />
-  </Style>
-  <Style Selector="Border.panel">
-    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="16" />
-  </Style>
   <Style Selector="Border.floating">
     <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
@@ -458,5 +433,62 @@
   <Style Selector="StackPanel.page">
     <Setter Property="Margin" Value="{StaticResource PagePadding}" />
     <Setter Property="Spacing" Value="24" />
+  </Style>
+
+  <!-- A raised panel whose rows are split by faint lines. -->
+  <Style Selector="Border.todo, Border.settingsCard">
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+
+  <!-- A game's cover at the head of its page; each page gives its size. -->
+  <Style Selector="Border.cover">
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+    <Setter Property="BoxShadow" Value="0 0 0 1 #24FFFFFF, 0 30 60 -24 #F2000000, 0 14 28 -16 #CC000000" />
+  </Style>
+  <Style Selector="TextBlock.cardName">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="LineHeight" Value="21" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    <Setter Property="MaxLines" Value="3" />
+  </Style>
+  <!-- No cover: the game's controller in a soft glow, so the grid keeps its rhythm. -->
+  <Style Selector="Panel.coverPlaceholder">
+    <Setter Property="Background">
+      <RadialGradientBrush Center="50%,45%" GradientOrigin="50%,45%" RadiusX="60%" RadiusY="40%">
+        <GradientStop Color="#2E6D5BD0" Offset="0" />
+        <GradientStop Color="#006D5BD0" Offset="1" />
+      </RadialGradientBrush>
+    </Setter>
+  </Style>
+
+  <!-- A status that opens its explanation over the page. -->
+  <Style Selector="Button.chip">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Cursor" Value="Help" />
+  </Style>
+  <Style Selector="Button.chip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.popover">
+    <Setter Property="Width" Value="320" />
+    <Setter Property="Padding" Value="16,14,16,12" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BoxShadow" Value="0 24 48 -28 #E6000000, 0 8 24 0 #66000000" />
   </Style>
 </Styles>

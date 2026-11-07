@@ -7,14 +7,6 @@
   <Style Selector="StackPanel.section">
     <Setter Property="Spacing" Value="12" />
   </Style>
-  <Style Selector="Border.settingsCard">
-    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="16" />
-    <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
-    <Setter Property="ClipToBounds" Value="True" />
-  </Style>
   <Style Selector="Border.settingsCard Border.divider">
     <Setter Property="Background" Value="{StaticResource FillBrush}" />
   </Style>

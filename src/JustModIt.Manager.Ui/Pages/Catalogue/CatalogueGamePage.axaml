@@ -44,10 +44,6 @@
     <Style Selector="Border.cover">
       <Setter Property="Width" Value="160" />
       <Setter Property="Height" Value="240" />
-      <Setter Property="CornerRadius" Value="12" />
-      <Setter Property="ClipToBounds" Value="True" />
-      <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
-      <Setter Property="BoxShadow" Value="0 0 0 1 #24FFFFFF, 0 30 60 -24 #F2000000, 0 14 28 -16 #CC000000" />
     </Style>
     <Style Selector="Border.cover.compact">
       <Setter Property="Width" Value="120" />
@@ -56,25 +52,6 @@
     <Style Selector="TextBlock.displayL.compact">
       <Setter Property="FontSize" Value="32" />
       <Setter Property="LineHeight" Value="38" />
-    </Style>
-    <Style Selector="Button.chip">
-      <Setter Property="Height" Value="NaN" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="999" />
-      <Setter Property="Cursor" Value="Help" />
-    </Style>
-    <Style Selector="Button.chip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="Border.popover">
-      <Setter Property="Width" Value="320" />
-      <Setter Property="Padding" Value="16,14,16,12" />
-      <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="BoxShadow" Value="0 24 48 -28 #E6000000, 0 8 24 0 #66000000" />
     </Style>
     <Style Selector="Border.adultChip">
       <Setter Property="Height" Value="24" />

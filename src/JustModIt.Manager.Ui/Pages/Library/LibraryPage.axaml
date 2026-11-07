@@ -11,15 +11,6 @@
   </UserControl.KeyBindings>
 
   <UserControl.Styles>
-    <!-- The to-do panel: a raised surface whose rows are split by faint lines. -->
-    <Style Selector="Border.todo">
-      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
-      <Setter Property="ClipToBounds" Value="True" />
-    </Style>
     <Style Selector="ItemsControl.todoRows > ContentPresenter">
       <Setter Property="BorderBrush" Value="{StaticResource FillBrush}" />
     </Style>
@@ -125,15 +116,6 @@
     <Style Selector="Button.gameCard:pointerover TextBlock.cardName">
       <Setter Property="TextDecorations" Value="Underline" />
     </Style>
-    <Style Selector="TextBlock.cardName">
-      <Setter Property="FontSize" Value="15" />
-      <Setter Property="LineHeight" Value="21" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-      <Setter Property="MaxLines" Value="3" />
-    </Style>
     <Style Selector="Border.adultMark">
       <Setter Property="Height" Value="16" />
       <Setter Property="Padding" Value="5,0" />
@@ -145,15 +127,6 @@
       <Setter Property="FontWeight" Value="Bold" />
       <Setter Property="Foreground" Value="{StaticResource DangerTextStrongBrush}" />
       <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <!-- No cover: the game's controller in a soft glow, so the grid keeps its rhythm. -->
-    <Style Selector="Panel.coverPlaceholder">
-      <Setter Property="Background">
-        <RadialGradientBrush Center="50%,45%" GradientOrigin="50%,45%" RadiusX="60%" RadiusY="40%">
-          <GradientStop Color="#2E6D5BD0" Offset="0" />
-          <GradientStop Color="#006D5BD0" Offset="1" />
-        </RadialGradientBrush>
-      </Setter>
     </Style>
 
     <Style Selector="Button.helpTile">

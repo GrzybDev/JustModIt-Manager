@@ -149,15 +149,6 @@
     <Style Selector="Button.cardLink:pointerover TextBlock.cardName">
       <Setter Property="TextDecorations" Value="Underline" />
     </Style>
-    <Style Selector="TextBlock.cardName">
-      <Setter Property="FontSize" Value="15" />
-      <Setter Property="LineHeight" Value="21" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-      <Setter Property="MaxLines" Value="3" />
-    </Style>
     <Style Selector="Button.cardBar">
       <Setter Property="Height" Value="40" />
       <Setter Property="Padding" Value="14,0,12,0" />
@@ -173,14 +164,6 @@
     <Style Selector="Button.cardBar:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#14FFFFFF" />
       <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
-    </Style>
-    <Style Selector="Panel.coverPlaceholder">
-      <Setter Property="Background">
-        <RadialGradientBrush Center="50%,45%" GradientOrigin="50%,45%" RadiusX="60%" RadiusY="40%">
-          <GradientStop Color="#2E6D5BD0" Offset="0" />
-          <GradientStop Color="#006D5BD0" Offset="1" />
-        </RadialGradientBrush>
-      </Setter>
     </Style>
     <Style Selector="ProgressBar.card">
       <Setter Property="Height" Value="4" />

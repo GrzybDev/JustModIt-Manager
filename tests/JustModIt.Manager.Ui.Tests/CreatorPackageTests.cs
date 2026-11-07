@@ -512,7 +512,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_Rebuild));
         await BuildEndedAsync(package);
 
-        ui.Find<TextBlock>().Single(text => text.IsEffectivelyVisible && text.Classes.Contains("heading")).Text
+        ui.Find<TextBlock>().Single(text => text.IsEffectivelyVisible && text.Classes.Contains("h2")).Text
             .Should().Be(Strings.Creator_BuildHeading, "the package is not ready while its build failed");
         package.ResultName.Should().Be("Lantern Isle v1.0.examplemod");
         package.EarlierText.Should().StartWith(Strings.Creator_EarlierPackage.ToUpper(Text.Culture));

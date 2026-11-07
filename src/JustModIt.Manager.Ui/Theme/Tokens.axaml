@@ -6,14 +6,11 @@
 
   <!-- Surfaces -->
   <Color x:Key="PageColor">#030712</Color>
-  <Color x:Key="PageAltColor">#060A13</Color>
   <Color x:Key="ChromeColor">#070B14</Color>
   <Color x:Key="SurfaceColor">#0F1626</Color>
   <Color x:Key="SurfaceSunkenColor">#0B111E</Color>
   <Color x:Key="SurfaceSeamColor">#0C1220</Color>
   <Color x:Key="SurfaceFloatingColor">#111827</Color>
-  <Color x:Key="SurfaceOverArtColor">#D10B111E</Color>
-  <Color x:Key="SurfaceOverArtStrongColor">#E00B111E</Color>
   <Color x:Key="ScrimColor">#99030712</Color>
   <Color x:Key="SkeletonColor">#1F2937</Color>
   <Color x:Key="DisabledFillColor">#1A2030</Color>
@@ -28,7 +25,6 @@
   <Color x:Key="BorderColor">#1AFFFFFF</Color>
   <Color x:Key="FieldBorderColor">#1FFFFFFF</Color>
   <Color x:Key="BorderStrongColor">#26FFFFFF</Color>
-  <Color x:Key="BorderStrongerColor">#29FFFFFF</Color>
   <Color x:Key="BorderHoverColor">#40FFFFFF</Color>
   <Color x:Key="BorderSelectedColor">#8CFFFFFF</Color>
   <Color x:Key="SwitchOffBorderColor">#66FFFFFF</Color>
@@ -57,29 +53,21 @@
   <Color x:Key="FocusRingColor">#EF4444</Color>
 
   <!-- Tones of what happens on this computer: a base colour and a label colour that reads on dark surfaces. -->
-  <Color x:Key="SuccessColor">#22C55E</Color>
   <Color x:Key="SuccessTextColor">#4ADE80</Color>
-  <Color x:Key="InfoColor">#3B82F6</Color>
   <Color x:Key="InfoTextColor">#9DC0FA</Color>
-  <Color x:Key="WarningColor">#F59E0B</Color>
   <Color x:Key="WarningTextColor">#FBBF24</Color>
-  <Color x:Key="DangerColor">#EF4444</Color>
   <Color x:Key="DangerTextColor">#F87171</Color>
   <Color x:Key="DangerTextStrongColor">#FCA5A5</Color>
-  <Color x:Key="NeutralColor">#71717A</Color>
   <Color x:Key="NeutralTextColor">#B8B8BC</Color>
   <Color x:Key="CloseHoverColor">#E81123</Color>
   <Color x:Key="ClosePressedColor">#F1707A</Color>
 
   <SolidColorBrush x:Key="PageBrush" Color="{StaticResource PageColor}" />
-  <SolidColorBrush x:Key="PageAltBrush" Color="{StaticResource PageAltColor}" />
   <SolidColorBrush x:Key="ChromeBrush" Color="{StaticResource ChromeColor}" />
   <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
   <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="{StaticResource SurfaceSunkenColor}" />
   <SolidColorBrush x:Key="SurfaceSeamBrush" Color="{StaticResource SurfaceSeamColor}" />
   <SolidColorBrush x:Key="SurfaceFloatingBrush" Color="{StaticResource SurfaceFloatingColor}" />
-  <SolidColorBrush x:Key="SurfaceOverArtBrush" Color="{StaticResource SurfaceOverArtColor}" />
-  <SolidColorBrush x:Key="SurfaceOverArtStrongBrush" Color="{StaticResource SurfaceOverArtStrongColor}" />
   <SolidColorBrush x:Key="ScrimBrush" Color="{StaticResource ScrimColor}" />
   <SolidColorBrush x:Key="SkeletonBrush" Color="{StaticResource SkeletonColor}" />
   <SolidColorBrush x:Key="DisabledFillBrush" Color="{StaticResource DisabledFillColor}" />
@@ -92,7 +80,6 @@
   <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
   <SolidColorBrush x:Key="FieldBorderBrush" Color="{StaticResource FieldBorderColor}" />
   <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}" />
-  <SolidColorBrush x:Key="BorderStrongerBrush" Color="{StaticResource BorderStrongerColor}" />
   <SolidColorBrush x:Key="BorderHoverBrush" Color="{StaticResource BorderHoverColor}" />
   <SolidColorBrush x:Key="BorderSelectedBrush" Color="{StaticResource BorderSelectedColor}" />
   <SolidColorBrush x:Key="SwitchOffBorderBrush" Color="{StaticResource SwitchOffBorderColor}" />
@@ -114,16 +101,11 @@
   <SolidColorBrush x:Key="AccentFilterEdgeBrush" Color="{DynamicResource AccentFilterEdgeColor}" />
   <SolidColorBrush x:Key="AccentBorderBrush" Color="{DynamicResource AccentBorderColor}" />
   <SolidColorBrush x:Key="FocusRingBrush" Color="{DynamicResource FocusRingColor}" />
-  <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
   <SolidColorBrush x:Key="SuccessTextBrush" Color="{StaticResource SuccessTextColor}" />
-  <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}" />
   <SolidColorBrush x:Key="InfoTextBrush" Color="{StaticResource InfoTextColor}" />
-  <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
   <SolidColorBrush x:Key="WarningTextBrush" Color="{StaticResource WarningTextColor}" />
-  <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
   <SolidColorBrush x:Key="DangerTextBrush" Color="{StaticResource DangerTextColor}" />
   <SolidColorBrush x:Key="DangerTextStrongBrush" Color="{StaticResource DangerTextStrongColor}" />
-  <SolidColorBrush x:Key="NeutralBrush" Color="{StaticResource NeutralColor}" />
   <SolidColorBrush x:Key="NeutralTextBrush" Color="{StaticResource NeutralTextColor}" />
   <SolidColorBrush x:Key="CloseHoverBrush" Color="{StaticResource CloseHoverColor}" />
   <SolidColorBrush x:Key="ClosePressedBrush" Color="{StaticResource ClosePressedColor}" />
@@ -141,15 +123,6 @@
   <SolidColorBrush x:Key="DangerHoverBrush" Color="#1AEF4444" />
   <SolidColorBrush x:Key="DangerButtonEdgeBrush" Color="#73F87171" />
 
-  <!-- Radii: XS avatars and tooltips, SM buttons and fields, MD avatars, LG cards and messages, XL gallery tiles,
-       XXL panels and dialogs, Pill pills and progress tracks. -->
-  <CornerRadius x:Key="RadiusXs">6</CornerRadius>
-  <CornerRadius x:Key="RadiusSm">8</CornerRadius>
-  <CornerRadius x:Key="RadiusMd">10</CornerRadius>
-  <CornerRadius x:Key="RadiusLg">12</CornerRadius>
-  <CornerRadius x:Key="RadiusXl">14</CornerRadius>
-  <CornerRadius x:Key="RadiusXxl">16</CornerRadius>
-  <CornerRadius x:Key="RadiusPill">999</CornerRadius>
   <!-- Fluent's own radii, so stock controls match. -->
   <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
   <CornerRadius x:Key="OverlayCornerRadius">12</CornerRadius>
@@ -157,7 +130,6 @@
   <!-- Elevation: lines carry the dark interface; a shadow only on what really floats. -->
   <BoxShadows x:Key="ElevRest">0 1 2 0 #66000000</BoxShadows>
   <BoxShadows x:Key="ElevLift">0 22 40 -18 #59D4213D, 0 12 24 -12 #CC000000</BoxShadows>
-  <BoxShadows x:Key="ElevCover">0 0 0 1 #24FFFFFF, 0 30 60 -24 #F2000000, 0 14 28 -16 #CC000000</BoxShadows>
   <BoxShadows x:Key="ElevPrimary">0 14 30 -14 #CCD4213D, inset 0 1 0 0 #1FFFFFFF</BoxShadows>
   <BoxShadows x:Key="ElevPrimaryHover">0 16 32 -14 #F2D4213D, inset 0 1 0 0 #24FFFFFF</BoxShadows>
   <BoxShadows x:Key="ElevPrimaryPressed">inset 0 1 0 0 #14FFFFFF</BoxShadows>
@@ -167,11 +139,7 @@
   <BoxShadows x:Key="ElevNone">0 0 0 0 #00000000</BoxShadows>
 
   <!-- Window constants -->
-  <x:Double x:Key="TitleBarHeight">40</x:Double>
-  <x:Double x:Key="SidebarWidth">240</x:Double>
-  <x:Double x:Key="NavItemHeight">40</x:Double>
   <Thickness x:Key="PagePadding">40,32,40,56</Thickness>
-  <Thickness x:Key="PagePaddingNarrow">32,32,32,56</Thickness>
   <x:Double x:Key="PageMaxWidth">1120</x:Double>
 
   <!-- Inter 3.19 (SIL Open Font License) from Avalonia.Fonts.Inter; ExtraBold titles render with its Bold. -->

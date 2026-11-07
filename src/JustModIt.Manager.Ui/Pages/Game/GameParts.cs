@@ -163,8 +163,6 @@ public sealed record JobStepView(int Number, string Label, StepState State)
     public bool IsDone => State == StepState.Done;
 
     public bool IsCurrent => State == StepState.Current;
-
-    public bool IsPending => State == StepState.Pending;
 }
 
 /// <summary>An install on the game as its row in the panel shows it.</summary>

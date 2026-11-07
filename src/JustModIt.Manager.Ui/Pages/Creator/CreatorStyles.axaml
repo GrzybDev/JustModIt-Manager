@@ -117,13 +117,6 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="12" />
   </Style>
-  <Style Selector="TextBlock.heading">
-    <Setter Property="FontSize" Value="20" />
-    <Setter Property="LineHeight" Value="28" />
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="LetterSpacing" Value="-0.2" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-  </Style>
   <Style Selector="TextBlock.lead">
     <Setter Property="FontSize" Value="15" />
     <Setter Property="LineHeight" Value="24" />

@@ -140,13 +140,6 @@
   <Style Selector="Border.toast.danger ui|Icon.toastIcon">
     <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
   </Style>
-  <Style Selector="TextBlock.toastTitle">
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="LineHeight" Value="20" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="TextWrapping" Value="Wrap" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-  </Style>
   <Style Selector="Button.toastAction">
     <Setter Property="Height" Value="28" />
     <Setter Property="Padding" Value="8,0" />

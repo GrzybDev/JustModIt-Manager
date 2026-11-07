@@ -47,13 +47,6 @@
       <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
-    <Style Selector="TextBlock.columnHead">
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="LineHeight" Value="16" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="LetterSpacing" Value="0.72" />
-      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-    </Style>
 
     <!-- The head of the libraries' and then the typeface's and icons' part of the table. -->
     <Style Selector="Border.tableHead">
@@ -204,9 +197,9 @@
           <StackPanel>
             <Border Classes="tableHead">
               <Grid ColumnDefinitions="1.25*,1.6*,200,20" ColumnSpacing="16">
-                <TextBlock Classes="columnHead" Text="{Binding LibrariesHead}" />
-                <TextBlock Grid.Column="1" Classes="columnHead" Text="{Binding UseHead}" />
-                <TextBlock Grid.Column="2" Classes="columnHead" Text="{Binding LicenseHead}" />
+                <TextBlock Classes="overline" Text="{Binding LibrariesHead}" />
+                <TextBlock Grid.Column="1" Classes="overline" Text="{Binding UseHead}" />
+                <TextBlock Grid.Column="2" Classes="overline" Text="{Binding LicenseHead}" />
               </Grid>
             </Border>
             <StackPanel Margin="20,14,20,20" Spacing="10" IsVisible="{Binding IsLoading}">
@@ -217,9 +210,9 @@
             <ItemsControl x:Name="Libraries" Classes="components" ItemsSource="{Binding Libraries}" ItemTemplate="{StaticResource ComponentTemplate}" />
             <Border Classes="tableHead second" IsVisible="{Binding !IsLoading}">
               <Grid ColumnDefinitions="1.25*,1.6*,200,20" ColumnSpacing="16">
-                <TextBlock Classes="columnHead" Text="{Binding ArtworkHead}" />
-                <TextBlock Grid.Column="1" Classes="columnHead" Text="{Binding UseHead}" />
-                <TextBlock Grid.Column="2" Classes="columnHead" Text="{Binding LicenseHead}" />
+                <TextBlock Classes="overline" Text="{Binding ArtworkHead}" />
+                <TextBlock Grid.Column="1" Classes="overline" Text="{Binding UseHead}" />
+                <TextBlock Grid.Column="2" Classes="overline" Text="{Binding LicenseHead}" />
               </Grid>
             </Border>
             <ItemsControl x:Name="Artwork" Classes="components" ItemsSource="{Binding Artwork}" ItemTemplate="{StaticResource ComponentTemplate}" />

@@ -24,7 +24,7 @@
           <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
             <ui:Icon Classes="toastIcon" Data="{Binding Icon}" Width="18" Height="18" Margin="0,1,0,0" VerticalAlignment="Top" />
             <StackPanel Grid.Column="1" Spacing="2">
-              <TextBlock Classes="toastTitle" Text="{Binding Title}" />
+              <TextBlock Classes="itemTitle" Text="{Binding Title}" />
               <TextBlock Classes="caption" Text="{Binding Message}"
                          IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               <Button Classes="quiet toastAction" Content="{Binding ActionText}" Command="{Binding ActCommand}"

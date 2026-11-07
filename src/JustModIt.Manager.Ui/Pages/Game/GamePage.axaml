@@ -15,10 +15,6 @@
     <Style Selector="Border.cover">
       <Setter Property="Width" Value="120" />
       <Setter Property="Height" Value="180" />
-      <Setter Property="CornerRadius" Value="12" />
-      <Setter Property="ClipToBounds" Value="True" />
-      <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
-      <Setter Property="BoxShadow" Value="0 0 0 1 #24FFFFFF, 0 30 60 -24 #F2000000, 0 14 28 -16 #CC000000" />
     </Style>
     <Style Selector="TextBlock.gameTitle">
       <Setter Property="TextWrapping" Value="Wrap" />
@@ -29,16 +25,6 @@
       <Setter Property="Background" Value="#59030712" />
       <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
     </Style>
-    <Style Selector="Button.chip">
-      <Setter Property="Height" Value="NaN" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="999" />
-      <Setter Property="Cursor" Value="Help" />
-    </Style>
-    <Style Selector="Button.chip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="Transparent" />
-    </Style>
     <Style Selector="Border.hiddenChip">
       <Setter Property="Height" Value="24" />
       <Setter Property="Padding" Value="8,0,10,0" />
@@ -46,15 +32,6 @@
       <Setter Property="Background" Value="#C7232631" />
       <Setter Property="BorderBrush" Value="#40B8B8BC" />
       <Setter Property="BorderThickness" Value="1" />
-    </Style>
-    <Style Selector="Border.popover">
-      <Setter Property="Width" Value="320" />
-      <Setter Property="Padding" Value="16,14,16,12" />
-      <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="BoxShadow" Value="0 24 48 -28 #E6000000, 0 8 24 0 #66000000" />
     </Style>
 
     <!-- The panel of what is on this computer: rows on a timeline, the next step at its foot. -->
@@ -99,12 +76,6 @@
       <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
-    <Style Selector="TextBlock.rowTitle">
-      <Setter Property="FontSize" Value="15" />
-      <Setter Property="LineHeight" Value="22" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
     </Style>
     <Style Selector="TextBlock.rowText">
       <Setter Property="FontSize" Value="13" />
@@ -281,14 +252,6 @@
       <Setter Property="Background" Value="#2922C55E" />
     </Style>
 
-    <!-- The sections under the panel. -->
-    <Style Selector="TextBlock.section">
-      <Setter Property="FontSize" Value="20" />
-      <Setter Property="LineHeight" Value="28" />
-      <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="LetterSpacing" Value="-0.2" />
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    </Style>
     <Style Selector="ui|Icon.flipped">
       <Setter Property="RenderTransform" Value="rotate(180deg)" />
     </Style>
@@ -764,7 +727,7 @@
                         <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Top" Margin="0,5,0,0">
                           <TextBlock Text="{Binding Project}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextEmphasisBrush}"
                                      IsVisible="{Binding HasProject}" />
-                          <TextBlock Classes="rowTitle" TextWrapping="Wrap">
+                          <TextBlock Classes="h4" TextWrapping="Wrap">
                             <Run Text="{Binding Title}" />
                             <Run Text="  ·  " Foreground="{StaticResource TextMutedBrush}" FontWeight="Normal" />
                             <Run Text="{Binding When}" FontSize="14" FontWeight="Normal" Foreground="{StaticResource TextBodyBrush}" />
@@ -852,7 +815,7 @@
                   <TextBlock Grid.Column="1" Classes="rowLabel" VerticalAlignment="Top" Margin="0,6,0,0"
                              Text="{x:Static loc:Strings.GamePage_RowProject}" />
                   <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Top" Margin="0,5,0,0">
-                    <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.GamePage_NotInstalled}" />
+                    <TextBlock Classes="h4" Text="{x:Static loc:Strings.GamePage_NotInstalled}" />
                     <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_NotInstalledHint}" />
                     <ContentControl x:Name="NewFeatures" Content="{Binding NewFeatures}" ContentTemplate="{StaticResource FeaturesTemplate}"
                                     IsVisible="{Binding NewFeatures, Converter={x:Static ObjectConverters.IsNotNull}}" />
@@ -872,7 +835,7 @@
                   </Grid>
                   <TextBlock Grid.Column="1" Classes="rowLabel" Text="{Binding AutomationLabel}" />
                   <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
-                    <TextBlock x:Name="AutomationTitle" Classes="rowTitle" Text="{Binding AutomationTitle}" />
+                    <TextBlock x:Name="AutomationTitle" Classes="h4" Text="{Binding AutomationTitle}" />
                     <TextBlock Classes="rowText" Text="{Binding AutomationHint}" />
                   </StackPanel>
                   <ToggleSwitch x:Name="AutomationSwitch" Grid.Column="3" Classes="neutral" Margin="0,0,12,0" IsChecked="{Binding IsAutomatic}"
@@ -892,7 +855,7 @@
                   <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <ui:Icon Data="{x:Static theme:Icons.Info}" Foreground="{StaticResource InfoTextBrush}" VerticalAlignment="Center" />
-                      <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.GamePage_Official}" Foreground="{StaticResource InfoTextBrush}" />
+                      <TextBlock Classes="h4" Text="{x:Static loc:Strings.GamePage_Official}" Foreground="{StaticResource InfoTextBrush}" />
                     </StackPanel>
                     <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_OfficialHint}" />
                   </StackPanel>
@@ -944,7 +907,7 @@
           </StackPanel>
           <Grid ColumnDefinitions="*,360" ColumnSpacing="48" Margin="0,56,0,0" IsVisible="{Binding ShowsDetails}">
             <StackPanel Spacing="16" IsVisible="{Binding ShowsChangesSection}">
-              <TextBlock Classes="section" Text="{Binding ChangesTitle}" />
+              <TextBlock Classes="h2" Text="{Binding ChangesTitle}" />
               <md:MarkdownView Document="{Binding Details.Changes}" LinkCommand="{Binding OpenCommand}" />
             </StackPanel>
             <Border Grid.Column="1" Classes="aside" VerticalAlignment="Top" IsVisible="{Binding HasNotes}">

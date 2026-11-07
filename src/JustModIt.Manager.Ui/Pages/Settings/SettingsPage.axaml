@@ -58,12 +58,6 @@
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
     </Style>
-    <Style Selector="TextBlock.size">
-      <Setter Property="FontSize" Value="15" />
-      <Setter Property="LineHeight" Value="22" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    </Style>
     <Style Selector="Border.footer">
       <Setter Property="Background" Value="#05FFFFFF" />
       <Setter Property="Padding" Value="20,14,20,16" />
@@ -384,21 +378,21 @@
                 <ui:Icon Data="{x:Static theme:Icons.Package}" />
                 <StackPanel Grid.Column="1">
                   <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_DownloadedPackages}" />
-                  <TextBlock Classes="size" Text="{Binding Data.Downloads}" />
+                  <TextBlock Classes="h4" Text="{Binding Data.Downloads}" />
                 </StackPanel>
               </Grid>
               <Grid Classes="size" ColumnDefinitions="Auto,Auto">
                 <ui:Icon Data="{x:Static theme:Icons.Image}" />
                 <StackPanel Grid.Column="1">
                   <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_ImagesAndCatalogue}" />
-                  <TextBlock Classes="size" Text="{Binding Data.ImagesAndCatalogue}" />
+                  <TextBlock Classes="h4" Text="{Binding Data.ImagesAndCatalogue}" />
                 </StackPanel>
               </Grid>
               <Grid Classes="size" ColumnDefinitions="Auto,Auto">
                 <ui:Icon Data="{x:Static theme:Icons.ScrollText}" />
                 <StackPanel Grid.Column="1">
                   <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_Logs}" />
-                  <TextBlock Classes="size" Text="{Binding Data.Logs}" />
+                  <TextBlock Classes="h4" Text="{Binding Data.Logs}" />
                 </StackPanel>
               </Grid>
             </WrapPanel>

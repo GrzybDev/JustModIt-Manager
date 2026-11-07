@@ -16,13 +16,6 @@
     <Setter Property="LetterSpacing" Value="-0.8" />
     <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
   </Style>
-  <Style Selector="TextBlock.display">
-    <Setter Property="FontSize" Value="32" />
-    <Setter Property="LineHeight" Value="38" />
-    <Setter Property="FontWeight" Value="ExtraBold" />
-    <Setter Property="LetterSpacing" Value="-0.64" />
-    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
-  </Style>
   <Style Selector="TextBlock.displayS">
     <Setter Property="FontSize" Value="26" />
     <Setter Property="LineHeight" Value="32" />
@@ -55,21 +48,6 @@
     <Setter Property="LineHeight" Value="22" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-  </Style>
-  <Style Selector="TextBlock.name">
-    <Setter Property="FontSize" Value="16" />
-    <Setter Property="LineHeight" Value="22" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-  </Style>
-  <Style Selector="TextBlock.cardTitle">
-    <Setter Property="FontSize" Value="15" />
-    <Setter Property="LineHeight" Value="21" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="MaxLines" Value="2" />
-    <Setter Property="TextWrapping" Value="Wrap" />
-    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.bodyL">
     <Setter Property="FontWeight" Value="Normal" />
@@ -137,11 +115,12 @@
     <Setter Property="LetterSpacing" Value="0.72" />
     <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
   </Style>
-  <Style Selector="TextBlock.micro">
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="LineHeight" Value="16" />
-    <Setter Property="FontWeight" Value="Medium" />
-    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+  <Style Selector="TextBlock.itemTitle">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
   </Style>
   <Style Selector="TextBlock.wordmark">
     <Setter Property="FontSize" Value="13" />
@@ -158,17 +137,11 @@
   <Style Selector=":is(Control).successText">
     <Setter Property="TextElement.Foreground" Value="{StaticResource SuccessTextBrush}" />
   </Style>
-  <Style Selector=":is(Control).infoText">
-    <Setter Property="TextElement.Foreground" Value="{StaticResource InfoTextBrush}" />
-  </Style>
   <Style Selector=":is(Control).warningText">
     <Setter Property="TextElement.Foreground" Value="{StaticResource WarningTextBrush}" />
   </Style>
   <Style Selector=":is(Control).dangerText">
     <Setter Property="TextElement.Foreground" Value="{StaticResource DangerTextBrush}" />
-  </Style>
-  <Style Selector=":is(Control).neutralText">
-    <Setter Property="TextElement.Foreground" Value="{StaticResource NeutralTextBrush}" />
   </Style>
   <Style Selector=":is(Control).secondaryText">
     <Setter Property="TextElement.Foreground" Value="{StaticResource TextSecondaryBrush}" />
