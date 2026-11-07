@@ -241,12 +241,8 @@
                   </WrapPanel>
                   <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasStores}">
                     <TextBlock Classes="fact" Text="{x:Static loc:Strings.Catalogue_Works}" />
-                    <ItemsControl ItemsSource="{Binding Stores}" AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Works}">
-                      <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                          <StackPanel Orientation="Horizontal" Spacing="6" />
-                        </ItemsPanelTemplate>
-                      </ItemsControl.ItemsPanel>
+                    <ItemsControl ItemsSource="{Binding Stores}" AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Works}"
+                                  ItemsPanel="{StaticResource RowItems6}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="cat:StoreFact">
                           <StackPanel Orientation="Horizontal">

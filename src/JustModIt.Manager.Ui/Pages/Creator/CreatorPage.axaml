@@ -103,12 +103,7 @@
             <Border x:Name="HowItWorksBox" Grid.Column="1" Width="404" Classes="soft" Padding="20">
               <StackPanel Spacing="14">
                 <TextBlock Classes="overline" Text="{x:Static creator:CreatorPage.HowItWorksTitle}" />
-                <ItemsControl ItemsSource="{Binding HowItWorks}" theme:Motion.Stagger="True">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <StackPanel Spacing="12" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
+                <ItemsControl ItemsSource="{Binding HowItWorks}" theme:Motion.Stagger="True" ItemsPanel="{StaticResource StackItems12}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="creator:HowItWorksStep">
                       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">

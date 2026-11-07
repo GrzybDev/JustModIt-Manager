@@ -85,12 +85,7 @@
               <Border CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource FieldBorderBrush}" Background="{StaticResource FillSubtleBrush}"
                       Padding="6,5" MinHeight="40">
                 <WrapPanel ItemSpacing="6" LineSpacing="6">
-                  <ItemsControl ItemsSource="{Binding Authors}">
-                    <ItemsControl.ItemsPanel>
-                      <ItemsPanelTemplate>
-                        <WrapPanel ItemSpacing="6" LineSpacing="6" />
-                      </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
+                  <ItemsControl ItemsSource="{Binding Authors}" ItemsPanel="{StaticResource WrapItems6}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="x:String">
                         <Border Height="28" CornerRadius="999" Padding="10,0,4,0" Background="{StaticResource FillStrongBrush}">

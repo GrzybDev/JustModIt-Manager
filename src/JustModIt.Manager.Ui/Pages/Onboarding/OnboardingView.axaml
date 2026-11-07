@@ -38,12 +38,7 @@
                     Command="{Binding BackCommand}" IsVisible="{Binding !IsFirstStep}" />
 
             <ItemsControl Grid.Column="1" ItemsSource="{Binding Steps}" VerticalAlignment="Center"
-                          AutomationProperties.Name="{Binding Progress}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <StackPanel Orientation="Horizontal" Spacing="6" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
+                          AutomationProperties.Name="{Binding Progress}" ItemsPanel="{StaticResource RowItems6}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="onboarding:OnboardingStep">
                   <Border Classes="stepDot" Classes.current="{Binding IsCurrent}" Classes.done="{Binding IsDone}" ToolTip.Tip="{Binding Title}" />

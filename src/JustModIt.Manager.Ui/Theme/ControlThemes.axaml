@@ -4,6 +4,17 @@
   <!-- Templates of controls the theme draws its own way. Controls whose look changes by class stay on Fluent's
        templates and are restyled in Controls.axaml; the pills and tiles below are picked with Theme="{StaticResource …}". -->
 
+  <!-- The panels of lists, which several share. -->
+  <ItemsPanelTemplate x:Key="RowItems6"><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+  <ItemsPanelTemplate x:Key="RowItems8"><StackPanel Orientation="Horizontal" Spacing="8" /></ItemsPanelTemplate>
+  <ItemsPanelTemplate x:Key="StackItems12"><StackPanel Spacing="12" /></ItemsPanelTemplate>
+  <ItemsPanelTemplate x:Key="StackItems4"><StackPanel Spacing="4" /></ItemsPanelTemplate>
+  <ItemsPanelTemplate x:Key="StackItems8"><StackPanel Spacing="8" /></ItemsPanelTemplate>
+  <ItemsPanelTemplate x:Key="VirtualItems"><VirtualizingStackPanel /></ItemsPanelTemplate>
+  <ItemsPanelTemplate x:Key="VirtualRows"><VirtualizingStackPanel CacheLength="1" /></ItemsPanelTemplate>
+  <ItemsPanelTemplate x:Key="WrapItems6"><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+  <ItemsPanelTemplate x:Key="WrapItems8"><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate>
+
   <!-- Avalonia draws a title bar and caption buttons over an extended client area; an empty template leaves the area
        to the window's own title bar. -->
   <ControlTheme x:Key="NoDrawnDecorations" TargetType="WindowDrawnDecorations">

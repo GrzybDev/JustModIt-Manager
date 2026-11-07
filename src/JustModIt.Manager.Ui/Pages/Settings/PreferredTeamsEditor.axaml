@@ -113,12 +113,7 @@
     <StackPanel Spacing="8" IsVisible="{Binding CanAdd}">
       <TextBox x:Name="TeamSearch" Classes="search" MaxWidth="420" HorizontalAlignment="Left" Text="{Binding Query}"
                PlaceholderText="{x:Static loc:Strings.Settings_TeamsSearch}" AutomationProperties.Name="{x:Static loc:Strings.Settings_TeamsSearch}" />
-      <ItemsControl ItemsSource="{Binding Matches}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <WrapPanel ItemSpacing="6" LineSpacing="6" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
+      <ItemsControl ItemsSource="{Binding Matches}" ItemsPanel="{StaticResource WrapItems6}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="settings:TeamOption">
             <Button Classes="outline small" ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Content="{Binding Name}"

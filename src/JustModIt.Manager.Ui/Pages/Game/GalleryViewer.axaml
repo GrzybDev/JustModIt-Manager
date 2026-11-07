@@ -55,12 +55,7 @@
           <ui:Icon Data="{x:Static theme:Icons.ChevronRight}" Width="20" Height="20" />
         </Button>
       </Panel>
-      <ItemsControl Grid.Row="2" ItemsSource="{Binding Thumbs}" HorizontalAlignment="Center" Margin="0,12">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <StackPanel Orientation="Horizontal" Spacing="8" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
+      <ItemsControl Grid.Row="2" ItemsSource="{Binding Thumbs}" HorizontalAlignment="Center" Margin="0,12" ItemsPanel="{StaticResource RowItems8}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="game:GalleryThumb">
             <Button Classes="thumb" Classes.current="{Binding IsCurrent}" AutomationProperties.Name="{Binding Item.Caption}"

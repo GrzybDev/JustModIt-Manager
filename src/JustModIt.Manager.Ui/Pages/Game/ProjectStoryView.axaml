@@ -134,12 +134,8 @@
       <StackPanel Spacing="16" IsVisible="{Binding HasAbout}">
         <WrapPanel ItemSpacing="12" LineSpacing="8">
           <TextBlock Classes="h2" Text="{x:Static loc:Strings.GamePage_About}" />
-          <ItemsControl ItemsSource="{Binding Details.Genres}" VerticalAlignment="Center" AutomationProperties.Name="{x:Static loc:Strings.GamePage_Genres}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel ItemSpacing="6" LineSpacing="6" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+          <ItemsControl ItemsSource="{Binding Details.Genres}" VerticalAlignment="Center" AutomationProperties.Name="{x:Static loc:Strings.GamePage_Genres}"
+                        ItemsPanel="{StaticResource WrapItems6}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="x:String">
                 <Border Classes="genre">
@@ -171,12 +167,7 @@
                 </StackPanel>
               </StackPanel>
             </Button>
-            <ItemsControl ItemsSource="{Binding Details.Support}" IsVisible="{Binding HasSupport}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <StackPanel Spacing="8" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
+            <ItemsControl ItemsSource="{Binding Details.Support}" IsVisible="{Binding HasSupport}" ItemsPanel="{StaticResource StackItems8}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="game:SupportLink">
                   <Button Classes="outline" HorizontalAlignment="Left" Command="{Binding $parent[UserControl].((game:ProjectStory)DataContext).OpenCommand}"

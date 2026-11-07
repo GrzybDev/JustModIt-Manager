@@ -101,12 +101,7 @@
       </StackPanel>
 
       <ItemsControl x:Name="GameRows" ItemsSource="{Binding Rows}" IsVisible="{Binding ShowsGames}" theme:Motion.Stagger="True"
-                    AutomationProperties.Name="{x:Static loc:Strings.Creator_GameTitle}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <VirtualizingStackPanel />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
+                    AutomationProperties.Name="{x:Static loc:Strings.Creator_GameTitle}" ItemsPanel="{StaticResource VirtualItems}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="creator:GameOptionRow">
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,0,0,12">

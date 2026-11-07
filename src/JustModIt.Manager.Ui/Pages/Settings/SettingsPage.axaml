@@ -322,12 +322,7 @@
         <Border Classes="settingsCard">
           <ui:SettingRow Classes="stacked" Icon="{x:Static theme:Icons.FolderPlus}" Title="{x:Static loc:Strings.Settings_AddedFolders}"
                          Description="{Binding Folders.Description}">
-            <ItemsControl x:Name="AddedFolders" ItemsSource="{Binding Folders.Rows}" Margin="52,-4,0,0">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <StackPanel Spacing="12" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
+            <ItemsControl x:Name="AddedFolders" ItemsSource="{Binding Folders.Rows}" Margin="52,-4,0,0" ItemsPanel="{StaticResource StackItems12}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="settings:AddedFolderRow">
                   <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">

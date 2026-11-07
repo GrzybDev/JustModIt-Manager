@@ -8,12 +8,8 @@
              x:DataType="overlays:ToastHost"
              HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="20"
              IsVisible="{Binding HasItems}">
-  <ItemsControl ItemsSource="{Binding Items}" AutomationProperties.Name="{x:Static loc:Strings.Toast_Notifications}">
-    <ItemsControl.ItemsPanel>
-      <ItemsPanelTemplate>
-        <StackPanel Spacing="8" />
-      </ItemsPanelTemplate>
-    </ItemsControl.ItemsPanel>
+  <ItemsControl ItemsSource="{Binding Items}" AutomationProperties.Name="{x:Static loc:Strings.Toast_Notifications}"
+                ItemsPanel="{StaticResource StackItems8}">
     <ItemsControl.ItemTemplate>
       <DataTemplate x:DataType="overlays:ToastViewModel">
         <Border Classes="toast" Classes.closing="{Binding IsClosing}" Classes.success="{Binding IsSuccess}"

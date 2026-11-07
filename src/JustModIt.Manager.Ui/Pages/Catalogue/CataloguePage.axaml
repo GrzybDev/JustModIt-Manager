@@ -247,12 +247,7 @@
                 <ui:Skeleton Width="146" Height="32" CornerRadius="999" />
               </WrapPanel>
               <ItemsControl x:Name="StatusRow" ItemsSource="{Binding StatusPills}" IsVisible="{Binding !ArePillsLoading}"
-                            AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Statuses}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel ItemSpacing="8" LineSpacing="8" />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+                            AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Statuses}" ItemsPanel="{StaticResource WrapItems8}">
                 <ItemsControl.DataTemplates>
                   <DataTemplate x:DataType="cat:AllStatusesPill">
                     <ToggleButton x:Name="AllStatuses" Theme="{StaticResource FilterPill}" Classes="all"
@@ -315,12 +310,7 @@
               <ui:Skeleton Width="150" Height="32" CornerRadius="999" />
             </WrapPanel>
             <ItemsControl x:Name="TeamRow" Grid.Column="1" ItemsSource="{Binding TeamOptions}" IsVisible="{Binding ShowsTeams}"
-                          AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Team}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <WrapPanel ItemSpacing="8" LineSpacing="8" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
+                          AutomationProperties.Name="{x:Static loc:Strings.Catalogue_Team}" ItemsPanel="{StaticResource WrapItems8}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="cat:FilterOption">
                   <ToggleButton Theme="{StaticResource OptionPill}" Classes="plain team" IsChecked="{Binding IsSelected}"
@@ -347,22 +337,13 @@
           <!-- The filters the site keeps behind "more filters". -->
           <StackPanel x:Name="MoreFilters" Spacing="12" IsVisible="{Binding AreMoreOpen}" theme:Motion.Enter="True">
             <Border Classes="divider" />
-            <ItemsControl ItemsSource="{Binding ShownGroups}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <StackPanel Spacing="12" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
+            <ItemsControl ItemsSource="{Binding ShownGroups}" ItemsPanel="{StaticResource StackItems12}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="cat:FilterGroup">
                   <Grid ColumnDefinitions="96,*" ColumnSpacing="8">
                     <TextBlock Classes="rowLabel" Text="{Binding Title}" />
-                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Options}" AutomationProperties.Name="{Binding Title}">
-                      <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                          <WrapPanel ItemSpacing="8" LineSpacing="8" />
-                        </ItemsPanelTemplate>
-                      </ItemsControl.ItemsPanel>
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Options}" AutomationProperties.Name="{Binding Title}"
+                                  ItemsPanel="{StaticResource WrapItems8}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="cat:FilterOption">
                           <ToggleButton Theme="{StaticResource OptionPill}" Classes="plain" IsChecked="{Binding IsSelected}"
@@ -425,12 +406,7 @@
 
       <!-- The grid lies out in rows, so the list virtualises; cards of a row enter one after another. -->
       <ItemsControl x:Name="GameGrid" ItemsSource="{Binding Rows}" IsVisible="{Binding ShowsGames}"
-                    theme:Motion.Stagger="True" AutomationProperties.Name="{Binding ResultsText}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <VirtualizingStackPanel CacheLength="1" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
+                    theme:Motion.Stagger="True" AutomationProperties.Name="{Binding ResultsText}" ItemsPanel="{StaticResource VirtualRows}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="ui:CardRow">
             <ItemsControl ItemsSource="{Binding Items}" Margin="0,0,0,24" theme:Motion.Stagger="True">

@@ -45,12 +45,7 @@
               </StackPanel>
               <Grid x:Name="Found" ColumnDefinitions="*,Auto" ColumnSpacing="16" IsVisible="{Binding !IsSearching}">
                 <TextBlock Classes="h4" TextWrapping="Wrap" VerticalAlignment="Center" Text="{Binding Result}" />
-                <ItemsControl Grid.Column="1" ItemsSource="{Binding Matches}" theme:Motion.Stagger="True">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <StackPanel Orientation="Horizontal" Spacing="8" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
+                <ItemsControl Grid.Column="1" ItemsSource="{Binding Matches}" theme:Motion.Stagger="True" ItemsPanel="{StaticResource RowItems8}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="onboarding:MatchedGame">
                       <Panel ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}">

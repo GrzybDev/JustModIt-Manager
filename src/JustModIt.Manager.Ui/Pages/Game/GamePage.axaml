@@ -347,12 +347,7 @@
         </ui:TrailingAction>
         <StackPanel x:Name="FeaturePills" Margin="0,12,0,2" Spacing="14" IsVisible="{Binding IsOpen}" theme:Motion.Enter="True">
           <ItemsControl ItemsSource="{Binding Toggles}" IsVisible="{Binding HasToggles}"
-                        AutomationProperties.Name="{x:Static loc:Strings.GamePage_InfoFeatures}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel ItemSpacing="8" LineSpacing="8" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+                        AutomationProperties.Name="{x:Static loc:Strings.GamePage_InfoFeatures}" ItemsPanel="{StaticResource WrapItems8}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="game:FeaturePill">
                 <ToggleButton Theme="{StaticResource OptionPill}" Classes="feature" IsChecked="{Binding IsOn, Mode=OneWay}" IsEnabled="{Binding CanTurn}"
@@ -381,12 +376,7 @@
               <DataTemplate x:DataType="game:FeatureGroupView">
                 <StackPanel Spacing="6">
                   <TextBlock Text="{Binding Caption}" FontSize="12" LineHeight="16" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" />
-                  <ItemsControl ItemsSource="{Binding Members}" AutomationProperties.Name="{Binding Caption}">
-                    <ItemsControl.ItemsPanel>
-                      <ItemsPanelTemplate>
-                        <WrapPanel ItemSpacing="8" LineSpacing="8" />
-                      </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
+                  <ItemsControl ItemsSource="{Binding Members}" AutomationProperties.Name="{Binding Caption}" ItemsPanel="{StaticResource WrapItems8}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="game:FeaturePill">
                         <RadioButton Theme="{StaticResource ChoicePill}" Classes="feature" IsChecked="{Binding IsOn, Mode=OneWay}"

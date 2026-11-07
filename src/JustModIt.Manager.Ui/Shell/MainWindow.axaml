@@ -66,22 +66,12 @@
       <!-- Rows rather than docking, so the keyboard reaches the pages first and the tools after them. -->
       <Grid x:Name="Sidebar" Grid.Row="1" Classes="sidebar" Classes.away="{Binding !ShowsPages}" theme:Motion.Shown="{Binding ShowsPages}"
             RowDefinitions="Auto,*,Auto">
-        <ItemsControl ItemsSource="{Binding Primary}" AutomationProperties.Name="{x:Static loc:Strings.Shell_Pages}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Spacing="4" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-        </ItemsControl>
+        <ItemsControl ItemsSource="{Binding Primary}" AutomationProperties.Name="{x:Static loc:Strings.Shell_Pages}"
+                      ItemsPanel="{StaticResource StackItems4}" />
         <StackPanel Grid.Row="2" Spacing="4">
           <Border Classes="navSeparator" />
-          <ItemsControl ItemsSource="{Binding Secondary}" AutomationProperties.Name="{x:Static loc:Strings.Shell_Tools}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <StackPanel Spacing="4" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-          </ItemsControl>
+          <ItemsControl ItemsSource="{Binding Secondary}" AutomationProperties.Name="{x:Static loc:Strings.Shell_Tools}"
+                        ItemsPanel="{StaticResource StackItems4}" />
           <shell:StatusCard DataContext="{Binding Status}" Margin="0,8,0,0" />
         </StackPanel>
       </Grid>
