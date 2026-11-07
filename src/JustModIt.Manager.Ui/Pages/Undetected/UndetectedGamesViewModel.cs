@@ -114,22 +114,10 @@ public sealed partial class UndetectedGamesViewModel : PageViewModel, IDisposabl
     private Task AddGameAsync() => AddAsync(Strings.Undetected_PickGameTitle);
 
     [RelayCommand]
-    private void OpenLink(Uri? address)
-    {
-        if (address is not null)
-        {
-            _services.Links.Open(address);
-        }
-    }
+    private void OpenLink(Uri? address) => _services.Links.Open(address);
 
     [RelayCommand]
-    private void OpenClient(ClientLink? client)
-    {
-        if (client is not null)
-        {
-            _services.Links.Open(client);
-        }
-    }
+    private void OpenClient(ClientLink? client) => _services.Links.Open(client);
 
     private bool CanAdd() => !IsAdding;
 

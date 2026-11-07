@@ -192,11 +192,7 @@ public sealed partial class UncleanExitDialogViewModel : DialogViewModel<bool>
     [RelayCommand]
     private void Report()
     {
-        if (_report is not null)
-        {
-            _services.Links.Open(_report);
-        }
-
+        _services.Links.Open(_report);
         Complete(true);
     }
 

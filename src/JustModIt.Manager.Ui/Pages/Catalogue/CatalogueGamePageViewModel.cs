@@ -328,13 +328,7 @@ public sealed partial class CatalogueGamePageViewModel : PageViewModel, IProject
     private void ToggleStatus() => IsStatusOpen = !IsStatusOpen;
 
     [RelayCommand]
-    private void Open(Uri? address)
-    {
-        if (address is not null)
-        {
-            _services.Links.Open(address);
-        }
-    }
+    private void Open(Uri? address) => _services.Links.Open(address);
 
     [RelayCommand]
     private void OpenStatuses() =>

@@ -407,10 +407,7 @@ public sealed partial class CataloguePageViewModel : PageViewModel, IDisposable
     [RelayCommand]
     private void OpenStatuses()
     {
-        if (PageLinks.Help(_services.Context.Site.SiteAddress, "project-statuses") is { } help)
-        {
-            _services.Links.Open(help);
-        }
+        _services.Links.Open(PageLinks.Help(_services.Context.Site.SiteAddress, "project-statuses"));
     }
 
     [RelayCommand]

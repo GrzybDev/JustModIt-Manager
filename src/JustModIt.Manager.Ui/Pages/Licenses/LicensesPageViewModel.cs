@@ -160,22 +160,10 @@ public sealed partial class LicensesPageViewModel : PageViewModel
     private void ToggleBranding() => IsBrandingExpanded = !IsBrandingExpanded;
 
     [RelayCommand]
-    private void OpenSource()
-    {
-        if (_versionSource is not null)
-        {
-            _services.Links.Open(_versionSource);
-        }
-    }
+    private void OpenSource() => _services.Links.Open(_versionSource);
 
     [RelayCommand]
-    private void OpenLink(Uri? address)
-    {
-        if (address is not null)
-        {
-            _services.Links.Open(address);
-        }
-    }
+    private void OpenLink(Uri? address) => _services.Links.Open(address);
 
     private async Task LoadAsync()
     {

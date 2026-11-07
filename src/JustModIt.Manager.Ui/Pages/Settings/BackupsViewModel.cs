@@ -282,13 +282,7 @@ public sealed partial class BackupsViewModel : ObservableObject
     private async Task StopMovingAsync() => await AgentRequests.SendAsync(_services, new StopMovingBackups()).ConfigureAwait(true);
 
     [RelayCommand]
-    private void CheckFiles(LeftoverRow row)
-    {
-        if (row.CheckFiles is { } check)
-        {
-            _services.Links.Open(check);
-        }
-    }
+    private void CheckFiles(LeftoverRow row) => _services.Links.Open(row.CheckFiles);
 
     [RelayCommand]
     private async Task RemoveLeftoverAsync(LeftoverRow row)

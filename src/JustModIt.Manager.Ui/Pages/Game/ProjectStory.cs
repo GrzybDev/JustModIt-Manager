@@ -87,13 +87,7 @@ public sealed partial class ProjectStory(UiServices services) : ObservableObject
     private void ToggleDescription() => IsDescriptionOpen = !IsDescriptionOpen;
 
     [RelayCommand]
-    private void Open(Uri? address)
-    {
-        if (address is not null)
-        {
-            services.Links.Open(address);
-        }
-    }
+    private void Open(Uri? address) => services.Links.Open(address);
 
     // Films play on YouTube in the browser; pictures open large inside the window.
     [RelayCommand]

@@ -32,13 +32,7 @@ public sealed partial class ReleaseNotesDialogViewModel : DialogViewModel<bool>
     private async Task LoadAsync(string notes) => Notes = await Task.Run(() => MarkdownDocument.Parse(notes)).ConfigureAwait(true);
 
     [RelayCommand]
-    private void OpenLink(Uri? address)
-    {
-        if (address is not null)
-        {
-            _links.Open(address);
-        }
-    }
+    private void OpenLink(Uri? address) => _links.Open(address);
 
     [RelayCommand]
     private void Close() => Cancel();

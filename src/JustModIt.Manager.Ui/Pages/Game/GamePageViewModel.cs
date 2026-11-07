@@ -377,13 +377,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private void ToggleChanges() => AreChangesOpen = !AreChangesOpen;
 
     [RelayCommand]
-    private void Open(Uri? address)
-    {
-        if (address is not null)
-        {
-            _services.Links.Open(address);
-        }
-    }
+    private void Open(Uri? address) => _services.Links.Open(address);
 
     [RelayCommand]
     private void OpenHelp() => Open(PageLinks.Help(_services.Context.Site.SiteAddress));

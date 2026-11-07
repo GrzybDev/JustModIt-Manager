@@ -496,10 +496,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
     private void CheckFiles()
     {
         _runtimeFoldsWhenSolved = true;
-        if (_page.Game is { } game && Navigation.PageLinks.ValidateFiles(game.Key) is { } check)
-        {
-            _page.Services.Links.Open(check);
-        }
+        _page.Services.Links.Open(_page.Game is { } game ? Navigation.PageLinks.ValidateFiles(game.Key) : null);
     }
 
     [RelayCommand]

@@ -286,9 +286,21 @@ public sealed class RecordingLinks : IExternalLinks
 
     public List<string> Folders { get; } = [];
 
-    public void Open(Uri address) => Opened.Add(address);
+    public void Open(Uri? address)
+    {
+        if (address is not null)
+        {
+            Opened.Add(address);
+        }
+    }
 
-    public void Open(ClientLink client) => Clients.Add(client);
+    public void Open(ClientLink? client)
+    {
+        if (client is not null)
+        {
+            Clients.Add(client);
+        }
+    }
 
     public void OpenFolder(string folder) => Folders.Add(folder);
 }

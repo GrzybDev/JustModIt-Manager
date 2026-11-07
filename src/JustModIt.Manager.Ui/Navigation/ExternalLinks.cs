@@ -13,12 +13,12 @@ namespace JustModIt.Manager.Ui.Navigation;
 public interface IExternalLinks
 {
     /// <summary>Opens an address with the program the system has for it; anything but https and Steam's links is ignored.</summary>
-    /// <param name="address">The address to open.</param>
-    void Open(Uri address);
+    /// <param name="address">The address to open; null for none.</param>
+    void Open(Uri? address);
 
     /// <summary>Starts a store client through its own link.</summary>
-    /// <param name="client">The client and its link.</param>
-    void Open(ClientLink client);
+    /// <param name="client">The client and its link; null for none.</param>
+    void Open(ClientLink? client);
 
     /// <summary>Shows a folder in the system's file manager; a path that is not fully qualified is ignored.</summary>
     /// <param name="folder">The folder's full path.</param>
@@ -54,9 +54,9 @@ public sealed class ClientLink
 /// <param name="logger">Where an address or folder that could not be opened is logged.</param>
 public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLinks
 {
-    public void Open(Uri address)
+    public void Open(Uri? address)
     {
-        if (IsAllowed(address))
+        if (address is not null && IsAllowed(address))
         {
             Start(address.AbsoluteUri);
         }
@@ -70,9 +70,12 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
         }
     }
 
-    public void Open(ClientLink client)
+    public void Open(ClientLink? client)
     {
-        Start(client.Address);
+        if (client is not null)
+        {
+            Start(client.Address);
+        }
     }
 
     /// <summary>

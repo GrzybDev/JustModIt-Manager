@@ -231,31 +231,13 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     }
 
     [RelayCommand]
-    private void OpenSite()
-    {
-        if (_services.Context.Site.SiteAddress is { } site)
-        {
-            _services.Links.Open(site);
-        }
-    }
+    private void OpenSite() => _services.Links.Open(_services.Context.Site.SiteAddress);
 
     [RelayCommand]
-    private void OpenSource()
-    {
-        if (_services.Context.SourceAddress is { } source)
-        {
-            _services.Links.Open(source);
-        }
-    }
+    private void OpenSource() => _services.Links.Open(_services.Context.SourceAddress);
 
     [RelayCommand]
-    private void ReportProblem()
-    {
-        if (ProblemReports.Address(_services.Context) is { } address)
-        {
-            _services.Links.Open(address);
-        }
-    }
+    private void ReportProblem() => _services.Links.Open(ProblemReports.Address(_services.Context));
 
     [RelayCommand]
     private async Task OpenLogsAsync() => await AgentRequests.OpenFolderAsync(_services, new OpenFolder(AppFolder.Logs)).ConfigureAwait(true);

@@ -487,13 +487,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     }
 
     [RelayCommand]
-    private void OpenSite()
-    {
-        if (PageLinks.Dashboard(_page.Services.Context.Site.SiteAddress) is { } dashboard)
-        {
-            _page.Services.Links.Open(dashboard);
-        }
-    }
+    private void OpenSite() => _page.Services.Links.Open(PageLinks.Dashboard(_page.Services.Context.Site.SiteAddress));
 
     [RelayCommand]
     private Task FinishAsync() => _page.FinishAsync();
