@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator.Comparison;
@@ -55,9 +56,42 @@ public sealed class FolderLayoutTests : IDisposable
         layout.ToPackage("Ember Isles_Data/new.txt").Should().Be("Ember Isles_Data/new.txt", "the path is in the project's layout already");
     }
 
+    [Fact]
+    public void Removing_the_first_version_keeps_the_project_layout_for_the_next_one_added()
+    {
+        using var third = new Workspace();
+        var second = FolderLayout.Resolve([], Listed(_other, "EmberIsles_Data/a.bin;EmberIsles_Data/b.bin"),
+            FolderLayout.Resolve([], Listed(_first, "Ember Isles_Data/a.bin;Ember Isles_Data/b.bin"), null));
+
+        // The first version left the project, so the second one's stored rule is what the project's layout is known by.
+        var reference = FolderLayout.Resolve(second.Layout.Renames, Listed(_other, ""), null);
+        var added = FolderLayout.Resolve([], Listed(third, "Ember Isles_Data/a.bin;Ember Isles_Data/b.bin"), reference);
+
+        second.Layout.Renames.Should().Equal(new FolderRename("Ember Isles_Data", "EmberIsles_Data"));
+        added.Layout.Renames.Should().BeEmpty("the added version lies like the project, not like the second version");
+        added.TryGetFile("Ember Isles_Data/a.bin", out _).Should().BeTrue();
+        reference.TryGetFile("Ember Isles_Data/a.bin", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_store_update_that_renames_a_folder_is_detected_again()
+    {
+        var reference = FolderLayout.Resolve([], Listed(_first, "Ember Isles_Data/a.bin;Ember Isles_Data/b.bin"), null);
+        ValueList<FolderRename> stored = [new FolderRename("Ember Isles_Data", "EmberIsles_Data")];
+        var before = FolderLayout.Resolve(stored, Listed(_other, "EmberIsles_Data/a.bin;EmberIsles_Data/b.bin"), reference);
+        Directory.Delete(Path.Combine(_other.GameDirectory, "EmberIsles_Data"), recursive: true);
+
+        var after = FolderLayout.Resolve(stored, Listed(_other, "Ember_Data/a.bin;Ember_Data/b.bin"), reference);
+
+        before.Layout.Renames.Should().Equal(stored);
+        after.Layout.Renames.Should().Equal(new FolderRename("Ember Isles_Data", "Ember_Data"));
+        after.TryGetFile("Ember Isles_Data/b.bin", out var file).Should().BeTrue();
+        file!.FullPath.Should().Be(Path.Combine(_other.GameDirectory, "Ember_Data", "b.bin"));
+    }
+
     private static GameIndex Listed(Workspace workspace, string files)
     {
-        foreach (var file in files.Split(';'))
+        foreach (var file in files.Split(';', StringSplitOptions.RemoveEmptyEntries))
         {
             workspace.Game(file, file);
         }

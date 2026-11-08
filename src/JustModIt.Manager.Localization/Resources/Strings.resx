@@ -3295,10 +3295,10 @@
     <value>{stage, select, Checking {Checking the files} Copying {Packing the files} HashingOriginal {Hashing the original} CreatingPatch {Making a patch} HashingRuntimeFiles {Hashing the files changed while the game runs} other {Writing the package's description}}</value>
   </data>
   <data name="Creator_StopBuildTitle" xml:space="preserve">
-    <value>Stop building the package?</value>
+    <value>Stop building?</value>
   </data>
   <data name="Creator_StopBuild" xml:space="preserve">
-    <value>A stopped build leaves no files behind and keeps an earlier package of the same name.</value>
+    <value>Stopping removes only the package being built. Finished packages stay, and an earlier package of that name does not change.</value>
   </data>
   <data name="Creator_StopBuildConfirm" xml:space="preserve">
     <value>Stop the build</value>
@@ -3307,7 +3307,7 @@
     <value>The build was stopped</value>
   </data>
   <data name="Creator_BuildCancelled" xml:space="preserve">
-    <value>No file was written, and an earlier package of the same name stays as it was.</value>
+    <value>{finished, select, true {The finished packages stayed, and the one being built is gone.} other {No file was written, and an earlier package of the same name stays as it was.}}</value>
   </data>
   <data name="Creator_BuildFailedTitle" xml:space="preserve">
     <value>The package was not built</value>
@@ -3439,7 +3439,7 @@
     <value>The test install could not be undone: {reason}</value>
   </data>
   <data name="Creator_PublishTitle" xml:space="preserve">
-    <value>Publish it on the site</value>
+    <value>{several, select, true {Publish them on the site} other {Publish it on the site}}</value>
   </data>
   <data name="Creator_PublishManifest" xml:space="preserve">
     <value>On the site, the file goes into a release of the project, as its main package or as an add-on, and the site marks it as one that needs the app. The changes and add-ons are set there too.</value>
@@ -3499,7 +3499,7 @@
     <value>All operations ({count})</value>
   </data>
   <data name="Creator_CellState" xml:space="preserve">
-    <value>{state, select, Unchanged {No changes since {hasVersion, select, true {{version}} other {the last package}}} Ready {Ready} NoFolder {No folder} FolderGone {Folder unavailable} GameGone {The game is not on this computer} TestInstalled {Test install in the game} Stopped {Comparison stopped} Installed {A package is installed on the game} NotReady {{work}} other {The comparison failed}}</value>
+    <value>{state, select, Compared {Compared} Unchanged {No changes since {hasVersion, select, true {{version}} other {the last package}}} Ready {Ready} NoFolder {No folder} FolderGone {Folder unavailable} GameGone {The game is not on this computer} TestInstalled {Test install in the game} Stopped {Comparison stopped} Installed {A package is installed on the game} NotReady {{work}} other {The comparison failed}}</value>
   </data>
   <data name="Creator_BeforeBuild" xml:space="preserve">
     <value>Before building</value>
@@ -3548,5 +3548,71 @@
   </data>
   <data name="Creator_BlockedTitle" xml:space="preserve">
     <value>enter the package's name on the tab “Package description”</value>
+  </data>
+  <data name="Creator_ChangeGame" xml:space="preserve">
+    <value>Another game…</value>
+  </data>
+  <data name="Creator_ChangeGameText" xml:space="preserve">
+    <value>Every detected game</value>
+  </data>
+  <data name="Creator_OfferVersion" xml:space="preserve">
+    <value>{game} is on this computer on {store} too. The project can cover both versions.</value>
+  </data>
+  <data name="Creator_AddStoreVersion" xml:space="preserve">
+    <value>Add the {store} version</value>
+  </data>
+  <data name="Creator_DismissOffer" xml:space="preserve">
+    <value>Do not show</value>
+  </data>
+  <data name="Creator_PanelName" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Creator_ClosePanel" xml:space="preserve">
+    <value>Close the details</value>
+  </data>
+  <data name="Creator_CellDetail" xml:space="preserve">
+    <value>{detail, select, Changed {{count, plural, one {# file changed} other {# files changed}} since {hasVersion, select, true {{version}} other {the last package}}}}</value>
+  </data>
+  <data name="Creator_Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Creator_BuiltAt" xml:space="preserve">
+    <value>built {date}</value>
+  </data>
+  <data name="Creator_BuildAll" xml:space="preserve">
+    <value>Build the packages</value>
+  </data>
+  <data name="Creator_BuildingOf" xml:space="preserve">
+    <value>Package {number} of {count}</value>
+  </data>
+  <data name="Creator_TestOn" xml:space="preserve">
+    <value>Test install ({store})</value>
+  </data>
+  <data name="Creator_BlockedCell" xml:space="preserve">
+    <value>{part} · {store}: {text}</value>
+  </data>
+  <data name="Creator_RemoveVersion" xml:space="preserve">
+    <value>Remove the {store} version from the project</value>
+  </data>
+  <data name="Creator_RemoveVersionTitle" xml:space="preserve">
+    <value>Remove the {store} version from the project?</value>
+  </data>
+  <data name="Creator_RemoveVersionMessage" xml:space="preserve">
+    <value>Its comparison and its list of built packages leave the project. The files on the disk stay.</value>
+  </data>
+  <data name="Creator_RemoveVersionConfirm" xml:space="preserve">
+    <value>Remove the version</value>
+  </data>
+  <data name="Creator_FolderForVersion" xml:space="preserve">
+    <value>Only for the {store} version</value>
+  </data>
+  <data name="Creator_FolderForVersionText" xml:space="preserve">
+    <value>The other versions keep their folder.</value>
+  </data>
+  <data name="Creator_FolderForAll" xml:space="preserve">
+    <value>For every version</value>
+  </data>
+  <data name="Creator_FolderForAllText" xml:space="preserve">
+    <value>Every version is compared with the new folder.</value>
   </data>
 </root>

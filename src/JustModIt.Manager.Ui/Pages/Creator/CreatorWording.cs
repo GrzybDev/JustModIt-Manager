@@ -23,7 +23,18 @@ internal static class CreatorWording
     /// <param name="block">The reason the creator refused.</param>
     /// <param name="gameFolder">The game's folder, which tells the game's own folder from one overlapping it.</param>
     public static string Block(CreatorBlock block, string gameFolder) =>
-        Text.Format(Strings.Creator_Block, ("reason", Reason(block, gameFolder)), ("path", block.Path ?? ""), ("app", block.App ?? ""));
+        Text.Format(Strings.Creator_Block, ("reason", Reason(block, gameFolder)), ("path", Wrappable(block.Path ?? "")), ("app", block.App ?? ""));
+
+    /// <summary>A full path as a sentence names it: it may wrap after any of its folders, never within its drive's root.</summary>
+    /// <param name="path">The path.</param>
+    public static string Wrappable(string path)
+    {
+        // The line-breaking rules allow a break only after a drive's colon, which leaves "C:" alone at the end of a line; a word
+        // joiner keeps it with its separator, and a zero-width space after every further separator gives the path its own breaks.
+        var root = Path.GetPathRoot(path) ?? "";
+        return root.Replace(":", ":⁠", StringComparison.Ordinal)
+            + path[root.Length..].Replace(Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar + "​", StringComparison.Ordinal);
+    }
 
     /// <summary>An operation's kind as its chip says it.</summary>
     /// <param name="kind">The operation's kind.</param>

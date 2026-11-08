@@ -11,7 +11,11 @@
     <StackPanel>
       <StackPanel>
         <StackPanel Spacing="10" Margin="20,18,20,16">
-          <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_RuntimeTitle}" />
+          <!-- A table's cells may declare other files, so the head names the cell chosen last. -->
+          <WrapPanel ItemSpacing="10">
+            <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_RuntimeTitle}" VerticalAlignment="Center" />
+            <TextBlock Classes="caption" Text="{Binding CellLine}" VerticalAlignment="Center" IsVisible="{Binding CellLine, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </WrapPanel>
           <TextBlock Classes="bodyText" MaxWidth="820" HorizontalAlignment="Left" FontSize="14" LineHeight="22"
                      Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_RuntimeLead}" />
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" MaxWidth="820" HorizontalAlignment="Left">

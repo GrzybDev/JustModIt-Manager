@@ -18,6 +18,20 @@ public readonly record struct FolderLayout(ValueList<FolderRename> Renames)
     public string ToPackage(string path) => FolderRename.Map(_toPackage, path);
 
     /// <summary>
+    /// A version's listing keyed by project paths: by its stored rule while the rule still fits (its folders are there and the
+    /// project's are not), else by one detected against the reference, so a store update that renames a folder is found again.
+    /// </summary>
+    /// <param name="stored">The version's stored rule; empty while none is known.</param>
+    /// <param name="index">The version's game as listed.</param>
+    /// <param name="reference">
+    /// The first version on this computer, resolved, so the project's layout holds after the first version left; null for that one.
+    /// </param>
+    public static GameIndex Resolve(ValueList<FolderRename> stored, GameIndex index, GameIndex? reference) =>
+        index.InLayout(reference is null || (stored.Count > 0 && stored.All(rule => index.IsDirectory(rule.Game) && !index.IsDirectory(rule.Package)))
+            ? new FolderLayout(stored)
+            : Detect(reference, index));
+
+    /// <summary>
     /// Pairs the top-most folders only the project's version has with those only the other has, when they share at least
     /// half of the first folder's files by relative path. A case-only difference is none, and the parents of a pair may
     /// differ, since a rule on the leading segments also expresses a moved folder.

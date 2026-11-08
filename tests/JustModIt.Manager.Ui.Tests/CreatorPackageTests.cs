@@ -141,6 +141,40 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_plan_made_while_the_description_shows_is_in_the_operations_once_the_tab_is_left()
+    {
+        using var ui = await OpenAsync();
+        var package = await PackageAsync(ui);
+        var counts = package.Review.Counts;
+        package.Tab = ProjectTab.Description;
+        _work.Author("data/extra/more.txt", "another file of the author's work");
+
+        await package.CheckAsync(anyway: true);
+        await UiHarness.WaitUntilAsync(() => package.Cell!.IsCompared && package.Session!.Review!.Plan.Operations.Count == 3);
+        package.Review.Counts.Should().Be(counts, "the rows are not rebuilt for each key typed in the description");
+
+        package.Tab = ProjectTab.Release;
+        package.Review.Counts.Should().NotBe(counts);
+    }
+
+    [AvaloniaFact]
+    public async Task Stopping_a_build_on_a_drive_that_stopped_answering_ends_it_within_the_limit()
+    {
+        var (ui, package, files) = await BuildingAsync();
+        using var shown = ui;
+
+        ui.Click(Button(ui, Strings.Creator_Stop));
+        await UiHarness.WaitUntilAsync(() =>
+        {
+            ui.Clock.Advance(LibraryAccess.TimeLimit);
+            return !package.Build.BuildCommand.IsRunning;
+        });
+
+        package.Build.ProblemTitle.Should().Be(Strings.Creator_BuildCancelledTitle);
+        files.Reads.Set();
+    }
+
+    [AvaloniaFact]
     public async Task Closing_the_window_during_a_build_waits_until_the_build_removed_its_partial_package()
     {
         var (ui, _, files) = await BuildingAsync();
@@ -410,46 +444,110 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task A_package_built_for_one_copy_of_a_game_is_left_behind_once_the_author_picks_another_copy()
+    public async Task Each_version_compares_and_builds_in_its_own_layout()
+    {
+        using var ui = await OpenAsync();
+        // The other store's copy keeps the game's data in a folder of another name.
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        Directory.Move(Path.Combine(gog.Game.InstallDirectory, "data"), Path.Combine(gog.Game.InstallDirectory, "content"));
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog]) : _work.Answer(request);
+        var page = await PackageAsync(ui);
+        page.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => page.HasOffer && !page.Description.HasMetadataProblem);
+        ui.Click(Button(ui, page.OfferAction));
+        await UiHarness.WaitUntilAsync(() => page.IsTable && page.Cells.All(cell => cell.IsCompared && cell.Review is not null) && page.CanBuild,
+            () => page.BlockedText);
+
+        page.Session!.Project.Versions[1].Folders.Should().Equal(new FolderRename("data", "content"));
+        page.Cells.Select(cell => cell.Review!.Plan.Operations.Select(operation => (operation.Kind, operation.Path))).Should().AllSatisfy(operations =>
+            operations.Should().BeEquivalentTo([(OperationKind.Patch, "data/strings.bin"), (OperationKind.Copy, "data/extra/credits.txt")]), "both versions plan in the project's layout");
+        await BuildAsync(ui);
+        await BuiltAsync(page);
+
+        foreach (var (name, folder) in new[] { ("Lantern Isle (Steam) v1.0.examplemod", "data"), ("Lantern Isle (GOG) v1.0.examplemod", "content") })
+        {
+            await using var built = await new PackageReader().OpenAsync(Output(name), TestContext.Current.CancellationToken);
+            built.Manifest!.Operations.Select(operation => operation switch { PatchOperation patch => patch.Path, CopyOperation copy => copy.Path, _ => "" })
+                .Should().BeEquivalentTo($"{folder}/strings.bin", $"{folder}/extra/credits.txt");
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task A_version_taken_off_the_project_drops_its_cell_and_its_packages()
     {
         using var ui = await OpenAsync();
         var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        File.WriteAllText(Path.Combine(gog.Game.InstallDirectory, "data", "strings.bin"), "strings of the original game, as the other store ships them");
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog]) : _work.Answer(request);
+        var page = await PackageAsync(ui);
+        page.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => page.HasOffer && !page.Description.HasMetadataProblem);
+        ui.Click(Button(ui, page.OfferAction));
+        await UiHarness.WaitUntilAsync(() => page.IsTable && page.CanBuild, () => page.BlockedText);
+        await BuildAsync(ui);
+        await BuiltAsync(page);
+
+        ui.Click(Button(ui, page.Cells[1].Name));
+        ui.Click(Button(ui, page.Cells[1].RemoveText));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+        ui.Click(Button(ui, Strings.Creator_RemoveVersionConfirm));
+
+        await UiHarness.WaitUntilAsync(() => !page.IsTable && page.Record!.Parts.SelectMany(part => part.Packages).All(package => !package.Versions.Contains(gog.Key)));
+        page.Cells.Select(cell => cell.Key.Version).Should().Equal(CreatorWorkspace.Lantern);
+        page.Build.Packages.Should().NotContain(row => row.Versions.Contains(gog.Key));
+        page.Record!.Parts.SelectMany(part => part.Packages).Select(package => package.Path).Should().Equal(Output("Lantern Isle (Steam) v1.0.examplemod"));
+        File.Exists(Output("Lantern Isle (GOG) v1.0.examplemod")).Should().BeTrue("the files on the disk stay");
+    }
+
+    [AvaloniaFact]
+    public async Task One_button_builds_a_package_per_version_named_after_its_store_and_tests_the_chosen_one()
+    {
+        using var ui = await OpenAsync();
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        // The copy holds another original of the file the author changed, so its package patches the file otherwise.
+        File.WriteAllText(Path.Combine(gog.Game.InstallDirectory, "data", "strings.bin"), "strings of the original game, as the other store ships them");
         ui.Agent.Answer = request => request switch
         {
             GetDetectedGames => new DetectedGames([.. _work.Detected, gog]),
             TestInstallPackage => new JobStarted(InstallJob),
             _ => null,
         };
-        var package = await PackageAsync(ui);
-        package.Description.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
-        var steam = Output("Lantern Isle (Steam) v1.0.examplemod");
-        await BuildAsync(ui);
-        await BuiltAsync(package);
-        var built = File.GetLastWriteTimeUtc(steam);
-        ui.Click(Button(ui, Strings.Creator_TestInstall));
-        ui.Agent.End(new JobEnded(Job(InstallJob, JobKind.TestInstall, JobStage.Checking), JobOutcome.Failed,
-            new JobFailureView(JobFailureReason.GameRunning)));
-        package.Test.State.Should().Be(TestInstallState.Failed);
+        var page = await PackageAsync(ui);
+        page.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => page.HasOffer && !page.Description.HasMetadataProblem);
+        page.OfferText.Should().Be(Text.Format(Strings.Creator_OfferVersion, ("game", "Lantern Isle"), ("store", "GOG")));
+        await ui.RenderBothAsync("creator-single-offer");
 
-        var page = Page(ui);
-        page.Session!.Change(project => project with { Versions = [new ProjectVersion(new ProjectGame(gog.Key, gog.Name)) { GameFolder = gog.Game.InstallDirectory }] });
-        page.Game = gog;
+        ui.Click(Button(ui, page.OfferAction));
+        await UiHarness.WaitUntilAsync(() => page.IsTable && page.Cells.All(cell => cell.IsCompared && cell.Review is not null) && page.CanBuild,
+            () => string.Join(", ", page.Cells.Select(cell => cell.Brief.Label)) + " " + page.BlockedText);
+        (page.HasOffer, page.BuildText).Should().Be((false, Strings.Creator_BuildAll));
+        page.Session!.Project.Versions.Select(version => version.Game.Key).Should().Equal(CreatorWorkspace.Lantern, gog.Key);
+        await ui.RenderBothAsync("creator-table");
+        ui.Click(Button(ui, page.Cells[1].Name));
+        (page.IsPanelOpen, page.Cell).Should().Be((true, page.Cells[1]));
+        await ui.RenderBothAsync("creator-panel");
+        ui.Press(Avalonia.Input.Key.Escape);
+        page.IsPanelOpen.Should().BeFalse();
 
-        (package.Build.IsReady, package.Build.OutputPath, package.Test.State, package.Test.HasTestProblem).Should().Be((true, "", TestInstallState.None, false));
-        await UiHarness.WaitUntilAsync(() => page.Cell.IsCompared && page.Session!.Review is not null
-            && page.Session.Comparison!.GameDirectory == gog.Game.InstallDirectory);
+        // The table takes the panel's room back once the panel faded out.
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        Shows(ui, Strings.Creator_TestInstall).Should().BeFalse("the package built so far is the other copy's");
-
-        var other = Output("Lantern Isle (GOG) v1.0.examplemod");
         await BuildAsync(ui);
-        await BuiltAsync(package);
-        File.GetLastWriteTimeUtc(steam).Should().Be(built);
+        await BuiltAsync(page);
+        page.Build.Packages.Select(row => (row.Name, row.Versions.Single())).Should().Equal(
+            ("Lantern Isle (Steam) v1.0.examplemod", CreatorWorkspace.Lantern), ("Lantern Isle (GOG) v1.0.examplemod", gog.Key));
+        page.Build.Packages.Should().OnlyContain(row => File.Exists(row.Path));
+        await ui.RenderBothAsync("creator-built");
         ui.Click(Button(ui, Strings.Creator_TestInstall));
-        var test = ui.Agent.Requests.OfType<TestInstallPackage>().Last();
-        (test.Game, test.PackagePaths.Single()).Should().Be((gog.Key, other));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel);
+        var choice = (ChoiceDialogViewModel)ui.Shell.Dialogs.Current!;
+        choice.Choices.Select(tile => tile.Title).Should().Equal(Text.Format(Strings.Creator_TestOn, ("store", "Steam")), Text.Format(Strings.Creator_TestOn, ("store", "GOG")));
+        choice.ChooseCommand.Execute(choice.Choices[1]);
+
+        await UiHarness.WaitUntilAsync(() => ui.Agent.Requests.OfType<TestInstallPackage>().Any());
+        var test = ui.Agent.Requests.OfType<TestInstallPackage>().Single();
+        (test.Game, test.PackagePaths.Single()).Should().Be((gog.Key, Output("Lantern Isle (GOG) v1.0.examplemod")));
     }
 
     [AvaloniaFact]
@@ -545,7 +643,7 @@ public sealed class CreatorPackageTests : IDisposable
         await BuildEndedAsync(package);
 
         package.Build.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FolderUnavailable)),
-            ("files", 1), ("file", Output(""))), "the folder is named as the author chose it");
+            ("files", 1), ("file", CreatorWording.Wrappable(Output("")))), "the folder is named as the author chose it");
         (await ui.Shell.Navigator.CanCloseAsync()).Should().BeTrue();
         Directory.EnumerateFiles(Output("")).Should().BeEmpty();
     }
@@ -678,13 +776,13 @@ public sealed class CreatorPackageTests : IDisposable
         await BuildAsync(ui);
         await BuildEndedAsync(package);
 
-        ui.Find<TextBlock>().Should().NotContain(text => text.IsEffectivelyVisible && text.Text == BuiltCard.BuiltOverline,
+        ui.Find<TextBlock>().Should().NotContain(text => text.IsEffectivelyVisible && text.Text == package.Build.BuiltOverline,
             "the package is not ready while its build failed");
         package.Build.ResultName.Should().Be("Lantern Isle v1.0.examplemod");
         package.Build.EarlierText.Should().StartWith(Strings.Creator_EarlierPackage.ToUpper(Text.Culture));
         ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == package.Build.EarlierText);
         Shows(ui, Strings.Creator_TestInstall).Should().BeFalse("only a package the last build made is tried in the game");
-        await UiHarness.WaitUntilAsync(() => package.Cell.IsComparing);
+        await UiHarness.WaitUntilAsync(() => package.Cell!.IsComparing);
         Page(ui).CanBuild.Should().BeFalse("the files are compared again first");
         await RenderAsync(ui, "creator-rebuild-failed", 1700);
         held.Reads.Set();
@@ -712,9 +810,9 @@ public sealed class CreatorPackageTests : IDisposable
 
             package.Build.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FilesChanged)),
                 ("files", 1), ("file", file)), "a file is named by its path in the folder or the game, not above it");
-            await UiHarness.WaitUntilAsync(() => package.Cell.IsComparing);
+            await UiHarness.WaitUntilAsync(() => package.Cell!.IsComparing);
             held.Reads.Set();
-            await UiHarness.WaitUntilAsync(() => package.Cell.IsCompared && !package.Build.HasProblem);
+            await UiHarness.WaitUntilAsync(() => package.Cell!.IsCompared && !package.Build.HasProblem);
         }
 
         await BuildAsync(ui);
@@ -732,7 +830,7 @@ public sealed class CreatorPackageTests : IDisposable
         await BuiltAsync(package);
         (string, object?)[] since = [("hasVersion", "true"), ("version", GameWording.ShortVersion("1.0"))];
         var unchanged = Text.Format(Strings.Creator_CellState, [("state", "Unchanged"), ("work", ""), .. since]);
-        package.Cell.Detail.Should().Be(unchanged);
+        package.Cell!.Detail.Should().Be(unchanged);
 
         var credits = Path.Combine(_work.AuthorFolder, "data", "extra", "credits.txt");
         File.WriteAllText(credits, File.ReadAllText(credits));
@@ -744,8 +842,8 @@ public sealed class CreatorPackageTests : IDisposable
             () => creator.Cards.Single().Line?.Label ?? "");
         creator.OpenCardCommand.Execute(creator.Cards.Single());
 
-        await UiHarness.WaitUntilAsync(() => package.Session.Comparison != compared && package.Cell.Detail == unchanged, () => package.Cell.Line.Label);
-        package.Cell.HasChanges.Should().BeFalse("the file holds the bytes the package was built from");
+        await UiHarness.WaitUntilAsync(() => package.Session.Comparison != compared && package.Cell!.Detail == unchanged, () => package.Cell!.Line.Label);
+        package.Cell!.HasChanges.Should().BeFalse("the file holds the bytes the package was built from");
         using (var library = new ProjectLibrary(ui.CreatorDirectory, TimeProvider.System))
         {
             (await library.ReadBuildAsync(package.ProjectId, CancellationToken.None))!.Parts[0].Folders[0].Files["data/extra/credits.txt"].LastWriteTime
@@ -757,9 +855,9 @@ public sealed class CreatorPackageTests : IDisposable
         _work.Author("data/strings.bin", "strings changed by the author, a little longer, and once more");
         creator.OpenCardCommand.Execute(creator.Cards.Single());
 
-        await UiHarness.WaitUntilAsync(() => package.Cell.HasChanges);
-        package.Cell.ChangedText.Should().Be(Text.Format(Strings.Creator_ChangedSince, [("count", 1), .. since]));
-        package.Cell.Changes.Select(row => (row.KindText, row.Folder + row.Name)).Should().Equal((Strings.Creator_KindPatch, "data/strings.bin"));
+        await UiHarness.WaitUntilAsync(() => package.Cell!.HasChanges);
+        package.Cell!.ChangedText.Should().Be(Text.Format(Strings.Creator_ChangedSince, [("count", 1), .. since]));
+        package.Cell!.Changes.Select(row => (row.KindText, row.Folder + row.Name)).Should().Equal((Strings.Creator_KindPatch, "data/strings.bin"));
         await RenderAsync(ui, "creator-single-changes", null);
         (ui.Window.Width, ui.Window.Height) = (960, 600);
         await RenderAsync(ui, "creator-single-changes-960", null);
@@ -777,13 +875,13 @@ public sealed class CreatorPackageTests : IDisposable
 
         ui.Window.Activate();
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        (package.Cell.IsComparing, package.Session.Comparison).Should().Be((false, compared), "the build reads the files a comparison would plan from");
+        (package.Cell!.IsComparing, package.Session.Comparison).Should().Be((false, compared), "the build reads the files a comparison would plan from");
 
         files.Reads.Set();
         await BuiltAsync(package);
-        await UiHarness.WaitUntilAsync(() => package.Session.Comparison != compared && package.Cell.HasChanges);
-        package.Cell.Changes.Select(row => row.Folder + row.Name).Should().Equal("data/extra/notes.txt");
-        package.Cell.ChangedText.Should().Be(Text.Format(Strings.Creator_ChangedSince, ("count", 1), ("hasVersion", "true"),
+        await UiHarness.WaitUntilAsync(() => package.Session.Comparison != compared && package.Cell!.HasChanges);
+        package.Cell!.Changes.Select(row => row.Folder + row.Name).Should().Equal("data/extra/notes.txt");
+        package.Cell!.ChangedText.Should().Be(Text.Format(Strings.Creator_ChangedSince, ("count", 1), ("hasVersion", "true"),
             ("version", GameWording.ShortVersion("0.9"))));
     }
 
@@ -1005,6 +1103,8 @@ public sealed class CreatorPackageTests : IDisposable
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
         ui.Unnamed().Should().BeEmpty();
+        var missing = Text.Format(Strings.Creator_BeforeItemState, ("item", package.BeforeItems[0].Text), ("state", "Missing"));
+        ui.Find<TextBlock>().Should().Contain(text => Avalonia.Automation.AutomationProperties.GetName(text) == missing, "only an icon tells that the version is missing");
 
         await BuildAsync(ui);
         await BuiltAsync(package);
@@ -1049,7 +1149,7 @@ public sealed class CreatorPackageTests : IDisposable
     private async Task<ProjectPageViewModel> PackageAsync(UiHarness ui, Func<ProjectPart, ProjectPart>? change = null)
     {
         var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
-        await UiHarness.WaitUntilAsync(() => page.Cell.IsCompared && page.Session!.Review is not null);
+        await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared && page.Session!.Review is not null);
         // The packages go to a folder of the test's own, which the tests below look in.
         page.Session!.Change(project => project with { OutputFolder = Output("") });
         if (change is not null)
@@ -1163,7 +1263,7 @@ public sealed class CreatorPackageTests : IDisposable
     private static async Task BuildAsync(UiHarness ui)
     {
         await UiHarness.WaitUntilAsync(() => Page(ui).CanBuild, () => Page(ui).BlockedText);
-        ui.Click(Button(ui, Strings.Creator_Build));
+        ui.Click(Button(ui, Page(ui).BuildText));
     }
 
     private static Button Button(UiHarness ui, string name) =>

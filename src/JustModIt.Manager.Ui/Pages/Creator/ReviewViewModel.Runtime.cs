@@ -67,6 +67,10 @@ public sealed partial class ReviewViewModel
     [NotifyCanExecuteChangedFor(nameof(ConfirmRuntimePathCommand))]
     public partial bool CanConfirmRuntimePath { get; private set; }
 
+    /// <summary>The part and the store of the cell whose files the tab lists, in a table of several; empty for a single cell.</summary>
+    [ObservableProperty]
+    public partial string CellLine { get; private set; } = "";
+
     /// <summary>The label of the button that starts the store's check of the game's files.</summary>
     public string CheckFilesLabel => Text.Format(Strings.GamePage_CheckFiles, ("store", _page.GameStoreName));
 
@@ -178,6 +182,7 @@ public sealed partial class ReviewViewModel
             ? CreatorWording.Finding(notice)
             : "";
         CanAddRuntime = rows.Count < RuntimeFile.MaxPerPackage;
+        CellLine = _page.IsTable ? Library.GameWording.Join([_session.Part.Name.Length > 0 ? _session.Part.Name : Strings.Creator_PartBase, _page.GameStoreName]) : "";
         OnPropertyChanged(nameof(CheckFilesLabel));
         OnPropertyChanged(nameof(CanCheckFiles));
         OnPropertyChanged(nameof(CheckStore));

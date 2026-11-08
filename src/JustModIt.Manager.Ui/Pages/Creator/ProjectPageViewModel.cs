@@ -51,7 +51,7 @@ public sealed partial class ProjectPageViewModel : PageViewModel
 {
     private readonly CreatorPageViewModel _creator;
     private Task? _resuming;
-    private (GameKey? Key, string? Folder) _game;
+    private IReadOnlyList<(GameKey Key, string Folder)> _versions;
     private DateTimeOffset? _resumedAt;
     private bool _titled;
 
@@ -64,14 +64,13 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         ProjectId = project.Id;
         var session = new CreatorSession(Options, project, Library.Store(project.Id), Log);
         Session = session;
-        _game = (session.Version?.Game.Key, session.Version?.GameFolder);
-        Cell = new CellViewModel(this, session);
+        _versions = Folders(session.Project);
         Review = new ReviewViewModel(this, session);
         Description = new PackageDescriptionViewModel(this, session);
         Test = new TestInstallViewModel(this);
         Build = new BuildViewModel(this, session, Description, Test);
+        ShowCells(session);
         session.PropertyChanged += OnSessionChanged;
-        Cell.PropertyChanged += OnWorkChanged;
         Build.PropertyChanged += OnWorkChanged;
         Test.PropertyChanged += OnWorkChanged;
         Agent.PropertyChanged += OnAgentChanged;
@@ -105,8 +104,9 @@ public sealed partial class ProjectPageViewModel : PageViewModel
     [ObservableProperty]
     public partial CreatorSession? Session { get; private set; }
 
-    /// <summary>The project's part on its version of the game.</summary>
-    public CellViewModel Cell { get; }
+    /// <summary>The cell the panel and the tabs show; null while the project has no version.</summary>
+    [ObservableProperty]
+    public partial CellViewModel? Cell { get; private set; }
 
     public ReviewViewModel Review { get; }
 
@@ -120,12 +120,15 @@ public sealed partial class ProjectPageViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TabContent), nameof(IsPartView))]
     public partial ProjectTab Tab { get; set; }
 
-    /// <summary>The view model of the tab shown.</summary>
-    public object TabContent => Tab switch
+    /// <summary>
+    /// The view model of the tab shown. The release tab takes the first cell, which stays while the author picks others, so a
+    /// pick does not slide the tab in again; a table and its panel read the page.
+    /// </summary>
+    public object? TabContent => Tab switch
     {
         ProjectTab.Runtime => Review,
         ProjectTab.Description => Description,
-        _ => Cell,
+        _ => Cells.Count > 0 ? Cells[0] : null,
     };
 
     /// <summary>The last tab change went to an earlier tab, which reverses its transition.</summary>
@@ -162,18 +165,13 @@ public sealed partial class ProjectPageViewModel : PageViewModel
 
     public bool HasProblem => ProblemText.Length > 0;
 
-    /// <summary>The project's game as the agent reported it; null until it did.</summary>
+    /// <summary>The game of the chosen cell's version as the agent reported it; null until it did.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(GameStoreName))]
-    public partial DetectedGameEntry? Game { get; internal set; }
+    public partial DetectedGameEntry? Game { get; private set; }
 
-    public string GameStoreName => GameWording.StoreName(Game?.Key.Store ?? Session?.Version?.Game.Key.Store ?? StoreId.Steam);
-
-    /// <summary>The stores, after a whole look, do not report the version's game.</summary>
-    internal bool IsGameGone { get; private set; }
-
-    /// <summary>Another store reports a game of the same name as <see cref="Game"/>, whose package would take the same name.</summary>
-    internal bool IsGameOnOtherStores { get; set; }
+    /// <summary>The store of the chosen cell's version.</summary>
+    public string GameStoreName => Cell?.StoreName ?? "";
 
     /// <summary>The project names a version of the game; one imported without a game takes it first.</summary>
     [ObservableProperty]
@@ -187,7 +185,7 @@ public sealed partial class ProjectPageViewModel : PageViewModel
     public partial string AllOperationsText { get; private set; } = "";
 
     /// <summary>What the project is doing now.</summary>
-    public ProjectWork Work => Cell.IsComparing ? ProjectWork.Comparing : Build.IsBuilding ? ProjectWork.Building : ProjectWork.None;
+    public ProjectWork Work => Cells.Any(cell => cell.IsComparing) ? ProjectWork.Comparing : Build.IsBuilding ? ProjectWork.Building : ProjectWork.None;
 
     public override void OnShown()
     {
@@ -201,13 +199,19 @@ public sealed partial class ProjectPageViewModel : PageViewModel
 
     public override bool GoBackWithin()
     {
-        if (!IsPartView)
+        if (IsPartView)
         {
-            return false;
+            ShowsOperations = false;
+            return true;
         }
 
-        ShowsOperations = false;
-        return true;
+        if (IsPanelOpen)
+        {
+            IsPanelOpen = false;
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>Shows what went wrong with the project as a whole.</summary>
@@ -240,7 +244,11 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         }
 
         Agent.PropertyChanged -= OnAgentChanged;
-        Cell.Dispose();
+        foreach (var cell in Cells)
+        {
+            cell.Dispose();
+        }
+
         Review.Dispose();
         Build.Dispose();
         Test.Dispose();
@@ -254,31 +262,28 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         return true;
     }
 
-    /// <summary>Whether the author's files only repeat the game's, so a simple project has nothing to package.</summary>
-    /// <param name="session">The project with its comparison.</param>
-    internal static bool HasNothingToPackage(CreatorSession session) =>
-        session.Part.Mode == CreatorMode.Simple && session.Part.ExtraSteps.Count == 0
-        && session.Comparison?.Files.All(file => file.Difference == FileDifference.Identical) == true;
-
     /// <summary>
-    /// Reads again the game's paths that the agent keeps for an undone test, of the game in its folder as the store reports
-    /// it now; a lost connection keeps those read before.
+    /// Reads again the game's paths that the agent keeps for an undone test, of each version's game in its folder as the store
+    /// reports it now; a lost connection keeps those read before.
     /// </summary>
     internal async Task ReadKeptPathsAsync()
     {
-        if (Session is not { } session || Game is not { } game)
+        if (Session is not { } session || await AgentRequests.AskQuietlyAsync(Agent, new GetLeftoverBackups()).ConfigureAwait(true) is not LeftoverBackups found
+            || Session != session)
         {
             return;
         }
 
-        if (await AgentRequests.AskQuietlyAsync(Agent, new GetLeftoverBackups()).ConfigureAwait(true) is LeftoverBackups found && Session == session
-            && Game?.Key == game.Key)
+        foreach (var version in session.Project.Versions)
         {
-            await session.UseKeptPathsAsync(found.Backups
-                .Where(backup => backup.Game == game.Key && backup.Kept is not null
-                    && PathComparison.AreSame(backup.GameDirectory, game.Game.InstallDirectory))
-                .SelectMany(backup => backup.Kept!.Paths)
-                .Select(path => session.Comparison?.Game.Layout.ToPackage(path) ?? path)).ConfigureAwait(true);
+            if (GameOf(version.Game.Key) is { } game)
+            {
+                var layout = new FolderLayout(version.Folders);
+                await session.UseKeptPathsAsync(game.Key, found.Backups
+                    .Where(backup => backup.Game == game.Key && backup.Kept is not null && PathComparison.AreSame(backup.GameDirectory, game.Game.InstallDirectory))
+                    .SelectMany(backup => backup.Kept!.Paths)
+                    .Select(layout.ToPackage)).ConfigureAwait(true);
+            }
         }
     }
 
@@ -288,12 +293,15 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         Record = await Library.ReadBuildAsync(ProjectId, CancellationToken.None).ConfigureAwait(true);
         ShowSession();
         ShowBar();
-        await Cell.ShowRecordAsync(Record, CancellationToken.None).ConfigureAwait(true);
+        foreach (var cell in Cells)
+        {
+            await cell.ShowRecordAsync(Record, CancellationToken.None).ConfigureAwait(true);
+        }
     }
 
     /// <summary>
-    /// Asks the stores where the game is and which build it has, then compares again when the game or the author's files
-    /// changed since the comparison. Nothing watches them meanwhile, so coming back, e.g. from an editor, is when it matters.
+    /// Asks the stores where the games are and which builds they have, then compares again each cell whose game or author's
+    /// files changed since its comparison. Nothing watches them meanwhile, so coming back, e.g. from an editor, is when it matters.
     /// </summary>
     /// <param name="anyway">Compares again whatever changed, as a build that found the files changed asks.</param>
     /// <returns>Completes once the check ended; a comparison it starts goes on.</returns>
@@ -310,68 +318,36 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         }
 
         await _resuming.ConfigureAwait(true);
-        await (anyway ? Cell.CompareAsync() : Cell.CheckAsync()).ConfigureAwait(true);
+        await Task.WhenAll(Cells.Select(cell => anyway ? cell.CompareAsync() : cell.CheckAsync())).ConfigureAwait(true);
     }
 
     [RelayCommand]
-    private void ShowOperations() => ShowsOperations = true;
+    private void ShowOperations() => (ShowsOperations, IsPanelOpen) = (true, IsPanelOpen && !IsOverlay);
 
     [RelayCommand]
     private void ShowRelease() => GoBackWithin();
 
-    [RelayCommand]
-    private async Task AddVersionAsync()
-    {
-        if (Session is not { } session)
-        {
-            return;
-        }
-
-        using var dialog = new NewProjectDialogViewModel(Services, session.Part.AuthorFolder);
-        if (await Services.Dialogs.ShowAsync(dialog).ConfigureAwait(true) is { Game: var game } && Session == session)
-        {
-            session.Change(project => project with { Versions = [new ProjectVersion(new ProjectGame(game.Key, game.Name)) { GameFolder = game.Game.InstallDirectory }] });
-            _resuming = ResumeAsync();
-        }
-    }
-
-    // A project keeps only what a comparison cannot tell, so an opened project takes its game as the stores report it now,
-    // and its part compares the folders again. Only a whole look of the stores tells a game is gone.
+    // A project keeps only what a comparison cannot tell, so an opened project takes its games as the stores report them now,
+    // and its cells compare the folders again. Only a whole look of the stores tells a game is gone.
     private async Task ResumeAsync()
     {
         var session = Session!;
         _resumedAt = Agent.State.Library.ScannedAt;
         // Asked again whenever the page or the window comes back, so an agent out of reach only means no answer this time.
-        if (await AgentRequests.AskQuietlyAsync(Agent, new GetDetectedGames()).ConfigureAwait(true) is not DetectedGames detected || Session != session
-            || session.Version is not { } version)
+        if (await AgentRequests.AskQuietlyAsync(Agent, new GetDetectedGames()).ConfigureAwait(true) is not DetectedGames detected || Session != session)
         {
             return;
         }
 
-        if (detected.Games.FirstOrDefault(game => game.Key == version.Game.Key) is not { } entry)
+        // The games first, so a folder a store moved is compared with the game where it is now.
+        (_detected, _lookedEverywhere) = (detected.Games, Agent.State.Library is { IsCached: false, ScannedAt: not null });
+        ShowGames(session);
+        foreach (var version in session.Project.Versions)
         {
-            IsGameGone = Agent.State.Library is { IsCached: false, ScannedAt: not null };
-            Cell.ShowGame();
-            ShowBar();
-            return;
-        }
-
-        // Stores spell a title differently now and then, e.g. with a colon, so titles are compared as the search folds them.
-        IsGameOnOtherStores = detected.Games.Any(other => other.Key.Store != entry.Key.Store
-            && string.Equals(SearchText.Fold(other.Name), SearchText.Fold(entry.Name), StringComparison.Ordinal));
-        IsGameGone = false;
-        // The game first, so a folder the store moved is compared with the game where it is now.
-        if (Game?.Key != entry.Key || Game.Game != entry.Game)
-        {
-            Game = entry;
-        }
-
-        if (version.GameFolder != entry.Game.InstallDirectory)
-        {
-            session.Change(project => project with
+            if (GameOf(version.Game.Key) is { } entry && (version.GameFolder != entry.Game.InstallDirectory || version.Game.Name != entry.Name))
             {
-                Versions = new(project.Versions.Items.SetItem(0, version with { Game = new ProjectGame(entry.Key, entry.Name), GameFolder = entry.Game.InstallDirectory })),
-            });
+                session.ChangeVersion(entry.Key, changed => changed with { Game = new ProjectGame(entry.Key, entry.Name), GameFolder = entry.Game.InstallDirectory });
+            }
         }
     }
 
@@ -393,18 +369,29 @@ public sealed partial class ProjectPageViewModel : PageViewModel
             return;
         }
 
-        var version = session.Version;
-        if (_game != (version?.Game.Key, version?.GameFolder))
+        if (e.PropertyName is nameof(CreatorSession.Project) or nameof(CreatorSession.Selected))
         {
-            _game = (version?.Game.Key, version?.GameFolder);
-            // A package and its test belong to the game it was built for: another copy of the game, e.g. from another store,
-            // has other files, so its package is built anew, and a test install never takes the other copy's package.
-            Test.Forget();
-            Build.Forget();
+            ShowGames(session);
+        }
+
+        var versions = Folders(session.Project);
+        if (!versions.SequenceEqual(_versions))
+        {
+            // A package and its test belong to the copy of the game they were made for: another copy, e.g. from another store, has
+            // other files, so its package is built anew, and a test install never takes the other copy's package.
+            var changed = _versions.Except(versions).Select(version => version.Key).ToList();
+            _versions = versions;
+            Test.Forget(changed);
+            Build.Forget(changed);
+            // What another version holds of the folder is no work of the author's, so every cell compares again with the versions as they are.
+            foreach (var cell in Cells)
+            {
+                _ = cell.CompareAsync();
+            }
         }
 
         // The files compared anew are what the failed build asked for, so its failure no longer stands in the way.
-        if (e.PropertyName == nameof(CreatorSession.Comparison) && session.Comparison is not null)
+        if (e.PropertyName == nameof(CreatorSession.Comparison))
         {
             Build.FilesCompared();
         }
@@ -428,7 +415,10 @@ public sealed partial class ProjectPageViewModel : PageViewModel
 
         if (sender == Build && e.PropertyName == nameof(BuildViewModel.State) && !Build.IsBuilding)
         {
-            Cell.CheckIfAsked();
+            foreach (var cell in Cells)
+            {
+                cell.CheckIfAsked();
+            }
         }
 
         if (e.PropertyName is nameof(CellViewModel.State) or nameof(BuildViewModel.State) or nameof(TestInstallViewModel.State)
@@ -440,24 +430,23 @@ public sealed partial class ProjectPageViewModel : PageViewModel
 
     private void OnAgentChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(IAgent.State) || Session is null)
+        if (e.PropertyName != nameof(IAgent.State) || Session is not { } session)
         {
             return;
         }
 
         // A game the stores did not report may come with their next look.
-        if (Game is null && HasVersion && _resuming is not { IsCompleted: false } && Agent.State.Library.ScannedAt != _resumedAt)
+        if (Cells.Any(cell => cell.Game is null) && _resuming is not { IsCompleted: false } && Agent.State.Library.ScannedAt != _resumedAt)
         {
             _resuming = ResumeAsync();
         }
 
-        Cell.ShowGame();
+        ShowGames(session);
         ShowBar();
     }
 
     partial void OnGameChanged(DetectedGameEntry? value)
     {
-        Cell.ShowGame();
         ShowSession();
         Description.Show();
         Build.Show();
@@ -465,7 +454,29 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         _ = ReadKeptPathsAsync();
     }
 
-    partial void OnTabChanged(ProjectTab oldValue, ProjectTab newValue) => IsGoingBack = newValue < oldValue;
+    partial void OnTabChanged(ProjectTab oldValue, ProjectTab newValue)
+    {
+        IsGoingBack = newValue < oldValue;
+        // The check does not follow plans made while the description shows.
+        if (oldValue == ProjectTab.Description)
+        {
+            Review.Show();
+        }
+    }
+
+    // The cells, and each tells again what keeps its version's game from being compared.
+    private void ShowGames(CreatorSession session)
+    {
+        ShowCells(session);
+        foreach (var cell in Cells)
+        {
+            cell.ShowGame();
+        }
+    }
+
+    // What a package and its test are made for: each version's game and the folder it lies in.
+    private static List<(GameKey Key, string Folder)> Folders(CreatorProject project) =>
+        [.. project.Versions.Select(version => (version.Game.Key, version.GameFolder))];
 
     private void ShowSession()
     {
@@ -484,10 +495,12 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         ProjectName = ProjectCard.NameOf(session.Project);
         HasVersion = session.Version is not null;
         PartLine = GameWording.Join([HasVersion ? GameStoreName : "", Text.Format(Strings.Creator_PartMode, ("mode", session.Part.Mode.ToString()))]);
+        PanelName = GameWording.Join([session.Part.Name.Length > 0 ? session.Part.Name : Strings.Creator_PartBase, PartLine]);
+        // A table names each version in its column's head.
         VersionLine = GameWording.Join(
         [
-            HasVersion ? GameStoreName : "",
-            Game?.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "",
+            HasVersion && !IsTable ? GameStoreName : "",
+            !IsTable && Game?.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "",
             ProjectCard.LastPackageOf(Record, Services.Clock)
                 ?? Text.Format(Strings.Creator_NoPackageYet, ("date", Formats.Date(session.Project.CreatedAt, Services.Clock.LocalTimeZone))),
         ]);
@@ -496,5 +509,4 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         OnPropertyChanged(nameof(OutputText));
         OnPropertyChanged(nameof(HasOutput));
     }
-
 }

@@ -121,6 +121,37 @@ public sealed class CreatorWorkspace : IDisposable
     }
 }
 
+/// <summary>The real file system, with a drive's root that shows a folder of the test's, so an author's folder can lie at a drive's root.</summary>
+/// <param name="root">The drive's root, e.g. <c>Q:\</c>.</param>
+/// <param name="folder">The folder it shows.</param>
+public sealed class DriveRootFileSystem(string root, string folder) : IFileSystem
+{
+    private readonly PhysicalFileSystem _inner = PhysicalFileSystem.Instance;
+
+    public bool FileExists(string path) => _inner.FileExists(Real(path));
+
+    public bool DirectoryExists(string path) => _inner.DirectoryExists(Real(path));
+
+    public FileEntry? GetEntry(string path) => _inner.GetEntry(Real(path)) is { } entry ? entry with { FullPath = path } : null;
+
+    public IEnumerable<FileEntry> Enumerate(string directory, string searchPattern, EnumerationOptions options) =>
+        _inner.Enumerate(Real(directory), searchPattern, options).Select(entry => entry with { FullPath = Shown(entry.FullPath) });
+
+    public Stream OpenRead(string path, FileShare share) => _inner.OpenRead(Real(path), share);
+
+    public Task<byte[]> ReadAllBytesAsync(string path, long maxLength, CancellationToken cancellationToken) =>
+        _inner.ReadAllBytesAsync(Real(path), maxLength, cancellationToken);
+
+    public Task<string> ReadAllTextAsync(string path, long maxLength, CancellationToken cancellationToken) =>
+        _inner.ReadAllTextAsync(Real(path), maxLength, cancellationToken);
+
+    public string GetCanonicalPath(string path) => Shown(_inner.GetCanonicalPath(Real(path)));
+
+    private string Real(string path) => path.StartsWith(root, StringComparison.OrdinalIgnoreCase) ? Path.Join(folder, path[root.Length..]) : path;
+
+    private string Shown(string path) => path.StartsWith(folder, StringComparison.OrdinalIgnoreCase) ? Path.Join(root, path[folder.Length..].TrimStart(Path.DirectorySeparatorChar)) : path;
+}
+
 /// <summary>
 /// The real file system, except that reading a file of a folder waits until the test lets it, so a comparison can be
 /// caught under way, and then fails with what the test sets, as a driver or an encoder might.

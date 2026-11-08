@@ -188,8 +188,9 @@ public sealed partial class ProjectCard(CreatorPageViewModel page, Guid id) : Ob
 
     // A long path would fill the card, so the line keeps the drive and the folder's name, and the tooltip the whole path.
     private static string? Shortened(string? folder) =>
-        folder is not null && Path.GetPathRoot(folder) is { Length: > 0 } root
-        && Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(folder)) is { } parent && !PathComparison.AreSame(parent, root)
-            ? Path.Join(root, "…", Path.GetFileName(Path.TrimEndingDirectorySeparator(folder)))
-            : folder;
+        folder is null ? null
+        : CreatorWording.Wrappable(Path.GetPathRoot(folder) is { Length: > 0 } root
+            && Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(folder)) is { } parent && !PathComparison.AreSame(parent, root)
+                ? Path.Join(root, "…", Path.GetFileName(Path.TrimEndingDirectorySeparator(folder)))
+                : folder);
 }

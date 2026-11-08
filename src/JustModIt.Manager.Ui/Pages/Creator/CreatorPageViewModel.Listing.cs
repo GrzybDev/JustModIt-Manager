@@ -109,7 +109,7 @@ public sealed partial class CreatorPageViewModel
 
         if (import.Skipped.Count > 0)
         {
-            Notices.Add(new ImportNotice(Text.Format(Strings.Creator_ImportSkipped, ("count", import.Skipped.Count)), import.Skipped));
+            Notices.Add(new ImportNotice(Text.Format(Strings.Creator_ImportSkipped, ("count", import.Skipped.Count)), [.. import.Skipped.Select(CreatorWording.Wrappable)]));
         }
 
         if (import.Waiting.Count > 0)

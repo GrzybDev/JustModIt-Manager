@@ -97,7 +97,7 @@ public sealed class CreatorLibraryTests : IDisposable
         card("Ashfall").Line!.Label.Should().Be(State("GameGone"));
         card("Tidewater").Line!.Label.Should().Be(State("TestInstalled"));
         ui.Unnamed().Should().BeEmpty();
-        await RenderBothAsync(ui, "creator-library");
+        await ui.RenderBothAsync("creator-library");
         ui.Render("creator-library-whole", 1180);
 
         var first = ui.Find<Button>().First(button => button.Classes.Contains("gameCard"));
@@ -150,7 +150,7 @@ public sealed class CreatorLibraryTests : IDisposable
         ui.Shell.Navigator.Navigate(new SettingsRoute());
         ui.Shell.Navigator.Navigate(new CreatorRoute());
         await UiHarness.WaitUntilAsync(() => Card(ui, "Ashfall")?.Line?.Label == State("Checking"));
-        await RenderBothAsync(ui, "creator-library-changes");
+        await ui.RenderBothAsync("creator-library-changes");
         await files.RunOutOfTimeAsync(ui.Clock);
         await UiHarness.WaitUntilAsync(() => Card(ui, "Ashfall")!.FolderTip == ashfallFolder);
     }
@@ -170,10 +170,10 @@ public sealed class CreatorLibraryTests : IDisposable
         await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell.State: CellState.FolderGone });
         var page = (ProjectPageViewModel)ui.Shell.Navigator.Current!;
 
-        page.Cell.NoticeTitle.Should().Be(Text.Format(Strings.Creator_BlockTitle, ("reason", nameof(CreatorBlockReason.AuthorFolderUnavailable))),
+        page.Cell!.NoticeTitle.Should().Be(Text.Format(Strings.Creator_BlockTitle, ("reason", nameof(CreatorBlockReason.AuthorFolderUnavailable))),
             "a drive that does not answer does not prove the folder gone");
-        page.Cell.NoticeText.Should().Contain(_work.AuthorFolder);
-        await RenderBothAsync(ui, "creator-folder-unanswered");
+        page.Cell!.NoticeText.Should().Contain(CreatorWording.Wrappable(_work.AuthorFolder));
+        await ui.RenderBothAsync("creator-folder-unanswered");
         page.Tab = ProjectTab.Description;
         page.Description.Version = "1.0";
         await UiHarness.WaitUntilAsync(() => page.BeforeItems.Any(item => item.IsMet && item.Text.Contains("1.0", StringComparison.Ordinal)));
@@ -225,7 +225,7 @@ public sealed class CreatorLibraryTests : IDisposable
 
         ui.Click(card);
         await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { HasVersion: false });
-        await RenderBothAsync(ui, "creator-no-version");
+        await ui.RenderBothAsync("creator-no-version");
         ui.Click(Button(ui, Strings.Creator_AddGameVersion));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
         ((NewProjectDialogViewModel)ui.Shell.Dialogs.Current!).Folder.Should().Be(_work.AuthorFolder);
@@ -262,17 +262,17 @@ public sealed class CreatorLibraryTests : IDisposable
         creator.OpenCardCommand.Execute(Card(ui, "Lantern Isle"));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell.State: CellState.GameGone });
         var page = (ProjectPageViewModel)ui.Shell.Navigator.Current!;
-        page.Cell.NoticeTitle.Should().Be(Strings.Creator_GameGoneTitle);
+        page.Cell!.NoticeTitle.Should().Be(Strings.Creator_GameGoneTitle);
         page.Session!.Comparison.Should().BeNull("a part has no game to compare with");
         page.BlockedText.Should().Contain(Text.Format(Strings.Creator_BlockedVersion, ("reason", "Gone"), ("store", "GOG")));
-        await RenderBothAsync(ui, "creator-game-gone");
+        await ui.RenderBothAsync("creator-game-gone");
 
         ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([_work.Detected[1] with { Key = gone }]) : null;
         ui.Click(Button(ui, Strings.Creator_Projects));
         creator.OpenCardCommand.Execute(Card(ui, "Lantern Isle"));
 
-        await UiHarness.WaitUntilAsync(() => page.Cell.IsCompared);
-        page.Cell.HasNotice.Should().BeFalse();
+        await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared);
+        page.Cell!.HasNotice.Should().BeFalse();
         page.Session!.Version!.GameFolder.Should().Be(_work.GameFolder, "the store says where the game is now");
     }
 
@@ -286,7 +286,7 @@ public sealed class CreatorLibraryTests : IDisposable
 
         ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
-        await RenderBothAsync(ui, "creator-card-tiles");
+        await ui.RenderBothAsync("creator-card-tiles");
         await ChooseAsync(ui, Strings.Creator_Duplicate);
 
         await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel);
@@ -328,7 +328,7 @@ public sealed class CreatorLibraryTests : IDisposable
         ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
         await ChooseAsync(ui, Strings.Creator_Remove);
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
-        await RenderBothAsync(ui, "creator-remove");
+        await ui.RenderBothAsync("creator-remove");
         using (File.Open(Path.Combine(LibraryFolder, project.Id.ToString(), "project.json"), FileMode.Open, FileAccess.Read, FileShare.None))
         {
             ui.Click(Button(ui, Strings.Creator_Remove));
@@ -366,7 +366,7 @@ public sealed class CreatorLibraryTests : IDisposable
         await UiHarness.WaitUntilAsync(() => creator.HasUnreadable && creator.Cards.Any());
 
         creator.UnreadableText.Should().Be(Text.Format(Strings.Creator_UnreadableProjects, ("count", 1)));
-        await RenderBothAsync(ui, "creator-unreadable");
+        await ui.RenderBothAsync("creator-unreadable");
         ui.Click(Button(ui, Strings.Creator_Reveal));
         ui.Links.Folders.Should().Equal(damaged);
         File.ReadAllText(Path.Combine(damaged, "project.json")).Should().Be("{ not a project");
@@ -425,17 +425,5 @@ public sealed class CreatorLibraryTests : IDisposable
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
         ui.Click(Button(ui, tile));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is not ChoiceDialogViewModel);
-    }
-
-    private static async Task RenderBothAsync(UiHarness ui, string name)
-    {
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        ui.Render(name);
-        var (width, height) = (ui.Window.Width, ui.Window.Height);
-        (ui.Window.Width, ui.Window.Height) = (960, 600);
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        ui.Render(name + "-960");
-        (ui.Window.Width, ui.Window.Height) = (width, height);
-        UiHarness.Settle();
     }
 }

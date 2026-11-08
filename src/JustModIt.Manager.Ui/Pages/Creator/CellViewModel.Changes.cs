@@ -4,16 +4,20 @@ using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Pages.Library;
+using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
-// What changed since the comparison, which starts it again, and since the part's last build, which the cell lists.
+// What changed since the comparison, which starts it again, and since the part's last build, which the cell lists and the
+// table tells.
 public sealed partial class CellViewModel
 {
     private CancellationTokenSource? _checking;
     private bool _checkPending;
     private HashSet<string> _changed = [];
+    private string _changedDetail = "";
 
     /// <summary>How many files changed since the part's last build, as the head of <see cref="Changes"/>; empty when none did.</summary>
     [ObservableProperty]
@@ -33,8 +37,8 @@ public sealed partial class CellViewModel
     /// <returns>Completes once the check ended; a comparison it starts goes on.</returns>
     internal async Task CheckAsync()
     {
-        if (_session.Comparison is not { } comparison || _compared is not (CellState.Compared or CellState.NothingToPackage)
-            || _page.Game is not { } game)
+        if (_session.ComparisonOf(Key) is not { } comparison || _compared is not (CellState.Compared or CellState.NothingToPackage)
+            || Game is not { } game)
         {
             return;
         }
@@ -88,8 +92,8 @@ public sealed partial class CellViewModel
     /// <returns>Completes once the cell tells it.</returns>
     internal async Task ShowRecordAsync(BuildRecord? record, CancellationToken cancellationToken)
     {
-        var comparison = _session.Comparison;
-        var part = record?.Parts.FirstOrDefault(built => built.Part == _session.Part.Name);
+        var comparison = _session.ComparisonOf(Key);
+        var part = record?.Parts.FirstOrDefault(built => built.Part == Key.Part);
         var folder = part?.Folders.FirstOrDefault(built => comparison is not null && PathComparison.AreSame(built.Folder, comparison.AuthorDirectory));
         BuildChanges? changes = null;
         if (IsCompared && part is not null && folder is not null)
@@ -111,7 +115,7 @@ public sealed partial class CellViewModel
             }
         }
 
-        if (_session.Comparison != comparison)
+        if (_session.ComparisonOf(Key) != comparison)
         {
             return;
         }
@@ -124,17 +128,43 @@ public sealed partial class CellViewModel
             : changes is { Count: 0 } ? Text.Format(Strings.Creator_CellState, [("state", "Unchanged"), ("work", ""), .. since])
             : "";
         ChangedText = IsCompared && changes is { Count: > 0 } ? Text.Format(Strings.Creator_ChangedSince, [("count", changes.Count), .. since]) : "";
+        _changedDetail = IsCompared && changes is { Count: > 0 } ? Text.Format(Strings.Creator_CellDetail, [("detail", "Changed"), ("count", changes.Count), .. since]) : "";
         ShowChanges();
     }
 
-    // The rows follow the plan, which changes with every edit.
-    private void ShowChanges() => Changes = _changed.Count == 0 || _session.Review is not { } review ? []
-        : [.. review.Plan.Operations.Select((operation, index) => (Operation: operation, Index: index))
-            .Where(planned => _changed.Contains(planned.Operation.Path))
-            .Select(planned =>
-            {
-                var row = new OperationRow(planned.Operation.Path);
-                ReviewViewModel.Fill(row, planned.Operation, planned.Index, null, [], 0);
-                return row;
-            })];
+    /// <summary>How the cell stands in the project's table: its state, and under it what its plan holds.</summary>
+    public LineContent Brief { get; private set; } = new(Icons.FolderOpen, Tone.Neutral, "");
+
+    /// <summary>The cell as a screen reader names it: its part, its store and how it stands.</summary>
+    [ObservableProperty]
+    public partial string Name { get; private set; } = "";
+
+    // The rows follow the plan, which changes with every edit, and so do the table's words.
+    private void ShowChanges()
+    {
+        OnPropertyChanged(nameof(HasReview));
+        Changes = _changed.Count == 0 || Review is not { } review ? []
+            : [.. review.Plan.Operations.Select((operation, index) => (Operation: operation, Index: index))
+                .Where(planned => _changed.Contains(planned.Operation.Path))
+                .Select(planned =>
+                {
+                    var row = new OperationRow(planned.Operation.Path);
+                    ReviewViewModel.Fill(row, planned.Operation, planned.Index, null, [], 0);
+                    return row;
+                })];
+        ShowBrief();
+    }
+
+    private void ShowBrief()
+    {
+        var plan = Review?.Plan;
+        Brief = State == CellState.NothingToPackage ? new LineContent(Icons.TriangleAlert, Tone.Warning, NothingTitle)
+            : State != CellState.Compared || plan is null ? Line with { Detail = null }
+            : _changedDetail.Length > 0 ? new LineContent(Icons.CircleCheck, Tone.Success, Text.Format(Strings.Creator_CellState, ("state", "Compared")), _changedDetail)
+            : new LineContent(Icons.CircleCheck, Tone.Success, Detail.Length > 0 ? Detail : Text.Format(Strings.Creator_CellState, ("state", "Compared")),
+                GameWording.Join([Text.Format(Strings.Creator_CountOperations, ("count", plan.Operations.Count)),
+                    plan.Summary is { Patches: 0, CopiedBytes: var bytes } ? Formats.FileSize(bytes) : ""]));
+        OnPropertyChanged(nameof(Brief));
+        Name = Text.Format(Strings.Creator_BlockedCell, ("part", Key.Part.Length > 0 ? Key.Part : Strings.Creator_PartBase), ("store", StoreName), ("text", Brief.Label));
+    }
 }

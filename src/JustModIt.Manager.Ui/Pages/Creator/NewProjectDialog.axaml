@@ -83,10 +83,10 @@
     </DataTemplate>
   </UserControl.Resources>
 
-  <Border Classes="dialog" Width="780" Padding="28,26" AutomationProperties.Name="{x:Static loc:Strings.Creator_NewTitle}">
+  <Border Classes="dialog" Width="780" Padding="28,26" AutomationProperties.Name="{Binding Title}">
     <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="16">
       <StackPanel Spacing="4">
-        <TextBlock Classes="h2" Text="{x:Static loc:Strings.Creator_NewTitle}" />
+        <TextBlock Classes="h2" Text="{Binding Title}" />
         <TextBlock Classes="pathLine" FontSize="12" Text="{Binding Folder}" ToolTip.Tip="{Binding Folder}" IsVisible="{Binding HasFolder}" />
       </StackPanel>
 
@@ -164,7 +164,7 @@
         <TextBlock Classes="caption" FontSize="12" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_NewHint}" IsVisible="{Binding HasFolder}" />
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
           <Button Classes="outline" Content="{x:Static loc:Strings.Dialog_Cancel}" Command="{Binding CancelCommand}" />
-          <Button x:Name="CreateButton" Classes="primary compact" Content="{x:Static loc:Strings.Creator_Create}" Command="{Binding CreateCommand}" />
+          <Button x:Name="CreateButton" Classes="primary compact" Content="{Binding CreateText}" Command="{Binding CreateCommand}" />
         </StackPanel>
       </Grid>
     </Grid>

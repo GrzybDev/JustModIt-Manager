@@ -4,6 +4,7 @@ using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
@@ -233,7 +234,7 @@ public sealed class CreatorReviewTests : IDisposable
         var refused = review.Rules.Should().ContainSingle(rule => rule.IsError).Subject;
         refused.Findings.Select(finding => finding.OperationIndex).Should().HaveCount(2);
 
-        await Page(ui).Cell.CompareAsync();
+        await Page(ui).Cell!.CompareAsync();
         await Page(ui).Session!.SettledAsync();
         review.Rules.Should().ContainSingle(rule => rule.IsError).Which.Should().BeSameAs(refused, "the row stays across plans");
 
@@ -411,7 +412,7 @@ public sealed class CreatorReviewTests : IDisposable
         Tap(ui, Button(ui, Strings.Creator_Reveal, refused));
         ui.Links.Folders.Should().Equal(Path.Combine(_work.GameFolder, "data"));
         File.Delete(Path.Combine(_work.GameFolder, "data", "movies_original.idx"));
-        await Page(ui).Cell.CompareAsync();
+        await Page(ui).Cell!.CompareAsync();
         await UiHarness.WaitUntilAsync(() => Page(ui) is { Review.HasRuntimeProblems: false, HasBlockedText: false }
             && Page(ui).Session!.Review!.Plan.Findings.All(finding => finding.RuntimeIndex is null));
         var compared = Page(ui).Review;
@@ -518,7 +519,7 @@ public sealed class CreatorReviewTests : IDisposable
         review.RuntimeRows.Single().Findings.Should().ContainSingle();
         review.RuntimeRows.Single().OffersFixes.Should().BeTrue();
         leftovers.Clear();
-        await Page(ui).Cell.CompareAsync();
+        await Page(ui).Cell!.CompareAsync();
         await UiHarness.WaitUntilAsync(() => Page(ui) is { Review.HasRuntimeProblems: false, HasBlockedText: false });
     }
 
@@ -544,6 +545,36 @@ public sealed class CreatorReviewTests : IDisposable
         await UiHarness.WaitUntilAsync(() => review.HasRuntimeProblems);
 
         review.RuntimeRows.Select(row => row.Findings.Count).Should().Equal([0, 1], "copies kept from another folder of the game say nothing of this one");
+    }
+
+    [AvaloniaFact]
+    public async Task The_store_check_follows_the_store_and_falls_back_to_words()
+    {
+        _work.Game("data/movies_original.idx", Movies);
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        using var ui = await OpenAsync();
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog]) : null;
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
+        await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared && page.HasOffer);
+        page.Session!.ChangePart(part => part.WithRuntimeFile(new RuntimeFileChoice("data/movies_original.idx", RuntimeFileKind.CreatesFile)));
+        page.AddOfferCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => page.IsTable && page.Cells.All(cell => cell.Review is not null));
+        await RuntimeTabAsync(ui);
+        await UiHarness.WaitUntilAsync(() => page.Review.RuntimeRows is [{ OffersFixes: true }]);
+        (page.Review.CanCheckFiles, page.Review.CheckStore, page.Review.CellLine).Should().Be((true, "steam", "Podstawa · Steam"));
+
+        page.Tab = ProjectTab.Release;
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Click(Button(ui, page.Cells[1].Name));
+        ui.Press(Avalonia.Input.Key.Escape);
+        await RuntimeTabAsync(ui);
+
+        (page.IsPanelOpen, page.Review.CheckStore, page.Review.CanCheckFiles, page.Review.CellLine).Should().Be((false, "gog", false, "Podstawa · GOG"),
+            "the tab shows the cell chosen last");
+        page.Review.StoreCheckWords.Should().Be(Text.Format(Strings.Creator_StoreCheckWords, ("storeId", "gog"), ("store", "GOG")));
+        ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == page.Review.StoreCheckWords);
+        ui.Find<Border>("RuntimeCard").BringIntoView();
+        await RenderAsync(ui, "creator-runtime-gog", null);
     }
 
     [AvaloniaFact]
@@ -586,7 +617,7 @@ public sealed class CreatorReviewTests : IDisposable
     private async Task<ReviewViewModel> ReviewAsync(UiHarness ui)
     {
         var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
-        await UiHarness.WaitUntilAsync(() => page.Cell.IsCompared && page.Session!.Review is not null);
+        await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared && page.Session!.Review is not null);
         page.ShowOperationsCommand.Execute(null);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         return page.Review;

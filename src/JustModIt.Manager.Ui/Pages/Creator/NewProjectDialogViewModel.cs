@@ -95,21 +95,30 @@ public sealed record NewProjectAnswer(DetectedGameEntry Game);
 public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProjectAnswer?>, IDisposable
 {
     private readonly UiServices _services;
+    private readonly IReadOnlyCollection<GameKey>? _versions;
     private List<GameOption> _options = [];
     private DateTimeOffset? _scannedAt;
 
     /// <summary>Opens the dialog, which reads the detected games at once.</summary>
     /// <param name="services">The window's services.</param>
     /// <param name="folder">The author's folder; empty for a project without one.</param>
-    public NewProjectDialogViewModel(UiServices services, string folder) : base(null)
+    /// <param name="versions">The versions of a project that takes another, which the list leaves out; null for a new project.</param>
+    public NewProjectDialogViewModel(UiServices services, string folder, IReadOnlyCollection<GameKey>? versions = null) : base(null)
     {
         _services = services;
         Folder = folder;
+        _versions = versions;
+        (Title, CreateText) = versions is null ? (Strings.Creator_NewTitle, Strings.Creator_Create) : (Strings.Creator_AddGameVersion, Strings.Creator_AddGameVersion);
         _services.Agent.PropertyChanged += OnAgentChanged;
         _ = ReadAsync();
     }
 
     public string Folder { get; }
+
+    public string Title { get; }
+
+    /// <summary>The label of the way on: to create a project, or to add the game to one.</summary>
+    public string CreateText { get; }
 
     public bool HasFolder => Folder.Length > 0;
 
@@ -190,7 +199,7 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
         if (await AgentRequests.AskQuietlyAsync(_services.Agent, new GetDetectedGames()).ConfigureAwait(true) is DetectedGames detected)
         {
             var chosen = Selected?.Entry.Key;
-            _options = [.. detected.Games.Select(entry => new GameOption(entry) { IsSelected = entry.Key == chosen })];
+            _options = [.. detected.Games.Where(entry => _versions?.Contains(entry.Key) != true).Select(entry => new GameOption(entry) { IsSelected = entry.Key == chosen })];
             ShowJudged();
             State = _options.Count > 0 ? GameListState.Listed
                 : _scannedAt is null ? GameListState.Loading

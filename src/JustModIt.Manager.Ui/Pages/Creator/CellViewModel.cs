@@ -3,12 +3,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
-using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
+using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
-using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Controls;
+using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 using Microsoft.Extensions.Logging;
@@ -48,9 +50,16 @@ public enum CellState
     TestInstalled,
 }
 
+/// <summary>A row of a project's table: one part over the versions of the game.</summary>
+/// <param name="Name">The part's name, as the row's head says it.</param>
+/// <param name="Mode">The part's mode.</param>
+/// <param name="Cells">The part's cells, in the versions' order.</param>
+public sealed record CellRow(string Name, string Mode, IReadOnlyList<CellViewModel> Cells);
+
 /// <summary>
-/// The project's part on its version of the game: the author's folder, laid out like the game, compared with the game on the
-/// thread pool, with the stage, the bytes and the file shown and a way to stop, or why it cannot be compared now.
+/// A part of the project on a version of the game: the author's folder, laid out like the game or like the version, compared
+/// with the game on the thread pool, with the stage, the bytes and the file shown and a way to stop, or why it cannot be
+/// compared now.
 /// </summary>
 public sealed partial class CellViewModel : ObservableObject, IDisposable
 {
@@ -58,6 +67,7 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     private readonly CreatorSession _session;
     private CancellationTokenSource? _comparing;
     private (GameKey Key, string Folder, string? Build)? _comparedWith;
+    private string _folder;
     private CellState _compared = CellState.NoFolder;
     private CellState? _block;
     private (string Title, string Text) _blockNotice = ("", "");
@@ -65,24 +75,53 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     private string _work = "";
     private bool _unanswered;
 
-    /// <summary>Creates the part's cell, which compares once the stores tell where its game is.</summary>
+    /// <summary>Creates a cell, which compares once the stores tell where its game is.</summary>
     /// <param name="page">The project's page.</param>
     /// <param name="session">The project.</param>
-    public CellViewModel(ProjectPageViewModel page, CreatorSession session)
+    /// <param name="key">The cell's part and version.</param>
+    public CellViewModel(ProjectPageViewModel page, CreatorSession session, CellKey key)
     {
         _page = page;
         _session = session;
-        _compared = session.Part.AuthorFolder.Length > 0 ? CellState.Comparing : CellState.NoFolder;
+        Key = key;
+        _folder = Folder;
+        _compared = _folder.Length > 0 ? CellState.Comparing : CellState.NoFolder;
         (Stage, State) = (Strings.Creator_CompareListing, _compared);
         _session.PropertyChanged += OnSessionChanged;
         ShowFolder();
+        ShowBrief();
     }
 
     public ProjectPageViewModel Page => _page;
 
+    public CellKey Key { get; }
+
+    public ProjectPart Part => _session.Project.Parts.FirstOrDefault(part => part.Name == Key.Part) ?? _session.Project.Parts[0];
+
+    /// <summary>The cell's version; null once the project no longer has it.</summary>
+    public ProjectVersion? Version => _session.VersionOf(Key.Version);
+
+    /// <summary>The cell's game as the agent reported it; null until it did, or while the stores do not report it.</summary>
+    public DetectedGameEntry? Game => _page.GameOf(Key.Version);
+
+    /// <summary>The author's folder of the cell: the version's own, else the part's.</summary>
+    public string Folder => Part.VersionFolders.GetValueOrDefault(Key.Version) ?? Part.AuthorFolder;
+
+    public string StoreName => GameWording.StoreName(Key.Version.Store);
+
+    /// <summary>The cell is the one the panel and the tabs show.</summary>
+    [ObservableProperty]
+    public partial bool IsSelected { get; internal set; }
+
+    /// <summary>The cell's plan; null until it is compared and planned.</summary>
+    public CreatorReview? Review => _session.ReviewOf(Key);
+
+    /// <summary>The cell has a plan, also one a later comparison that stopped or failed left standing.</summary>
+    public bool HasReview => Review is not null;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsComparing), nameof(HasNothingToPackage), nameof(IsCompared), nameof(IsBlockedByInstall),
-        nameof(CanCompare), nameof(IsBlocked), nameof(Line))]
+        nameof(CanCompare), nameof(IsBlocked), nameof(Line), nameof(HoldsTest))]
     public partial CellState State { get; private set; }
 
     public bool IsComparing => State == CellState.Comparing;
@@ -96,8 +135,14 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
 
     public bool IsBlockedByInstall => State == CellState.Installed;
 
+    /// <summary>A test package is in the version's game.</summary>
+    public bool HoldsTest => State == CellState.TestInstalled;
+
+    /// <summary>The words of the way to take the cell's version off the project.</summary>
+    public string RemoveText => Text.Format(Strings.Creator_RemoveVersion, ("store", StoreName));
+
     /// <summary>The comparison can start again: the cell has a folder, a game and nothing in the way.</summary>
-    public bool CanCompare => _page.Game is not null && _block is null && !IsComparing && _session.Part.AuthorFolder.Length > 0;
+    public bool CanCompare => Game is not null && _block is null && !IsComparing && Folder.Length > 0;
 
     /// <summary>How the cell stands, as its head says it, with what the base's last package says of the compared files.</summary>
     public LineContent Line => State switch
@@ -198,10 +243,10 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     internal void ShowGame()
     {
         var was = _block;
-        if (_page.Game is not { } game)
+        if (Game is not { } game)
         {
-            Block(_page.IsGameGone ? CellState.GameGone : null, Strings.Creator_GameGoneTitle,
-                Text.Format(Strings.Creator_GameGone, ("game", _session.Version?.Game.Name ?? ""), ("store", _page.GameStoreName)));
+            Block(_page.IsGone(Key.Version) ? CellState.GameGone : null, Strings.Creator_GameGoneTitle,
+                Text.Format(Strings.Creator_GameGone, ("game", Version?.Game.Name ?? ""), ("store", StoreName)));
         }
         else
         {
@@ -224,7 +269,7 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
             }
         }
 
-        if (_block is null && _page.Game is not null && (was is not (null or CellState.TestInstalled) || _comparedWith is null))
+        if (_block is null && Game is not null && (was is not (null or CellState.TestInstalled) || _comparedWith is null))
         {
             _ = CompareAsync();
         }
@@ -239,7 +284,7 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public async Task CompareAsync()
     {
-        if (_page.Game is not { } game || _block is not null || _session.Part.AuthorFolder is not { Length: > 0 } folder)
+        if (Game is not { } game || _block is not null || Folder is not { Length: > 0 } folder)
         {
             return;
         }
@@ -259,21 +304,16 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         (ProblemTitle, ProblemText, DroppedFiles, _unanswered) = ("", "", false, false);
         (Detail, ChangedText, _changed) = ("", "", []);
         ShowChanges();
-        (Stage, Percent, FileLine, Progress, IsIndeterminate) = (Strings.Creator_CompareListing, "", "", 0, true);
+        // A cell that waits for another's comparison has no stage yet.
+        (Stage, Percent, FileLine, Progress, IsIndeterminate) = ("", "", "", 0, true);
         Show(CellState.Comparing);
-        var installs = _page.Agent.State.Games.SelectMany(view => view.Installs)
-            .Select(install => new ExistingInstall(install.Id, install.InstallDirectory))
-            .ToList();
         try
         {
-            var comparer = new FolderComparer(_page.Options, _page.FileSystem, _page.Access);
-            var listed = await comparer.ListGameAsync(game.Game.InstallDirectory, installs, comparing.Token)
+            var comparison = await _page.CompareOneAsync(this, folder, new LatestProgress<CompareProgress>(Show), comparing.Token)
                 .ConfigureAwait(true);
-            var comparison = await comparer.CompareAsync(new ComparisonRequest(listed, folder, []),
-                new LatestProgress<CompareProgress>(Show), comparing.Token).ConfigureAwait(true);
             if (_comparing == comparing)
             {
-                await _session.UseAsync(comparison).ConfigureAwait(true);
+                await _session.UseAsync(Key, comparison).ConfigureAwait(true);
                 // What an undone test left in the game may have gone meanwhile, e.g. by the store's check of the files.
                 await _page.ReadKeptPathsAsync().ConfigureAwait(true);
             }
@@ -324,18 +364,16 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         }
         else
         {
-            UseFolder(folder);
+            _ = UseFolderAsync(folder);
         }
     }
 
     [RelayCommand]
     private async Task ChangeFolderAsync()
     {
-        var folder = await _page.Services.Pickers.PickFolderAsync(Strings.Creator_PickFolderTitle,
-            _session.Part.AuthorFolder.Length > 0 ? _session.Part.AuthorFolder : null).ConfigureAwait(true);
-        if (folder is not null)
+        if (await _page.Services.Pickers.PickFolderAsync(Strings.Creator_PickFolderTitle, Folder.Length > 0 ? Folder : null).ConfigureAwait(true) is { } folder)
         {
-            UseFolder(folder);
+            await UseFolderAsync(folder).ConfigureAwait(true);
         }
     }
 
@@ -345,7 +383,7 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void OpenGame()
     {
-        if (_page.Game is { } game)
+        if (Game is { } game)
         {
             _page.Services.Navigator.Navigate(new GameRoute(game.Key));
         }
@@ -354,11 +392,12 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void ToggleIdentical() => ShowsIdentical = !ShowsIdentical;
 
-    // A folder in the game's or around it would pass off the game's own files as the author's.
-    private void UseFolder(string folder)
+    // A folder in the game's or around it would pass off the game's own files as the author's. With several versions the folder
+    // may be this version's own; each cell whose folder changed compares again by itself.
+    private async Task UseFolderAsync(string folder)
     {
         DroppedFiles = false;
-        if (_page.Game is { } game && PathComparison.Overlaps(game.Game.InstallDirectory, folder))
+        if (Game is { } game && PathComparison.Overlaps(game.Game.InstallDirectory, folder))
         {
             _page.ShowProblem(PathComparison.AreSame(game.Game.InstallDirectory, folder) ? Strings.Creator_GameFolderTitle : Strings.Creator_InsideGameTitle,
                 Strings.Creator_GameFolder);
@@ -366,14 +405,33 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         }
 
         _page.ClearProblem();
-        if (_session.Part.AuthorFolder.Length == 0 || !PathComparison.AreSame(folder, _session.Part.AuthorFolder))
+        var part = Part;
+        var own = false;
+        if (_session.Project.Versions.Count > 1)
         {
-            _comparing?.Cancel();
-            _ = _session.UseAsync(null);
-            _session.ChangePart(part => part with { AuthorFolder = folder });
+            var answer = await _page.Services.Dialogs.ShowAsync(new ChoiceDialogViewModel(Strings.Creator_ChangeFolder, "",
+            [
+                new DialogChoice("version", Icons.FolderOpen, Text.Format(Strings.Creator_FolderForVersion, ("store", StoreName)), Strings.Creator_FolderForVersionText),
+                new DialogChoice("all", Icons.Folder, Strings.Creator_FolderForAll, Strings.Creator_FolderForAllText),
+            ])).ConfigureAwait(true);
+            if (answer.Key is null || Part != part)
+            {
+                return;
+            }
+
+            own = answer.Key == "version";
         }
 
-        _ = CompareAsync();
+        var changed = !own ? part with { AuthorFolder = folder, VersionFolders = default }
+            : PathComparison.AreSame(folder, part.AuthorFolder) ? part with { VersionFolders = part.VersionFolders.Remove(Key.Version) }
+            : part with { VersionFolders = part.VersionFolders.SetItem(Key.Version, folder) };
+        if (changed == part)
+        {
+            _ = CompareAsync();
+            return;
+        }
+
+        _session.Change(project => project with { Parts = new(project.Parts.Items.Replace(part, changed)) });
     }
 
     private void Block(CellState? block, string title, string text)
@@ -397,9 +455,12 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(NoticeTitle));
         OnPropertyChanged(nameof(NoticeText));
         OnPropertyChanged(nameof(HasNotice));
+        ShowBrief();
     }
 
-    private void ShowFolder() => FolderPath = _session.Part.AuthorFolder;
+    partial void OnPercentChanged(string value) => ShowBrief();
+
+    private void ShowFolder() => FolderPath = Folder;
 
     private void Show(CompareProgress progress)
     {
@@ -433,7 +494,8 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         IdenticalCount = Text.Format(Strings.Creator_IdenticalCount, ("count", identical.Count));
         ShowsIdentical = false;
         _comparedAt = _page.Services.Clock.GetUtcNow();
-        if (ProjectPageViewModel.HasNothingToPackage(_session))
+        // The author's files only repeat the game's, so a simple part has nothing to package.
+        if (Part is { Mode: CreatorMode.Simple, ExtraSteps.Count: 0 } && comparison.Files.All(file => file.Difference == FileDifference.Identical))
         {
             (NothingTitle, NothingText) = identical.Count > 0
                 ? (Strings.Creator_NothingTitle, Strings.Creator_Nothing)
@@ -456,8 +518,8 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         }
     }
 
-    // A comparison with a game the project no longer names counts for nothing, so the folder is compared again with the game
-    // it names now.
+    // A comparison of another folder, or with a game the version no longer names, counts for nothing, so the folder is compared
+    // again with the game it names now.
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(CreatorSession.Review))
@@ -466,9 +528,23 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var version = _session.Version;
-        if (e.PropertyName != nameof(CreatorSession.Project) || _comparedWith is not { } compared
-            || (compared.Key == version?.Game.Key && compared.Folder == version?.GameFolder))
+        if (e.PropertyName != nameof(CreatorSession.Project) || Version is not { } version)
+        {
+            return;
+        }
+
+        if (_folder != Folder)
+        {
+            _folder = Folder;
+            ShowFolder();
+            _comparing?.Cancel();
+            (_comparing, _comparedWith) = (null, null);
+            _ = _session.UseAsync(Key, null);
+            _ = CompareAsync();
+            return;
+        }
+
+        if (_comparedWith is not { } compared || (compared.Key == version.Game.Key && compared.Folder == version.GameFolder))
         {
             return;
         }
@@ -476,7 +552,7 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         _comparing?.Cancel();
         (_comparing, _comparedWith) = (null, null);
         // The page takes the game the version names a moment later, and the comparison then starts with it.
-        if (_page.Game?.Key == version?.Game.Key)
+        if (Game?.Key == version.Game.Key)
         {
             _ = CompareAsync();
         }

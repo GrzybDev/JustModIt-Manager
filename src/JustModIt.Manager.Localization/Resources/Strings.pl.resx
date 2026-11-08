@@ -3283,10 +3283,10 @@
     <value>{stage, select, Checking {Sprawdzanie plików} Copying {Pakowanie plików} HashingOriginal {Liczenie skrótu oryginału} CreatingPatch {Tworzenie łatki} HashingRuntimeFiles {Liczenie skrótów plików zmienianych podczas gry} other {Zapisywanie opisu paczki}}</value>
   </data>
   <data name="Creator_StopBuildTitle" xml:space="preserve">
-    <value>Przerwać budowanie paczki?</value>
+    <value>Przerwać budowanie?</value>
   </data>
   <data name="Creator_StopBuild" xml:space="preserve">
-    <value>Przerwane budowanie nie zostawia żadnych plików i nie rusza poprzedniej paczki o tej nazwie.</value>
+    <value>Przerwanie usuwa tylko paczkę, która właśnie powstaje. Gotowe paczki zostają, a poprzednia paczka o tej nazwie się nie zmienia.</value>
   </data>
   <data name="Creator_StopBuildConfirm" xml:space="preserve">
     <value>Przerwij budowanie</value>
@@ -3295,7 +3295,7 @@
     <value>Budowanie przerwane</value>
   </data>
   <data name="Creator_BuildCancelled" xml:space="preserve">
-    <value>Nie powstał żaden plik, a poprzednia paczka o tej nazwie została bez zmian.</value>
+    <value>{finished, select, true {Gotowe paczki zostały, a tej, która powstawała, nie ma.} other {Nie powstał żaden plik, a poprzednia paczka o tej nazwie została bez zmian.}}</value>
   </data>
   <data name="Creator_BuildFailedTitle" xml:space="preserve">
     <value>Nie udało się zbudować paczki</value>
@@ -3427,7 +3427,7 @@
     <value>Nie udało się cofnąć instalacji testowej: {reason}</value>
   </data>
   <data name="Creator_PublishTitle" xml:space="preserve">
-    <value>Opublikuj ją na stronie</value>
+    <value>{several, select, true {Opublikuj je na stronie} other {Opublikuj ją na stronie}}</value>
   </data>
   <data name="Creator_PublishManifest" xml:space="preserve">
     <value>Na stronie plik trafia do wydania projektu: jako główna paczka albo jako składnik, a strona sama oznaczy, że wymaga aplikacji. Tam też ustawia się opis zmian i składniki.</value>
@@ -3487,7 +3487,7 @@
     <value>Wszystkie operacje ({count})</value>
   </data>
   <data name="Creator_CellState" xml:space="preserve">
-    <value>{state, select, Unchanged {Bez zmian od {hasVersion, select, true {{version}} other {ostatniej paczki}}} Ready {Gotowe} NoFolder {Brak folderu} FolderGone {Folder niedostępny} GameGone {Gry nie ma na tym komputerze} TestInstalled {Instalacja testowa w grze} Stopped {Porównanie przerwane} Installed {Na grze jest zainstalowana paczka} NotReady {{work}} other {Nie udało się porównać}}</value>
+    <value>{state, select, Compared {Porównano} Unchanged {Bez zmian od {hasVersion, select, true {{version}} other {ostatniej paczki}}} Ready {Gotowe} NoFolder {Brak folderu} FolderGone {Folder niedostępny} GameGone {Gry nie ma na tym komputerze} TestInstalled {Instalacja testowa w grze} Stopped {Porównanie przerwane} Installed {Na grze jest zainstalowana paczka} NotReady {{work}} other {Nie udało się porównać}}</value>
   </data>
   <data name="Creator_BeforeBuild" xml:space="preserve">
     <value>Przed zbudowaniem</value>
@@ -3536,5 +3536,71 @@
   </data>
   <data name="Creator_BlockedTitle" xml:space="preserve">
     <value>podać nazwę paczki na karcie „Opis paczki”</value>
+  </data>
+  <data name="Creator_ChangeGame" xml:space="preserve">
+    <value>To inna gra…</value>
+  </data>
+  <data name="Creator_ChangeGameText" xml:space="preserve">
+    <value>Wszystkie wykryte gry</value>
+  </data>
+  <data name="Creator_OfferVersion" xml:space="preserve">
+    <value>{game} jest na tym komputerze także w {store}. Projekt może objąć obie wersje.</value>
+  </data>
+  <data name="Creator_AddStoreVersion" xml:space="preserve">
+    <value>Dodaj wersję {store}</value>
+  </data>
+  <data name="Creator_DismissOffer" xml:space="preserve">
+    <value>Nie pokazuj</value>
+  </data>
+  <data name="Creator_PanelName" xml:space="preserve">
+    <value>Szczegóły</value>
+  </data>
+  <data name="Creator_ClosePanel" xml:space="preserve">
+    <value>Zamknij szczegóły</value>
+  </data>
+  <data name="Creator_CellDetail" xml:space="preserve">
+    <value>{detail, select, Changed {{count, plural, one {# plik zmienił się} few {# pliki zmieniły się} many {# plików zmieniło się} other {# pliku zmieniło się}} od {hasVersion, select, true {{version}} other {ostatniej paczki}}}}</value>
+  </data>
+  <data name="Creator_Stop" xml:space="preserve">
+    <value>Zatrzymaj</value>
+  </data>
+  <data name="Creator_BuiltAt" xml:space="preserve">
+    <value>zbudowano {date}</value>
+  </data>
+  <data name="Creator_BuildAll" xml:space="preserve">
+    <value>Zbuduj paczki</value>
+  </data>
+  <data name="Creator_BuildingOf" xml:space="preserve">
+    <value>Paczka {number} z {count}</value>
+  </data>
+  <data name="Creator_TestOn" xml:space="preserve">
+    <value>Zainstaluj testowo ({store})</value>
+  </data>
+  <data name="Creator_BlockedCell" xml:space="preserve">
+    <value>{part} · {store}: {text}</value>
+  </data>
+  <data name="Creator_RemoveVersion" xml:space="preserve">
+    <value>Usuń wersję {store} z projektu</value>
+  </data>
+  <data name="Creator_RemoveVersionTitle" xml:space="preserve">
+    <value>Usunąć wersję {store} z projektu?</value>
+  </data>
+  <data name="Creator_RemoveVersionMessage" xml:space="preserve">
+    <value>Jej porównanie i lista zbudowanych paczek znikną z projektu. Pliki na dysku zostają.</value>
+  </data>
+  <data name="Creator_RemoveVersionConfirm" xml:space="preserve">
+    <value>Usuń wersję</value>
+  </data>
+  <data name="Creator_FolderForVersion" xml:space="preserve">
+    <value>Tylko dla wersji {store}</value>
+  </data>
+  <data name="Creator_FolderForVersionText" xml:space="preserve">
+    <value>Pozostałe wersje zostają przy swoim folderze.</value>
+  </data>
+  <data name="Creator_FolderForAll" xml:space="preserve">
+    <value>Dla wszystkich wersji</value>
+  </data>
+  <data name="Creator_FolderForAllText" xml:space="preserve">
+    <value>Każda wersja porówna się z nowym folderem.</value>
   </data>
 </root>

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Localization;
@@ -34,6 +35,7 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
     private readonly Dictionary<Guid, (JobOutcome Outcome, JobFailureView? Failure, IReadOnlyList<KeptFilesView>? Kept)> _ended = [];
     private Guid? _testJob;
     private Guid? _undoJob;
+    private GameKey? _version;
     private bool _lostTrack;
     private string _testNote = "";
     private (Guid Job, ToastViewModel Toast)? _undone;
@@ -83,10 +85,13 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
     public partial bool CanLaunch { get; private set; }
 
     /// <summary>The installed test package of the game; null while there is none.</summary>
-    private InstallView? TestInstall =>
-        _page.Game is { } game
-            ? _page.Agent.State.Games.FirstOrDefault(view => view.Key == game.Key)?.Installs.FirstOrDefault(install => install.IsTest)
-            : null;
+    private InstallView? TestInstall => TestOf(Game);
+
+    /// <summary>
+    /// The game of the version under test: the one tried last, else one that holds a test package, else the chosen cell's.
+    /// </summary>
+    private DetectedGameEntry? Game => _version is { } version ? _page.GameOf(version)
+        : _page.Cells.Select(cell => cell.Game).FirstOrDefault(game => TestOf(game) is not null) ?? _page.Game;
 
     public void Dispose()
     {
@@ -95,8 +100,30 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
         _page.Agent.JobEnded -= OnJobEnded;
     }
 
+    // A run for several versions made a package for each, of which the author tries one in its own copy of the game.
     [RelayCommand]
-    private Task InstallTestAsync(string package) => TestAsync([package]);
+    private async Task InstallTestAsync(string package)
+    {
+        List<(GameKey Version, string Path)> choices = [.. _page.Build.Packages.SelectMany(row => row.Versions.Select(version => (version, row.Path)))
+            .Where(choice => _page.GameOf(choice.version) is not null)];
+        var version = choices.Where(choice => choice.Path == package).Select(choice => (GameKey?)choice.Version).FirstOrDefault();
+        if (choices.Count > 1)
+        {
+            var answer = await _page.Services.Dialogs.ShowAsync(new ChoiceDialogViewModel(Strings.Creator_TestInstall, "",
+            [
+                .. choices.Select(choice => new DialogChoice(choice.Version.ToString(), Icons.Download,
+                    Text.Format(Strings.Creator_TestOn, ("store", GameWording.StoreName(choice.Version.Store))), Path.GetFileName(choice.Path))),
+            ])).ConfigureAwait(true);
+            if (choices.FirstOrDefault(choice => choice.Version.ToString() == answer.Key) is not { Path: not null } chosen)
+            {
+                return;
+            }
+
+            (version, package) = chosen;
+        }
+
+        await TestAsync(version, [package]).ConfigureAwait(true);
+    }
 
     // An add-on is tried together with the package it goes with, which installs first, so a clash between the two shows
     // before players meet it.
@@ -111,18 +138,18 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
         var first = await _page.Services.Pickers.PickFileAsync(Strings.Creator_TestTogetherTitle, startIn: Path.GetDirectoryName(package)).ConfigureAwait(true);
         if (first is not null && !string.Equals(first, package, StringComparison.OrdinalIgnoreCase))
         {
-            await TestAsync([first, package]).ConfigureAwait(true);
+            await TestAsync(_page.Build.Packages.FirstOrDefault(row => row.Path == package)?.Versions[0], [first, package]).ConfigureAwait(true);
         }
     }
 
-    private async Task TestAsync(IReadOnlyList<string> packages)
+    private async Task TestAsync(GameKey? version, IReadOnlyList<string> packages)
     {
-        if (_page.Game is not { } game || packages[^1].Length == 0)
+        if ((version ?? _page.Cell?.Key.Version) is not { } tested || _page.GameOf(tested) is not { } game || packages[^1].Length == 0)
         {
             return;
         }
 
-        (_testNote, _undoJob) = ("", null);
+        (_testNote, _undoJob, _version) = ("", null, tested);
         _ended.Clear();
         var (sent, answer) = await AgentRequests.AskAsync(_page.Services, new TestInstallPackage(game.Key, packages)).ConfigureAwait(true);
         if (sent && answer is JobStarted started)
@@ -153,7 +180,7 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task LaunchAsync()
     {
-        if (_page.Game is { } game)
+        if (Game is { } game)
         {
             await AgentRequests.AskAsync(_page.Services, new LaunchGame(game.Key)).ConfigureAwait(true);
         }
@@ -170,10 +197,16 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
         ShowTest();
     }
 
-    /// <summary>Forgets the test, which belongs to another copy of the game.</summary>
-    internal void Forget()
+    /// <summary>Forgets the test once the version it was made on changed or left, since it belongs to that copy of the game.</summary>
+    /// <param name="versions">The versions whose game or folder changed or that left the project.</param>
+    internal void Forget(IReadOnlyList<GameKey> versions)
     {
-        (_testJob, _undoJob, _undone, _lostTrack, _testNote, HasTestProblem) = (null, null, null, false, "", false);
+        if (versions.Count == 0 || (_version is { } tested && !versions.Contains(tested)))
+        {
+            return;
+        }
+
+        (_testJob, _undoJob, _undone, _lostTrack, _testNote, HasTestProblem, _version) = (null, null, null, false, "", false, null);
         _ended.Clear();
         State = TestInstallState.None;
     }
@@ -207,8 +240,8 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
             ShowJob(job);
         }
 
-        var name = _page.Game?.Name ?? "";
-        CanLaunch = _page.Game?.Game.CanLaunch == true;
+        var name = Game?.Name ?? "";
+        CanLaunch = Game?.Game.CanLaunch == true;
         TestTitle = State switch
         {
             TestInstallState.Installed => Text.Format(Strings.Creator_TestInstalledTitle, ("game", name)),
@@ -241,7 +274,7 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
 
     private void OnJobEnded(object? sender, JobEnded ended)
     {
-        if (ended.Job.Game == _page.Game?.Key)
+        if (ended.Job.Game == Game?.Key)
         {
             _ended[ended.Job.Id] = (ended.Outcome, ended.Failure, ended.KeptFiles);
             // The state may have ended the undo first, before the agent told which files it left.
@@ -320,7 +353,7 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
     // Says which files the undo left as the package's software changed them, by the most pressing reason.
     private ToastViewModel UndoneToast(IReadOnlyList<KeptFilesView>? kept)
     {
-        var game = _page.Game?.Name ?? "";
+        var game = Game?.Name ?? "";
         if (KeptReasons.MostPressing(kept?.Select(files => files.Reason) ?? []) is not { } reason)
         {
             return new ToastViewModel(ToastTone.Success, Icons.CircleCheck, Strings.Creator_TestUndoneTitle,
@@ -330,7 +363,7 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
         var told = KeptReasons.CaseOf(reason);
         var text = Text.Format(Strings.Creator_TestUndoneKept, ("game", game), ("reason", told),
             ("count", kept!.Where(files => KeptReasons.CaseOf(files.Reason) == told).Sum(files => files.Count)),
-            ("store", _page.Game is { } detected ? GameWording.StoreName(detected.Key.Store) : ""));
+            ("store", Game is { } detected ? GameWording.StoreName(detected.Key.Store) : ""));
         return reason == KeptReason.OriginalUnknown
             ? new ToastViewModel(ToastTone.Info, Icons.Info, Strings.Creator_TestUndoneTitle, text)
             : new ToastViewModel(ToastTone.Warning, Icons.TriangleAlert, Strings.Creator_TestUndoneTitle, text);
@@ -338,7 +371,7 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
 
     // The game's page can install a test package or undo it too, and the step shows that job as its own.
     private JobView? RunningTestJob(InstallView? installed) =>
-        _page.Game is { } game
+        Game is { } game
             ? _page.Agent.State.Jobs.FirstOrDefault(job => job.Game == game.Key && !_ended.ContainsKey(job.Id)
                 && (job.Kind == JobKind.TestInstall || (job.Kind == JobKind.Uninstall && job.InstallId == installed?.Id)))
             : null;
@@ -365,8 +398,11 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
 
     private bool IsListed(Guid job) => _page.Agent.State.Jobs.Any(listed => listed.Id == job);
 
+    private InstallView? TestOf(DetectedGameEntry? game) =>
+        game is null ? null : _page.Agent.State.Games.FirstOrDefault(view => view.Key == game.Key)?.Installs.FirstOrDefault(install => install.IsTest);
+
     private string FailureText(JobFailureView? failure) =>
-        failure is null || _page.Game is not { } game
+        failure is null || Game is not { } game
             ? Strings.Creator_TestFailed
             : GameWording.FailureReason(failure, game.Key.Store, game.Name);
 

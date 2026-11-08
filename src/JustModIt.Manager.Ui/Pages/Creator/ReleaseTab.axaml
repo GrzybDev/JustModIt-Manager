@@ -9,27 +9,86 @@
              ClipToBounds="False">
   <!-- The cards' shadows fall outside the control. -->
   <StackPanel Spacing="20" Margin="0,4,0,16">
-    <!-- A project imported without a game has nothing to compare yet. -->
-    <Border x:Name="NoVersion" Classes="creatorCard" Padding="28" IsVisible="{Binding !Page.HasVersion}">
-      <StackPanel Spacing="10" HorizontalAlignment="Center">
-        <Border Classes="folderChip" Width="56" Height="56" CornerRadius="14" HorizontalAlignment="Center">
-          <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="26" Height="26" />
-        </Border>
-        <TextBlock Classes="h4" HorizontalAlignment="Center" Text="{x:Static creator:ReleaseTab.NoVersionTitle}" />
-        <TextBlock Classes="bodyText" HorizontalAlignment="Center" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_NoVersionText}" />
-        <Button Classes="primary" HorizontalAlignment="Center" Margin="0,6,0,0" Content="{x:Static loc:Strings.Creator_AddGameVersion}"
-                ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding Page.AddVersionCommand}" />
+    <!-- Another store's copy of the game, which the same project can cover. -->
+    <ui:Callout x:Name="Offer" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Info}" Message="{Binding Page.OfferText}"
+                IsVisible="{Binding Page.HasOffer}" theme:Motion.Enter="True">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Classes="outline small" Content="{Binding Page.OfferAction}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding Page.AddOfferCommand}" />
+        <Button Classes="quiet small" Content="{x:Static loc:Strings.Creator_DismissOffer}" Command="{Binding Page.DismissOfferCommand}" />
       </StackPanel>
-    </Border>
+    </ui:Callout>
 
     <creator:CellPanel>
       <creator:CellPanel.IsVisible>
         <MultiBinding Converter="{x:Static BoolConverters.And}">
-          <Binding Path="Page.HasVersion" />
+          <Binding Path="!Page.IsTable" />
           <Binding Path="!Page.ShowsOperations" />
         </MultiBinding>
       </creator:CellPanel.IsVisible>
     </creator:CellPanel>
+
+    <!-- The parts over the versions; a cell opens its panel, and the arrows move between the cells. -->
+    <StackPanel x:Name="Table" Spacing="10">
+      <StackPanel.IsVisible>
+        <MultiBinding Converter="{x:Static BoolConverters.And}">
+          <Binding Path="Page.IsTable" />
+          <Binding Path="!Page.ShowsOperations" />
+        </MultiBinding>
+      </StackPanel.IsVisible>
+      <Grid ColumnDefinitions="110,*" ColumnSpacing="10">
+        <ItemsControl Grid.Column="1" ItemsSource="{Binding Page.Heads}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <ui:PixelUniformGrid Columns="{Binding $parent[UserControl].((creator:CellViewModel)DataContext).Page.Heads.Count}" ColumnSpacing="10" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="caption" Margin="4,0" Text="{Binding}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+      <ItemsControl x:Name="Rows" ItemsSource="{Binding Page.Rows}" theme:Motion.Stagger="True">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="creator:CellRow">
+            <Grid ColumnDefinitions="110,*" ColumnSpacing="10" Margin="0,0,0,10">
+              <StackPanel Spacing="2" VerticalAlignment="Center">
+                <TextBlock Classes="rowTitle" FontSize="14" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                <TextBlock Classes="caption" Text="{Binding Mode}" />
+              </StackPanel>
+              <ItemsControl Grid.Column="1" ItemsSource="{Binding Cells}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <ui:PixelUniformGrid Columns="{Binding $parent[UserControl].((creator:CellViewModel)DataContext).Page.Heads.Count}" ColumnSpacing="10" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="creator:CellViewModel">
+                    <Button Classes="cell" Classes.selected="{Binding IsSelected}" AutomationProperties.Name="{Binding Name}"
+                            Command="{Binding Page.SelectCellCommand}" CommandParameter="{Binding}">
+                      <StackPanel Spacing="6">
+                        <ui:StatusLine FontSize="13" LineHeight="20" Icon="{Binding Brief.Icon}" Tone="{Binding Brief.Tone}" Label="{Binding Brief.Label}"
+                                       IsBusy="{Binding Brief.IsBusy}" />
+                        <ProgressBar Classes="thin" Maximum="100" Value="{Binding Progress}" IsIndeterminate="{Binding IsIndeterminate}" IsVisible="{Binding IsComparing}"
+                                     AutomationProperties.Name="{Binding Brief.Label}" />
+                        <TextBlock Classes="caption" Text="{Binding Stage}" TextTrimming="CharacterEllipsis" IsVisible="{Binding IsComparing}" />
+                        <TextBlock Classes="caption" Text="{Binding Brief.Detail}" TextTrimming="CharacterEllipsis"
+                                   IsVisible="{Binding Brief.Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <Button Classes="outline small" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_Stop}" Command="{Binding CancelCommand}"
+                                IsVisible="{Binding IsComparing}" />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Button x:Name="AddVersion" Classes="outline" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_AddGameVersion}"
+              ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding Page.AddVersionCommand}" />
+    </StackPanel>
 
     <!-- The part's operations, or its steps in advanced mode, take the column, since their rows need its width. -->
     <Panel x:Name="PartView" IsVisible="{Binding Page.ShowsOperations}">

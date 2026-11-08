@@ -30,9 +30,17 @@ public enum PackageState
     Built,
 }
 
+/// <summary>A package a run made.</summary>
+/// <param name="Name">Its file's name.</param>
+/// <param name="Details">Its part and the stores of the versions it serves.</param>
+/// <param name="Size">Its size, as words.</param>
+/// <param name="Path">Its file.</param>
+/// <param name="Versions">The versions of the game it serves.</param>
+public sealed record BuiltRow(string Name, string Details, string Size, string Path, IReadOnlyList<GameKey> Versions);
+
 /// <summary>
-/// The package's build on the thread pool, with its stage, file and bytes and a way to cancel it, why it failed, and the
-/// package it made with the site's warnings about it.
+/// The build of every part and version on the thread pool, with its package, stage, file and bytes and a way to cancel it, why
+/// it failed, and the packages it made with the site's warnings about them.
 /// </summary>
 public sealed partial class BuildViewModel : ObservableObject, IDisposable
 {
@@ -113,7 +121,23 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial string FileLine { get; private set; } = "";
 
-    /// <summary>The package built last; empty before a build.</summary>
+    /// <summary>Which package of the run is being built; empty for a run of one.</summary>
+    [ObservableProperty]
+    public partial string PackageLine { get; private set; } = "";
+
+    /// <summary>The packages the last run made, each with the versions it serves.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSeveral), nameof(PublishTitle), nameof(BuiltOverline))]
+    public partial IReadOnlyList<BuiltRow> Packages { get; private set; } = [];
+
+    public bool HasSeveral => Packages.Count > 1;
+
+    public string PublishTitle => Text.Format(Strings.Creator_PublishTitle, ("several", HasSeveral ? "true" : "false"));
+
+    /// <summary>That the packages of the last run are ready, over them.</summary>
+    public string BuiltOverline => Text.Format(Strings.Creator_BuiltHeading, ("count", Math.Max(Packages.Count, 1))).ToUpper(Text.Culture);
+
+    /// <summary>The package built first; empty before a build.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasEarlierPackage), nameof(ShowsPackage))]
     public partial string OutputPath { get; private set; } = "";
@@ -194,12 +218,12 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             _asksForFolder = false;
         }
 
-        // A name or version typed a moment ago may not be planned yet, and the package takes them from the plan.
+        // A name or version typed a moment ago may not be planned yet, and the packages take them from the plans.
         await _session.SettledAsync().ConfigureAwait(true);
 
-        if (_session.Review?.Plan is { } plan && _page.Game is { } game && _page.CanBuild)
+        if (_page.CanBuild)
         {
-            await (_build = BuildAsync(plan, game, _page.OutputFolder)).ConfigureAwait(true);
+            await (_build = BuildAsync(_page.OutputFolder)).ConfigureAwait(true);
         }
     }
 
@@ -237,31 +261,42 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Forgets the package and the last build's failure, which belong to another copy of the game.</summary>
-    internal void Forget()
+    /// <summary>Forgets the packages and the last build's failure once a version they were made for changed or left.</summary>
+    /// <param name="versions">The versions whose game or folder changed or that left the project.</param>
+    internal void Forget(IReadOnlyList<GameKey> versions)
     {
-        (OutputPath, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings) = ("", "", "", "", "", []);
+        if (versions.Count == 0 || (Packages.Count > 0 && !Packages.Any(row => row.Versions.Intersect(versions).Any())))
+        {
+            return;
+        }
+
+        (OutputPath, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings, Packages) = ("", "", "", "", "", [], []);
         (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings) = ("", "", false, [], []);
         State = PackageState.Ready;
     }
 
-    private async Task BuildAsync(PackagePlan plan, DetectedGameEntry game, string folder)
+    private async Task BuildAsync(string folder)
     {
         using var building = _building = new CancellationTokenSource();
         (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings) = ("", "", false, [], []);
-        (Stage, Percent, Progress, FileLine) = (Text.Format(Strings.Creator_BuildStage, ("stage", nameof(BuildStage.Checking))), "", 0, "");
+        (Stage, Percent, Progress, FileLine, PackageLine) = (Text.Format(Strings.Creator_BuildStage, ("stage", nameof(BuildStage.Checking))), "", 0, "", "");
         State = PackageState.Building;
+        var project = _session.Project;
+        var done = 0;
+        var plans = project.Parts.SelectMany(part => project.Versions.Select(version => _session.ReviewOf(new CellKey(part.Name, version.Game.Key))!.Plan)).ToList();
         try
         {
-            // The game's build may have changed since the comparison, and the package names the one it was made against.
-            var detected = await CurrentGameAsync(game).ConfigureAwait(true);
+            // The games' builds may have changed since the comparisons, and a package names the ones it was made against.
+            var games = await CurrentGamesAsync().ConfigureAwait(true);
             var request = new ProjectBuildRequest
             {
-                ProjectId = _session.Project.Id,
+                ProjectId = project.Id,
                 OutputFolder = folder,
-                Parts = [(_session.Part.Name, [new BuildVersion(detected, plan)])],
-                PackageName = (_, _) => SuggestedName(game),
+                Parts = [.. project.Parts.Select(part => (part.Name, (IReadOnlyList<BuildVersion>)[.. project.Versions.Select(version => new BuildVersion(
+                    games[version.Game.Key], _session.ReviewOf(new CellKey(part.Name, version.Game.Key))!.Plan))]))],
+                PackageName = (_, versions) => SuggestedName(versions),
                 FallbackName = Strings.Creator_ProjectFallbackName,
+                Built = _ => done++,
                 // The run asks on its own thread, and the dialogs live on the window's.
                 ReplaceFiles = names => Dispatcher.UIThread.InvokeAsync(() => _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(
                     Strings.Creator_ReplaceFilesTitle, Text.Format(Strings.Creator_ReplaceFilesMessage, ("names", CreatorWording.List(names))),
@@ -271,11 +306,11 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
                 Site = _page.Agent.State.Catalogue.ReleaseFiles,
             };
             var finished = await new ProjectBuilder(new XDelta3Patcher(), _page.Options, _page.Library, _page.Access, _page.Services.Clock, _page.FileSystem)
-                .BuildAsync(request, new LatestProgress<ProjectBuildProgress>(progress => Show(progress.Build)), building.Token)
+                .BuildAsync(request, new LatestProgress<ProjectBuildProgress>(Show), building.Token)
                 .ConfigureAwait(true);
-            if (finished is [var package])
+            if (finished.Count > 0)
             {
-                Built(package);
+                Built(finished);
             }
             else
             {
@@ -284,18 +319,23 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException) when (building.IsCancellationRequested)
         {
-            Fail(Strings.Creator_BuildCancelledTitle, Strings.Creator_BuildCancelled);
+            Fail(Strings.Creator_BuildCancelledTitle, Text.Format(Strings.Creator_BuildCancelled, ("finished", done > 0 ? "true" : "false")));
         }
         catch (PackageBuildException failed)
         {
             NeedsComparison = failed.Failure is BuildFailure.FilesChanged or BuildFailure.OtherGame;
+            var plan = failed.Versions is [var first, ..] ? _session.ReviewOf(new CellKey(failed.Part ?? "", first))?.Plan ?? plans[0] : plans[0];
             _buildFindings = [.. failed.Findings.Where(finding => finding.BlocksBuild)
                 .Select(finding => (finding, finding.OperationIndex is { } index ? plan.Operations[index] : null))];
             _asksForFolder = failed.Failure is BuildFailure.OutputInGameFolder or BuildFailure.OutputInAuthorFolder;
             // A folder that does not answer is named as the author knows it, a file of the package by its path in the game.
-            Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_BuildFailed, ("failure", failed.Failure.ToString()),
+            var text = Text.Format(Strings.Creator_BuildFailed, ("failure", failed.Failure.ToString()),
                 ("files", failed.Paths.Count), ("file", failed.Paths.Count == 0 ? ""
-                    : failed.Failure == BuildFailure.FolderUnavailable ? failed.Paths[0] : InFolder(plan, failed.Paths[0]))));
+                    : CreatorWording.Wrappable(failed.Failure == BuildFailure.FolderUnavailable ? failed.Paths[0] : InFolder(plan, failed.Paths[0]))));
+            // A run of several packages says which one failed.
+            Fail(Strings.Creator_BuildFailedTitle, failed.Part is { } part && plans.Count > 1
+                ? Text.Format(Strings.Creator_BlockedCell, ("part", part.Length > 0 ? part : Strings.Creator_PartBase), ("store", Stores(failed.Versions)), ("text", text))
+                : text);
             if (NeedsComparison)
             {
                 _ = _page.CheckAsync(anyway: true);
@@ -303,8 +343,8 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         }
         catch (CreatorBlockedException blocked)
         {
-            Fail(CreatorWording.BlockTitle(blocked.Blocks[0], game.Game.InstallDirectory),
-                string.Join(' ', blocked.Blocks.Select(block => CreatorWording.Block(block, game.Game.InstallDirectory))));
+            Fail(CreatorWording.BlockTitle(blocked.Blocks[0], plans[0].GameDirectory),
+                string.Join(' ', blocked.Blocks.Select(block => CreatorWording.Block(block, plans[0].GameDirectory))));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -332,27 +372,33 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         await _page.ReadRecordAsync().ConfigureAwait(true);
     }
 
-    private async Task<InstalledGame> CurrentGameAsync(DetectedGameEntry game)
+    private async Task<Dictionary<GameKey, InstalledGame>> CurrentGamesAsync()
     {
         var (_, answer) = await AgentRequests.AskAsync(_page.Services, new GetDetectedGames()).ConfigureAwait(true);
-        var current = (answer as DetectedGames)?.Games.FirstOrDefault(entry => entry.Key == game.Key) ?? game;
-        var view = current.Game;
-        return new InstalledGame
-        {
-            Key = current.Key,
-            Name = current.Name,
-            InstallDirectory = view.InstallDirectory,
-            LibraryId = view.LibraryId,
-            BuildId = view.BuildId,
-            State = view.State,
-            Reason = view.Reason,
-            Platform = view.Platform,
-            IsStale = view.IsStale,
-        };
+        return _session.Project.Versions.Select(version => (answer as DetectedGames)?.Games.FirstOrDefault(entry => entry.Key == version.Game.Key)
+                ?? _page.GameOf(version.Game.Key)!)
+            .ToDictionary(current => current.Key, current => new InstalledGame
+            {
+                Key = current.Key,
+                Name = current.Name,
+                InstallDirectory = current.Game.InstallDirectory,
+                LibraryId = current.Game.LibraryId,
+                BuildId = current.Game.BuildId,
+                State = current.Game.State,
+                Reason = current.Game.Reason,
+                Platform = current.Game.Platform,
+                IsStale = current.Game.IsStale,
+            });
     }
 
-    private void Built(FinishedPackage package)
+    private static string Stores(IEnumerable<GameKey> versions) => CreatorWording.List([.. versions.Select(version => GameWording.StoreName(version.Store))]);
+
+    private void Built(IReadOnlyList<FinishedPackage> finished)
     {
+        Packages = [.. finished.Select(built => new BuiltRow(Path.GetFileName(built.Result.OutputPath),
+            GameWording.Join([built.Part.Length > 0 ? built.Part : Strings.Creator_PartBase, Stores(built.Package.Versions)]),
+            Formats.FileSize(built.Result.PackageSize), built.Result.OutputPath, built.Package.Versions))];
+        var package = finished[0];
         var result = package.Result;
         OutputPath = result.OutputPath;
         ResultName = Path.GetFileName(result.OutputPath);
@@ -366,8 +412,9 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         ]);
         ResultFolder = Path.GetDirectoryName(result.OutputPath) ?? "";
         _builtAt = package.Package.BuiltAt;
-        SiteWarnings = [.. result.Findings.Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
-            .Select(finding => CreatorWording.Finding(finding))];
+        SiteWarnings = [.. finished.SelectMany(built => built.Result.Findings)
+            .Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
+            .Select(finding => CreatorWording.Finding(finding)).Distinct()];
         _test.Built();
         State = PackageState.Built;
     }
@@ -385,13 +432,15 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         : PathComparison.IsWithin(plan.GameDirectory, path) ? PackagePath.FromFullPath(plan.GameDirectory, path)
         : path;
 
-    private void Show(BuildProgress progress)
+    private void Show(ProjectBuildProgress run)
     {
         if (State != PackageState.Building)
         {
             return;
         }
 
+        var progress = run.Build;
+        PackageLine = run.PackageCount > 1 ? Text.Format(Strings.Creator_BuildingOf, ("number", run.Package), ("count", run.PackageCount)) : "";
         Progress = progress.BytesTotal > 0 ? 100.0 * progress.BytesDone / progress.BytesTotal : 0;
         Percent = Formats.Percent(progress.BytesDone, progress.BytesTotal);
         Stage = GameWording.Join(
@@ -412,9 +461,10 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     // about a patch the plan no longer makes, e.g. of a file left out or changed since, goes, and with the last the failure.
     private void ShowBuildFindings()
     {
-        if (_session.Review?.Plan is { } plan && _buildFindings.Any(found => !Makes(plan, found.Operation)))
+        var plans = _session.Cells.Select(_session.ReviewOf).OfType<CreatorReview>().Select(review => review.Plan).ToList();
+        if (plans.Count > 0 && _buildFindings.Any(found => !plans.Any(plan => Makes(plan, found.Operation))))
         {
-            _buildFindings = [.. _buildFindings.Where(found => Makes(plan, found.Operation))];
+            _buildFindings = [.. _buildFindings.Where(found => plans.Any(plan => Makes(plan, found.Operation)))];
             if (_buildFindings.Count == 0)
             {
                 (ProblemTitle, ProblemText) = ("", "");
@@ -430,12 +480,13 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         }
     }
 
-    // A copy of the game from another store gets a package of its own, which a name without the store would overwrite.
-    private string SuggestedName(DetectedGameEntry game)
+    // A package for some of the versions names their stores, since another package serves the others and would take its name.
+    private string SuggestedName(IReadOnlyList<BuildVersion> versions)
     {
-        var name = _page.IsGameOnOtherStores
-            ? Text.Format(Strings.Creator_PackageGameOnStore, ("game", game.Name), ("store", GameWording.StoreName(game.Key.Store)))
-            : game.Name;
+        var game = versions[0].Game.Name;
+        var name = versions.Count < _session.Project.Versions.Count
+            ? Text.Format(Strings.Creator_PackageGameOnStore, ("game", game), ("store", Stores(versions.Select(version => version.Game.Key))))
+            : game;
         return _session.Project.Metadata.Version.Trim() is { Length: > 0 } version
             ? Text.Format(Strings.Creator_PackageName, ("game", name), ("version", version))
             : name;

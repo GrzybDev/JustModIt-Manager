@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
+using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
@@ -88,22 +89,25 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
             return;
         }
 
+        // The format follows the chosen cell, while the metadata, which every package of the project shares, follows them all.
         var project = _session.Project;
+        var plans = _page.Cells.Select(cell => cell.Review?.Plan).OfType<PackagePlan>().ToList();
         var format = plan.Format;
-        IsManifest = format.Kind == PackageKind.Manifest;
+        var manifest = format.Kind == PackageKind.Manifest;
+        IsManifest = plans.Any(each => each.Format.Kind == PackageKind.Manifest);
         var extension = _page.Options.PackageExtension;
-        FormatTitle = IsManifest ? Text.Format(Strings.Creator_ManifestTitle, ("extension", extension)) : Strings.Creator_ZipTitle;
+        FormatTitle = manifest ? Text.Format(Strings.Creator_ManifestTitle, ("extension", extension)) : Strings.Creator_ZipTitle;
         FormatText = string.Join(' ',
             [.. format.Reasons.Select(reason => Text.Format(Strings.Creator_FormatReason, ("reason", reason.ToString()))),
-            IsManifest ? Strings.Creator_ManifestOutcome : Strings.Creator_ZipOutcome]);
+            manifest ? Strings.Creator_ManifestOutcome : Strings.Creator_ZipOutcome]);
         FormatRows =
         [
-            new FormatRow(PackageLayout.ZipExtension, Strings.Creator_ZipRule, !IsManifest),
-            new FormatRow(extension, Strings.Creator_ManifestRule, IsManifest),
+            new FormatRow(PackageLayout.ZipExtension, Strings.Creator_ZipRule, !manifest),
+            new FormatRow(extension, Strings.Creator_ManifestRule, manifest),
         ];
         ShowMetadata(project.Metadata);
-        MetadataProblem = string.Join(' ', plan.Findings.Where(finding => ReviewViewModel.IsMetadata(finding.Kind))
-            .Select(finding => CreatorWording.Finding(finding)));
+        MetadataProblem = string.Join(' ', plans.SelectMany(each => each.Findings).Where(finding => ReviewViewModel.IsMetadata(finding.Kind))
+            .Select(finding => CreatorWording.Finding(finding)).Distinct());
     }
 
     [RelayCommand]

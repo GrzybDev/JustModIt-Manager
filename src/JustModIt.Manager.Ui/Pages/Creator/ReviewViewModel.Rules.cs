@@ -82,14 +82,29 @@ public sealed partial class ReviewViewModel
     [RelayCommand]
     private void RemoveLibraryNotice(RuleRow rule) => _session.Change(project => project.WithoutLibraryNotice(rule.Path));
 
+    /// <summary>How a plan's rules stand, as their rows count them: errors to fix and questions to answer.</summary>
+    /// <param name="plan">The plan.</param>
+    internal static (int Errors, int Questions) Tally(PackagePlan plan)
+    {
+        int errors = 0, questions = 0;
+        foreach (var group in RuleGroups(plan))
+        {
+            var first = group.First();
+            var isError = first.Severity == FindingSeverity.Error && first.Kind is not (FindingKind.ThirdPartyTool or FindingKind.AddedLibrary);
+            (errors, questions) = (errors + (isError ? 1 : 0), questions + (!isError && group.Any(finding => finding.BlocksBuild) ? 1 : 0));
+        }
+
+        return (errors, questions);
+    }
+
     // The author decides about a file, not about each operation the rules find it in, e.g. a store library renamed away
     // and replaced.
+    private static IEnumerable<IGrouping<string, PlanFinding>> RuleGroups(PackagePlan plan) =>
+        plan.Findings.Where(finding => IsHosting(finding.Kind)).GroupBy(finding => $"{finding.Kind}:{finding.ToolId ?? finding.Path}", StringComparer.Ordinal);
+
     private void ShowRules(PackagePlan plan)
     {
-        var fresh = plan.Findings.Where(finding => IsHosting(finding.Kind))
-            .GroupBy(finding => $"{finding.Kind}:{finding.ToolId ?? finding.Path}", StringComparer.Ordinal)
-            .Select(found => RuleOf(found.Key, [.. found]))
-            .ToList();
+        var fresh = RuleGroups(plan).Select(found => RuleOf(found.Key, [.. found])).ToList();
         var rows = ReviewRows.Reuse(_ruleRows, fresh, Update);
         Controls.CardGrid.Sync(Rules, rows);
         foreach (var row in rows)

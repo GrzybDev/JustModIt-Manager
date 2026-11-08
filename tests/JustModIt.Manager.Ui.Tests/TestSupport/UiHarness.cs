@@ -231,6 +231,20 @@ public sealed class UiHarness : IDisposable
         return path;
     }
 
+    /// <summary>Saves what the window shows once its motion ended, at its size and, as name-960, at the smallest window.</summary>
+    /// <param name="name">The file's name without its extension.</param>
+    public async Task RenderBothAsync(string name)
+    {
+        await WaitAsync(TimeSpan.FromMilliseconds(400));
+        Render(name);
+        var (width, height) = (Window.Width, Window.Height);
+        (Window.Width, Window.Height) = (960, 600);
+        await WaitAsync(TimeSpan.FromMilliseconds(400));
+        Render(name + "-960");
+        (Window.Width, Window.Height) = (width, height);
+        Settle();
+    }
+
     /// <summary>Saves what a window shows as a PNG and returns its path.</summary>
     /// <param name="window">A window of the test's own.</param>
     /// <param name="name">The file's name without its extension.</param>

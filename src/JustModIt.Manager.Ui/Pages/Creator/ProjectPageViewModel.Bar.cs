@@ -14,12 +14,17 @@ namespace JustModIt.Manager.Ui.Pages.Creator;
 /// <param name="Text">What it is about.</param>
 /// <param name="IsMet">The build has it.</param>
 /// <param name="IsReminder">Only a question for the author, which holds nothing back.</param>
-public sealed record BeforeItem(string Text, bool IsMet, bool IsReminder = false)
+/// <param name="IsPending">Under way, such as a comparison, which holds the build back without having failed.</param>
+public sealed record BeforeItem(string Text, bool IsMet, bool IsReminder = false, bool IsPending = false)
 {
     /// <summary>Gets the item done, e.g. by choosing a folder; null for an item it cannot do here.</summary>
     public IRelayCommand? Command { get; init; }
 
-    public bool IsMissing => !IsMet && !IsReminder;
+    public bool IsMissing => !IsMet && !IsReminder && !IsPending;
+
+    /// <summary>The item with how it stands, which only its icon shows, as a screen reader says it.</summary>
+    public string Spoken => JustModIt.Manager.Localization.Text.Format(Strings.Creator_BeforeItemState, ("item", Text),
+        ("state", IsMet ? "Met" : IsMissing ? "Missing" : IsPending ? "Pending" : "Reminder"));
 }
 
 public sealed partial class ProjectPageViewModel
@@ -72,12 +77,10 @@ public sealed partial class ProjectPageViewModel
 
         try
         {
-            if (session.Review?.Plan is { } plan)
-            {
-                var files = FileSystem ?? PhysicalFileSystem.Instance;
-                await Task.Run(() => PackageBuilder.CheckOutputFolder(files.GetCanonicalPath(folder), plan))
-                    .ConfigureAwait(true);
-            }
+            var files = FileSystem ?? PhysicalFileSystem.Instance;
+            var plans = Cells.Select(cell => cell.Review?.Plan).OfType<PackagePlan>().ToList();
+            await Task.Run(() => plans.ForEach(plan => PackageBuilder.CheckOutputFolder(files.GetCanonicalPath(folder), plan)))
+                .ConfigureAwait(true);
 
             ClearProblem();
             session.Change(project => project with { OutputFolder = folder });
@@ -93,6 +96,18 @@ public sealed partial class ProjectPageViewModel
     [RelayCommand]
     private async Task ChangeOutputAsync() => await PickOutputAsync().ConfigureAwait(true);
 
+    /// <summary>The cell whose reasons <see cref="BlockedText"/> gives; null while nothing holds the build back.</summary>
+    internal CellViewModel? BlockedCell { get; private set; }
+
+    [RelayCommand]
+    private void SelectBlocked()
+    {
+        if (BlockedCell is { } cell && cell != Cell)
+        {
+            SelectCell(cell);
+        }
+    }
+
     private void ShowBar()
     {
         if (Session is not { } session)
@@ -101,17 +116,16 @@ public sealed partial class ProjectPageViewModel
         }
 
         var plan = session.Review?.Plan;
+        var plans = Cells.Select(cell => cell.Review?.Plan).OfType<PackagePlan>().ToList();
         var metadata = session.Project.Metadata;
         var version = metadata.Version.Trim();
-        var store = GameStoreName;
         var package = Record?.Parts.SelectMany(part => part.Packages).MaxBy(built => built.BuiltAt);
         var size = package?.Size ?? (plan?.Summary is { Patches: 0 } summary ? summary.CopiedBytes : null);
-        FormatLine = plan is null ? "" : GameWording.Join([Description.FormatTitle, size is { } bytes ? Formats.FileSize(bytes) : ""]);
-        FormatReason = plan?.Format.Reasons is [var reason, ..] ? Text.Format(Strings.Creator_FormatReason, ("reason", reason.ToString())) : "";
-        var runtime = plan?.Findings.Count(finding => finding.BlocksBuild && finding.RuntimeIndex is not null && !ReviewViewModel.IsHosting(finding.Kind)) ?? 0;
-        var rules = Review.Rules.Count(row => row.IsError || row.Findings.Any(finding => finding.BlocksBuild));
+        // The cells of a table may differ in format, so only a single cell's bar names one.
+        FormatLine = plan is null || IsTable ? "" : GameWording.Join([Description.FormatTitle, size is { } bytes ? Formats.FileSize(bytes) : ""]);
+        FormatReason = !IsTable && plan?.Format.Reasons is [var reason, ..] ? Text.Format(Strings.Creator_FormatReason, ("reason", reason.ToString())) : "";
         List<BeforeItem> items = [new(Item(version.Length > 0 ? "Version" : "NoVersion", ("version", GameWording.ShortVersion(version))), version.Length > 0)];
-        if (plan?.Findings.Any(finding => finding.Kind == FindingKind.MissingTitle) == true)
+        if (plans.Any(each => each.Findings.Any(finding => finding.Kind == FindingKind.MissingTitle)))
         {
             items.Add(new(Item("NoTitle"), false));
         }
@@ -121,23 +135,27 @@ public sealed partial class ProjectPageViewModel
             items.Add(new(Item(Description.AreAuthorsFromSite ? "AuthorsFromSite" : "Authors"), true));
         }
 
-        if (HasVersion)
+        foreach (var cells in Cells.GroupBy(cell => cell.Key.Version))
         {
-            items.Add(Cell.IsBlocked ? new(Item("VersionBlocked", ("store", store)), false) : new(Item("Comparison", ("store", store)), Cell.IsCompared));
+            var (store, compared) = (cells.First().StoreName, cells.All(cell => cell.IsCompared));
+            // A comparison running or waiting its turn, like a plan being made, has neither failed nor ended.
+            items.Add(cells.Any(cell => cell.IsBlocked) ? new(Item("VersionBlocked", ("store", store)), false)
+                : new(Item("Comparison", ("store", store)), compared,
+                    IsPending: !compared && cells.All(cell => cell.State is CellState.Compared or CellState.Comparing)));
         }
 
         if (session.IsPlanning)
         {
-            items.Add(new(Item("Plan"), false));
+            items.Add(new(Item("Plan"), false, IsPending: true));
         }
-        else if (plan is not null)
+        else if (plans.Count > 0)
         {
-            items.Add(new(Strings.Creator_RulesTitle, rules == 0));
-            if (runtime > 0)
+            items.Add(new(Strings.Creator_RulesTitle, plans.All(each => ReviewViewModel.Tally(each) is { Errors: 0, Questions: 0 })));
+            if (plans.Any(each => RuntimeProblems(each) > 0))
             {
                 items.Add(new(Item("Runtime"), false));
             }
-            else if (plan.CarriesCode)
+            else if (plans.Any(each => each.CarriesCode))
             {
                 items.Add(new(Strings.Creator_BeforeRuntime, false, IsReminder: true));
             }
@@ -149,22 +167,32 @@ public sealed partial class ProjectPageViewModel
         }
 
         BeforeItems = items;
-        CanBuild = plan is { CanBuild: true } && Cell.IsCompared && !Cell.IsBlocked && !session.IsPlanning && HasOutput
-            && !Build.IsBuilding && Test.CanRebuild && !Description.HasMetadataProblem
+        CanBuild = Cells.Count > 0 && Cells.All(cell => cell.Review?.Plan is { CanBuild: true } && cell.IsCompared && !cell.IsBlocked)
+            && !session.IsPlanning && HasOutput && !Build.IsBuilding && Test.CanRebuild && !Description.HasMetadataProblem
             // A failed build's own way on: the patches it found to accept, or comparing the files again.
             && !Build.NeedsComparison && (!Build.HasBuildFindings || Build.AcceptedAll);
-        BlockedText = CanBuild || Build.IsBuilding || plan is null && !Cell.IsBlocked ? "" : Blocked(plan, rules, runtime);
+        // The chosen cell's reasons when it has any, else the first cell's that does.
+        BlockedCell = CanBuild || Build.IsBuilding ? null : Cell is { } chosen && Blocks(chosen) ? chosen : Cells.FirstOrDefault(Blocks);
+        BlockedText = BlockedCell is not { } blocked || Blocked(blocked) is not { Length: > 0 } text ? ""
+            : IsTable ? Text.Format(Strings.Creator_BlockedCell, ("part", blocked.Part.Name.Length > 0 ? blocked.Part.Name : Strings.Creator_PartBase),
+                ("store", blocked.StoreName), ("text", text))
+            : text;
 
         string Item(string item, params (string Name, object? Value)[] values) => Text.Format(Strings.Creator_BeforeItem, [("item", item), .. values]);
+
+        static bool Blocks(CellViewModel cell) => cell.IsBlocked || cell.Review?.Plan is { CanBuild: false };
     }
 
+    private static int RuntimeProblems(PackagePlan plan) =>
+        plan.Findings.Count(finding => finding.BlocksBuild && finding.RuntimeIndex is not null && !ReviewViewModel.IsHosting(finding.Kind));
+
     // The same clauses the check named before the build became its confirmation; a missing version is said by its item and its box.
-    private string Blocked(PackagePlan? plan, int rules, int runtime)
+    private static string Blocked(CellViewModel cell)
     {
         List<string> clauses = [];
-        if (Cell.IsBlocked)
+        if (cell.IsBlocked)
         {
-            clauses.Add(Text.Format(Strings.Creator_BlockedVersion, ("store", GameStoreName), ("reason", Cell.State switch
+            clauses.Add(Text.Format(Strings.Creator_BlockedVersion, ("store", cell.StoreName), ("reason", cell.State switch
             {
                 CellState.Installed => "Install",
                 CellState.TestInstalled => "Test",
@@ -173,20 +201,19 @@ public sealed partial class ProjectPageViewModel
             })));
         }
 
-        if (plan is null)
+        if (cell.Review?.Plan is not { } plan)
         {
-            return Text.Format(Strings.Creator_ConfirmBlocked, ("what", CreatorWording.List(clauses)));
+            return clauses.Count == 0 ? "" : Text.Format(Strings.Creator_ConfirmBlocked, ("what", CreatorWording.List(clauses)));
         }
 
-        var errors = Review.Rules.Count(row => row.IsError);
-        if (rules > 0)
+        var (errors, questions) = ReviewViewModel.Tally(plan);
+        if (errors + questions > 0)
         {
-            var questions = rules - errors;
             clauses.Add(Text.Format(Strings.Creator_BlockedRules, ("case", errors == 0 ? "questions" : questions == 0 ? "errors" : "both"),
                 ("errors", errors), ("questions", questions)));
         }
 
-        var advanced = Session!.Part.Mode == CreatorMode.Advanced;
+        var advanced = cell.Part.Mode == CreatorMode.Advanced;
         var found = plan.Findings.Where(finding => finding.BlocksBuild && finding.RuntimeIndex is null && !ReviewViewModel.IsHosting(finding.Kind)
             && !ReviewViewModel.IsMetadata(finding.Kind)).ToList();
         var atPlaces = found.Select(finding => advanced ? finding.StepIndex : finding.OperationIndex).OfType<int>().ToList();
@@ -202,7 +229,7 @@ public sealed partial class ProjectPageViewModel
             marked += atPlaces.Count;
         }
 
-        if (runtime > 0)
+        if (RuntimeProblems(plan) is var runtime and > 0)
         {
             clauses.Add(Text.Format(Strings.Creator_BlockedRuntime, ("count", runtime)));
         }

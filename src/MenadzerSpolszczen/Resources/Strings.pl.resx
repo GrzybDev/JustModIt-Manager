@@ -666,7 +666,7 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
     <value>Baza Spolszczeń może nie przyjąć tej paczki</value>
   </data>
   <data name="Creator_PublishTitle" xml:space="preserve">
-    <value>Opublikuj ją w Bazie Spolszczeń</value>
+    <value>{several, select, true {Opublikuj je w Bazie Spolszczeń} other {Opublikuj ją w Bazie Spolszczeń}}</value>
   </data>
   <data name="Creator_PublishManifest" xml:space="preserve">
     <value>Na stronie plik trafia do wydania: jako spolszczenie albo jako składnik, a strona sama oznaczy, że wymaga Menadżera Spolszczeń. Tam też ustawia się opis zmian i składniki.</value>

@@ -118,6 +118,82 @@
   <Style Selector="Border.cellCard.over">
     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
   </Style>
+  <Style Selector="Border.cellCard:not(.flat) WrapPanel#HeadActions">
+    <Setter Property="Grid.Column" Value="1" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+  </Style>
+  <Style Selector="Border.cellCard.flat WrapPanel#HeadActions">
+    <Setter Property="Grid.Row" Value="1" />
+    <Setter Property="Margin" Value="0,12,0,0" />
+  </Style>
+  <Style Selector="Border.cellCard.flat">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BoxShadow" Value="0 0 0 0 Transparent" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <!-- A cell of a project's table: its state over what its plan holds; the chosen one takes the accent's edge. -->
+  <Style Selector="Button.cell">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="MinHeight" Value="92" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Button.cell /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.12" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.cell:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+  </Style>
+  <Style Selector="Button.cell.selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+  </Style>
+
+  <!-- The chosen cell's panel beside the table, which slides in; over the table in a narrow window, with its own shadow. -->
+  <Style Selector="Border.cellPanel">
+    <Setter Property="Width" Value="380" />
+    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="BorderThickness" Value="1,0,0,0" />
+    <Setter Property="RenderTransform" Value="translateX(0px)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.cellPanel.away">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="RenderTransform" Value="translateX(24px)" />
+  </Style>
+  <Style Selector=":is(Window).reducedMotion Border.cellPanel.away">
+    <Setter Property="RenderTransform" Value="translateX(0px)" />
+  </Style>
+  <Style Selector="creator|ProjectPage:not(.overlay) Button#ClosePanel">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="creator|ProjectPage.overlay Border.cellPanel">
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="ZIndex" Value="2" />
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+    <Setter Property="BoxShadow" Value="{StaticResource ElevFloating}" />
+  </Style>
   <Style Selector="Border.soft">
     <Setter Property="Background" Value="#08FFFFFF" />
     <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
@@ -155,6 +231,9 @@
   </Style>
   <Style Selector="TextBlock.rowText.dangerText">
     <Setter Property="Foreground" Value="{StaticResource DangerTextStrongBrush}" />
+  </Style>
+  <Style Selector="TextBlock.rowText.infoText">
+    <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}" />
   </Style>
   <Style Selector="TextBlock.pathLine">
     <Setter Property="FontWeight" Value="Normal" />
