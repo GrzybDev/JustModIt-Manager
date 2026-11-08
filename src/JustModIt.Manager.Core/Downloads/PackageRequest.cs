@@ -13,6 +13,12 @@ public sealed record PackageRequest(ReleaseFileLocator Locator, PackageFormat Fo
     /// <summary>The file this one copies with the same bytes, whose kept download serves for it; null for none.</summary>
     public Guid? CopiedFrom { get; init; }
 
+    /// <summary>
+    /// The kept download of a file this one replaces, in the install being replaced, which serves for it though its bytes
+    /// differ; null for none.
+    /// </summary>
+    public Guid? HeldDownload { get; init; }
+
     /// <summary>The request for a release file, with the catalogue's size and hashes.</summary>
     /// <param name="locator">Names the file for the download endpoint.</param>
     /// <param name="file">The file as the catalogue describes it.</param>
@@ -50,7 +56,7 @@ public readonly record struct DownloadProgress(long BytesReceived, long? TotalBy
 /// <param name="FromCache">An earlier verified download was reused without asking the site, which counts nothing.</param>
 public sealed record DownloadedPackage(string Path, long Size, string Md5, string? Sha256, PackageFormat Format, bool FromCache)
 {
-    /// <summary>The file whose kept download served, when the requested file is a copy of it; null otherwise.</summary>
+    /// <summary>The file whose kept download served, when the requested file copies or replaces it; null otherwise.</summary>
     public Guid? CopyOf { get; init; }
 }
 
@@ -81,8 +87,8 @@ public interface IPackageDownloader
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// The verified package if it was downloaded before, or the original's when the file is a copy of the same size;
-    /// asks nothing of the site.
+    /// The verified package if it was downloaded before, the kept download of a file it replaces in the install being
+    /// replaced, or the original's when the file is a copy of the same size; asks nothing of the site.
     /// </summary>
     /// <param name="request">The file and what to verify it against.</param>
     /// <param name="cancellationToken">Cancels the check.</param>

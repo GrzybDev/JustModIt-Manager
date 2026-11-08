@@ -104,6 +104,12 @@ public sealed record ReleaseFile
     /// </summary>
     public Guid? CopiedFrom { get; init; }
 
+    /// <summary>
+    /// Files of this release the site proved this one stands in for, so an install of one of them stays current; never set
+    /// by a team's own upload, which reaches installs as a replaced package.
+    /// </summary>
+    public IReadOnlyList<Guid> Replaces { get; init => field = value ?? []; } = [];
+
     public string Description { get; init => field = value ?? ""; } = "";
 
     /// <summary>Set for packages in the app's own format, which the site does not offer as direct downloads.</summary>

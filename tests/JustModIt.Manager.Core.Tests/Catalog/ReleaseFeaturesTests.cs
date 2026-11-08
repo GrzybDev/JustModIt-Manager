@@ -34,6 +34,25 @@ public sealed class ReleaseFeaturesTests
         });
     }
 
+    [Fact]
+    public void Reads_what_a_file_replaces_and_goes_without_it()
+    {
+        var release = Read("""
+            {
+              "uuid": "22222222-0000-4000-8000-000000000002",
+              "files": [
+                {"uuid": "33333333-0000-4000-8000-000000000001", "name": "",
+                  "replaces": ["33333333-0000-4000-8000-000000000008", "33333333-0000-4000-8000-000000000009"]},
+                {"uuid": "33333333-0000-4000-8000-000000000002", "name": "", "replaces": null},
+                {"uuid": "33333333-0000-4000-8000-000000000003", "name": ""}
+              ]
+            }
+            """);
+
+        release.Files[0].Replaces.Should().Equal(Guid.Parse("33333333-0000-4000-8000-000000000008"), Guid.Parse("33333333-0000-4000-8000-000000000009"));
+        release.Files.Skip(1).Should().AllSatisfy(file => file.Replaces.Should().BeEmpty());
+    }
+
     [Theory]
     [InlineData("""{"uuid": "22222222-0000-4000-8000-000000000002"}""", null)]
     [InlineData("""{"uuid": "22222222-0000-4000-8000-000000000002", "features": null}""", null)]

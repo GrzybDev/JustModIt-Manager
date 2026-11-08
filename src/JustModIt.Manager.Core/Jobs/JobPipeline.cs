@@ -322,9 +322,11 @@ internal sealed partial class JobPipeline(
         }
     }
 
-    // The record is the install the job replaces, whose add-ons and choices the plan keeps.
+    // The record is the install the job replaces, whose add-ons and choices the plan keeps. It alone vouches for the kept download
+    // of a file a planned one replaces: on another copy of the game that file would fail or land in another layout.
     private async Task<PreparedPackage> PrepareAsync(JobContext job, InstalledGame game, ProjectLocator project, InstallRecord? record)
     {
+        IReadOnlyList<InstalledPart> installed = record is null ? [] : PartsOf(record);
         for (var attempt = 1; ; attempt++)
         {
             var (detail, selection, plan) = await PlanAsync(job, game, project, record).ConfigureAwait(false);
@@ -347,7 +349,12 @@ internal sealed partial class JobPipeline(
             {
                 // Only a backend that says which add-ons a release has gives a release's files in one request.
                 downloaded = await DownloadAsync(job, new ReleaseDownload(locator, [.. files.Select(file =>
-                    PackageRequest.For(new ReleaseFileLocator(locator.TeamSlug, locator.ProjectSlug, release.Uuid, file.Uuid), file))],
+                    PackageRequest.For(new ReleaseFileLocator(locator.TeamSlug, locator.ProjectSlug, release.Uuid, file.Uuid), file) with
+                    {
+                        // After a repair the record names the replacing file itself, with the download it came from.
+                        HeldDownload = installed.FirstOrDefault(part => (Guid.TryParse(part.ReleaseFileId, out var id) && file.Replaces.Contains(id))
+                            || (part.KeptDownload is { } kept && file.Replaces.Contains(kept)))?.KeptDownload,
+                    })],
                     ResolveTogether: release.Features is not null)).ConfigureAwait(false);
             }
             catch (CatalogueException exception) when (exception.Reason == CatalogueErrorReason.InvalidSelection && attempt == 1)
@@ -517,10 +524,7 @@ internal sealed partial class JobPipeline(
     // from; only an exit without waiting for jobs does, which Halted tells.
     private async Task<(InstallRecord? Restored, bool Halted)> TryRestoreAsync(JobContext job, InstallRecord record)
     {
-        // A record from before installs had parts names its one package by the source's file.
-        IReadOnlyList<InstalledPart> parts = record.Parts ?? (record.Source?.ReleaseFileId is { } single
-            ? [new InstalledPart(record.Package, ReleaseFileId: single)]
-            : []);
+        var parts = PartsOf(record);
         if (record.Source is not { TeamSlug: { } team, ProjectSlug: { } project, ReleaseUuid: { } release } source || parts.Count == 0
             || parts.Any(part => !Guid.TryParse(part.ReleaseFileId, out _)))
         {
@@ -565,24 +569,19 @@ internal sealed partial class JobPipeline(
         }
     }
 
+    // A record from before installs had parts names its one package by the source's file.
+    private static IReadOnlyList<InstalledPart> PartsOf(InstallRecord record) =>
+        record.Parts ?? (record.Source?.ReleaseFileId is { } single ? [new InstalledPart(record.Package, ReleaseFileId: single)] : []);
+
     // The package of an install is kept for exactly this, so a download here is rare; it still has to stay bounded. A copy of
     // another release's file was taken from that file's download, which is kept under its own id.
     private async Task<string> FindPreviousPackageAsync(ReleaseFileLocator locator, Guid? cachedAs, PackageKind kind)
     {
-        // The kind comes from the content, the cached file's name from the site's format, and the two may differ.
-        PackageFormat[] formats = kind == PackageKind.Manifest
-            ? [PackageFormat.Manifest, PackageFormat.Zip]
-            : [PackageFormat.Zip, PackageFormat.Manifest];
-        foreach (var format in formats)
+        var request = new PackageRequest(locator, kind == PackageKind.Manifest ? PackageFormat.Manifest : PackageFormat.Zip, null)
         {
-            var kept = new PackageRequest(cachedAs is { } original ? locator with { FileUuid = original } : locator, format, null);
-            if (await downloader.FindCachedAsync(kept, halting).ConfigureAwait(false) is { } cached)
-            {
-                return cached.Path;
-            }
-        }
-
-        return (await downloader.DownloadAsync(new PackageRequest(locator, formats[0], null), null, halting).ConfigureAwait(false)).Path;
+            HeldDownload = cachedAs ?? locator.FileUuid,
+        };
+        return (await downloader.DownloadAsync(request, null, halting).ConfigureAwait(false)).Path;
     }
 
     private static Uri? CoverOf(ProjectPage page) =>

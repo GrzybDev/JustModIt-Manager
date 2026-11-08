@@ -359,6 +359,23 @@ public sealed class AutomationScenarioTests
     }
 
     [Fact]
+    public async Task Starts_no_update_for_an_install_of_a_replaced_file()
+    {
+        await using var app = new CoordinatorHarness(AutoInstall, afterFirstLook: true).WithGameAndProject();
+        var merged = Release(ReleaseOne, 1, File(FileTwo) with { Replaces = [FileOne] });
+        app.Catalogue.Publish(CatalogueState.Fresh, Entry(release: merged));
+        app.Catalogue.Add(Page(release: merged));
+        app.Engine.Add(Record());
+
+        await app.StartAsync();
+
+        await app.GameAsync(game => game.Status.State == MyGameState.Installed, "the install stays current");
+        await Eventually.SettleAsync();
+        app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+        app.Catalogue.PageRequests.Should().BeEmpty("nothing is planned, downloaded or counted");
+    }
+
+    [Fact]
     public async Task Announces_an_update_of_one_of_several_installs_by_its_project()
     {
         await using var app = new CoordinatorHarness(AnnounceOnly with { AutoUpdateProjects = false }, afterFirstLook: true).WithGameAndProject();

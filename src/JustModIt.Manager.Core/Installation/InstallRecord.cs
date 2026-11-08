@@ -70,7 +70,7 @@ public sealed record InstallRecord
     [JsonIgnore]
     public IEnumerable<Guid> PackageFileIds =>
         Parts is { } parts
-            ? parts.Select(part => Guid.TryParse(part.CachedFileId ?? part.ReleaseFileId, out var file) ? file : (Guid?)null).OfType<Guid>()
+            ? parts.Select(part => part.KeptDownload).OfType<Guid>()
             : Source?.ReleaseFileUuid is { } single ? [single] : [];
 }
 
@@ -102,9 +102,14 @@ public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? M
 /// <param name="FeatureKey">The add-on it installed, by its key in the release; null for the base.</param>
 /// <param name="FeatureName">The add-on's name when it was installed, shown offline.</param>
 /// <param name="ReleaseFileId">The release file the package is; null for a package the package creator built.</param>
-/// <param name="CachedFileId">The download the package was taken from, when that is another file whose copy it is.</param>
+/// <param name="CachedFileId">The download the package's bytes came from, when that is another file: one it copies or replaces.</param>
 public sealed record InstalledPart(InstalledPackage Package, string? FeatureKey = null, string? FeatureName = null,
-    string? ReleaseFileId = null, string? CachedFileId = null);
+    string? ReleaseFileId = null, string? CachedFileId = null)
+{
+    /// <summary>The download that stays kept for the package; null for a package that came from none.</summary>
+    [JsonIgnore]
+    public Guid? KeptDownload => Guid.TryParse(CachedFileId ?? ReleaseFileId, out var file) ? file : null;
+}
 
 /// <summary>An add-on an install went without, since its own check failed on the game.</summary>
 /// <param name="Key">The add-on's key.</param>

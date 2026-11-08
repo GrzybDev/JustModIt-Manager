@@ -294,18 +294,34 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
         }
     }
 
-    // A copy has the bytes of the file it copies, so the original's kept download serves for it, never deleted from here.
+    // A held download has other bytes than the request describes, which only its own sidecar vouches for, and is named after
+    // the site's format for its own file, which may differ from this one's; a package's kind comes from its content anyway. A
+    // copy has the bytes of the file it copies, so the original's kept download serves for it. Neither is deleted from here.
     private async Task<DownloadedPackage?> FindOriginalAsync(PackageRequest request, CancellationToken cancellationToken)
     {
-        if (request is not { CopiedFrom: { } original, Size: not null })
+        if (request.HeldDownload is { } held)
         {
-            return null;
+            foreach (var format in Enum.GetValues<PackageFormat>())
+            {
+                if (await FindKeptAsAsync(held, request with { Format = format, Size = null, Md5 = "", Sha256 = "" }, cancellationToken)
+                    .ConfigureAwait(false) is { } kept)
+                {
+                    return kept;
+                }
+            }
         }
 
-        var asOriginal = request with { Locator = request.Locator with { FileUuid = original } };
-        return await FindVerifiedAsync(PackageFiles.For(_directory, _packageExtension, asOriginal), asOriginal, forgetUnverified: false,
+        return request is { CopiedFrom: { } original, Size: not null }
+            ? await FindKeptAsAsync(original, request, cancellationToken).ConfigureAwait(false)
+            : null;
+    }
+
+    private async Task<DownloadedPackage?> FindKeptAsAsync(Guid file, PackageRequest request, CancellationToken cancellationToken)
+    {
+        var asKept = request with { Locator = request.Locator with { FileUuid = file } };
+        return await FindVerifiedAsync(PackageFiles.For(_directory, _packageExtension, asKept), asKept, forgetUnverified: false,
             cancellationToken).ConfigureAwait(false) is { } kept
-            ? kept with { CopyOf = original }
+            ? kept with { CopyOf = file }
             : null;
     }
 

@@ -86,4 +86,63 @@ public sealed class ReleaseDownloadJobTests
 
         jobs.Downloader.Cached.Keys.Should().Equal([FileOne], "the install that just finished needs it, which the list may not know of yet");
     }
+
+    [Fact]
+    public async Task A_repair_of_an_install_of_a_replaced_file_installs_its_kept_package()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var record = jobs.Installed();
+        jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileTwo) with { Replaces = [FileOne] })));
+
+        var result = await jobs.RunAsync(new RepairJobRequest(record));
+
+        jobs.Downloader.Downloads.Should().BeEmpty();
+        jobs.Engine.Installs.Last().Parts.Single().PackagePath.Should().Be(jobs.Downloader.PathOf(FileOne));
+        result.Installed!.Parts.Should().ContainSingle().Which.Should().Match<InstalledPart>(part =>
+            part.ReleaseFileId == FileTwo.ToString("D") && part.CachedFileId == FileOne.ToString("D"));
+        (await jobs.Runner.ClearDownloadsAsync(new HashSet<Guid>(), JobsHarness.Token)).Should().BeTrue();
+        jobs.Downloader.Cached.Keys.Should().Equal([FileOne]);
+
+        await jobs.RunAsync(new RepairJobRequest(result.Installed));
+
+        jobs.Downloader.Downloads.Should().BeEmpty("the record now names the replacing file, and its kept download still serves");
+        jobs.Engine.Installs.Last().Parts.Single().PackagePath.Should().Be(jobs.Downloader.PathOf(FileOne));
+    }
+
+    [Fact]
+    public async Task A_new_install_on_another_store_copy_never_takes_a_replaced_file_s_kept_download()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        jobs.Installed();
+        jobs.Library.Publish(Installed(), Installed(OtherGame));
+        jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileTwo) with { Replaces = [FileOne] })) with
+        {
+            StorefrontLinks = [Link(Game), Link(OtherGame)],
+        });
+
+        var result = await jobs.RunAsync(JobsHarness.Install(OtherGame));
+
+        result.Outcome.Should().Be(JobOutcome.Succeeded);
+        jobs.Downloader.Downloads.Should().Equal(FileTwo);
+        jobs.Engine.Installs.Last().Parts.Single().PackagePath.Should().Be(jobs.Downloader.PathOf(FileTwo));
+    }
+
+    [Fact]
+    public async Task A_change_of_add_ons_asks_only_for_the_add_on_beside_a_replaced_base()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var voice = Guid.Parse("33333333-0000-4000-8000-0000000000a1");
+        var record = jobs.Engine.Add(WithParts(Record(source: Source(ReleaseOne, FileOne, 1))));
+        jobs.Downloader.Cached[FileOne] = true;
+        jobs.Catalogue.Add(Page(release: Release(ReleaseOne, 1, File(FileTwo, "") with { Replaces = [FileOne] }) with
+        {
+            Features = [Feature("voice-over", "Voice-over", isDefault: false, files: AddOn(voice))],
+        }));
+        jobs.Choose(("voice-over", true));
+
+        var result = await jobs.RunAsync(new ChangeFeaturesJobRequest(record));
+
+        jobs.Downloader.Downloads.Should().Equal(voice);
+        result.PackageFileIds.Should().Equal(FileOne, voice);
+    }
 }

@@ -114,6 +114,33 @@ public sealed class ReleaseDownloadTests : IDisposable
     }
 
     [Fact]
+    public async Task The_held_download_of_a_replaced_file_serves_for_the_file_replacing_it()
+    {
+        var merged = Guid.Parse("a0000000-0000-4000-8000-000000000009");
+        _storage.Store($"/releases/{merged:D}/package.zip", FakeStorage.Bytes(300 * 1024));
+        await _downloader.DownloadReleaseAsync(Download(VoicesFile), null, Token);
+        var held = Request(merged, 300 * 1024) with { HeldDownload = VoicesFile };
+
+        var found = await _downloader.FindCachedAsync(held, Token);
+        // The kept file is named after its own format, a plain archive's, which the file replacing it need not share.
+        var set = await _downloader.DownloadReleaseAsync(new ReleaseDownload(Release,
+            [held with { Format = PackageFormat.Manifest }, Request(MusicFile, 100 * 1024)], ResolveTogether: true), null, Token);
+
+        found!.CopyOf.Should().Be(VoicesFile);
+        found.Path.Should().Be(_directory.Combine($"{VoicesFile:D}.zip"));
+        set[0].Should().Be(found);
+        _api.Requests.Should().HaveCount(2);
+        _api.Requests[1].Should().Equal(MusicFile);
+
+        await File.WriteAllBytesAsync(found.Path, [1, 2, 3], Token);
+        var fellBack = await _downloader.DownloadReleaseAsync(new ReleaseDownload(Release, [held], ResolveTogether: true), null, Token);
+
+        fellBack.Single().Should().Match<DownloadedPackage>(package => package.CopyOf == null && package.Size == 300 * 1024);
+        _api.Requests[^1].Should().Equal(merged);
+        File.Exists(found.Path).Should().BeTrue("a file that serves for another is never deleted from here");
+    }
+
+    [Fact]
     public async Task Asks_file_by_file_where_the_site_gives_no_files_of_a_release_together()
     {
         await _downloader.DownloadReleaseAsync(Download(BaseFile, VoicesFile) with { ResolveTogether = false }, null, Token);

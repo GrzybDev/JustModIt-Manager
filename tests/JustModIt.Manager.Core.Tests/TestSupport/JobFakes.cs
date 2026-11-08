@@ -259,8 +259,9 @@ internal sealed class FakeDownloader : IPackageDownloader
     public Task<DownloadedPackage?> FindCachedAsync(PackageRequest request, CancellationToken cancellationToken) =>
         Task.FromResult(Cached.ContainsKey(request.Locator.FileUuid)
             ? new DownloadedPackage(PathOf(request.Locator.FileUuid, request.Format), 1024, "", null, request.Format, FromCache: true)
-            : request.CopiedFrom is { } original && Cached.ContainsKey(original)
-                ? new DownloadedPackage(PathOf(original, request.Format), 1024, "", null, request.Format, FromCache: true) { CopyOf = original }
+            : (request.HeldDownload is { } held && Cached.ContainsKey(held) ? held
+                : request.CopiedFrom is { } original && Cached.ContainsKey(original) ? original : (Guid?)null) is { } kept
+                ? new DownloadedPackage(PathOf(kept, request.Format), 1024, "", null, request.Format, FromCache: true) { CopyOf = kept }
                 : null);
 
     public Task<int> PruneAsync(IReadOnlySet<Guid> keep, bool keepPartial, CancellationToken cancellationToken)

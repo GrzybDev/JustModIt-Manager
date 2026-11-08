@@ -64,6 +64,6 @@ public sealed record InstallPart(string PackagePath)
     /// <summary>The release file the package is; null for a package the package creator built.</summary>
     public string? ReleaseFileId { get; init; }
 
-    /// <summary>The download the package was taken from, when that is another file whose copy it is.</summary>
+    /// <summary>The download the package's bytes came from, when that is another file: one it copies or replaces.</summary>
     public string? CachedFileId { get; init; }
 }

@@ -14,7 +14,7 @@ public sealed record InstalledFeature(string Key, string Name);
 /// <param name="Files">The release files the install's packages are.</param>
 public sealed record InstalledRelease(Guid ReleaseUuid, int ReleaseVersion, DateTimeOffset? PublishedAt, IReadOnlyList<Guid> Files)
 {
-    /// <summary>The kept downloads the packages came from, when a package is a copy of another release's file.</summary>
+    /// <summary>The kept downloads the packages' bytes came from, when that is another file: one they copy or replace.</summary>
     public IReadOnlyList<Guid> Downloads { get; init; } = [];
 
     /// <summary>The add-ons the install has.</summary>
@@ -32,11 +32,11 @@ public sealed record InstalledRelease(Guid ReleaseUuid, int ReleaseVersion, Date
     /// <summary>The install was made before add-ons, or from the variants of a release from before them.</summary>
     public bool PredatesFeatures { get; init; }
 
-    /// <summary>Whether the install's packages already hold a release file, itself or the file it copies.</summary>
+    /// <summary>Whether the install's packages already hold a release file, itself, the file it copies or one it replaces.</summary>
     /// <param name="file">A file of a release's plan.</param>
     public bool Holds(ReleaseFile file)
     {
-        return Has(file.Uuid) || (file.CopiedFrom is { } original && Has(original));
+        return Has(file.Uuid) || (file.CopiedFrom is { } original && Has(original)) || file.Replaces.Any(Has);
     }
 
     private bool Has(Guid file) => Files.Contains(file) || Downloads.Contains(file);
@@ -133,7 +133,8 @@ public static class ReleaseUpdates
 
     // A backend that does not say which add-ons a release has is checked by the base's file alone.
     private static bool IsReady(Release release, Guid file) =>
-        release.Files.Concat(release.Features?.SelectMany(feature => feature.Files) ?? []).Any(entry => entry.Uuid == file && entry.IsReady);
+        release.Files.Concat(release.Features?.SelectMany(feature => feature.Files) ?? [])
+            .Any(entry => entry.IsReady && (entry.Uuid == file || entry.Replaces.Contains(file)));
 
     private static bool TakesInstalled(ReleasePlan plan, InstalledRelease installed) =>
         plan.Variant is { } variant

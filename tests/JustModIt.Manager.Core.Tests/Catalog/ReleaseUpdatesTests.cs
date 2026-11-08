@@ -16,6 +16,8 @@ public sealed class ReleaseUpdatesTests
     private static readonly Guid Base = Guid.Parse("33333333-0000-4000-8000-0000000000b1");
     private static readonly Guid VoiceAddOn = Guid.Parse("33333333-0000-4000-8000-0000000000a1");
     private static readonly Guid SignsAddOn = Guid.Parse("33333333-0000-4000-8000-0000000000a2");
+    private static readonly Guid MergedBase = Guid.Parse("33333333-0000-4000-8000-0000000000b2");
+    private static readonly Guid MergedVoice = Guid.Parse("33333333-0000-4000-8000-0000000000a3");
 
     private readonly ProjectPage _project = CatalogueFixtures.Project("starlight-harbor");
 
@@ -47,6 +49,33 @@ public sealed class ReleaseUpdatesTests
         check.State.Should().Be(UpdateState.Available);
         check.Kind.Should().Be(UpdateKind.ReplacedPackage);
         check.Plan!.Parts[0].File.Uuid.Should().Be(SteamText);
+    }
+
+    [Fact]
+    public void An_install_of_a_replaced_file_is_up_to_date()
+    {
+        var merged = TestProjects.File(MergedBase, "") with { Replaces = [Base] };
+        var voice = TestProjects.Feature("voice-over", "Voice-over", files: TestProjects.AddOn(MergedVoice) with { Replaces = [VoiceAddOn] });
+        var page = Page(merged, voice);
+        var installed = new InstalledRelease(page.PublicRelease!.Uuid, 2, Published, [Base, VoiceAddOn]) { Features = [new("voice-over", "Voice-over")] };
+        var stillPending = Page(TestProjects.Release(TestProjects.ReleaseTwo, 2, merged with { Status = "pending" }, TestProjects.File(SignsAddOn, ""))
+            with { Features = [voice] });
+
+        Check(installed, page).Should().Be(new UpdateCheck(UpdateState.UpToDate));
+        Check(installed, stillPending).Kind.Should().Be(UpdateKind.ReplacedPackage);
+    }
+
+    [Fact]
+    public void A_replaced_add_on_counts_as_held_when_the_plan_changes_another()
+    {
+        var voice = TestProjects.Feature("voice-over", "Voice-over", files: TestProjects.AddOn(MergedVoice) with { Replaces = [VoiceAddOn] });
+        var page = Page(TestProjects.File(Base, ""), voice, Signs(isDefault: true));
+        var installed = new InstalledRelease(page.PublicRelease!.Uuid, 2, Published, [Base, VoiceAddOn]) { Features = [new("voice-over", "Voice-over")] };
+
+        var check = Check(installed, page);
+
+        check.Kind.Should().Be(UpdateKind.ReplacedPackage);
+        check.Size.Should().Be(2048, "only the new add-on is fetched");
     }
 
     [Fact]
