@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -33,6 +34,8 @@ public sealed class UiHarness : IDisposable
         NavigationTarget? launch = null, Func<UiContext, UiContext>? context = null, Func<Message, Message?>? answer = null,
         bool errorReports = false)
     {
+        _failure = null;
+        Dispatcher.UIThread.UnhandledException += OnUnhandled;
         Reports.IsAvailable = errorReports;
         if (state is not null)
         {
@@ -59,6 +62,11 @@ public sealed class UiHarness : IDisposable
         Window.Show();
         Settle();
     }
+
+    // A job that throws while the test awaits would end the headless session's loop with the window still open, whose frames
+    // the session then draws without the fonts, and that failure would be reported in place of the test's own. So the harness
+    // keeps the exception and throws it in the test, which then closes the window as usual.
+    private static ExceptionDispatchInfo? _failure;
 
     public FakeAgent Agent { get; } = new();
 
@@ -115,12 +123,13 @@ public sealed class UiHarness : IDisposable
         };
     }
 
-    /// <summary>Lets the dispatcher and the renderer catch up with what the test did.</summary>
+    /// <summary>Lets the dispatcher and the renderer catch up with what the test did, and throws what a job of theirs threw.</summary>
     public static void Settle()
     {
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
+        Interlocked.Exchange(ref _failure, null)?.Throw();
     }
 
     /// <summary>Lets animations and timers that run on real time finish.</summary>
@@ -259,7 +268,29 @@ public sealed class UiHarness : IDisposable
         return path;
     }
 
+    // A failure the test did not see yet is thrown once the window closed, so the test still fails with it.
     public void Dispose()
+    {
+        var failure = Interlocked.Exchange(ref _failure, null);
+        try
+        {
+            Close();
+        }
+        finally
+        {
+            Dispatcher.UIThread.UnhandledException -= OnUnhandled;
+        }
+
+        failure?.Throw();
+    }
+
+    private static void OnUnhandled(object? sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        Interlocked.CompareExchange(ref _failure, ExceptionDispatchInfo.Capture(e.Exception), null);
+        e.Handled = true;
+    }
+
+    private void Close()
     {
         // Without an agent the window closes without asking what closing it means.
         Agent.Link = AgentLink.Connecting;
