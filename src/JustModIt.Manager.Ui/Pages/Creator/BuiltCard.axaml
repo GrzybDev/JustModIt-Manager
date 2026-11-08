@@ -1,0 +1,216 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Creator.BuiltCard"
+             x:DataType="creator:PackageStepViewModel"
+             ClipToBounds="False">
+  <!-- The cards' shadows fall outside the control. -->
+  <StackPanel Spacing="20">
+    <!-- The build: its button, then its progress in the same place. -->
+    <WrapPanel IsVisible="{Binding Build.ShowsBuild}" ItemSpacing="20" LineSpacing="16">
+      <Button x:Name="BuildButton" Classes="primary" Content="{x:Static loc:Strings.Creator_Build}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Package}"
+              Command="{Binding Build.BuildCommand}" />
+      <TextBlock Classes="caption" MaxWidth="560" VerticalAlignment="Center" Text="{Binding Build.BuildHint}" />
+      <Button Classes="quiet" Content="{x:Static loc:Strings.Creator_BuildElsewhere}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+              IsVisible="{Binding Build.ReusesTarget}" Command="{Binding Build.BuildElsewhereCommand}" />
+    </WrapPanel>
+    <Border x:Name="Building" Classes="creatorCard" Padding="24,20" IsVisible="{Binding Build.IsBuilding}" theme:Motion.Enter="True">
+      <StackPanel Spacing="14">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+          <Border Classes="workChip">
+            <ui:Icon Classes="spin" Data="{x:Static theme:Icons.LoaderCircle}" Width="20" Height="20" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="{x:Static loc:Strings.Creator_BuildingTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextStrongBrush}" />
+            <TextBlock Classes="caption" Text="{Binding Build.BuildTarget}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="outline headerAction" Content="{x:Static loc:Strings.Dialog_Cancel}" Command="{Binding Build.CancelBuildCommand}" />
+        </Grid>
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <TextBlock Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Build.Stage}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Column="1" Classes="meta" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Text="{Binding Build.Percent}" />
+          </Grid>
+          <ProgressBar Maximum="100" Value="{Binding Build.Progress}" AutomationProperties.Name="{x:Static loc:Strings.Creator_BuildingTitle}" />
+          <TextBlock Classes="pathLine" Text="{Binding Build.FileLine}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                Title="{Binding Build.ProblemTitle}" Message="{Binding Build.ProblemText}" IsVisible="{Binding Build.HasProblem}" theme:Motion.Enter="True">
+      <StackPanel Spacing="8">
+        <ItemsControl ItemsSource="{Binding Build.BuildFindings}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="creator:FindingLine">
+              <Border Classes="buildFinding" Classes.accepted="{Binding IsAccepted}" Margin="0,0,0,4">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                  <Panel VerticalAlignment="Center">
+                    <ui:Icon Data="{x:Static theme:Icons.TriangleAlert}" Width="16" Height="16" Classes="warningText" IsVisible="{Binding !IsAccepted}" />
+                    <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Width="16" Height="16" Classes="successText" IsVisible="{Binding IsAccepted}" />
+                  </Panel>
+                  <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" VerticalAlignment="Center" Foreground="{StaticResource TextEmphasisBrush}"
+                             Text="{Binding Text}" />
+                  <Button Grid.Column="2" Classes="outline small" Content="{x:Static loc:Strings.Creator_AcceptWork}" IsVisible="{Binding CanAcknowledge}"
+                          Command="{Binding $parent[UserControl].((creator:PackageStepViewModel)DataContext).Build.AcceptCommand}"
+                          CommandParameter="{Binding AcknowledgementKey}" />
+                  <Border Grid.Column="2" Classes="kind success" VerticalAlignment="Center" IsVisible="{Binding IsAccepted}" theme:Motion.Enter="True">
+                    <StackPanel>
+                      <ui:Icon Data="{x:Static theme:Icons.Check}" />
+                      <TextBlock Text="{x:Static loc:Strings.Creator_Accepted}" />
+                    </StackPanel>
+                  </Border>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Classes="primary compact" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_CompareAgain}" IsVisible="{Binding Build.NeedsComparison}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding Build.CompareAgainCommand}" />
+        <Button Classes="primary compact" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_Rebuild}" IsVisible="{Binding Build.AcceptedAll}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding Build.BuildCommand}" theme:Motion.Enter="True" />
+      </StackPanel>
+    </ui:Callout>
+
+    <!-- The package: the one just built, or after a failed build the earlier one, said to be earlier. -->
+    <Border Classes="creatorCard" Padding="24,20" IsVisible="{Binding Build.ShowsPackage}">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+        <Border Classes="kind" Classes.success="{Binding Build.IsBuilt}" Width="48" Height="48" CornerRadius="12" Padding="0" HorizontalAlignment="Center">
+          <Panel HorizontalAlignment="Center">
+            <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Width="24" Height="24" IsVisible="{Binding Build.IsBuilt}" />
+            <ui:Icon Data="{x:Static theme:Icons.Clock}" Width="24" Height="24" IsVisible="{Binding Build.HasEarlierPackage}" />
+          </Panel>
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+          <TextBlock Classes="overline" Text="{Binding Build.EarlierText}" IsVisible="{Binding Build.HasEarlierPackage}" />
+          <WrapPanel ItemSpacing="10">
+            <TextBlock Text="{Binding Build.ResultName}" FontSize="17" LineHeight="24" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}" />
+            <Border Classes="kind" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Build.ResultSize}" />
+            </Border>
+          </WrapPanel>
+          <TextBlock Classes="meta" Text="{Binding Build.ResultDetails}" TextWrapping="Wrap" />
+          <TextBlock Classes="pathLine" Text="{Binding Build.ResultFolder}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                     ToolTip.Tip="{Binding Build.ResultFolder}" />
+        </StackPanel>
+        <Button Grid.Column="2" Classes="outline" Content="{x:Static loc:Strings.Creator_Reveal}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                Command="{Binding Build.RevealCommand}" />
+      </Grid>
+    </Border>
+
+    <!-- After the build: what the site would say, and what comes next. -->
+    <StackPanel Spacing="20" IsVisible="{Binding Build.IsBuilt}">
+      <ItemsControl ItemsSource="{Binding Build.SiteWarnings}" IsVisible="{Binding Build.HasSiteWarnings}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <ui:Callout Classes="warning" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.TriangleAlert}"
+                        Title="{x:Static loc:Strings.Creator_SiteWarningTitle}" Message="{Binding}" Margin="0,0,0,8" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <StackPanel Spacing="12">
+        <TextBlock Classes="overline" Text="{x:Static creator:BuiltCard.NextOverline}" />
+        <Border Classes="creatorCard" ClipToBounds="True">
+          <StackPanel>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="20,18">
+              <Panel VerticalAlignment="Top">
+                <Border Classes="number" IsVisible="{Binding !Test.WasTested}">
+                  <TextBlock Text="1" />
+                </Border>
+                <Border Classes="number done" IsVisible="{Binding Test.WasTested}">
+                  <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" />
+                </Border>
+              </Panel>
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="{Binding Test.TestTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
+                <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding Test.TestText}"
+                           Classes.dangerText="{Binding Test.HasTestProblem}" />
+                <StackPanel Spacing="8" Margin="0,10,0,0" IsVisible="{Binding Test.IsTestRunning}">
+                  <TextBlock Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Test.TestProgress}" />
+                  <ProgressBar Classes="thin" Maximum="1" MaxWidth="420" HorizontalAlignment="Left" Value="{Binding Test.TestFraction}"
+                               IsIndeterminate="{Binding Test.TestFraction, Converter={x:Static ObjectConverters.IsNull}}"
+                               AutomationProperties.Name="{Binding Test.TestProgress}" />
+                </StackPanel>
+                <WrapPanel ItemSpacing="12" LineSpacing="8" Margin="0,10,0,0">
+                  <Button x:Name="TestButton" Classes="primary compact" Content="{x:Static loc:Strings.Creator_TestInstall}" IsVisible="{Binding Test.OffersTestInstall}"
+                          ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding Test.InstallTestCommand}" CommandParameter="{Binding Build.OutputPath}" />
+                  <Button Classes="primary compact" Content="{x:Static loc:Strings.Creator_Launch}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Play}"
+                          Command="{Binding Test.LaunchCommand}">
+                    <Button.IsVisible>
+                      <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding Path="Test.IsTestInstalled" />
+                        <Binding Path="Test.CanLaunch" />
+                      </MultiBinding>
+                    </Button.IsVisible>
+                  </Button>
+                  <Button x:Name="UndoTestButton" Classes="outline" Content="{x:Static loc:Strings.Creator_UndoTest}" IsVisible="{Binding Test.IsTestInstalled}"
+                          ui:ButtonAssist.Icon="{x:Static theme:Icons.RotateCcw}" Command="{Binding Test.UndoTestCommand}" />
+                  <Button Classes="quiet" Content="{x:Static loc:Strings.Creator_TestAgain}" IsVisible="{Binding Test.WasTested}"
+                          ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding Test.InstallTestCommand}" CommandParameter="{Binding Build.OutputPath}" />
+                </WrapPanel>
+                <Button x:Name="TestTogether" Classes="link" Margin="0,6,0,0" HorizontalAlignment="Left"
+                        Content="{x:Static loc:Strings.Creator_TestTogether}" IsVisible="{Binding Test.OffersTestInstall}"
+                        Command="{Binding Test.InstallTestTogetherCommand}" CommandParameter="{Binding Build.OutputPath}" />
+              </StackPanel>
+            </Grid>
+            <Border Classes="divider" Opacity="0.6" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="20,18">
+              <Border Classes="number" VerticalAlignment="Top">
+                <TextBlock Text="2" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="{x:Static loc:Strings.Creator_PublishTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
+                <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding Build.PublishText}" />
+                <!-- Once the package was tried in the game, publishing it is the next thing to do. -->
+                <Button Classes="link" Margin="0,10,0,0" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_OpenDashboard}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.ExternalLink}" Command="{Binding Build.OpenSiteCommand}" IsVisible="{Binding !Test.WasTested}" />
+                <Button Classes="primary compact" Margin="0,10,0,0" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_OpenDashboard}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.ExternalLink}" ui:ButtonAssist.IconAfter="True" Command="{Binding Build.OpenSiteCommand}"
+                        IsVisible="{Binding Test.WasTested}" />
+              </StackPanel>
+            </Grid>
+            <StackPanel IsVisible="{Binding ShowsSaveHint}">
+              <Border Classes="divider" Opacity="0.6" />
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="20,18">
+                <Border Classes="number" VerticalAlignment="Top">
+                  <TextBlock Text="3" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <TextBlock Text="{x:Static loc:Strings.Creator_SaveProjectTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
+                  <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{x:Static loc:Strings.Creator_SaveProjectText}" />
+                </StackPanel>
+              </Grid>
+            </StackPanel>
+            <Border Classes="divider" Opacity="0.6" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="20,18">
+              <Border Classes="number" VerticalAlignment="Top">
+                <TextBlock Text="{Binding FinishNumber}" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="{x:Static loc:Strings.Creator_FinishTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
+                <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding Test.FinishText}" />
+                <Button x:Name="FinishButton" Classes="outline" Margin="0,10,0,0" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_Finish}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.CheckCheck}" IsEnabled="{Binding Test.CanRebuild}" Command="{Binding FinishCommand}" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <WrapPanel ItemSpacing="12" LineSpacing="8">
+        <TextBlock Classes="meta" FontSize="14" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_RebuildQuestion}" IsVisible="{Binding Test.CanRebuild}" />
+        <Button x:Name="RebuildButton" Classes="quiet" Content="{x:Static loc:Strings.Creator_Rebuild}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
+                IsEnabled="{Binding Test.CanRebuild}" Command="{Binding Build.BuildCommand}" />
+        <Button Classes="quiet" Content="{x:Static loc:Strings.Creator_BuildElsewhere}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                IsVisible="{Binding Test.CanRebuild}" Command="{Binding Build.BuildElsewhereCommand}" />
+        <TextBlock Classes="meta" MaxWidth="640" TextWrapping="Wrap" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_RebuildBlocked}"
+                   IsVisible="{Binding !Test.CanRebuild}" />
+      </WrapPanel>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

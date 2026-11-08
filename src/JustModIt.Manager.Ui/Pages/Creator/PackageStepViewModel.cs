@@ -2,70 +2,18 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Games;
-using JustModIt.Manager.Core.IO;
-using JustModIt.Manager.Core.Installation;
-using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
-using JustModIt.Manager.Core.Patching;
-using JustModIt.Manager.Creator;
-using JustModIt.Manager.Creator.Building;
-using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
-using JustModIt.Manager.Protocol.Messages;
-using JustModIt.Manager.Protocol.Views;
-using JustModIt.Manager.Ui.Connection;
-using JustModIt.Manager.Ui.Navigation;
-using JustModIt.Manager.Ui.Overlays;
-using JustModIt.Manager.Ui.Pages.Library;
-using JustModIt.Manager.Ui.Theme;
-using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
-/// <summary>Where the last step stands.</summary>
-public enum PackageState
-{
-    /// <summary>The format and the metadata, before a build or after one that failed.</summary>
-    Ready,
-    Building,
-    Built,
-}
-
-/// <summary>Where the package's test install stands, as the agent reports it.</summary>
-public enum TestInstallState
-{
-    None,
-    Installing,
-    Installed,
-    Undoing,
-
-    /// <summary>The test install was undone, and the game has its original files again.</summary>
-    Undone,
-    Failed,
-}
-
-/// <summary>
-/// The last step: the format the plan needs with the reasons for it, the package's metadata, the build on the thread pool
-/// with its stage, file and bytes and a way to cancel it, the site's warnings about the result, and a test install of the
-/// package through the agent, which the agent also undoes.
-/// </summary>
+/// <summary>The last step: the package's description, its build and a test install of it.</summary>
 public sealed partial class PackageStepViewModel : ObservableObject, ICreatorStepView
 {
     private readonly CreatorPageViewModel _page;
     private readonly CreatorSession _session;
 
-    private readonly Dictionary<Guid, (JobOutcome Outcome, JobFailureView? Failure, IReadOnlyList<KeptFilesView>? Kept)> _ended = [];
-    private CancellationTokenSource? _building;
-    private Task? _build;
-    private (string Path, string Name)? _target;
-    private IReadOnlyList<(PlanFinding Finding, PlannedOperation? Operation)> _buildFindings = [];
-    private Guid? _testJob;
-    private Guid? _undoJob;
-    private bool _lostTrack;
-    private string _testNote = "";
-    private (Guid Job, ToastViewModel Toast)? _undone;
     private (GameKey? Key, string Folder) _game;
-    private DateTimeOffset _builtAt;
 
     /// <summary>Creates the step for a project.</summary>
     /// <param name="page">The creator.</param>
@@ -74,157 +22,18 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     {
         _page = page;
         _session = session;
-        Description = new PackageDescriptionViewModel(page, session);
         _game = (session.Project.Game?.Key, session.Project.GameFolder);
+        Description = new PackageDescriptionViewModel(page, session);
+        Test = new TestInstallViewModel(page);
+        Build = new BuildViewModel(page, session, Description, Test);
         _session.PropertyChanged += OnSessionChanged;
-        _page.Agent.PropertyChanged += OnAgentChanged;
-        _page.Agent.JobsProgressed += OnJobsProgressed;
-        _page.Agent.JobEnded += OnJobEnded;
     }
 
     public PackageDescriptionViewModel Description { get; }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsReady), nameof(IsBuilding), nameof(IsBuilt), nameof(ShowsBuild), nameof(HasEarlierPackage),
-        nameof(ShowsPackage), nameof(EarlierText))]
-    public partial PackageState State { get; private set; }
+    public BuildViewModel Build { get; }
 
-    public bool IsReady => State == PackageState.Ready;
-
-    public bool IsBuilding => State == PackageState.Building;
-
-    public bool IsBuilt => State == PackageState.Built;
-
-    [ObservableProperty]
-    public partial string GameName { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string GameStore { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string GameDetails { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string BuildHint { get; private set; } = "";
-
-    /// <summary>The next build goes where the last one of the same name went, which the author may change.</summary>
-    [ObservableProperty]
-    public partial bool ReusesTarget { get; private set; }
-
-    /// <summary>Why the last build failed; empty when it did not.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasProblem))]
-    public partial string ProblemTitle { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string ProblemText { get; private set; } = "";
-
-    public bool HasProblem => ProblemTitle.Length > 0;
-
-    /// <summary>The files changed since the comparison, which the author has to compare again before building.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsBuild))]
-    public partial bool NeedsComparison { get; private set; }
-
-    /// <summary>Warnings only the build found, which the author accepts before building again.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasBuildFindings), nameof(AcceptedAll), nameof(ShowsBuild))]
-    public partial IReadOnlyList<FindingLine> BuildFindings { get; private set; } = [];
-
-    public bool HasBuildFindings => BuildFindings.Count > 0;
-
-    /// <summary>The author accepted every warning of the last build, which the next build takes.</summary>
-    public bool AcceptedAll => HasBuildFindings && BuildFindings.All(line => line.IsAccepted);
-
-    /// <summary>
-    /// The build's button, which a failed build replaces with its own way on: the warnings to accept, or comparing again.
-    /// </summary>
-    public bool ShowsBuild => IsReady && !HasBuildFindings && !NeedsComparison;
-
-    [ObservableProperty]
-    public partial string BuildTarget { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string Stage { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string Percent { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial double Progress { get; private set; }
-
-    [ObservableProperty]
-    public partial string FileLine { get; private set; } = "";
-
-    /// <summary>The package built last; empty before a build.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasEarlierPackage), nameof(ShowsPackage))]
-    public partial string OutputPath { get; private set; } = "";
-
-    /// <summary>A build failed or stopped after an earlier one, whose package is still there but is not this build's.</summary>
-    public bool HasEarlierPackage => IsReady && OutputPath.Length > 0;
-
-    public bool ShowsPackage => IsBuilt || HasEarlierPackage;
-
-    /// <summary>That the package shown is an earlier build's, and when it was built.</summary>
-    public string EarlierText => GameWording.Join(
-        [Strings.Creator_EarlierPackage, HasEarlierPackage ? Formats.RelativeTime(_builtAt, _page.Services.Clock) : ""]).ToUpper(Text.Culture);
-
-    [ObservableProperty]
-    public partial string ResultName { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string ResultSize { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string ResultDetails { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string ResultFolder { get; private set; } = "";
-
-    /// <summary>Why the site would not take the package as it is.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSiteWarnings))]
-    public partial IReadOnlyList<string> SiteWarnings { get; private set; } = [];
-
-    public bool HasSiteWarnings => SiteWarnings.Count > 0;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(OffersTestInstall), nameof(IsTestInstalled), nameof(IsTestRunning), nameof(WasTested),
-        nameof(CanRebuild), nameof(FinishText))]
-    public partial TestInstallState Test { get; private set; }
-
-    public bool OffersTestInstall => Test is TestInstallState.None or TestInstallState.Failed;
-
-    public bool IsTestInstalled => Test == TestInstallState.Installed;
-
-    public bool IsTestRunning => Test is TestInstallState.Installing or TestInstallState.Undoing;
-
-    public bool WasTested => Test == TestInstallState.Undone;
-
-    /// <summary>The test install, or undoing it, failed, which <see cref="TestText"/> explains.</summary>
-    [ObservableProperty]
-    public partial bool HasTestProblem { get; private set; }
-
-    public bool CanRebuild => Test is not (TestInstallState.Installed or TestInstallState.Installing or TestInstallState.Undoing);
-
-    [ObservableProperty]
-    public partial string TestTitle { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string TestText { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string TestProgress { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial double? TestFraction { get; private set; }
-
-    [ObservableProperty]
-    public partial bool CanLaunch { get; private set; }
-
-    [ObservableProperty]
-    public partial string PublishText { get; private set; } = "";
+    public TestInstallViewModel Test { get; }
 
     /// <summary>The project has changes the author has not saved, which the next steps remind of.</summary>
     [ObservableProperty]
@@ -233,15 +42,6 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     /// <summary>The place of the last next step, which follows the reminder to save while it shows.</summary>
     public string FinishNumber => (ShowsSaveHint ? 4 : 3).ToString(Text.Culture);
-
-    /// <summary>What finishing the project does, or that a test package in the game has to go first.</summary>
-    public string FinishText => Text.Format(Strings.Creator_FinishText, ("blocked", CanRebuild ? "false" : "true"));
-
-    /// <summary>The installed test package of the game; null while there is none.</summary>
-    private InstallView? TestInstall =>
-        _page.Game is { } game
-            ? _page.Agent.State.Games.FirstOrDefault(view => view.Key == game.Key)?.Installs.FirstOrDefault(install => install.IsTest)
-            : null;
 
     public void OnShown()
     {
@@ -253,165 +53,17 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
         _ = Description.HintAsync();
         Show();
-        ShowTest();
+        Test.ShowTest();
     }
 
-    public async Task<bool> CanLeaveAsync()
-    {
-        if (_building is null)
-        {
-            return true;
-        }
-
-        if (!await _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.Creator_StopBuildTitle, Strings.Creator_StopBuild,
-                Strings.Creator_StopBuildConfirm, Icons.CircleX, DialogTone.Danger)
-            {
-                ConfirmIcon = Icons.CircleX,
-            }).ConfigureAwait(true))
-        {
-            return false;
-        }
-
-        // The window may close as soon as this returns, and a stopped build still removes the package it was writing.
-        if (_build is { IsCompleted: false } build)
-        {
-            CancelBuild();
-            await build.ConfigureAwait(ConfigureAwaitOptions.ContinueOnCapturedContext | ConfigureAwaitOptions.SuppressThrowing);
-        }
-
-        return true;
-    }
+    public Task<bool> CanLeaveAsync() => Build.CanStopAsync();
 
     public void Dispose()
     {
-        _building?.Cancel();
+        Build.Dispose();
+        Test.Dispose();
         _session.PropertyChanged -= OnSessionChanged;
-        _page.Agent.PropertyChanged -= OnAgentChanged;
-        _page.Agent.JobsProgressed -= OnJobsProgressed;
-        _page.Agent.JobEnded -= OnJobEnded;
     }
-
-    [RelayCommand(CanExecute = nameof(CanBuild))]
-    private Task BuildAsync() => BuildToAsync(askWhere: false);
-
-    private bool CanBuild() => !Description.HasMetadataProblem;
-
-    [RelayCommand]
-    private Task BuildElsewhereAsync() => BuildToAsync(askWhere: true);
-
-    private async Task BuildToAsync(bool askWhere)
-    {
-        // A name or version typed a moment ago may not be planned yet, and the package takes them from the plan.
-        await _session.SettledAsync().ConfigureAwait(true);
-        if (_session.Review?.Plan is not { } plan || _page.Game is not { } game || Description.HasMetadataProblem)
-        {
-            return;
-        }
-
-        if (!plan.CanBuild)
-        {
-            _page.GoTo(CreatorStep.Review);
-            return;
-        }
-
-        // A package of another version or format goes to a file of its own, so building it keeps the earlier package.
-        var extension = _page.Options.ExtensionFor(plan.Format.Kind);
-        var name = SuggestedName(game, extension);
-        var path = !askWhere && _target is { } target && target.Name == name
-            ? target.Path
-            : await _page.Services.Pickers.PickSaveFileAsync(Strings.Creator_BuildTitle, name,
-                new FileKind(plan.Format.Kind == PackageKind.Zip ? Strings.Creator_ZipFiles : Strings.Creator_PackageFiles, extension),
-                OutputFolder()).ConfigureAwait(true);
-        if (path is not null)
-        {
-            await (_build = BuildAsync(plan, game, path, name)).ConfigureAwait(true);
-        }
-    }
-
-    [RelayCommand]
-    private void CancelBuild() => _building?.Cancel();
-
-    [RelayCommand]
-    private void Accept(string key) => _session.Describe(project => project.Acknowledge(key));
-
-    [RelayCommand]
-    private Task CompareAgainAsync() => _page.CompareAgainAsync();
-
-    [RelayCommand]
-    private void Reveal()
-    {
-        if (ResultFolder.Length > 0)
-        {
-            _page.Services.Links.OpenFolder(ResultFolder);
-        }
-    }
-
-    [RelayCommand]
-    private Task InstallTestAsync() => TestAsync([OutputPath]);
-
-    // An add-on is tried together with the package it goes with, which installs first, so a clash between the two shows
-    // before players meet it.
-    [RelayCommand]
-    private async Task InstallTestTogetherAsync()
-    {
-        if (OutputPath.Length == 0)
-        {
-            return;
-        }
-
-        var first = await _page.Services.Pickers.PickFileAsync(Strings.Creator_TestTogetherTitle, startIn: OutputFolder()).ConfigureAwait(true);
-        if (first is not null && !string.Equals(first, OutputPath, StringComparison.OrdinalIgnoreCase))
-        {
-            await TestAsync([first, OutputPath]).ConfigureAwait(true);
-        }
-    }
-
-    private async Task TestAsync(IReadOnlyList<string> packages)
-    {
-        if (_page.Game is not { } game || OutputPath.Length == 0)
-        {
-            return;
-        }
-
-        (_testNote, _undoJob) = ("", null);
-        _ended.Clear();
-        var (sent, answer) = await AgentRequests.AskAsync(_page.Services, new TestInstallPackage(game.Key, packages)).ConfigureAwait(true);
-        if (sent && answer is JobStarted started)
-        {
-            _testJob = started.JobId;
-            ShowTest();
-        }
-    }
-
-    [RelayCommand]
-    private async Task UndoTestAsync()
-    {
-        if (TestInstall is not { } install)
-        {
-            return;
-        }
-
-        (_testNote, _testJob) = ("", null);
-        _ended.Clear();
-        var (sent, answer) = await AgentRequests.AskAsync(_page.Services, new UninstallProject(install.Id)).ConfigureAwait(true);
-        if (sent && answer is JobStarted started)
-        {
-            _undoJob = started.JobId;
-            ShowTest();
-        }
-    }
-
-    [RelayCommand]
-    private async Task LaunchAsync()
-    {
-        if (_page.Game is { } game)
-        {
-            await AgentRequests.AskAsync(_page.Services, new LaunchGame(game.Key)).ConfigureAwait(true);
-        }
-    }
-
-    [RelayCommand]
-    private void OpenSite() => _page.Services.Links.Open(PageLinks.Dashboard(_page.Services.Context.Site.SiteAddress));
 
     [RelayCommand]
     private Task FinishAsync() => _page.FinishAsync();
@@ -419,462 +71,34 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     [RelayCommand]
     private void Back() => _page.GoTo(CreatorStep.Review);
 
-    private async Task BuildAsync(PackagePlan plan, DetectedGameEntry game, string path, string name)
-    {
-        using var building = _building = new CancellationTokenSource();
-        _target = (path, name);
-        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings) = ("", "", false, [], []);
-        (Stage, Percent, Progress, FileLine) = (Text.Format(Strings.Creator_BuildStage, ("stage", nameof(BuildStage.Checking))), "", 0, "");
-        BuildTarget = Text.Format(Strings.Creator_BuildTarget, ("path", path));
-        State = PackageState.Building;
-        try
-        {
-            // The game's build may have changed since the comparison, and the package names the one it was made against.
-            var detected = await CurrentGameAsync(game).ConfigureAwait(true);
-            var request = new BuildRequest
-            {
-                OutputPath = path,
-                Game = detected,
-                Installs = [.. _page.Agent.State.Games.SelectMany(view => view.Installs)
-                    .Select(install => new ExistingInstall(install.Id, install.InstallDirectory))],
-                Site = _page.Agent.State.Catalogue.ReleaseFiles,
-            };
-            var result = await new PackageBuilder(new XDelta3Patcher(), _page.Options, fileSystem: _page.FileSystem)
-                .BuildAsync(plan.Confirm(), request, new LatestProgress<BuildProgress>(Show), building.Token)
-                .ConfigureAwait(true);
-            Built(result);
-        }
-        catch (OperationCanceledException) when (building.IsCancellationRequested)
-        {
-            Fail(Strings.Creator_BuildCancelledTitle, Strings.Creator_BuildCancelled);
-        }
-        catch (PackageBuildException failed)
-        {
-            NeedsComparison = failed.Failure is BuildFailure.FilesChanged or BuildFailure.OtherGame;
-            _buildFindings = [.. failed.Findings.Where(finding => finding.BlocksBuild)
-                .Select(finding => (finding, finding.OperationIndex is { } index ? plan.Operations[index] : null))];
-            // The next build asks for a place again rather than going back to one the build refused or could not write to.
-            if (failed.Failure is BuildFailure.WrongExtension or BuildFailure.OutputInGameFolder or BuildFailure.OutputInAuthorFolder)
-            {
-                _target = null;
-            }
-
-            Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_BuildFailed, ("failure", failed.Failure.ToString()),
-                ("files", failed.Paths.Count), ("file", failed.Paths.Count > 0 ? InFolder(plan, failed.Paths[0]) : "")));
-        }
-        catch (CreatorBlockedException blocked)
-        {
-            Fail(CreatorWording.BlockTitle(blocked.Blocks[0], game.Game.InstallDirectory),
-                string.Join(' ', blocked.Blocks.Select(block => CreatorWording.Block(block, game.Game.InstallDirectory))));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            _target = null;
-            Fail(Strings.Creator_BuildFailedTitle, Strings.Creator_BuildWriteFailed);
-        }
-        // Anything else, such as a patch the encoder could not make, ends the build like the failures above rather than the
-        // window, which would lose the author's unsaved work.
-        catch (Exception exception)
-        {
-            LogBuildFailed(_page.Log, exception);
-            Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_Unexpected, ("error", exception.GetType().Name)));
-        }
-        finally
-        {
-            if (_building == building)
-            {
-                _building = null;
-            }
-
-            Show();
-        }
-    }
-
-    private async Task<InstalledGame?> CurrentGameAsync(DetectedGameEntry game)
-    {
-        var (_, answer) = await AgentRequests.AskAsync(_page.Services, new GetDetectedGames()).ConfigureAwait(true);
-        var current = (answer as DetectedGames)?.Games.FirstOrDefault(entry => entry.Key == game.Key) ?? game;
-        var view = current.Game;
-        return new InstalledGame
-        {
-            Key = current.Key,
-            Name = current.Name,
-            InstallDirectory = view.InstallDirectory,
-            LibraryId = view.LibraryId,
-            BuildId = view.BuildId,
-            State = view.State,
-            Reason = view.Reason,
-            Platform = view.Platform,
-            IsStale = view.IsStale,
-        };
-    }
-
-    private void Built(PackageBuildResult result)
-    {
-        OutputPath = result.OutputPath;
-        ResultName = Path.GetFileName(result.OutputPath);
-        ResultSize = Formats.FileSize(result.PackageSize);
-        var metadata = _session.Project.Metadata;
-        ResultDetails = GameWording.Join(
-        [
-            result.Kind == PackageKind.Zip ? Strings.Creator_ZipKind : Strings.Creator_ManifestKind,
-            metadata.Version.Trim().Length > 0 ? GameWording.ShortVersion(metadata.Version.Trim()) : "",
-            result.Kind == PackageKind.Manifest ? string.Join(", ", metadata.Authors) : "",
-        ]);
-        ResultFolder = Path.GetDirectoryName(result.OutputPath) ?? "";
-        _builtAt = _page.Services.Clock.GetUtcNow();
-        SiteWarnings = [.. result.Findings.Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
-            .Select(finding => CreatorWording.Finding(finding))];
-        if (Test is TestInstallState.Undone or TestInstallState.Failed)
-        {
-            Test = TestInstallState.None;
-        }
-
-        State = PackageState.Built;
-        ShowTest();
-    }
-
-    private void Fail(string title, string text)
-    {
-        (ProblemTitle, ProblemText) = (title, text);
-        State = PackageState.Ready;
-    }
-
-    // The author's folder is laid out like the game's, so a file of either reads by its path in the game, without the folders
-    // above it, which may name the user's profile.
-    private static string InFolder(PackagePlan plan, string path) =>
-        PathComparison.IsWithin(plan.AuthorDirectory, path) ? PackagePath.FromFullPath(plan.AuthorDirectory, path)
-        : PathComparison.IsWithin(plan.GameDirectory, path) ? PackagePath.FromFullPath(plan.GameDirectory, path)
-        : path;
-
-    private void Show(BuildProgress progress)
-    {
-        if (State != PackageState.Building)
-        {
-            return;
-        }
-
-        Progress = progress.BytesTotal > 0 ? 100.0 * progress.BytesDone / progress.BytesTotal : 0;
-        Percent = Formats.Percent(progress.BytesDone, progress.BytesTotal);
-        Stage = GameWording.Join(
-        [
-            Text.Format(Strings.Creator_BuildStage, ("stage", progress.Stage.ToString())),
-            progress.BytesTotal > 0 ? Text.Format(Strings.Creator_BytesOf, ("done", Formats.FileSize(progress.BytesDone)),
-                ("total", Formats.FileSize(progress.BytesTotal))) : "",
-        ]);
-        FileLine = progress.FileNumber == 0 ? ""
-            : GameWording.Join(
-            [
-                Text.Format(Strings.Creator_FileOf, ("number", progress.FileNumber), ("count", progress.FileCount)),
-                progress.CurrentFile ?? "",
-            ]);
-    }
-
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
     {
         var project = _session.Project;
         if (_game != (project.Game?.Key, project.GameFolder))
         {
             _game = (project.Game?.Key, project.GameFolder);
-            Forget();
+            // A package and its test belong to the game it was built for: another copy of the game, e.g. from another store,
+            // has other files, so its package is built anew, and a test install never takes the other copy's package.
+            Test.Forget();
+            Build.Forget();
         }
 
         // The files compared anew are what the failed build asked for, so its failure no longer stands in the way.
-        if (e.PropertyName == nameof(CreatorSession.Comparison) && _session.Comparison is not null && NeedsComparison)
+        if (e.PropertyName == nameof(CreatorSession.Comparison) && _session.Comparison is not null)
         {
-            (NeedsComparison, ProblemTitle, ProblemText) = (false, "", "");
+            Build.FilesCompared();
         }
 
         Show();
     }
 
-    // A package and its test belong to the game it was built for: another copy of the game, e.g. from another store, has
-    // other files, so its package is built anew, and a test install never takes the other copy's package.
-    private void Forget()
-    {
-        (OutputPath, _target, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings) = ("", null, "", "", "", "", []);
-        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings, BuildTarget) = ("", "", false, [], [], "");
-        (_testJob, _undoJob, _undone, _lostTrack, _testNote, HasTestProblem) = (null, null, null, false, "", false);
-        _ended.Clear();
-        Test = TestInstallState.None;
-        State = PackageState.Ready;
-    }
-
-    private void OnAgentChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        switch (e.PropertyName)
-        {
-            case nameof(IAgent.Link) when _page.Agent.Link != AgentLink.Connected:
-                _lostTrack |= _testJob is not null || _undoJob is not null;
-                break;
-            case nameof(IAgent.Link) or nameof(IAgent.State):
-                ShowTest();
-                break;
-        }
-    }
-
-    private void OnJobEnded(object? sender, JobEnded ended)
-    {
-        if (ended.Job.Game == _page.Game?.Key)
-        {
-            _ended[ended.Job.Id] = (ended.Outcome, ended.Failure, ended.KeptFiles);
-            // The state may have ended the undo first, before the agent told which files it left.
-            if (_undone is { } undone && undone.Job == ended.Job.Id && ended.KeptFiles is { Count: > 0 } kept)
-            {
-                _page.Services.Toasts.Dismiss(undone.Toast);
-                _undone = (undone.Job, UndoneToast(kept));
-                _page.Services.Toasts.Show(_undone.Value.Toast);
-            }
-
-            ShowTest();
-            // An undone test may have left files as the package's software wrote them, which the plan has to know.
-            if (ended.Job.Kind == JobKind.Uninstall)
-            {
-                _ = _page.ReadKeptPathsAsync();
-            }
-        }
-    }
-
-    private void OnJobsProgressed(object? sender, IReadOnlyList<JobView> jobs)
-    {
-        if (jobs.FirstOrDefault(job => job.Id == _testJob || job.Id == _undoJob) is { } job)
-        {
-            ShowJob(job);
-        }
-    }
-
     private void Show()
     {
-        ShowBuildFindings();
         Description.Show();
-        BuildCommand.NotifyCanExecuteChanged();
-        if (_session.Review?.Plan is not { } plan)
+        Build.Show();
+        if (_session.Review is not null)
         {
-            return;
-        }
-
-        if (_page.Game is { } game)
-        {
-            GameName = game.Name;
-            GameStore = game.Key.Store.Value;
-            GameDetails = GameWording.Join(
-            [
-                GameWording.StoreName(game.Key.Store),
-                game.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "",
-            ]);
-            var name = SuggestedName(game, _page.Options.ExtensionFor(plan.Format.Kind));
-            ReusesTarget = _target is { } target && target.Name == name;
-            BuildHint = ReusesTarget
-                ? Text.Format(Strings.Creator_BuildTo, ("name", Path.GetFileName(_target!.Value.Path)))
-                : Text.Format(Strings.Creator_BuildHint, ("name", name));
-        }
-
-        ShowsSaveHint = _session.IsDirty || _session.Path is null;
-        PublishText = Description.IsManifest ? Strings.Creator_PublishManifest : Strings.Creator_PublishZip;
-    }
-
-    // A warning the author accepted stays in the list, marked, so the click shows what it did and the build can go on. One
-    // about a patch the plan no longer makes, e.g. of a file left out or changed since, goes, and with the last the failure.
-    private void ShowBuildFindings()
-    {
-        if (_session.Review?.Plan is { } plan && _buildFindings.Any(found => !Makes(plan, found.Operation)))
-        {
-            _buildFindings = [.. _buildFindings.Where(found => Makes(plan, found.Operation))];
-            if (_buildFindings.Count == 0)
-            {
-                (ProblemTitle, ProblemText) = ("", "");
-            }
-        }
-
-        var acknowledged = _session.Project.Acknowledged;
-        List<FindingLine> lines = [.. _buildFindings.Select(found => new FindingLine(ReviewLine(found.Finding), RowTone.Warning,
-            found.Finding.AcknowledgementKey, found.Finding.AcknowledgementKey is { } key && acknowledged.Contains(key)))];
-        if (!lines.SequenceEqual(BuildFindings))
-        {
-            BuildFindings = lines;
+            ShowsSaveHint = _session.IsDirty || _session.Path is null;
         }
     }
-
-    // The agent says how each job ended, which the state cannot for a job that came and went between two states, or for
-    // the failure of a game the player's list leaves out; the state tells when the install the job left is there or gone.
-    private void ShowTest()
-    {
-        var installed = TestInstall;
-        FillLostEnds(installed);
-        var running = RunningTestJob(installed);
-        if (_testJob is { } test)
-        {
-            Test = EndTest(test, installed);
-        }
-        else if (_undoJob is { } undo)
-        {
-            Test = EndUndo(undo, installed);
-        }
-        else
-        {
-            Test = running is not null ? (running.Kind == JobKind.Uninstall ? TestInstallState.Undoing : TestInstallState.Installing)
-                : installed is not null ? TestInstallState.Installed
-                : Test is TestInstallState.Undone or TestInstallState.Failed ? Test
-                : TestInstallState.None;
-        }
-
-        if ((_page.Agent.State.Jobs.FirstOrDefault(job => job.Id == _testJob || job.Id == _undoJob) ?? running) is { } job)
-        {
-            ShowJob(job);
-        }
-
-        var name = _page.Game?.Name ?? "";
-        CanLaunch = _page.Game?.Game.CanLaunch == true;
-        TestTitle = Test switch
-        {
-            TestInstallState.Installed => Text.Format(Strings.Creator_TestInstalledTitle, ("game", name)),
-            TestInstallState.Undone => Strings.Creator_TestedTitle,
-            TestInstallState.Failed => Strings.Creator_TestFailedTitle,
-            _ => Strings.Creator_TestTitle,
-        };
-        HasTestProblem = Test is TestInstallState.Failed || (Test is TestInstallState.Installed && _testNote.Length > 0);
-        TestText = Test switch
-        {
-            TestInstallState.Failed or TestInstallState.Undone => _testNote,
-            TestInstallState.Installed when _testNote.Length > 0 => _testNote,
-            TestInstallState.Installed => Strings.Creator_TestInstalled,
-            _ => Text.Format(Strings.Creator_TestText, ("game", name)),
-        };
-    }
-
-    // The game's page can install a test package or undo it too, and the step shows that job as its own.
-    private JobView? RunningTestJob(InstallView? installed) =>
-        _page.Game is { } game
-            ? _page.Agent.State.Jobs.FirstOrDefault(job => job.Game == game.Key && !_ended.ContainsKey(job.Id)
-                && (job.Kind == JobKind.TestInstall || (job.Kind == JobKind.Uninstall && job.InstallId == installed?.Id)))
-            : null;
-
-    // The job's end may come before the state that lists its install, which undoing it needs, so a job that worked waits
-    // for that state.
-    private TestInstallState EndTest(Guid job, InstallView? installed)
-    {
-        var ended = _ended.TryGetValue(job, out var end);
-        if (ended && end.Outcome != JobOutcome.Succeeded)
-        {
-            _testJob = null;
-            _testNote = end.Outcome == JobOutcome.Failed ? FailureText(end.Failure) : "";
-            return end.Outcome == JobOutcome.Failed ? TestInstallState.Failed : TestInstallState.None;
-        }
-
-        if (installed is null || (!ended && IsListed(job)))
-        {
-            return TestInstallState.Installing;
-        }
-
-        _testJob = null;
-        return TestInstallState.Installed;
-    }
-
-    // The job's end may come before the state without the install, which would offer to undo it again, so a job that
-    // worked waits for that state.
-    private TestInstallState EndUndo(Guid job, InstallView? installed)
-    {
-        var ended = _ended.TryGetValue(job, out var end);
-        if (ended && end.Outcome != JobOutcome.Succeeded)
-        {
-            _undoJob = null;
-            _testNote = end.Outcome == JobOutcome.Failed
-                ? Text.Format(Strings.Creator_UndoTestFailed, ("reason", FailureText(end.Failure)))
-                : "";
-            return installed is not null ? TestInstallState.Installed : TestInstallState.None;
-        }
-
-        if (installed is not null || (!ended && IsListed(job)))
-        {
-            return TestInstallState.Undoing;
-        }
-
-        _undoJob = null;
-        _testNote = Text.Format(Strings.Creator_TestUndoneAt, ("when", Formats.RelativeTime(_page.Services.Clock.GetUtcNow(),
-            _page.Services.Clock)));
-        _undone = (job, UndoneToast(ended ? end.Kept : null));
-        _page.Services.Toasts.Show(_undone.Value.Toast);
-        return TestInstallState.Undone;
-    }
-
-    // Says which files the undo left as the package's software changed them, by the most pressing reason.
-    private ToastViewModel UndoneToast(IReadOnlyList<KeptFilesView>? kept)
-    {
-        var game = _page.Game?.Name ?? "";
-        if (KeptReasons.MostPressing(kept?.Select(files => files.Reason) ?? []) is not { } reason)
-        {
-            return new ToastViewModel(ToastTone.Success, Icons.CircleCheck, Strings.Creator_TestUndoneTitle,
-                Text.Format(Strings.Creator_TestUndone, ("game", game)));
-        }
-
-        var told = KeptReasons.CaseOf(reason);
-        var text = Text.Format(Strings.Creator_TestUndoneKept, ("game", game), ("reason", told),
-            ("count", kept!.Where(files => KeptReasons.CaseOf(files.Reason) == told).Sum(files => files.Count)),
-            ("store", _page.Game is { } detected ? GameWording.StoreName(detected.Key.Store) : ""));
-        return reason == KeptReason.OriginalUnknown
-            ? new ToastViewModel(ToastTone.Info, Icons.Info, Strings.Creator_TestUndoneTitle, text)
-            : new ToastViewModel(ToastTone.Warning, Icons.TriangleAlert, Strings.Creator_TestUndoneTitle, text);
-    }
-
-    // A job that ended while the agent was out of reach was never reported; once a state no longer lists it, what the job
-    // left tells how it went, though not why it failed.
-    private void FillLostEnds(InstallView? installed)
-    {
-        if (!_lostTrack || _page.Agent.Link != AgentLink.Connected)
-        {
-            return;
-        }
-
-        foreach (var (job, succeeded) in new[] { (_testJob, installed is not null), (_undoJob, installed is null) })
-        {
-            if (job is { } id && !_ended.ContainsKey(id) && !IsListed(id))
-            {
-                _ended[id] = (succeeded ? JobOutcome.Succeeded : JobOutcome.Failed, null, null);
-            }
-        }
-
-        _lostTrack = new[] { _testJob, _undoJob }.Any(job => job is { } id && !_ended.ContainsKey(id));
-    }
-
-    private bool IsListed(Guid job) => _page.Agent.State.Jobs.Any(listed => listed.Id == job);
-
-    private string FailureText(JobFailureView? failure) =>
-        failure is null || _page.Game is not { } game
-            ? Strings.Creator_TestFailed
-            : GameWording.FailureReason(failure, game.Key.Store, game.Name);
-
-    private void ShowJob(JobView job)
-    {
-        var line = GameLines.Job(job);
-        TestProgress = line.Label;
-        TestFraction = job.Fraction;
-    }
-
-    // A copy of the game from another store gets a package of its own, which a name without the store would overwrite.
-    private string SuggestedName(DetectedGameEntry game, string extension)
-    {
-        var name = _page.IsGameOnOtherStores
-            ? Text.Format(Strings.Creator_PackageGameOnStore, ("game", game.Name), ("store", GameWording.StoreName(game.Key.Store)))
-            : game.Name;
-        return FileNames.Suggest(_session.Project.Metadata.Version.Trim() is { Length: > 0 } version
-                ? Text.Format(Strings.Creator_PackageName, ("game", name), ("version", version))
-                : name,
-            Strings.Creator_ProjectFallbackName, extension);
-    }
-
-    private string? OutputFolder() =>
-        _target is { } target ? Path.GetDirectoryName(target.Path)
-        : _session.Path is { } project ? Path.GetDirectoryName(project)
-        : Path.GetDirectoryName(_session.Project.AuthorFolder);
-
-    private static bool Makes(PackagePlan plan, PlannedOperation? operation) =>
-        operation is null || plan.Operations.Any(planned => planned.Kind == operation.Kind
-            && PackagePath.Comparer.Equals(planned.Path, operation.Path) && planned.Original == operation.Original
-            && planned.SourceFile == operation.SourceFile);
-
-    private static string ReviewLine(PlanFinding finding) =>
-        ReviewViewModel.IsHosting(finding.Kind) ? CreatorWording.RuleTitle(finding) : CreatorWording.Finding(finding);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "The package build failed unexpectedly")]
-    private static partial void LogBuildFailed(ILogger logger, Exception exception);
 }

@@ -1,5 +1,4 @@
 using Avalonia.Controls;
-using JustModIt.Manager.Localization;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
@@ -8,6 +7,4 @@ public sealed partial class PackageStepView : UserControl
 {
     /// <summary>Creates the view.</summary>
     public PackageStepView() => InitializeComponent();
-
-    public static string NextOverline => Strings.Creator_Next.ToUpper(Text.Culture);
 }

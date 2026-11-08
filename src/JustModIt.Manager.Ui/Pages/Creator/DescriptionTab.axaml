@@ -55,14 +55,14 @@
         <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_Metadata}" />
         <StackPanel Spacing="6" IsVisible="{Binding Description.IsManifest}">
           <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_PackageTitle}" />
-          <TextBox x:Name="TitleBox" Text="{Binding Description.PackageTitle}" FontSize="14" IsReadOnly="{Binding IsBuilding}"
+          <TextBox x:Name="TitleBox" Text="{Binding Description.PackageTitle}" FontSize="14" IsReadOnly="{Binding Build.IsBuilding}"
                    AutomationProperties.Name="{x:Static loc:Strings.Creator_PackageTitle}" />
           <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_PackageTitleHint}" />
         </StackPanel>
         <Grid ColumnDefinitions="220,*" ColumnSpacing="20">
           <StackPanel Spacing="6">
             <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_Version}" />
-            <TextBox x:Name="VersionBox" Text="{Binding Description.Version}" FontSize="14" IsReadOnly="{Binding IsBuilding}"
+            <TextBox x:Name="VersionBox" Text="{Binding Description.Version}" FontSize="14" IsReadOnly="{Binding Build.IsBuilding}"
                      AutomationProperties.Name="{x:Static loc:Strings.Creator_Version}">
               <TextBox.InnerLeftContent>
                 <TextBlock Text="{x:Static loc:Strings.Creator_VersionPrefix}" Margin="12,0,0,0" FontWeight="SemiBold"
@@ -83,7 +83,7 @@
                       <Border Height="28" CornerRadius="999" Padding="10,0,4,0" Background="{StaticResource FillStrongBrush}">
                         <StackPanel Orientation="Horizontal" Spacing="4">
                           <TextBlock Text="{Binding}" FontSize="13" FontWeight="Medium" VerticalAlignment="Center" />
-                          <Button Classes="icon" Width="22" Height="22" CornerRadius="999" IsEnabled="{Binding !$parent[UserControl].((creator:PackageStepViewModel)DataContext).IsBuilding}"
+                          <Button Classes="icon" Width="22" Height="22" CornerRadius="999" IsEnabled="{Binding !$parent[UserControl].((creator:PackageStepViewModel)DataContext).Build.IsBuilding}"
                                   ToolTip.Tip="{Binding Converter={x:Static creator:DescriptionTab.RemoveAuthorName}}"
                                   Command="{Binding $parent[UserControl].((creator:PackageStepViewModel)DataContext).Description.RemoveAuthorCommand}"
                                   CommandParameter="{Binding}">
@@ -95,7 +95,7 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <TextBox x:Name="AuthorBox" Text="{Binding Description.NewAuthor}" MinWidth="160" MinHeight="28" Padding="6,0" BorderThickness="0"
-                         Background="Transparent" FontSize="14" IsReadOnly="{Binding IsBuilding}"
+                         Background="Transparent" FontSize="14" IsReadOnly="{Binding Build.IsBuilding}"
                          PlaceholderText="{x:Static loc:Strings.Creator_AddAuthor}" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddAuthor}">
                   <TextBox.KeyBindings>
                     <KeyBinding Gesture="Enter" Command="{Binding Description.AddAuthorCommand}" />
@@ -116,10 +116,10 @@
         <StackPanel Spacing="4">
           <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_ForGame}" />
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <ui:StoreIcon Store="{Binding GameStore}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
-            <TextBlock Text="{Binding GameName}" FontSize="14" LineHeight="22" />
+            <ui:StoreIcon Store="{Binding Build.GameStore}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding Build.GameName}" FontSize="14" LineHeight="22" />
             <TextBlock Classes="separator" />
-            <TextBlock Text="{Binding GameDetails}" FontSize="14" LineHeight="22" Foreground="{StaticResource TextBodyBrush}" />
+            <TextBlock Text="{Binding Build.GameDetails}" FontSize="14" LineHeight="22" Foreground="{StaticResource TextBodyBrush}" />
           </StackPanel>
           <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_BuildChecked}" />
         </StackPanel>
