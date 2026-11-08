@@ -204,8 +204,14 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
 
         public List<PlanFinding> Findings { get; } = [];
 
-        public async Task<PackageOperation> WriteAsync(PlannedOperation operation, int index, CancellationToken cancellationToken)
+        public async Task<PackageOperation> WriteAsync(PlannedOperation planned, int index, CancellationToken cancellationToken)
         {
+            // The plan is in the project's layout, and a package names where its files lie on the game it is for.
+            var operation = planned with
+            {
+                Path = plan.Layout.ToGame(planned.Path),
+                From = planned.From is { } from ? plan.Layout.ToGame(from) : null,
+            };
             switch (operation.Kind)
             {
                 case OperationKind.Rename:
@@ -226,13 +232,14 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
             var runtime = new List<RuntimeFile>(plan.RuntimeFiles.Count);
             foreach (var file in plan.RuntimeFiles)
             {
+                var path = plan.Layout.ToGame(file.Path);
                 if (file.GameFile is not { } game)
                 {
-                    runtime.Add(new RuntimeFile(file.Path));
+                    runtime.Add(new RuntimeFile(path));
                     continue;
                 }
 
-                tracker.StartFile(file.Path, game.Stamp.Size);
+                tracker.StartFile(path, game.Stamp.Size);
                 long done = 0;
                 var bytes = new InlineProgress<long>(read => tracker.Report(BuildStage.HashingRuntimeFiles, done += read));
                 var source = OpenSource(game.FullPath);
@@ -245,7 +252,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
                         throw new PackageBuildException(BuildFailure.FilesChanged, [game.FullPath]);
                     }
 
-                    runtime.Add(new RuntimeFile(file.Path, [new FileContent(size, sha256)]));
+                    runtime.Add(new RuntimeFile(path, [new FileContent(size, sha256)]));
                 }
             }
 
@@ -340,8 +347,10 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
             Count(info.PatchSize);
             if (HostingRules.IsLargePatch(options.Rules, info.PatchSize, info.TargetSize))
             {
-                var key = AcknowledgementKeys.For(FindingKind.LargePatch, operation.Path, info.TargetSha256[..HashKeyLength]);
-                Findings.Add(new PlanFinding(FindingKind.LargePatch, operation.Path)
+                // By the project's path, so one acceptance holds for every version where the file is the same.
+                var path = plan.Operations[index].Path;
+                var key = AcknowledgementKeys.For(FindingKind.LargePatch, path, info.TargetSha256[..HashKeyLength]);
+                Findings.Add(new PlanFinding(FindingKind.LargePatch, path)
                 {
                     Size = info.PatchSize,
                     OperationIndex = index,

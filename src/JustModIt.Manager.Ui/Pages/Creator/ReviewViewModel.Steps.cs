@@ -99,7 +99,7 @@ public sealed partial class ReviewViewModel
             var path = PackagePath.FromFullPath(comparison.AuthorDirectory, file);
             if (row.Second.Length == 0)
             {
-                row.Second = path;
+                row.Second = comparison.Game.Layout.ToPackage(path);
             }
 
             row.First = path;

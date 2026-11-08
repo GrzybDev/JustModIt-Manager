@@ -13,11 +13,13 @@ internal sealed class CopySearch
     public const long MinSize = 1 << 10;
 
     private readonly GameIndex _game;
+    private readonly IReadOnlyList<GameIndex> _others;
     private readonly List<FolderComparer.Candidate> _candidates;
 
-    private CopySearch(GameIndex game, List<FolderComparer.Candidate> candidates)
+    private CopySearch(GameIndex game, IReadOnlyList<GameIndex> others, List<FolderComparer.Candidate> candidates)
     {
         _game = game;
+        _others = others;
         _candidates = candidates;
     }
 
@@ -26,25 +28,28 @@ internal sealed class CopySearch
     /// copy of yet another game file of that very size is too unlikely to hash more for.
     /// </summary>
     /// <param name="game">The game listing to search.</param>
+    /// <param name="others">The other versions sharing the author's folder.</param>
     /// <param name="candidates">The author's files, as listed.</param>
-    public static CopySearch Plan(GameIndex game, List<FolderComparer.Candidate> candidates) =>
-        new(game,
+    public static CopySearch Plan(GameIndex game, IReadOnlyList<GameIndex> others, List<FolderComparer.Candidate> candidates) =>
+        new(game, others,
         [
             .. candidates.Where(candidate => !candidate.SameSize && candidate.Stamp.Size >= MinSize
-                && OtherFilesOfSize(game, candidate).Any()),
+                && OtherFilesOfSize(game, others, candidate).Any()),
         ]);
 
     /// <summary>The bytes the search hashes that the comparison does not hash anyway.</summary>
     /// <param name="all">Every author's file of the comparison.</param>
-    public long BytesToHash(List<FolderComparer.Candidate> all)
+    /// <param name="hashes">Knows what an earlier comparison of the same pass hashed.</param>
+    public long BytesToHash(List<FolderComparer.Candidate> all, ContentHashes hashes)
     {
         var hashedAnyway = all.Where(candidate => candidate.SameSize).Select(candidate => candidate.Game!.FullPath)
             .ToHashSet(PathComparison.Comparer);
         var gameFiles = _candidates
-            .SelectMany(candidate => OtherFilesOfSize(_game, candidate))
+            .SelectMany(candidate => OtherFilesOfSize(_game, _others, candidate))
             .DistinctBy(file => file.FullPath, PathComparison.Comparer)
             .Where(file => !hashedAnyway.Contains(file.FullPath));
-        return _candidates.Sum(candidate => candidate.Stamp.Size) + gameFiles.Sum(file => file.Stamp.Size);
+        return _candidates.Sum(candidate => hashes.BytesToRead(candidate.FullPath, candidate.Stamp.Size))
+            + gameFiles.Sum(file => hashes.BytesToRead(file.FullPath, file.Stamp.Size));
     }
 
     /// <summary>Finds the copies, and proposes a rename for each new file with exactly one likely game file behind it.</summary>
@@ -63,7 +68,8 @@ internal sealed class CopySearch
             .ToHashSet(PackagePath.Comparer);
         var found = new Dictionary<string, (string CopyOf, string? RenameFrom)>(PackagePath.Comparer);
         var proposals = new List<(string NewPath, string From)>();
-        foreach (var candidate in _candidates)
+        // What another version holds at this very path is that game's own, wherever else its content lies.
+        foreach (var candidate in _candidates.Where(candidate => !keptUnchanged.Contains(candidate.Path)))
         {
             tracker.Searching(candidate.Path);
             var matches = await MatchesAsync(candidate, hashes, tracker.Bytes, cancellationToken).ConfigureAwait(false);
@@ -75,7 +81,7 @@ internal sealed class CopySearch
             found[candidate.Path] = (Prefer(matches, candidate.Path, replacedOrRemoved)[0], null);
             // A game file that the author's folder keeps unchanged stays where it is, so this is a duplicate. A tie that
             // the preferences cannot break is left alone too: renaming the wrong copy could break the game.
-            var sources = Prefer([.. matches.Where(path => !keptUnchanged.Contains(path))], candidate.Path, replacedOrRemoved);
+            var sources = Prefer([.. matches.Where(path => !keptUnchanged.Contains(path) && _game.TryGetFile(path, out _))], candidate.Path, replacedOrRemoved);
             if (candidate.Game is null && sources.Count == 1)
             {
                 proposals.Add((candidate.Path, sources[0]));
@@ -102,18 +108,18 @@ internal sealed class CopySearch
             return matches;
         }
 
-        foreach (var file in OtherFilesOfSize(_game, candidate))
+        foreach (var file in OtherFilesOfSize(_game, _others, candidate))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (await hashes.TryHashAsync(file.FullPath, file.Stamp.Size, bytes, cancellationToken).ConfigureAwait(false)
                     is { } gameHash
                 && FileHash.Matches(gameHash, hash))
             {
-                matches.Add(file.Path);
+                matches.Add(_game.Spell(file.Path));
             }
         }
 
-        return matches;
+        return [.. matches.Distinct(PackagePath.Comparer)];
     }
 
     // Same name, then same folder, then a game file the author replaced or removed.
@@ -129,8 +135,8 @@ internal sealed class CopySearch
 
     private static bool IsSame(string first, string second) => PackagePath.Comparer.Equals(first, second);
 
-    private static IEnumerable<GameFile> OtherFilesOfSize(GameIndex game, FolderComparer.Candidate candidate) =>
-        game.WithSize(candidate.Stamp.Size).Where(file => !IsSame(file.Path, candidate.Path));
+    private static IEnumerable<GameFile> OtherFilesOfSize(GameIndex game, IReadOnlyList<GameIndex> others, FolderComparer.Candidate candidate) =>
+        others.Prepend(game).SelectMany(index => index.WithSize(candidate.Stamp.Size)).Where(file => !IsSame(file.Path, candidate.Path));
 
     private static bool SameName(string first, string second) => IsSame(GameIndex.NameOf(first), GameIndex.NameOf(second));
 

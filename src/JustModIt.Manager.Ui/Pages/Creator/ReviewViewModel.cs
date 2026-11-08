@@ -92,7 +92,7 @@ public sealed partial class ReviewViewModel : ObservableObject, ICreatorStepView
         var file = await _page.Services.Pickers.PickFileAsync(Strings.Creator_PickGameFileTitle, startIn: comparison.GameDirectory)
             .ConfigureAwait(true);
         return file is not null && PathComparison.IsWithin(comparison.GameDirectory, file)
-            ? comparison.Game.Spell(PackagePath.FromFullPath(comparison.GameDirectory, file))
+            ? comparison.Game.Spell(comparison.Game.Layout.ToPackage(PackagePath.FromFullPath(comparison.GameDirectory, file)))
             : null;
     }
 

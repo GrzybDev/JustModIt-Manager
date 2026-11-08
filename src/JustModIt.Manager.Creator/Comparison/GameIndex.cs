@@ -24,13 +24,13 @@ public readonly record struct FileStamp(long Size, DateTimeOffset LastWriteTime)
 }
 
 /// <summary>A file of the game folder as the index listed it.</summary>
-/// <param name="Path">Game-relative, in the game's own spelling.</param>
+/// <param name="Path">Relative to the game in the index's layout, in the game's own spelling.</param>
 /// <param name="FullPath">The file on disk.</param>
 /// <param name="Stamp">The file as listed.</param>
 public sealed record GameFile(string Path, string FullPath, FileStamp Stamp);
 
 /// <summary>
-/// The game folder listed once per comparison, so every lookup agrees on what the game holds, ignoring letter case like
+/// The game folder listed once for its comparisons, so every lookup agrees on what the game holds, ignoring letter case like
 /// Windows and returning the game's spelling, which a package needs on case-sensitive file systems.
 /// </summary>
 public sealed class GameIndex
@@ -57,7 +57,13 @@ public sealed class GameIndex
 
     public string HiddenFolderName { get; }
 
+    /// <summary>Where the project's folders lie on this game, which its paths are keyed by; empty as listed.</summary>
+    public FolderLayout Layout { get; private init; }
+
     public int FileCount => _files.Count;
+
+    /// <summary>The game's folders, each game-relative.</summary>
+    internal IEnumerable<string> Directories => _directories.Keys;
 
     /// <summary>
     /// Lists <paramref name="root"/> without the app's own folder, which holds backups, and without the stores' folders
@@ -88,6 +94,29 @@ public sealed class GameIndex
                 cancellationToken.ThrowIfCancellationRequested();
                 index.Add(inner);
             }
+        }
+
+        return index;
+    }
+
+    /// <summary>
+    /// The same listing keyed by project paths, so everything that reads the game through the index works in the project's
+    /// layout, while <see cref="GameFile.FullPath"/> stays where the file lies.
+    /// </summary>
+    /// <param name="layout">Where the project's folders lie on this game.</param>
+    internal GameIndex InLayout(FolderLayout layout)
+    {
+        var index = new GameIndex(Root, HiddenFolderName) { Layout = layout };
+        foreach (var file in _files.Values)
+        {
+            var path = layout.ToPackage(file.Path);
+            index._files.TryAdd(path, file with { Path = path });
+        }
+
+        foreach (var directory in _directories.Keys)
+        {
+            var path = layout.ToPackage(directory);
+            index._directories.TryAdd(path, path);
         }
 
         return index;
@@ -148,6 +177,14 @@ public sealed class GameIndex
             .GroupBy(file => DirectoryOf(file.Path), PackagePath.Comparer)
             .ToDictionary(group => group.Key, group => group.ToList(), PackagePath.Comparer);
         return _byDirectory.TryGetValue(directory, out var files) ? files : [];
+    }
+
+    /// <summary>The game files anywhere below a folder, each relative to it.</summary>
+    /// <param name="folder">Game-relative.</param>
+    internal IEnumerable<string> FilesBelow(string folder)
+    {
+        var prefix = folder + PackagePath.Separator;
+        return _files.Keys.Where(path => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).Select(path => path[prefix.Length..]);
     }
 
     /// <summary>Game-relative folders holding a file of this name, in any letter case.</summary>

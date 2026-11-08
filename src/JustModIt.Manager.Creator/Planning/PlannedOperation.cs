@@ -51,7 +51,7 @@ public sealed record FileReference(string FullPath, FileStamp Stamp);
 /// <param name="FromChoice">A file of the comparison declared with <see cref="FileChoice.Runtime"/>.</param>
 public sealed record PlannedRuntimeFile(string Path, RuntimeFileKind Kind, FileReference? GameFile, bool WrittenByPackage, bool FromChoice);
 
-/// <summary>One change the package makes, with game-relative, '/'-separated paths.</summary>
+/// <summary>One change the package makes, with '/'-separated paths in the project's layout.</summary>
 public sealed record PlannedOperation
 {
     public required OperationKind Kind { get; init; }

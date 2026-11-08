@@ -1,6 +1,12 @@
 using System.Diagnostics;
+using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Creator.Comparison;
+using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Creator.Tests.TestSupport;
+using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Creator.Tests.Comparison;
 
@@ -204,8 +210,10 @@ public sealed class FolderComparerTests : IDisposable
         (await missing.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should()
             .ContainSingle().Which.Reason.Should().Be(CreatorBlockReason.AuthorFolderMissing);
 
-        var nested = () => new FolderComparer(Workspace.Options).CompareAsync(
-            new ComparisonRequest(_workspace.GameDirectory, Directory.CreateDirectory(_workspace.GamePath("mine")).FullName, []),
+        var comparer = new FolderComparer(Workspace.Options);
+        var listed = await comparer.ListGameAsync(_workspace.GameDirectory, [], TestContext.Current.CancellationToken);
+        var nested = () => comparer.CompareAsync(
+            new ComparisonRequest(listed, Directory.CreateDirectory(_workspace.GamePath("mine")).FullName, []),
             progress: null, TestContext.Current.CancellationToken);
         (await nested.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should()
             .ContainSingle().Which.Reason.Should().Be(CreatorBlockReason.FoldersOverlap);
@@ -294,6 +302,148 @@ public sealed class FolderComparerTests : IDisposable
 
         await compare.Should().ThrowAsync<OperationCanceledException>();
         reports[^1].BytesDone.Should().BeLessThan(reports[^1].BytesTotal);
+    }
+
+    [Theory]
+    [InlineData("Ember Isles_Data/strings.bin")]
+    [InlineData("EmberIsles_Data/strings.bin")]
+    public async Task A_version_s_own_folder_reads_in_either_layout(string authorPath)
+    {
+        _workspace.Game("EmberIsles_Data/strings.bin", "original");
+        _workspace.Author(authorPath, "customized");
+
+        var comparison = await _workspace.CompareAsync(layout: new FolderLayout([new FolderRename("Ember Isles_Data", "EmberIsles_Data")]));
+
+        var file = comparison.Files.Should().ContainSingle().Subject;
+        file.Should().Match<ComparedFile>(found => found.Path == "Ember Isles_Data/strings.bin" && found.AuthorPath == authorPath
+            && found.Difference == FileDifference.Changed);
+        var part = new ProjectPart { Mode = CreatorMode.Advanced, Steps = [new PatchFileStep("Ember Isles_Data/strings.bin", file.Path)] };
+        var plan = CreatorPlanner.Plan(comparison, Workspace.Project(part), part, Workspace.Version, Workspace.Options).Plan;
+        plan.Findings.Should().BeEmpty();
+        plan.Operations[0].SourceFile!.FullPath.Should().Be(comparison.AuthorFullPath(authorPath));
+        plan.Operations[0].Original!.FullPath.Should().Be(Path.Combine(comparison.GameDirectory, "EmberIsles_Data", "strings.bin"));
+    }
+
+    [Fact]
+    public async Task A_folder_made_on_one_version_gives_the_other_the_same_plan_and_none_of_its_game_files()
+    {
+        using var other = new Workspace();
+        byte[] library = Workspace.Bytes(8192, 1), data = Workspace.Bytes(4096, 2), program = Workspace.Bytes(4096, 3), only = Workspace.Bytes(2048, 4);
+        _workspace.Game("data/lang.dll", library);
+        other.Game("data/lang.dll", Workspace.Bytes(8192, 5));
+        _workspace.Game("data/core.dat", data);
+        other.Game("data/core.dat", Workspace.Bytes(5000, 6));
+        _workspace.Game("LanternIsle.exe", program);
+        other.Game("LanternIsle.exe", Workspace.Bytes(4096, 7));
+        _workspace.Game("only here.dat", only);
+        _workspace.Author("data/lang.dll", Workspace.Bytes(8192, 8));
+        _workspace.Author("data/lang_o.dll", library);
+        _workspace.Author("data/core.dat", data);
+        _workspace.Author("LanternIsle.exe", program);
+        _workspace.Author("only here.dat", only);
+
+        FolderComparison[] comparisons =
+        [
+            await _workspace.CompareAsync(other: other),
+            await other.CompareAsync(authorDirectory: _workspace.AuthorDirectory, other: _workspace),
+        ];
+
+        comparisons.Should().AllSatisfy(comparison =>
+        {
+            var plan = CreatorPlanner.Plan(comparison, Workspace.Project(), new ProjectPart(), Workspace.Version, Workspace.Options).Plan;
+            plan.Operations.Select(operation => (operation.Kind, operation.From, operation.Path)).Should().Equal(
+                (OperationKind.Rename, "data/lang.dll", "data/lang_o.dll"),
+                (OperationKind.Copy, null, "data/lang.dll"));
+            plan.CanBuild.Should().BeTrue();
+        });
+    }
+
+    [Fact]
+    public async Task A_copy_of_a_file_only_another_version_has_is_refused_rather_than_carried()
+    {
+        using var other = new Workspace();
+        var only = Workspace.Bytes(2048, 1);
+        other.Game("data/only here.pak", only);
+        _workspace.Author("data/only here copy.pak", only);
+
+        var plan = CreatorPlanner.Plan(await _workspace.CompareAsync(other: other), Workspace.Project(), new ProjectPart(), Workspace.Version, Workspace.Options).Plan;
+
+        plan.Findings.Should().ContainSingle(finding => finding.Kind == FindingKind.CopyOfGameFile).Which.RelatedPath.Should().Be("data/only here.pak");
+        plan.CanBuild.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("customized", "customized")]
+    [InlineData("original", "customized")]
+    public async Task Two_files_that_are_one_path_of_the_project_keep_the_plan_from_building(string inVersionLayout, string inProjectLayout)
+    {
+        _workspace.Game("EmberIsles_Data/strings.bin", "original");
+        _workspace.Author("EmberIsles_Data/strings.bin", inVersionLayout);
+        _workspace.Author("Ember Isles_Data/strings.bin", inProjectLayout);
+
+        var comparison = await _workspace.CompareAsync(layout: new FolderLayout([new FolderRename("Ember Isles_Data", "EmberIsles_Data")]));
+        var plan = CreatorPlanner.Plan(comparison, Workspace.Project(), new ProjectPart(), Workspace.Version, Workspace.Options).Plan;
+
+        var finding = plan.Findings.Should().ContainSingle(found => found.Kind == FindingKind.AuthorFilesOnOnePath).Subject;
+        new[] { finding.Path, finding.RelatedPath }.Should().BeEquivalentTo("EmberIsles_Data/strings.bin", "Ember Isles_Data/strings.bin");
+        plan.CanBuild.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_second_comparison_of_a_pass_counts_only_the_bytes_still_to_hash()
+    {
+        using var other = new Workspace();
+        var content = Workspace.Bytes(4096, 1);
+        _workspace.Game("same.bin", content);
+        other.Game("same.bin", Workspace.Bytes(4096, 2));
+        _workspace.Author("same.bin", content);
+        var token = TestContext.Current.CancellationToken;
+        var comparer = new FolderComparer(Workspace.Options);
+        await comparer.CompareAsync(new ComparisonRequest(await comparer.ListGameAsync(_workspace.GameDirectory, [], token), _workspace.AuthorDirectory, []), progress: null, token);
+        var reports = new List<CompareProgress>();
+
+        await comparer.CompareAsync(new ComparisonRequest(await comparer.ListGameAsync(other.GameDirectory, [], token), _workspace.AuthorDirectory, []),
+            new Core.InlineProgress<CompareProgress>(reports.Add), token);
+
+        (reports[^2].BytesDone, reports[^2].BytesTotal).Should().Be((4096, 4096), "the bar reaches its end by hashing, not only at the finish");
+    }
+
+    [Fact]
+    public async Task A_comparison_on_a_drive_that_does_not_answer_ends_instead_of_hanging()
+    {
+        _workspace.Game("data/strings.bin", "original");
+        _workspace.Author("data/strings.bin", "customized");
+        var token = TestContext.Current.CancellationToken;
+        using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
+        var time = new FakeTimeProvider();
+        var comparer = new FolderComparer(Workspace.Options, files, new LibraryAccess(time));
+
+        files.Hang(_workspace.GamePath("data"));
+        using var stopping = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var listing = comparer.ListGameAsync(_workspace.GameDirectory, [], stopping.Token);
+        await Eventually.HoldsAsync(() => files.Blocked > 0, "the listing reaches the folder that hangs");
+        await stopping.CancelAsync();
+        await ((Func<Task>)(() => listing)).Should().ThrowAsync<OperationCanceledException>("a stop ends a listing, which has no time limit");
+        files.Blocked.Should().Be(1);
+        files.Answer(_workspace.GamePath("data"));
+
+        var listed = await comparer.ListGameAsync(_workspace.GameDirectory, [], token);
+        files.Hang(_workspace.AuthorDirectory);
+        var comparing = comparer.CompareAsync(new ComparisonRequest(listed, _workspace.AuthorDirectory, []), progress: null, token);
+        await files.RunOutOfTimeAsync(time);
+        await ((Func<Task>)(() => comparing)).Should().ThrowAsync<TimeoutException>();
+    }
+
+    [Fact]
+    public async Task Another_part_s_subfolder_is_not_compared()
+    {
+        _workspace.Author("data/strings.txt", "customized");
+        _workspace.Author("addon/data/extra.txt", "the add-on's");
+        _workspace.Author("addons/notes.txt", "notes");
+
+        var comparison = await _workspace.CompareAsync(skipped: [_workspace.AuthorFile("addon")]);
+
+        comparison.Files.Select(file => file.Path).Should().Equal("addons/notes.txt", "data/strings.txt");
     }
 
     private static void CreateJunction(string link, string target)

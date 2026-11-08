@@ -1,15 +1,22 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Creator.Comparison;
 
-/// <summary>SHA-256 of files, each hashed at most once per comparison however many lookups need it.</summary>
+/// <summary>SHA-256 of files, each hashed at most once per comparer however many lookups need it.</summary>
 /// <param name="fileSystem">Opens the files.</param>
 internal sealed class ContentHashes(IFileSystem fileSystem)
 {
-    // Null marks a file that could not be read.
-    private readonly Dictionary<string, string?> _hashes = new(PathComparison.Comparer);
+    // Null marks a file that could not be read. Concurrent, since a stopped comparison that a drive holds up ends on its own
+    // while the next one runs.
+    private readonly ConcurrentDictionary<string, string?> _hashes = new(PathComparison.Comparer);
+
+    /// <summary>The bytes that hashing a file would still read, none once it was asked for.</summary>
+    /// <param name="fullPath">The file.</param>
+    /// <param name="size">The file's size as listed.</param>
+    public long BytesToRead(string fullPath, long size) => _hashes.ContainsKey(fullPath) ? 0 : size;
 
     /// <summary>The file's SHA-256, hashed only the first time it is asked for.</summary>
     /// <param name="fullPath">The file, read with writers locked out.</param>

@@ -1,6 +1,7 @@
 using System.Globalization;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Creator.Comparison;
 
 namespace JustModIt.Manager.Creator.Planning;
 
@@ -41,10 +42,11 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
 
     /// <summary>The format the operations need, with every reason for it.</summary>
     /// <param name="operations">The plan's operations, in order.</param>
+    /// <param name="layout">Where the project's folders lie on the game, which is where the package holds its files.</param>
     /// <param name="carriesThirdPartyTools">The package carries a tool that needs a <see cref="ToolNotice"/>.</param>
     /// <param name="declaresRuntimeFiles">The package names files its software changes while the game runs.</param>
-    public static PackageFormatDecision For(IReadOnlyList<PlannedOperation> operations, bool carriesThirdPartyTools,
-        bool declaresRuntimeFiles = false)
+    public static PackageFormatDecision For(IReadOnlyList<PlannedOperation> operations, FolderLayout layout, bool carriesThirdPartyTools,
+        bool declaresRuntimeFiles)
     {
         List<FormatReason> reasons =
         [
@@ -75,8 +77,8 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
             return new PackageFormatDecision(PackageKind.Manifest, [.. reasons]);
         }
 
-        return operations.Any(operation => operation.Path == PackageLayout.ManifestEntry)
-            || (operations.Count > 0 && operations.All(operation => PackageLayout.IsPayload(operation.Path)))
+        var paths = operations.Select(operation => layout.ToGame(operation.Path)).ToList();
+        return paths.Contains(PackageLayout.ManifestEntry) || (paths.Count > 0 && paths.All(PackageLayout.IsPayload))
                 ? new PackageFormatDecision(PackageKind.Manifest, [FormatReason.ReadsAsManifestPackage])
                 : new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]);
     }
@@ -111,7 +113,11 @@ public sealed record PackagePlan
     /// <summary>Canonical.</summary>
     public required string AuthorDirectory { get; init; }
 
+    /// <summary>In the project's layout, as is every path of the plan; <see cref="Layout"/> gives where they lie on the game.</summary>
     public required ValueList<PlannedOperation> Operations { get; init; }
+
+    /// <summary>Where the project's folders lie on the game the package is built for.</summary>
+    public FolderLayout Layout { get; init; }
 
     public required PackageFormatDecision Format { get; init; }
 

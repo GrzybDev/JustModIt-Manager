@@ -572,7 +572,8 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
             await session.UseKeptPathsAsync(found.Backups
                 .Where(backup => backup.Game == game.Key && backup.Kept is not null
                     && PathComparison.AreSame(backup.GameDirectory, game.Game.InstallDirectory))
-                .SelectMany(backup => backup.Kept!.Paths)).ConfigureAwait(true);
+                .SelectMany(backup => backup.Kept!.Paths)
+                .Select(path => session.Comparison?.Game.Layout.ToPackage(path) ?? path)).ConfigureAwait(true);
         }
     }
 

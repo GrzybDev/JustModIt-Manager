@@ -6,6 +6,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Creator.Building;
+using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Creator.Rules;
 using JustModIt.Manager.Creator.Tests.TestSupport;
@@ -463,6 +464,23 @@ public sealed class PackageBuilderTests : IDisposable
 
         await using var package = await new PackageReader().OpenAsync(result.OutputPath, TestContext.Current.CancellationToken);
         package.Steps.OfType<CopyStep>().Select(step => step.Entry).Should().Equal("files/data/text.txt", "files/Data/TEXT.txt.2");
+    }
+
+    [Fact]
+    public async Task A_version_whose_folder_maps_to_files_builds_a_manifest_package()
+    {
+        _workspace.Game("files/strings.bin", "strings");
+        _workspace.Author("data/extra.txt", "extra");
+        var comparison = await _workspace.CompareAsync(layout: new FolderLayout([new FolderRename("data", "files")]));
+
+        var plan = CreatorPlanner.Plan(comparison, Project, Project.Parts[0], Workspace.Version, Workspace.Options).Plan;
+        var result = await BuildAsync(plan, "example.examplemod");
+
+        plan.Format.Reasons.Should().Equal(FormatReason.ReadsAsManifestPackage);
+        await using var package = await new PackageReader().OpenAsync(result.OutputPath, TestContext.Current.CancellationToken);
+        package.Kind.Should().Be(PackageKind.Manifest);
+        package.Steps.Select(Describe).Should().Equal("copy files/extra.txt");
+        package.Steps.OfType<CopyStep>().Single().Entry.Should().Be("files/files/extra.txt");
     }
 
     private static InstalledGame Game(PackagePlan plan, string? buildId = null) => new()

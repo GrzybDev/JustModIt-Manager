@@ -216,9 +216,12 @@ public sealed class CreatorLiveTests : IDisposable
         }
     }
 
-    private static async Task<FolderComparison> CompareAsync(LiveEngine engine, InstalledGame game, string author) =>
-        await new FolderComparer(Options).CompareAsync(
-            new ComparisonRequest(game.InstallDirectory, author, await engine.ExistingInstallsAsync(Token)), progress: null, Token);
+    private static async Task<FolderComparison> CompareAsync(LiveEngine engine, InstalledGame game, string author)
+    {
+        var comparer = new FolderComparer(Options);
+        var listed = await comparer.ListGameAsync(game.InstallDirectory, await engine.ExistingInstallsAsync(Token), Token);
+        return await comparer.CompareAsync(new ComparisonRequest(listed, author, []), progress: null, Token);
+    }
 
     private static async Task<Dictionary<string, string>> HashAsync(string folder, IEnumerable<string> paths)
     {

@@ -48,6 +48,14 @@ public static class CreatorPlanner
         findings.AddRange(part.Mode == CreatorMode.Simple
             ? RenamesNotReplaced(comparison, resolved)
             : RenamesOfWrittenFiles(comparison, resolved));
+        if (part.Mode == CreatorMode.Simple)
+        {
+            // A step names its source, while simple mode knows a file only by its path, and which of the two is the author's work no plan can tell.
+            findings.AddRange(comparison.Files.Where(file => file.AuthorPath is not null).GroupBy(file => file.Path, PackagePath.Comparer)
+                .Where(files => files.Skip(1).Any())
+                .Select(files => new PlanFinding(FindingKind.AuthorFilesOnOnePath, files.First().AuthorPath) { RelatedPath = files.Last().AuthorPath }));
+        }
+
         findings.AddRange(HostingRules.Check(comparison, resolved, options.Rules));
         findings.AddRange(HostingRules.CheckRuntime(runtime, resolved, options.Rules));
         var tools = findings.Where(finding => finding.Kind == FindingKind.ThirdPartyTool).Select(finding => finding.ToolId!).ToList();
@@ -66,21 +74,23 @@ public static class CreatorPlanner
             findings.Add(new PlanFinding(FindingKind.RuntimeWithoutCode));
         }
 
-        var format = PackageFormatDecision.For(resolved, carriesThirdPartyTools: tools.Count > 0 || libraries.Count > 0,
+        var layout = comparison.Game.Layout;
+        var format = PackageFormatDecision.For(resolved, layout, carriesThirdPartyTools: tools.Count > 0 || libraries.Count > 0,
             declaresRuntimeFiles: runtime.Count > 0);
-        findings.AddRange(PackageChecks(resolved, format, project.Metadata, options));
+        findings.AddRange(PackageChecks(resolved, format, layout, project.Metadata, options));
         var plan = new PackagePlan
         {
             GameDirectory = comparison.GameDirectory,
             AuthorDirectory = comparison.AuthorDirectory,
             Operations = [.. resolved],
+            Layout = layout,
             Format = format,
             Findings = [.. findings.Select(finding => Acknowledge(finding, project))],
             Metadata = project.Metadata,
             ThirdPartyNotices =
             [
                 .. tools.Select(tool => NoticeOf(tool, project, options.Rules)).OfType<ThirdPartyNotice>(),
-                .. libraries.Where(library => library.Notice!.IsComplete).Select(library => NoticeOf(library.Path, library.Notice!)),
+                .. libraries.Where(library => library.Notice!.IsComplete).Select(library => NoticeOf(library.Path, library.Notice!, layout)),
             ],
             Acknowledged = project.Acknowledged,
             RuntimeFiles = [.. runtime],
@@ -146,12 +156,12 @@ public static class CreatorPlanner
             : null;
 
     // The library's file is all the creator knows of the tool, so it names the notice unless the author names the tool.
-    private static ThirdPartyNotice NoticeOf(string path, LibraryNotice library) => new()
+    private static ThirdPartyNotice NoticeOf(string path, LibraryNotice library, FolderLayout layout) => new()
     {
         Name = string.IsNullOrWhiteSpace(library.Name) ? LibraryNotice.NameAfterFile(path) : library.Name.Trim(),
         License = library.License.Trim(),
         SourceUrl = library.SourceUrl.Trim(),
-        Paths = [path],
+        Paths = [layout.ToGame(path)],
     };
 
     // The author's extra steps run first, then renames and deletions, then the files in path order, so a game file can
@@ -193,7 +203,7 @@ public static class CreatorPlanner
             }
         }
 
-        var ordered = comparison.Files.Select(file => entries.GetValueOrDefault(file.Path)).OfType<ReviewEntry>().ToList();
+        var ordered = comparison.Files.Select(file => entries.GetValueOrDefault(file.Path)).OfType<ReviewEntry>().Distinct().ToList();
         var operations = extra
             .Concat(ordered.Where(entry => entry.Choice == FileChoice.Rename).Select(OperationOf))
             .Concat(ordered.Where(entry => entry.Choice == FileChoice.Delete).Select(OperationOf))
@@ -313,7 +323,7 @@ public static class CreatorPlanner
     }
 
     private static IEnumerable<PlanFinding> PackageChecks(List<PlannedOperation> operations, PackageFormatDecision format,
-        PackageMetadata metadata, CreatorOptions options)
+        FolderLayout layout, PackageMetadata metadata, CreatorOptions options)
     {
         if (format.EntryCount(operations) > options.Limits.MaxEntries)
         {
@@ -330,7 +340,8 @@ public static class CreatorPlanner
         for (var i = 0; i < operations.Count; i++)
         {
             var operation = operations[i];
-            if (operation.HasPayload && PackagePath.IsValid(operation.Path) && !PackagePath.IsValid(format.EntryFor(operation)))
+            if (operation.HasPayload && PackagePath.IsValid(operation.Path)
+                && !PackagePath.IsValid(format.EntryFor(operation with { Path = layout.ToGame(operation.Path) })))
             {
                 yield return new PlanFinding(FindingKind.InvalidPath, operation.Path)
                 {

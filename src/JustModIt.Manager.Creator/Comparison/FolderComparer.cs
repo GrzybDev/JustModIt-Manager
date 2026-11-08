@@ -1,6 +1,7 @@
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Platform;
 
@@ -8,41 +9,79 @@ namespace JustModIt.Manager.Creator.Comparison;
 
 /// <summary>
 /// Sets the author's folder, laid out like the game, against a clean game folder: size first, SHA-256 only for files of
-/// the same size, one listing of the game for everything.
+/// the same size, one listing of the game for everything. Each file is hashed once however many comparisons need it, so
+/// a comparer lasts for one pass over the folders.
 /// </summary>
 /// <param name="options">The app's folder names in games.</param>
 /// <param name="fileSystem">Lists and reads the folders; null for the real file system.</param>
-public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSystem = null)
+/// <param name="access">Gives up on opening a folder whose drive does not answer; null waits for it.</param>
+public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSystem = null, LibraryAccess? access = null)
 {
     // The default skips hidden and system files, which in an author's folder are .git, Thumbs.db and desktop.ini.
     private static readonly EnumerationOptions AuthorFiles = new() { RecurseSubdirectories = true, IgnoreInaccessible = false };
 
     private readonly IFileSystem _fileSystem = fileSystem ?? PhysicalFileSystem.Instance;
+    private readonly LibraryAccess _access = access ?? LibraryAccess.Unlimited;
+    private readonly ContentHashes _hashes = new(fileSystem ?? PhysicalFileSystem.Instance);
 
-    /// <summary>Compares the author's folder with the game folder, off the calling thread.</summary>
-    /// <param name="request">The folders, and the installs the app keeps records of.</param>
-    /// <param name="progress">Receives the comparison's progress; null for none.</param>
-    /// <param name="cancellationToken">Cancels the comparison.</param>
+    /// <summary>Lists a game folder off the calling thread, once however many packages are compared with it.</summary>
+    /// <param name="gameDirectory">The game folder.</param>
+    /// <param name="installs">Every install the app keeps a record of; one on the game refuses the listing.</param>
+    /// <param name="cancellationToken">Stops the listing, or the wait for one that a drive holds up.</param>
     /// <exception cref="CreatorBlockedException">
-    /// A folder is missing, they overlap, the game holds an install, or another app manages files of it.
+    /// The folder is missing, the game holds an install, or another app manages files of it.
     /// </exception>
+    /// <exception cref="TimeoutException">The folder's drive does not answer.</exception>
+    public Task<GameIndex> ListGameAsync(string gameDirectory, IReadOnlyList<ExistingInstall> installs, CancellationToken cancellationToken) =>
+        Task.Run(async () =>
+        {
+            if (!await FolderExistsAsync(gameDirectory, cancellationToken).ConfigureAwait(false))
+            {
+                throw new CreatorBlockedException([new CreatorBlock(CreatorBlockReason.GameFolderMissing, gameDirectory)]);
+            }
+
+            var game = _fileSystem.GetCanonicalPath(gameDirectory);
+            CreatorBlockedException.ThrowIfManaged(game, installs, _fileSystem, options);
+            return GameIndex.Build(_fileSystem, game, options.HiddenFolderName, cancellationToken);
+        }, cancellationToken).WaitAsync(cancellationToken);
+
+    /// <summary>Compares the author's folder with the game as listed, off the calling thread.</summary>
+    /// <param name="request">The game, the author's folder and what to leave out of it.</param>
+    /// <param name="progress">Receives the comparison's progress; null for none.</param>
+    /// <param name="cancellationToken">Cancels the comparison, or the wait for one that a drive holds up.</param>
+    /// <exception cref="CreatorBlockedException">The folder is missing or overlaps the game's.</exception>
+    /// <exception cref="TimeoutException">The folder's drive does not answer.</exception>
     public Task<FolderComparison> CompareAsync(ComparisonRequest request, IProgress<CompareProgress>? progress,
         CancellationToken cancellationToken)
     {
-        return Task.Run(() => CompareCoreAsync(request, progress, cancellationToken), cancellationToken);
+        return Task.Run(() => CompareCoreAsync(request, progress, cancellationToken), cancellationToken).WaitAsync(cancellationToken);
     }
+
+    // Only opening a folder has a time limit, since a large listing may well outlast it; a stop ends the wait for one.
+    private Task<bool> FolderExistsAsync(string folder, CancellationToken cancellationToken) =>
+        _access.ReadAsync(folder, _ => Task.FromResult(_fileSystem.DirectoryExists(folder)), cancellationToken);
 
     private async Task<FolderComparison> CompareCoreAsync(ComparisonRequest request, IProgress<CompareProgress>? progress,
         CancellationToken cancellationToken)
     {
-        var (gameDirectory, authorDirectory) = OpenFolders(request);
+        if (!await FolderExistsAsync(request.AuthorDirectory, cancellationToken).ConfigureAwait(false))
+        {
+            throw new CreatorBlockedException([new CreatorBlock(CreatorBlockReason.AuthorFolderMissing, request.AuthorDirectory)]);
+        }
+
+        var game = request.Game;
+        var authorDirectory = _fileSystem.GetCanonicalPath(request.AuthorDirectory);
+        if (PathComparison.Overlaps(game.Root, authorDirectory))
+        {
+            throw new CreatorBlockedException([new CreatorBlock(CreatorBlockReason.FoldersOverlap, authorDirectory)]);
+        }
+
         progress?.Report(new CompareProgress(ComparisonStage.ListingFiles, null, 0, 0, 0, 0));
-        var game = GameIndex.Build(_fileSystem, gameDirectory, options.HiddenFolderName, cancellationToken);
-        var candidates = ListAuthorFiles(game, authorDirectory, cancellationToken);
-        var hashes = new ContentHashes(_fileSystem);
-        var copySearch = CopySearch.Plan(game, candidates);
-        var bytesTotal = candidates.Where(candidate => candidate.SameSize).Sum(candidate => 2 * candidate.Stamp.Size)
-            + copySearch.BytesToHash(candidates);
+        var candidates = ListAuthorFiles(request, authorDirectory, cancellationToken);
+        var copySearch = CopySearch.Plan(game, request.OtherVersions, candidates);
+        var bytesTotal = candidates.Where(candidate => candidate.SameSize)
+                .Sum(candidate => _hashes.BytesToRead(candidate.FullPath, candidate.Stamp.Size) + _hashes.BytesToRead(candidate.Game!.FullPath, candidate.Stamp.Size))
+            + copySearch.BytesToHash(candidates, _hashes);
         var tracker = new Tracker(progress, candidates.Count, bytesTotal);
 
         var files = new List<ComparedFile>(candidates.Count);
@@ -50,11 +89,11 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
         {
             cancellationToken.ThrowIfCancellationRequested();
             tracker.Start(ComparisonStage.Comparing, candidate.Path, files.Count);
-            files.Add(await ClassifyAsync(candidate, hashes, tracker.Bytes, cancellationToken).ConfigureAwait(false));
+            files.Add(await ClassifyAsync(candidate, request.OtherVersions, tracker.Bytes, cancellationToken).ConfigureAwait(false));
         }
 
         var missing = RemovedFiles(game, files);
-        var copies = await copySearch.RunAsync(files, missing, hashes, tracker, cancellationToken).ConfigureAwait(false);
+        var copies = await copySearch.RunAsync(files, missing, _hashes, tracker, cancellationToken).ConfigureAwait(false);
         tracker.Finish();
         ValueList<ComparedFile> compared =
         [
@@ -64,45 +103,20 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
                 .Concat(missing)
                 .OrderBy(file => file.Path, StringComparer.OrdinalIgnoreCase),
         ];
-        return new FolderComparison(gameDirectory, authorDirectory, compared, game);
+        return new FolderComparison(game.Root, authorDirectory, compared, game);
     }
 
-    private (string Game, string Author) OpenFolders(ComparisonRequest request)
+    private List<Candidate> ListAuthorFiles(ComparisonRequest request, string authorDirectory, CancellationToken cancellationToken)
     {
-        var blocks = new List<CreatorBlock>();
-        if (!_fileSystem.DirectoryExists(request.GameDirectory))
-        {
-            blocks.Add(new CreatorBlock(CreatorBlockReason.GameFolderMissing, request.GameDirectory));
-        }
-
-        if (!_fileSystem.DirectoryExists(request.AuthorDirectory))
-        {
-            blocks.Add(new CreatorBlock(CreatorBlockReason.AuthorFolderMissing, request.AuthorDirectory));
-        }
-
-        if (blocks.Count > 0)
-        {
-            throw new CreatorBlockedException(blocks);
-        }
-
-        var game = _fileSystem.GetCanonicalPath(request.GameDirectory);
-        var author = _fileSystem.GetCanonicalPath(request.AuthorDirectory);
-        if (PathComparison.Overlaps(game, author))
-        {
-            throw new CreatorBlockedException([new CreatorBlock(CreatorBlockReason.FoldersOverlap, author)]);
-        }
-
-        CreatorBlockedException.ThrowIfManaged(game, request.Installs, _fileSystem, options);
-        return (game, author);
-    }
-
-    private List<Candidate> ListAuthorFiles(GameIndex game, string authorDirectory, CancellationToken cancellationToken)
-    {
+        var game = request.Game;
+        var skipped = request.SkippedFolders.Select(_fileSystem.GetCanonicalPath).ToList();
         var candidates = new List<Candidate>();
-        foreach (var entry in AuthorFilesIn(authorDirectory, cancellationToken))
+        foreach (var entry in AuthorFilesIn(authorDirectory, cancellationToken)
+            .Where(entry => !skipped.Exists(folder => PathComparison.IsWithin(folder, entry.FullPath))))
         {
             var authorPath = PackagePath.FromFullPath(authorDirectory, entry.FullPath);
-            var path = game.Spell(authorPath);
+            // A version's own folder may lie like that version; a path in the project's layout stays as it is.
+            var path = game.Spell(game.Layout.ToPackage(authorPath));
             candidates.Add(new Candidate(path, authorPath, entry.FullPath, FileStamp.Of(entry),
                 game.TryGetFile(path, out var gameFile) ? gameFile : null));
         }
@@ -123,7 +137,7 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
         }
     }
 
-    private static async Task<ComparedFile> ClassifyAsync(Candidate candidate, ContentHashes hashes, IProgress<long> bytes,
+    private async Task<ComparedFile> ClassifyAsync(Candidate candidate, IReadOnlyList<GameIndex> others, IProgress<long> bytes,
         CancellationToken cancellationToken)
     {
         var file = new ComparedFile
@@ -132,23 +146,28 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
             AuthorPath = candidate.AuthorPath,
             Author = candidate.Stamp,
             Game = candidate.Game,
-            Difference = FileDifference.New,
+            Difference = candidate.Game is null ? FileDifference.New : FileDifference.Changed,
         };
-        if (candidate.Game is not { } game)
+        if (candidate.SameSize
+            && FileHash.Matches(await _hashes.HashAsync(candidate.FullPath, bytes, cancellationToken).ConfigureAwait(false),
+                await _hashes.HashAsync(candidate.Game!.FullPath, bytes, cancellationToken).ConfigureAwait(false)))
         {
-            return file;
+            return file with { Difference = FileDifference.Identical, CopyOf = candidate.Game.Path };
         }
 
-        if (!candidate.SameSize)
+        // Off the progress: it only takes what differs from this version, and the other version's comparison mostly hashed it already.
+        foreach (var other in others)
         {
-            return file with { Difference = FileDifference.Changed };
+            if (other.TryGetFile(candidate.Path, out var theirs) && theirs.Stamp.Size == candidate.Stamp.Size
+                && await _hashes.TryHashAsync(candidate.FullPath, candidate.Stamp.Size, null, cancellationToken).ConfigureAwait(false) is { } author
+                && await _hashes.TryHashAsync(theirs.FullPath, theirs.Stamp.Size, null, cancellationToken).ConfigureAwait(false) is { } original
+                && FileHash.Matches(author, original))
+            {
+                return file with { Difference = FileDifference.Identical, CopyOf = candidate.Path };
+            }
         }
 
-        var author = await hashes.HashAsync(candidate.FullPath, bytes, cancellationToken).ConfigureAwait(false);
-        var original = await hashes.HashAsync(game.FullPath, bytes, cancellationToken).ConfigureAwait(false);
-        return FileHash.Matches(author, original)
-            ? file with { Difference = FileDifference.Identical, CopyOf = game.Path }
-            : file with { Difference = FileDifference.Changed };
+        return file;
     }
 
     // A new file at the top of the author's folder whose name the game keeps in one folder only was most likely meant
@@ -177,7 +196,7 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
     }
 
     /// <summary>An author's file before it is classified.</summary>
-    /// <param name="Path">Game-relative, spelled like the game wherever the game has the file or its folders.</param>
+    /// <param name="Path">In the project's layout, spelled like the game wherever the game has the file or its folders.</param>
     /// <param name="AuthorPath">Relative to the author's folder, as the author spells it.</param>
     /// <param name="FullPath">The author's file on disk.</param>
     /// <param name="Stamp">The author's file as listed.</param>

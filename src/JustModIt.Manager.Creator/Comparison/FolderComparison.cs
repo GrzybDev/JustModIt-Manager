@@ -11,7 +11,7 @@ public enum FileDifference
     /// <summary>The author's version of a game file.</summary>
     Changed,
 
-    /// <summary>The same content as the game's file.</summary>
+    /// <summary>The same content as the game's file, or as another version's at this path, which is no work of the author's either.</summary>
     Identical,
 
     /// <summary>
@@ -23,7 +23,7 @@ public enum FileDifference
 
 public sealed record ComparedFile
 {
-    /// <summary>Game-relative, spelled like the game wherever the game has the file or its folders.</summary>
+    /// <summary>In the project's layout, spelled like the game wherever the game has the file or its folders.</summary>
     public required string Path { get; init; }
 
     public required FileDifference Difference { get; init; }
@@ -38,8 +38,8 @@ public sealed record ComparedFile
     public GameFile? Game { get; init; }
 
     /// <summary>
-    /// A game file with the same content as the author's file, which a package must not carry; searched only for new
-    /// files and for files whose size differs from the game's, from 1 KiB up.
+    /// A game file, of this version or another, with the same content as the author's file, which a package must not carry;
+    /// searched only for new files and for files whose size differs from the game's, from 1 KiB up.
     /// </summary>
     public string? CopyOf { get; init; }
 
@@ -56,11 +56,18 @@ public sealed record ComparedFile
     public string? ExpectedFolder { get; init; }
 }
 
-/// <summary>The folders a comparison sets against each other.</summary>
-/// <param name="GameDirectory">The game folder to compare against.</param>
-/// <param name="AuthorDirectory">The author's folder, laid out like the game.</param>
-/// <param name="Installs">Every install the app keeps a record of; one on the game refuses the comparison.</param>
-public sealed record ComparisonRequest(string GameDirectory, string AuthorDirectory, IReadOnlyList<ExistingInstall> Installs);
+/// <summary>What a comparison sets against each other.</summary>
+/// <param name="Game">The game as listed, in the layout the comparison's paths take.</param>
+/// <param name="AuthorDirectory">The author's folder, laid out like the game or like the project.</param>
+/// <param name="SkippedFolders">Folders within it that hold other packages' files, which the comparison leaves out.</param>
+public sealed record ComparisonRequest(GameIndex Game, string AuthorDirectory, IReadOnlyList<string> SkippedFolders)
+{
+    /// <summary>
+    /// The other versions of the game that share the author's folder, in the project's layout. The folder was made on one of
+    /// them, so what it holds of their files is no work of the author's on this version either.
+    /// </summary>
+    public IReadOnlyList<GameIndex> OtherVersions { get; init; } = [];
+}
 
 public enum ComparisonStage
 {
@@ -83,6 +90,7 @@ public readonly record struct CompareProgress(ComparisonStage Stage, string? Cur
 public sealed class FolderComparison
 {
     private readonly Dictionary<string, ComparedFile> _byAuthorPath;
+    private readonly Dictionary<string, ComparedFile> _byPath;
 
     /// <summary>Holds the result of a comparison.</summary>
     /// <param name="gameDirectory">The game folder, canonical.</param>
@@ -98,6 +106,9 @@ public sealed class FolderComparison
         _byAuthorPath = files.Where(file => file.AuthorPath is not null)
             .DistinctBy(file => file.AuthorPath, PackagePath.Comparer)
             .ToDictionary(file => file.AuthorPath!, PackagePath.Comparer);
+        _byPath = files.Where(file => file.AuthorPath is not null)
+            .DistinctBy(file => file.Path, PackagePath.Comparer)
+            .ToDictionary(file => file.Path, PackagePath.Comparer);
     }
 
     /// <summary>Canonical.</summary>
@@ -116,6 +127,6 @@ public sealed class FolderComparison
     public string AuthorFullPath(string authorPath) => PackagePath.ToFullPath(AuthorDirectory, authorPath);
 
     /// <summary>The compared file of an author's file; null when the comparison has none.</summary>
-    /// <param name="authorPath">Relative to the author's folder, in any letter case.</param>
-    public ComparedFile? FindAuthorFile(string authorPath) => _byAuthorPath.GetValueOrDefault(authorPath);
+    /// <param name="path">Relative to the author's folder or else a project path, in any letter case.</param>
+    public ComparedFile? FindAuthorFile(string path) => _byAuthorPath.GetValueOrDefault(path) ?? _byPath.GetValueOrDefault(path);
 }

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Localization;
@@ -34,6 +35,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
 {
     private readonly CreatorPageViewModel _page;
     private readonly CreatorSession _session;
+    private readonly LibraryAccess _access;
     private CancellationTokenSource? _comparing;
     private (GameKey? Key, string? Folder)? _comparedWith;
     private bool _comparesOnShow;
@@ -45,6 +47,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     {
         _page = page;
         _session = session;
+        _access = new LibraryAccess(page.Services.Clock);
         _comparesOnShow = session.Part.AuthorFolder.Length > 0;
         _session.PropertyChanged += OnSessionChanged;
         ShowFolder();
@@ -193,9 +196,10 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
             .ToList();
         try
         {
-            var comparison = await new FolderComparer(_page.Options, _page.FileSystem)
-                .CompareAsync(new ComparisonRequest(game.Game.InstallDirectory, folder, installs),
-                    new LatestProgress<CompareProgress>(Show), comparing.Token)
+            var comparer = new FolderComparer(_page.Options, _page.FileSystem, _access);
+            var listed = await comparer.ListGameAsync(game.Game.InstallDirectory, installs, comparing.Token).ConfigureAwait(true);
+            var comparison = await comparer.CompareAsync(new ComparisonRequest(listed, folder, []),
+                new LatestProgress<CompareProgress>(Show), comparing.Token)
                 .ConfigureAwait(true);
             if (_comparing == comparing)
             {
@@ -216,7 +220,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
             Stop(comparing, CreatorWording.BlockTitle(blocked.Blocks[0], game.Game.InstallDirectory),
                 string.Join(' ', blocked.Blocks.Select(block => CreatorWording.Block(block, game.Game.InstallDirectory))));
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or TimeoutException)
         {
             Stop(comparing, Strings.Creator_CompareFailedTitle, Strings.Creator_CompareFailed);
         }

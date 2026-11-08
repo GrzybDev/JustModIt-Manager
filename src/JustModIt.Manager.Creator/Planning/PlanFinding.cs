@@ -16,6 +16,12 @@ public enum FindingKind
     /// <summary>The package writes the path twice, so the first write would be lost.</summary>
     DuplicatePath,
 
+    /// <summary>
+    /// Two of the author's files, in a folder that holds both layouts' folders, are one path of the project, so the package would
+    /// hold only one of them; <see cref="PlanFinding.Path"/> and <see cref="PlanFinding.RelatedPath"/> name them.
+    /// </summary>
+    AuthorFilesOnOnePath,
+
     /// <summary>Operations undo each other, e.g. deleting a file the package wrote, or renaming a file onto itself.</summary>
     ConflictingOperations,
 

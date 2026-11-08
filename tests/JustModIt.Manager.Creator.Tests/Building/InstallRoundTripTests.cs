@@ -6,6 +6,7 @@ using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Creator.Building;
+using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Creator.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -116,6 +117,65 @@ public sealed class InstallRoundTripTests : IDisposable
             .Should().Be("customized");
     }
 
+    [Fact]
+    public async Task Each_version_installs_byte_for_byte_in_its_own_layout()
+    {
+        var token = TestContext.Current.CancellationToken;
+        using var steam = new Workspace();
+        using var gog = new Workspace();
+        foreach (var (workspace, folder) in new[] { (steam, "Ember Isles_Data"), (gog, "EmberIsles_Data") })
+        {
+            workspace.Game("EmberIsles.exe", "exe");
+            workspace.Game($"{folder}/strings.bin", Strings);
+            workspace.Game($"{folder}/lang_x64.dll", Original);
+            workspace.Game($"{folder}/list.idx", Workspace.Bytes(3000, 14));
+        }
+
+        steam.Author("Ember Isles_Data/strings.bin", Changed(Strings));
+        steam.Author("Ember Isles_Data/lang_x64.dll", Proxy);
+        steam.Author("Ember Isles_Data/lang_x64_o.dll", Original);
+        steam.Author("Ember Isles_Data/fonts/extra.ttf", "font");
+        var part = new ProjectPart().WithRuntimeFile(new RuntimeFileChoice("Ember Isles_Data/list.idx", RuntimeFileKind.ChangesGameFile));
+        var comparer = new FolderComparer(Workspace.Options);
+        var project = await comparer.ListGameAsync(steam.GameDirectory, [], token);
+
+        foreach (var (workspace, key, folder) in new[]
+        {
+            (steam, Key, "Ember Isles_Data"),
+            (gog, new GameKey(StoreId.Gog, "1100000002000000001"), "EmberIsles_Data"),
+        })
+        {
+            var listed = await comparer.ListGameAsync(workspace.GameDirectory, [], token);
+            var comparison = await comparer.CompareAsync(new ComparisonRequest(listed.InLayout(FolderLayout.Detect(project, listed)), steam.AuthorDirectory, []),
+                progress: null, token);
+            var plan = CreatorPlanner.Plan(comparison, Workspace.Project(part), part, new ProjectVersion(new ProjectGame(key, "Ember Isles")),
+                Workspace.Options).Plan;
+            var game = Game(plan.GameDirectory, key);
+            var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
+                new BuildRequest { OutputPath = workspace.Output("example.examplemod"), Game = game }, progress: null, token);
+            var before = Snapshot(workspace);
+            await using var engine = Engine(game, workspace);
+
+            var installed = await engine.InstallAsync(new InstallRequest(game, built.OutputPath, BackupChoice.GameFolder), progress: null, token);
+
+            built.Operations.OfType<RenameOperation>().Should().ContainSingle().Which
+                .Should().Be(new RenameOperation($"{folder}/lang_x64.dll", $"{folder}/lang_x64_o.dll"));
+            built.Operations.OfType<CopyOperation>().Select(copy => copy.Path).Should().OnlyContain(path => path.StartsWith(folder + "/", StringComparison.Ordinal));
+            built.Manifest!.RuntimeFiles!.Should().ContainSingle().Which.Path.Should().Be($"{folder}/list.idx");
+            installed.Warnings.Should().BeEmpty();
+            File.ReadAllBytes(workspace.GamePath($"{folder}/lang_x64.dll")).Should().Equal(Proxy);
+            File.ReadAllBytes(workspace.GamePath($"{folder}/lang_x64_o.dll")).Should().Equal(Original);
+            File.ReadAllBytes(workspace.GamePath($"{folder}/strings.bin")).Should().Equal(Changed(Strings));
+            File.ReadAllBytes(workspace.GamePath($"{folder}/fonts/extra.ttf")).Should().Equal(Workspace.Text("font"));
+            Directory.EnumerateDirectories(workspace.GameDirectory).Select(Path.GetFileName)
+                .Should().BeEquivalentTo(folder, Workspace.HiddenFolderName);
+
+            await engine.UninstallAsync(installed.Record.Id, replacedBy: null, progress: null, token);
+
+            Snapshot(workspace).Should().BeEquivalentTo(before);
+        }
+    }
+
     private static byte[] Changed(byte[] content)
     {
         var changed = (byte[])content.Clone();
@@ -123,9 +183,9 @@ public sealed class InstallRoundTripTests : IDisposable
         return changed;
     }
 
-    private static InstalledGame Game(string directory) => new()
+    private static InstalledGame Game(string directory, GameKey? key = null) => new()
     {
-        Key = Key,
+        Key = key ?? Key,
         Name = "Example Game",
         InstallDirectory = directory,
         LibraryId = "library",

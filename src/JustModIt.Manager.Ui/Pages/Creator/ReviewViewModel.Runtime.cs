@@ -151,7 +151,7 @@ public sealed partial class ReviewViewModel
         _runtimeFoldsWhenSolved = true;
         if (_session.Comparison is { } comparison)
         {
-            _page.Services.Links.OpenFolder(Path.GetDirectoryName(PackagePath.ToFullPath(comparison.GameDirectory, row.Path))!);
+            _page.Services.Links.OpenFolder(Path.GetDirectoryName(PackagePath.ToFullPath(comparison.GameDirectory, comparison.Game.Layout.ToGame(row.Path)))!);
         }
     }
 

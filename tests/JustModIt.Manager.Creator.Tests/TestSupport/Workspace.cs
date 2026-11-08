@@ -73,10 +73,27 @@ internal sealed class Workspace : IDisposable
 
     public string Output(string name) => Path.Combine(OutputDirectory, name);
 
-    public Task<FolderComparison> CompareAsync(IReadOnlyList<ExistingInstall>? installs = null,
-        IProgress<CompareProgress>? progress = null, CancellationToken? cancellationToken = null, CreatorOptions? options = null) =>
-        new FolderComparer(options ?? Options).CompareAsync(new ComparisonRequest(GameDirectory, AuthorDirectory, installs ?? []),
-            progress, cancellationToken ?? TestContext.Current.CancellationToken);
+    /// <summary>Lists the game folder and compares the author's folder with it, as the window does.</summary>
+    /// <param name="installs">The installs the app keeps records of; none when null.</param>
+    /// <param name="progress">Receives the comparison's progress.</param>
+    /// <param name="cancellationToken">Cancels it; the test's when null.</param>
+    /// <param name="options">The app's folder names; the workspace's when null.</param>
+    /// <param name="layout">Where the project's folders lie on this game; as listed when null.</param>
+    /// <param name="skipped">Folders of the author's that hold other packages' files; none when null.</param>
+    /// <param name="authorDirectory">The author's folder; the workspace's when null.</param>
+    /// <param name="other">Another version's game that shares the author's folder; none when null.</param>
+    public async Task<FolderComparison> CompareAsync(IReadOnlyList<ExistingInstall>? installs = null,
+        IProgress<CompareProgress>? progress = null, CancellationToken? cancellationToken = null, CreatorOptions? options = null,
+        FolderLayout? layout = null, IReadOnlyList<string>? skipped = null, string? authorDirectory = null, Workspace? other = null)
+    {
+        var token = cancellationToken ?? TestContext.Current.CancellationToken;
+        var comparer = new FolderComparer(options ?? Options);
+        var listed = await comparer.ListGameAsync(GameDirectory, installs ?? [], token);
+        return await comparer.CompareAsync(new ComparisonRequest(layout is { } rules ? listed.InLayout(rules) : listed, authorDirectory ?? AuthorDirectory, skipped ?? [])
+        {
+            OtherVersions = other is null ? [] : [await comparer.ListGameAsync(other.GameDirectory, [], token)],
+        }, progress, token);
+    }
 
     /// <summary>Plans a project's base on <see cref="Version"/> over the folders as they are now.</summary>
     /// <param name="project">The project.</param>
