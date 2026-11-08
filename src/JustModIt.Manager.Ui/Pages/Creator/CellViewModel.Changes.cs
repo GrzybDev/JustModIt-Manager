@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator.Building;
@@ -18,6 +19,7 @@ public sealed partial class CellViewModel
     private CancellationTokenSource? _checking;
     private bool _checkPending;
     private HashSet<string> _changed = [];
+    private IReadOnlySet<GameKey> _comparedBeside = new HashSet<GameKey>();
     private string _changedDetail = "";
 
     /// <summary>How many files changed since the part's last build, as the head of <see cref="Changes"/>; empty when none did.</summary>
@@ -56,8 +58,8 @@ public sealed partial class CellViewModel
         {
             var stamps = comparison.Files.Where(file => file.Author is not null).ToDictionary(file => file.AuthorPath!, file => file.Author!.Value);
             if ((game.Game.BuildId != _comparedWith?.Build
-                    || await FileChanges.CheckAsync(comparison.AuthorDirectory, stamps, [], _page.Access, _page.FileSystem ?? PhysicalFileSystem.Instance,
-                        checking.Token).ConfigureAwait(true) is not { Count: 0 })
+                    || await FileChanges.CheckAsync(comparison.AuthorDirectory, stamps, _session.Project.FoldersInside(Key.Part, comparison.AuthorDirectory),
+                        _page.Access, _page.FileSystem ?? PhysicalFileSystem.Instance, checking.Token).ConfigureAwait(true) is not { Count: 0 })
                 && !checking.IsCancellationRequested)
             {
                 _ = CompareAsync();
@@ -72,6 +74,29 @@ public sealed partial class CellViewModel
             {
                 _checking = null;
             }
+        }
+    }
+
+    /// <summary>Remembers which other versions' files the comparison under way leaves out of the author's work.</summary>
+    /// <param name="versions">The versions that share the cell's folder and can be read now.</param>
+    internal void ComparedBeside(IReadOnlySet<GameKey> versions) => _comparedBeside = versions;
+
+    /// <summary>
+    /// Compares again when another version that shares the folder has come since the comparison, or a version it counted no longer
+    /// shares the folder. A version only out of reach for now keeps counting, since its files were told apart while they could be.
+    /// </summary>
+    internal void CompareIfOutdated()
+    {
+        if (_compared is not (CellState.Compared or CellState.NothingToPackage) || _block is not null || _page.Build.IsBuilding)
+        {
+            return;
+        }
+
+        var beside = _page.Beside(this).ToList();
+        if (beside.Exists(other => other.CanBeRead && !_comparedBeside.Contains(other.Key.Version))
+            || _comparedBeside.Any(version => !beside.Exists(other => other.Key.Version == version)))
+        {
+            _ = CompareAsync();
         }
     }
 
@@ -172,7 +197,8 @@ public sealed partial class CellViewModel
             .. (Version?.Folders ?? default).Select(rename => Text.Format(Strings.Creator_FolderMoved, ("from", rename.Package), ("to", rename.Game))),
         ]);
         Brief = State == CellState.NothingToPackage ? new LineContent(Icons.TriangleAlert, Tone.Warning, NothingTitle)
-            : State != CellState.Compared || plan is null ? Line with { Detail = null }
+            : State != CellState.Compared ? Line
+            : plan is null ? Line with { Detail = null }
             : ReviewViewModel.Tally(plan) is { Open: > 0 } tally ? new LineContent(Icons.TriangleAlert, Tone.Warning, Text.Format(Strings.Creator_CellState,
                 ("state", "Decisions"), ("count", tally.Open)), tally.Accepted > 0 ? Text.Format(Strings.Creator_CellDetail, ("detail", "Accepted"), ("count", tally.Accepted)) : null)
             : shared is (var all, 0) && all == plan.Operations.Count && all == first!.Review!.Plan.Operations.Count

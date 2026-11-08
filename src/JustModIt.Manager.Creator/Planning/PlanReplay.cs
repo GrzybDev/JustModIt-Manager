@@ -45,6 +45,9 @@ internal sealed class PlanReplay
 
         /// <summary>An earlier operation renamed the file away.</summary>
         RenamedAway,
+
+        /// <summary>The base the package is an add-on of put a file there, which the add-on may write over.</summary>
+        Base,
     }
 
     /// <summary>Replays the operations in order over the comparison's game listing, then checks the declared files on the result.</summary>
@@ -52,12 +55,29 @@ internal sealed class PlanReplay
     /// <param name="operations">In the order the package runs them.</param>
     /// <param name="declarations">The files the package's software writes while the game runs; null for none.</param>
     /// <param name="keptPaths">Game paths that an undone test left as the software wrote them; null for none.</param>
+    /// <param name="seed">The resolved operations of the base the package is an add-on of, which run before it; null for a base.</param>
     /// <returns>The operations with the files they rely on, the declared files, and what keeps them from running.</returns>
     public static (List<PlannedOperation> Operations, List<PlanFinding> Findings, List<PlannedRuntimeFile> RuntimeFiles) Run(
         FolderComparison comparison, IReadOnlyList<PlannedOperation> operations, IReadOnlyList<RuntimeDeclaration>? declarations = null,
-        IReadOnlySet<string>? keptPaths = null)
+        IReadOnlySet<string>? keptPaths = null, IReadOnlyList<PlannedOperation>? seed = null)
     {
         var replay = new PlanReplay(comparison);
+        // The add-on's comparison knows only the game, so the base's files come from the base's plan.
+        foreach (var operation in seed ?? [])
+        {
+            if (operation.Kind == OperationKind.Delete)
+            {
+                replay._overlay[operation.Path] = new PathState(Origin.Deleted, null);
+                continue;
+            }
+
+            replay.Write(operation.Path, operation.SourceFile ?? operation.Original, Origin.Base);
+            if (operation.From is { } from)
+            {
+                replay._overlay[from] = new PathState(Origin.RenamedAway, null);
+            }
+        }
+
         if (operations.Count == 0)
         {
             replay._findings.Add(new PlanFinding(FindingKind.EmptyPackage));
@@ -116,7 +136,7 @@ internal sealed class PlanReplay
 
             switch (kind)
             {
-                case RuntimeFileKind.ChangesGameFile when game is null && StateOf(path).Origin != Origin.Written:
+                case RuntimeFileKind.ChangesGameFile when game is null && StateOf(path).Origin is not (Origin.Written or Origin.Base):
                     AddRuntime(FindingKind.GameFileMissing, i, path, NearestTo(path));
                     break;
                 case RuntimeFileKind.ChangesGameFile when keptPaths.Contains(path):
@@ -330,15 +350,15 @@ internal sealed class PlanReplay
         var blocked = _game.IsDirectory(path) || _createdDirectories.Contains(path);
         for (var directory = GameIndex.DirectoryOf(path); !blocked && directory.Length > 0; directory = GameIndex.DirectoryOf(directory))
         {
-            blocked = StateOf(directory).Origin is Origin.Game or Origin.Written;
+            blocked = StateOf(directory).Origin is Origin.Game or Origin.Written or Origin.Base;
         }
 
         return blocked;
     }
 
-    private void Write(string path, FileReference? content)
+    private void Write(string path, FileReference? content, Origin origin = Origin.Written)
     {
-        _overlay[path] = new PathState(Origin.Written, content);
+        _overlay[path] = new PathState(origin, content);
         var directory = GameIndex.DirectoryOf(path);
         while (directory.Length > 0 && !_game.IsDirectory(directory) && _createdDirectories.Add(directory))
         {
@@ -352,7 +372,7 @@ internal sealed class PlanReplay
     {
         var folder = GameIndex.DirectoryOf(path);
         var name = GameIndex.NameOf(path);
-        var written = _overlay.Where(entry => entry.Value.Origin == Origin.Written).Select(entry => entry.Key).ToList();
+        var written = _overlay.Where(entry => entry.Value.Origin is Origin.Written or Origin.Base).Select(entry => entry.Key).ToList();
         var nearName = _game.FilesIn(folder).Select(file => file.Path)
             .Concat(written.Where(other => PackagePath.Comparer.Equals(GameIndex.DirectoryOf(other), folder)));
         var sameName = _game.FoldersWith(name).Select(other => _game.Spell(other.Length == 0 ? name : other + PackagePath.Separator + name))
@@ -362,7 +382,7 @@ internal sealed class PlanReplay
     }
 
     private string? Nearest(IEnumerable<string> candidates, Func<string, string> part, string typed, int limit) =>
-        candidates.Where(candidate => StateOf(candidate).Origin is Origin.Game or Origin.Written)
+        candidates.Where(candidate => StateOf(candidate).Origin is Origin.Game or Origin.Written or Origin.Base)
             .Select(candidate => (Path: candidate, Distance: Distance(part(candidate), typed)))
             .Where(candidate => candidate.Distance <= limit)
             .OrderBy(candidate => candidate.Distance)

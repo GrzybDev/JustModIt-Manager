@@ -64,6 +64,18 @@ public sealed class CreatorWorkspace : IDisposable
 
     public string Author(string path, string content) => Write(AuthorFolder, path, content);
 
+    /// <summary>Another folder of the author's beside the first, e.g. an add-on's, laid out like the game.</summary>
+    public string Folder(string name, params (string Path, string Content)[] files)
+    {
+        var folder = Path.Combine(Root, "Work", name);
+        foreach (var (path, content) in files)
+        {
+            Write(folder, path, content);
+        }
+
+        return folder;
+    }
+
     /// <summary>Puts the creator's page, with an optional file system, in place of the window's own.</summary>
     /// <param name="fileSystem">Reads the folders; null for the real file system.</param>
     public static Action<UiComposition> Compose(IFileSystem? fileSystem = null) => ui =>

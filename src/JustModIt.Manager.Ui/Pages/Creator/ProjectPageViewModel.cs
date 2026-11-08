@@ -73,6 +73,7 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         session.PropertyChanged += OnSessionChanged;
         Build.PropertyChanged += OnWorkChanged;
         Test.PropertyChanged += OnWorkChanged;
+        Description.PropertyChanged += OnWorkChanged;
         Agent.PropertyChanged += OnAgentChanged;
         ShowSession();
         _ = ReadRecordAsync();
@@ -150,6 +151,10 @@ public sealed partial class ProjectPageViewModel : PageViewModel
     /// <summary>The part's mode, as its card names it.</summary>
     [ObservableProperty]
     public partial string PartLine { get; private set; } = "";
+
+    /// <summary>The chosen cell's part, as the breadcrumb of its operations names it.</summary>
+    [ObservableProperty]
+    public partial string PartName { get; private set; } = "";
 
     /// <summary>The version's store and build and the project's last package, under its title.</summary>
     [ObservableProperty]
@@ -411,6 +416,21 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         if (e.PropertyName is nameof(CellViewModel.State) or nameof(BuildViewModel.State))
         {
             OnPropertyChanged(nameof(Work));
+            CompareOutdated();
+        }
+
+        if (sender is CellViewModel { IsFeature: false } first && e.PropertyName == nameof(CellViewModel.State))
+        {
+            foreach (var cell in Cells.Where(cell => cell.IsFeature && cell.Key.Version == first.Key.Version))
+            {
+                cell.BaseChanged();
+            }
+        }
+
+        // The site names the add-ons, which the rows' heads say.
+        if (sender == Description && e.PropertyName == nameof(PackageDescriptionViewModel.Hints) && Session is { } session)
+        {
+            ShowCells(session);
         }
 
         if (sender == Build && e.PropertyName == nameof(BuildViewModel.State) && !Build.IsBuilding)
@@ -472,6 +492,18 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         {
             cell.ShowGame();
         }
+
+        CompareOutdated();
+    }
+
+    // What another version holds of a folder is no work of the author's, so a version that came back, or a folder no longer shared,
+    // makes the cells of that folder compare again.
+    private void CompareOutdated()
+    {
+        foreach (var cell in Cells)
+        {
+            cell.CompareIfOutdated();
+        }
     }
 
     // What a package and its test are made for: each version's game and the folder it lies in.
@@ -495,7 +527,8 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         ProjectName = ProjectCard.NameOf(session.Project);
         HasVersion = session.Version is not null;
         PartLine = GameWording.Join([HasVersion ? GameStoreName : "", Text.Format(Strings.Creator_PartMode, ("mode", session.Part.Mode.ToString()))]);
-        PanelName = GameWording.Join([session.Part.Name.Length > 0 ? session.Part.Name : Strings.Creator_PartBase, PartLine]);
+        PartName = session.Part.Name.Length > 0 ? session.Part.Name : Strings.Creator_PartBase;
+        PanelName = GameWording.Join([PartName, PartLine]);
         // A table names each version in its column's head.
         VersionLine = GameWording.Join(
         [

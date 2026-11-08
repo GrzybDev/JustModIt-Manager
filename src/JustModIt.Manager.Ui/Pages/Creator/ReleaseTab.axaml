@@ -11,14 +11,14 @@
   <StackPanel Spacing="20" Margin="0,4,0,16">
     <!-- Another store's copy of the game, which the same project can cover. -->
     <ui:Callout x:Name="Offer" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Info}" Message="{Binding Page.OfferText}"
-                IsVisible="{Binding Page.HasOffer}" theme:Motion.Enter="True">
+                IsVisible="{Binding Page.HasOffer}" IsEnabled="{Binding !Page.Build.IsBuilding}" theme:Motion.Enter="True">
       <StackPanel Orientation="Horizontal" Spacing="8">
         <Button Classes="outline small" Content="{Binding Page.OfferAction}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding Page.AddOfferCommand}" />
         <Button Classes="quiet small" Content="{x:Static loc:Strings.Creator_DismissOffer}" Command="{Binding Page.DismissOfferCommand}" />
       </StackPanel>
     </ui:Callout>
 
-    <creator:CellPanel>
+    <creator:CellPanel IsEnabled="{Binding !Page.Build.IsBuilding}">
       <creator:CellPanel.IsVisible>
         <MultiBinding Converter="{x:Static BoolConverters.And}">
           <Binding Path="!Page.IsTable" />
@@ -27,7 +27,8 @@
       </creator:CellPanel.IsVisible>
     </creator:CellPanel>
 
-    <!-- The parts over the versions; a cell opens its panel, and the arrows move between the cells. -->
+    <!-- The parts over the versions; a cell opens its panel, and the arrows move between the cells. While a build runs the project
+         stands still, but choosing a cell stays. -->
     <StackPanel x:Name="Table" Spacing="10">
       <StackPanel.IsVisible>
         <MultiBinding Converter="{x:Static BoolConverters.And}">
@@ -35,7 +36,7 @@
           <Binding Path="!Page.ShowsOperations" />
         </MultiBinding>
       </StackPanel.IsVisible>
-      <Grid ColumnDefinitions="110,*" ColumnSpacing="10">
+      <Grid ColumnDefinitions="150,*" ColumnSpacing="10">
         <ItemsControl Grid.Column="1" ItemsSource="{Binding Page.Heads}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
@@ -52,10 +53,16 @@
       <ItemsControl x:Name="Rows" ItemsSource="{Binding Page.Rows}" theme:Motion.Stagger="True">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="creator:CellRow">
-            <Grid ColumnDefinitions="110,*" ColumnSpacing="10" Margin="0,0,0,10">
+            <Grid ColumnDefinitions="150,*" ColumnSpacing="10" Margin="0,0,0,10">
+              <!-- An add-on's name is the author's to change; it takes the new one once the author leaves the box. -->
               <StackPanel Spacing="2" VerticalAlignment="Center">
-                <TextBlock Classes="rowTitle" FontSize="14" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
-                <TextBlock Classes="caption" Text="{Binding Mode}" />
+                <TextBlock Classes="rowTitle" FontSize="14" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}"
+                           IsVisible="{Binding !IsFeature}" />
+                <TextBox x:Name="PartName" Classes="partName" Text="{Binding TypedName, UpdateSourceTrigger=LostFocus}" IsVisible="{Binding IsFeature}"
+                         IsEnabled="{Binding !Page.Build.IsBuilding}"
+                         AutomationProperties.Name="{x:Static loc:Strings.Creator_FeatureName}" />
+                <TextBlock Classes="caption" Text="{Binding Caption}" TextWrapping="Wrap" />
+                <TextBlock Classes="caption" Text="{Binding Mode}" IsVisible="{Binding IsFeature}" />
               </StackPanel>
               <ItemsControl Grid.Column="1" ItemsSource="{Binding Cells}">
                 <ItemsControl.ItemsPanel>
@@ -76,7 +83,7 @@
                         <TextBlock Classes="caption" Text="{Binding Brief.Detail}" TextTrimming="CharacterEllipsis"
                                    IsVisible="{Binding Brief.Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                         <Button Classes="outline small" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_Stop}" Command="{Binding CancelCommand}"
-                                IsVisible="{Binding IsComparing}" />
+                                IsVisible="{Binding IsComparing}" IsEnabled="{Binding !Page.Build.IsBuilding}" />
                       </StackPanel>
                     </Button>
                   </DataTemplate>
@@ -86,12 +93,17 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-      <Button x:Name="AddVersion" Classes="outline" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_AddGameVersion}"
-              ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding Page.AddVersionCommand}" />
+      <!-- A folder dropped on the add-on's button makes an add-on of it. -->
+      <WrapPanel ItemSpacing="10" LineSpacing="8" IsEnabled="{Binding !Page.Build.IsBuilding}">
+        <Button x:Name="AddPart" Classes="outline addPart" Content="{x:Static loc:Strings.Creator_AddFeature}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}"
+                Command="{Binding Page.AddPartCommand}" creator:FolderDrop.Command="{Binding Page.DropPartCommand}" />
+        <Button x:Name="AddVersion" Classes="outline" Content="{x:Static loc:Strings.Creator_AddGameVersion}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding Page.AddVersionCommand}" />
+      </WrapPanel>
     </StackPanel>
 
     <!-- The part's operations, or its steps in advanced mode, take the column, since their rows need its width. -->
-    <Panel x:Name="PartView" IsVisible="{Binding Page.ShowsOperations}">
+    <Panel x:Name="PartView" IsVisible="{Binding Page.ShowsOperations}" IsEnabled="{Binding !Page.Build.IsBuilding}">
       <StackPanel Spacing="16" DataContext="{Binding Page.Review}" x:DataType="creator:ReviewViewModel">
         <TextBlock Classes="lead" Text="{Binding Lead}" />
         <Button Classes="link" FontSize="13" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_ToAdvancedButton}"
@@ -102,6 +114,6 @@
       </StackPanel>
     </Panel>
 
-    <creator:BuiltCard DataContext="{Binding Page}" />
+    <creator:BuiltCard DataContext="{Binding Page}" IsEnabled="{Binding !Build.IsBuilding}" />
   </StackPanel>
 </UserControl>

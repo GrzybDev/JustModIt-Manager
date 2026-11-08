@@ -32,7 +32,7 @@
                       Command="{Binding ShowReleaseCommand}" IsVisible="{Binding IsPartView}" />
               <ui:Icon Data="{x:Static theme:Icons.ChevronRight}" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"
                        IsVisible="{Binding IsPartView}" />
-              <TextBlock Classes="pathLine" Text="{x:Static loc:Strings.Creator_PartBase}" VerticalAlignment="Center" IsVisible="{Binding IsPartView}" />
+              <TextBlock Classes="pathLine" Text="{Binding PartName}" VerticalAlignment="Center" IsVisible="{Binding IsPartView}" />
             </WrapPanel>
             <TextBlock Classes="pageTitle" Text="{Binding ProjectName}" TextTrimming="CharacterEllipsis" />
             <TextBlock Classes="pathLine" Text="{Binding VersionLine}" ToolTip.Tip="{x:Static loc:Strings.Creator_BuildChecked}" />
@@ -86,7 +86,14 @@
             </StackPanel>
           </Border>
           <TransitioningContentControl x:Name="TabContent" Content="{Binding TabContent}" IsTransitionReversed="{Binding IsGoingBack}"
-                                       IsEnabled="{Binding !Build.IsBuilding}" ClipToBounds="False">
+                                       ClipToBounds="False">
+            <TransitioningContentControl.IsEnabled>
+              <!-- The release tab freezes all but choosing a cell by itself. -->
+              <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                <Binding Path="!Build.IsBuilding" />
+                <Binding Path="Tab" Converter="{x:Static ui:ChoiceConverter.Instance}" ConverterParameter="{x:Static creator:ProjectTab.Release}" />
+              </MultiBinding>
+            </TransitioningContentControl.IsEnabled>
             <TransitioningContentControl.PageTransition>
               <theme:PageTransition IsHorizontal="True" Offset="28" />
             </TransitioningContentControl.PageTransition>

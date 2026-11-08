@@ -23,9 +23,9 @@ public sealed class CreatorLiveTests : IDisposable
 
     public void Dispose() => ClearWorkspace();
 
-    // The release split as the site will offer it: a base, and an add-on whose library takes the place of one of the game's,
-    // renamed away, and whose software rewrites a game file while the game runs, keeping the file as the store ships it
-    // beside it.
+    // The release split as the site will offer it, one project of two parts: a base, and an add-on, planned over the base,
+    // whose library takes the place of one of the game's, renamed away, and whose software rewrites a game file while the game
+    // runs, keeping the file as the store ships it beside it.
     [Fact]
     public async Task Turns_the_released_files_into_a_base_and_an_add_on_whose_software_changes_files_that_its_undo_puts_back()
     {
@@ -45,17 +45,19 @@ public sealed class CreatorLiveTests : IDisposable
         var addOn = CopyFiles(author, addOnFiles, "add-on");
         var comparison = await CompareAsync(engine, game, addOn);
         var version = new ProjectVersion(new ProjectGame(game.Key, game.Name));
-        var part = new ProjectPart()
+        var part = new ProjectPart { Name = "Serial" }
             .WithRuntimeFile(new RuntimeFileChoice(rewritten, RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice(created, RuntimeFileKind.CreatesFile));
         var project = new CreatorProject
         {
             Versions = [version],
-            Parts = [part],
-            Metadata = new PackageMetadata { Title = game.Name + " add-on", Version = "2" },
+            Parts = [new ProjectPart(), part],
+            Metadata = new PackageMetadata { Title = game.Name, Version = "2" },
         };
+        var basePlan = CreatorPlanner.Plan(await CompareAsync(engine, game, CopyFiles(author, baseFiles, "base")), project, project.Parts[0], version, Options).Plan;
+        basePlan.Format.Should().Be(new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]));
 
-        var plan = CreatorPlanner.Plan(comparison, project, part, version, Options).Plan;
+        var plan = CreatorPlanner.Plan(comparison, project, part, version, Options, basePlan: basePlan).Plan;
 
         AssertRenamesTheOriginalAway(plan, release, addOnFiles);
         plan.Format.Should().Be(new PackageFormatDecision(PackageKind.Manifest, [FormatReason.RenamesFiles, FormatReason.DeclaresRuntimeFiles]));
@@ -63,12 +65,12 @@ public sealed class CreatorLiveTests : IDisposable
             .Equal((rewritten, true, false), (created, false, false));
         plan.CarriesCode.Should().BeTrue();
         plan.Findings.Should().NotContain(finding => finding.Severity == FindingSeverity.Error);
-        var advanced = CreatorPlanner.Plan(comparison, project, part.ToAdvanced(plan), version, Options).Plan;
+        var advanced = CreatorPlanner.Plan(comparison, project, part.ToAdvanced(plan), version, Options, basePlan: basePlan).Plan;
         advanced.Operations.Select(Describe)
             .Should().Equal(plan.Operations.Select(Describe), "advanced mode builds the same package from the steps simple mode found");
         advanced.RuntimeFiles.Select(file => (file.Path, file.Kind)).Should().Equal(plan.RuntimeFiles.Select(file => (file.Path, file.Kind)));
 
-        var built = await BuildAsync(engine, game, comparison, project, plan, "add-on");
+        var built = await BuildAsync(engine, game, comparison, project, plan, basePlan, "add-on");
 
         built.Kind.Should().Be(PackageKind.Manifest);
         await using (var package = await new PackageReader().OpenAsync(built.OutputPath, Token))
@@ -86,9 +88,6 @@ public sealed class CreatorLiveTests : IDisposable
             ]);
         }
 
-        var basePlan = CreatorPlanner.Plan(await CompareAsync(engine, game, CopyFiles(author, baseFiles, "base")), new CreatorProject(),
-            new ProjectPart(), version, Options).Plan;
-        basePlan.Format.Should().Be(new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]));
         var baseZip = await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(basePlan,
             new BuildRequest { OutputPath = Path.Combine(_workspace, "base.zip"), Game = game }, progress: null, Token);
 
@@ -169,14 +168,14 @@ public sealed class CreatorLiveTests : IDisposable
         return folder;
     }
 
-    // Builds as the author would after reading and accepting every warning.
+    // Builds the add-on as the author would after reading and accepting every warning.
     private async Task<PackageBuildResult> BuildAsync(LiveEngine engine, InstalledGame game, FolderComparison comparison,
-        CreatorProject project, PackagePlan plan, string name)
+        CreatorProject project, PackagePlan plan, PackagePlan basePlan, string name)
     {
         var accepted = plan.Findings.Select(finding => finding.AcknowledgementKey).OfType<string>()
             .Aggregate(project, (acknowledged, key) => acknowledged.Acknowledge(key));
         return await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(
-            CreatorPlanner.Plan(comparison, accepted, accepted.Parts[0], accepted.Versions[0], Options).Plan,
+            CreatorPlanner.Plan(comparison, accepted, accepted.Parts[1], accepted.Versions[0], Options, basePlan: basePlan).Plan,
             new BuildRequest
             {
                 OutputPath = Path.Combine(_workspace, name + Options.PackageExtension),

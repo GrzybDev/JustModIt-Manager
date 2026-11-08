@@ -36,7 +36,11 @@ public sealed partial class ProjectPageViewModel
 
     /// <summary>The table's column heads: each version's store and build.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSeveralVersions))]
     public partial IReadOnlyList<string> Heads { get; private set; } = [];
+
+    /// <summary>The project has another version to keep when one goes.</summary>
+    public bool HasSeveralVersions => Heads.Count > 1;
 
     /// <summary>The project has more than one cell, so its page shows them as a table with the chosen one in a panel.</summary>
     public bool IsTable => Cells.Count > 1;
@@ -102,7 +106,9 @@ public sealed partial class ProjectPageViewModel
                 var installs = Agent.State.Games.SelectMany(view => view.Installs).Select(install => new ExistingInstall(install.Id, install.InstallDirectory)).ToList();
                 var session = Session!;
                 var present = session.Project.Versions.Where(version => version.Game.Key == cell.Key.Version
-                    || Cells.Any(other => other.Key.Version == version.Game.Key && !other.IsBlocked && GameOf(version.Game.Key) is not null)).ToList();
+                    || Cells.Any(other => other.Key.Version == version.Game.Key && other.CanBeRead)).ToList();
+                var sharing = Beside(cell).Where(other => other.CanBeRead).Select(other => other.Key.Version).ToHashSet();
+                cell.ComparedBeside(sharing);
                 GameIndex? reference = null;
                 Dictionary<GameKey, GameIndex> resolved = [];
                 foreach (var version in present)
@@ -133,10 +139,9 @@ public sealed partial class ProjectPageViewModel
                     session.ChangeVersion(cell.Key.Version, version => version with { Folders = game.Layout.Renames });
                 }
 
-                var others = resolved.Where(other => other.Key != cell.Key.Version && PathComparison.AreSame(Cells.First(each => each.Key.Version == other.Key && each.Key.Part == cell.Key.Part).Folder, folder))
-                    .Select(other => other.Value).ToList();
-                return await comparer.CompareAsync(new ComparisonRequest(game, folder, []) { OtherVersions = others }, progress, cancellationToken)
-                    .ConfigureAwait(true);
+                var others = resolved.Where(other => sharing.Contains(other.Key)).Select(other => other.Value).ToList();
+                return await comparer.CompareAsync(new ComparisonRequest(game, folder, session.Project.FoldersInside(cell.Key.Part, folder)) { OtherVersions = others },
+                    progress, cancellationToken).ConfigureAwait(true);
             }
             finally
             {
@@ -154,6 +159,11 @@ public sealed partial class ProjectPageViewModel
             }
         }
     }
+
+    /// <summary>The other versions' cells of a cell's part that read the same folder.</summary>
+    /// <param name="cell">The cell.</param>
+    internal IEnumerable<CellViewModel> Beside(CellViewModel cell) =>
+        Cells.Where(other => other != cell && other.Key.Part == cell.Key.Part && PathComparison.AreSame(other.Folder, cell.Folder));
 
     [RelayCommand]
     private void SelectCell(CellViewModel cell)
@@ -321,8 +331,20 @@ public sealed partial class ProjectPageViewModel
             GameWording.StoreName(version.Game.Key.Store),
             GameOf(version.Game.Key)?.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "",
         ]))];
-        Rows = [.. session.Project.Parts.Select(part => new CellRow(part.Name.Length > 0 ? part.Name : Strings.Creator_PartBase,
-            Text.Format(Strings.Creator_PartMode, ("mode", part.Mode.ToString())), [.. Cells.Where(cell => cell.Key.Part == part.Name)]))];
+        // A row kept as it was keeps its head, so an add-on's name being typed is not lost to a state the agent sent meanwhile.
+        List<CellRow> rows = [.. session.Project.Parts.Select(part =>
+        {
+            var mode = Text.Format(Strings.Creator_PartMode, ("mode", part.Mode.ToString()));
+            var feature = Description.Hints?.Features.FirstOrDefault(offered => offered.Name == part.Name);
+            return part.Name.Length == 0 ? new CellRow(this, "", mode, "", [.. Cells.Where(cell => cell.Key.Part.Length == 0)])
+                : new CellRow(this, part.Name, Text.Format(Strings.Creator_FeatureRow, ("on", feature is null ? "" : feature.IsDefault ? "true" : "false")), mode,
+                    [.. Cells.Where(cell => cell.Key.Part == part.Name)]);
+        })];
+        if (!rows.SequenceEqual(Rows))
+        {
+            Rows = rows;
+        }
+
         Offer = _detected.FirstOrDefault(game => !session.Project.Versions.Any(version => version.Game.Key == game.Key)
             && !session.Project.DeclinedVersions.Contains(game.Key) && session.Project.Versions.Any(version => IsCopy(game, version)));
     }

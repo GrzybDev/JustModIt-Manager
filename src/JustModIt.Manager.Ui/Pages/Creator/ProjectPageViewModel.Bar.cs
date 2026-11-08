@@ -141,7 +141,7 @@ public sealed partial class ProjectPageViewModel
             // A comparison running or waiting its turn, like a plan being made, has neither failed nor ended.
             items.Add(cells.Any(cell => cell.IsBlocked) ? new(Item("VersionBlocked", ("store", store)), false)
                 : new(Item("Comparison", ("store", store)), compared,
-                    IsPending: !compared && cells.All(cell => cell.State is CellState.Compared or CellState.Comparing)));
+                    IsPending: !compared && cells.All(cell => cell.State is CellState.Compared or CellState.Comparing or CellState.Waiting)));
         }
 
         if (session.IsPlanning)

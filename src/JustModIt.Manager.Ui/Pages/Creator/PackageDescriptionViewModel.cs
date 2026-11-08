@@ -27,7 +27,6 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
     private readonly ProjectPageViewModel _page;
     private readonly CreatorSession _session;
     private GameKey? _hintsFor;
-    private ProjectHints? _hints;
 
     /// <summary>Creates the description of a project's package.</summary>
     /// <param name="page">The project's page.</param>
@@ -70,7 +69,11 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
     public partial string AuthorsNote { get; private set; } = Strings.Creator_AuthorsHint;
 
     /// <summary>The authors are the site's project's own, as filled in from it.</summary>
-    public bool AreAuthorsFromSite => _hints is { Authors.Count: > 0 } project && Authors.SequenceEqual(project.Authors);
+    public bool AreAuthorsFromSite => Hints is { Authors.Count: > 0 } project && Authors.SequenceEqual(project.Authors);
+
+    /// <summary>What the site's project of the game suggests; null while none is surely the author's.</summary>
+    [ObservableProperty]
+    internal partial ProjectHints? Hints { get; private set; }
 
     /// <summary>Why the metadata keeps the package from being built; empty when nothing does.</summary>
     [ObservableProperty]
@@ -155,10 +158,10 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
             }
         }
 
-        LastRelease = _hints is { Release.Length: > 0 } hints
+        LastRelease = Hints is { Release.Length: > 0 } hints
             ? Text.Format(Strings.Creator_LastRelease, ("version", GameWording.ShortVersion(hints.Release)))
             : "";
-        AuthorsNote = AreAuthorsFromSite ? Text.Format(Strings.Creator_AuthorsFromProject, ("project", _hints!.Project)) : Strings.Creator_AuthorsHint;
+        AuthorsNote = AreAuthorsFromSite ? Text.Format(Strings.Creator_AuthorsFromProject, ("project", Hints!.Project)) : Strings.Creator_AuthorsHint;
     }
 
     /// <summary>Fills in what the author left empty from the game's project on the site, once per game.</summary>
@@ -169,7 +172,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
             return;
         }
 
-        (_hintsFor, _hints) = (game.Key, null);
+        (_hintsFor, Hints) = (game.Key, null);
         // The site's project gives the hints only when the creator can tell it is the author's without guessing: the project
         // installed on the game, else the game's only one.
         var installed = _page.Agent.State.Games.FirstOrDefault(view => view.Key == game.Key)?.Installs
@@ -197,7 +200,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
             return;
         }
 
-        _hints = hints;
+        Hints = hints;
         _session.Change(current => current with
         {
             Metadata = current.Metadata with

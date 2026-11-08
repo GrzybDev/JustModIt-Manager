@@ -8,6 +8,7 @@ using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
+using JustModIt.Manager.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
@@ -139,6 +140,18 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
         Change(project => project with { Parts = new(project.Parts.Items.Replace(part, change(part))) });
     }
 
+    /// <summary>Renames an add-on, keeping its cells' comparisons, which the name does not change.</summary>
+    /// <param name="part">The add-on's name.</param>
+    /// <param name="name">Its new name, which no other part has.</param>
+    public void RenamePart(string part, string name)
+    {
+        CellKey Renamed(CellKey cell) => cell.Part == part ? cell with { Part = name } : cell;
+        _comparisons = _comparisons.ToImmutableDictionary(entry => Renamed(entry.Key), entry => entry.Value);
+        _reviews = _reviews.ToImmutableDictionary(entry => Renamed(entry.Key), entry => entry.Value);
+        Selected = Selected is { } selected ? Renamed(selected) : null;
+        Change(project => project with { Parts = [.. project.Parts.Select(each => each.Name == part ? each with { Name = name } : each)] });
+    }
+
     /// <summary>Changes a version of the game, which is planned again and saved.</summary>
     /// <param name="key">The version's game.</param>
     /// <param name="change">Turns the version into the changed one.</param>
@@ -240,7 +253,8 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
         }
     }
 
-    // A plan reads no file, so every cell is planned again, base before add-ons; a pass stops between cells once a newer one began.
+    // A plan reads no file, so every cell is planned again, base before add-ons, each add-on over its base's plan, since the
+    // base installs first; a pass stops between cells once a newer one began.
     private ImmutableDictionary<CellKey, CreatorReview>? PlanAll(CreatorProject project, IReadOnlyList<CellKey> cells,
         ImmutableDictionary<CellKey, FolderComparison> comparisons, ImmutableDictionary<GameKey, IReadOnlySet<string>> kept, int plan)
     {
@@ -252,10 +266,15 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
                 return null;
             }
 
-            if (comparisons.GetValueOrDefault(cell) is { } comparison)
+            var basePlan = cell.Part.Length > 0 ? reviews.GetValueOrDefault(cell with { Part = "" })?.Plan : null;
+            if (comparisons.GetValueOrDefault(cell) is { } comparison && (cell.Part.Length == 0 || basePlan is not null))
             {
-                reviews[cell] = CreatorPlanner.Plan(comparison, project, project.Parts.First(part => part.Name == cell.Part),
-                    project.Versions.First(version => version.Game.Key == cell.Version), _options, kept.GetValueOrDefault(cell.Version) ?? NoPaths);
+                reviews[cell] = CreatorPlanner.Plan(comparison, cell.Part.Length == 0 || project.Metadata.Title.Trim().Length == 0 ? project : project with
+                    {
+                        Metadata = project.Metadata with { Title = Text.Format(Strings.Creator_PartPackageName, ("name", project.Metadata.Title.Trim()), ("part", cell.Part)) },
+                    },
+                    project.Parts.First(part => part.Name == cell.Part), project.Versions.First(version => version.Game.Key == cell.Version), _options,
+                    kept.GetValueOrDefault(cell.Version) ?? NoPaths, basePlan);
             }
         }
 

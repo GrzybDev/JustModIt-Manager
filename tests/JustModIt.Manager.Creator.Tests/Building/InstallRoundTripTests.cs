@@ -223,6 +223,50 @@ public sealed class InstallRoundTripTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task An_add_on_patches_the_file_its_base_wrote()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var subtitled = Changed(Strings);
+        Workspace.Bytes(300, 7).CopyTo(subtitled, 40_000);
+        var addOn = Path.Combine(_workspace.Root, "subtitles");
+        foreach (var (path, content) in new[] { ("data/strings.bin", subtitled), ("data/fonts/extra.ttf", Workspace.Text("subtitle font")) })
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(addOn, path))!);
+            await File.WriteAllBytesAsync(Path.Combine(addOn, path), content, token);
+        }
+
+        var project = Workspace.Project();
+        var basePlan = CreatorPlanner.Plan(await _workspace.CompareAsync(), project, project.Parts[0], Workspace.Version, Workspace.Options).Plan;
+        var plan = CreatorPlanner.Plan(await _workspace.CompareAsync(authorDirectory: addOn), project, new ProjectPart { Name = "Subtitles" },
+            Workspace.Version, Workspace.Options, basePlan: basePlan).Plan;
+
+        plan.Operations.Select(operation => (operation.Kind, operation.Path, operation.Original?.FullPath)).Should().Equal(
+            (OperationKind.Copy, "data/fonts/extra.ttf", null),
+            (OperationKind.Patch, "data/strings.bin", _workspace.AuthorFile(Path.Combine("data", "strings.bin"))));
+        plan.Findings.Should().BeEmpty("the add-on writes over what its base installs first");
+        var game = Workspace.Installed(plan.GameDirectory, Key, "100");
+        var packages = new List<string>();
+        foreach (var (each, name) in new[] { (basePlan, "base.examplemod"), (plan, "subtitles.examplemod") })
+        {
+            packages.Add((await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(each,
+                new BuildRequest { OutputPath = _workspace.Output(name), Game = game }, progress: null, token)).OutputPath);
+        }
+
+        var before = Snapshot();
+        await using var engine = Engine(game);
+
+        var installed = await engine.InstallAsync(new InstallRequest(game, [.. packages.Select(package => new InstallPart(package))], BackupChoice.GameFolder),
+            progress: null, token);
+
+        installed.LeftOut.Should().BeEmpty();
+        Read("data/strings.bin").Should().Equal(subtitled);
+        Read("data/fonts/extra.ttf").Should().Equal(Workspace.Text("subtitle font"));
+        Read("dx11/lang_x64.dll").Should().Equal(Proxy);
+        await engine.UninstallAsync(installed.Record.Id, replacedBy: null, progress: null, token);
+        Snapshot().Should().BeEquivalentTo(before);
+    }
+
     private static byte[] Changed(byte[] content)
     {
         var changed = (byte[])content.Clone();

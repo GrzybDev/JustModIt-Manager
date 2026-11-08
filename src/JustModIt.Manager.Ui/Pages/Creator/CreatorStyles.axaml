@@ -102,7 +102,8 @@
     <Setter Property="CornerRadius" Value="16" />
     <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
   </Style>
-  <!-- The bar under a project's tabs, and the strip of the tabs. A part's card takes the accent while a folder is dragged over it. -->
+  <!-- The bar under a project's tabs, and the strip of the tabs. A part's card, and the button that adds an add-on, take the accent
+       while a folder is dragged over them. -->
   <Style Selector="Border.buildBar">
     <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
@@ -116,6 +117,9 @@
     <Setter Property="Padding" Value="4" />
   </Style>
   <Style Selector="Border.cellCard.over">
+    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+  </Style>
+  <Style Selector="Button.addPart.over /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
   </Style>
   <Style Selector="Border.cellCard:not(.flat) WrapPanel#HeadActions">
@@ -352,6 +356,16 @@
     <Setter Property="BorderBrush" Value="#80F87171" />
     <Setter Property="Background" Value="#24EF4444" />
     <Setter Property="TextElement.Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+  <!-- An add-on's name in its row of the table: a bold name, which the field's frame shows editable under the pointer and while typing. -->
+  <Style Selector="TextBox.partName">
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="Margin" Value="-8,0,0,2" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
   </Style>
   <Style Selector="TextBox.faulty">
     <Setter Property="BorderBrush" Value="#B3F87171" />

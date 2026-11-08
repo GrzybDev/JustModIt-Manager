@@ -38,13 +38,15 @@ public static class CreatorPlanner
     /// <param name="keptPaths">
     /// The game's paths that an undone test left as the package's software wrote them, by the app's records; null for none.
     /// </param>
+    /// <param name="basePlan">The plan of the base on the same version, whose package installs before an add-on's; null for the base.</param>
     public static CreatorReview Plan(FolderComparison comparison, CreatorProject project, ProjectPart part, ProjectVersion version,
-        CreatorOptions options, IReadOnlySet<string>? keptPaths = null)
+        CreatorOptions options, IReadOnlySet<string>? keptPaths = null, PackagePlan? basePlan = null)
     {
         var (entries, operations) = part.Mode == CreatorMode.Advanced
             ? ([], [.. Operations(part.Steps, version, OperationReason.Step, comparison.Game)])
             : Simple(comparison, part, version);
-        var (resolved, findings, runtime) = PlanReplay.Run(comparison, operations, Declarations(comparison, part, entries), keptPaths);
+        var (resolved, findings, runtime) = PlanReplay.Run(comparison, operations, Declarations(comparison, part, entries), keptPaths,
+            basePlan?.Operations);
         findings.AddRange(part.Mode == CreatorMode.Simple
             ? RenamesNotReplaced(comparison, resolved)
             : RenamesOfWrittenFiles(comparison, resolved));

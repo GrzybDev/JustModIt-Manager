@@ -2,6 +2,7 @@ using System.IO.Compression;
 using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Catalog;
@@ -111,6 +112,7 @@ public sealed class CreatorPackageTests : IDisposable
         ((ConfirmDialogViewModel)ui.Shell.Dialogs.Current!).Title.Should().Be(Strings.Creator_StopBuildTitle);
         ui.Shell.Dialogs.CancelCurrent();
         (await leaving).Should().BeFalse();
+        ui.Find<CellPanel>().First(panel => panel.IsEffectivelyVisible).IsEffectivelyEnabled.Should().BeFalse("the project cannot change under its build");
         package.Tab = ProjectTab.Description;
         package.Tab.Should().Be(ProjectTab.Description, "the tabs can be looked at while the build runs");
         ui.Find<TransitioningContentControl>("TabContent").IsEffectivelyEnabled.Should().BeFalse("the project cannot change under its build");
@@ -551,6 +553,117 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitUntilAsync(() => ui.Agent.Requests.OfType<TestInstallPackage>().Any());
         var test = ui.Agent.Requests.OfType<TestInstallPackage>().Single();
         (test.Game, test.PackagePaths.Single()).Should().Be((gog.Key, Output("Lantern Isle (GOG) v1.0.examplemod")));
+    }
+
+    [AvaloniaFact]
+    public async Task An_add_on_waits_for_its_base_and_builds_a_package_of_its_own()
+    {
+        var held = HeldComparison();
+        using var ui = await OpenAsync(held);
+        var page = await PackageAsync(ui);
+        page.Description.Version = "1.0";
+        var captions = _work.Folder("Captions", ("data/strings.bin", "strings of the original game, with captions"));
+        held.Reads.Reset();
+        page.Cells[0].CompareCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => page.Cells[0].FileLine.Length > 0);
+
+        ui.Pickers.Folder = captions;
+        ui.Click(Button(ui, Strings.Creator_AddFeature));
+        await UiHarness.WaitUntilAsync(() => page.Cells.Count == 2);
+        var addOn = page.Cells[1];
+        (addOn.Key.Part, addOn.State, addOn.Brief.Label, addOn.Brief.Detail).Should().Be(("Captions", CellState.Waiting,
+            Text.Format(Strings.Creator_CellState, ("state", "Waiting"), ("store", "Steam")), Text.Format(Strings.Creator_CellDetail, ("detail", "Waiting"))));
+        await ui.RenderBothAsync("creator-table-waiting");
+        page.Cells[0].CancelCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => page.Cells[0].State == CellState.Stopped);
+        (addOn.State, addOn.Brief.Label, addOn.Brief.Detail, addOn.CanCompare).Should().Be((CellState.BaseMissing,
+            Text.Format(Strings.Creator_CellState, ("state", "BaseMissing"), ("store", "Steam")), null, false), "an add-on compared without its base would be compared for nothing");
+        await ui.RenderBothAsync("creator-table-base-missing");
+
+        held.Reads.Set();
+        page.Cells[0].CompareCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => page.Cells.All(cell => cell.IsCompared) && page.CanBuild, () => page.BlockedText);
+        addOn.Review!.Plan.Operations.Should().ContainSingle().Which.Original!.FullPath.Should().Be(Path.Combine(_work.AuthorFolder, "data", "strings.bin"),
+            "the add-on patches the file its base installs before it");
+        await BuildAsync(ui);
+        await BuiltAsync(page);
+        page.Build.Packages.Select(row => (row.Name, row.Part)).Should().Equal(
+            ("Lantern Isle v1.0.examplemod", ""), ("Lantern Isle v1.0 – Captions.examplemod", "Captions"));
+        page.Build.Packages.Should().OnlyContain(row => File.Exists(row.Path));
+    }
+
+    [AvaloniaFact]
+    public async Task A_test_installs_the_base_with_the_chosen_add_ons_in_order()
+    {
+        var project = TestGames.Offer("Lantern Isle", version: 1);
+        _work.LanternProjects = [new SiteProjectView(project.ProjectId, project.GameSlug, project.Team.Slug)];
+        using var ui = await OpenAsync();
+        ui.Agent.Answer = request => request switch
+        {
+            GetProjectPage => TestPages.Page(project, """[{ "uuid": "b1111111-2222-4333-8444-555555555555", "key": "captions", "name": "Captions", "is_default": true }, { "uuid": "c1111111-2222-4333-8444-555555555555", "key": "voices", "name": "Voices" }]"""),
+            TestInstallPackage => new JobStarted(InstallJob),
+            _ => _work.Answer(request),
+        };
+        var page = await PackageAsync(ui);
+        await UiHarness.WaitUntilAsync(() => page.Description.Hints is not null);
+        ui.Pickers.Folder = _work.Folder("Captions files", ("data/captions/intro.srt", "captions of the intro"));
+        ui.Click(Button(ui, Strings.Creator_AddFeature));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel);
+        var choice = (ChoiceDialogViewModel)ui.Shell.Dialogs.Current!;
+        choice.Choices.Select(tile => (tile.Title, tile.Description)).Should().Equal(
+            ("Captions", Text.Format(Strings.Creator_FeatureRow, ("on", "true"))), ("Voices", Text.Format(Strings.Creator_FeatureRow, ("on", "false"))),
+            (Strings.Creator_PickFolder, Strings.Creator_FeatureFromFolder));
+        await ui.RenderBothAsync("creator-add-feature");
+        choice.ChooseCommand.Execute(choice.Choices[0]);
+        await UiHarness.WaitUntilAsync(() => page.Cells.Count == 2 && page.Cells[1].IsCompared);
+
+        // An add-on the site names takes its folder later, on its cell.
+        ui.Pickers.Folder = null;
+        ui.Click(Button(ui, Strings.Creator_AddFeature));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel);
+        choice = (ChoiceDialogViewModel)ui.Shell.Dialogs.Current!;
+        choice.Choices.Select(tile => tile.Title).Should().Equal("Voices", Strings.Creator_PickFolder);
+        choice.ChooseCommand.Execute(choice.Choices[0]);
+        await UiHarness.WaitUntilAsync(() => page.Cells.Count == 3);
+        page.Rows.Select(row => (row.Name, row.Caption)).Should().Equal(
+            (Strings.Creator_PartBase, Text.Format(Strings.Creator_PartMode, ("mode", "Simple"))),
+            ("Captions", Text.Format(Strings.Creator_FeatureRow, ("on", "true"))),
+            ("Voices", Text.Format(Strings.Creator_FeatureRow, ("on", "false"))));
+        ui.Click(Button(ui, page.Cells[2].Name));
+        page.Cells[2].State.Should().Be(CellState.NoFolder);
+        await ui.RenderBothAsync("creator-panel-add-on");
+        ui.Pickers.Folder = _work.Folder("Voices", ("data/voices/intro.ogg", "voices of the intro"));
+        ui.Click(Button(ui, Strings.Creator_ChangeFolder));
+
+        // The add-on keeps its comparison under its new name.
+        var captions = page.Cells[1];
+        var compared = page.Session!.ComparisonOf(captions.Key);
+        var name = ui.Find<TextBox>().First(box => box.Name == "PartName" && box.Text == "Captions");
+        name.Focus();
+        name.Text = "voices";
+        ui.Find<Button>("AddPart").Focus();
+        UiHarness.Settle();
+        page.Session.Project.Parts.Select(part => part.Name).Should().Equal(["", "Captions", "Voices"], "another part has the name, whatever its letter case");
+        name = ui.Find<TextBox>().First(box => box.Name == "PartName" && box.Text == "Captions");
+        name.Focus();
+        name.Text = "Film captions";
+        ui.Find<Button>("AddPart").Focus();
+        (page.Cells[1], page.Session.ComparisonOf(page.Cells[1].Key), page.Rows[1].Caption).Should().Be(
+            (captions, compared, Text.Format(Strings.Creator_FeatureRow, ("on", ""))));
+        await UiHarness.WaitUntilAsync(() => page.Cells.All(cell => cell.IsCompared) && page.CanBuild, () => page.BlockedText);
+        await ui.RenderBothAsync("creator-table-add-ons");
+        await BuildAsync(ui);
+        await BuiltAsync(page);
+
+        page.Test.TestFeatures.Select(feature => feature.Part).Should().Equal("Film captions", "Voices");
+        page.Test.TestTitle.Should().Be(Text.Format(Strings.Creator_TestTitle, ("several", "true")));
+        await RenderAsync(ui, "creator-built-add-ons", 1500);
+        ui.Click(ui.Find<ToggleButton>().First(pill => pill.IsEffectivelyVisible && Equals(pill.Content, "Film captions")));
+        page.Test.TestTitle.Should().Be(Text.Format(Strings.Creator_TestTitle, ("several", "true")), "the base and one add-on are left");
+        ui.Click(Button(ui, Strings.Creator_TestInstall));
+        await UiHarness.WaitUntilAsync(() => ui.Agent.Requests.OfType<TestInstallPackage>().Any());
+        ui.Agent.Requests.OfType<TestInstallPackage>().Single().PackagePaths.Should().Equal(
+            Output("Lantern Isle v2.examplemod"), Output("Lantern Isle v2 – Voices.zip"));
     }
 
     [AvaloniaFact]

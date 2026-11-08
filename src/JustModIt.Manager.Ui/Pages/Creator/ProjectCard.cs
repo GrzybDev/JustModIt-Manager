@@ -124,13 +124,15 @@ public sealed partial class ProjectCard(CreatorPageViewModel page, Guid id) : Ob
             ShowState();
             string? unavailable = null;
             var changed = 0;
-            foreach (var folder in _project.Parts.SelectMany(part => part.VersionFolders.Values.Prepend(part.AuthorFolder)).Where(folder => folder.Length > 0))
+            foreach (var (part, folder) in _project.Parts.SelectMany(part => _project.Versions.Select(version => part.FolderOf(version.Game.Key))
+                    .Distinct(PathComparison.Comparer).Select(folder => (part.Name, folder)))
+                .Where(folder => folder.folder.Length > 0))
             {
-                // A folder no build read counts with all its files.
+                // A folder no build read counts with all its files, and another part's folder inside it with its own.
                 var built = builds.FirstOrDefault(build => PathComparison.AreSame(build.Folder, folder));
                 if (await FileChanges.CheckAsync(built?.Folder ?? folder,
-                        built?.Files.ToDictionary(file => file.Key, file => new FileStamp(file.Value.Size, file.Value.LastWriteTime)) ?? [], [],
-                        page.Access, page.FileSystem ?? PhysicalFileSystem.Instance, cancellationToken).ConfigureAwait(true) is not { } changes)
+                        built?.Files.ToDictionary(file => file.Key, file => new FileStamp(file.Value.Size, file.Value.LastWriteTime)) ?? [],
+                        _project.FoldersInside(part, folder), page.Access, page.FileSystem ?? PhysicalFileSystem.Instance, cancellationToken).ConfigureAwait(true) is not { } changes)
                 {
                     unavailable = folder;
                     break;

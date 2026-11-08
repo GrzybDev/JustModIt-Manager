@@ -8,9 +8,11 @@ namespace JustModIt.Manager.Ui.Tests.TestSupport;
 public static class TestPages
 {
     /// <summary>A full page of a project: description, notes, changes, gallery, team and people.</summary>
-    public static ProjectPageResult Page(ProjectOfferView project) => new()
+    /// <param name="project">The project.</param>
+    /// <param name="features">The add-ons of its release as the site sends them; null for a site that does not say.</param>
+    public static ProjectPageResult Page(ProjectOfferView project, string features = "null") => new()
     {
-        Page = JsonDocument.Parse(Json(project)).RootElement.Clone(),
+        Page = JsonDocument.Parse(Json(project, features)).RootElement.Clone(),
         FetchedAt = TestStates.Now,
     };
 
@@ -18,7 +20,7 @@ public static class TestPages
     public static Func<Message, Message?> Answer(ProjectOfferView project) =>
         request => request is GetProjectPage ? Page(project) : null;
 
-    private static string Json(ProjectOfferView project) => $$"""
+    private static string Json(ProjectOfferView project, string features) => $$"""
         {
           "uuid": "{{project.ProjectId}}",
           "slug": "{{project.ProjectSlug}}",
@@ -57,7 +59,8 @@ public static class TestPages
               "name": "v{{project.Release?.Version ?? 1}}",
               "changelog": "- Napisy w przerywnikach nie znikają już przed końcem kwestii.\n- Poprawione literówki zgłoszone przez graczy.",
               "is_public": true,
-              "first_published_at": "2026-09-28T10:00:00Z"
+              "first_published_at": "2026-09-28T10:00:00Z",
+              "features": {{features}}
             }
           ],
           "gallery": [

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Creator;
@@ -48,13 +49,33 @@ public enum CellState
 
     /// <summary>A test package is in the game, so its files are no baseline for a comparison or a build.</summary>
     TestInstalled,
+
+    /// <summary>An add-on waits for its base on the version, over whose plan it is planned, to be compared.</summary>
+    Waiting,
+
+    /// <summary>An add-on's base on the version was not compared, so the add-on is not either.</summary>
+    BaseMissing,
 }
 
 /// <summary>A row of a project's table: one part over the versions of the game.</summary>
-/// <param name="Name">The part's name, as the row's head says it.</param>
-/// <param name="Mode">The part's mode.</param>
+/// <param name="Page">The project's page, which renames the part.</param>
+/// <param name="Part">The part's name; empty for the base.</param>
+/// <param name="Caption">What the part is, under its name: an add-on as the site offers it, else the base's mode.</param>
+/// <param name="Mode">The add-on's mode; empty for the base, whose caption says it.</param>
 /// <param name="Cells">The part's cells, in the versions' order.</param>
-public sealed record CellRow(string Name, string Mode, IReadOnlyList<CellViewModel> Cells);
+public sealed record CellRow(ProjectPageViewModel Page, string Part, string Caption, string Mode, ValueList<CellViewModel> Cells)
+{
+    public bool IsFeature => Part.Length > 0;
+
+    public string Name => IsFeature ? Part : Strings.Creator_PartBase;
+
+    /// <summary>The add-on's name in the row's head, which renames it once the author leaves the box.</summary>
+    public string TypedName
+    {
+        get => Part;
+        set => _ = Page.RenamePartAsync(Part, value);
+    }
+}
 
 /// <summary>
 /// A part of the project on a version of the game: the author's folder, laid out like the game or like the version, compared
@@ -68,6 +89,7 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _comparing;
     private (GameKey Key, string Folder, string? Build)? _comparedWith;
     private string _folder;
+    private string _inside;
     private CellState _compared = CellState.NoFolder;
     private CellState? _block;
     private (string Title, string Text) _blockNotice = ("", "");
@@ -84,17 +106,16 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         _page = page;
         _session = session;
         Key = key;
-        _folder = Folder;
+        (_folder, _inside) = (Folder, Inside);
         _compared = _folder.Length > 0 ? CellState.Comparing : CellState.NoFolder;
         (Stage, State) = (Strings.Creator_CompareListing, _compared);
         _session.PropertyChanged += OnSessionChanged;
-        ShowFolder();
         ShowBrief();
     }
 
     public ProjectPageViewModel Page => _page;
 
-    public CellKey Key { get; }
+    public CellKey Key { get; private set; }
 
     public ProjectPart Part => _session.Project.Parts.FirstOrDefault(part => part.Name == Key.Part) ?? _session.Project.Parts[0];
 
@@ -105,9 +126,12 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     public DetectedGameEntry? Game => _page.GameOf(Key.Version);
 
     /// <summary>The author's folder of the cell: the version's own, else the part's.</summary>
-    public string Folder => Part.VersionFolders.GetValueOrDefault(Key.Version) ?? Part.AuthorFolder;
+    public string Folder => Part.FolderOf(Key.Version);
 
     public string StoreName => GameWording.StoreName(Key.Version.Store);
+
+    // The other parts' folders within the cell's, whose files its comparison leaves to them.
+    private string Inside => string.Join('|', _session.Project.FoldersInside(Key.Part, Folder));
 
     /// <summary>The cell is the one the panel and the tabs show.</summary>
     [ObservableProperty]
@@ -124,6 +148,9 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         nameof(CanCompare), nameof(IsBlocked), nameof(Line), nameof(HoldsTest))]
     public partial CellState State { get; private set; }
 
+    /// <summary>The cell is an add-on's, planned over its base's cell on the same version.</summary>
+    public bool IsFeature => Key.Part.Length > 0;
+
     public bool IsComparing => State == CellState.Comparing;
 
     public bool HasNothingToPackage => State == CellState.NothingToPackage;
@@ -133,6 +160,9 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     /// <summary>The version's game cannot be compared or built for now.</summary>
     public bool IsBlocked => _block is not null;
 
+    /// <summary>The version's game can be listed now.</summary>
+    internal bool CanBeRead => !IsBlocked && Game is not null;
+
     public bool IsBlockedByInstall => State == CellState.Installed;
 
     /// <summary>A test package is in the version's game.</summary>
@@ -141,8 +171,11 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     /// <summary>The words of the way to take the cell's version off the project.</summary>
     public string RemoveText => Text.Format(Strings.Creator_RemoveVersion, ("store", StoreName));
 
+    /// <summary>The words of the way to take the cell's add-on off the project.</summary>
+    public string RemovePartText => Text.Format(Strings.Creator_RemovePart, ("name", Key.Part));
+
     /// <summary>The comparison can start again: the cell has a folder, a game and nothing in the way.</summary>
-    public bool CanCompare => Game is not null && _block is null && !IsComparing && Folder.Length > 0;
+    public bool CanCompare => Game is not null && _block is null && !IsComparing && Folder.Length > 0 && State is not (CellState.Waiting or CellState.BaseMissing);
 
     /// <summary>How the cell stands, as its head says it, with what the base's last package says of the compared files.</summary>
     public LineContent Line => State switch
@@ -153,24 +186,24 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         _ => new LineContent(State switch
             {
                 CellState.NotReady => Icons.Clock,
+                CellState.Waiting => Icons.Hourglass,
                 CellState.TestInstalled or CellState.Installed => Icons.TriangleAlert,
                 CellState.NoFolder or CellState.FolderGone => Icons.FolderOpen,
                 CellState.GameGone => Icons.Gamepad,
+                CellState.BaseMissing => Icons.Package,
                 _ => Icons.CircleX,
             },
-            State is CellState.NoFolder or CellState.Stopped or CellState.GameGone or CellState.NotReady ? Tone.Neutral
+            State is CellState.NoFolder or CellState.Stopped or CellState.GameGone or CellState.NotReady or CellState.Waiting or CellState.BaseMissing ? Tone.Neutral
                 // A drive that does not answer may come back with the folder.
                 : State == CellState.TestInstalled || (State == CellState.FolderGone && _unanswered) ? Tone.Warning : Tone.Danger,
-            Text.Format(Strings.Creator_CellState, ("state", State.ToString()), ("work", _work), ("version", ""))),
+            Text.Format(Strings.Creator_CellState, ("state", State.ToString()), ("work", _work), ("version", ""), ("store", StoreName)),
+            State == CellState.Waiting ? Text.Format(Strings.Creator_CellDetail, ("detail", "Waiting")) : null),
     };
 
     /// <summary>What the base's last package says of the compared files; empty when there is nothing to say.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Line))]
     public partial string Detail { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string FolderPath { get; private set; } = "";
 
     /// <summary>What stopped the comparison; empty while nothing did.</summary>
     [ObservableProperty]
@@ -289,6 +322,14 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
             return;
         }
 
+        // An add-on is planned over its base's plan, so it compares once its base did; a base that will not, e.g. stopped, takes
+        // the add-on with it.
+        if (IsFeature && _page.Cells.FirstOrDefault(cell => cell.Key == Key with { Part = "" }) is { State: not (CellState.Compared or CellState.NothingToPackage) } first)
+        {
+            Show(first.IsComparing ? CellState.Waiting : CellState.BaseMissing);
+            return;
+        }
+
         // A build reads the files the comparison would plan from, so the comparison waits until it ended.
         _checkPending = _page.Build.IsBuilding;
         if (_checkPending)
@@ -300,7 +341,6 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         _checking?.Cancel();
         using var comparing = _comparing = new CancellationTokenSource();
         _comparedWith = (game.Key, game.Game.InstallDirectory, game.Game.BuildId);
-        ShowFolder();
         (ProblemTitle, ProblemText, DroppedFiles, _unanswered) = ("", "", false, false);
         (Detail, ChangedText, _changed) = ("", "", []);
         ShowChanges();
@@ -392,19 +432,15 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void ToggleIdentical() => ShowsIdentical = !ShowsIdentical;
 
-    // A folder in the game's or around it would pass off the game's own files as the author's. With several versions the folder
-    // may be this version's own; each cell whose folder changed compares again by itself.
+    // With several versions the folder may be this version's own; each cell whose folder changed compares again by itself.
     private async Task UseFolderAsync(string folder)
     {
         DroppedFiles = false;
-        if (Game is { } game && PathComparison.Overlaps(game.Game.InstallDirectory, folder))
+        if (_page.Refuses(Key.Part, folder))
         {
-            _page.ShowProblem(PathComparison.AreSame(game.Game.InstallDirectory, folder) ? Strings.Creator_GameFolderTitle : Strings.Creator_InsideGameTitle,
-                Strings.Creator_GameFolder);
             return;
         }
 
-        _page.ClearProblem();
         var part = Part;
         var own = false;
         if (_session.Project.Versions.Count > 1)
@@ -434,6 +470,23 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         _session.Change(project => project with { Parts = new(project.Parts.Items.Replace(part, changed)) });
     }
 
+    /// <summary>Compares an add-on that waited for its base, or holds it back, once the base's state changed.</summary>
+    internal void BaseChanged()
+    {
+        if (_compared is CellState.Waiting or CellState.BaseMissing)
+        {
+            _ = CompareAsync();
+        }
+    }
+
+    /// <summary>Takes the add-on's new name, which keys the cell; its words follow with the plan made under the name.</summary>
+    /// <param name="part">The add-on's new name.</param>
+    internal void Rename(string part)
+    {
+        Key = Key with { Part = part };
+        OnPropertyChanged(nameof(RemovePartText));
+    }
+
     private void Block(CellState? block, string title, string text)
     {
         if (block is not null && block != CellState.TestInstalled)
@@ -459,8 +512,6 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     }
 
     partial void OnPercentChanged(string value) => ShowBrief();
-
-    private void ShowFolder() => FolderPath = Folder;
 
     private void Show(CompareProgress progress)
     {
@@ -518,8 +569,8 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
         }
     }
 
-    // A comparison of another folder, or with a game the version no longer names, counts for nothing, so the folder is compared
-    // again with the game it names now.
+    // A comparison of another folder, of files another part now takes or gives back, or with a game the version no longer names,
+    // counts for nothing, so the folder is compared again with the game it names now.
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(CreatorSession.Review))
@@ -533,10 +584,10 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (_folder != Folder)
+        if (_folder != Folder || _inside != Inside)
         {
-            _folder = Folder;
-            ShowFolder();
+            (_folder, _inside) = (Folder, Inside);
+            OnPropertyChanged(nameof(Folder));
             _comparing?.Cancel();
             (_comparing, _comparedWith) = (null, null);
             _ = _session.UseAsync(Key, null);

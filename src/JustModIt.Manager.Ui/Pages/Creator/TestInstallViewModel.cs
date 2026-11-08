@@ -27,7 +27,20 @@ public enum TestInstallState
     Failed,
 }
 
-/// <summary>A test install of the built package through the agent, which the agent also undoes.</summary>
+/// <summary>An add-on a test installs after the package it goes with, unless the author turns it off.</summary>
+/// <param name="part">The add-on's name.</param>
+/// <param name="changed">Told when the author turns it on or off.</param>
+public sealed partial class TestFeature(string part, Action changed) : ObservableObject
+{
+    public string Part { get; } = part;
+
+    [ObservableProperty]
+    public partial bool IsOn { get; set; } = true;
+
+    partial void OnIsOnChanged(bool value) => changed();
+}
+
+/// <summary>A test install of the built packages through the agent, which the agent also undoes.</summary>
 public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
 {
     private readonly ProjectPageViewModel _page;
@@ -38,6 +51,7 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
     private GameKey? _version;
     private bool _lostTrack;
     private string _testNote = "";
+    private int _sent;
     private (Guid Job, ToastViewModel Toast)? _undone;
 
     /// <summary>Creates the test install of a project's package.</summary>
@@ -84,6 +98,13 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool CanLaunch { get; private set; }
 
+    /// <summary>The add-ons the last run built, each of which the test installs unless the author turns it off.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTestFeatures))]
+    public partial IReadOnlyList<TestFeature> TestFeatures { get; private set; } = [];
+
+    public bool HasTestFeatures => TestFeatures.Count > 0;
+
     /// <summary>The installed test package of the game; null while there is none.</summary>
     private InstallView? TestInstall => TestOf(Game);
 
@@ -100,11 +121,12 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
         _page.Agent.JobEnded -= OnJobEnded;
     }
 
-    // A run for several versions made a package for each, of which the author tries one in its own copy of the game.
+    // A run for several versions made a base for each, of which the author tries one in its own copy of the game.
     [RelayCommand]
     private async Task InstallTestAsync(string package)
     {
-        List<(GameKey Version, string Path)> choices = [.. _page.Build.Packages.SelectMany(row => row.Versions.Select(version => (version, row.Path)))
+        List<(GameKey Version, string Path)> choices = [.. _page.Build.Packages.Where(row => row.Part.Length == 0)
+            .SelectMany(row => row.Versions.Select(version => (version, row.Path)))
             .Where(choice => _page.GameOf(choice.version) is not null)];
         var version = choices.Where(choice => choice.Path == package).Select(choice => (GameKey?)choice.Version).FirstOrDefault();
         if (choices.Count > 1)
@@ -119,10 +141,10 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            (version, package) = chosen;
+            version = chosen.Version;
         }
 
-        await TestAsync(version, [package]).ConfigureAwait(true);
+        await TestAsync(version, []).ConfigureAwait(true);
     }
 
     // An add-on is tried together with the package it goes with, which installs first, so a clash between the two shows
@@ -136,21 +158,31 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
         }
 
         var first = await _page.Services.Pickers.PickFileAsync(Strings.Creator_TestTogetherTitle, startIn: Path.GetDirectoryName(package)).ConfigureAwait(true);
-        if (first is not null && !string.Equals(first, package, StringComparison.OrdinalIgnoreCase))
+        if (first is not null && !_page.Build.Packages.Any(row => string.Equals(first, row.Path, StringComparison.OrdinalIgnoreCase)))
         {
-            await TestAsync(_page.Build.Packages.FirstOrDefault(row => row.Path == package)?.Versions[0], [first, package]).ConfigureAwait(true);
+            await TestAsync(_page.Build.Packages.FirstOrDefault(row => row.Path == package)?.Versions[0], [first]).ConfigureAwait(true);
         }
     }
 
-    private async Task TestAsync(GameKey? version, IReadOnlyList<string> packages)
+    // The version's base, then each add-on left on, in the order a player's install takes them.
+    private async Task TestAsync(GameKey? version, IReadOnlyList<string> first)
     {
-        if ((version ?? _page.Cell?.Key.Version) is not { } tested || _page.GameOf(tested) is not { } game || packages[^1].Length == 0)
+        if ((version ?? _page.Cell?.Key.Version) is not { } tested || _page.GameOf(tested) is not { } game)
+        {
+            return;
+        }
+
+        List<string> packages = [.. first, .. _page.Build.Packages
+            .Where(row => row.Versions.Contains(tested) && (row.Part.Length == 0 || TestFeatures.Any(feature => feature.IsOn && feature.Part == row.Part)))
+            .Select(row => row.Path)];
+        if (packages.Count == first.Count)
         {
             return;
         }
 
         (_testNote, _undoJob, _version) = ("", null, tested);
         _ended.Clear();
+        _sent = packages.Count;
         var (sent, answer) = await AgentRequests.AskAsync(_page.Services, new TestInstallPackage(game.Key, packages)).ConfigureAwait(true);
         if (sent && answer is JobStarted started)
         {
@@ -186,13 +218,15 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Starts over for a new package, unless a test is under way or its package is in the game.</summary>
+    /// <summary>Starts over for new packages, unless a test is under way or its package is in the game.</summary>
     internal void Built()
     {
         if (State is TestInstallState.Undone or TestInstallState.Failed)
         {
             State = TestInstallState.None;
         }
+
+        TestFeatures = [.. _page.Build.Packages.Select(row => row.Part).Where(part => part.Length > 0).Distinct().Select(part => new TestFeature(part, ShowTest))];
 
         ShowTest();
     }
@@ -242,12 +276,14 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
 
         var name = Game?.Name ?? "";
         CanLaunch = Game?.Game.CanLaunch == true;
+        // The test installs, or installed, the packages it sent, else those the pills leave on.
+        var several = (installed?.PackageFileNames.Count ?? (OffersTestInstall ? 1 + TestFeatures.Count(feature => feature.IsOn) : _sent)) > 1 ? "true" : "false";
         TestTitle = State switch
         {
-            TestInstallState.Installed => Text.Format(Strings.Creator_TestInstalledTitle, ("game", name)),
+            TestInstallState.Installed => Text.Format(Strings.Creator_TestInstalledTitle, ("game", name), ("several", several)),
             TestInstallState.Undone => Strings.Creator_TestedTitle,
             TestInstallState.Failed => Strings.Creator_TestFailedTitle,
-            _ => Strings.Creator_TestTitle,
+            _ => Text.Format(Strings.Creator_TestTitle, ("several", several)),
         };
         HasTestProblem = State is TestInstallState.Failed || (State is TestInstallState.Installed && _testNote.Length > 0);
         TestText = State switch
@@ -255,7 +291,7 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
             TestInstallState.Failed or TestInstallState.Undone => _testNote,
             TestInstallState.Installed when _testNote.Length > 0 => _testNote,
             TestInstallState.Installed => Strings.Creator_TestInstalled,
-            _ => Text.Format(Strings.Creator_TestText, ("game", name)),
+            _ => Text.Format(Strings.Creator_TestText, ("game", name), ("several", several)),
         };
     }
 

@@ -3322,10 +3322,10 @@
     <value>Strona może nie przyjąć tej paczki</value>
   </data>
   <data name="Creator_TestTitle" xml:space="preserve">
-    <value>Sprawdź paczkę w grze</value>
+    <value>{several, select, true {Sprawdź paczki w grze} other {Sprawdź paczkę w grze}}</value>
   </data>
   <data name="Creator_TestText" xml:space="preserve">
-    <value>Paczka zostanie zainstalowana w grze {game} tak, jak zrobi to gracz. Oryginały zmienianych plików trafią do kopii zapasowej, a instalację można cofnąć jednym kliknięciem.</value>
+    <value>{several, select, true {Paczki zostaną zainstalowane} other {Paczka zostanie zainstalowana}} w grze {game} tak, jak zrobi to gracz. Oryginały zmienianych plików trafią do kopii zapasowej, a instalację można cofnąć jednym kliknięciem.</value>
   </data>
   <data name="Creator_TestInstall" xml:space="preserve">
     <value>Zainstaluj testowo</value>
@@ -3337,7 +3337,7 @@
     <value>Wybierz główną paczkę, która zainstaluje się przed tą</value>
   </data>
   <data name="Creator_TestInstalledTitle" xml:space="preserve">
-    <value>Paczka jest zainstalowana testowo w grze {game}</value>
+    <value>{several, select, true {Paczki są zainstalowane} other {Paczka jest zainstalowana}} testowo w grze {game}</value>
   </data>
   <data name="Creator_TestInstalled" xml:space="preserve">
     <value>Po sprawdzeniu w grze wystarczy cofnąć instalację – gra wróci do oryginalnych plików z kopii zapasowej. Na liście gier instalacja jest oznaczona jako testowa, a automatyczne aktualizacje jej nie dotyczą.</value>
@@ -3487,7 +3487,7 @@
     <value>Wszystkie operacje ({count})</value>
   </data>
   <data name="Creator_CellState" xml:space="preserve">
-    <value>{state, select, Compared {Porównano} Decisions {{count} do decyzji} SameAs {Jak w wersji {store}} Unchanged {Bez zmian od {hasVersion, select, true {{version}} other {ostatniej paczki}}} Ready {Gotowe} NoFolder {Brak folderu} FolderGone {Folder niedostępny} GameGone {Gry nie ma na tym komputerze} TestInstalled {Instalacja testowa w grze} Stopped {Porównanie przerwane} Installed {Na grze jest zainstalowana paczka} NotReady {{work}} other {Nie udało się porównać}}</value>
+    <value>{state, select, Compared {Porównano} Decisions {{count} do decyzji} SameAs {Jak w wersji {store}} Unchanged {Bez zmian od {hasVersion, select, true {{version}} other {ostatniej paczki}}} Ready {Gotowe} NoFolder {Brak folderu} FolderGone {Folder niedostępny} GameGone {Gry nie ma na tym komputerze} TestInstalled {Instalacja testowa w grze} Stopped {Porównanie przerwane} Installed {Na grze jest zainstalowana paczka} NotReady {{work}} Waiting {Czeka na podstawę {store}} BaseMissing {Najpierw podstawa {store}} other {Nie udało się porównać}}</value>
   </data>
   <data name="Creator_BeforeBuild" xml:space="preserve">
     <value>Przed zbudowaniem</value>
@@ -3574,7 +3574,7 @@
     <value>folder {from} jest tu jako {to}</value>
   </data>
   <data name="Creator_CellDetail" xml:space="preserve">
-    <value>{detail, select, Changed {{count, plural, one {# plik zmienił się} few {# pliki zmieniły się} many {# plików zmieniło się} other {# pliku zmieniło się}} od {hasVersion, select, true {{version}} other {ostatniej paczki}}} SameAs {wspólne pliki} other {{count} przyjęte}}</value>
+    <value>{detail, select, Changed {{count, plural, one {# plik zmienił się} few {# pliki zmieniły się} many {# plików zmieniło się} other {# pliku zmieniło się}} od {hasVersion, select, true {{version}} other {ostatniej paczki}}} SameAs {wspólne pliki} Waiting {porówna się zaraz po niej} other {{count, plural, one {# przyjęte} few {# przyjęte} many {# przyjętych} other {# przyjętego}}}}</value>
   </data>
   <data name="Creator_Stop" xml:space="preserve">
     <value>Zatrzymaj</value>
@@ -3617,5 +3617,41 @@
   </data>
   <data name="Creator_FolderForAllText" xml:space="preserve">
     <value>Każda wersja porówna się z nowym folderem.</value>
+  </data>
+  <data name="Creator_AddFeature" xml:space="preserve">
+    <value>Dodaj składnik</value>
+  </data>
+  <data name="Creator_FeatureFromFolder" xml:space="preserve">
+    <value>Składnik dostanie nazwę folderu.</value>
+  </data>
+  <data name="Creator_FeatureRow" xml:space="preserve">
+    <value>{on, select, true {składnik · domyślnie włączony} false {składnik · domyślnie wyłączony} other {składnik}}</value>
+  </data>
+  <data name="Creator_FeatureName" xml:space="preserve">
+    <value>Nazwa składnika</value>
+  </data>
+  <data name="Creator_PartNumbered" xml:space="preserve">
+    <value>{name} ({number})</value>
+  </data>
+  <data name="Creator_PartPackageName" xml:space="preserve">
+    <value>{name} – {part}</value>
+  </data>
+  <data name="Creator_FolderTaken" xml:space="preserve">
+    <value>Ten folder należy już do innej części projektu.</value>
+  </data>
+  <data name="Creator_RemovePart" xml:space="preserve">
+    <value>Usuń składnik {name}</value>
+  </data>
+  <data name="Creator_RemovePartTitle" xml:space="preserve">
+    <value>Usunąć składnik {name}?</value>
+  </data>
+  <data name="Creator_RemovePartMessage" xml:space="preserve">
+    <value>Wybory, kroki i pliki zmieniane w grze tego składnika znikną z projektu. Folder z plikami i zbudowane paczki zostają na dysku.</value>
+  </data>
+  <data name="Creator_RemovePartConfirm" xml:space="preserve">
+    <value>Usuń składnik</value>
+  </data>
+  <data name="Creator_TestFeatures" xml:space="preserve">
+    <value>Składniki w teście</value>
   </data>
 </root>

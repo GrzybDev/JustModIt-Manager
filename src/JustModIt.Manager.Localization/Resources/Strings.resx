@@ -3334,10 +3334,10 @@
     <value>The site may not take this package</value>
   </data>
   <data name="Creator_TestTitle" xml:space="preserve">
-    <value>Try the package in the game</value>
+    <value>{several, select, true {Try the packages in the game} other {Try the package in the game}}</value>
   </data>
   <data name="Creator_TestText" xml:space="preserve">
-    <value>The package is installed in {game} the way a player installs it. The originals of the changed files go to the backup, and one click undoes the install.</value>
+    <value>{several, select, true {The packages are installed} other {The package is installed}} in {game} the way a player installs {several, select, true {them} other {it}}. The originals of the changed files go to the backup, and one click undoes the install.</value>
   </data>
   <data name="Creator_TestInstall" xml:space="preserve">
     <value>Install for a test</value>
@@ -3349,7 +3349,7 @@
     <value>Choose the main package, which installs before this one</value>
   </data>
   <data name="Creator_TestInstalledTitle" xml:space="preserve">
-    <value>The package is installed in {game} for a test</value>
+    <value>{several, select, true {The packages are installed} other {The package is installed}} in {game} for a test</value>
   </data>
   <data name="Creator_TestInstalled" xml:space="preserve">
     <value>After trying it in the game, undoing the install brings the original files back from the backup. The player's games mark the install as a test, and automatic updates leave it alone.</value>
@@ -3499,7 +3499,7 @@
     <value>All operations ({count})</value>
   </data>
   <data name="Creator_CellState" xml:space="preserve">
-    <value>{state, select, Compared {Compared} Decisions {{count} to decide} SameAs {As in the {store} version} Unchanged {No changes since {hasVersion, select, true {{version}} other {the last package}}} Ready {Ready} NoFolder {No folder} FolderGone {Folder unavailable} GameGone {The game is not on this computer} TestInstalled {Test install in the game} Stopped {Comparison stopped} Installed {A package is installed on the game} NotReady {{work}} other {The comparison failed}}</value>
+    <value>{state, select, Compared {Compared} Decisions {{count} to decide} SameAs {As in the {store} version} Unchanged {No changes since {hasVersion, select, true {{version}} other {the last package}}} Ready {Ready} NoFolder {No folder} FolderGone {Folder unavailable} GameGone {The game is not on this computer} TestInstalled {Test install in the game} Stopped {Comparison stopped} Installed {A package is installed on the game} NotReady {{work}} Waiting {Waiting for the base for {store}} BaseMissing {The base for {store} first} other {The comparison failed}}</value>
   </data>
   <data name="Creator_BeforeBuild" xml:space="preserve">
     <value>Before building</value>
@@ -3586,7 +3586,7 @@
     <value>the folder {from} is {to} here</value>
   </data>
   <data name="Creator_CellDetail" xml:space="preserve">
-    <value>{detail, select, Changed {{count, plural, one {# file changed} other {# files changed}} since {hasVersion, select, true {{version}} other {the last package}}} SameAs {shared files} other {{count} accepted}}</value>
+    <value>{detail, select, Changed {{count, plural, one {# file changed} other {# files changed}} since {hasVersion, select, true {{version}} other {the last package}}} SameAs {shared files} Waiting {compared right after it} other {{count} accepted}}</value>
   </data>
   <data name="Creator_Stop" xml:space="preserve">
     <value>Stop</value>
@@ -3629,5 +3629,41 @@
   </data>
   <data name="Creator_FolderForAllText" xml:space="preserve">
     <value>Every version is compared with the new folder.</value>
+  </data>
+  <data name="Creator_AddFeature" xml:space="preserve">
+    <value>Add an add-on</value>
+  </data>
+  <data name="Creator_FeatureFromFolder" xml:space="preserve">
+    <value>The add-on takes the folder's name.</value>
+  </data>
+  <data name="Creator_FeatureRow" xml:space="preserve">
+    <value>{on, select, true {add-on · on by default} false {add-on · off by default} other {add-on}}</value>
+  </data>
+  <data name="Creator_FeatureName" xml:space="preserve">
+    <value>Add-on's name</value>
+  </data>
+  <data name="Creator_PartNumbered" xml:space="preserve">
+    <value>{name} ({number})</value>
+  </data>
+  <data name="Creator_PartPackageName" xml:space="preserve">
+    <value>{name} – {part}</value>
+  </data>
+  <data name="Creator_FolderTaken" xml:space="preserve">
+    <value>This folder already belongs to another part of the project.</value>
+  </data>
+  <data name="Creator_RemovePart" xml:space="preserve">
+    <value>Remove the add-on {name}</value>
+  </data>
+  <data name="Creator_RemovePartTitle" xml:space="preserve">
+    <value>Remove the add-on {name}?</value>
+  </data>
+  <data name="Creator_RemovePartMessage" xml:space="preserve">
+    <value>Its choices, steps and files changed in the game leave the project. The folder with the files and the built packages stay on the disk.</value>
+  </data>
+  <data name="Creator_RemovePartConfirm" xml:space="preserve">
+    <value>Remove the add-on</value>
+  </data>
+  <data name="Creator_TestFeatures" xml:space="preserve">
+    <value>Add-ons in the test</value>
   </data>
 </root>

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -111,6 +112,26 @@ public sealed class CreatorLibraryTests : IDisposable
         await UiHarness.WaitUntilAsync(() => files.Blocked > 0);
         ui.Clock.Advance(LibraryAccess.TimeLimit);
         await UiHarness.WaitUntilAsync(() => card("Ashfall").FolderTip == sleeping);
+    }
+
+    [AvaloniaFact]
+    public async Task A_card_reads_only_the_folders_in_use_so_a_part_s_folder_every_version_replaced_counts_for_nothing()
+    {
+        var replaced = Directory.CreateDirectory(Path.Combine(_work.Root, "Work", "Replaced")).FullName;
+        File.WriteAllText(Path.Combine(replaced, "strings.bin"), "a file no build read");
+        var project = Project("Ember Isles", CreatorWorkspace.Lantern, replaced) with
+        {
+            Parts = [new ProjectPart { AuthorFolder = replaced, VersionFolders = new(ImmutableDictionary<GameKey, string>.Empty.Add(CreatorWorkspace.Lantern, _work.AuthorFolder)) }],
+        };
+        await SeedAsync(project);
+        using (var library = new ProjectLibrary(LibraryFolder, TimeProvider.System))
+        {
+            await library.UpdateBuildAsync(project.Id, _ => Built(_work.AuthorFolder, ""), CancellationToken.None);
+        }
+
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Ember Isles")?.Line is not null, () => Card(ui, "Ember Isles")?.Details ?? "");
+        Card(ui, "Ember Isles")!.Line!.Label.Should().Be(State("Unchanged"));
     }
 
     [AvaloniaFact]

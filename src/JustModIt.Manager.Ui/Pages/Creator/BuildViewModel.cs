@@ -36,7 +36,8 @@ public enum PackageState
 /// <param name="Size">Its size, as words.</param>
 /// <param name="Path">Its file.</param>
 /// <param name="Versions">The versions of the game it serves.</param>
-public sealed record BuiltRow(string Name, string Details, string Size, string Path, IReadOnlyList<GameKey> Versions);
+/// <param name="Part">The name of its part; empty for the base.</param>
+public sealed record BuiltRow(string Name, string Details, string Size, string Path, IReadOnlyList<GameKey> Versions, string Part);
 
 /// <summary>
 /// The build of every part and version on the thread pool, with its package, stage, file and bytes and a way to cancel it, why
@@ -294,7 +295,9 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
                 OutputFolder = folder,
                 Parts = [.. project.Parts.Select(part => (part.Name, (IReadOnlyList<BuildVersion>)[.. project.Versions.Select(version => new BuildVersion(
                     games[version.Game.Key], _session.ReviewOf(new CellKey(part.Name, version.Game.Key))!.Plan))]))],
-                PackageName = (_, versions) => SuggestedName(versions),
+                PackageName = (part, versions) => part.Length > 0
+                    ? Text.Format(Strings.Creator_PartPackageName, ("name", SuggestedName(versions)), ("part", part))
+                    : SuggestedName(versions),
                 FallbackName = Strings.Creator_ProjectFallbackName,
                 Built = _ => done++,
                 // The run asks on its own thread, and the dialogs live on the window's.
@@ -397,7 +400,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     {
         Packages = [.. finished.Select(built => new BuiltRow(Path.GetFileName(built.Result.OutputPath),
             GameWording.Join([built.Part.Length > 0 ? built.Part : Strings.Creator_PartBase, Stores(built.Package.Versions)]),
-            Formats.FileSize(built.Result.PackageSize), built.Result.OutputPath, built.Package.Versions))];
+            Formats.FileSize(built.Result.PackageSize), built.Result.OutputPath, built.Package.Versions, built.Part))];
         var package = finished[0];
         var result = package.Result;
         OutputPath = result.OutputPath;

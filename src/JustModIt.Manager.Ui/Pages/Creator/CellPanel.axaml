@@ -21,7 +21,7 @@
             <ui:StatusLine x:Name="CellState" FontSize="13" LineHeight="20" VerticalAlignment="Center" Icon="{Binding Line.Icon}" Tone="{Binding Line.Tone}"
                            Label="{Binding Line.Label}" Detail="{Binding Line.Detail}" IsBusy="{Binding Line.IsBusy}" />
           </WrapPanel>
-          <TextBlock Classes="pathLine" Text="{Binding FolderPath}" ToolTip.Tip="{Binding FolderPath}" />
+          <TextBlock Classes="pathLine" Text="{Binding Folder}" ToolTip.Tip="{Binding Folder}" />
           <TextBlock Classes="meta" Text="{Binding Page.Review.Counts}" IsVisible="{Binding IsCompared}" />
         </StackPanel>
         <WrapPanel x:Name="HeadActions" ItemSpacing="8" LineSpacing="8" VerticalAlignment="Top">
@@ -147,18 +147,25 @@
             </MultiBinding>
           </Button.IsVisible>
         </Button>
-        <!-- One version's card has no table to add a version to. -->
+        <!-- One version's card has no table to add a version or an add-on to. -->
+        <Button x:Name="AddFeature" Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_AddFeature}" Command="{Binding Page.AddPartCommand}"
+                IsVisible="{Binding !Page.IsTable}" />
         <Button x:Name="AddVersion" Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_AddGameVersion}" Command="{Binding Page.AddVersionCommand}"
                 IsVisible="{Binding !Page.IsTable}" />
-        <!-- A version that holds a test package keeps the only way to its undo, the packages' card on this page. -->
+        <!-- A version that holds a test package keeps the only way to its undo, the packages' card on this page. An add-on's cell
+             takes the add-on off the project instead. -->
         <Button x:Name="RemoveVersion" Classes="link" FontSize="13" Content="{Binding RemoveText}" Command="{Binding Page.RemoveVersionCommand}">
           <Button.IsVisible>
             <MultiBinding Converter="{x:Static BoolConverters.And}">
               <Binding Path="Page.IsTable" />
               <Binding Path="!HoldsTest" />
+              <Binding Path="!IsFeature" />
+              <Binding Path="Page.HasSeveralVersions" />
             </MultiBinding>
           </Button.IsVisible>
         </Button>
+        <Button x:Name="RemovePart" Classes="link" FontSize="13" Content="{Binding RemovePartText}" Command="{Binding Page.RemovePartCommand}"
+                IsVisible="{Binding IsFeature}" />
       </WrapPanel>
     </StackPanel>
   </Border>

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
@@ -152,6 +153,10 @@ public sealed record ProjectPart
     /// </summary>
     public ValueList<RuntimeFileChoice> RuntimeFiles { get; init; }
 
+    /// <summary>The author's folder of a version: its own, else the part's.</summary>
+    /// <param name="version">The version's game.</param>
+    public string FolderOf(GameKey version) => VersionFolders.GetValueOrDefault(version) ?? AuthorFolder;
+
     /// <summary>A copy of the part with the author's choice for a reviewed file.</summary>
     /// <param name="entry">The file as the review lists it.</param>
     /// <param name="choice">One of the entry's choices; its detected one clears the author's choice.</param>
@@ -257,6 +262,27 @@ public sealed record CreatorProject
 
     /// <summary>Keys of warnings the author has read and accepted (<see cref="PlanFinding.AcknowledgementKey"/>).</summary>
     public ValueList<string> Acknowledged { get; init; }
+
+    /// <summary>The folders of the other parts inside one of a part's folders, whose files belong to those parts.</summary>
+    /// <param name="part">The part's name.</param>
+    /// <param name="folder">One of the part's folders; empty for a part without one.</param>
+    public IReadOnlyList<string> FoldersInside(string part, string folder) => folder.Length == 0 ? []
+        : [.. FoldersBesides(part).Select(other => other.Folder).Where(other => !PathComparison.AreSame(other, folder) && PathComparison.IsWithin(folder, other))];
+
+    /// <summary>
+    /// Whether a folder is another part's, or nests with one other than inside the base's folder, the only folder whose
+    /// comparison leaves another part's files out.
+    /// </summary>
+    /// <param name="part">The name of the part that would take the folder.</param>
+    /// <param name="folder">The folder.</param>
+    public bool IsTaken(string part, string folder) =>
+        FoldersBesides(part).Any(other => PathComparison.AreSame(other.Folder, folder)
+            || (part.Length > 0 && PathComparison.IsWithin(folder, other.Folder))
+            || (!other.IsBase && PathComparison.IsWithin(other.Folder, folder)));
+
+    private IEnumerable<(bool IsBase, string Folder)> FoldersBesides(string part) =>
+        Parts.Where(other => other.Name != part)
+            .SelectMany(other => other.VersionFolders.Values.Prepend(other.AuthorFolder).Where(folder => folder.Length > 0).Select(folder => (other.Name.Length == 0, folder)));
 
     /// <summary>A copy of the project that records a warning as acknowledged.</summary>
     /// <param name="key">The warning's <see cref="PlanFinding.AcknowledgementKey"/>.</param>

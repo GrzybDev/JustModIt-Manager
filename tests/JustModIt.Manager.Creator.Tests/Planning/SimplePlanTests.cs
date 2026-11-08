@@ -280,6 +280,30 @@ public sealed class SimplePlanTests : IDisposable
         advanced.Plan.CanBuild.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task An_add_on_s_copy_over_a_base_file_is_no_duplicate()
+    {
+        _workspace.Game("data/strings.bin", "strings of the game");
+        _workspace.Game("data/old.bin", "a file the base leaves");
+        _workspace.Author("data/strings.bin", "strings of the base");
+        _workspace.Author("data/added.txt", "a file the base adds");
+        var comparison = await _workspace.CompareAsync();
+        var project = Workspace.Project();
+        var basePlan = CreatorPlanner.Plan(comparison, project, Part, Workspace.Version, Workspace.Options).Plan;
+        var addOn = new ProjectPart
+        {
+            Name = "Captions",
+            Mode = CreatorMode.Advanced,
+            Steps = [new CopyFileStep("data/strings.bin", "data/strings.bin"), new CopyFileStep("data/strings.bin", "data/added.txt"), new DeleteFileStep("data/added.txt")],
+        };
+
+        var plan = CreatorPlanner.Plan(comparison, project, addOn, Workspace.Version, Workspace.Options, basePlan: basePlan).Plan;
+
+        plan.Findings.Select(finding => finding.Kind).Should().NotContain([FindingKind.DuplicatePath, FindingKind.WholeGameFile, FindingKind.GameFileMissing]);
+        plan.Findings.Where(finding => finding.Kind == FindingKind.ConflictingOperations).Should().ContainSingle("the add-on's own copy of the file is what its delete conflicts with")
+            .Which.StepIndex.Should().Be(2);
+    }
+
     private static ReviewEntry Entry(CreatorReview review, string path) => review.Entries.Single(entry => entry.File.Path == path);
 
     private Task<CreatorReview> ReviewAsync(ProjectPart part) => _workspace.ReviewAsync(Workspace.Project(part));

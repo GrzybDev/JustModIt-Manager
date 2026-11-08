@@ -11,6 +11,7 @@ using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
+using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
@@ -316,6 +317,41 @@ public sealed class CreatorTests : IDisposable
         page.Session.Project.Versions.Select(version => version.Game.Key).Should().Equal(CreatorWorkspace.Tidewater);
         (page.Session.Part.AuthorFolder, page.Session.Part.RuntimeFiles.Single().Path).Should().Be((_work.AuthorFolder, "data/movies.idx"));
         page.Session.Comparison!.GameDirectory.Should().Be(tidewater);
+    }
+
+    [AvaloniaFact]
+    public async Task A_subfolder_of_the_base_is_compared_only_as_the_add_on()
+    {
+        _work.Author("Subtitles/data/subtitles/intro.srt", "subtitles of the intro");
+        var subtitles = Path.Combine(_work.AuthorFolder, "Subtitles");
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
+        await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared && page.Session!.Review is not null);
+        page.Session!.Review!.Plan.Operations.Select(operation => operation.Path).Should().Contain("Subtitles/data/subtitles/intro.srt",
+            "until an add-on takes the folder, its files are the base's");
+
+        ui.Pickers.Folder = _work.AuthorFolder;
+        ui.Click(Button(ui, Strings.Creator_AddFeature));
+        await UiHarness.WaitUntilAsync(() => page.HasProblem);
+        (page.ProblemText, page.Session.Project.Parts.Count).Should().Be((Strings.Creator_FolderTaken, 1));
+        ui.Pickers.Folder = subtitles;
+        ui.Click(Button(ui, Strings.Creator_AddFeature));
+        await UiHarness.WaitUntilAsync(() => page.Cells.Count == 2 && page.Cells.All(cell => cell.IsCompared && cell.Review is not null) && !page.Session.IsPlanning);
+
+        page.HasProblem.Should().BeFalse();
+        page.Cells[0].Review!.Plan.Operations.Select(operation => operation.Path).Should().NotContain(path => path.StartsWith("Subtitles/", StringComparison.Ordinal));
+        page.Cells[1].Review!.Plan.Operations.Select(operation => (operation.Kind, operation.Path)).Should().Equal((OperationKind.Copy, "data/subtitles/intro.srt"));
+        Drop(ui, DroppedItem.Of<IStorageFolder>(Path.Combine(_work.Root, "Work")), ui.Find<Button>("AddPart"));
+        (page.ProblemText, page.Session.Project.Parts.Count).Should().Be((Strings.Creator_FolderTaken, 2), "an add-on's folder holding the base's would take the base's files");
+
+        ui.Click(Button(ui, page.Cells[1].Name));
+        ui.Click(Button(ui, page.Cells[1].RemovePartText));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel);
+        ((ConfirmDialogViewModel)ui.Shell.Dialogs.Current!).Title.Should().Be(Text.Format(Strings.Creator_RemovePartTitle, ("name", "Subtitles")));
+        await ui.RenderBothAsync("creator-remove-part");
+        ui.Click(Button(ui, Strings.Creator_RemovePartConfirm));
+        await UiHarness.WaitUntilAsync(() => !page.IsTable && page.Cell!.IsCompared && page.Session.Review?.Plan.Operations.Any(operation => operation.Path.StartsWith("Subtitles/", StringComparison.Ordinal)) == true);
+        page.Session.Project.Parts.Should().ContainSingle();
     }
 
     [AvaloniaFact]
@@ -766,9 +802,9 @@ public sealed class CreatorTests : IDisposable
         return data;
     }
 
-    private static void Drop(UiHarness ui, IStorageItem item)
+    private static void Drop(UiHarness ui, IStorageItem item, Control? target = null)
     {
-        var (point, data) = (Middle(ui, ui.Find<Border>("DropZone")), Dragged(item));
+        var (point, data) = (Middle(ui, target ?? ui.Find<Border>("DropZone")), Dragged(item));
         ui.Window.DragDrop(point, RawDragEventType.DragEnter, data, DragDropEffects.Copy);
         ui.Window.DragDrop(point, RawDragEventType.Drop, data, DragDropEffects.Copy);
         UiHarness.Settle();
