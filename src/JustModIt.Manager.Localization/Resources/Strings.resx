@@ -439,7 +439,7 @@
     <value>Game</value>
   </data>
   <data name="Shell_PageUndetected" xml:space="preserve">
-    <value>Can't see your game?</value>
+    <value>Undetected games</value>
   </data>
   <data name="Shell_PageLicenses" xml:space="preserve">
     <value>Licenses</value>
@@ -2670,6 +2670,21 @@
   <data name="Creator_New" xml:space="preserve">
     <value>New project</value>
   </data>
+  <data name="Creator_NewTitle" xml:space="preserve">
+    <value>New project from a folder</value>
+  </data>
+  <data name="Creator_NewHint" xml:space="preserve">
+    <value>The comparison starts at once. Settings change later in the project.</value>
+  </data>
+  <data name="Creator_Create" xml:space="preserve">
+    <value>Create the project</value>
+  </data>
+  <data name="Creator_NoDetected" xml:space="preserve">
+    <value>The stores reported no game</value>
+  </data>
+  <data name="Creator_GamesFailed" xml:space="preserve">
+    <value>The list of games could not be read</value>
+  </data>
   <data name="Creator_Import" xml:space="preserve">
     <value>Import a project file…</value>
   </data>
@@ -2728,13 +2743,10 @@
     <value>The project's game is not detected</value>
   </data>
   <data name="Creator_GameGone" xml:space="preserve">
-    <value>{game} is not among the detected games. The game can be chosen again once a store reports it.</value>
+    <value>{game} is not among the detected games. The project can be opened again once a store reports it.</value>
   </data>
   <data name="Creator_Steps" xml:space="preserve">
     <value>Steps of the package creator</value>
-  </data>
-  <data name="Creator_StepGame" xml:space="preserve">
-    <value>Game</value>
   </data>
   <data name="Creator_StepFiles" xml:space="preserve">
     <value>Files</value>
@@ -2796,12 +2808,6 @@
   <data name="Creator_MissingGameLink" xml:space="preserve">
     <value>See what the stores found</value>
   </data>
-  <data name="Creator_ToFiles" xml:space="preserve">
-    <value>Next: files</value>
-  </data>
-  <data name="Creator_ChangeGame" xml:space="preserve">
-    <value>Change game</value>
-  </data>
   <data name="Creator_FilesTitle" xml:space="preserve">
     <value>Choose the folder with the files</value>
   </data>
@@ -2812,16 +2818,16 @@
     <value>Folder with the files</value>
   </data>
   <data name="Creator_DropTitle" xml:space="preserve">
-    <value>Drag the folder with the files here</value>
+    <value>Drop the folder with the files here</value>
   </data>
   <data name="Creator_DropText" xml:space="preserve">
-    <value>Or choose it on the disk. The files are laid out as in the game, e.g. data/strings.bin.</value>
+    <value>The files are laid out as in the game, e.g. data/strings.bin. The creator recognises the game by them and finds its versions on this computer and its project on the site.</value>
   </data>
   <data name="Creator_DropOverTitle" xml:space="preserve">
-    <value>Drop the folder to compare it with the game</value>
+    <value>Drop the folder to recognise the game</value>
   </data>
   <data name="Creator_DropOverText" xml:space="preserve">
-    <value>The comparison starts at once. The game's files are only read.</value>
+    <value>The game's files are only read.</value>
   </data>
   <data name="Creator_PickFolder" xml:space="preserve">
     <value>Choose folder…</value>
@@ -2843,33 +2849,6 @@
   </data>
   <data name="Creator_DroppedFiles" xml:space="preserve">
     <value>The creator compares a whole folder laid out like the game. Dropping the folder that holds the files is enough.</value>
-  </data>
-  <data name="Creator_Detects" xml:space="preserve">
-    <value>What the creator detects by itself</value>
-  </data>
-  <data name="Creator_DetectsNew" xml:space="preserve">
-    <value>New file</value>
-  </data>
-  <data name="Creator_DetectsNewText" xml:space="preserve">
-    <value>The game does not have it, so it goes in whole.</value>
-  </data>
-  <data name="Creator_DetectsChanged" xml:space="preserve">
-    <value>Changed game file</value>
-  </data>
-  <data name="Creator_DetectsChangedText" xml:space="preserve">
-    <value>The package keeps only the differences (an xdelta patch), not the game's file.</value>
-  </data>
-  <data name="Creator_DetectsRenamed" xml:space="preserve">
-    <value>Game file under a new name</value>
-  </data>
-  <data name="Creator_DetectsRenamedText" xml:space="preserve">
-    <value>E.g. the original library kept under another name. No copy in the package.</value>
-  </data>
-  <data name="Creator_DetectsMissing" xml:space="preserve">
-    <value>Missing file</value>
-  </data>
-  <data name="Creator_DetectsMissingText" xml:space="preserve">
-    <value>Only once confirmed. By default the file stays in the game.</value>
   </data>
   <data name="Creator_KindCopy" xml:space="preserve">
     <value>Copy</value>

@@ -427,7 +427,7 @@
     <value>Gra</value>
   </data>
   <data name="Shell_PageUndetected" xml:space="preserve">
-    <value>Nie widzisz swojej gry?</value>
+    <value>Niewykryte gry</value>
   </data>
   <data name="Shell_PageLicenses" xml:space="preserve">
     <value>Licencje</value>
@@ -2658,6 +2658,21 @@
   <data name="Creator_New" xml:space="preserve">
     <value>Nowy projekt</value>
   </data>
+  <data name="Creator_NewTitle" xml:space="preserve">
+    <value>Nowy projekt z folderu</value>
+  </data>
+  <data name="Creator_NewHint" xml:space="preserve">
+    <value>Porównanie ruszy od razu. Ustawienia zmienia się później w projekcie.</value>
+  </data>
+  <data name="Creator_Create" xml:space="preserve">
+    <value>Utwórz projekt</value>
+  </data>
+  <data name="Creator_NoDetected" xml:space="preserve">
+    <value>Sklepy nie zgłosiły żadnej gry</value>
+  </data>
+  <data name="Creator_GamesFailed" xml:space="preserve">
+    <value>Nie udało się odczytać listy gier</value>
+  </data>
   <data name="Creator_Import" xml:space="preserve">
     <value>Importuj plik projektu…</value>
   </data>
@@ -2716,13 +2731,10 @@
     <value>Nie wykryto gry z projektu</value>
   </data>
   <data name="Creator_GameGone" xml:space="preserve">
-    <value>Gry {game} nie ma wśród wykrytych gier. Można ją wybrać ponownie, gdy sklep ją zgłosi.</value>
+    <value>Gry {game} nie ma wśród wykrytych gier. Projekt można otworzyć ponownie, gdy sklep ją zgłosi.</value>
   </data>
   <data name="Creator_Steps" xml:space="preserve">
     <value>Kroki kreatora</value>
-  </data>
-  <data name="Creator_StepGame" xml:space="preserve">
-    <value>Gra</value>
   </data>
   <data name="Creator_StepFiles" xml:space="preserve">
     <value>Pliki</value>
@@ -2773,22 +2785,16 @@
     <value>Jest na niej instalacja testowa paczki</value>
   </data>
   <data name="Creator_UninstallFirst" xml:space="preserve">
-    <value>Przed zrobieniem paczki trzeba je odinstalować w sekcji</value>
+    <value>Przed zrobieniem paczki trzeba to odinstalować w sekcji</value>
   </data>
   <data name="Creator_GameNotReady" xml:space="preserve">
     <value>{state}. Grę można wybrać, gdy będzie gotowa.</value>
   </data>
   <data name="Creator_MissingGame" xml:space="preserve">
-    <value>Nie widzisz swojej gry?</value>
+    <value>Gry nie ma na liście?</value>
   </data>
   <data name="Creator_MissingGameLink" xml:space="preserve">
     <value>Zobacz, co znalazły sklepy</value>
-  </data>
-  <data name="Creator_ToFiles" xml:space="preserve">
-    <value>Dalej: pliki</value>
-  </data>
-  <data name="Creator_ChangeGame" xml:space="preserve">
-    <value>Zmień grę</value>
   </data>
   <data name="Creator_FilesTitle" xml:space="preserve">
     <value>Wskaż folder z plikami</value>
@@ -2800,16 +2806,16 @@
     <value>Folder z plikami</value>
   </data>
   <data name="Creator_DropTitle" xml:space="preserve">
-    <value>Przeciągnij tu folder z plikami</value>
+    <value>Upuść tu folder z plikami</value>
   </data>
   <data name="Creator_DropText" xml:space="preserve">
-    <value>Albo wybierz go z dysku. Pliki ułożone jak w grze, np. data/strings.bin.</value>
+    <value>Pliki ułożone jak w grze, np. data/strings.bin. Kreator rozpozna grę po plikach, znajdzie jej wersje na tym komputerze i projekt na stronie.</value>
   </data>
   <data name="Creator_DropOverTitle" xml:space="preserve">
-    <value>Upuść folder, żeby porównać go z grą</value>
+    <value>Upuść folder, żeby rozpoznać grę</value>
   </data>
   <data name="Creator_DropOverText" xml:space="preserve">
-    <value>Porównanie zacznie się od razu. Pliki gry są tylko odczytywane.</value>
+    <value>Pliki gry są tylko odczytywane.</value>
   </data>
   <data name="Creator_PickFolder" xml:space="preserve">
     <value>Wybierz folder…</value>
@@ -2831,33 +2837,6 @@
   </data>
   <data name="Creator_DroppedFiles" xml:space="preserve">
     <value>Kreator porównuje cały folder ułożony jak gra. Wystarczy upuścić folder, w którym leżą pliki.</value>
-  </data>
-  <data name="Creator_Detects" xml:space="preserve">
-    <value>Co kreator wykryje sam</value>
-  </data>
-  <data name="Creator_DetectsNew" xml:space="preserve">
-    <value>Nowy plik</value>
-  </data>
-  <data name="Creator_DetectsNewText" xml:space="preserve">
-    <value>Gra go nie ma, więc trafi do niej w całości.</value>
-  </data>
-  <data name="Creator_DetectsChanged" xml:space="preserve">
-    <value>Zmieniony plik gry</value>
-  </data>
-  <data name="Creator_DetectsChangedText" xml:space="preserve">
-    <value>Paczka zapisze tylko różnice (łatka xdelta), bez pliku gry.</value>
-  </data>
-  <data name="Creator_DetectsRenamed" xml:space="preserve">
-    <value>Plik gry pod nową nazwą</value>
-  </data>
-  <data name="Creator_DetectsRenamedText" xml:space="preserve">
-    <value>Np. oryginalna biblioteka pod inną nazwą. Bez kopii w paczce.</value>
-  </data>
-  <data name="Creator_DetectsMissing" xml:space="preserve">
-    <value>Plik, którego brakuje</value>
-  </data>
-  <data name="Creator_DetectsMissingText" xml:space="preserve">
-    <value>Tylko po potwierdzeniu. Domyślnie plik zostaje w grze.</value>
   </data>
   <data name="Creator_KindCopy" xml:space="preserve">
     <value>Kopia</value>

@@ -14,9 +14,6 @@
     <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(3)">
       <Setter Property="Grid.Column" Value="2" />
     </Style>
-    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(4)">
-      <Setter Property="Grid.Column" Value="3" />
-    </Style>
   </UserControl.Styles>
 
   <ScrollViewer Classes="page">
@@ -48,7 +45,7 @@
       <ItemsControl x:Name="StepBar" ItemsSource="{Binding Steps}" AutomationProperties.Name="{x:Static loc:Strings.Creator_Steps}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <Grid ColumnDefinitions="*,*,*,Auto" />
+            <Grid ColumnDefinitions="*,*,Auto" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>

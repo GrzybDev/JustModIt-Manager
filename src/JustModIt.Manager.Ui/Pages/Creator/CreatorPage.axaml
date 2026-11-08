@@ -166,6 +166,38 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+
+      <!-- Under the cards, and all an empty library shows. -->
+      <Border x:Name="DropZone" Classes="dropZone" Classes.strip="{Binding !IsEmpty}" creator:FolderDrop.Command="{Binding DropCommand}"
+              AutomationProperties.Name="{x:Static loc:Strings.Creator_DropZone}">
+        <Panel>
+          <Rectangle Classes="dropFrame" />
+          <DockPanel Classes="dropBody">
+            <Button Classes="outline" Content="{x:Static loc:Strings.Creator_PickFolder}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding NewProjectCommand}" />
+            <Border Classes="dropChip" DockPanel.Dock="Top">
+              <ui:Icon Data="{x:Static theme:Icons.FolderDown}" Width="26" Height="26" />
+            </Border>
+            <StackPanel Spacing="4">
+              <Panel>
+                <TextBlock Classes="atRest" Text="{x:Static loc:Strings.Creator_DropTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextStrongBrush}" />
+                <TextBlock Classes="whileOver" Text="{x:Static loc:Strings.Creator_DropOverTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextStrongBrush}" />
+              </Panel>
+              <Panel>
+                <TextBlock Classes="rowText atRest" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DropText}" />
+                <TextBlock Classes="rowText whileOver" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DropOverText}" />
+              </Panel>
+            </StackPanel>
+          </DockPanel>
+        </Panel>
+      </Border>
+      <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                  Title="{Binding RefusalTitle}" Message="{Binding RefusalText}" IsVisible="{Binding HasRefusal}" theme:Motion.Enter="True" />
+      <ui:Callout MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Info}"
+                  Title="{x:Static loc:Strings.Creator_DroppedFilesTitle}" Message="{x:Static loc:Strings.Creator_DroppedFiles}"
+                  IsVisible="{Binding DroppedFiles}" theme:Motion.Enter="True" />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

@@ -575,12 +575,7 @@ public sealed class CreatorReviewTests : IDisposable
 
     private async Task<ReviewViewModel> ReviewAsync(UiHarness ui)
     {
-        ((CreatorPageViewModel)ui.Shell.Navigator.Current!).NewProjectCommand.Execute(null);
-        var page = Page(ui);
-        await UiHarness.WaitUntilAsync(() => page.Content is GameStepViewModel { IsLoaded: true });
-        ((GameStepViewModel)page.Content!).Choose(_work.Detected[1]);
-        page.GoTo(CreatorStep.Files);
-        ((FilesStepViewModel)page.Content!).UseFolder(_work.AuthorFolder);
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
         await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review && page.Session!.Review is not null);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         return (ReviewViewModel)page.Content!;

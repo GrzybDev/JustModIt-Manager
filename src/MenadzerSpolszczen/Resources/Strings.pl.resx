@@ -596,6 +596,9 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Creator_Subtitle" xml:space="preserve">
     <value>Z przetłumaczonych plików powstanie paczka, którą gracze zainstalują jednym kliknięciem.</value>
   </data>
+  <data name="Creator_DropTitle" xml:space="preserve">
+    <value>Upuść tu folder z plikami spolszczenia</value>
+  </data>
   <data name="Creator_StepFiles" xml:space="preserve">
     <value>Twoje pliki</value>
   </data>
@@ -605,14 +608,8 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Creator_GameInstalled" xml:space="preserve">
     <value>{hasVersion, select, true {Zainstalowane spolszczenie {project} {version}} other {Zainstalowane spolszczenie {project}}}</value>
   </data>
-  <data name="Creator_ToFiles" xml:space="preserve">
-    <value>Dalej: Twoje pliki</value>
-  </data>
   <data name="Creator_FilesLead" xml:space="preserve">
     <value>Folder z przetłumaczonymi plikami, ułożonymi tak jak w folderze gry. Wystarczą pliki dodane albo zmienione – reszta gry zostaje bez zmian.</value>
-  </data>
-  <data name="Creator_Detects" xml:space="preserve">
-    <value>Co Kreator wykryje sam</value>
   </data>
   <data name="Creator_Nothing" xml:space="preserve">
     <value>Paczka byłaby pusta. Najczęściej znaczy to, że spolszczenie wgrano już ręcznie do folderu gry. Po skopiowaniu plików w bezpieczne miejsce i przywróceniu oryginału (sprawdzeniem plików gry w sklepie) można porównać pliki ponownie.</value>

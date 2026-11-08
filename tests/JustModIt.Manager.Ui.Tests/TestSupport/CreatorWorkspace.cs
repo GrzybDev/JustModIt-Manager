@@ -73,6 +73,23 @@ public sealed class CreatorWorkspace : IDisposable
         ui.Pages.Register<CreatorProjectRoute>((_, services) => (creator ??= new CreatorPageViewModel(services, fileSystem)).OpenPage!);
     };
 
+    /// <summary>Makes a project from a folder the author picked, on a game chosen in the dialog, and opens it.</summary>
+    /// <param name="ui">The window, on the library.</param>
+    /// <param name="folder">The author's folder.</param>
+    /// <param name="game">The game's name among the detected ones.</param>
+    /// <returns>The project's page, once it knows its game; its comparison has started.</returns>
+    public static async Task<ProjectPageViewModel> NewProjectAsync(UiHarness ui, string folder, string game)
+    {
+        ui.Pickers.Folder = folder;
+        ((CreatorPageViewModel)ui.Shell.Navigator.Current!).NewProjectCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
+        var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
+        dialog.PickCommand.Execute(dialog.Rows.SelectMany(row => new[] { row.Left, row.Right }).First(option => option?.Name == game));
+        dialog.CreateCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null && ui.Shell.Navigator.Current is ProjectPageViewModel { Game: not null });
+        return (ProjectPageViewModel)ui.Shell.Navigator.Current!;
+    }
+
     /// <summary>Answers the window's question for the detected games, and every other request with nothing.</summary>
     public Func<Message, Message?> Answer => request => request is GetDetectedGames ? new DetectedGames(Detected) : null;
 

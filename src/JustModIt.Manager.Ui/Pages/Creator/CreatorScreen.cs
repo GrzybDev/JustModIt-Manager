@@ -15,7 +15,7 @@ internal static class CreatorScreen
         ui.Pages.Register<CreatorProjectRoute>((_, services) => (creator ??= new CreatorPageViewModel(services)).OpenPage!);
         ui.Views.Register<ProjectPageViewModel>(() => new ProjectPage());
         ui.Views.Register<CreatorPageViewModel>(() => new CreatorPage());
-        ui.Views.Register<GameStepViewModel>(() => new GameStepView());
+        ui.Views.Register<NewProjectDialogViewModel>(() => new NewProjectDialog());
         ui.Views.Register<FilesStepViewModel>(() => new FilesStepView());
         ui.Views.Register<ReviewViewModel>(() => new ReviewStepView());
         ui.Views.Register<PackageStepViewModel>(() => new PackageStepView());

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
@@ -21,7 +22,6 @@ namespace JustModIt.Manager.Ui.Pages.Creator;
 /// <summary>The creator's steps, in the order the author takes them.</summary>
 public enum CreatorStep
 {
-    Game,
     Files,
     Review,
     Package,
@@ -79,8 +79,8 @@ public sealed partial class StepItem(CreatorStep step, string title) : Observabl
 }
 
 /// <summary>
-/// The open project, taken through four steps (the game, the author's files, the check of the operations, the package), which
-/// saves itself. Comparing, planning and building run on the thread pool. It is deliberately not <see cref="IDisposable"/>: the
+/// The open project, taken through three steps (the author's files, the check of the operations, the package), which saves
+/// itself. Comparing, planning and building run on the thread pool. It is deliberately not <see cref="IDisposable"/>: the
 /// navigator disposes a page it drops and a click in the sidebar drops this one, while its build goes on, so the library page
 /// holds it as <see cref="CreatorPageViewModel.OpenPage"/> and alone closes it, and alone answers the window's close.
 /// </summary>
@@ -88,8 +88,9 @@ public sealed partial class ProjectPageViewModel : PageViewModel
 {
     private readonly CreatorPageViewModel _creator;
     private ICreatorStepView[] _steps;
+    private Task? _resuming;
 
-    /// <summary>Opens a project on its game's step, moving on by itself when the game and its folder are known.</summary>
+    /// <summary>Opens a project, whose first step shows once the stores tell where its game is.</summary>
     /// <param name="creator">The library page.</param>
     /// <param name="project">The project as created or read.</param>
     public ProjectPageViewModel(CreatorPageViewModel creator, CreatorProject project)
@@ -98,7 +99,6 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         ProjectId = project.Id;
         Steps =
         [
-            new(CreatorStep.Game, Strings.Creator_StepGame),
             new(CreatorStep.Files, Strings.Creator_StepFiles),
             new(CreatorStep.Review, Strings.Creator_StepReview),
             new(CreatorStep.Package, Strings.Creator_StepPackage),
@@ -106,15 +106,13 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         var session = new CreatorSession(Options, project, Library.Store(project.Id), Log);
         Session = session;
         session.PropertyChanged += OnSessionChanged;
-        var game = new GameStepViewModel(this, session);
         var files = new FilesStepViewModel(this, session);
         var package = new PackageStepViewModel(this, session);
-        _steps = [game, files, new ReviewViewModel(this, session), package];
+        _steps = [files, new ReviewViewModel(this, session), package];
         files.PropertyChanged += OnWorkChanged;
         package.Build.PropertyChanged += OnWorkChanged;
         ShowSession();
-        GoTo(CreatorStep.Game);
-        _ = ResumeAsync(session, game);
+        RefreshSteps();
     }
 
     public Guid ProjectId { get; }
@@ -171,7 +169,7 @@ public sealed partial class ProjectPageViewModel : PageViewModel
 
     public bool HasProblem => ProblemText.Length > 0;
 
-    /// <summary>The project's game as the agent reported it, once the author chose one.</summary>
+    /// <summary>The project's game as the agent reported it; null until it did.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(GameStoreName))]
     public partial DetectedGameEntry? Game { get; internal set; }
@@ -182,11 +180,19 @@ public sealed partial class ProjectPageViewModel : PageViewModel
     internal bool IsGameOnOtherStores { get; set; }
 
     /// <summary>What the project is doing now.</summary>
-    public ProjectWork Work => _steps is [_, FilesStepViewModel { IsComparing: true }, ..] ? ProjectWork.Comparing
+    public ProjectWork Work => _steps is [FilesStepViewModel { IsComparing: true }, ..] ? ProjectWork.Comparing
         : _steps is [.., PackageStepViewModel { Build.IsBuilding: true }] ? ProjectWork.Building
         : ProjectWork.None;
 
-    public override void OnShown() => Content?.OnShown();
+    public override void OnShown()
+    {
+        Content?.OnShown();
+        // A game the stores did not report, or a question left unanswered, may have an answer by now.
+        if (Content is null && _resuming is not { IsCompleted: false })
+        {
+            _resuming = ResumeAsync();
+        }
+    }
 
     /// <summary>Shows a step, when it can be opened.</summary>
     /// <param name="step">The step to show.</param>
@@ -312,21 +318,34 @@ public sealed partial class ProjectPageViewModel : PageViewModel
 
     // A project keeps only what a comparison cannot tell, so an opened project takes its game as the stores report it now,
     // and its files step compares the folders again.
-    private async Task ResumeAsync(CreatorSession session, GameStepViewModel game)
+    private async Task ResumeAsync()
     {
-        await game.LoadAsync().ConfigureAwait(true);
-        if (Session != session || session.Version?.Game is not { } chosen)
+        var session = Session!;
+        var (_, answer) = await AgentRequests.AskAsync(Services, new GetDetectedGames()).ConfigureAwait(true);
+        if (Session != session || answer is not DetectedGames detected || session.Version is not { } version)
         {
             return;
         }
 
-        if (game.Find(chosen.Key) is not { } entry)
+        if (detected.Games.FirstOrDefault(game => game.Key == version.Game.Key) is not { } entry)
         {
-            (ProblemTitle, ProblemText) = (Strings.Creator_GameGoneTitle, Text.Format(Strings.Creator_GameGone, ("game", chosen.Name)));
+            (ProblemTitle, ProblemText) = (Strings.Creator_GameGoneTitle, Text.Format(Strings.Creator_GameGone, ("game", version.Game.Name)));
             return;
         }
 
-        game.Choose(entry);
+        if (version.GameFolder != entry.Game.InstallDirectory)
+        {
+            session.Change(project => project with
+            {
+                Versions = new(project.Versions.Items.SetItem(0, version with { Game = new ProjectGame(entry.Key, entry.Name), GameFolder = entry.Game.InstallDirectory })),
+            });
+        }
+
+        // Stores spell a title differently now and then, e.g. with a colon, so titles are compared as the search folds them.
+        IsGameOnOtherStores = detected.Games.Any(other => other.Key.Store != entry.Key.Store
+            && string.Equals(SearchText.Fold(other.Name), SearchText.Fold(entry.Name), StringComparison.Ordinal));
+        Game = entry;
+        ClearProblem();
         GoTo(CreatorStep.Files);
     }
 
@@ -381,8 +400,7 @@ public sealed partial class ProjectPageViewModel : PageViewModel
             return;
         }
 
-        var reached = Game is null ? CreatorStep.Game
-            : session.Comparison is null || HasNothingToPackage(session) ? CreatorStep.Files
+        var reached = session.Comparison is null || HasNothingToPackage(session) ? CreatorStep.Files
             : !session.IsConfirmed ? CreatorStep.Review
             : CreatorStep.Package;
         foreach (var item in Steps)

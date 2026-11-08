@@ -8,7 +8,7 @@
              x:DataType="creator:FilesStepViewModel">
   <StackPanel Spacing="20">
     <Border Classes="soft" Padding="10,10,12,10">
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
         <Border Classes="smallCover">
           <Panel>
             <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
@@ -25,8 +25,6 @@
                        ToolTip.Tip="{Binding Page.Game.Game.InstallDirectory}" />
           </Grid>
         </StackPanel>
-        <Button Grid.Column="2" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_ChangeGame}"
-                ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}" Command="{Binding BackCommand}" />
       </Grid>
     </Border>
 
@@ -37,32 +35,19 @@
 
     <!-- No folder yet: drop one or pick it. -->
     <StackPanel Spacing="16" IsVisible="{Binding ShowsDropZone}">
-      <Border x:Name="DropZone" Classes="dropZone" Classes.over="{Binding IsDragOver}" DragDrop.AllowDrop="True"
+      <Border x:Name="DropZone" Classes="dropZone" creator:FolderDrop.Command="{Binding DropCommand}"
               AutomationProperties.Name="{x:Static loc:Strings.Creator_DropZone}">
         <Panel>
-          <Rectangle Classes="dropFrame" Margin="-24" />
-          <StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Border Classes="dropChip">
+          <Rectangle Classes="dropFrame" />
+          <DockPanel Classes="dropBody">
+            <Button Classes="primary compact" Content="{x:Static loc:Strings.Creator_PickFolder}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding PickFolderCommand}" />
+            <Border Classes="dropChip" DockPanel.Dock="Top">
               <ui:Icon Data="{x:Static theme:Icons.FolderDown}" Width="26" Height="26" />
             </Border>
-            <StackPanel Spacing="4">
-              <Panel>
-                <TextBlock Text="{x:Static loc:Strings.Creator_DropTitle}" FontSize="17" LineHeight="24" FontWeight="Bold"
-                           Foreground="{StaticResource TextStrongBrush}" TextAlignment="Center" IsVisible="{Binding !IsDragOver}" />
-                <TextBlock Text="{x:Static loc:Strings.Creator_DropOverTitle}" FontSize="17" LineHeight="24" FontWeight="Bold"
-                           Foreground="{StaticResource TextStrongBrush}" TextAlignment="Center" IsVisible="{Binding IsDragOver}" />
-              </Panel>
-              <Panel>
-                <TextBlock Classes="bodyText" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_DropText}"
-                           IsVisible="{Binding !IsDragOver}" />
-                <TextBlock Classes="bodyText" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_DropOverText}"
-                           IsVisible="{Binding IsDragOver}" />
-              </Panel>
-            </StackPanel>
-            <Button x:Name="PickFolderButton" Classes="primary compact" HorizontalAlignment="Center" Margin="0,4,0,0"
-                    Content="{x:Static loc:Strings.Creator_PickFolder}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
-                    Command="{Binding PickFolderCommand}" />
-          </StackPanel>
+            <TextBlock Text="{x:Static loc:Strings.Creator_DropTitle}" FontSize="17" LineHeight="24" FontWeight="Bold"
+                       Foreground="{StaticResource TextStrongBrush}" />
+          </DockPanel>
         </Panel>
       </Border>
       <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
@@ -70,71 +55,6 @@
       <ui:Callout MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Info}"
                   Title="{x:Static loc:Strings.Creator_DroppedFilesTitle}" Message="{x:Static loc:Strings.Creator_DroppedFiles}"
                   IsVisible="{Binding DroppedFiles}" theme:Motion.Enter="True" />
-      <StackPanel Spacing="12">
-        <TextBlock Classes="overline" Text="{x:Static creator:FilesStepView.DetectsTitle}" />
-        <ui:PixelUniformGrid Columns="4" ColumnSpacing="12">
-          <Border Classes="soft" Padding="16">
-            <StackPanel Spacing="10">
-              <TextBlock Classes="rowTitle" TextWrapping="Wrap" Text="{x:Static loc:Strings.Creator_DetectsNew}" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
-                <Border Classes="kind">
-                  <StackPanel>
-                    <ui:Icon Data="{x:Static theme:Icons.Copy}" />
-                    <TextBlock Text="{x:Static loc:Strings.Creator_KindCopy}" />
-                  </StackPanel>
-                </Border>
-              </StackPanel>
-              <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DetectsNewText}" />
-            </StackPanel>
-          </Border>
-          <Border Classes="soft" Padding="16">
-            <StackPanel Spacing="10">
-              <TextBlock Classes="rowTitle" TextWrapping="Wrap" Text="{x:Static loc:Strings.Creator_DetectsChanged}" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
-                <Border Classes="kind">
-                  <StackPanel>
-                    <ui:Icon Data="{x:Static theme:Icons.FileDiff}" />
-                    <TextBlock Text="{x:Static loc:Strings.Creator_KindPatch}" />
-                  </StackPanel>
-                </Border>
-              </StackPanel>
-              <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DetectsChangedText}" />
-            </StackPanel>
-          </Border>
-          <Border Classes="soft" Padding="16">
-            <StackPanel Spacing="10">
-              <TextBlock Classes="rowTitle" TextWrapping="Wrap" Text="{x:Static loc:Strings.Creator_DetectsRenamed}" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
-                <Border Classes="kind">
-                  <StackPanel>
-                    <ui:Icon Data="{x:Static theme:Icons.FilePen}" />
-                    <TextBlock Text="{x:Static loc:Strings.Creator_KindRename}" />
-                  </StackPanel>
-                </Border>
-              </StackPanel>
-              <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DetectsRenamedText}" />
-            </StackPanel>
-          </Border>
-          <Border Classes="soft" Padding="16">
-            <StackPanel Spacing="10">
-              <TextBlock Classes="rowTitle" TextWrapping="Wrap" Text="{x:Static loc:Strings.Creator_DetectsMissing}" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <ui:Icon Data="{x:Static theme:Icons.ArrowRight}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
-                <Border Classes="kind danger">
-                  <StackPanel>
-                    <ui:Icon Data="{x:Static theme:Icons.FileX}" />
-                    <TextBlock Text="{x:Static loc:Strings.Creator_KindDelete}" />
-                  </StackPanel>
-                </Border>
-              </StackPanel>
-              <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_DetectsMissingText}" />
-            </StackPanel>
-          </Border>
-        </ui:PixelUniformGrid>
-      </StackPanel>
     </StackPanel>
 
     <!-- The folder given, and what became of it. -->
@@ -216,11 +136,7 @@
       </ui:Callout>
     </StackPanel>
 
-    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4,0,0">
-      <Button Classes="outline footerAction" Content="{x:Static loc:Strings.Creator_Back}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowLeft}"
-              Command="{Binding BackCommand}" />
-      <Button Grid.Column="2" Classes="primary" Content="{x:Static loc:Strings.Creator_ToReview}" IsVisible="{Binding IsCompared}"
-              ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowRight}" ui:ButtonAssist.IconAfter="True" Command="{Binding ContinueCommand}" />
-    </Grid>
+    <Button Classes="primary" HorizontalAlignment="Right" Margin="0,4,0,0" Content="{x:Static loc:Strings.Creator_ToReview}" IsVisible="{Binding IsCompared}"
+            ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowRight}" ui:ButtonAssist.IconAfter="True" Command="{Binding ContinueCommand}" />
   </StackPanel>
 </UserControl>

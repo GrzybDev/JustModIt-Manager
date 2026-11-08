@@ -431,8 +431,8 @@ public sealed class CreatorPackageTests : IDisposable
         package.Test.State.Should().Be(TestInstallState.Failed);
 
         var page = Page(ui);
-        page.OpenStepCommand.Execute(page.Steps[(int)CreatorStep.Game]);
-        ((GameStepViewModel)page.Content!).Choose(gog);
+        page.Session!.Change(project => project with { Versions = [new ProjectVersion(new ProjectGame(gog.Key, gog.Name)) { GameFolder = gog.Game.InstallDirectory }] });
+        page.Game = gog;
 
         (package.Build.IsReady, package.Build.OutputPath, package.Test.State, package.Test.HasTestProblem).Should().Be((true, "", TestInstallState.None, false));
         page.GoTo(CreatorStep.Files);
@@ -789,10 +789,9 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Shell.Navigator.Navigate(new CreatorRoute());
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Shell.Navigator.Current.Should().BeSameAs(creator, "the creator opens on its library rather than on the finished project");
-        ui.Click(Button(ui, Strings.Creator_New));
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Content: GameStepViewModel });
-        ui.Shell.Dialogs.Current.Should().BeNull();
-        (Page(ui).Session!.Part.AuthorFolder, Page(ui).Game).Should().Be(("", null), "the new project starts without the earlier folders");
+        var other = Directory.CreateDirectory(Path.Combine(_work.Root, "Work", "Another")).FullName;
+        await CreatorWorkspace.NewProjectAsync(ui, other, "Lantern Isle");
+        Page(ui).Session!.Part.AuthorFolder.Should().Be(other, "the new project starts without the earlier folders");
     }
 
     [AvaloniaFact]
@@ -982,12 +981,7 @@ public sealed class CreatorPackageTests : IDisposable
 
     private async Task<PackageStepViewModel> PackageAsync(UiHarness ui, Func<ProjectPart, ProjectPart>? change = null)
     {
-        ((CreatorPageViewModel)ui.Shell.Navigator.Current!).NewProjectCommand.Execute(null);
-        var page = Page(ui);
-        await UiHarness.WaitUntilAsync(() => page.Content is GameStepViewModel { IsLoaded: true });
-        ((GameStepViewModel)page.Content!).Choose(_work.Detected[1]);
-        page.GoTo(CreatorStep.Files);
-        ((FilesStepViewModel)page.Content!).UseFolder(_work.AuthorFolder);
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
         await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review && page.Session!.Review is not null);
         if (change is not null)
         {

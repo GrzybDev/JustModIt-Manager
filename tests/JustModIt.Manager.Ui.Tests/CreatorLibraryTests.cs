@@ -98,6 +98,7 @@ public sealed class CreatorLibraryTests : IDisposable
         card("Tidewater").Line!.Label.Should().Be(State("TestInstalled"));
         ui.Unnamed().Should().BeEmpty();
         await RenderBothAsync(ui, "creator-library");
+        ui.Render("creator-library-whole", 1180);
 
         var first = ui.Find<Button>().First(button => button.Classes.Contains("gameCard"));
         first.Focus(NavigationMethod.Directional);
@@ -137,12 +138,69 @@ public sealed class CreatorLibraryTests : IDisposable
     public async Task Turning_creator_mode_off_leaves_the_project_page_too()
     {
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
-        ui.Click(Button(ui, Strings.Creator_New));
+        await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
         ui.Shell.Navigator.Current.Should().BeOfType<ProjectPageViewModel>();
 
         ui.Push(TestStates.Idle(creatorMode: false));
 
         ui.Shell.Navigator.CurrentRoute.Should().Be(new LibraryRoute());
+    }
+
+    [AvaloniaFact]
+    public async Task A_project_with_no_version_takes_one_in_the_chooser_and_stays_as_it_was_when_cancelled()
+    {
+        var project = Project("Saltmarsh", null, _work.AuthorFolder);
+        await SeedAsync(project);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Saltmarsh") is not null);
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        var card = ui.Find<Button>().First(button => button.DataContext == Card(ui, "Saltmarsh") && button.Classes.Contains("gameCard"));
+
+        ui.Click(card);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
+        ((NewProjectDialogViewModel)ui.Shell.Dialogs.Current!).Folder.Should().Be(_work.AuthorFolder);
+        ui.Press(Key.Escape);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null);
+        ui.Shell.Navigator.Current.Should().BeSameAs(creator);
+        creator.OpenPage.Should().BeNull();
+
+        creator.OpenCardCommand.Execute(Card(ui, "Saltmarsh"));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
+        var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
+        dialog.PickCommand.Execute(dialog.Rows[0].Right);
+        dialog.CreateCommand.Execute(null);
+
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Step: CreatorStep.Review });
+        var opened = ((ProjectPageViewModel)ui.Shell.Navigator.Current!).Session!.Project;
+        opened.Id.Should().Be(project.Id);
+        opened.Versions.Single().Game.Key.Should().Be(CreatorWorkspace.Lantern);
+        using var library = new ProjectLibrary(LibraryFolder, TimeProvider.System);
+        (await library.Store(project.Id).LoadAsync(CancellationToken.None))!.Versions.Should().Equal(opened.Versions);
+    }
+
+    [AvaloniaFact]
+    public async Task A_project_whose_game_is_gone_says_so_and_goes_on_once_a_store_reports_it()
+    {
+        var gone = new GameKey(StoreId.Gog, "5399");
+        await SeedAsync(Project("Lantern Isle", gone, _work.AuthorFolder));
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Lantern Isle") is not null);
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+
+        creator.OpenCardCommand.Execute(Card(ui, "Lantern Isle"));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { HasProblem: true });
+        var page = (ProjectPageViewModel)ui.Shell.Navigator.Current!;
+        page.ProblemTitle.Should().Be(Strings.Creator_GameGoneTitle);
+        page.Content.Should().BeNull("a step has no game to work with");
+        await RenderBothAsync(ui, "creator-game-gone");
+
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([_work.Detected[1] with { Key = gone }]) : null;
+        ui.Click(Button(ui, Strings.Creator_Projects));
+        creator.OpenCardCommand.Execute(Card(ui, "Lantern Isle"));
+
+        await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review);
+        page.HasProblem.Should().BeFalse();
+        page.Session!.Version!.GameFolder.Should().Be(_work.GameFolder, "the store says where the game is now");
     }
 
     [AvaloniaFact]

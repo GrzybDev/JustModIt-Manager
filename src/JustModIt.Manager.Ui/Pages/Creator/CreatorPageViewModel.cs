@@ -59,7 +59,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
 
     public override string Title => Strings.Shell_Creator;
 
-    public string Subtitle => !IsListing && _grid.Items.Count == 0 ? Strings.Creator_Subtitle : Strings.Creator_LibrarySubtitle;
+    public string Subtitle => IsEmpty ? Strings.Creator_Subtitle : Strings.Creator_LibrarySubtitle;
 
     /// <summary>The project open behind its card, which goes on working whichever page the window shows; null while there is none.</summary>
     [ObservableProperty]
@@ -114,17 +114,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
 
     /// <summary>Takes back a problem shown, once the author acts again.</summary>
     [RelayCommand]
-    internal void ClearProblem() => ProblemTitle = ProblemText = "";
-
-    [RelayCommand]
-    private async Task NewProjectAsync()
-    {
-        ClearProblem();
-        if (await CloseProjectAsync().ConfigureAwait(true))
-        {
-            Open(new CreatorProject { Id = Guid.NewGuid(), CreatedAt = Services.Clock.GetUtcNow() });
-        }
-    }
+    internal void ClearProblem() => (ProblemTitle, ProblemText, RefusalTitle, RefusalText, DroppedFiles) = ("", "", "", "", false);
 
     [RelayCommand]
     private async Task ImportProjectAsync()
@@ -136,14 +126,9 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         }
 
         ClearProblem();
-        if (!await CloseProjectAsync().ConfigureAwait(true))
-        {
-            return;
-        }
-
         try
         {
-            Open(await Library.ImportAsync(path, Access, CancellationToken.None).ConfigureAwait(true));
+            await OpenAsync(await Library.ImportAsync(path, Access, CancellationToken.None).ConfigureAwait(true)).ConfigureAwait(true);
         }
         catch (Exception exception) when (exception is ProjectLoadException or TimeoutException)
         {
@@ -163,9 +148,9 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         {
             ShowOpenPage();
         }
-        else if (await CloseProjectAsync().ConfigureAwait(true) && await ProjectOfAsync(card).ConfigureAwait(true) is { } project)
+        else if (await ProjectOfAsync(card).ConfigureAwait(true) is { } project)
         {
-            Open(project);
+            await OpenAsync(project).ConfigureAwait(true);
         }
     }
 
@@ -222,14 +207,15 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
 
     private async Task DuplicateAsync(ProjectCard card)
     {
-        if (await ProjectOfAsync(card).ConfigureAwait(true) is not { } project || !await CloseProjectAsync().ConfigureAwait(true))
+        if (await ProjectOfAsync(card).ConfigureAwait(true) is not { } project)
         {
             return;
         }
 
         try
         {
-            Open(await Library.DuplicateAsync(project, Text.Format(Strings.Creator_CopyName, ("name", ProjectCard.NameOf(project))), CancellationToken.None).ConfigureAwait(true));
+            await OpenAsync(await Library.DuplicateAsync(project, Text.Format(Strings.Creator_CopyName, ("name", ProjectCard.NameOf(project))), CancellationToken.None).ConfigureAwait(true))
+                .ConfigureAwait(true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -275,13 +261,6 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         }
 
         return project;
-    }
-
-    private void Open(CreatorProject project)
-    {
-        OpenPage = new ProjectPageViewModel(this, project);
-        OpenPage.PropertyChanged += OnOpenPageChanged;
-        ShowOpenPage();
     }
 
     // Reading a project takes a moment, in which the author may have gone to another page, and its way back is the library.

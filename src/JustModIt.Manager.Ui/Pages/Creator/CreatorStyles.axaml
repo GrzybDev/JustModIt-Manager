@@ -210,9 +210,9 @@
     <Setter Property="BoxShadow" Value="0 0 0 1 #14FFFFFF" />
   </Style>
   <Style Selector="Border.cover">
-    <Setter Property="Width" Value="40" />
-    <Setter Property="Height" Value="60" />
-    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="CornerRadius" Value="5" />
     <Setter Property="ClipToBounds" Value="True" />
     <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
     <Setter Property="BoxShadow" Value="0 0 0 1 #14FFFFFF" />
@@ -450,12 +450,12 @@
   <!-- A choice of a game: a row with its cover that turns to the accent once chosen; a game that cannot be chosen keeps
        its full colour and says why in its own. -->
   <Style Selector="RadioButton.gameChoice">
-    <Setter Property="Padding" Value="12,12,14,12" />
+    <Setter Property="Padding" Value="14" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.gameBlocked">
-    <Setter Property="Padding" Value="12,12,14,12" />
+    <Setter Property="Padding" Value="14" />
     <Setter Property="CornerRadius" Value="12" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Background" Value="#08FFFFFF" />
@@ -488,12 +488,15 @@
     <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
   </Style>
 
-  <!-- The drop zone: a dashed frame, red while a folder is dragged over it. -->
+  <!-- The drop zone: a dashed frame, in the accent while a folder is dragged over it. It stands tall and centred where nothing
+       else is on offer, and as a strip under a library's cards. -->
   <Style Selector="Border.dropZone">
     <Setter Property="Height" Value="232" />
     <Setter Property="Padding" Value="24" />
     <Setter Property="CornerRadius" Value="16" />
-    <Setter Property="Background" Value="#05FFFFFF" />
+    <Setter Property="Background">
+      <SolidColorBrush Color="{DynamicResource AccentColor}" Opacity="0.05" />
+    </Setter>
     <Setter Property="Transitions">
       <Transitions>
         <BrushTransition Property="Background" Duration="0:0:0.15" />
@@ -501,29 +504,70 @@
     </Setter>
   </Style>
   <Style Selector="Border.dropZone.over">
-    <Setter Property="Background" Value="#1AD4213D" />
+    <Setter Property="Background" Value="{DynamicResource AccentFilterBrush}" />
   </Style>
   <Style Selector="Rectangle.dropFrame">
-    <Setter Property="Stroke" Value="#2EFFFFFF" />
+    <Setter Property="Margin" Value="-24" />
+    <Setter Property="Stroke" Value="{DynamicResource AccentBorderBrush}" />
     <Setter Property="StrokeThickness" Value="2" />
     <Setter Property="StrokeDashArray" Value="4,3" />
     <Setter Property="RadiusX" Value="16" />
     <Setter Property="RadiusY" Value="16" />
   </Style>
   <Style Selector="Border.dropZone.over Rectangle.dropFrame">
-    <Setter Property="Stroke" Value="#E6FF6467" />
+    <Setter Property="Stroke" Value="{DynamicResource AccentTextBrush}" />
   </Style>
   <Style Selector="Border.dropChip">
     <Setter Property="Width" Value="56" />
     <Setter Property="Height" Value="56" />
     <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Margin" Value="0,0,0,12" />
     <Setter Property="Background" Value="{StaticResource FillBrush}" />
     <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
     <Setter Property="HorizontalAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.dropZone.over Border.dropChip">
-    <Setter Property="Background" Value="#2ED4213D" />
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.dropZone:not(.strip) DockPanel.dropBody">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.dropZone:not(.strip) DockPanel.dropBody > Button">
+    <Setter Property="DockPanel.Dock" Value="Bottom" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,16,0,0" />
+  </Style>
+  <Style Selector="Border.dropZone:not(.strip) TextBlock">
+    <Setter Property="TextAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.dropZone TextBlock.whileOver">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Border.dropZone.over TextBlock.whileOver">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+  <Style Selector="Border.dropZone.over TextBlock.atRest">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Border.dropZone.strip">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="Padding" Value="18,16" />
+    <Setter Property="CornerRadius" Value="12" />
+  </Style>
+  <Style Selector="Border.dropZone.strip Rectangle.dropFrame">
+    <Setter Property="Margin" Value="-18,-16" />
+    <Setter Property="RadiusX" Value="12" />
+    <Setter Property="RadiusY" Value="12" />
+  </Style>
+  <Style Selector="Border.dropZone.strip Border.dropChip">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Border.dropZone.strip DockPanel.dropBody > Button">
+    <Setter Property="DockPanel.Dock" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="16,0,0,0" />
   </Style>
   <Style Selector="Border.workChip">
     <Setter Property="Width" Value="40" />
@@ -538,5 +582,28 @@
     <Setter Property="CornerRadius" Value="10" />
     <Setter Property="Background" Value="{StaticResource FillBrush}" />
     <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+
+  <!-- A dialog's quieter parts: a note that explains rather than warns, and an empty state under its own title. -->
+  <Style Selector="ui|Callout.note">
+    <Setter Property="Padding" Value="12,10" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="ui|Callout.note /template/ TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="LineHeight" Value="17" />
+  </Style>
+  <Style Selector="ui|EmptyState.compact /template/ TextBlock.h2">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="LineHeight" Value="21" />
+  </Style>
+  <Style Selector="ui|EmptyState.danger /template/ Border#Chip">
+    <Setter Property="Background" Value="{StaticResource DangerChipBrush}" />
+  </Style>
+  <Style Selector="ui|EmptyState.danger /template/ ui|Icon#Glyph">
+    <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
   </Style>
 </Styles>

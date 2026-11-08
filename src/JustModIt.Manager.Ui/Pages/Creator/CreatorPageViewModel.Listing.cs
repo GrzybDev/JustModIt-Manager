@@ -57,8 +57,11 @@ public sealed partial class CreatorPageViewModel
 
     /// <summary>The first listing has not ended yet, so cards stand in.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Subtitle))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty), nameof(Subtitle))]
     public partial bool IsListing { get; private set; } = true;
+
+    /// <summary>The library holds no project, so the drop zone is all it shows.</summary>
+    public bool IsEmpty => !IsListing && _grid.Items.Count == 0;
 
     /// <summary>The cards that stand in while the first listing runs.</summary>
     public IReadOnlyList<int> Skeletons { get; } = [0, 1, 2, 3];
@@ -132,12 +135,6 @@ public sealed partial class CreatorPageViewModel
 
         var open = OpenPage?.Session?.Project;
         List<CreatorProject> projects = [.. listing.Projects.Select(entry => entry.Project.Id == open?.Id ? open : entry.Project)];
-        // A project nothing was done with yet has no file, and its card is the way back to it.
-        if (open is not null && !projects.Contains(open))
-        {
-            projects.Insert(0, open);
-        }
-
         var known = Cards.ToDictionary(card => card.Id);
         List<ProjectCard> cards = [.. projects.Select(project => known.GetValueOrDefault(project.Id) ?? new ProjectCard(this, project.Id))];
         for (var index = 0; index < cards.Count; index++)
@@ -149,6 +146,7 @@ public sealed partial class CreatorPageViewModel
         Unreadable = [.. listing.Unreadable.Select(folder => new UnreadableProject(folder,
             Path.Join("…", Path.GetFileName(Services.Context.CreatorDirectory), Path.GetFileName(folder))))];
         IsListing = false;
+        OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(Subtitle));
         await Task.WhenAll(cards.Select(card => card.RefreshAsync())).ConfigureAwait(true);
     }

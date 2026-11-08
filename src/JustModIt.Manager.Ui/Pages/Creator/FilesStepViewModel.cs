@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
-/// <summary>Where the second step stands.</summary>
+/// <summary>Where the files step stands.</summary>
 public enum FilesState
 {
     /// <summary>No folder yet: the drop zone.</summary>
@@ -28,8 +28,8 @@ public enum FilesState
 }
 
 /// <summary>
-/// The second step: the author's folder, laid out like the game, compared with the game on the thread pool as soon as it
-/// is given, with the stage, the bytes and the file shown and a way to cancel.
+/// The first step: the author's folder, laid out like the game, compared with the game on the thread pool as soon as it is
+/// given, with the stage, the bytes and the file shown and a way to cancel.
 /// </summary>
 public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepView
 {
@@ -77,10 +77,6 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
 
     [ObservableProperty]
     public partial string FolderPath { get; private set; } = "";
-
-    /// <summary>A folder is dragged over the drop zone.</summary>
-    [ObservableProperty]
-    public partial bool IsDragOver { get; set; }
 
     /// <summary>Why the folder given cannot be compared, shown under the drop zone; empty while there is nothing to say.</summary>
     [ObservableProperty]
@@ -171,9 +167,6 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         _ = CompareAsync();
     }
 
-    /// <summary>Says that files, not a folder, were dropped.</summary>
-    public void RefuseFiles() => DroppedFiles = true;
-
     /// <summary>Compares the project's folder with its game, then opens the check of the operations.</summary>
     /// <returns>Completes once the comparison ended, was cancelled or refused.</returns>
     [RelayCommand]
@@ -240,6 +233,19 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     }
 
     [RelayCommand]
+    private void Drop(string? folder)
+    {
+        if (folder is null)
+        {
+            DroppedFiles = true;
+        }
+        else
+        {
+            UseFolder(folder);
+        }
+    }
+
+    [RelayCommand]
     private async Task PickFolderAsync()
     {
         var folder = await _page.Services.Pickers.PickFolderAsync(Strings.Creator_PickFolderTitle,
@@ -261,9 +267,6 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         (ProblemTitle, ProblemText, DroppedFiles) = ("", "", false);
         State = FilesState.Empty;
     }
-
-    [RelayCommand]
-    private void Back() => _page.GoTo(CreatorStep.Game);
 
     [RelayCommand]
     private void Continue() => _page.GoTo(CreatorStep.Review);
@@ -326,7 +329,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         }
     }
 
-    // A comparison the author has moved on from, e.g. by choosing another game, has nothing to say.
+    // A comparison the author has moved on from, e.g. by changing the folder, has nothing to say.
     private void Stop(CancellationTokenSource comparing, string title, string text)
     {
         if (_comparing == comparing)

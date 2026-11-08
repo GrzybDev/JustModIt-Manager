@@ -25,7 +25,7 @@ public sealed partial class DialogLayer : UserControl
             var byKeyboard = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is StyledElement focused
                 && focused.Classes.Contains(":focus-visible");
             Dispatcher.UIThread.Post(
-                () => Host.GetVisualDescendants().OfType<Button>().FirstOrDefault()
+                () => Host.GetVisualDescendants().OfType<Button>().FirstOrDefault(button => button.IsEffectivelyVisible)
                     ?.Focus(byKeyboard ? NavigationMethod.Tab : NavigationMethod.Unspecified),
                 DispatcherPriority.Loaded);
         }
