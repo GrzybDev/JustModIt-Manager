@@ -632,9 +632,6 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Creator_WholeFileNote" xml:space="preserve">
     <value>Cały plik pasuje tylko wtedy, gdy w całości jest pracą autora – Baza Spolszczeń poprosi wtedy o potwierdzenie, bo nie przyjmuje plików gry.</value>
   </data>
-  <data name="Creator_StepsLead" xml:space="preserve">
-    <value>Menadżer wykona je u gracza jeden po drugim, a każdy krok widzi pliki gry takie, jakie zostawiły kroki przed nim – można np. najpierw zmienić nazwę pliku, a potem nałożyć na niego łatkę.</value>
-  </data>
   <data name="Creator_ManifestTitle" xml:space="preserve">
     <value>Paczka Menadżera ({extension})</value>
   </data>

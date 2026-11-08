@@ -3138,23 +3138,41 @@
   <data name="Creator_ToSimpleConfirm" xml:space="preserve">
     <value>Wróć i ułóż od nowa</value>
   </data>
-  <data name="Creator_ToSimpleButton" xml:space="preserve">
-    <value>Wróć do trybu prostego</value>
-  </data>
   <data name="Creator_StepsTitle" xml:space="preserve">
-    <value>Ułóż kroki paczki</value>
+    <value>Kroki części {part}</value>
   </data>
   <data name="Creator_StepsLead" xml:space="preserve">
-    <value>Aplikacja wykona je u gracza jeden po drugim, a każdy krok widzi pliki gry takie, jakie zostawiły kroki przed nim – można np. najpierw zmienić nazwę pliku, a potem nałożyć na niego łatkę.</value>
+    <value>Wykonują się u gracza po kolei; każdy widzi grę taką, jaką zostawiły kroki przed nim.</value>
   </data>
-  <data name="Creator_StepsCardTitle" xml:space="preserve">
-    <value>Kroki paczki</value>
+  <data name="Creator_StepsEveryVersion" xml:space="preserve">
+    <value>Każdy krok działa we wszystkich wersjach gry, chyba że w jego wierszu wyłączy się niektóre z nich.</value>
   </data>
-  <data name="Creator_StepsInOrder" xml:space="preserve">
-    <value>Kroki są w porządku</value>
+  <data name="Creator_ModeName" xml:space="preserve">
+    <value>Tryb części</value>
   </data>
-  <data name="Creator_StepsProblems" xml:space="preserve">
-    <value>Do poprawienia: {count, plural, one {# problem} few {# problemy} many {# problemów} other {# problemu}}</value>
+  <data name="Creator_ModeSimple" xml:space="preserve">
+    <value>Prosty</value>
+  </data>
+  <data name="Creator_ModeAdvanced" xml:space="preserve">
+    <value>Zaawansowany</value>
+  </data>
+  <data name="Creator_EditStep" xml:space="preserve">
+    <value>Zmień krok {number}</value>
+  </data>
+  <data name="Creator_StepVersions" xml:space="preserve">
+    <value>{all, select, true {Wszystkie wersje} other {Tylko {stores}}}</value>
+  </data>
+  <data name="Creator_StepVersionsName" xml:space="preserve">
+    <value>Wersje kroku {number}</value>
+  </data>
+  <data name="Creator_PatchVariants" xml:space="preserve">
+    <value>{count, plural, one {# wariant} few {# warianty} many {# wariantów} other {# wariantu}} według oryginału</value>
+  </data>
+  <data name="Creator_MoreSteps" xml:space="preserve">
+    <value>+ {count, plural, one {# krok} few {# kroki} many {# kroków} other {# kroku}} kopii i łatek</value>
+  </data>
+  <data name="Creator_ShowMore" xml:space="preserve">
+    <value>pokaż</value>
   </data>
   <data name="Creator_StepDragTip" xml:space="preserve">
     <value>Przeciągnij, aby zmienić kolejność</value>

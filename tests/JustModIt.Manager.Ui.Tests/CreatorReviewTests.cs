@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Games;
@@ -299,9 +300,12 @@ public sealed class CreatorReviewTests : IDisposable
         var review = await ReviewAsync(ui);
         var operations = Page(ui).Session!.Review!.Plan.Operations;
 
-        ui.Click(Button(ui, Strings.Creator_ToAdvancedButton));
+        ui.Click(Pill(ui, Strings.Creator_ModeAdvanced));
         await Answer(ui, Strings.Creator_ToAdvancedConfirm);
         await UiHarness.WaitUntilAsync(() => review.IsAdvanced && review.Steps.Count == operations.Count);
+        review.Title.Should().Be(Text.Format(Strings.Creator_StepsTitle, ("part", Strings.Creator_PartBase)));
+        review.Steps.Should().OnlyContain(step => !step.IsEditing && !step.HasVersions, "a project of one version limits no step");
+        await ui.RenderBothAsync("creator-advanced", () => ScrollTo(ui.Find<RadioButton>("AdvancedMode")));
         Page(ui).Session!.Review!.Plan.Operations.Select(operation => (operation.Kind, operation.Path))
             .Should().Equal(operations.Select(operation => (operation.Kind, operation.Path)));
         Page(ui).PartLine.Should().Contain(Text.Format(Strings.Creator_PartMode, ("mode", nameof(CreatorMode.Advanced))));
@@ -318,16 +322,19 @@ public sealed class CreatorReviewTests : IDisposable
         Page(ui).HasBlockedText.Should().BeTrue("the rename would set the author's library aside instead of the game's");
         Page(ui).BlockedText.Should().Be("Najpierw trzeba odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń”"
             + " i poprawić 2 problemy w krokach 2 i 3.");
-        await RenderAsync(ui, "creator-advanced-problem", 2150);
+        review.Steps.Where(step => step.IsEditing).Should().Equal([moved, mistyped], "a problem opens the step's fields");
+        await ui.RenderBothAsync("creator-advanced-problem", () => ShowStep(ui, 1));
 
+        ui.Find<ItemsControl>("StepRows").ScrollIntoView(mistyped);
         ui.Click(Button(ui, Text.Format(Strings.Creator_FixPath, ("name", "config.xml"))));
         await UiHarness.WaitUntilAsync(() => !mistyped.HasProblem);
         mistyped.Second.Should().Be("data/config.xml");
         ui.Click(Button(ui, moved.MoveBeforeAction));
         await UiHarness.WaitUntilAsync(() => review.Steps[0].Kind == OperationKind.Rename && !Page(ui).HasBlockedText);
         review.Steps.Should().OnlyContain(step => step.MoveBefore == null);
+        review.Steps[0].IsEditing.Should().BeTrue("the fields opened by a problem follow their step until the author folds them");
 
-        ui.Click(Button(ui, Strings.Creator_ToSimpleButton));
+        ui.Click(Pill(ui, Strings.Creator_ModeSimple));
         await Answer(ui, Strings.Creator_ToSimpleConfirm);
         await UiHarness.WaitUntilAsync(() => !review.IsAdvanced && !Page(ui).HasBlockedText);
         Page(ui).Session!.Part.Steps.Should().BeEmpty();
@@ -339,7 +346,7 @@ public sealed class CreatorReviewTests : IDisposable
     {
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
-        ui.Click(Button(ui, Strings.Creator_ToAdvancedButton));
+        ui.Click(Pill(ui, Strings.Creator_ModeAdvanced));
         await Answer(ui, Strings.Creator_ToAdvancedConfirm);
         await UiHarness.WaitUntilAsync(() => review.IsAdvanced);
         var session = Page(ui).Session!;
@@ -350,6 +357,95 @@ public sealed class CreatorReviewTests : IDisposable
 
         session.Part.Steps[1].Should().NotBe(limited);
         session.Part.Steps[1].Only.Should().Equal(CreatorWorkspace.Lantern);
+    }
+
+    [AvaloniaFact]
+    public async Task A_step_limited_to_one_version_is_absent_from_the_other_s_package()
+    {
+        for (var i = 0; i < 9; i++)
+        {
+            _work.Author($"data/text/line{i}.txt", $"line {i} of the translation");
+        }
+
+        _work.Game("video/intro_en.usm", "the intro with English subtitles burnt in");
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        // The copy ships another original of the file the author changed, so the patch meets two originals.
+        File.WriteAllText(Path.Combine(gog.Game.InstallDirectory, "data", "strings.bin"), "strings of the original game, as the other store ships them");
+        using var ui = await OpenAsync();
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog]) : null;
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
+        await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared && page.HasOffer);
+        page.AddOfferCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => page.IsTable && page.Cells.All(cell => cell.Review is not null));
+        page.ShowOperationsCommand.Execute(null);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        var (review, session) = (page.Review, page.Session!);
+        ui.Click(Pill(ui, Strings.Creator_ModeAdvanced));
+        await Answer(ui, Strings.Creator_ToAdvancedConfirm);
+        await UiHarness.WaitUntilAsync(() => review.IsAdvanced);
+
+        session.Part.Steps.Should().OnlyContain(step => step.Only.Count == 0, "both versions' packages hold the same steps");
+        review.VersionsLead.Should().Be(Strings.Creator_StepsEveryVersion);
+        ui.Click(Button(ui, Strings.Creator_AddDeleteStep));
+        await UiHarness.WaitUntilAsync(() => review.Steps.Count == 18 && review.Steps[17].IsEditing);
+        // After the second patch, so the copies after it fold.
+        review.MoveStep(17, 7);
+        await UiHarness.WaitUntilAsync(() => review.Steps[7] is { Kind: OperationKind.Delete, IsEditing: true });
+        review.Steps[7].First = "video/intro_en.usm";
+        await UiHarness.WaitUntilAsync(() => !review.Steps[7].HasProblem);
+        ui.Find<ItemsControl>("StepRows").ScrollIntoView(review.Steps[7]);
+        UiHarness.Settle();
+        ui.Click(ui.Find<ToggleButton>().First(pill => pill.IsEffectivelyVisible && pill.DataContext is StepVersion { Key: var key } version
+            && key == CreatorWorkspace.Lantern && review.Steps[7].Versions.Contains(version)));
+
+        await UiHarness.WaitUntilAsync(() => session.Part.Steps[7].Only.Count == 1);
+        await session.SettledAsync();
+        session.Part.Steps[7].Only.Should().Equal(gog.Key);
+        session.ReviewOf(new CellKey("", CreatorWorkspace.Lantern))!.Plan.Operations.Should().NotContain(operation => operation.Kind == OperationKind.Delete);
+        session.ReviewOf(new CellKey("", gog.Key))!.Plan.Operations.Should().ContainSingle(operation => operation.Kind == OperationKind.Delete)
+            .Which.Path.Should().Be("video/intro_en.usm");
+        review.Steps.Where(step => step.Kind == OperationKind.Patch).Select(step => (step.Second, step.Detail)).Should().Equal(
+            ("data/config.xml", ""), ("data/strings.bin", Text.Format(Strings.Creator_PatchVariants, ("count", 2))));
+        (review.Steps[0].VersionsText, review.Steps[7].VersionsText).Should().Be((Text.Format(Strings.Creator_StepVersions, ("all", "true"), ("stores", "")),
+            Text.Format(Strings.Creator_StepVersions, ("all", "false"), ("stores", "GOG"))));
+        review.Steps[7].Versions.Single(version => version.IsOn).CanTurn.Should().BeFalse("a step on no version would run on every one");
+        (review.Steps.Count, review.MoreSteps).Should().Be((9, Text.Format(Strings.Creator_MoreSteps, ("count", 9))), "the tail of copies folds past its first");
+        await ui.RenderBothAsync("creator-advanced-versions", () => ShowStep(ui, 6));
+
+        ui.Click(Button(ui, review.Steps[7].EditName));
+        await ui.RenderBothAsync("creator-advanced-folded", () => ShowStep(ui, 5));
+        ui.Click(ui.Find<Button>("ShowAllSteps"));
+        (review.Steps.Count, review.HasMoreSteps).Should().Be((18, false));
+    }
+
+    [AvaloniaFact]
+    public async Task A_part_can_be_advanced_while_another_stays_simple()
+    {
+        using var ui = await OpenAsync();
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
+        await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared);
+        ui.Pickers.Folder = _work.Folder("Captions", ("data/captions/intro.srt", "captions of the intro"));
+        page.AddPartCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => page.Cells.Count == 2 && page.Cells.All(cell => cell.Review is not null));
+        page.SelectCellCommand.Execute(page.Cells[1]);
+        page.ShowOperationsCommand.Execute(null);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        ui.Click(Pill(ui, Strings.Creator_ModeAdvanced));
+        await Answer(ui, Strings.Dialog_Cancel);
+        (Pill(ui, Strings.Creator_ModeAdvanced).IsChecked, Pill(ui, Strings.Creator_ModeSimple).IsChecked).Should().Be((false, true),
+            "a switch declined leaves the mode as it is");
+        ui.Click(Pill(ui, Strings.Creator_ModeAdvanced));
+        await Answer(ui, Strings.Creator_ToAdvancedConfirm);
+
+        await UiHarness.WaitUntilAsync(() => page.Review.IsAdvanced);
+        page.Session!.Project.Parts.Select(part => part.Mode).Should().Equal(CreatorMode.Simple, CreatorMode.Advanced);
+        page.Review.Title.Should().Be(Text.Format(Strings.Creator_StepsTitle, ("part", "Captions")));
+        (page.Rows[0].Caption, page.Rows[1].Mode).Should().Be((Text.Format(Strings.Creator_PartMode, ("mode", "Simple")),
+            Text.Format(Strings.Creator_PartMode, ("mode", "Advanced"))));
+        page.SelectCellCommand.Execute(page.Cells[0]);
+        await UiHarness.WaitUntilAsync(() => !page.Review.IsAdvanced);
+        page.Review.Title.Should().Be(Strings.Creator_OperationsTitle);
     }
 
     [AvaloniaFact]
@@ -598,9 +694,11 @@ public sealed class CreatorReviewTests : IDisposable
         ui.Unnamed().Should().BeEmpty();
         Page(ui).Tab = ProjectTab.Release;
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        ui.Click(Button(ui, Strings.Creator_ToAdvancedButton));
+        ui.Click(Pill(ui, Strings.Creator_ModeAdvanced));
         await Answer(ui, Strings.Creator_ToAdvancedConfirm);
         await UiHarness.WaitUntilAsync(() => review.IsAdvanced);
+        review.Steps[1].Second = "data/missing.bin";
+        await UiHarness.WaitUntilAsync(() => review.Steps[1].IsEditing);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Unnamed().Should().BeEmpty();
     }
@@ -641,14 +739,23 @@ public sealed class CreatorReviewTests : IDisposable
         UiHarness.Settle();
     }
 
+    // Only the steps in sight have controls.
+    private static void ShowStep(UiHarness ui, int index)
+    {
+        var steps = ui.Find<ItemsControl>("StepRows");
+        steps.ScrollIntoView(index);
+        UiHarness.Settle();
+        ScrollTo(steps.ContainerFromIndex(index)!, 0);
+    }
+
     // The operations above are virtualised, so the page's height is an estimate that settles only as it scrolls.
-    private static void ScrollTo(Control control)
+    private static void ScrollTo(Control control, double above = 120)
     {
         var viewer = control.FindAncestorOfType<ScrollViewer>()!;
         for (var i = 0; i < 8; i++)
         {
             UiHarness.Settle();
-            var below = control.TranslatePoint(default, viewer)!.Value.Y - 120;
+            var below = control.TranslatePoint(default, viewer)!.Value.Y - above;
             if (Math.Abs(below) < 2)
             {
                 return;

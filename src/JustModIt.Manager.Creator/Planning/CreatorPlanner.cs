@@ -45,7 +45,7 @@ public static class CreatorPlanner
         var (entries, operations) = part.Mode == CreatorMode.Advanced
             ? ([], [.. Operations(part.Steps, version, OperationReason.Step, comparison.Game)])
             : Simple(comparison, part, version);
-        var (resolved, findings, runtime) = PlanReplay.Run(comparison, operations, Declarations(comparison, part, entries), keptPaths,
+        var (resolved, findings, runtime) = PlanReplay.Run(comparison, operations, Declarations(comparison, part, version, entries), keptPaths,
             basePlan?.Operations);
         findings.AddRange(part.Mode == CreatorMode.Simple
             ? RenamesNotReplaced(comparison, resolved)
@@ -104,10 +104,13 @@ public static class CreatorPlanner
 
     // The author's list first, then the files of the comparison chosen as changed while the game runs, each path once; a
     // path the author's list holds twice stays twice, so the replay can say so.
-    private static List<RuntimeDeclaration> Declarations(FolderComparison comparison, ProjectPart part, List<ReviewEntry> entries)
+    private static List<RuntimeDeclaration> Declarations(FolderComparison comparison, ProjectPart part, ProjectVersion version, List<ReviewEntry> entries)
     {
         List<RuntimeDeclaration> declarations =
-            [.. part.RuntimeFiles.Select(file => new RuntimeDeclaration(comparison.Game.Spell(file.Path), file.Kind, FromChoice: false))];
+        [
+            .. part.RuntimeFiles.Where(file => file.Only.Count == 0 || file.Only.Contains(version.Game.Key))
+                .Select(file => new RuntimeDeclaration(comparison.Game.Spell(file.Path), file.Kind, FromChoice: false)),
+        ];
         var listed = declarations.Select(declaration => declaration.Path).ToHashSet(PackagePath.Comparer);
         foreach (var entry in entries.Where(entry => entry.Choice == FileChoice.Runtime && listed.Add(entry.File.Path)))
         {

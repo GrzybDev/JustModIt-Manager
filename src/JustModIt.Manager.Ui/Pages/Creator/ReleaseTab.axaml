@@ -105,9 +105,22 @@
     <!-- The part's operations, or its steps in advanced mode, take the column, since their rows need its width. -->
     <Panel x:Name="PartView" IsVisible="{Binding Page.ShowsOperations}" IsEnabled="{Binding !Page.Build.IsBuilding}">
       <StackPanel Spacing="16" DataContext="{Binding Page.Review}" x:DataType="creator:ReviewViewModel">
-        <TextBlock Classes="lead" Text="{Binding Lead}" />
-        <Button Classes="link" FontSize="13" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_ToAdvancedButton}"
-                ToolTip.Tip="{x:Static loc:Strings.Creator_AdvancedHint}" Command="{Binding ToAdvancedCommand}" IsVisible="{Binding !IsAdvanced}" />
+        <!-- The part's mode beside its heading; a switch asks first, and a declined one leaves the pills as the mode is. -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="h3" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Classes="lead" Text="{Binding Lead}" />
+            <TextBlock Classes="lead" Text="{Binding VersionsLead}" IsVisible="{Binding VersionsLead, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+          <Border Grid.Column="1" Classes="tabs" VerticalAlignment="Top">
+            <StackPanel Orientation="Horizontal" Spacing="4" AutomationProperties.Name="{x:Static loc:Strings.Creator_ModeName}">
+              <RadioButton x:Name="SimpleMode" Theme="{StaticResource SortPill}" GroupName="partMode" Content="{x:Static loc:Strings.Creator_ModeSimple}"
+                           IsChecked="{Binding !IsAdvanced, Mode=OneWay}" Command="{Binding ToSimpleCommand}" />
+              <RadioButton x:Name="AdvancedMode" Theme="{StaticResource SortPill}" GroupName="partMode" Content="{x:Static loc:Strings.Creator_ModeAdvanced}"
+                           ToolTip.Tip="{x:Static loc:Strings.Creator_AdvancedHint}" IsChecked="{Binding IsAdvanced, Mode=OneWay}" Command="{Binding ToAdvancedCommand}" />
+            </StackPanel>
+          </Border>
+        </Grid>
         <creator:RulesList />
         <creator:OperationList IsVisible="{Binding !IsAdvanced}" />
         <creator:StepList IsVisible="{Binding IsAdvanced}" />

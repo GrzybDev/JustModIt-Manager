@@ -305,6 +305,12 @@
     <Setter Property="Background" Value="{StaticResource FillBrush}" />
     <Setter Property="TextElement.Foreground" Value="{StaticResource NeutralTextBrush}" />
   </Style>
+  <!-- A step that runs on some versions only. -->
+  <Style Selector="Border.kind.limited">
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
 
   <!-- A warning only the build found, tinted green once the author accepted it. -->
   <Style Selector="Border.buildFinding">

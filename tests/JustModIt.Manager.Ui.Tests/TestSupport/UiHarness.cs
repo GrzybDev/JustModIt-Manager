@@ -242,13 +242,16 @@ public sealed class UiHarness : IDisposable
 
     /// <summary>Saves what the window shows once its motion ended, at its size and, as name-960, at the smallest window.</summary>
     /// <param name="name">The file's name without its extension.</param>
-    public async Task RenderBothAsync(string name)
+    /// <param name="reveal">Scrolls to what the renders show, at each size, since a resize moves it; null leaves the scroll as it is.</param>
+    public async Task RenderBothAsync(string name, Action? reveal = null)
     {
         await WaitAsync(TimeSpan.FromMilliseconds(400));
+        reveal?.Invoke();
         Render(name);
         var (width, height) = (Window.Width, Window.Height);
         (Window.Width, Window.Height) = (960, 600);
         await WaitAsync(TimeSpan.FromMilliseconds(400));
+        reveal?.Invoke();
         Render(name + "-960");
         (Window.Width, Window.Height) = (width, height);
         Settle();

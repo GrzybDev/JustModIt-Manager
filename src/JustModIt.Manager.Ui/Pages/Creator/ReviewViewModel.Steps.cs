@@ -2,12 +2,14 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Overlays;
+using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
@@ -15,41 +17,53 @@ namespace JustModIt.Manager.Ui.Pages.Creator;
 public sealed partial class ReviewViewModel
 {
     private readonly Dictionary<string, StepRow> _stepRows = new(StringComparer.Ordinal);
+    private List<StepRow> _steps = [];
+    private bool _showsAllSteps;
 
+    /// <summary>The steps shown: every one but a long tail of copies and patches, until the author asks for it.</summary>
     public ObservableCollection<StepRow> Steps { get; } = [];
 
+    /// <summary>How many steps the list folds at its end; empty while it folds none.</summary>
     [ObservableProperty]
-    public partial string StepsState { get; private set; } = "";
+    [NotifyPropertyChangedFor(nameof(HasMoreSteps))]
+    public partial string MoreSteps { get; private set; } = "";
 
-    [ObservableProperty]
-    public partial bool StepsInOrder { get; private set; }
+    public bool HasMoreSteps => MoreSteps.Length > 0;
 
     [RelayCommand]
     private async Task ToAdvancedAsync()
     {
-        if (_session.Review is not { } review || !await _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(
+        if (IsAdvanced || _session.Review is null || !await _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(
                 Strings.Creator_ToAdvancedTitle, Strings.Creator_ToAdvanced, Strings.Creator_ToAdvancedConfirm, Icons.ListOrdered)
             {
                 ConfirmIcon = Icons.ListOrdered,
             }).ConfigureAwait(true))
         {
+            // A switch the author declined leaves the mode's pills as the mode is.
+            OnPropertyChanged(nameof(IsAdvanced));
             return;
         }
 
-        _session.ChangePart(part => part.ToAdvanced(review.Plan));
+        await _session.SettledAsync().ConfigureAwait(true);
+        List<(GameKey, PackagePlan)> plans = [.. PartCells().Where(cell => _session.ReviewOf(cell) is not null)
+            .Select(cell => (cell.Version, _session.ReviewOf(cell)!.Plan))];
+        _session.ChangePart(part => part.ToAdvanced(plans));
     }
 
     [RelayCommand]
     private async Task ToSimpleAsync()
     {
-        if (await _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.Creator_ToSimpleTitle, Strings.Creator_ToSimple,
+        if (IsAdvanced && await _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.Creator_ToSimpleTitle, Strings.Creator_ToSimple,
                 Strings.Creator_ToSimpleConfirm, Icons.Undo, DialogTone.Danger)
             {
                 ConfirmIcon = Icons.Undo,
             }).ConfigureAwait(true))
         {
             _session.ChangePart(part => part with { Mode = CreatorMode.Simple, Steps = default });
+            return;
         }
+
+        OnPropertyChanged(nameof(IsAdvanced));
     }
 
     [RelayCommand]
@@ -81,8 +95,18 @@ public sealed partial class ReviewViewModel
     }
 
     [RelayCommand]
-    private void RemoveStep(StepRow row) =>
+    private void RemoveStep(StepRow row)
+    {
+        Reopen(row.Index, null);
         _session.ChangePart(part => part with { Steps = new(part.Steps.Items.RemoveAt(row.Index)) });
+    }
+
+    [RelayCommand]
+    private void ShowAllSteps()
+    {
+        _showsAllSteps = true;
+        SyncSteps();
+    }
 
     [RelayCommand]
     private async Task PickSourceAsync(StepRow row)
@@ -118,29 +142,66 @@ public sealed partial class ReviewViewModel
         }
 
         var step = steps[from];
+        Reopen(from, to);
         _session.ChangePart(part => part with { Steps = new(steps.RemoveAt(from).Insert(to, step)) });
+    }
+
+    private static string StepKey(int index) => "step:" + index.ToString(Text.Culture);
+
+    // The cells of the part shown, one per version.
+    private IEnumerable<CellKey> PartCells() => _session.Cells.Where(cell => cell.Part == _session.Part.Name);
+
+    // A row is kept by its place, so the fields open in a row follow the step that moves or goes.
+    private void Reopen(int from, int? to)
+    {
+        List<bool> open = [.. Enumerable.Range(0, _session.Part.Steps.Count).Select(i => _stepRows.GetValueOrDefault(StepKey(i))?.IsEditing == true)];
+        var moved = open[from];
+        open.RemoveAt(from);
+        if (to is { } place)
+        {
+            open.Insert(place, moved);
+        }
+
+        for (var i = 0; i < open.Count; i++)
+        {
+            if (_stepRows.GetValueOrDefault(StepKey(i)) is { } row)
+            {
+                row.IsEditing = open[i];
+            }
+        }
     }
 
     private void ShowSteps(PackagePlan plan, ProjectPart part)
     {
         var findings = plan.Findings.Where(finding => finding.StepIndex is not null && !IsHosting(finding.Kind))
             .ToLookup(finding => finding.StepIndex!.Value);
-        var fresh = new List<StepRow>(part.Steps.Count);
-        for (var i = 0; i < part.Steps.Count; i++)
+        // What every version's plan makes of each step, e.g. the originals a patch meets on them.
+        var operations = PartCells().Select(_session.ReviewOf).OfType<CreatorReview>().SelectMany(each => each.Plan.Operations)
+            .Where(operation => operation.StepIndex is not null).ToLookup(operation => operation.StepIndex!.Value);
+        var own = plan.Operations.Where(operation => operation.StepIndex is not null).ToDictionary(operation => operation.StepIndex!.Value);
+        _steps = ReviewRows.Reuse(_stepRows, [.. Enumerable.Range(0, part.Steps.Count).Select(i => new StepRow(StepKey(i)))], null);
+        for (var i = 0; i < _steps.Count; i++)
         {
-            fresh.Add(new StepRow("step:" + i.ToString(Text.Culture)));
+            Fill(_steps[i], i, part.Steps, findings[i]);
+            var row = _steps[i];
+            var originals = operations[i].Where(operation => operation is { Kind: OperationKind.Patch, Original: not null })
+                .Select(operation => operation.Original!.Stamp.Size).Distinct().Count();
+            row.Detail = originals > 1 ? Text.Format(Strings.Creator_PatchVariants, ("count", originals))
+                : own.GetValueOrDefault(i) is { Kind: OperationKind.Copy, SourceFile: { } source } ? Formats.FileSize(source.Stamp.Size)
+                : "";
         }
 
-        var rows = ReviewRows.Reuse(_stepRows, fresh, null);
-        for (var i = 0; i < rows.Count; i++)
-        {
-            Fill(rows[i], i, part.Steps, findings[i]);
-        }
+        SyncSteps();
+    }
 
-        Controls.CardGrid.Sync(Steps, rows);
-        var problems = plan.Findings.Count(finding => finding.StepIndex is not null && finding.BlocksBuild && !IsHosting(finding.Kind));
-        StepsInOrder = problems == 0;
-        StepsState = StepsInOrder ? Strings.Creator_StepsInOrder : Text.Format(Strings.Creator_StepsProblems, ("count", problems));
+    // A long tail of copies and patches without problems folds under one line, past its first step; only a tail, so a row's
+    // place in the list stays its step's, which dragging relies on.
+    private void SyncSteps()
+    {
+        var tail = _steps.Count - 1 - _steps.FindLastIndex(row => row.Kind is not (OperationKind.Copy or OperationKind.Patch) || row.HasFindings);
+        var folded = _showsAllSteps || tail <= FoldedGroupSize ? 0 : tail - 1;
+        Controls.CardGrid.Sync(Steps, _steps[..(_steps.Count - folded)]);
+        MoreSteps = folded > 0 ? Text.Format(Strings.Creator_MoreSteps, ("count", folded)) : "";
     }
 
     private void Fill(StepRow row, int index, ValueList<ProjectStep> steps, IEnumerable<PlanFinding> findings)
@@ -167,10 +228,12 @@ public sealed partial class ReviewViewModel
             _ => (Strings.Creator_StepGameFile, ""),
         };
         (row.CanMoveUp, row.CanMoveDown) = (index > 0, index < steps.Count - 1);
+        row.EditName = Text.Format(Strings.Creator_EditStep, ("number", number));
         row.MoveUpName = Text.Format(Strings.Creator_StepMoveUp, ("number", number));
         row.MoveDownName = Text.Format(Strings.Creator_StepMoveDown, ("number", number));
         row.RemoveName = Text.Format(Strings.Creator_StepRemove, ("number", number));
         row.DragName = Text.Format(Strings.Creator_StepDrag, ("number", number));
+        FillVersions(row, steps[index].Only, number);
         List<PlanFinding> found = [.. findings];
         // The row says this one in words of its own, with the move that solves it.
         List<FindingLine> lines = [.. found.Where(finding => finding.MoveBefore is null).Select(Line)];
@@ -197,7 +260,35 @@ public sealed partial class ReviewViewModel
         row.IsFirstFaulty = Names(blocking, first, authorFile);
         row.IsSecondFaulty = row.HasSecond && Names(blocking, second, authorFile: false);
         row.HasProblem = blocking.Count > 0;
+        row.IsEditing |= row.HasProblem;
         row.Edited = Edit;
+    }
+
+    // Pills of a project's versions, kept while its versions stay, so the one just pressed keeps the keyboard's focus.
+    private void FillVersions(StepRow row, ValueList<GameKey> only, string number)
+    {
+        var versions = _session.Project.Versions;
+        if (versions.Count < 2)
+        {
+            row.Versions = [];
+            return;
+        }
+
+        if (!row.Versions.Select(version => version.Key).SequenceEqual(versions.Select(version => version.Game.Key)))
+        {
+            row.Versions = [.. versions.Select(version => new StepVersion(row, version.Game.Key, GameWording.StoreName(version.Game.Key.Store)))];
+        }
+
+        foreach (var version in row.Versions)
+        {
+            version.IsOn = only.Count == 0 || only.Contains(version.Key);
+        }
+
+        row.ShowVersions();
+        row.IsLimited = only.Count > 0;
+        row.VersionsName = Text.Format(Strings.Creator_StepVersionsName, ("number", number));
+        row.VersionsText = Text.Format(Strings.Creator_StepVersions, ("all", only.Count == 0 ? "true" : "false"),
+            ("stores", only.Count == 0 ? "" : CreatorWording.List([.. only.Select(key => GameWording.StoreName(key.Store))])));
     }
 
     // A copy's two fields often hold the same path, so only the finding's kind tells which of them is wrong.
@@ -221,7 +312,13 @@ public sealed partial class ReviewViewModel
             return;
         }
 
-        var edited = step with { Only = steps[index].Only };
+        // Every version on is no limit, and a project of one version shows no pills, so its steps keep what they had.
+        var edited = step with
+        {
+            Only = row.Versions.Count == 0 ? steps[index].Only
+                : row.Versions.All(version => version.IsOn) ? default
+                : [.. row.Versions.Where(version => version.IsOn).Select(version => version.Key)],
+        };
         if (steps[index] != edited)
         {
             _session.ChangePart(part => part with { Steps = new(part.Steps.Items.SetItem(index, edited)) });

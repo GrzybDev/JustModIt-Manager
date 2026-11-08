@@ -64,7 +64,7 @@ internal sealed record GameDocument(string Store, string Id, string? Name = null
 
 internal sealed record MetadataDocument(string? Title = null, string? Version = null, List<string>? Authors = null);
 
-internal sealed record RuntimeFileDocument(string Path, string Kind);
+internal sealed record RuntimeFileDocument(string Path, string Kind, List<GameKey>? Only = null);
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

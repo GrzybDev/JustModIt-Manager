@@ -126,7 +126,8 @@ public sealed partial class ReviewViewModel
     private void UseRuntimeSuggestion(RuntimeRow row)
     {
         var (path, suggested) = (row.Path, row.Suggestion);
-        _session.ChangePart(part => part.RuntimeFiles.FirstOrDefault(file => PackagePath.Comparer.Equals(file.Path, path)) is { } file
+        _session.ChangePart(part => part.RuntimeFiles.FirstOrDefault(file => PackagePath.Comparer.Equals(file.Path, path)
+                && (file.Only.Count == 0 || file.Only.Contains(_session.Version!.Game.Key))) is { } file
             ? part with { RuntimeFiles = new(part.RuntimeFiles.Items.Replace(file, file with { Path = suggested })) }
             : part);
     }

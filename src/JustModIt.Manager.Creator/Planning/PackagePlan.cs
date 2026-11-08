@@ -95,15 +95,6 @@ public sealed record PackageFormatDecision(PackageKind Kind, ValueList<FormatRea
     }
 }
 
-/// <summary>What a plan does, in numbers.</summary>
-/// <param name="Copies">The files it copies.</param>
-/// <param name="Patches">The files it patches.</param>
-/// <param name="Renames">The game files it renames.</param>
-/// <param name="Deletes">The game files it deletes.</param>
-/// <param name="CopiedBytes">The bytes of the files it copies.</param>
-/// <param name="RuntimeCount">The files it names as changed while the game runs.</param>
-public sealed record PlanSummary(int Copies, int Patches, int Renames, int Deletes, long CopiedBytes, int RuntimeCount);
-
 /// <summary>An ordered, checked list of what the package does, the one source for its review, rules and build.</summary>
 public sealed record PackagePlan
 {
@@ -142,11 +133,7 @@ public sealed record PackagePlan
 
     public bool CanBuild => !Findings.Any(finding => finding.BlocksBuild);
 
-    public PlanSummary Summary => new(
-        Operations.Count(operation => operation.Kind == OperationKind.Copy),
-        Operations.Count(operation => operation.Kind == OperationKind.Patch),
-        Operations.Count(operation => operation.Kind == OperationKind.Rename),
-        Operations.Count(operation => operation.Kind == OperationKind.Delete),
-        Operations.Where(operation => operation.Kind == OperationKind.Copy).Sum(operation => operation.SourceFile?.Stamp.Size ?? 0),
-        RuntimeFiles.Count);
+    /// <summary>The bytes of the files the package copies; null when it patches a file, whose size only a build tells.</summary>
+    public long? CopiedBytes => Operations.Any(operation => operation.Kind == OperationKind.Patch) ? null
+        : Operations.Where(operation => operation.Kind == OperationKind.Copy).Sum(operation => operation.SourceFile?.Stamp.Size ?? 0);
 }

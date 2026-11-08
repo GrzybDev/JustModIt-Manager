@@ -207,7 +207,7 @@ public sealed partial class CellViewModel
             : _changedDetail.Length > 0 ? new LineContent(Icons.CircleCheck, Tone.Success, Text.Format(Strings.Creator_CellState, ("state", "Compared")), _changedDetail)
             : new LineContent(Icons.CircleCheck, Tone.Success, Detail.Length > 0 ? Detail : Text.Format(Strings.Creator_CellState, ("state", "Compared")),
                 GameWording.Join([Text.Format(Strings.Creator_CountOperations, ("count", plan.Operations.Count)),
-                    plan.Summary is { Patches: 0, CopiedBytes: var bytes } ? Formats.FileSize(bytes) : ""]));
+                    plan.CopiedBytes is { } bytes ? Formats.FileSize(bytes) : ""]));
         OnPropertyChanged(nameof(Brief));
         Name = Text.Format(Strings.Creator_BlockedCell, ("part", Key.Part.Length > 0 ? Key.Part : Strings.Creator_PartBase), ("store", StoreName), ("text", Brief.Label));
     }

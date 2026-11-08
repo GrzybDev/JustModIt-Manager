@@ -46,7 +46,7 @@ public sealed class InstallRoundTripTests : IDisposable
         var plan = CreatorPlanner.Plan(comparison, project, project.Parts[0], Workspace.Version, Workspace.Options).Plan;
         if (mode == CreatorMode.Advanced)
         {
-            plan = CreatorPlanner.Plan(comparison, project, project.Parts[0].ToAdvanced(plan), Workspace.Version, Workspace.Options).Plan;
+            plan = CreatorPlanner.Plan(comparison, project, project.Parts[0].ToAdvanced([(Workspace.Steam, plan)]), Workspace.Version, Workspace.Options).Plan;
         }
 
         var game = Workspace.Installed(plan.GameDirectory, Key, "100");

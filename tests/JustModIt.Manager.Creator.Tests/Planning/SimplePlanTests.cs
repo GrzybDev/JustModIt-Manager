@@ -1,6 +1,8 @@
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Creator.Building;
+using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Creator.Tests.TestSupport;
 
@@ -259,25 +261,76 @@ public sealed class SimplePlanTests : IDisposable
         review.Plan.Findings.Select(finding => finding.Kind).Should().Equal(FindingKind.TooManyFiles, FindingKind.PackageTooLarge);
     }
 
+    // The other version lays the data folder out otherwise and has a folder of its own in that layout, which holds a file the
+    // first version's folder lacks and lacks one it holds.
     [Fact]
-    public async Task Turns_into_advanced_steps_that_build_the_same_package()
+    public async Task ToAdvanced_keeps_each_version_s_package()
     {
         var original = Workspace.Bytes(8192, 1);
-        _workspace.Game("bin/engine.dll", original);
-        _workspace.Game("data/strings.bin", "strings");
-        _workspace.Author("bin/engine.dll", Workspace.Bytes(6000, 2));
-        _workspace.Author("bin/engine_o.dll", original);
-        _workspace.Author("data/strings.bin", "customized");
-        var simple = await ReviewAsync(Part);
+        var (engine, strings) = (Workspace.Bytes(6000, 2), "customized strings");
+        using var other = new Workspace();
+        foreach (var (version, data) in new[] { (_workspace, "Ember Isles_Data"), (other, "EmberIsles_Data") })
+        {
+            version.Game("bin/engine.dll", original);
+            version.Game($"{data}/strings.bin", version == other ? "strings as the other store ships them" : "strings");
+            version.Author("bin/engine.dll", engine);
+            version.Author("bin/engine_o.dll", original);
+            version.Author($"{data}/strings.bin", strings);
+            version.Author($"{data}/{(version == other ? "other" : "first")}.txt", "a file for one store");
+        }
 
-        var advanced = await ReviewAsync(Part.ToAdvanced(simple.Plan));
+        var layout = new FolderLayout([new FolderRename("Ember Isles_Data", "EmberIsles_Data")]);
+        var project = Workspace.Project();
+        var (first, second) = (Workspace.Version, new ProjectVersion(new ProjectGame(Workspace.Gog, "Lantern Isle")) { Folders = layout.Renames });
+        async Task<(PackagePlan First, PackagePlan Second)> PlanAsync(ProjectPart part) => (
+            CreatorPlanner.Plan(await _workspace.CompareAsync(), project, part, first, Workspace.Options).Plan,
+            CreatorPlanner.Plan(await other.CompareAsync(layout: layout), project, part, second, Workspace.Options).Plan);
+        var simple = await PlanAsync(Part);
 
-        advanced.Entries.Should().BeEmpty();
-        advanced.Plan.Operations.Select(operation => (operation.Kind, operation.From, operation.Path, operation.Source)).Should()
-            .Equal(simple.Plan.Operations.Select(operation => (operation.Kind, operation.From, operation.Path, operation.Source)));
-        advanced.Plan.Findings.Select(finding => (finding.Kind, finding.Path))
-            .Should().Equal(simple.Plan.Findings.Select(finding => (finding.Kind, finding.Path)));
-        advanced.Plan.CanBuild.Should().BeTrue();
+        var part = Part.ToAdvanced([(Workspace.Steam, simple.First), (Workspace.Gog, simple.Second)]);
+        var advanced = await PlanAsync(part);
+
+        part.Steps.Select(step => (step.GetType().Name, step.Only.SingleOrDefault())).Should().Equal(
+            (nameof(RenameFileStep), default), (nameof(CopyFileStep), default), (nameof(CopyFileStep), Workspace.Gog),
+            (nameof(CopyFileStep), Workspace.Steam), (nameof(PatchFileStep), default(GameKey)));
+        foreach (var (before, after) in new[] { (simple.First, advanced.First), (simple.Second, advanced.Second) })
+        {
+            after.Operations.Select(Describe).Should().Equal(before.Operations.Select(Describe));
+            after.Findings.Select(finding => (finding.Kind, finding.Path)).Should().Equal(before.Findings.Select(finding => (finding.Kind, finding.Path)));
+            after.CanBuild.Should().BeTrue();
+        }
+
+        static (OperationKind, string?, string, string?, string?) Describe(PlannedOperation operation) =>
+            (operation.Kind, operation.From, operation.Path, operation.SourceFile?.FullPath, operation.Original?.FullPath);
+    }
+
+    [Fact]
+    public async Task ToAdvanced_declares_a_file_with_its_kind_on_each_version()
+    {
+        _workspace.Game("data/list.idx", "the list as one store ships it");
+        _workspace.Author("data/list.idx", "the list as the software left it");
+        _workspace.Author("bin/loader.asi", "the loader");
+        using var other = new Workspace();
+        other.Author("data/list.idx", "the list as the software left it");
+        other.Author("bin/loader.asi", "the loader");
+        var project = Workspace.Project();
+        var choosing = Part.WithChoice((await ReviewAsync(Part)).Entries.Single(entry => entry.File.Path == "data/list.idx"), FileChoice.Runtime);
+        var second = new ProjectVersion(new ProjectGame(Workspace.Gog, "Lantern Isle"));
+        async Task<(PackagePlan First, PackagePlan Second)> PlanAsync(ProjectPart part) => (
+            CreatorPlanner.Plan(await _workspace.CompareAsync(), project, part, Workspace.Version, Workspace.Options).Plan,
+            CreatorPlanner.Plan(await other.CompareAsync(), project, part, second, Workspace.Options).Plan);
+        var simple = await PlanAsync(choosing);
+
+        var part = choosing.ToAdvanced([(Workspace.Steam, simple.First), (Workspace.Gog, simple.Second)]);
+        var advanced = await PlanAsync(part);
+
+        part.RuntimeFiles.Select(file => (file.Kind, file.Only.Single())).Should().Equal(
+            (RuntimeFileKind.ChangesGameFile, Workspace.Steam), (RuntimeFileKind.CreatesFile, Workspace.Gog));
+        foreach (var (before, after) in new[] { (simple.First, advanced.First), (simple.Second, advanced.Second) })
+        {
+            after.RuntimeFiles.Select(file => (file.Path, file.Kind)).Should().Equal(before.RuntimeFiles.Select(file => (file.Path, file.Kind)));
+            after.Findings.Select(finding => finding.Kind).Should().Equal(before.Findings.Select(finding => finding.Kind));
+        }
     }
 
     [Fact]

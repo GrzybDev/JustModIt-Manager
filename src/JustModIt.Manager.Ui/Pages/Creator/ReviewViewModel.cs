@@ -33,8 +33,16 @@ public sealed partial class ReviewViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool IsAdvanced { get; private set; }
 
+    /// <summary>The part view's heading: the operations of a simple part, or the steps of an advanced one.</summary>
+    [ObservableProperty]
+    public partial string Title { get; private set; } = "";
+
     [ObservableProperty]
     public partial string Lead { get; private set; } = "";
+
+    /// <summary>That a step runs on every version unless some are turned off, said only while the project has several versions.</summary>
+    [ObservableProperty]
+    public partial string VersionsLead { get; private set; } = "";
 
     [ObservableProperty]
     public partial string Counts { get; private set; } = "";
@@ -87,9 +95,12 @@ public sealed partial class ReviewViewModel : ObservableObject, IDisposable
             .ToLookup(finding => finding.OperationIndex!.Value);
         IsAdvanced = part.Mode == CreatorMode.Advanced;
         var compared = comparison.Files.Count(file => file.AuthorPath is not null);
+        Title = IsAdvanced ? Text.Format(Strings.Creator_StepsTitle, ("part", part.Name.Length > 0 ? part.Name : Strings.Creator_PartBase))
+            : Strings.Creator_OperationsTitle;
         Lead = IsAdvanced
             ? Strings.Creator_StepsLead
             : Text.Format(Strings.Creator_ReviewLead, ("count", compared), ("game", game));
+        VersionsLead = IsAdvanced && _session.Project.Versions.Count > 1 ? Strings.Creator_StepsEveryVersion : "";
         AddNote = Text.Format(Strings.Creator_AddNote, ("game", game));
         if (IsAdvanced)
         {
@@ -98,7 +109,8 @@ public sealed partial class ReviewViewModel : ObservableObject, IDisposable
         }
         else
         {
-            Controls.CardGrid.Sync(Steps, ReviewRows.Reuse(_stepRows, [], null));
+            _steps = ReviewRows.Reuse(_stepRows, [], null);
+            SyncSteps();
             ShowOperations(OperationRows(review, findings));
         }
 

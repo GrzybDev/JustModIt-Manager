@@ -120,7 +120,7 @@ public sealed partial class ProjectPageViewModel
         var metadata = session.Project.Metadata;
         var version = metadata.Version.Trim();
         var package = Record?.Parts.SelectMany(part => part.Packages).MaxBy(built => built.BuiltAt);
-        var size = package?.Size ?? (plan?.Summary is { Patches: 0 } summary ? summary.CopiedBytes : null);
+        var size = package?.Size ?? plan?.CopiedBytes;
         // The cells of a table may differ in format, so only a single cell's bar names one.
         FormatLine = plan is null || IsTable ? "" : GameWording.Join([Description.FormatTitle, size is { } bytes ? Formats.FileSize(bytes) : ""]);
         FormatReason = !IsTable && plan?.Format.Reasons is [var reason, ..] ? Text.Format(Strings.Creator_FormatReason, ("reason", reason.ToString())) : "";

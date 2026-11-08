@@ -8,10 +8,7 @@
              x:DataType="creator:ReviewViewModel">
   <Border Classes="creatorCard" ClipToBounds="True">
     <StackPanel>
-      <WrapPanel Margin="20,12,16,12" MinHeight="36">
-        <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_OperationsTitle}" Margin="0,0,12,0" VerticalAlignment="Center" />
-        <TextBlock Classes="meta" Text="{Binding Counts}" VerticalAlignment="Center" />
-      </WrapPanel>
+      <TextBlock Classes="meta" Text="{Binding Counts}" Margin="20,14,16,14" />
       <Border Classes="divider" />
       <ItemsControl x:Name="OperationRows" Classes="rows" ItemsSource="{Binding Operations}" ItemsPanel="{StaticResource VirtualItems}">
         <ItemsControl.DataTemplates>

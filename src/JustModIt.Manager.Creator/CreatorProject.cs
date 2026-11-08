@@ -56,7 +56,11 @@ public enum RuntimeFileKind
 /// <summary>A game file the author declared as one the package's software writes while the game runs.</summary>
 /// <param name="Path">The game-relative path.</param>
 /// <param name="Kind">Whether the game has the file or the software creates it.</param>
-public sealed record RuntimeFileChoice(string Path, RuntimeFileKind Kind);
+public sealed record RuntimeFileChoice(string Path, RuntimeFileKind Kind)
+{
+    /// <summary>The versions of the game the declaration holds on; empty means every version.</summary>
+    public ValueList<GameKey> Only { get; init; }
+}
 
 /// <summary>The game a project is made for, as its store identifies it.</summary>
 /// <param name="Key">The store and the game's id there.</param>
@@ -194,17 +198,48 @@ public sealed record ProjectPart
     public ProjectPart WithoutRuntimeFile(string path) =>
         this with { RuntimeFiles = RuntimeFiles.RemoveAll(file => PackagePath.Comparer.Equals(file.Path, path)) };
 
-    /// <summary>Turns a simple part into the steps its plan runs, so the package stays the same.</summary>
-    /// <param name="plan">The part's plan as it is now.</param>
-    public ProjectPart ToAdvanced(PackagePlan plan)
+    /// <summary>
+    /// Turns a simple part into the steps its plans run, so each version's package stays the same: the first version's steps in
+    /// order, a step another version adds placed after the one before it there, and a step that not every plan runs limited to
+    /// the versions that do, and each declared file with its kind on the versions where it has it.
+    /// </summary>
+    /// <param name="plans">The part's plan on each version as it is now, in the project's order of versions.</param>
+    public ProjectPart ToAdvanced(IReadOnlyList<(GameKey Version, PackagePlan Plan)> plans)
     {
+        var steps = new List<(ProjectStep Step, string Key, List<GameKey> Versions)>();
+        foreach (var (version, plan) in plans)
+        {
+            var next = 0;
+            foreach (var operation in plan.Operations)
+            {
+                // A version's own folder may lie in its layout, so a source counts as the project path it stands for.
+                var key = string.Join('\n', operation.Kind, operation.Path, operation.From, operation.Source is { } source ? plan.Layout.ToPackage(source) : null);
+                var at = steps.FindIndex(next, step => PackagePath.Comparer.Equals(step.Key, key));
+                if (at < 0)
+                {
+                    steps.Insert(at = next, (ToStep(operation), key, []));
+                }
+
+                steps[at].Versions.Add(version);
+                next = at + 1;
+            }
+        }
+
         return this with
         {
             Mode = CreatorMode.Advanced,
-            Steps = [.. plan.Operations.Select(ToStep)],
+            Steps = [.. steps.Select(step => step.Versions.Count == plans.Count ? step.Step : step.Step with { Only = [.. step.Versions] })],
             Choices = default,
             ExtraSteps = default,
-            RuntimeFiles = [.. plan.RuntimeFiles.Select(file => new RuntimeFileChoice(file.Path, file.Kind))],
+            RuntimeFiles =
+            [
+                // A file one store ships and another lacks is changed on the one and created on the other, so each kind holds on its versions.
+                .. plans.SelectMany(each => each.Plan.RuntimeFiles.Select(file => (file.Path, file.Kind, each.Version))).GroupBy(file => file.Path, PackagePath.Comparer)
+                    .SelectMany(path => path.GroupBy(file => file.Kind).Select(kind => new RuntimeFileChoice(path.Key, kind.Key)
+                    {
+                        Only = kind.Count() == plans.Count ? default : [.. kind.Select(file => file.Version)],
+                    })),
+            ],
         };
     }
 

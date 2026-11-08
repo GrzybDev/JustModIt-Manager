@@ -3,6 +3,7 @@ using Avalonia.Data.Converters;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
 
@@ -343,13 +344,72 @@ public sealed partial class RuntimeRow(string key) : ObservableObject, IReviewRo
     public partial string SuggestionText { get; set; } = "";
 }
 
-/// <summary>A step of an advanced project, its paths edited in place.</summary>
+/// <summary>A version of the game a step of an advanced part may run on, as a pill in the step's row.</summary>
+/// <param name="row">The step's row, told when the author turns the pill.</param>
+/// <param name="key">The version's game.</param>
+/// <param name="store">The version's store, which names the pill.</param>
+public sealed partial class StepVersion(StepRow row, GameKey key, string store) : ObservableObject
+{
+    public GameKey Key { get; } = key;
+
+    public string Store { get; } = store;
+
+    [ObservableProperty]
+    public partial bool IsOn { get; set; }
+
+    /// <summary>The pill can turn; the last one on cannot, since a step limited to no version would run on every one.</summary>
+    [ObservableProperty]
+    public partial bool CanTurn { get; set; } = true;
+
+    partial void OnIsOnChanged(bool value)
+    {
+        row.ShowVersions();
+        row.Edited?.Invoke(row);
+    }
+}
+
+/// <summary>A step of an advanced part: one line, which unfolds the step's paths to edit them in place.</summary>
 /// <param name="key">What the row stands for.</param>
 public sealed partial class StepRow(string key) : ObservableObject, IReviewRow
 {
     public string Key { get; } = key;
 
     public int Index { get; set; }
+
+    /// <summary>The step's fields are open; a problem opens them, and they stay open until the author folds them.</summary>
+    [ObservableProperty]
+    public partial bool IsEditing { get; set; }
+
+    [RelayCommand]
+    private void ToggleEdit() => IsEditing = !IsEditing;
+
+    [ObservableProperty]
+    public partial string EditName { get; set; } = "";
+
+    /// <summary>The step's paths on one line; a file that keeps its path is named once.</summary>
+    public string Summary => !HasSecond ? First : string.Equals(First, Second, StringComparison.OrdinalIgnoreCase) ? Second : $"{First} → {Second}";
+
+    /// <summary>A copy's size, or how many originals a patch meets across the versions; empty for neither.</summary>
+    [ObservableProperty]
+    public partial string Detail { get; set; } = "";
+
+    /// <summary>The versions of the game the step may run on, as pills; none in a project of one version.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasVersions))]
+    public partial IReadOnlyList<StepVersion> Versions { get; set; } = [];
+
+    public bool HasVersions => Versions.Count > 0;
+
+    /// <summary>The versions the step runs on, as its line says them.</summary>
+    [ObservableProperty]
+    public partial string VersionsText { get; set; } = "";
+
+    /// <summary>The step runs on some versions only, which its line marks.</summary>
+    [ObservableProperty]
+    public partial bool IsLimited { get; set; }
+
+    [ObservableProperty]
+    public partial string VersionsName { get; set; } = "";
 
     [ObservableProperty]
     public partial string Number { get; set; } = "";
@@ -370,15 +430,18 @@ public sealed partial class StepRow(string key) : ObservableObject, IReviewRow
     public partial string FirstLabel { get; set; } = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Summary))]
     public partial string First { get; set; } = "";
 
     [ObservableProperty]
     public partial string SecondLabel { get; set; } = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Summary))]
     public partial string Second { get; set; } = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Summary))]
     public partial bool HasSecond { get; set; }
 
     /// <summary>The first path is the author's file, which a dialog can pick.</summary>
@@ -456,12 +519,22 @@ public sealed partial class StepRow(string key) : ObservableObject, IReviewRow
         }
     }
 
-    /// <summary>Called when the author typed a path.</summary>
+    /// <summary>Called when the author typed a path or turned a version.</summary>
     public Action<StepRow>? Edited { get; set; }
 
     partial void OnFirstChanged(string value) => Edited?.Invoke(this);
 
     partial void OnSecondChanged(string value) => Edited?.Invoke(this);
+
+    /// <summary>Keeps the last version on from turning off.</summary>
+    internal void ShowVersions()
+    {
+        var on = Versions.Count(version => version.IsOn);
+        foreach (var version in Versions)
+        {
+            version.CanTurn = !version.IsOn || on > 1;
+        }
+    }
 }
 
 /// <summary>Brings the shown rows in line with the rows of a new plan, keeping each instance that stays, and turns their values for the views.</summary>

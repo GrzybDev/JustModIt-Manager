@@ -3150,23 +3150,41 @@
   <data name="Creator_ToSimpleConfirm" xml:space="preserve">
     <value>Go back and arrange again</value>
   </data>
-  <data name="Creator_ToSimpleButton" xml:space="preserve">
-    <value>Back to simple mode</value>
-  </data>
   <data name="Creator_StepsTitle" xml:space="preserve">
-    <value>Arrange the package's steps</value>
+    <value>Steps of {part}</value>
   </data>
   <data name="Creator_StepsLead" xml:space="preserve">
-    <value>The app runs them for players one after another, each seeing the game's files as the steps before it left them: e.g. a file can be renamed first and then patched.</value>
+    <value>They run on the player's computer one after another; each sees the game as the steps before it left it.</value>
   </data>
-  <data name="Creator_StepsCardTitle" xml:space="preserve">
-    <value>The package's steps</value>
+  <data name="Creator_StepsEveryVersion" xml:space="preserve">
+    <value>Each step runs on every version of the game unless some of them are turned off in its row.</value>
   </data>
-  <data name="Creator_StepsInOrder" xml:space="preserve">
-    <value>The steps are in order</value>
+  <data name="Creator_ModeName" xml:space="preserve">
+    <value>Mode of the part</value>
   </data>
-  <data name="Creator_StepsProblems" xml:space="preserve">
-    <value>To fix: {count, plural, one {# problem} other {# problems}}</value>
+  <data name="Creator_ModeSimple" xml:space="preserve">
+    <value>Simple</value>
+  </data>
+  <data name="Creator_ModeAdvanced" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="Creator_EditStep" xml:space="preserve">
+    <value>Change step {number}</value>
+  </data>
+  <data name="Creator_StepVersions" xml:space="preserve">
+    <value>{all, select, true {All versions} other {Only {stores}}}</value>
+  </data>
+  <data name="Creator_StepVersionsName" xml:space="preserve">
+    <value>Versions of step {number}</value>
+  </data>
+  <data name="Creator_PatchVariants" xml:space="preserve">
+    <value>{count, plural, one {# variant} other {# variants}} by the original</value>
+  </data>
+  <data name="Creator_MoreSteps" xml:space="preserve">
+    <value>+ {count, plural, one {# step} other {# steps}} of copies and patches</value>
+  </data>
+  <data name="Creator_ShowMore" xml:space="preserve">
+    <value>show</value>
   </data>
   <data name="Creator_StepDragTip" xml:space="preserve">
     <value>Drag to change the order</value>

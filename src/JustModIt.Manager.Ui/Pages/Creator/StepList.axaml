@@ -8,29 +8,15 @@
              x:DataType="creator:ReviewViewModel">
   <Border Classes="creatorCard" ClipToBounds="True">
     <StackPanel>
-      <Grid ColumnDefinitions="*,Auto" Margin="20,12,16,12" MinHeight="36">
-        <WrapPanel VerticalAlignment="Center">
-          <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_StepsCardTitle}" Margin="0,0,12,0" VerticalAlignment="Center" />
-          <Border Classes="kind" Classes.success="{Binding StepsInOrder}" Classes.danger="{Binding !StepsInOrder}" Margin="0,0,12,0"
-                  VerticalAlignment="Center">
-            <StackPanel>
-              <ui:Icon Data="{x:Static theme:Icons.Check}" IsVisible="{Binding StepsInOrder}" />
-              <ui:Icon Data="{x:Static theme:Icons.CircleX}" IsVisible="{Binding !StepsInOrder}" />
-              <TextBlock Text="{Binding StepsState}" />
-            </StackPanel>
-          </Border>
-          <TextBlock Classes="meta" Text="{Binding Counts}" VerticalAlignment="Center" />
-        </WrapPanel>
-        <Button Grid.Column="1" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_ToSimpleButton}"
-                ui:ButtonAssist.Icon="{x:Static theme:Icons.Undo}" Command="{Binding ToSimpleCommand}" />
-      </Grid>
+      <TextBlock Classes="meta" Text="{Binding Counts}" Margin="20,14,16,14" />
       <Border Classes="divider" />
       <ItemsControl x:Name="StepRows" Classes="rows" ItemsSource="{Binding Steps}" ItemsPanel="{StaticResource VirtualItems}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="creator:StepRow">
-            <Border Classes="stepRow" Classes.problem="{Binding HasProblem}" Padding="10,12,16,14">
+            <Border Classes="stepRow" Classes.problem="{Binding HasProblem}" Padding="10,10,16,10">
               <StackPanel Spacing="10">
-                <Grid ColumnDefinitions="20,28,124,*,104" ColumnSpacing="12">
+                <!-- One line: the step's paths, under them a copy's size or a patch's originals, and the versions it runs on. -->
+                <Grid ColumnDefinitions="20,28,124,*,Auto,Auto" ColumnSpacing="12">
                   <Border Classes="grip" AutomationProperties.Name="{Binding DragName}" ToolTip.Tip="{x:Static loc:Strings.Creator_StepDragTip}"
                           VerticalAlignment="Center" Background="Transparent">
                     <ui:Icon Data="{x:Static theme:Icons.GripVertical}" Width="16" Height="16" Foreground="{StaticResource TextMutedBrush}" />
@@ -38,14 +24,28 @@
                   <Border Grid.Column="1" Classes="number" Classes.problem="{Binding HasProblem}" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Number}" />
                   </Border>
-                  <Border Grid.Column="2" Classes="kind" VerticalAlignment="Bottom" Margin="0,0,0,8"
+                  <Border Grid.Column="2" Classes="kind" VerticalAlignment="Center"
                           Classes.danger="{Binding KindTone, Converter={x:Static creator:ReviewRows.IsDanger}}">
                     <StackPanel>
                       <ui:Icon Data="{Binding KindIcon}" />
                       <TextBlock Text="{Binding KindText}" />
                     </StackPanel>
                   </Border>
-                  <Grid Grid.Column="3" ColumnDefinitions="*,Auto,*" ColumnSpacing="10">
+                  <StackPanel Grid.Column="3" Spacing="1" VerticalAlignment="Center">
+                    <TextBlock Classes="rowTitle" Text="{Binding Summary}" ToolTip.Tip="{Binding Summary}" />
+                    <TextBlock Classes="caption" Text="{Binding Detail}" IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <Border Grid.Column="4" Classes="kind" Classes.limited="{Binding IsLimited}" VerticalAlignment="Center" IsVisible="{Binding HasVersions}">
+                    <TextBlock Text="{Binding VersionsText}" />
+                  </Border>
+                  <Button Grid.Column="5" Classes="icon" Classes.expanded="{Binding IsEditing}" VerticalAlignment="Center" ToolTip.Tip="{Binding EditName}"
+                          AutomationProperties.Name="{Binding EditName}" Command="{Binding ToggleEditCommand}">
+                    <ui:Icon Data="{x:Static theme:Icons.Pencil}" Width="16" Height="16" />
+                  </Button>
+                </Grid>
+                <!-- The step's fields, opened by the pencil or by a problem, with the versions it runs on and its order. -->
+                <StackPanel Margin="196,0,0,0" Spacing="12" IsVisible="{Binding IsEditing}" theme:Motion.Enter="True">
+                  <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="10">
                     <StackPanel Spacing="4" Grid.ColumnSpan="{Binding HasSecond, Converter={x:Static creator:ReviewRows.SpanWhenAlone}}">
                       <TextBlock Classes="rowTitle" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding FirstLabel}" />
                       <TextBox Text="{Binding First}" FontSize="14" AutomationProperties.Name="{Binding FirstLabel}"
@@ -68,25 +68,35 @@
                                Classes.faulty="{Binding IsSecondFaulty}" />
                     </StackPanel>
                   </Grid>
-                  <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                              Margin="0,0,0,4">
-                    <Button Classes="icon" ToolTip.Tip="{Binding MoveUpName}" IsEnabled="{Binding CanMoveUp}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).MoveUpCommand}"
-                            CommandParameter="{Binding}">
-                      <ui:Icon Data="{x:Static theme:Icons.ArrowUp}" Width="16" Height="16" />
-                    </Button>
-                    <Button Classes="icon" ToolTip.Tip="{Binding MoveDownName}" IsEnabled="{Binding CanMoveDown}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).MoveDownCommand}"
-                            CommandParameter="{Binding}">
-                      <ui:Icon Data="{x:Static theme:Icons.ArrowDown}" Width="16" Height="16" />
-                    </Button>
-                    <Button Classes="icon" ToolTip.Tip="{Binding RemoveName}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).RemoveStepCommand}"
-                            CommandParameter="{Binding}">
-                      <ui:Icon Data="{x:Static theme:Icons.Trash}" Width="16" Height="16" />
-                    </Button>
-                  </StackPanel>
-                </Grid>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <ItemsControl ItemsSource="{Binding Versions}" ItemsPanel="{StaticResource WrapItems8}" VerticalAlignment="Center"
+                                  AutomationProperties.Name="{Binding VersionsName}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="creator:StepVersion">
+                          <ToggleButton Theme="{StaticResource OptionPill}" Content="{Binding Store}" IsChecked="{Binding IsOn}" IsEnabled="{Binding CanTurn}"
+                                        AutomationProperties.Name="{Binding Store}" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                      <Button Classes="icon" ToolTip.Tip="{Binding MoveUpName}" IsEnabled="{Binding CanMoveUp}"
+                              Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).MoveUpCommand}"
+                              CommandParameter="{Binding}">
+                        <ui:Icon Data="{x:Static theme:Icons.ArrowUp}" Width="16" Height="16" />
+                      </Button>
+                      <Button Classes="icon" ToolTip.Tip="{Binding MoveDownName}" IsEnabled="{Binding CanMoveDown}"
+                              Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).MoveDownCommand}"
+                              CommandParameter="{Binding}">
+                        <ui:Icon Data="{x:Static theme:Icons.ArrowDown}" Width="16" Height="16" />
+                      </Button>
+                      <Button Classes="icon" ToolTip.Tip="{Binding RemoveName}"
+                              Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).RemoveStepCommand}"
+                              CommandParameter="{Binding}">
+                        <ui:Icon Data="{x:Static theme:Icons.Trash}" Width="16" Height="16" />
+                      </Button>
+                    </StackPanel>
+                  </Grid>
+                </StackPanel>
                 <StackPanel Margin="196,0,0,0" IsVisible="{Binding HasFindings}">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                     <ItemsControl ItemsSource="{Binding Findings}" ItemTemplate="{StaticResource FindingTemplate}" />
@@ -109,7 +119,14 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-      <Border Classes="divider" />
+      <!-- The copies and patches folded at the end of a long list. -->
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="20,12,20,0" IsVisible="{Binding HasMoreSteps}">
+        <TextBlock Classes="rowText" VerticalAlignment="Center" Text="{Binding MoreSteps}" />
+        <TextBlock Classes="separator" />
+        <Button x:Name="ShowAllSteps" Classes="link" FontSize="13" VerticalAlignment="Center" Content="{x:Static loc:Strings.Creator_ShowMore}"
+                Command="{Binding ShowAllStepsCommand}" />
+      </StackPanel>
+      <Border Classes="divider" Margin="0,12,0,0" />
       <StackPanel Spacing="12" Margin="20,16,20,20">
         <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddStep}" />
         <ui:PixelUniformGrid Columns="4" ColumnSpacing="12">

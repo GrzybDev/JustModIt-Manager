@@ -35,7 +35,7 @@ public sealed class RuntimePlanTests : IDisposable
                 ("data/list.idx", RuntimeFileKind.ChangesGameFile, true, false, false),
                 ("data/list_original.idx", RuntimeFileKind.CreatesFile, false, false, false));
         plan.Format.Should().Be(new PackageFormatDecision(PackageKind.Manifest, [FormatReason.DeclaresRuntimeFiles]));
-        plan.Summary.RuntimeCount.Should().Be(2);
+        plan.RuntimeFiles.Should().HaveCount(2);
         plan.CarriesCode.Should().BeTrue();
         plan.Findings.Should().BeEmpty();
         plan.CanBuild.Should().BeTrue();
@@ -62,7 +62,7 @@ public sealed class RuntimePlanTests : IDisposable
             .WithChoice(Entry(review, "data/list_original.idx"), FileChoice.Runtime);
 
         var simple = await ReviewAsync(part);
-        var advanced = await ReviewAsync(part.ToAdvanced(simple.Plan));
+        var advanced = await ReviewAsync(part.ToAdvanced([(Workspace.Steam, simple.Plan)]));
 
         Entry(review, "data/list.idx").Choices.Should().Equal(FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip);
         Entry(review, "data/list_original.idx").Choices.Should()

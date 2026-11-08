@@ -118,7 +118,7 @@ public static class CreatorProjectStore
                     ExtraSteps = part.ExtraSteps.Count > 0 ? [.. part.ExtraSteps] : null,
                     Steps = part.Steps.Count > 0 ? [.. part.Steps] : null,
                     RuntimeFiles = part.RuntimeFiles.Count > 0
-                        ? [.. part.RuntimeFiles.Select(file => new RuntimeFileDocument(file.Path, Word(file.Kind)))]
+                        ? [.. part.RuntimeFiles.Select(file => new RuntimeFileDocument(file.Path, Word(file.Kind), file.Only.Count > 0 ? [.. file.Only] : null))]
                         : null,
                 }),
             ],
@@ -207,7 +207,7 @@ public static class CreatorProjectStore
                     .ToImmutableDictionary(choice => choice.Key, choice => Member<FileChoice>(choice.Value), PackagePath.Comparer)),
                 ExtraSteps = Items(part.ExtraSteps),
                 Steps = Items(part.Steps),
-                RuntimeFiles = [.. Items(part.RuntimeFiles).Select(file => new RuntimeFileChoice(file.Path, Member<RuntimeFileKind>(file.Kind)))],
+                RuntimeFiles = [.. Items(part.RuntimeFiles).Select(file => new RuntimeFileChoice(file.Path, Member<RuntimeFileKind>(file.Kind)) { Only = [.. file.Only ?? []] })],
             })],
         Metadata = new PackageMetadata
         {

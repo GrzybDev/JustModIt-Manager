@@ -201,6 +201,15 @@ public sealed class CreatorProjectStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Keeps_the_versions_a_declared_file_holds_on()
+    {
+        var project = new CreatorProject { Parts = [new ProjectPart { RuntimeFiles = [new RuntimeFileChoice("data/list.idx", RuntimeFileKind.CreatesFile) { Only = [OnGog] }] }] };
+        await CreatorProjectStore.SaveAsync(project, ProjectPath, TestContext.Current.CancellationToken);
+
+        (await CreatorProjectStore.LoadAsync(ProjectPath, TestContext.Current.CancellationToken)).Parts[0].RuntimeFiles.Single().Only.Should().Equal(OnGog);
+    }
+
+    [Fact]
     public async Task Keeps_an_authors_folder_outside_the_project_absolute()
     {
         var elsewhere = Path.Combine(_workspace.Root, "project", "example.exampleproj");

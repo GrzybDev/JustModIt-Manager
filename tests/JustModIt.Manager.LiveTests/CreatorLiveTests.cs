@@ -65,7 +65,7 @@ public sealed class CreatorLiveTests : IDisposable
             .Equal((rewritten, true, false), (created, false, false));
         plan.CarriesCode.Should().BeTrue();
         plan.Findings.Should().NotContain(finding => finding.Severity == FindingSeverity.Error);
-        var advanced = CreatorPlanner.Plan(comparison, project, part.ToAdvanced(plan), version, Options, basePlan: basePlan).Plan;
+        var advanced = CreatorPlanner.Plan(comparison, project, part.ToAdvanced([(version.Game.Key, plan)]), version, Options, basePlan: basePlan).Plan;
         advanced.Operations.Select(Describe)
             .Should().Equal(plan.Operations.Select(Describe), "advanced mode builds the same package from the steps simple mode found");
         advanced.RuntimeFiles.Select(file => (file.Path, file.Kind)).Should().Equal(plan.RuntimeFiles.Select(file => (file.Path, file.Kind)));
