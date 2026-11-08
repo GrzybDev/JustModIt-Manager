@@ -160,6 +160,33 @@ public sealed class AdvancedPlanTests : IDisposable
         plan.Findings.Should().ContainSingle().Which.StepIndex.Should().Be(2);
     }
 
+    [Theory]
+    [InlineData(OperationKind.Copy, "data/fonts/main.ttf", 1)]
+    [InlineData(OperationKind.Copy, "docs/new.txt", null)]
+    [InlineData(OperationKind.Patch, "data/fonts/main.ttf", null)]
+    public async Task A_rename_of_a_file_an_earlier_step_wrote_keeps_the_plan_from_building_until_it_moves(OperationKind writer, string path,
+        int? moveBefore)
+    {
+        ProjectStep write = writer == OperationKind.Copy ? new CopyFileStep("strings.pak", path) : new PatchFileStep("strings.pak", path);
+        var rename = new RenameFileStep(path, path + ".kept");
+        var otherVersion = new CopyFileStep("readme.txt", "docs/other.txt") { Only = [new GameKey(StoreId.Gog, "1100000002000000001")] };
+
+        var plan = await PlanAsync(otherVersion, write, rename);
+
+        var found = plan.Findings.Where(finding => finding.Kind == FindingKind.RenameOfWrittenFile).ToList();
+        if (moveBefore is null)
+        {
+            found.Should().BeEmpty("the step leaves the game's original where the rename finds it, or the game has none");
+            return;
+        }
+
+        found.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
+            finding.BlocksBuild && finding.Path == "Data/fonts/main.ttf" && finding.StepIndex == 2 && finding.OperationIndex == 1
+            && finding.MoveBefore == moveBefore);
+        plan.CanBuild.Should().BeFalse();
+        (await PlanAsync(otherVersion, rename, write)).CanBuild.Should().BeTrue("the rename now sets the game's original aside");
+    }
+
     private async Task<PackagePlan> PlanAsync(params ProjectStep[] steps) =>
         (await _workspace.ReviewAsync(Workspace.Project(new ProjectPart { Mode = CreatorMode.Advanced, Steps = [.. steps] }))).Plan;
 }

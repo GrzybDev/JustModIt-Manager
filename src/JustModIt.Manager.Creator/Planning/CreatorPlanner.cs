@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Rules;
@@ -44,11 +45,9 @@ public static class CreatorPlanner
             ? ([], [.. Operations(part.Steps, version, OperationReason.Step, comparison.Game)])
             : Simple(comparison, part, version);
         var (resolved, findings, runtime) = PlanReplay.Run(comparison, operations, Declarations(comparison, part, entries), keptPaths);
-        if (part.Mode == CreatorMode.Simple)
-        {
-            findings.AddRange(RenamesNotReplaced(comparison, resolved));
-        }
-
+        findings.AddRange(part.Mode == CreatorMode.Simple
+            ? RenamesNotReplaced(comparison, resolved)
+            : RenamesOfWrittenFiles(comparison, resolved));
         findings.AddRange(HostingRules.Check(comparison, resolved, options.Rules));
         findings.AddRange(HostingRules.CheckRuntime(runtime, resolved, options.Rules));
         var tools = findings.Where(finding => finding.Kind == FindingKind.ThirdPartyTool).Select(finding => finding.ToolId!).ToList();
@@ -287,6 +286,29 @@ public static class CreatorPlanner
                 OperationIndex = i,
                 AcknowledgementKey = AcknowledgementKeys.For(FindingKind.RenamedFileNotReplaced, rename.From!, rename.Path),
             };
+        }
+    }
+
+    // A rename of a game file that an earlier step copied over takes the author's file instead of the game's original,
+    // which the author most likely meant to set aside first. Only the first step at that path finds the original there,
+    // and a file new to the game has none. A patch needs the original in place, so patching and then renaming is no
+    // mistake: it gives what renaming and then patching the new name gives.
+    private static IEnumerable<PlanFinding> RenamesOfWrittenFiles(FolderComparison comparison, List<PlannedOperation> operations)
+    {
+        for (var i = 0; i < operations.Count; i++)
+        {
+            if (operations[i] is { Kind: OperationKind.Rename, From: { } from, Original: { } original } rename
+                && PathComparison.IsWithin(comparison.AuthorDirectory, original.FullPath)
+                && operations.Take(i).FirstOrDefault(earlier => PackagePath.Comparer.Equals(earlier.Path, from)
+                    || PackagePath.Comparer.Equals(earlier.From, from)) is { Replaces: not null } writer)
+            {
+                yield return new PlanFinding(FindingKind.RenameOfWrittenFile, from)
+                {
+                    OperationIndex = i,
+                    StepIndex = rename.StepIndex,
+                    MoveBefore = writer.StepIndex,
+                };
+            }
         }
     }
 

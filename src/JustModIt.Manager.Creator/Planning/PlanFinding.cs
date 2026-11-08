@@ -35,6 +35,12 @@ public enum FindingKind
     RenameOverwritesFile,
 
     /// <summary>
+    /// A rename takes the author's file that an earlier step copied over a game file, not the game's original;
+    /// <see cref="PlanFinding.MoveBefore"/> names that step.
+    /// </summary>
+    RenameOfWrittenFile,
+
+    /// <summary>
     /// A game file is renamed although the author neither removed it nor puts a file in its place, so the game may miss
     /// it; needs an acknowledgement.
     /// </summary>
@@ -173,6 +179,9 @@ public sealed record PlanFinding(FindingKind Kind, string? Path = null)
 
     /// <summary>The file changed while the game runs it is about, by its place in <see cref="PackagePlan.RuntimeFiles"/>.</summary>
     public int? RuntimeIndex { get; init; }
+
+    /// <summary>For a <see cref="FindingKind.RenameOfWrittenFile"/>, the author's step the rename has to come before.</summary>
+    public int? MoveBefore { get; init; }
 
     /// <summary>When set, the warning blocks the build until the author acknowledges this key.</summary>
     public string? AcknowledgementKey { get; init; }

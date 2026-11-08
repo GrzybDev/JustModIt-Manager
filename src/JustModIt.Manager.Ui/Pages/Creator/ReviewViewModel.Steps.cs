@@ -134,17 +134,16 @@ public sealed partial class ReviewViewModel
         var rows = ReviewRows.Reuse(_stepRows, fresh, null);
         for (var i = 0; i < rows.Count; i++)
         {
-            Fill(rows[i], i, part.Steps, plan, findings[i]);
+            Fill(rows[i], i, part.Steps, findings[i]);
         }
 
         Controls.CardGrid.Sync(Steps, rows);
-        var problems = plan.Findings.Count(finding => finding.StepIndex is not null && finding.BlocksBuild && !IsHosting(finding.Kind))
-            + rows.Count(row => row.MoveBefore is not null);
+        var problems = plan.Findings.Count(finding => finding.StepIndex is not null && finding.BlocksBuild && !IsHosting(finding.Kind));
         StepsInOrder = problems == 0;
         StepsState = StepsInOrder ? Strings.Creator_StepsInOrder : Text.Format(Strings.Creator_StepsProblems, ("count", problems));
     }
 
-    private void Fill(StepRow row, int index, ValueList<ProjectStep> steps, PackagePlan plan, IEnumerable<PlanFinding> findings)
+    private void Fill(StepRow row, int index, ValueList<ProjectStep> steps, IEnumerable<PlanFinding> findings)
     {
         row.Edited = null;
         var (kind, first, second) = steps[index] switch
@@ -173,13 +172,14 @@ public sealed partial class ReviewViewModel
         row.RemoveName = Text.Format(Strings.Creator_StepRemove, ("number", number));
         row.DragName = Text.Format(Strings.Creator_StepDrag, ("number", number));
         List<PlanFinding> found = [.. findings];
-        List<FindingLine> lines = [.. found.Select(Line)];
+        // The row says this one in words of its own, with the move that solves it.
+        List<FindingLine> lines = [.. found.Where(finding => finding.MoveBefore is null).Select(Line)];
         if (!lines.SequenceEqual(row.Findings))
         {
             row.Findings = lines;
         }
 
-        row.MoveBefore = WriterBefore(plan, index);
+        row.MoveBefore = found.Find(finding => finding.MoveBefore is not null)?.MoveBefore;
         if (row.MoveBefore is { } before)
         {
             var target = (before + 1).ToString(Text.Culture);
@@ -194,9 +194,9 @@ public sealed partial class ReviewViewModel
             : Text.Format(Strings.Creator_FixPath, ("name", PackagePath.Comparer.Equals(CreatorWording.FolderOf(missing.Path!),
                 CreatorWording.FolderOf(row.Suggestion)) ? CreatorWording.GameIndexName(row.Suggestion) : row.Suggestion));
         var authorFile = kind is OperationKind.Copy or OperationKind.Patch;
-        row.IsFirstFaulty = row.MoveBefore is not null || Names(blocking, first, authorFile);
+        row.IsFirstFaulty = Names(blocking, first, authorFile);
         row.IsSecondFaulty = row.HasSecond && Names(blocking, second, authorFile: false);
-        row.HasProblem = row.MoveBefore is not null || blocking.Count > 0;
+        row.HasProblem = blocking.Count > 0;
         row.Edited = Edit;
     }
 
@@ -204,31 +204,6 @@ public sealed partial class ReviewViewModel
     private static bool Names(List<PlanFinding> findings, string field, bool authorFile) =>
         findings.Any(finding => (finding.Kind == FindingKind.AuthorFileMissing) == authorFile
             && PackagePath.Comparer.Equals(finding.Path, field.Trim()));
-
-    // A rename of a game file that an earlier step copied over takes the author's file instead of the game's original,
-    // which the author most likely meant to set aside first. Only the first step at that path finds the original there,
-    // and a file new to the game has none. A patch needs the original in place, so patching and then renaming is no
-    // mistake: it gives what renaming and then patching the new name gives.
-    private static int? WriterBefore(PackagePlan plan, int index)
-    {
-        var operation = index < plan.Operations.Count ? plan.Operations[index] : null;
-        if (operation is not { Kind: OperationKind.Rename, From: { } from }
-            || operation.Original is not { } original || !PathComparison.IsWithin(plan.AuthorDirectory, original.FullPath))
-        {
-            return null;
-        }
-
-        for (var i = 0; i < index; i++)
-        {
-            var earlier = plan.Operations[i];
-            if (PackagePath.Comparer.Equals(earlier.Path, from) || PackagePath.Comparer.Equals(earlier.From, from))
-            {
-                return earlier.Replaces is not null ? i : null;
-            }
-        }
-
-        return null;
-    }
 
     private void Edit(StepRow row)
     {

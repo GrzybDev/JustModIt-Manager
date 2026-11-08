@@ -347,32 +347,6 @@ public sealed class CreatorReviewTests : IDisposable
         session.Part.Steps[1].Only.Should().Equal(CreatorWorkspace.Lantern);
     }
 
-    [AvaloniaTheory]
-    [InlineData(OperationKind.Copy, "data/pl/fonts.dat", "data/pl/fonts_pl.dat")]
-    [InlineData(OperationKind.Patch, "data/strings.bin", "data/strings_pl.bin")]
-    public async Task A_rename_of_a_new_file_or_of_a_patched_game_file_is_in_order(OperationKind writer, string from, string to)
-    {
-        using var ui = await OpenAsync();
-        var review = await ReviewAsync(ui);
-        ui.Click(Button(ui, Strings.Creator_ToAdvancedButton));
-        await Answer(ui, Strings.Creator_ToAdvancedConfirm);
-        await UiHarness.WaitUntilAsync(() => review.IsAdvanced && review.CanConfirm);
-        Page(ui).Session!.Review!.Plan.Operations.Should().ContainSingle(operation => operation.Path == from)
-            .Which.Kind.Should().Be(writer);
-
-        ui.Click(Button(ui, Strings.Creator_AddRenameStep));
-        await UiHarness.WaitUntilAsync(() => review.Steps.Count == 9);
-        var rename = review.Steps[^1];
-        rename.First = from;
-        rename.Second = to;
-
-        await UiHarness.WaitUntilAsync(() => Page(ui).Session!.Review!.Plan.Operations is { Count: 9 } operations
-            && operations[^1].Path == to && review.CanConfirm);
-        rename.Should().Match<StepRow>(row => row.MoveBefore == null && !row.HasProblem);
-        review.StepsInOrder.Should().BeTrue();
-        await RenderAsync(ui, "creator-advanced-rename-" + Path.GetFileNameWithoutExtension(from), 2150);
-    }
-
     [AvaloniaFact]
     public async Task A_package_with_a_program_asks_which_files_it_writes_while_the_game_runs_without_holding_the_check_up()
     {

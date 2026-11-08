@@ -158,9 +158,7 @@ public sealed partial class ReviewViewModel : ObservableObject, ICreatorStepView
         var runtime = plan.Findings.Count(finding => finding.BlocksBuild && finding.RuntimeIndex is not null && !IsHosting(finding.Kind));
         var found = plan.Findings.Where(finding => finding.BlocksBuild && finding.RuntimeIndex is null && !IsHosting(finding.Kind)
             && !IsMetadata(finding.Kind)).ToList();
-        // The planner takes such a rename, but it would set the author's file aside instead of the game's original.
-        var atPlaces = found.Select(finding => IsAdvanced ? finding.StepIndex : finding.OperationIndex).OfType<int>()
-            .Concat(Steps.Where(row => row.MoveBefore is not null).Select(row => row.Index)).ToList();
+        var atPlaces = found.Select(finding => IsAdvanced ? finding.StepIndex : finding.OperationIndex).OfType<int>().ToList();
         var marked = found.Count(finding => (IsAdvanced ? finding.StepIndex : finding.OperationIndex) is null);
         List<string> places = [.. atPlaces.Distinct().Order().Select(index => (index + 1).ToString(Text.Culture))];
         CanConfirm = errors + questions + atPlaces.Count + marked + runtime == 0 && plan.Operations.Count > 0;
