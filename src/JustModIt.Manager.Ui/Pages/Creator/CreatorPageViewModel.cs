@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
@@ -77,29 +78,25 @@ public sealed partial class StepItem(CreatorStep step, string title) : Observabl
 /// <param name="Text">What happens in it.</param>
 public sealed record HowItWorksStep(int Number, string Title, string Text);
 
-/// <summary>A project file opened or saved lately, with when it last changed, read off the UI thread.</summary>
-/// <param name="path">The project's file.</param>
-public sealed partial class RecentProject(string path) : ObservableObject
-{
-    public string Path { get; } = path;
-
-    public string Name { get; } = System.IO.Path.GetFileNameWithoutExtension(path);
-
-    [ObservableProperty]
-    public partial string Changed { get; set; } = "";
-}
+/// <summary>A project of the library as the start lists it.</summary>
+/// <param name="Id">The project's id.</param>
+/// <param name="Name">What it is called.</param>
+/// <param name="Folder">The author's folder; null while it has none.</param>
+/// <param name="Changed">When it last changed.</param>
+public sealed record RecentProject(Guid Id, string Name, string? Folder, string Changed);
 
 /// <summary>
-/// The package creator: a project the author opens or starts, taken through four steps (the game, the author's files,
-/// the check of the operations, the package), and saved to a project file. Comparing, planning and building run on the
-/// thread pool; the window may not close over unsaved work until the author saves or discards it.
+/// The package creator: a project the author opens or starts, taken through four steps (the game, the author's files, the
+/// check of the operations, the package), which saves itself. Comparing, planning and building run on the thread pool; the
+/// window may not close over a running build until the author stops it, or over changes that did not reach the disk until the
+/// author lets them go.
 /// </summary>
 public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
 {
-    private const string SaveChoice = "save";
-    private const string DiscardChoice = "discard";
-
+    private readonly ProjectLibrary _library;
+    private readonly LibraryAccess _access;
     private ICreatorStepView[] _steps = [];
+    private bool _recentImported;
 
     /// <summary>Creates the page, which starts without a project.</summary>
     /// <param name="services">The window's services.</param>
@@ -109,6 +106,8 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         Services = services;
         FileSystem = fileSystem;
         Log = services.Context.Loggers.CreateLogger<CreatorPageViewModel>();
+        _library = new ProjectLibrary(services.Context.CreatorDirectory, services.Clock);
+        _access = new LibraryAccess(services.Clock);
         Steps =
         [
             new(CreatorStep.Game, Strings.Creator_StepGame),
@@ -117,7 +116,6 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
             new(CreatorStep.Package, Strings.Creator_StepPackage),
         ];
         Services.Agent.PropertyChanged += OnAgentChanged;
-        ShowRecent();
     }
 
     public UiServices Services { get; }
@@ -174,17 +172,10 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     [ObservableProperty]
     public partial string ProjectName { get; private set; } = "";
 
-    /// <summary>Whether the project is saved, as the header says it.</summary>
-    [ObservableProperty]
-    public partial string SaveState { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial bool IsUnsaved { get; private set; }
-
     [ObservableProperty]
     public partial bool IsAdvanced { get; private set; }
 
-    /// <summary>Why opening or saving a project failed; empty while nothing did.</summary>
+    /// <summary>Why importing, exporting or opening a project failed; empty while nothing did.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasProblem))]
     public partial string ProblemTitle { get; private set; } = "";
@@ -209,7 +200,12 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
 
     public override void OnShown()
     {
-        ShowRecent();
+        _ = ImportRecentAsync();
+        if (Session is null)
+        {
+            _ = ShowProjectsAsync();
+        }
+
         Content?.OnShown();
     }
 
@@ -219,6 +215,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     {
         Services.Agent.PropertyChanged -= OnAgentChanged;
         Release();
+        _library.Dispose();
     }
 
     /// <summary>Shows a step, when it can be opened.</summary>
@@ -241,51 +238,12 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     [RelayCommand]
     internal void ClearProblem() => ProblemTitle = ProblemText = "";
 
-    /// <summary>Says why opening or saving a project failed.</summary>
+    /// <summary>Says why importing, exporting or opening a project failed.</summary>
     /// <param name="title">What failed.</param>
     /// <param name="text">Why, and what to do.</param>
     internal void ShowProblem(string title, string text) => (ProblemTitle, ProblemText) = (title, text);
 
-    /// <summary>Saves the project to its file, asking for one when it has none.</summary>
-    /// <param name="choose">Ask for a file even when the project has one.</param>
-    /// <returns>Whether the project was saved.</returns>
-    internal async Task<bool> SaveProjectAsync(bool choose)
-    {
-        if (Session is not { } session)
-        {
-            return false;
-        }
-
-        ClearProblem();
-        var path = session.Path;
-        if (choose || path is null)
-        {
-            path = await Services.Pickers.PickSaveFileAsync(Strings.Creator_SaveTitle,
-                FileNames.Suggest(session.Version?.Game.Name, Strings.Creator_ProjectFallbackName, Options.ProjectExtension), ProjectKind,
-                FolderOf(session)).ConfigureAwait(true);
-            if (path is null)
-            {
-                return false;
-            }
-        }
-
-        var project = session.Project;
-        try
-        {
-            await CreatorProjectStore.SaveAsync(project, path, CancellationToken.None).ConfigureAwait(true);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            ShowProblem(Strings.Creator_SaveFailedTitle, Strings.Creator_SaveFailed);
-            return false;
-        }
-
-        session.Saved(path, project);
-        Remember(path);
-        return true;
-    }
-
-    /// <summary>Closes the project, asking first about unsaved work, so the creator shows its start again.</summary>
+    /// <summary>Closes the project, once nothing keeps it open, so the creator shows its start again.</summary>
     internal async Task FinishAsync()
     {
         if (!await CanCloseProjectAsync().ConfigureAwait(true))
@@ -296,7 +254,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         Release();
         ClearProblem();
         (Session, Content, Game, Step) = (null, null, null, CreatorStep.Game);
-        ShowRecent();
+        await ShowProjectsAsync().ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -304,29 +262,82 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     {
         if (await CanCloseProjectAsync().ConfigureAwait(true))
         {
-            Start(new CreatorSession(Options, new CreatorProject(), null));
+            Start(new CreatorProject { Id = Guid.NewGuid(), CreatedAt = Services.Clock.GetUtcNow() });
         }
     }
 
     [RelayCommand]
-    private async Task OpenProjectAsync()
+    private async Task ImportProjectAsync()
     {
-        var path = await Services.Pickers.PickFileAsync(Strings.Creator_OpenTitle, ProjectKind,
-            Session is { } session ? FolderOf(session) : null).ConfigureAwait(true);
-        if (path is not null)
+        var path = await Services.Pickers.PickFileAsync(Strings.Creator_ImportTitle, ProjectKind, Session is { } session ? FolderOf(session) : null)
+            .ConfigureAwait(true);
+        if (path is null)
         {
-            await OpenAsync(path).ConfigureAwait(true);
+            return;
+        }
+
+        ClearProblem();
+        if (!await CanCloseProjectAsync().ConfigureAwait(true))
+        {
+            return;
+        }
+
+        try
+        {
+            Start(await _library.ImportAsync(path, _access, CancellationToken.None).ConfigureAwait(true));
+        }
+        catch (Exception exception) when (exception is ProjectLoadException or TimeoutException)
+        {
+            ShowOpenFailed(Strings.Creator_OpenFailedTitle, (exception as ProjectLoadException)?.Error ?? ProjectLoadError.Unreadable);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            ShowProblem(Strings.Creator_OpenFailedTitle, Strings.Creator_ExportFailed);
         }
     }
 
     [RelayCommand]
-    private Task OpenRecentAsync(RecentProject recent) => OpenAsync(recent.Path);
+    private async Task ExportProjectAsync()
+    {
+        var session = Session!;
+        ClearProblem();
+        var path = await Services.Pickers.PickSaveFileAsync(Strings.Creator_ExportTitle,
+            FileNames.Suggest(session.Version?.Game.Name, Strings.Creator_ProjectFallbackName, Options.ProjectExtension), ProjectKind,
+            FolderOf(session)).ConfigureAwait(true);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await ProjectLibrary.ExportAsync(session.Project, path, _access, CancellationToken.None)
+                .ConfigureAwait(true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or TimeoutException)
+        {
+            ShowProblem(Strings.Creator_SaveFailedTitle, Strings.Creator_ExportFailed);
+        }
+    }
 
     [RelayCommand]
-    private async Task SaveAsync() => await SaveProjectAsync(choose: false).ConfigureAwait(true);
+    private async Task OpenRecentAsync(RecentProject recent)
+    {
+        ClearProblem();
+        if (!await CanCloseProjectAsync().ConfigureAwait(true))
+        {
+            return;
+        }
 
-    [RelayCommand]
-    private async Task SaveAsAsync() => await SaveProjectAsync(choose: true).ConfigureAwait(true);
+        if (await _library.Store(recent.Id).LoadAsync(CancellationToken.None).ConfigureAwait(true) is { } project)
+        {
+            Start(project);
+        }
+        else
+        {
+            ShowOpenFailed(Strings.Creator_ProjectOpenFailedTitle, ProjectLoadError.Unreadable);
+        }
+    }
 
     [RelayCommand]
     private async Task OpenStepAsync(StepItem step)
@@ -339,35 +350,15 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         GoTo(step.Step);
     }
 
-    private async Task OpenAsync(string path)
-    {
-        ClearProblem();
-        if (!await CanCloseProjectAsync().ConfigureAwait(true))
-        {
-            return;
-        }
+    private void ShowOpenFailed(string title, ProjectLoadError error) => ShowProblem(title,
+        Text.Format(Strings.Creator_OpenFailed, ("reason", error.ToString()), ("product", Services.Context.ProductName)));
 
-        CreatorProject project;
-        try
-        {
-            project = await CreatorProjectStore.LoadAsync(path, CancellationToken.None).ConfigureAwait(true);
-        }
-        catch (ProjectLoadException exception)
-        {
-            ShowProblem(Strings.Creator_OpenFailedTitle, Text.Format(Strings.Creator_OpenFailed, ("reason", exception.Error.ToString()),
-                ("product", Services.Context.ProductName)));
-            return;
-        }
-
-        Remember(path);
-        Start(new CreatorSession(Options, project, path));
-    }
-
-    private void Start(CreatorSession session)
+    private void Start(CreatorProject project)
     {
         Release();
         ClearProblem();
         Game = null;
+        var session = new CreatorSession(Options, project, _library.Store(project.Id), Log);
         Session = session;
         session.PropertyChanged += OnSessionChanged;
         var game = new GameStepViewModel(this, session);
@@ -381,8 +372,8 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         _ = ResumeAsync(session, game);
     }
 
-    // A project file keeps only what a comparison cannot tell, so an opened project takes its game as the stores report
-    // it now, and its files step compares the folders again.
+    // A project keeps only what a comparison cannot tell, so an opened project takes its game as the stores report it now,
+    // and its files step compares the folders again.
     private async Task ResumeAsync(CreatorSession session, GameStepViewModel game)
     {
         await game.LoadAsync().ConfigureAwait(true);
@@ -411,24 +402,12 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
             }
         }
 
-        if (Session is not { IsDirty: true } session)
-        {
-            return true;
-        }
-
-        var answer = await Services.Dialogs.ShowAsync(new ChoiceDialogViewModel(Strings.Creator_UnsavedTitle,
-            session.Path is null ? Strings.Creator_UnsavedNew : Text.Format(Strings.Creator_UnsavedMessage, ("project", ProjectName)),
-        [
-            new DialogChoice(SaveChoice, Icons.Save, Strings.Creator_UnsavedSave, Strings.Creator_UnsavedSaveDescription),
-            new DialogChoice(DiscardChoice, Icons.Trash, Strings.Creator_UnsavedDiscard, Strings.Creator_UnsavedDiscardDescription,
-                IsDanger: true),
-        ])).ConfigureAwait(true);
-        return answer.Key switch
-        {
-            SaveChoice => await SaveProjectAsync(choose: false).ConfigureAwait(true),
-            DiscardChoice => true,
-            _ => false,
-        };
+        // Only a save that failed can lose anything now: a comparison writes nothing and starts over at the next open, and it is
+        // not stopped, since the close may still be refused after this.
+        return Session is not { } session || await session.FlushAsync().ConfigureAwait(true)
+            || await Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(Strings.Creator_SaveFailedTitle, Strings.Creator_CloseUnsaved,
+                Strings.Creator_CloseUnsavedConfirm, Icons.CircleX, DialogTone.Danger) { ConfirmIcon = Icons.CircleX })
+                    .ConfigureAwait(true);
     }
 
     private void Release()
@@ -436,6 +415,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         if (Session is { } session)
         {
             session.PropertyChanged -= OnSessionChanged;
+            _ = session.DisposeAsync().AsTask();
         }
 
         foreach (var step in _steps)
@@ -465,11 +445,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
             return;
         }
 
-        ProjectName = session.Path is { } path ? Path.GetFileNameWithoutExtension(path) : Strings.Creator_New;
-        IsUnsaved = session.Path is null || session.IsDirty;
-        SaveState = session.Path is null ? Strings.Creator_StateNew
-            : session.IsDirty ? Strings.Creator_StateChanged
-            : Strings.Creator_StateSaved;
+        ProjectName = NameOf(session.Project);
         IsAdvanced = session.Part.Mode == CreatorMode.Advanced;
         Steps[(int)CreatorStep.Review].Title = IsAdvanced ? Strings.Creator_StepSteps : Strings.Creator_StepReview;
     }
@@ -515,47 +491,68 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     {
         if (e.PropertyName == nameof(IAgent.State))
         {
-            ShowRecent();
+            _ = ImportRecentAsync();
         }
     }
 
-    private void ShowRecent()
+    // Once per window, so what could not come over yet is tried again at the next open.
+    private async Task ImportRecentAsync()
     {
         var paths = Agent.State.Settings.RecentCreatorProjects;
-        if (Recent.Select(recent => recent.Path).SequenceEqual(paths))
+        if (_recentImported || paths.Count == 0)
+        {
+            return;
+        }
+
+        _recentImported = true;
+        var import = await _library.ImportRecentAsync(paths, _access, CancellationToken.None).ConfigureAwait(true);
+        if (import.Leaving.Count > 0)
+        {
+            await AgentRequests.AskQuietlyAsync(Agent, new ForgetRecentCreatorProjects(import.Leaving))
+                .ConfigureAwait(true);
+        }
+
+        List<string> told = [];
+        if (import.Skipped.Count > 0)
+        {
+            told.Add(Text.Format(Strings.Creator_ImportSkipped, ("count", import.Skipped.Count),
+                ("files", string.Join(", ", import.Skipped.Select(Path.GetFileName)))));
+        }
+
+        if (import.Waiting.Count > 0)
+        {
+            told.Add(Text.Format(Strings.Creator_ImportWaiting, ("count", import.Waiting.Count)));
+        }
+
+        if (told.Count > 0)
+        {
+            ShowProblem(Strings.Creator_OpenFailedTitle, string.Join(' ', told));
+        }
+
+        await ShowProjectsAsync().ConfigureAwait(true);
+    }
+
+    private async Task ShowProjectsAsync()
+    {
+        ProjectListing listing;
+        try
+        {
+            listing = await _library.ListAsync(_access, CancellationToken.None).ConfigureAwait(true);
+        }
+        // What the list shows stays, and the next look at the page reads it again.
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or TimeoutException)
         {
             return;
         }
 
         Recent.Clear();
-        foreach (var path in paths)
+        foreach (var (project, changed) in listing.Projects)
         {
-            var recent = new RecentProject(path);
-            Recent.Add(recent);
-            _ = DateAsync(recent);
+            Recent.Add(new RecentProject(project.Id, NameOf(project), project.Parts[0].AuthorFolder is { Length: > 0 } folder ? folder : null,
+                Text.Format(Strings.Creator_RecentChanged, ("when", Formats.RelativeTime(changed, Services.Clock)))));
         }
 
         OnPropertyChanged(nameof(HasRecent));
-    }
-
-    private async Task DateAsync(RecentProject recent)
-    {
-        var changed = await Task.Run(() => LastWrite(recent.Path)).ConfigureAwait(true);
-        recent.Changed = changed is { } at
-            ? Text.Format(Strings.Creator_RecentChanged, ("when", Formats.RelativeTime(at, Services.Clock)))
-            : Strings.Creator_RecentMissing;
-    }
-
-    private DateTimeOffset? LastWrite(string path)
-    {
-        try
-        {
-            return (FileSystem ?? PhysicalFileSystem.Instance).GetEntry(path) is { IsDirectory: false } file ? file.LastWriteTimeUtc : null;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
     }
 
     /// <summary>
@@ -579,13 +576,13 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         }
     }
 
-    // The list lives in the settings, which the agent keeps; a list that could not be updated only misses this file.
-    private void Remember(string path) => _ = AgentRequests.AskQuietlyAsync(Agent, new RememberCreatorProject(path));
+    private static string NameOf(CreatorProject project) =>
+        project.Name.Length > 0 ? project.Name
+        : project.Versions.Count > 0 ? project.Versions[0].Game.Name
+        : Strings.Creator_New;
 
     private static string? FolderOf(CreatorSession session) =>
-        session.Path is { } path ? Path.GetDirectoryName(path)
-        : session.Part.AuthorFolder.Length > 0 ? Path.GetDirectoryName(session.Part.AuthorFolder)
-        : null;
+        session.Part.AuthorFolder.Length > 0 ? Path.GetDirectoryName(session.Part.AuthorFolder) : null;
 }
 
 /// <summary>A step of the creator as the page shows it.</summary>

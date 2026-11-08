@@ -174,22 +174,10 @@
                         IsVisible="{Binding Test.WasTested}" />
               </StackPanel>
             </Grid>
-            <StackPanel IsVisible="{Binding ShowsSaveHint}">
-              <Border Classes="divider" Opacity="0.6" />
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="20,18">
-                <Border Classes="number" VerticalAlignment="Top">
-                  <TextBlock Text="3" />
-                </Border>
-                <StackPanel Grid.Column="1" Spacing="4">
-                  <TextBlock Text="{x:Static loc:Strings.Creator_SaveProjectTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
-                  <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{x:Static loc:Strings.Creator_SaveProjectText}" />
-                </StackPanel>
-              </Grid>
-            </StackPanel>
             <Border Classes="divider" Opacity="0.6" />
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="20,18">
               <Border Classes="number" VerticalAlignment="Top">
-                <TextBlock Text="{Binding FinishNumber}" />
+                <TextBlock Text="3" />
               </Border>
               <StackPanel Grid.Column="1" Spacing="4">
                 <TextBlock Text="{x:Static loc:Strings.Creator_FinishTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />

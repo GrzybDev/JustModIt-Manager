@@ -27,6 +27,8 @@ namespace JustModIt.Manager.Ui.Tests.TestSupport;
 /// </summary>
 public sealed class UiHarness : IDisposable
 {
+    private readonly string _ownCreatorDirectory;
+
     public UiHarness(AppStateView? state = null, Action<UiComposition>? compose = null, double width = 1280, double height = 800,
         NavigationTarget? launch = null, Func<UiContext, UiContext>? context = null, Func<Message, Message?>? answer = null,
         bool errorReports = false)
@@ -43,8 +45,10 @@ public sealed class UiHarness : IDisposable
         }
 
         var built = Context(compose, launch);
-        Session = UiSession.Create(Application.Current!, context is null ? built : context(built), Agent, Images, Links, Clock, Pickers,
-            Reports);
+        _ownCreatorDirectory = built.CreatorDirectory;
+        var used = context is null ? built : context(built);
+        CreatorDirectory = used.CreatorDirectory;
+        Session = UiSession.Create(Application.Current!, used, Agent, Images, Links, Clock, Pickers, Reports);
         Window = Session.CreateWindow();
         // A click here moves, presses and releases, each after running the dispatcher and a frame; under load that takes
         // longer than a tooltip's delay, and the tooltip, which opens inside the window here, can slide over the pointer
@@ -76,6 +80,9 @@ public sealed class UiHarness : IDisposable
 
     public MainWindow Window { get; }
 
+    /// <summary>The package creator's projects: a temporary folder of this window's, unless the test gave one that outlives it.</summary>
+    public string CreatorDirectory { get; }
+
     public ShellViewModel Shell => Session.Shell;
 
     public static string RendersDirectory =>
@@ -102,6 +109,7 @@ public sealed class UiHarness : IDisposable
             Branding = new AppBranding(typeof(UiHarness).Assembly),
             Site = new CatalogueApiOptions(new Uri("https://api.example.com/"), new Uri("https://example.com/"), "ExampleApp", "0.1.0"),
             ImageCacheDirectory = Path.Combine(AppContext.BaseDirectory, "image-cache"),
+            CreatorDirectory = Path.Combine(Path.GetTempPath(), "ExampleApp.UiTests", Guid.NewGuid().ToString("N")),
             ImageHosts = ["images.example.com"],
             Compose = compose,
         };
@@ -243,9 +251,9 @@ public sealed class UiHarness : IDisposable
         Agent.Link = AgentLink.Connecting;
         Window.Close();
         Settle();
-        // A page keeping unsaved work asks first. Left open, the window goes on animating, and the headless session runs
-        // the frames left over while it sets the next test up, without the fonts; so the work is let go, and the question
-        // has left before the test ends.
+        // A page keeping work asks first. Left open, the window goes on animating, and the headless session runs the frames
+        // left over while it sets the next test up, without the fonts; so the work is let go, and the question has left before
+        // the test ends.
         var until = DateTime.UtcNow + TimeSpan.FromSeconds(5);
         while (Shell.Dialogs.Current is { } question && DateTime.UtcNow < until)
         {
@@ -256,6 +264,17 @@ public sealed class UiHarness : IDisposable
 
         Session.Dispose();
         Settle();
+        try
+        {
+            if (Directory.Exists(_ownCreatorDirectory))
+            {
+                Directory.Delete(_ownCreatorDirectory, recursive: true);
+            }
+        }
+        // A save may be ending, and a folder left behind in the temporary folder harms no test.
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+        }
     }
 
     private static void LetGo(DialogViewModel question)

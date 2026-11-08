@@ -34,12 +34,6 @@
   <Style Selector="Button.footerAction">
     <Setter Property="Height" Value="44" />
   </Style>
-  <Style Selector="Ellipse.unsaved">
-    <Setter Property="Width" Value="7" />
-    <Setter Property="Height" Value="7" />
-    <Setter Property="Fill" Value="{StaticResource WarningTextBrush}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
   <Style Selector="TextBlock.separator">
     <Setter Property="Text" Value="·" />
     <Setter Property="Margin" Value="2,0" />

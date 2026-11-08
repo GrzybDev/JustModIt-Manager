@@ -73,7 +73,9 @@ internal sealed record RuntimeFileDocument(string Path, string Kind);
     RespectRequiredConstructorParameters = true,
     AllowOutOfOrderMetadataProperties = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    UseStringEnumConverter = true,
     Converters = [typeof(GameKeyJsonConverter)])]
 [JsonSerializable(typeof(ProjectDocument))]
+[JsonSerializable(typeof(BuildRecord))]
 [JsonSerializable(typeof(GameKey))]
 internal sealed partial class ProjectJsonContext : JsonSerializerContext;

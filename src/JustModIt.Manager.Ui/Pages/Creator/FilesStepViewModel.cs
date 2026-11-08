@@ -38,7 +38,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     private (GameKey? Key, string? Folder)? _comparedWith;
     private bool _comparesOnShow;
 
-    /// <summary>Creates the step for a project, which compares the folder of a project opened from its file once shown.</summary>
+    /// <summary>Creates the step for a project, which compares the folder of a project opened again once shown.</summary>
     /// <param name="page">The creator.</param>
     /// <param name="session">The project.</param>
     public FilesStepViewModel(CreatorPageViewModel page, CreatorSession session)
@@ -220,8 +220,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         {
             Stop(comparing, Strings.Creator_CompareFailedTitle, Strings.Creator_CompareFailed);
         }
-        // Anything else ends the comparison like the failures above rather than the window, which would lose the author's
-        // unsaved work.
+        // Anything else ends the comparison like the failures above rather than the window.
         catch (Exception exception)
         {
             LogComparisonFailed(_page.Log, exception);

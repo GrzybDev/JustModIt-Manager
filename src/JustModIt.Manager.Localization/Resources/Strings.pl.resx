@@ -2634,32 +2634,11 @@
   <data name="Creator_RecentChanged" xml:space="preserve">
     <value>Zmieniony {when}</value>
   </data>
-  <data name="Creator_RecentMissing" xml:space="preserve">
-    <value>Nie ma już tego pliku</value>
-  </data>
   <data name="Creator_New" xml:space="preserve">
     <value>Nowy projekt</value>
   </data>
-  <data name="Creator_Open" xml:space="preserve">
-    <value>Otwórz projekt…</value>
-  </data>
-  <data name="Creator_OpenShort" xml:space="preserve">
-    <value>Otwórz…</value>
-  </data>
-  <data name="Creator_Save" xml:space="preserve">
-    <value>Zapisz</value>
-  </data>
-  <data name="Creator_SaveAs" xml:space="preserve">
-    <value>Zapisz jako…</value>
-  </data>
-  <data name="Creator_StateNew" xml:space="preserve">
-    <value>niezapisany</value>
-  </data>
-  <data name="Creator_StateChanged" xml:space="preserve">
-    <value>niezapisane zmiany</value>
-  </data>
-  <data name="Creator_StateSaved" xml:space="preserve">
-    <value>zapisany</value>
+  <data name="Creator_Import" xml:space="preserve">
+    <value>Importuj plik projektu…</value>
   </data>
   <data name="Creator_AdvancedMode" xml:space="preserve">
     <value>Tryb zaawansowany</value>
@@ -2673,13 +2652,34 @@
   <data name="Creator_ProjectFallbackName" xml:space="preserve">
     <value>Projekt</value>
   </data>
-  <data name="Creator_OpenTitle" xml:space="preserve">
-    <value>Otwórz projekt</value>
+  <data name="Creator_ImportTitle" xml:space="preserve">
+    <value>Importuj projekt</value>
   </data>
-  <data name="Creator_SaveTitle" xml:space="preserve">
-    <value>Zapisz projekt</value>
+  <data name="Creator_ExportTitle" xml:space="preserve">
+    <value>Eksportuj projekt</value>
+  </data>
+  <data name="Creator_Export" xml:space="preserve">
+    <value>Eksportuj plik projektu…</value>
+  </data>
+  <data name="Creator_ExportFailed" xml:space="preserve">
+    <value>Nie udało się zapisać pliku, np. folder jest tylko do odczytu albo dysk jest pełny.</value>
+  </data>
+  <data name="Creator_ImportSkipped" xml:space="preserve">
+    <value>Nie udało się przenieść {count, plural, one {# projektu} few {# projektów} many {# projektów} other {# projektu}} z listy ostatnich, bo plik zniknął albo jest uszkodzony: {files}.</value>
+  </data>
+  <data name="Creator_ImportWaiting" xml:space="preserve">
+    <value>{count, plural, one {# projekt z listy ostatnich czeka} few {# projekty z listy ostatnich czekają} many {# projektów z listy ostatnich czeka} other {# projektu z listy ostatnich czeka}} na kolejną próbę przy następnym otwarciu.</value>
+  </data>
+  <data name="Creator_CloseUnsaved" xml:space="preserve">
+    <value>Ostatnie zmiany nie trafiły na dysk i po zamknięciu przepadną.</value>
+  </data>
+  <data name="Creator_CloseUnsavedConfirm" xml:space="preserve">
+    <value>Zamknij bez zapisu</value>
   </data>
   <data name="Creator_OpenFailedTitle" xml:space="preserve">
+    <value>Nie udało się zaimportować projektu</value>
+  </data>
+  <data name="Creator_ProjectOpenFailedTitle" xml:space="preserve">
     <value>Nie udało się otworzyć projektu</value>
   </data>
   <data name="Creator_OpenFailed" xml:space="preserve">
@@ -2689,34 +2689,13 @@
     <value>Nie udało się zapisać projektu</value>
   </data>
   <data name="Creator_SaveFailed" xml:space="preserve">
-    <value>Nie udało się zapisać pliku, np. folder jest tylko do odczytu albo dysk jest pełny. Pomóc może zapisanie projektu w innym miejscu.</value>
+    <value>Nie udało się zapisać projektu, np. dysk jest pełny. Kreator spróbuje ponownie przy następnej zmianie.</value>
   </data>
   <data name="Creator_GameGoneTitle" xml:space="preserve">
     <value>Nie wykryto gry z projektu</value>
   </data>
   <data name="Creator_GameGone" xml:space="preserve">
     <value>Gry {game} nie ma wśród wykrytych gier. Można ją wybrać ponownie, gdy sklep ją zgłosi.</value>
-  </data>
-  <data name="Creator_UnsavedTitle" xml:space="preserve">
-    <value>Zapisać projekt?</value>
-  </data>
-  <data name="Creator_UnsavedMessage" xml:space="preserve">
-    <value>Projekt „{project}” ma niezapisane zmiany.</value>
-  </data>
-  <data name="Creator_UnsavedNew" xml:space="preserve">
-    <value>Nowy projekt nie został jeszcze zapisany.</value>
-  </data>
-  <data name="Creator_UnsavedSave" xml:space="preserve">
-    <value>Zapisz</value>
-  </data>
-  <data name="Creator_UnsavedSaveDescription" xml:space="preserve">
-    <value>Zmiany trafią do pliku projektu.</value>
-  </data>
-  <data name="Creator_UnsavedDiscard" xml:space="preserve">
-    <value>Odrzuć zmiany</value>
-  </data>
-  <data name="Creator_UnsavedDiscardDescription" xml:space="preserve">
-    <value>Zmiany od ostatniego zapisu przepadną.</value>
   </data>
   <data name="Creator_Steps" xml:space="preserve">
     <value>Kroki kreatora</value>
@@ -3569,12 +3548,6 @@
   </data>
   <data name="Creator_OpenDashboard" xml:space="preserve">
     <value>Otwórz panel na stronie</value>
-  </data>
-  <data name="Creator_SaveProjectTitle" xml:space="preserve">
-    <value>Zapisz projekt</value>
-  </data>
-  <data name="Creator_SaveProjectText" xml:space="preserve">
-    <value>Przy następnej wersji praca zacznie się od tego miejsca, a nie od zera. Wystarczy „Zapisz” u góry strony.</value>
   </data>
   <data name="Creator_FinishTitle" xml:space="preserve">
     <value>Zakończ projekt</value>

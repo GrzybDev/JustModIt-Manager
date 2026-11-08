@@ -60,6 +60,9 @@ public sealed record UiContext
     /// <summary>Where the window keeps the images it downloaded, so they show again without the network.</summary>
     public required string ImageCacheDirectory { get; init; }
 
+    /// <summary>Where the package creator keeps its projects, which only this process reads and writes.</summary>
+    public required string CreatorDirectory { get; init; }
+
     /// <summary>
     /// The only hosts the window loads images from, the ones the site loads them from: each alone or with the path its
     /// images are under, e.g. <c>images.example.com/vi/</c>.

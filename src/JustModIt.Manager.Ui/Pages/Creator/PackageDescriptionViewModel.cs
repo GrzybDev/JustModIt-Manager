@@ -182,7 +182,8 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
         var answer = await AgentRequests.AskQuietlyAsync(_page.Agent, new GetProjectPage(project.GameSlug, project.TeamSlug, project.ProjectId))
             .ConfigureAwait(true);
         var hints = answer is ProjectPageResult { Page: { } page } ? await Task.Run(() => ProjectHints.Read(page)).ConfigureAwait(true) : null;
-        if (_page.Game?.Key != game.Key)
+        // The site may take long enough for the project to be closed and opened again, as a session of its own.
+        if (_page.Session != _session || _page.Game?.Key != game.Key)
         {
             return;
         }

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Projects;
@@ -13,6 +14,7 @@ using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Creator;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Tests.TestSupport;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Ui.Tests;
 
@@ -24,7 +26,7 @@ public sealed class CreatorTests : IDisposable
     public async Task A_new_project_compares_the_chosen_game_with_the_author_s_folder_and_opens_the_check()
     {
         using var ui = await OpenAsync(Installed(TestStates.Idle(creatorMode: true)));
-        await RenderAsync(ui, "creator-start");
+        await RenderBothAsync(ui, "creator-start");
 
         ui.Click(Button(ui, Strings.Creator_New));
         var page = Page(ui);
@@ -170,80 +172,232 @@ public sealed class CreatorTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task A_project_from_a_newer_app_or_a_damaged_one_says_why_it_does_not_open()
+    public async Task An_import_failure_adds_nothing_to_the_library()
     {
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
         var page = Page(ui);
-        ui.Pickers.File = _work.Author("newer.exampleproj", """{ "formatVersion": 99, "mode": "galaxy" }""");
+        ui.Pickers.File = Path.Combine(_work.Root, "newer.exampleproj");
+        File.WriteAllText(ui.Pickers.File, """{ "formatVersion": 99, "mode": "galaxy" }""");
 
-        ui.Click(Button(ui, Strings.Creator_Open));
+        ui.Click(Button(ui, Strings.Creator_Import));
         await UiHarness.WaitUntilAsync(() => page.HasProblem);
+        page.ProblemTitle.Should().Be(Strings.Creator_OpenFailedTitle);
         page.ProblemText.Should().Be(Text.Format(Strings.Creator_OpenFailed, ("reason", nameof(ProjectLoadError.NewerVersion)),
             ("product", "Example App")));
-        await RenderAsync(ui, "creator-open-newer");
+        await RenderAsync(ui, "creator-import-newer");
 
-        ui.Pickers.File = _work.Author("damaged.exampleproj", "{ not a project");
-        ui.Click(Button(ui, Strings.Creator_Open));
+        ui.Pickers.File = Path.Combine(_work.Root, "damaged.exampleproj");
+        File.WriteAllText(ui.Pickers.File, "{ not a project");
+        ui.Click(Button(ui, Strings.Creator_Import));
         await UiHarness.WaitUntilAsync(() => page.ProblemText.Contains(Text.Format(Strings.Creator_OpenFailed,
             ("reason", nameof(ProjectLoadError.Damaged)), ("product", "Example App")), StringComparison.Ordinal));
         page.HasProject.Should().BeFalse();
+        Directory.Exists(ui.CreatorDirectory).Should().BeFalse();
+    }
+
+    [AvaloniaTheory]
+    [InlineData("""{ "formatVersion": 2, "targets": [ { "store": "steam", "id": "5100" } ], "gameName": "Lantern Isle", "modFolder": "AUTHOR" }""")]
+    [InlineData("""{ "formatVersion": 3, "game": { "store": "steam", "id": "5100", "name": "Lantern Isle" }, "authorFolder": "AUTHOR" }""")]
+    [InlineData("""{ "formatVersion": 4, "game": { "store": "steam", "id": "5100", "name": "Lantern Isle" }, "authorFolder": "AUTHOR" }""")]
+    public async Task A_project_file_of_an_earlier_format_goes_in_through_import_and_compares_at_once(string content)
+    {
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        ui.Pickers.File = Path.Combine(_work.Root, "earlier.exampleproj");
+        File.WriteAllText(ui.Pickers.File, content.Replace("AUTHOR", _work.AuthorFolder.Replace(@"\", @"\\", StringComparison.Ordinal), StringComparison.Ordinal));
+
+        ui.Click(Button(ui, Strings.Creator_Import));
+
+        await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review);
+        Page(ui).Session!.Comparison!.GameDirectory.Should().Be(_work.GameFolder);
+        Page(ui).Session!.Part.AuthorFolder.Should().Be(_work.AuthorFolder);
+        Page(ui).ProjectName.Should().Be("earlier");
     }
 
     [AvaloniaFact]
-    public async Task A_saved_project_reopens_from_the_recent_ones_where_it_was_left()
+    public async Task A_project_of_the_list_that_fails_to_open_is_not_told_as_a_failed_import()
     {
-        var path = Path.Combine(_work.Root, "Lantern Isle.exampleproj");
-        using (var ui = await OpenAsync(TestStates.Idle(creatorMode: true)))
+        var library = Path.Combine(_work.Root, "Library");
+        var id = Guid.NewGuid();
+        using (var projects = new ProjectLibrary(library, TimeProvider.System))
+        {
+            await projects.Store(id).SaveAsync(new CreatorProject { Id = id, Name = "Lantern Isle" }, CancellationToken.None);
+        }
+
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library);
+        await UiHarness.WaitUntilAsync(() => Page(ui).HasRecent);
+        File.Delete(Path.Combine(library, id.ToString(), "project.json"));
+
+        ui.Click(Button(ui, "Lantern Isle"));
+
+        await UiHarness.WaitUntilAsync(() => Page(ui).HasProblem);
+        Page(ui).ProblemTitle.Should().Be(Strings.Creator_ProjectOpenFailedTitle);
+    }
+
+    [AvaloniaFact]
+    public async Task A_project_saves_by_itself_and_reopens_as_it_was()
+    {
+        var library = Path.Combine(_work.Root, "Library");
+        CreatorProject saved;
+        using (var ui = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library))
         {
             var step = await FilesStepAsync(ui);
             step.UseFolder(_work.AuthorFolder);
             await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review);
-            ui.Pickers.SaveFile = path;
-
-            ui.Click(Button(ui, Strings.Creator_Save));
-            await UiHarness.WaitUntilAsync(() => File.Exists(path) && !Page(ui).IsUnsaved);
-            ui.Pickers.Suggested.Should().Equal("Lantern Isle.exampleproj");
-            ui.Agent.Requests.OfType<RememberCreatorProject>().Should().Equal(new RememberCreatorProject(path));
+            Page(ui).Session!.Describe(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
+            saved = Page(ui).Session!.Project;
+            await UiHarness.WaitUntilAsync(() => Stored(library, saved.Id) == saved);
+            await RenderBothAsync(ui, "creator-header");
         }
 
-        File.SetLastWriteTimeUtc(path, TestStates.Now.AddDays(-1).UtcDateTime);
-        using var reopened = await OpenAsync(TestStates.Idle(creatorMode: true) with
-        {
-            Settings = TestStates.Idle(creatorMode: true).Settings with { RecentCreatorProjects = [path] },
-        });
+        File.SetLastWriteTimeUtc(Path.Combine(library, saved.Id.ToString(), "project.json"), TestStates.Now.AddDays(-1).UtcDateTime);
+        using var reopened = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library);
+        await UiHarness.WaitUntilAsync(() => Page(reopened).HasRecent);
         var recent = Page(reopened).Recent.Should().ContainSingle().Subject;
-        recent.Name.Should().Be("Lantern Isle");
-        await UiHarness.WaitUntilAsync(() => recent.Changed.Length > 0);
+        (recent.Name, recent.Folder).Should().Be(("Lantern Isle", _work.AuthorFolder));
         recent.Changed.Should().Be(Text.Format(Strings.Creator_RecentChanged,
             ("when", Formats.RelativeTime(TestStates.Now.AddDays(-1), reopened.Clock))));
-        await RenderAsync(reopened, "creator-recent");
+        await RenderBothAsync(reopened, "creator-start-projects");
+
         reopened.Click(Button(reopened, "Lantern Isle"));
+
         await UiHarness.WaitUntilAsync(() => Page(reopened).Step == CreatorStep.Review);
-        Page(reopened).Session!.Path.Should().Be(path);
-        Page(reopened).IsUnsaved.Should().BeFalse();
+        Page(reopened).Session!.Project.Should().Be(saved);
     }
 
     [AvaloniaFact]
-    public async Task Unsaved_work_keeps_the_window_open_until_the_author_saves_or_discards_it()
+    public async Task A_change_made_just_before_closing_is_on_the_disk()
     {
-        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        var library = Path.Combine(_work.Root, "Library");
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library);
         await FilesStepAsync(ui);
-        Page(ui).IsUnsaved.Should().BeTrue();
+        var session = Page(ui).Session!;
+        session.Describe(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
 
-        var closing = ui.Agent.ShutdownHandler!(ShutdownReason.Update);
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel);
-        await RenderAsync(ui, "creator-unsaved");
+        (await ui.Agent.ShutdownHandler!(ShutdownReason.Exit)).Should().BeTrue();
+
+        Stored(library, session.Project.Id).Should().Be(session.Project);
+    }
+
+    [AvaloniaFact]
+    public async Task A_change_after_a_refused_close_is_saved_too()
+    {
+        var library = Path.Combine(_work.Root, "Library");
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library);
+        await FilesStepAsync(ui);
+        var session = Page(ui).Session!;
+        var closing = ui.Shell.CloseFlow.DecideAsync();
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
+        Stored(library, session.Project.Id).Should().Be(session.Project, "the close flushed before it asked what closing means");
         ui.Shell.Dialogs.CancelCurrent();
-        (await closing).Should().BeFalse("dismissing the question keeps the work");
+        (await closing).Should().BeFalse();
 
-        ui.Pickers.SaveFile = null;
-        closing = ui.Agent.ShutdownHandler!(ShutdownReason.Exit);
-        await Answer(ui, Strings.Creator_UnsavedSave);
-        (await closing).Should().BeFalse("a save the author cancelled keeps the work");
+        session.Describe(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
 
-        closing = ui.Agent.ShutdownHandler!(ShutdownReason.Exit);
-        await Answer(ui, Strings.Creator_UnsavedDiscard);
-        (await closing).Should().BeTrue();
+        await UiHarness.WaitUntilAsync(() => Stored(library, session.Project.Id) == session.Project);
+    }
+
+    [AvaloniaFact]
+    public async Task A_change_made_during_the_flush_is_saved_too()
+    {
+        var store = new HeldStore();
+        await using var session = new CreatorSession(UiHarness.Context().Creator, new CreatorProject(), store, NullLogger.Instance);
+        session.Describe(project => project with { Name = "first" });
+
+        var flushing = session.FlushAsync();
+        await store.Saving.WaitAsync(UiHarness.TimeLimit);
+        session.Describe(project => project with { Name = "second" });
+        store.Release();
+
+        (await flushing).Should().BeTrue();
+        store.Saved.Select(project => project.Name).Should().Equal("first", "second");
+    }
+
+    [AvaloniaFact]
+    public async Task A_save_that_failed_is_told_and_the_next_change_saves_again()
+    {
+        var library = Path.Combine(_work.Root, "Library");
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library);
+        await FilesStepAsync(ui);
+        var session = Page(ui).Session!;
+        var file = Path.Combine(library, session.Project.Id.ToString(), "project.json");
+        await UiHarness.WaitUntilAsync(() => File.Exists(file));
+        var name = (string title) => session.Describe(project => project with { Metadata = project.Metadata with { Title = title } });
+
+        // A folder in the file's place refuses the save, as a disk that is full or read-only does.
+        File.Delete(file);
+        Directory.CreateDirectory(file);
+        name("refused");
+        await UiHarness.WaitUntilAsync(() => session.SaveFailed);
+        ui.Find<Grid>("SaveFailedLine").IsEffectivelyVisible.Should().BeTrue();
+        await RenderBothAsync(ui, "creator-save-failed");
+
+        Directory.Delete(file);
+        name("saved");
+        await UiHarness.WaitUntilAsync(() => !session.SaveFailed && Stored(library, session.Project.Id) == session.Project);
+        ui.Find<Grid>("SaveFailedLine").IsEffectivelyVisible.Should().BeFalse();
+
+        File.Delete(file);
+        Directory.CreateDirectory(file);
+        name("refused again");
+        var closing = ui.Agent.ShutdownHandler!(ShutdownReason.Exit);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
+        var question = (ConfirmDialogViewModel)ui.Shell.Dialogs.Current!;
+        (question.Title, question.Message).Should().Be((Strings.Creator_SaveFailedTitle, Strings.Creator_CloseUnsaved));
+        ui.Shell.Dialogs.CancelCurrent();
+        (await closing).Should().BeFalse("the changes would be lost");
+
+        Directory.Delete(file);
+        (await session.FlushAsync()).Should().BeTrue("a disk that recovered takes the project without another change");
+        session.SaveFailed.Should().BeFalse();
+        Stored(library, session.Project.Id).Should().Be(session.Project);
+    }
+
+    [AvaloniaFact]
+    public async Task A_running_comparison_does_not_hold_the_close_and_goes_on_when_the_close_is_refused()
+    {
+        // A file of the game's size is hashed, which the held file system keeps from finishing.
+        _work.Author("data/strings.bin", "strings of the changed  game");
+        var files = new HeldFileSystem(_work.Root);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
+        var step = await FilesStepAsync(ui);
+        step.UseFolder(_work.AuthorFolder);
+        await UiHarness.WaitUntilAsync(() => step.FileLine.Length > 0);
+
+        var closing = ui.Shell.CloseFlow.DecideAsync();
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
+        ((ChoiceDialogViewModel)ui.Shell.Dialogs.Current!).Title.Should().Be(Strings.Shell_CloseTitle, "only what closing means is asked");
+        ui.Shell.Dialogs.CancelCurrent();
+        (await closing).Should().BeFalse();
+        step.IsComparing.Should().BeTrue();
+
+        files.Reads.Set();
+        await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review);
+    }
+
+    [AvaloniaFact]
+    public async Task The_recent_list_is_brought_over_once_and_a_damaged_file_is_named()
+    {
+        var good = Path.Combine(_work.Root, "Good.exampleproj");
+        File.WriteAllText(good, """{ "formatVersion": 4, "game": { "store": "steam", "id": "5100", "name": "Lantern Isle" } }""");
+        var damaged = Path.Combine(_work.Root, "Damaged.exampleproj");
+        File.WriteAllText(damaged, "{ not a project");
+        var newer = Path.Combine(_work.Root, "Newer.exampleproj");
+        File.WriteAllText(newer, """{ "formatVersion": 99 }""");
+        var state = TestStates.Idle(creatorMode: true);
+        state = state with { Settings = state.Settings with { RecentCreatorProjects = [good, damaged, newer] } };
+
+        using var ui = await OpenAsync(state);
+
+        await UiHarness.WaitUntilAsync(() => Page(ui).HasRecent);
+        Page(ui).Recent.Should().ContainSingle().Which.Name.Should().Be("Good");
+        ui.Agent.Requests.OfType<ForgetRecentCreatorProjects>().Should().ContainSingle().Which.Paths.Should().Equal(good, damaged);
+        Page(ui).ProblemText.Should().Contain("Damaged.exampleproj").And.Contain(Text.Format(Strings.Creator_ImportWaiting, ("count", 1)));
+        File.ReadAllText(damaged).Should().Be("{ not a project");
+        await RenderBothAsync(ui, "creator-start-imported");
+
+        ui.Push(state with { Version = state.Version + 1 });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(100));
+        ui.Agent.Requests.OfType<ForgetRecentCreatorProjects>().Should().ContainSingle("the next open tries what waits");
     }
 
     [AvaloniaFact]
@@ -262,9 +416,10 @@ public sealed class CreatorTests : IDisposable
     public void Dispose() => _work.Dispose();
 
     private async Task<UiHarness> OpenAsync(AppStateView state, Core.Platform.IFileSystem? fileSystem = null, double width = 1280,
-        double height = 800)
+        double height = 800, string? creatorDirectory = null)
     {
-        var ui = new UiHarness(state, CreatorWorkspace.Compose(fileSystem), width, height);
+        var ui = new UiHarness(state, CreatorWorkspace.Compose(fileSystem), width, height,
+            context: creatorDirectory is null ? null : context => context with { CreatorDirectory = creatorDirectory });
         ui.Agent.Answer = _work.Answer;
         ui.Shell.Navigator.Navigate(new CreatorRoute());
         await UiHarness.WaitUntilAsync(() => ui.Find<CreatorPage>().Any(page => page.IsEffectivelyVisible));
@@ -299,6 +454,23 @@ public sealed class CreatorTests : IDisposable
         ui.Render(name);
     }
 
+    private static async Task RenderBothAsync(UiHarness ui, string name)
+    {
+        await RenderAsync(ui, name);
+        var (width, height) = (ui.Window.Width, ui.Window.Height);
+        (ui.Window.Width, ui.Window.Height) = (960, 600);
+        await RenderAsync(ui, name + "-960");
+        (ui.Window.Width, ui.Window.Height) = (width, height);
+        UiHarness.Settle();
+    }
+
+    // The project as a window opening it now would read it; null while its file is not there.
+    private static CreatorProject? Stored(string library, Guid id)
+    {
+        using var projects = new ProjectLibrary(library, TimeProvider.System);
+        return projects.Store(id).LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
+    }
+
     private static CreatorPageViewModel Page(UiHarness ui) => (CreatorPageViewModel)ui.Shell.Navigator.Current!;
 
     private static Button Button(UiHarness ui, string name) =>
@@ -309,18 +481,32 @@ public sealed class CreatorTests : IDisposable
         ui.Find<RadioButton>().First(choice => choice.IsEffectivelyVisible
             && Avalonia.Automation.AutomationProperties.GetName(choice) == name);
 
-    private static async Task Answer(UiHarness ui, string choice)
-    {
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
-        ui.Click(Button(ui, choice));
-    }
-
     private static bool Visible(UiHarness ui, Control control)
     {
         var scroller = control.FindAncestorOfType<ScrollViewer>()!;
         var top = control.TranslatePoint(new Point(0, 0), scroller)!.Value.Y;
         return top >= 0 && top + control.Bounds.Height <= scroller.Bounds.Height && ui.Window.Bounds.Contains(
             control.TranslatePoint(new Point(0, 0), ui.Window)!.Value);
+    }
+
+    /// <summary>Keeps a save waiting until the test lets it end, so the test can act during a flush.</summary>
+    private sealed class HeldStore : IDocumentStore<CreatorProject>
+    {
+        private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public SemaphoreSlim Saving { get; } = new(0);
+
+        public List<CreatorProject> Saved { get; } = [];
+
+        public void Release() => _released.TrySetResult();
+
+        public Task<CreatorProject?> LoadAsync(CancellationToken cancellationToken) => Task.FromResult<CreatorProject?>(null);
+
+        public async Task SaveAsync(CreatorProject document, CancellationToken cancellationToken)
+        {
+            Saving.Release();
+            await _released.Task;
+            Saved.Add(document);
+        }
     }
 }

@@ -156,15 +156,47 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
         ui.Click(Button(ui, Strings.Creator_StopBuildConfirm));
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
-        (ui.Shell.Dialogs.Current is ChoiceDialogViewModel).Should().BeFalse("closing goes on once the stopped build removed its package");
-        closing.IsCompleted.Should().BeFalse();
+        closing.IsCompleted.Should().BeFalse("closing goes on once the stopped build removed its package");
         files.Reads.Set();
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
-        Directory.EnumerateFiles(Output("")).Should().BeEmpty();
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
-        ui.Click(Button(ui, Strings.Creator_UnsavedDiscard));
 
         (await closing).Should().BeTrue();
+        Directory.EnumerateFiles(Output("")).Should().BeEmpty();
+    }
+
+    [AvaloniaFact]
+    public async Task A_running_build_keeps_the_window_open_until_it_is_stopped()
+    {
+        _work.Author("data/pl/fonts.dat", "fonts of the translation");
+        var files = new HeldFileSystem(Path.Combine(_work.AuthorFolder, "data", "pl", "fonts.dat"));
+        files.Reads.Set();
+        using var ui = await OpenAsync(files);
+        var package = await PackageAsync(ui);
+        package.Description.Version = "0.9";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
+        ui.Pickers.SaveFile = Output("Lantern Isle v0.9.examplemod");
+        files.Reads.Reset();
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.Build.FileLine.Length > 0);
+
+        foreach (var closing in new Func<Task<bool>>[] { () => ui.Agent.ShutdownHandler!(ShutdownReason.Update), ui.Shell.CloseFlow.DecideAsync })
+        {
+            var answer = closing();
+            await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
+            ((ConfirmDialogViewModel)ui.Shell.Dialogs.Current!).Title.Should().Be(Strings.Creator_StopBuildTitle);
+            ui.Shell.Dialogs.CancelCurrent();
+            (await answer).Should().BeFalse();
+            await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null);
+            package.Build.IsBuilding.Should().BeTrue();
+        }
+
+        var stopping = ui.Agent.ShutdownHandler!(ShutdownReason.Update);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+        ui.Click(Button(ui, Strings.Creator_StopBuildConfirm));
+        files.Reads.Set();
+
+        (await stopping).Should().BeTrue();
+        package.Build.IsBuilding.Should().BeFalse();
     }
 
     [AvaloniaFact]
@@ -187,6 +219,34 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Click(Button(ui, Text.Format(Strings.Creator_RemoveAuthor, ("name", "Olek Tide"))));
         await UiHarness.WaitUntilAsync(() => package.Description.Authors.Count == 1);
         package.Description.AuthorsNote.Should().Be(Strings.Creator_AuthorsHint, "the authors are no longer the project's");
+    }
+
+    [AvaloniaFact]
+    public async Task A_late_answer_of_the_site_leaves_a_project_closed_and_opened_again_as_it_is()
+    {
+        var project = TestGames.Offer("Lantern Isle", version: 1);
+        _work.LanternProjects = [new SiteProjectView(project.ProjectId, project.GameSlug, project.Team.Slug)];
+        var site = new TaskCompletionSource();
+        using var ui = await OpenAsync();
+        ui.Agent.Answer = request => request is GetProjectPage ? TestPages.Page(project) : _work.Answer(request);
+        ui.Agent.Held = request => request is GetProjectPage ? site.Task : Task.CompletedTask;
+        await PackageAsync(ui);
+        var page = Page(ui);
+        var closed = page.Session!;
+        await page.FinishAsync();
+        await UiHarness.WaitUntilAsync(() => page.HasRecent);
+        page.OpenRecentCommand.Execute(page.Recent[0]);
+        await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review && page.Session!.Review is not null);
+        var reopened = page.Session!;
+        reopened.Describe(current => current with { Name = "Edited in the reopened session" });
+        (await reopened.FlushAsync()).Should().BeTrue();
+
+        site.SetResult();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
+
+        closed.Project.Metadata.Version.Should().BeEmpty();
+        using var library = new Creator.Projects.ProjectLibrary(ui.CreatorDirectory, TimeProvider.System);
+        (await library.Store(reopened.Project.Id).LoadAsync(CancellationToken.None)).Should().Be(reopened.Project);
     }
 
     [AvaloniaFact]
@@ -648,7 +708,7 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task Finishing_the_project_asks_about_unsaved_work_and_brings_the_creator_back_to_its_start()
+    public async Task Finishing_the_project_lists_it_and_brings_the_creator_back_to_its_start()
     {
         _work.Author("data/strings.bin", "strings of the original game");
         using var ui = await OpenAsync();
@@ -660,15 +720,10 @@ public sealed class CreatorPackageTests : IDisposable
         await RenderAsync(ui, "creator-built-finish", 1700);
 
         ui.Click(Button(ui, Strings.Creator_Finish));
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
-        ui.Shell.Dialogs.CancelCurrent();
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null);
-        page.HasProject.Should().BeTrue("dismissing the question keeps the work");
-        ui.Click(Button(ui, Strings.Creator_Finish));
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
-        ui.Click(Button(ui, Strings.Creator_UnsavedDiscard));
         await UiHarness.WaitUntilAsync(() => !page.HasProject);
+        ui.Shell.Dialogs.Current.Should().BeNull("the project saved itself");
+        await UiHarness.WaitUntilAsync(() => page.HasRecent);
+        page.Recent.Should().ContainSingle().Which.Name.Should().Be("Lantern Isle");
 
         ui.Shell.Navigator.Navigate(new LibraryRoute());
         ui.Shell.Navigator.Navigate(new CreatorRoute());

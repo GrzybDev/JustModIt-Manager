@@ -280,13 +280,13 @@ public sealed class SettingsFormatTests : IDisposable
     }
 
     [Fact]
-    public async Task Recent_projects_keep_the_newest_five_full_paths_each_once()
+    public async Task Recent_projects_keep_full_paths_each_once()
     {
         var paths = Enumerable.Range(1, 7).Select(number => Rooted($"Project {number}.exampleproj")).ToList();
         var json = string.Join(", ", paths.Prepend(paths[0]).Select(path => $"\"{path.Replace("\\", "\\\\", StringComparison.Ordinal)}\""));
         _directory.Write("settings.json", $$"""{ "recentCreatorProjects": [ "relative.exampleproj", 7, {{json}} ] }""");
 
-        (await LoadAsync())!.RecentCreatorProjects.Should().Equal(paths.Take(AppSettings.MaxRecentCreatorProjects));
+        (await LoadAsync())!.RecentCreatorProjects.Should().Equal(paths);
     }
 
     public void Dispose() => _directory.Dispose();

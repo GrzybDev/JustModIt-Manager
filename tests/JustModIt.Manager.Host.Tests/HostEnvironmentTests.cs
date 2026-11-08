@@ -112,6 +112,7 @@ public sealed class HostEnvironmentTests
         context.SourceAddress.Should().Be(new Uri("https://code.example.com/example-app"));
         context.IssuesAddress.Should().BeNull("an app without a place for reports offers none");
         context.ImageCacheDirectory.Should().Be(Path.Combine(environment.Locations.CacheDirectory, "images"));
+        context.CreatorDirectory.Should().Be(environment.Locations.CreatorDirectory);
         context.Codecs.Should().Match(codecs => !OperatingSystem.IsWindows() || codecs is WindowsMediaCodecs, "the site's AVIF stills need them");
         context.SystemMotion.Should().Match(motion => !OperatingSystem.IsWindows() || motion is WindowsSystemMotion);
     }

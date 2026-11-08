@@ -65,6 +65,9 @@ public sealed class AppDataLocations
     /// <summary>Backups of original game files, one folder per game, when the player keeps them here.</summary>
     public string BackupsDirectory => Path.Combine(DataDirectory, "backups");
 
+    /// <summary>The package creator's projects, one folder each, which only the window's process reads and writes.</summary>
+    public string CreatorDirectory => Path.Combine(DataDirectory, "creator");
+
     /// <summary>The app's folders, named after its vendor and its instance name.</summary>
     /// <param name="identity">Gives the vendor id and the instance name.</param>
     /// <exception cref="AppDataUnavailableException">The system does not say where the user's data belongs.</exception>

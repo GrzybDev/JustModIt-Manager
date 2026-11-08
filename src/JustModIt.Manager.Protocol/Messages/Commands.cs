@@ -129,9 +129,9 @@ public sealed record ConfirmAdultContent : Message;
 /// <param name="Game">The game's uuid on the site.</param>
 public sealed record RevealAdultPictures(Guid Game) : Message;
 
-/// <summary>Puts a project file of the package creator first among the recent ones that the settings keep.</summary>
-/// <param name="Path">The project file, fully qualified.</param>
-public sealed record RememberCreatorProject(string Path) : Message;
+/// <summary>Takes project files of the package creator off the list an earlier version kept, once the window has dealt with them.</summary>
+/// <param name="Paths">The project files.</param>
+public sealed record ForgetRecentCreatorProjects(IReadOnlyList<string> Paths) : Message;
 
 /// <summary>
 /// Starts the game through its store, or opens its page in a store client that starts games only from there; refused as

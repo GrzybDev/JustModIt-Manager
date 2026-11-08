@@ -7,7 +7,7 @@ namespace JustModIt.Manager.Core.IO;
 /// Saves a document on a background writer, one save at a time and only the latest version, so its owner never waits
 /// for the disk and two saves never race each other; disposing it saves what is still queued at once.
 /// </summary>
-internal sealed partial class LatestDocumentWriter<T> : IAsyncDisposable
+public sealed partial class LatestDocumentWriter<T> : IAsyncDisposable
     where T : class
 {
     private readonly IDocumentStore<T> _store;
@@ -21,6 +21,7 @@ internal sealed partial class LatestDocumentWriter<T> : IAsyncDisposable
 
     private readonly TimeSpan _delay;
     private readonly TimeProvider _time;
+    private readonly Action<Exception?>? _saved;
     private readonly CancellationTokenSource _disposing = new();
     private readonly Task _writer;
 
@@ -30,14 +31,18 @@ internal sealed partial class LatestDocumentWriter<T> : IAsyncDisposable
     /// <param name="logger">Logs failed saves.</param>
     /// <param name="delay">How long a save waits for newer versions, merging a burst of changes into one write.</param>
     /// <param name="time">The clock for the delay; the system clock when null.</param>
+    /// <param name="saved">
+    /// Told on the writer's thread after each save what kept it from the disk, or null when it worked; null tells nobody.
+    /// </param>
     public LatestDocumentWriter(IDocumentStore<T> store, string name, ILogger logger, TimeSpan delay = default,
-        TimeProvider? time = null)
+        TimeProvider? time = null, Action<Exception?>? saved = null)
     {
         _store = store;
         _name = name;
         _logger = logger;
         _delay = delay;
         _time = time ?? TimeProvider.System;
+        _saved = saved;
         _writer = Task.Run(WriteAsync);
     }
 
@@ -76,11 +81,13 @@ internal sealed partial class LatestDocumentWriter<T> : IAsyncDisposable
             try
             {
                 await _store.SaveAsync(document, CancellationToken.None).ConfigureAwait(false);
+                _saved?.Invoke(null);
             }
             // The writer must outlive a full or read-only disk; the next change saves again.
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
                 LogSaveFailed(_name, exception);
+                _saved?.Invoke(exception);
             }
         }
     }

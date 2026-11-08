@@ -3,6 +3,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using Microsoft.Extensions.DependencyInjection;
@@ -82,22 +83,20 @@ public sealed class CreatorRequestsTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Remembered_projects_stay_newest_first_whatever_the_settings_page_sends_meanwhile()
+    public async Task A_project_taken_off_the_recent_list_stays_off_whatever_the_settings_page_sends_meanwhile()
     {
+        var first = Path.Combine(_agent.Directory, "First.exampleproj");
+        var second = Path.Combine(_agent.Directory, "Second.exampleproj");
+        await _agent.SaveSettingsAsync(AppSettings.Default with { RecentCreatorProjects = [first, second] });
         _agent.Start();
         var window = await _agent.ConnectWindowAsync();
         var shown = (await window.StateAsync(state => state.IsLoaded)).Settings;
-        var first = Path.Combine(_agent.Directory, "First.exampleproj");
-        var second = Path.Combine(_agent.Directory, "Second.exampleproj");
 
-        await window.RequestAsync(new RememberCreatorProject(first));
-        await window.RequestAsync(new RememberCreatorProject(second));
+        await window.RequestAsync(new ForgetRecentCreatorProjects([first]));
         await window.RequestAsync(new ChangeSettings(shown with { ShowNotifications = !shown.ShowNotifications }));
-        var relative = () => window.RequestAsync(new RememberCreatorProject("Third.exampleproj"));
 
         (await window.StateAsync(state => state.Settings.ShowNotifications != shown.ShowNotifications)).Settings.RecentCreatorProjects
-            .Should().Equal(second, first);
-        (await relative.Should().ThrowAsync<RequestFailedException>()).Which.Code.Should().Be(ErrorCode.InvalidRequest);
+            .Should().Equal(second);
     }
 
     public ValueTask DisposeAsync() => _agent.DisposeAsync();

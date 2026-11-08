@@ -1,0 +1,35 @@
+using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Packages;
+
+namespace JustModIt.Manager.Creator.Projects;
+
+/// <summary>What a project's builds left behind, kept apart from the project so a large listing stays out of every save and export.</summary>
+/// <param name="Parts">Each part that was built.</param>
+public sealed record BuildRecord(IReadOnlyList<PartBuild> Parts);
+
+/// <summary>The builds of one part of a project.</summary>
+/// <param name="Part">The part's name; empty for the base.</param>
+/// <param name="Version">The release the stamps in <paramref name="Folders"/> belong to.</param>
+/// <param name="Folders">The author's folders as that release's build read them.</param>
+/// <param name="Packages">The packages built, of that release and of earlier ones.</param>
+public sealed record PartBuild(string Part, string Version, IReadOnlyList<FolderBuild> Folders, IReadOnlyList<BuiltPackage> Packages);
+
+/// <summary>An author's folder as a build read it.</summary>
+/// <param name="Folder">The folder.</param>
+/// <param name="Files">Its files by their paths inside it.</param>
+public sealed record FolderBuild(string Folder, IReadOnlyDictionary<string, BuiltFile> Files);
+
+/// <summary>A file of an author's folder as a build read it.</summary>
+/// <param name="Size">Its size in bytes.</param>
+/// <param name="LastWriteTime">When it was last written.</param>
+/// <param name="Sha256">Its hash, when the build computed one.</param>
+public sealed record BuiltFile(long Size, DateTimeOffset LastWriteTime, string? Sha256 = null);
+
+/// <summary>A package a build wrote.</summary>
+/// <param name="Path">The package's file.</param>
+/// <param name="Kind">Its format.</param>
+/// <param name="Size">Its size in bytes.</param>
+/// <param name="Versions">The versions of the game it serves.</param>
+/// <param name="Version">The release it was built as.</param>
+/// <param name="BuiltAt">When it was built.</param>
+public sealed record BuiltPackage(string Path, PackageKind Kind, long Size, IReadOnlyList<GameKey> Versions, string Version, DateTimeOffset BuiltAt);

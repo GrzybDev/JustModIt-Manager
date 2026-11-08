@@ -46,8 +46,8 @@ public sealed record SettingsView
     public IReadOnlyList<Guid> PreferredTeams { get; init; } = [];
 
     /// <summary>
-    /// The package creator's project files opened or saved last, newest first; only
-    /// <see cref="Messages.RememberCreatorProject"/> changes them, so a settings change never drops one.
+    /// Project files an earlier version's package creator kept; only <see cref="Messages.ForgetRecentCreatorProjects"/> changes
+    /// them, so a settings change never drops one.
     /// </summary>
     public IReadOnlyList<string> RecentCreatorProjects { get; init; } = [];
 

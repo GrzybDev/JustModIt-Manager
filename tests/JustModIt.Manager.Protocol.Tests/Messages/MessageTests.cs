@@ -78,7 +78,7 @@ public sealed class MessageTests
         new HideGame(Game, IsHidden: true),
         new ConfirmAdultContent(),
         new RevealAdultPictures(Project),
-        new RememberCreatorProject(@"C:\Work\Example.exampleproj"),
+        new ForgetRecentCreatorProjects([@"C:\Work\Example.exampleproj"]),
         new LaunchGame(Game),
         new OpenFolder(AppFolder.Game, Game),
         new OpenFolder(AppFolder.InstallBackups, Install: RecordId),

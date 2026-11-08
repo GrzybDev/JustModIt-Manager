@@ -123,6 +123,7 @@ internal sealed record HostEnvironment
                 ? new UncleanExitView(previous.Version, crash) { IsWindow = true, CrashedAt = previous.CrashedAt, Report = previous.Report }
                 : null,
             ImageCacheDirectory = Locations.ImageCacheDirectory,
+            CreatorDirectory = Locations.CreatorDirectory,
             ImageHosts = Product.ImageHosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             Codecs = OperatingSystem.IsWindows() ? new WindowsMediaCodecs() : null,
             SystemMotion = OperatingSystem.IsWindows() ? new WindowsSystemMotion() : null,

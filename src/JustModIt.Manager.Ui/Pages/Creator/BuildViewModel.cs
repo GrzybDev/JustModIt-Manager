@@ -225,7 +225,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             ? target.Path
             : await _page.Services.Pickers.PickSaveFileAsync(Strings.Creator_BuildTitle, name,
                 new FileKind(plan.Format.Kind == PackageKind.Zip ? Strings.Creator_ZipFiles : Strings.Creator_PackageFiles, extension),
-                Path.GetDirectoryName(_target?.Path ?? _session.Path ?? _session.Part.AuthorFolder)).ConfigureAwait(true);
+                Path.GetDirectoryName(_target?.Path ?? _session.Part.AuthorFolder)).ConfigureAwait(true);
         if (path is not null)
         {
             await (_build = BuildAsync(plan, game, path, name)).ConfigureAwait(true);
@@ -353,7 +353,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             Fail(Strings.Creator_BuildFailedTitle, Strings.Creator_BuildWriteFailed);
         }
         // Anything else, such as a patch the encoder could not make, ends the build like the failures above rather than the
-        // window, which would lose the author's unsaved work.
+        // window.
         catch (Exception exception)
         {
             LogBuildFailed(_page.Log, exception);

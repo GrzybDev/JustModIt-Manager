@@ -7,8 +7,7 @@
              x:Class="JustModIt.Manager.Ui.Pages.Creator.CreatorPage"
              x:DataType="creator:CreatorPageViewModel">
   <UserControl.KeyBindings>
-    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
-    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenProjectCommand}" />
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding ImportProjectCommand}" />
   </UserControl.KeyBindings>
   <UserControl.Styles>
     <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Creator/CreatorStyles.axaml" />
@@ -50,10 +49,8 @@
                     Command="{Binding NewProjectCommand}">
               <ui:Icon Data="{x:Static theme:Icons.Plus}" Foreground="{StaticResource TextEmphasisBrush}" />
             </Button>
-            <Button x:Name="OpenButton" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_OpenShort}"
-                    ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding OpenProjectCommand}" />
-            <Button x:Name="SaveButton" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_Save}"
-                    ui:ButtonAssist.Icon="{x:Static theme:Icons.Save}" Command="{Binding SaveCommand}" />
+            <Button x:Name="ImportButton" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_Import}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding ImportProjectCommand}" />
           </StackPanel>
         </Grid>
         <TextBlock Classes="subtitle" Text="{x:Static loc:Strings.Creator_Subtitle}" IsVisible="{Binding !HasProject}" />
@@ -63,11 +60,8 @@
           <TextBlock Text="{Binding ProjectName}" FontWeight="SemiBold" Foreground="{StaticResource TextEmphasisBrush}"
                      VerticalAlignment="Center" />
           <TextBlock Classes="separator" />
-          <Ellipse Classes="unsaved" IsVisible="{Binding IsUnsaved}" />
-          <TextBlock Text="{Binding SaveState}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
-          <TextBlock Classes="separator" />
-          <Button x:Name="SaveAsButton" Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_SaveAs}"
-                  Command="{Binding SaveAsCommand}" VerticalAlignment="Center" />
+          <Button x:Name="ExportButton" Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_Export}"
+                  Command="{Binding ExportProjectCommand}" VerticalAlignment="Center" />
           <Border Classes="kind" Margin="6,0,0,0" IsVisible="{Binding IsAdvanced}" VerticalAlignment="Center">
             <StackPanel>
               <ui:Icon Data="{x:Static theme:Icons.ListOrdered}" />
@@ -75,6 +69,13 @@
             </StackPanel>
           </Border>
         </StackPanel>
+        <Grid x:Name="SaveFailedLine" ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,2,0,0"
+              IsVisible="{Binding Session.SaveFailed, FallbackValue=False}" theme:Motion.Enter="True">
+          <ui:Icon Data="{x:Static theme:Icons.CircleX}" Width="14" Height="14" VerticalAlignment="Top" Margin="0,2,0,0"
+                   Foreground="{StaticResource DangerTextBrush}" />
+          <TextBlock Grid.Column="1" Text="{x:Static loc:Strings.Creator_SaveFailed}" FontSize="13" LineHeight="18" TextWrapping="Wrap"
+                     Foreground="{StaticResource DangerTextBrush}" />
+        </Grid>
       </StackPanel>
 
       <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
@@ -95,8 +96,8 @@
               <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
                 <Button x:Name="StartNew" Classes="primary" Content="{x:Static loc:Strings.Creator_New}"
                         ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding NewProjectCommand}" />
-                <Button x:Name="StartOpen" Classes="outline" Height="48" Content="{x:Static loc:Strings.Creator_Open}"
-                        ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding OpenProjectCommand}" />
+                <Button x:Name="StartImport" Classes="outline" Height="48" Content="{x:Static loc:Strings.Creator_Import}"
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding ImportProjectCommand}" />
               </StackPanel>
               <TextBlock Classes="caption" MaxWidth="520" HorizontalAlignment="Left" Text="{Binding ProjectHint}" />
             </StackPanel>
@@ -129,7 +130,7 @@
             <ItemsControl x:Name="RecentList" Classes="recentRows" ItemsSource="{Binding Recent}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="creator:RecentProject">
-                  <Button Classes="recent" AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Path}"
+                  <Button Classes="recent" AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Folder}"
                           Command="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).OpenRecentCommand}"
                           CommandParameter="{Binding}">
                     <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
@@ -138,7 +139,7 @@
                       </Border>
                       <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                         <TextBlock Classes="rowTitle" Text="{Binding Name}" />
-                        <TextBlock Classes="pathLine" Text="{Binding Path}" />
+                        <TextBlock Classes="pathLine" Text="{Binding Folder}" IsVisible="{Binding Folder, Converter={x:Static ObjectConverters.IsNotNull}}" />
                       </StackPanel>
                       <TextBlock Grid.Column="2" Classes="meta" Text="{Binding Changed}" VerticalAlignment="Center" />
                       <ui:Icon Grid.Column="3" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16"

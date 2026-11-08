@@ -1,30 +1,41 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
+using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
 /// <summary>
 /// The author's open project and what the creator worked out from it: the folders as last compared and the checked plan,
-/// planned again on the thread pool after every change, the newest plan winning.
+/// planned again on the thread pool after every change, the newest plan winning. Each change also goes to the project's store
+/// a moment later, off the UI thread, the newest version winning.
 /// </summary>
-public sealed partial class CreatorSession : ObservableObject
+public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
 {
     private readonly CreatorOptions _options;
+    private readonly IDocumentStore<CreatorProject> _store;
+    private readonly ILogger _logger;
     private int _plans;
     private Task? _planning;
+    private LatestDocumentWriter<CreatorProject>? _writer;
+    private volatile bool _lastSaveFailed;
 
     /// <summary>Opens a project in the creator.</summary>
     /// <param name="options">The app's limits, rules and extensions.</param>
     /// <param name="project">The project as created or read.</param>
-    /// <param name="path">The project's file; null for one never saved.</param>
-    public CreatorSession(CreatorOptions options, CreatorProject project, string? path)
+    /// <param name="store">Where the project is kept.</param>
+    /// <param name="logger">Logs the saves that failed.</param>
+    public CreatorSession(CreatorOptions options, CreatorProject project, IDocumentStore<CreatorProject> store, ILogger logger)
     {
         _options = options;
         Project = project;
-        Path = path;
+        _store = store;
+        _logger = logger;
     }
 
     [ObservableProperty]
@@ -36,13 +47,9 @@ public sealed partial class CreatorSession : ObservableObject
     /// <summary>The version of the game the window works on; null until a game is chosen.</summary>
     public ProjectVersion? Version => Project.Versions.Count > 0 ? Project.Versions[0] : null;
 
-    /// <summary>The project's file; null until it is saved.</summary>
+    /// <summary>The last save did not reach the disk; the next change or a flush tries again.</summary>
     [ObservableProperty]
-    public partial string? Path { get; private set; }
-
-    /// <summary>The project changed since it was last saved or opened.</summary>
-    [ObservableProperty]
-    public partial bool IsDirty { get; private set; }
+    public partial bool SaveFailed { get; private set; }
 
     /// <summary>The folders as last compared; null until a comparison ends.</summary>
     [ObservableProperty]
@@ -86,7 +93,7 @@ public sealed partial class CreatorSession : ObservableObject
         }
 
         Project = changed;
-        IsDirty = true;
+        (_writer ??= NewWriter()).Save(Project);
         _planning = PlanAsync();
     }
 
@@ -124,14 +131,42 @@ public sealed partial class CreatorSession : ObservableObject
         }
     }
 
-    /// <summary>Records that the project is saved in a file.</summary>
-    /// <param name="path">The file it was saved to.</param>
-    /// <param name="saved">The project as saved, which edits made while saving may have moved on from.</param>
-    public void Saved(string path, CreatorProject saved)
+    /// <summary>
+    /// Saves the project at once. The session stays in use afterwards, since a close may still be refused after it, and the
+    /// author may change the project while this waits for the disk.
+    /// </summary>
+    /// <returns>False when the last save did not reach the disk.</returns>
+    public async Task<bool> FlushAsync()
     {
-        Path = path;
-        IsDirty = Project != saved;
+        // A version that failed has left the writer, so only queuing the project again lets a disk that recovered clear the failure.
+        if (_writer is null && !_lastSaveFailed)
+        {
+            return true;
+        }
+
+        // A writer that is ending drops what it is given, so a change made meanwhile takes another round.
+        CreatorProject flushed;
+        do
+        {
+            flushed = Project;
+            var writer = _writer ??= NewWriter();
+            writer.Save(flushed);
+            await writer.DisposeAsync().ConfigureAwait(true);
+            _writer = null;
+        }
+        while (Project != flushed);
+
+        SaveFailed = _lastSaveFailed;
+        return !_lastSaveFailed;
     }
+
+    public ValueTask DisposeAsync() => _writer?.DisposeAsync() ?? ValueTask.CompletedTask;
+
+    private LatestDocumentWriter<CreatorProject> NewWriter() => new(_store, "creator project", _logger, SettingsService.SaveDelay, saved: failure =>
+    {
+        _lastSaveFailed = failure is not null;
+        Dispatcher.UIThread.Post(() => SaveFailed = _lastSaveFailed);
+    });
 
     private async Task PlanAsync()
     {

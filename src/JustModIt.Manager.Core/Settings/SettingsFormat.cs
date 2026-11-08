@@ -100,7 +100,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             LibraryFolders = ReadLibraryFolders(root),
             AdultContentConfirmedUntil = root.GetDateTimeOffsetOrNull(AdultContentConfirmedUntil),
             RevealedAdultGames = ReadIds(root, RevealedAdultGames),
-            RecentCreatorProjects = AppSettings.RecentProjects(root.GetStrings(RecentCreatorProjects)),
+            RecentCreatorProjects = [.. root.GetStrings(RecentCreatorProjects).Where(Path.IsPathFullyQualified).Distinct(PathComparison.Comparer)],
             InstallationId = root.GetGuidOrNull(InstallationId),
         };
     }

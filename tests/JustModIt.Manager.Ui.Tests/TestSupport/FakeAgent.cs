@@ -48,6 +48,9 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
     /// <summary>Answers a request; by default with an empty answer.</summary>
     public Func<Message, Message?> Answer { get; set; } = _ => null;
 
+    /// <summary>Holds a request's answer back until the task ends; by default none is held.</summary>
+    public Func<Message, Task> Held { get; set; } = _ => Task.CompletedTask;
+
     public void Push(AppStateView state)
     {
         State = Sent(new StateChanged(state)).State;
@@ -84,10 +87,11 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
         BringToFrontRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    public Task<Message?> RequestAsync(Message request, CancellationToken cancellationToken = default)
+    public async Task<Message?> RequestAsync(Message request, CancellationToken cancellationToken = default)
     {
         var sent = SentFrame(new RequestFrame(++_lastRequestId, request));
         Requests.Add(sent.Payload);
+        await Held(sent.Payload);
         ResponseFrame response;
         try
         {
@@ -104,7 +108,7 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
             throw new RequestFailedException(error.Code, error.Detail);
         }
 
-        return Task.FromResult(answered.Payload);
+        return answered.Payload;
     }
 
     public void ReportActivity(bool isActive) => Activity.Add(Sent(new WindowActivity(isActive)).IsActive);

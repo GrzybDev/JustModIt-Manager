@@ -2646,32 +2646,11 @@
   <data name="Creator_RecentChanged" xml:space="preserve">
     <value>Changed {when}</value>
   </data>
-  <data name="Creator_RecentMissing" xml:space="preserve">
-    <value>The file is gone</value>
-  </data>
   <data name="Creator_New" xml:space="preserve">
     <value>New project</value>
   </data>
-  <data name="Creator_Open" xml:space="preserve">
-    <value>Open project…</value>
-  </data>
-  <data name="Creator_OpenShort" xml:space="preserve">
-    <value>Open…</value>
-  </data>
-  <data name="Creator_Save" xml:space="preserve">
-    <value>Save</value>
-  </data>
-  <data name="Creator_SaveAs" xml:space="preserve">
-    <value>Save as…</value>
-  </data>
-  <data name="Creator_StateNew" xml:space="preserve">
-    <value>not saved</value>
-  </data>
-  <data name="Creator_StateChanged" xml:space="preserve">
-    <value>unsaved changes</value>
-  </data>
-  <data name="Creator_StateSaved" xml:space="preserve">
-    <value>saved</value>
+  <data name="Creator_Import" xml:space="preserve">
+    <value>Import a project file…</value>
   </data>
   <data name="Creator_AdvancedMode" xml:space="preserve">
     <value>Advanced mode</value>
@@ -2685,13 +2664,34 @@
   <data name="Creator_ProjectFallbackName" xml:space="preserve">
     <value>Project</value>
   </data>
-  <data name="Creator_OpenTitle" xml:space="preserve">
-    <value>Open project</value>
+  <data name="Creator_ImportTitle" xml:space="preserve">
+    <value>Import a project</value>
   </data>
-  <data name="Creator_SaveTitle" xml:space="preserve">
-    <value>Save project</value>
+  <data name="Creator_ExportTitle" xml:space="preserve">
+    <value>Export the project</value>
+  </data>
+  <data name="Creator_Export" xml:space="preserve">
+    <value>Export a project file…</value>
+  </data>
+  <data name="Creator_ExportFailed" xml:space="preserve">
+    <value>The file could not be written, e.g. because the folder is read-only or the disk is full.</value>
+  </data>
+  <data name="Creator_ImportSkipped" xml:space="preserve">
+    <value>{count, plural, one {# project} other {# projects}} of the recent list could not be brought over, since the file is gone or damaged: {files}.</value>
+  </data>
+  <data name="Creator_ImportWaiting" xml:space="preserve">
+    <value>{count, plural, one {# project of the recent list waits} other {# projects of the recent list wait}} for another try at the next open.</value>
+  </data>
+  <data name="Creator_CloseUnsaved" xml:space="preserve">
+    <value>The latest changes did not reach the disk and are lost on closing.</value>
+  </data>
+  <data name="Creator_CloseUnsavedConfirm" xml:space="preserve">
+    <value>Close without saving</value>
   </data>
   <data name="Creator_OpenFailedTitle" xml:space="preserve">
+    <value>The project could not be imported</value>
+  </data>
+  <data name="Creator_ProjectOpenFailedTitle" xml:space="preserve">
     <value>The project could not be opened</value>
   </data>
   <data name="Creator_OpenFailed" xml:space="preserve">
@@ -2701,34 +2701,13 @@
     <value>The project was not saved</value>
   </data>
   <data name="Creator_SaveFailed" xml:space="preserve">
-    <value>The file could not be written, e.g. because the folder is read-only or the disk is full. Saving it elsewhere may help.</value>
+    <value>The project could not be written, e.g. because the disk is full. The creator tries again at the next change.</value>
   </data>
   <data name="Creator_GameGoneTitle" xml:space="preserve">
     <value>The project's game is not detected</value>
   </data>
   <data name="Creator_GameGone" xml:space="preserve">
     <value>{game} is not among the detected games. The game can be chosen again once a store reports it.</value>
-  </data>
-  <data name="Creator_UnsavedTitle" xml:space="preserve">
-    <value>Save the project?</value>
-  </data>
-  <data name="Creator_UnsavedMessage" xml:space="preserve">
-    <value>“{project}” has unsaved changes.</value>
-  </data>
-  <data name="Creator_UnsavedNew" xml:space="preserve">
-    <value>The new project has not been saved yet.</value>
-  </data>
-  <data name="Creator_UnsavedSave" xml:space="preserve">
-    <value>Save</value>
-  </data>
-  <data name="Creator_UnsavedSaveDescription" xml:space="preserve">
-    <value>The changes go to the project's file.</value>
-  </data>
-  <data name="Creator_UnsavedDiscard" xml:space="preserve">
-    <value>Discard changes</value>
-  </data>
-  <data name="Creator_UnsavedDiscardDescription" xml:space="preserve">
-    <value>The changes since the last save are lost.</value>
   </data>
   <data name="Creator_Steps" xml:space="preserve">
     <value>Steps of the package creator</value>
@@ -3581,12 +3560,6 @@
   </data>
   <data name="Creator_OpenDashboard" xml:space="preserve">
     <value>Open the dashboard on the site</value>
-  </data>
-  <data name="Creator_SaveProjectTitle" xml:space="preserve">
-    <value>Save the project</value>
-  </data>
-  <data name="Creator_SaveProjectText" xml:space="preserve">
-    <value>The next version then starts from here rather than from scratch. “Save” at the top of the page is enough.</value>
   </data>
   <data name="Creator_FinishTitle" xml:space="preserve">
     <value>Finish the project</value>

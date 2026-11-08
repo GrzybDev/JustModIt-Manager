@@ -1,0 +1,57 @@
+{
+  "parts": [
+    {
+      "part": "",
+      "version": "2.0",
+      "folders": [
+        {
+          "folder": "D:\\Translations\\Lantern Isle",
+          "files": {
+            "data/Zeta.bin": {
+              "size": 12,
+              "lastWriteTime": "2026-11-07T12:30:00.1234567+01:00"
+            },
+            "data/fonts.bin": {
+              "size": 2048,
+              "lastWriteTime": "2026-11-07T11:30:00.1234567+00:00",
+              "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+            },
+            "naïve café.txt": {
+              "size": 0,
+              "lastWriteTime": "2026-11-07T12:30:00+00:00"
+            }
+          }
+        }
+      ],
+      "packages": [
+        {
+          "path": "D:\\Translations\\Lantern Isle packages\\Lantern Isle v1.0.zip",
+          "kind": "Zip",
+          "size": 1024,
+          "versions": [
+            "steam:1000003"
+          ],
+          "version": "1.0",
+          "builtAt": "2026-10-07T12:35:00.7654321+02:00"
+        },
+        {
+          "path": "D:\\Translations\\Lantern Isle packages\\Lantern Isle v2.0.examplemod",
+          "kind": "Manifest",
+          "size": 4096,
+          "versions": [
+            "steam:1000003",
+            "gog:1100000002000000001"
+          ],
+          "version": "2.0",
+          "builtAt": "2026-11-07T12:35:00.7654321+01:00"
+        }
+      ]
+    },
+    {
+      "part": "Voices",
+      "version": "1.0",
+      "folders": [],
+      "packages": []
+    }
+  ]
+}

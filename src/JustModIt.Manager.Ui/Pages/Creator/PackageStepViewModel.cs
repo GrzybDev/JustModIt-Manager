@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
-using JustModIt.Manager.Localization;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
@@ -34,14 +33,6 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     public BuildViewModel Build { get; }
 
     public TestInstallViewModel Test { get; }
-
-    /// <summary>The project has changes the author has not saved, which the next steps remind of.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FinishNumber))]
-    public partial bool ShowsSaveHint { get; private set; }
-
-    /// <summary>The place of the last next step, which follows the reminder to save while it shows.</summary>
-    public string FinishNumber => (ShowsSaveHint ? 4 : 3).ToString(Text.Culture);
 
     public void OnShown()
     {
@@ -96,9 +87,5 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     {
         Description.Show();
         Build.Show();
-        if (_session.Review is not null)
-        {
-            ShowsSaveHint = _session.IsDirty || _session.Path is null;
-        }
     }
 }
