@@ -47,8 +47,9 @@ This repository holds the shared platform and the two apps built on it:
   back after a crash or a power loss.
 - **Light in the tray**: the background agent holds about 9 MB of memory when idle; the window is a separate process
   that exits when you close it.
-- **Package creator** for authors: compares a folder of changed files with the game, picks the operations (copy,
-  xdelta3 patch, rename, delete), checks them against the hosting rules and builds a package ready for the site.
+- **Package creator** for authors: saved projects cover several versions of a game and its add-ons, the game is
+  recognised by the files in a folder, and the creator compares them with each version, picks the operations (copy,
+  xdelta3 patch, rename, delete), checks them against the hosting rules and builds packages ready for the site.
 - **Private by design**: no telemetry. Error reports are sent only with your consent, and you see what goes first.
 
 ## Documentation

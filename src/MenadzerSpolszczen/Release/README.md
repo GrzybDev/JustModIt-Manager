@@ -49,8 +49,8 @@ user, without administrator rights, and then updates itself.
 - **Can undo everything**, even offline: the original files are kept (by default in a hidden `.menadzer-spolszczen`
   folder inside the game's folder), and an interrupted install is rolled back after a crash or power loss.
 - **Runs quietly** in the system tray, starting with Windows unless you turn that off.
-- **Kreator spolszczeń**, for translators in creator mode, builds translation packages from a folder of translated
-  files.
+- **Kreator spolszczeń**, for translators in creator mode, keeps saved projects, recognises the game by the translated
+  files in a folder, and builds packages for several versions of a game and its add-ons from one project.
 
 ## Questions
 

@@ -59,13 +59,18 @@ The app checks the whole archive before it looks at the game. It refuses:
   without files;
 - a third-party notice without a name, a licence or an http(s) source address, with a name or licence over 200
   characters or an address over 2,048, with a path the rules above refuse, or more than 32 notices;
-- `runtimeFiles` or `runtimeFolders` that are not a list, or a list that is not empty while `requires` lacks its
-  capability (an app that ignored it would install the package without ever undoing what its software changes);
+- `runtimeFiles`, `runtimeFolders`, a target's `folders`, an operation's `only` or a patch's `alternatives` that are
+  not a list, or a list that is not empty while `requires` lacks its [capability](#capabilities);
 - a declared file whose path the rules above refuse, or with a segment that is an 8.3 short name (`PROGRA~1`,
   `LIST~1.DAT`), since a file the software has not created yet keeps the spelling it is given; a null entry; more than
   64 declared files; `originals` that are empty, hold more than 8 entries, a null entry, a negative size or a hash that
   is not 64 hex digits; a file declared twice in any letter case; a declared file that an operation patches, since a
-  patch needs the store's content, which the software replaces.
+  patch needs the store's content, which the software replaces;
+- a rule in `folders` that is null, whose `package` or `game` the rules above refuse, or whose `game` has an 8.3 short
+  name;
+- an `only` list that is empty, or `only` lists that leave no operation for the store of the game the package opens for;
+- a patch with `alternatives` that also has its own patch fields, with fewer than 2 or more than 8 alternatives, or
+  with two for the same original, and a patch without `alternatives` that lacks any of those fields.
 
 Paths inside the game are resolved once more at install time: a path that a junction or symbolic link inside the game
 folder would lead outside it, or into the app's own hidden folder at the game root, is refused before any change.
@@ -114,11 +119,11 @@ operation's `type` may appear anywhere in its object.
 | `title`, `version` | yes | Shown only when the site does not know the package. |
 | `authors` | no | Strings. |
 | `createdAt`, `generator` | no | When and with what the package was built. |
-| `targets` | no | The games the package was made for: `store` (a store id such as `steam` or `gog`), `id` (the store's game id, always a string, since GOG ids exceed 2^53) and optionally `buildId`, the build the package was tested with. A package that names games in the game's own store, but not this game's id, is refused, since it was made for another game. A package that names the game only in other stores, or names another build of it, installs after a warning: it was made with another version of the game, and patches check every file they change. A package without targets installs on any game. |
+| `targets` | no | The games the package was made for: `store` (a store id such as `steam` or `gog`), `id` (the store's game id, always a string, since GOG ids exceed 2^53) and optionally `buildId`, the build the package was tested with, and `folders`, where the package's folders lie on that game ([several versions of a game](#several-versions-of-a-game)). A package that names games in the game's own store, but not this game's id, is refused, since it was made for another game. A package that names the game only in other stores, or names another build of it, installs after a warning: it was made with another version of the game, and patches check every file they change. A package without targets installs on any game. |
 | `requires` | no | Capabilities the package needs, see below. |
 | `thirdPartyNotices` | no | Third-party components the package carries, see below. |
 | `runtimeFiles` | no; needs `runtime:files@1` when not empty | Game files that software the package carries rewrites or creates while the game runs, at most 64, see below. Each has a `path` and optionally `originals`. |
-| `runtimeFiles[].originals` | no | 1 to 8 entries of `{size, sha256}`: the content the store ships at the path, in any build or store version the package supports. The creator writes the one in the author's game. |
+| `runtimeFiles[].originals` | no | 1 to 8 entries of `{size, sha256}`: the content the store ships at the path, in any build or store version the package supports. The creator writes those of the versions the package serves. |
 | `operations` | yes | Run in order; each one sees the result of the ones before it. |
 
 All paths are relative to the game's root folder and use `/`. On Windows letter case does not matter.
@@ -132,9 +137,17 @@ listed or implied by an operation type it does not know, means the package needs
 player is told to update rather than that the package is damaged. A manifest without `requires` needs the
 capabilities of the operations it uses; the creator fills the list with those.
 
-`runtime:files@1` stands for `runtimeFiles`. Unlike notices, declarations need a capability: an older app that ignored
-them would install the package and never undo what its software changes, so it must say "update the app" instead
-(0.1.0-alpha.1 does). A list that is not empty without its capability in `requires` is a damaged package.
+Some optional fields need a capability, unlike notices, because an app that ignored them would install the package
+wrongly, so it must say "update the app" instead. A list that is not empty without its capability in `requires` is a
+damaged package.
+
+| Capability | Field | What an app that ignored it would do |
+|---|---|---|
+| `runtime:files@1` | `runtimeFiles` | never undo what the package's software changes |
+| `targets:folders@1` | `targets[].folders` | install into folders the game does not have |
+| `targets:only@1` | an operation's `only` | run another store's operations |
+| `patch:alternatives@1` | a patch's `alternatives` | call the patch damaged, since its fields are missing |
+
 `runtime:folders@1` is reserved for `runtimeFolders`, folders the software fills with files whose names cannot be known
 in advance; no version of the app supports it yet, so a package that needs it asks for a newer app.
 
@@ -145,7 +158,8 @@ entry has the component's `name`, its `license` (a name or an SPDX expression), 
 of its source code) and optionally `paths`, the game paths of its files. The app keeps the notices with the install.
 They need no capability: an app that does not know the property ignores it and installs the package as usual. The
 creator writes a notice for every tool its hosting rules found, with the licence and source the author gave and without
-paths, since a tool's folder also holds the author's own plugins.
+paths, since a tool's folder also holds the author's own plugins, and one with its path for every library the package
+adds that has a licence and a source.
 
 ### Files the package's software changes
 
@@ -184,12 +198,32 @@ those files in `runtimeFiles`. A declared file may also be the path of a `copy`,
 | `type` | Fields | What it does |
 |---|---|---|
 | `copy` | `path`, `source`, `size`, `sha256` | Writes the payload to `path`, creating folders. An existing file is replaced. The written bytes must hash to `sha256`. |
-| `patch` | `path`, `patch`, `sourceSize`, `sourceSha256`, `targetSize`, `targetSha256` | Applies an xdelta3 patch to the file at `path`, which may be the result of an earlier operation. The file must be exactly (`sourceSize`, `sourceSha256`), or the install is refused before any change, noting when the file already has the target content. The result must be exactly (`targetSize`, `targetSha256`). |
+| `patch` | `path` and either `patch`, `sourceSize`, `sourceSha256`, `targetSize`, `targetSha256` or `alternatives` | Applies an xdelta3 patch to the file at `path`, which may be the result of an earlier operation. The file must be exactly (`sourceSize`, `sourceSha256`), or the install is refused before any change, noting when the file already has the target content. The result must be exactly (`targetSize`, `targetSha256`). |
 | `rename` | `from`, `to` | Moves the file `from` to `to`, replacing `to` and creating its folders. A rename that only changes letter case does nothing on Windows. Only files can be renamed. |
 | `delete` | `path` | Deletes the file if it exists. A folder at `path` stops the install. |
 
 A plain `.zip` installs as one `copy` per file entry, in archive order, without hashes; folder entries are checked but
 never create empty folders.
+
+### Several versions of a game
+
+One package can serve versions of a game that differ, through three optional fields that the app reads. A site that
+merges the packages of a game's versions writes them; the package creator never does. It writes one package for the
+versions whose operations and originals are the same, naming each of them in `targets`.
+
+- `targets[].folders` lists rules of `package` (a folder in the package's layout) and `game` (where it lies on that
+  game). The first target with the game's store and id gives the rules; a game no target names installs the package as
+  written. In an operation's `path`, `from` and `to` and in a declared file's `path`, the longest `package` that is
+  whole leading segments of the path, the whole path included and letter case ignored, is replaced by its `game`, once.
+  Of rules of one length the first counts. Payload entries and the paths of notices are not mapped. A plain `.zip` has
+  no manifest, so the same rules come from the site with the
+  [release file](site-integration.md#packages-for-several-versions).
+- `only`, on any operation, lists the stores whose games the operation runs on, by store alone. The package is validated
+  in full whichever store it opens for, and the operations for other stores are then dropped.
+- `alternatives`, on a `patch` in place of its patch fields, gives 2 to 8 patches, one per original the file may hold,
+  each with `patch`, `sourceSize`, `sourceSha256`, `targetSize` and `targetSha256`. They may share a payload entry. The
+  check before the install takes the first whose source the file holds at that point of the package, so what an earlier
+  operation or package left counts. When none fits, the install is refused before any change.
 
 ## Patches
 
@@ -225,9 +259,10 @@ installs the base's package and the add-ons' packages as one install:
   add-ons install without it. A problem of the base, or of the game, refuses the whole install.
 - Files an add-on's software changes while the game runs are declared in that add-on's manifest.
 
-The authoring rule: the base is what every player gets. An add-on adds files or replaces whole files; it renames,
-patches or deletes only game files the base leaves alone, since the package creator compares with the untouched game.
-Two versions where neither contains the other become a base of their common files plus a group of add-ons. The
+The authoring rule: the base is what every player gets. The package creator plans an add-on on top of its base on the
+same version, so an add-on may replace, patch, rename or delete what the base writes, and patches a file the base wrote
+from the base's bytes. Two versions where neither contains the other become a base of their common files plus a group
+of add-ons. The
 package creator tries an add-on together with the base it goes with, the base installing first, so a clash between the
 two shows before players meet it.
 

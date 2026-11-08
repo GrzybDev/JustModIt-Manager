@@ -35,6 +35,24 @@ install of a release. The app makes that request once and never retries it. It s
 
 If the site refuses the key, the app drops it and carries on without one.
 
+## Packages for several versions
+
+The apps read these optional fields, which let a site keep one package for versions of a game that are laid out
+differently. Without them each file is downloaded and installed as it is.
+
+- `limits.release_versions_merged` in `system/v1/config`: true when the site keeps the packages of a release part's game
+  versions as one. The package creator then tells authors about how much the site will store. Absent reads as false.
+- `replaces` on a release file: the uuids of other files of the release that this ready file stands in for. An install
+  that holds one of them gets no update for it, and a repair or a change of add-ons uses the download it keeps. It is
+  only for files proved to install alike, never for a team's own upload, which has to reach players as an update.
+- `layout` on a plain `.zip` release file: an object with `folders`, `object_size` and `object_sha256`. The app installs
+  from the shared object it describes and counts and checks that size and hash. `folders` lists the same `package` and
+  `game` rules as a [manifest target](package-format.md#several-versions-of-a-game). The file's own `size`, `md5` and
+  `sha256` describe what a browser gets.
+- `layouts=1` on a download request: the app sends it on the release's route, and on
+  `projects/v1/teams/<team>/<project>/releases/<release>/files/<uuid>/download/` only for a file with a `layout`. For
+  such a file the answer must then be the address of its shared object.
+
 ## Links
 
 The website can open the app with `<scheme>://install/<game>/<team>/<project>?features=<key>,…`, where the scheme is

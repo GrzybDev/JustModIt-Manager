@@ -49,8 +49,8 @@ użytkownika Windows, bez uprawnień administratora, a potem sama się aktualizu
 - **Pozwala cofnąć wszystko**, także bez internetu: zachowuje oryginalne pliki (domyślnie w ukrytym folderze
   `.menadzer-spolszczen` w folderze gry), a instalację przerwaną przez awarię lub brak prądu sama wycofuje.
 - **Działa po cichu** w zasobniku systemowym i uruchamia się razem z Windows; tę opcję można wyłączyć.
-- **Kreator spolszczeń**, dostępny dla tłumaczy w trybie twórcy, buduje paczki ze spolszczeniem z folderu z
-  przetłumaczonymi plikami.
+- **Kreator spolszczeń**, dostępny w trybie twórcy, zapisuje projekty, rozpoznaje grę po przetłumaczonych plikach w
+  folderze i z jednego projektu buduje paczki dla kilku wersji gry oraz jej składników.
 
 ## Pytania
 

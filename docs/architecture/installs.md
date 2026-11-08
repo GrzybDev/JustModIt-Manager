@@ -6,6 +6,11 @@ A package is a `.zip` laid out like the game, or a manifest package with ordered
 delete operations. The [package format](../package-format.md) describes it. Every archive is validated before anything
 happens: no paths outside the game, no links, size limits.
 
+A package is opened for a game (`PackageReader.OpenAsync`), so where its folders lie on that game and which operations
+run on its store are settled there, and everything after that reads game paths. A plain `.zip` gets its folder rules
+from the site. A patch with several alternatives is chosen while the package is checked against the game, by what the
+file holds at that point, and the install runs the chosen patch (`InstallPlan.Steps`).
+
 ## The install engine
 
 ```mermaid

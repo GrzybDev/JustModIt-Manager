@@ -46,8 +46,9 @@ To repozytorium zawiera wspólną platformę i dwie zbudowane na niej aplikacje:
   wycofywana po awarii albo zaniku zasilania.
 - **Lekka w zasobniku**: działająca w tle część aplikacji zajmuje w spoczynku około 9 MB pamięci, a okno to osobny
   proces, który kończy się po jego zamknięciu.
-- **Kreator paczek** dla autorów: porównuje folder ze zmienionymi plikami z grą, dobiera operacje (kopia, łatka
-  xdelta3, zmiana nazwy, usunięcie), sprawdza je z zasadami hostingu i buduje paczkę gotową dla strony.
+- **Kreator paczek**: rozpoznaje grę po plikach w folderze, a zapisany projekt obejmuje kilka wersji gry i jej
+  składniki. Porównuje pliki z każdą wersją, dobiera operacje (kopia, łatka xdelta3, zmiana nazwy, usunięcie), sprawdza
+  je z zasadami hostingu i buduje paczki gotowe dla strony.
 - **Prywatność od podstaw**: bez telemetrii. Raporty o błędach są wysyłane tylko za Twoją zgodą, po pokazaniu ich treści.
 
 ## Dokumentacja

@@ -22,6 +22,12 @@ a break and are checked against the size and hash the site gives.
 The counted request carries a random id of the installation, so the site counts one download of a release per
 installation. No other request carries it.
 
+A plain `.zip` with a layout installs from a shared object that serves several versions of a game, through the layout's
+folder rules. The app asks for that object and checks its own size and hash. A file's id then names two kinds of bytes,
+the object and what a browser gets, so the object is kept under a name of its own (`<uuid>.object.zip`) and neither ever
+passes for the other. The part of an install records its rule, which tells the kind it came from. A file that replaces
+another keeps an install of that one current, and a repair uses the kept download.
+
 [Site integration](../site-integration.md) lists the endpoints and fields involved.
 
 Code: `Core/Catalog/`, `Core/Downloads/`.
