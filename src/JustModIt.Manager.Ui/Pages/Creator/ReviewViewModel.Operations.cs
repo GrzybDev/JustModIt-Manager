@@ -272,7 +272,14 @@ public sealed partial class ReviewViewModel
     private static bool IsNewFile(PlannedOperation operation) =>
         operation is { Kind: OperationKind.Copy, Reason: OperationReason.NewFile };
 
-    private static void Fill(OperationRow row, PlannedOperation operation, int index, ReviewEntry? entry,
+    /// <summary>Fills a row with what it shows of an operation of the plan.</summary>
+    /// <param name="row">The row.</param>
+    /// <param name="operation">The operation.</param>
+    /// <param name="index">Its place in the plan, from 0.</param>
+    /// <param name="entry">The compared file behind it, whose choices the row offers; null for none.</param>
+    /// <param name="findings">The plan's findings about it.</param>
+    /// <param name="renamedBy">The number of the operation that renames its original away; 0 for none.</param>
+    internal static void Fill(OperationRow row, PlannedOperation operation, int index, ReviewEntry? entry,
         IEnumerable<PlanFinding> findings, int renamedBy)
     {
         var (kindText, kindIcon, kindTone) = CreatorWording.Kind(operation.Kind);

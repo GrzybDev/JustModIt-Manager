@@ -24,6 +24,21 @@ public sealed record BuildRecord(IReadOnlyList<PartBuild> Parts)
     public BuildRecord WithFolders(string part, string version, IReadOnlyList<FolderBuild> folders) =>
         With(part, build => build with { Version = version, Folders = folders });
 
+    /// <summary>The record with the new stamps of files of a part's folder whose bytes are still the ones it holds the hash of.</summary>
+    /// <param name="part">The part.</param>
+    /// <param name="folder">The author's folder.</param>
+    /// <param name="files">The new stamps, each with the hash the file was checked against.</param>
+    public BuildRecord WithStamps(string part, string folder, IReadOnlyDictionary<string, BuiltFile> files) =>
+        With(part, build => build with
+        {
+            Folders = [.. build.Folders.Select(built => !PathComparison.AreSame(built.Folder, folder) ? built : built with
+            {
+                // A build that wrote the record meanwhile read its files anew, so only a stamp of the same bytes takes the place of its own.
+                Files = built.Files.ToDictionary(file => file.Key,
+                    file => files.GetValueOrDefault(file.Key) is { } stamp && stamp.Sha256 == file.Value.Sha256 ? stamp : file.Value),
+            })],
+        });
+
     private BuildRecord With(string part, Func<PartBuild, PartBuild> change) => new(
         Parts.Any(build => build.Part == part)
             ? [.. Parts.Select(build => build.Part == part ? change(build) : build)]

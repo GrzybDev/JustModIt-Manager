@@ -4,6 +4,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
+using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Controls;
@@ -29,6 +30,9 @@ public sealed partial class ProjectCard(CreatorPageViewModel page, Guid id) : Ob
     // Null until the record is read, so a card never claims no release of a project that has one.
     private string? _lastPackage;
     private string? _unavailableFolder;
+    // The files changed since the builds, and the release the base was built as; null while there is no build to tell against.
+    private (int Count, string Version)? _changes;
+    private bool _checking;
 
     public Guid Id { get; } = id;
 
@@ -103,31 +107,50 @@ public sealed partial class ProjectCard(CreatorPageViewModel page, Guid id) : Ob
         ShowState();
     }
 
-    /// <summary>Reads the project's record and looks for its folders; a drive that does not answer in time counts as unavailable.</summary>
+    /// <summary>
+    /// Reads the project's record and sets its folders against it by the files' sizes and times alone, so no file is opened; a
+    /// drive that does not answer in time counts as unavailable.
+    /// </summary>
+    /// <param name="cancellationToken">Stops the look once a newer one starts; the card keeps what it showed.</param>
     /// <returns>Completes once the card shows what it found.</returns>
-    internal async Task RefreshAsync()
+    internal async Task RefreshAsync(CancellationToken cancellationToken)
     {
-        _lastPackage = LastPackageOf(await page.Library.ReadBuildAsync(Id, CancellationToken.None).ConfigureAwait(true), page.Services.Clock) ?? "";
-        string? unavailable = null;
-        var files = page.FileSystem ?? PhysicalFileSystem.Instance;
-        foreach (var folder in _project.Parts.SelectMany(part => part.VersionFolders.Values.Prepend(part.AuthorFolder)).Where(folder => folder.Length > 0))
+        try
         {
-            try
+            var record = await page.Library.ReadBuildAsync(Id, cancellationToken).ConfigureAwait(true);
+            _lastPackage = LastPackageOf(record, page.Services.Clock) ?? "";
+            var builds = record?.Parts.SelectMany(part => part.Folders).ToList() ?? [];
+            _checking = _changes is null && builds.Count > 0;
+            ShowState();
+            string? unavailable = null;
+            var changed = 0;
+            foreach (var folder in _project.Parts.SelectMany(part => part.VersionFolders.Values.Prepend(part.AuthorFolder)).Where(folder => folder.Length > 0))
             {
-                unavailable = await page.Access.ReadAsync(folder, _ => Task.FromResult(files.DirectoryExists(folder)), CancellationToken.None).ConfigureAwait(true) ? null : folder;
-            }
-            catch (TimeoutException)
-            {
-                unavailable = folder;
+                // A folder no build read counts with all its files.
+                var built = builds.FirstOrDefault(build => PathComparison.AreSame(build.Folder, folder));
+                if (await FileChanges.CheckAsync(built?.Folder ?? folder,
+                        built?.Files.ToDictionary(file => file.Key, file => new FileStamp(file.Value.Size, file.Value.LastWriteTime)) ?? [], [],
+                        page.Access, page.FileSystem ?? PhysicalFileSystem.Instance, cancellationToken).ConfigureAwait(true) is not { } changes)
+                {
+                    unavailable = folder;
+                    break;
+                }
+
+                changed += changes.Count;
             }
 
-            if (unavailable is not null)
-            {
-                break;
-            }
+            _unavailableFolder = unavailable;
+            _changes = builds.Count > 0 ? (changed, record?.Parts.FirstOrDefault(part => part.Part.Length == 0)?.Version ?? "") : null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+        finally
+        {
+            _checking = false;
         }
 
-        _unavailableFolder = unavailable;
         ShowState();
     }
 
@@ -150,13 +173,18 @@ public sealed partial class ProjectCard(CreatorPageViewModel page, Guid id) : Ob
             : _unavailableFolder is not null ? ("FolderGone", Icons.Unplug, Tone.Danger)
             // Before the stores' first full look, a game missing from what they reported is not a game gone.
             : page.Detected is { } detected && !detected.Any(entry => IsVersion(entry.Key)) ? ("GameGone", Icons.Gamepad, Tone.Neutral)
+            // Only the first look is told; a later one keeps what the card said until it knows better.
+            : _checking ? ("Checking", Icons.LoaderCircle, Tone.Info)
+            : _changes is { Count: > 0 } ? ("Changed", Icons.FilePen, Tone.Warning)
+            : _changes is not null ? ("Unchanged", Icons.CircleCheck, Tone.Success)
             : null;
         Line = line is { } shown ? new LineContent(shown.Icon, shown.Tone, Label(shown.State, Shortened(_unavailableFolder))) { IsBusy = shown.Icon == Icons.LoaderCircle } : null;
         FolderTip = line?.State == "FolderGone" ? _unavailableFolder : null;
         AccessibleName = GameWording.Join([Name, Details, line is { } spoken ? Label(spoken.State, _unavailableFolder) : ""]);
     }
 
-    private static string Label(string state, string? folder) => Text.Format(Strings.Creator_CardState, ("state", state), ("path", folder ?? ""));
+    private string Label(string state, string? folder) => Text.Format(Strings.Creator_CardState, ("state", state), ("path", folder ?? ""),
+        ("count", _changes?.Count ?? 0), ("hasVersion", _changes?.Version.Length > 0 ? "true" : "false"), ("version", GameWording.ShortVersion(_changes?.Version ?? "")));
 
     // A long path would fill the card, so the line keeps the drive and the folder's name, and the tooltip the whole path.
     private static string? Shortened(string? folder) =>

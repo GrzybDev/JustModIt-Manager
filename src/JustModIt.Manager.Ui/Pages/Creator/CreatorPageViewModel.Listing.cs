@@ -30,6 +30,7 @@ public sealed record UnreadableProject(string Folder, string Shown);
 public sealed partial class CreatorPageViewModel
 {
     private readonly CardGrid _grid = new();
+    private CancellationTokenSource _refreshing = new();
     private bool _recentImported;
     private DateTimeOffset? _detectedAt;
 
@@ -148,7 +149,16 @@ public sealed partial class CreatorPageViewModel
         IsListing = false;
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(Subtitle));
-        await Task.WhenAll(cards.Select(card => card.RefreshAsync())).ConfigureAwait(true);
+        await RefreshCardsAsync(cards).ConfigureAwait(true);
+    }
+
+    // A listing runs without a time limit, so a newer look at the cards stops the one before rather than piling up on a slow drive.
+    private Task RefreshCardsAsync(IEnumerable<ProjectCard> cards)
+    {
+        _refreshing.Cancel();
+        _refreshing = new CancellationTokenSource();
+        var token = _refreshing.Token;
+        return Task.WhenAll(cards.Select(card => card.RefreshAsync(token)));
     }
 
     // Only a whole look of the stores tells a game is not on this computer, so until then a card says nothing of it, and it

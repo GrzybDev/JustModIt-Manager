@@ -34,6 +34,37 @@
         </WrapPanel>
       </Grid>
 
+      <!-- What changed since the part's last build, by the operations it touches. -->
+      <StackPanel x:Name="Changes" Spacing="4" theme:Motion.Enter="True">
+        <StackPanel.IsVisible>
+          <MultiBinding Converter="{x:Static BoolConverters.And}">
+            <Binding Path="IsCompared" />
+            <Binding Path="HasChanges" />
+          </MultiBinding>
+        </StackPanel.IsVisible>
+        <TextBlock Classes="rowText" Foreground="{StaticResource TextBodyBrush}" Text="{Binding ChangedText}" />
+        <ItemsControl ItemsSource="{Binding Changes}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="creator:OperationRow">
+              <Border BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                  <Border Classes="kind" VerticalAlignment="Center" Classes.danger="{Binding KindTone, Converter={x:Static creator:ReviewRows.IsDanger}}">
+                    <StackPanel>
+                      <ui:Icon Data="{Binding KindIcon}" />
+                      <TextBlock Text="{Binding KindText}" />
+                    </StackPanel>
+                  </Border>
+                  <TextBlock Grid.Column="1" Classes="pathLine" VerticalAlignment="Center" ToolTip.Tip="{Binding Key}">
+                    <Run Text="{Binding Folder}" /><Run Text="{Binding Name}" Foreground="{StaticResource TextBrush}" />
+                  </TextBlock>
+                  <TextBlock Grid.Column="2" Classes="meta" VerticalAlignment="Center" Text="{Binding Size}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
       <StackPanel x:Name="Comparing" Spacing="10" IsVisible="{Binding IsComparing}" theme:Motion.Enter="True">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
           <TextBlock Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Stage}" TextTrimming="CharacterEllipsis" />
@@ -50,6 +81,7 @@
 
       <!-- What stopped the comparison, or what keeps the version from being compared now. -->
       <ui:Callout x:Name="CellProblem" Classes.danger="{Binding Line.Tone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Danger}}"
+                  Classes.warning="{Binding Line.Tone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Warning}}"
                   MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{Binding Line.Icon}" Title="{Binding NoticeTitle}" Message="{Binding NoticeText}"
                   IsVisible="{Binding HasNotice}" theme:Motion.Enter="True">
         <WrapPanel IsVisible="{Binding IsBlockedByInstall}">

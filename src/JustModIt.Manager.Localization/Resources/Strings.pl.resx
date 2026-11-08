@@ -2614,7 +2614,7 @@
     <value>Bez zbudowanej paczki · utworzony {date}</value>
   </data>
   <data name="Creator_CardState" xml:space="preserve">
-    <value>{state, select, FolderGone {Folder z plikami niedostępny ({path})} GameGone {Gry nie ma na tym komputerze} NoVersion {Bez wersji gry} Comparing {Porównywanie…} Building {Budowanie paczek…} TestInstalled {Instalacja testowa w grze} other {}}</value>
+    <value>{state, select, Changed {{count, plural, one {# plik zmienił się} few {# pliki zmieniły się} many {# plików zmieniło się} other {# pliku zmieniło się}} od {hasVersion, select, true {{version}} other {ostatniej paczki}}} Unchanged {Bez zmian od ostatniej paczki} Checking {Sprawdzanie plików…} FolderGone {Folder z plikami niedostępny ({path})} GameGone {Gry nie ma na tym komputerze} NoVersion {Bez wersji gry} Comparing {Porównywanie…} Building {Budowanie paczek…} TestInstalled {Instalacja testowa w grze} other {}}</value>
   </data>
   <data name="Creator_CardParts" xml:space="preserve">
     <value>Podstawa + {count, plural, one {# składnik} few {# składniki} many {# składników} other {# składnika}}</value>
@@ -2857,10 +2857,10 @@
     <value>Nie udało się porównać plików</value>
   </data>
   <data name="Creator_BlockTitle" xml:space="preserve">
-    <value>{reason, select, GameFolderMissing {Nie ma folderu gry} AuthorFolderMissing {Nie ma folderu z plikami} GameFolder {To jest folder gry} FoldersOverlap {Ten folder leży w folderze gry albo go zawiera} GameHasInstall {Na grze jest zainstalowana paczka} other {Plikami gry zarządza inna aplikacja}}</value>
+    <value>{reason, select, GameFolderMissing {Nie ma folderu gry} AuthorFolderMissing {Nie ma folderu z plikami} AuthorFolderUnavailable {Folder nie odpowiada} GameFolder {To jest folder gry} FoldersOverlap {Ten folder leży w folderze gry albo go zawiera} GameHasInstall {Na grze jest zainstalowana paczka} other {Plikami gry zarządza inna aplikacja}}</value>
   </data>
   <data name="Creator_Block" xml:space="preserve">
-    <value>{reason, select, GameFolderMissing {Folderu gry ({path}) już nie ma. Sklep mógł przenieść albo odinstalować grę.} AuthorFolderMissing {Folderu {path} już nie ma. Mógł zostać przeniesiony albo mieć zmienioną nazwę.} GameFolder {Kreator potrzebuje osobnego folderu z samymi zmienionymi plikami, poza grą.} FoldersOverlap {Kreator potrzebuje osobnego folderu z samymi zmienionymi plikami, poza grą.} GameHasInstall {Jej pliki zostałyby porównane tak, jakby należały do gry. Po jej odinstalowaniu można porównać pliki.} other {{app} trzyma swoje pliki w {path}, które zostałyby porównane tak, jakby należały do gry. Po ich usunięciu z gry można porównać pliki.}}</value>
+    <value>{reason, select, GameFolderMissing {Folderu gry ({path}) już nie ma. Sklep mógł przenieść albo odinstalować grę.} AuthorFolderMissing {Folderu {path} już nie ma. Mógł zostać przeniesiony albo mieć zmienioną nazwę.} AuthorFolderUnavailable {Folder {path} nie odpowiada. Porównanie można powtórzyć, gdy będzie dostępny.} GameFolder {Kreator potrzebuje osobnego folderu z samymi zmienionymi plikami, poza grą.} FoldersOverlap {Kreator potrzebuje osobnego folderu z samymi zmienionymi plikami, poza grą.} GameHasInstall {Jej pliki zostałyby porównane tak, jakby należały do gry. Po jej odinstalowaniu można porównać pliki.} other {{app} trzyma swoje pliki w {path}, które zostałyby porównane tak, jakby należały do gry. Po ich usunięciu z gry można porównać pliki.}}</value>
   </data>
   <data name="Creator_CompareAgain" xml:space="preserve">
     <value>Porównaj ponownie</value>
@@ -3073,7 +3073,7 @@
     <value>Dodaj</value>
   </data>
   <data name="Creator_AddNote" xml:space="preserve">
-    <value>Plik wybiera się z folderu gry {game}. Kopie i łatki biorą się z folderu z plikami – żeby je dodać, wystarczy dołożyć plik do folderu i porównać pliki ponownie.</value>
+    <value>Plik wybiera się z folderu gry {game}. Kopie i łatki biorą się z folderu z plikami – żeby je dodać, wystarczy dołożyć plik do folderu.</value>
   </data>
   <data name="Creator_PickGameFileTitle" xml:space="preserve">
     <value>Plik gry</value>
@@ -3301,7 +3301,7 @@
     <value>Nie udało się zbudować paczki</value>
   </data>
   <data name="Creator_BuildFailed" xml:space="preserve">
-    <value>{failure, select, OutputInGameFolder {Paczka nie może leżeć w folderze gry – potrzebne jest inne miejsce.} OutputInAuthorFolder {Paczka nie może leżeć w folderze z plikami – potrzebne jest inne miejsce.} FolderUnavailable {Folder {file} nie odpowiada. Budowanie można powtórzyć, gdy będzie dostępny.} OtherGame {Gra jest teraz w innym folderze niż przy porównaniu, więc pliki trzeba porównać ponownie.} GameNotReady {Sklep pracuje teraz nad grą, więc jej pliki nie nadają się do zrobienia łatek. Budowanie można powtórzyć, gdy skończy.} FilesChanged {{files, plural, one {Plik {file} zmienił się} few {# pliki zmieniły się} many {# plików zmieniło się} other {# pliku zmieniło się}} od porównania, więc pliki trzeba porównać ponownie.} Unreadable {Nie udało się odczytać pliku {file}, np. bo używa go inny program. Po jego zamknięciu można zbudować paczkę ponownie.} TooManyEntries {Paczka ma więcej plików, niż aplikacja instaluje z jednej paczki.} TooLarge {Paczka jest większa, niż aplikacja instaluje z jednej paczki.} ManifestTooLarge {Opis paczki jest zbyt duży.} UnacknowledgedFindings {Budowanie znalazło łatki, które niosą większość swoich plików. Po ich zaakceptowaniu można zbudować paczkę ponownie.} other {}}</value>
+    <value>{failure, select, OutputInGameFolder {Paczka nie może leżeć w folderze gry – potrzebne jest inne miejsce.} OutputInAuthorFolder {Paczka nie może leżeć w folderze z plikami – potrzebne jest inne miejsce.} FolderUnavailable {Folder {file} nie odpowiada. Budowanie można powtórzyć, gdy będzie dostępny.} OtherGame {Gra jest teraz w innym folderze niż przy porównaniu, więc porównanie rusza ponownie.} GameNotReady {Sklep pracuje teraz nad grą, więc jej pliki nie nadają się do zrobienia łatek. Budowanie można powtórzyć, gdy skończy.} FilesChanged {{files, plural, one {Plik {file} zmienił się} few {# pliki zmieniły się} many {# plików zmieniło się} other {# pliku zmieniło się}} od porównania, więc porównanie rusza ponownie.} Unreadable {Nie udało się odczytać pliku {file}, np. bo używa go inny program. Po jego zamknięciu można zbudować paczkę ponownie.} TooManyEntries {Paczka ma więcej plików, niż aplikacja instaluje z jednej paczki.} TooLarge {Paczka jest większa, niż aplikacja instaluje z jednej paczki.} ManifestTooLarge {Opis paczki jest zbyt duży.} UnacknowledgedFindings {Budowanie znalazło łatki, które niosą większość swoich plików. Po ich zaakceptowaniu można zbudować paczkę ponownie.} other {}}</value>
   </data>
   <data name="Creator_BuildWriteFailed" xml:space="preserve">
     <value>Nie udało się zapisać paczki, np. folder jest tylko do odczytu albo dysk jest pełny.</value>
@@ -3480,11 +3480,14 @@
   <data name="Creator_ComparedWhen" xml:space="preserve">
     <value>Porównano {when}</value>
   </data>
+  <data name="Creator_ChangedSince" xml:space="preserve">
+    <value>Od {hasVersion, select, true {paczki {version}} other {ostatniej paczki}} {count, plural, one {zmienił się # plik} few {zmieniły się # pliki} many {zmieniło się # plików} other {zmieniło się # pliku}}:</value>
+  </data>
   <data name="Creator_AllOperations" xml:space="preserve">
     <value>Wszystkie operacje ({count})</value>
   </data>
   <data name="Creator_CellState" xml:space="preserve">
-    <value>{state, select, Unchanged {Bez zmian od {version}} Ready {Gotowe} NoFolder {Brak folderu} FolderGone {Folder niedostępny} GameGone {Gry nie ma na tym komputerze} TestInstalled {Instalacja testowa w grze} Stopped {Porównanie przerwane} Installed {Na grze jest zainstalowana paczka} NotReady {{work}} other {Nie udało się porównać}}</value>
+    <value>{state, select, Unchanged {Bez zmian od {hasVersion, select, true {{version}} other {ostatniej paczki}}} Ready {Gotowe} NoFolder {Brak folderu} FolderGone {Folder niedostępny} GameGone {Gry nie ma na tym komputerze} TestInstalled {Instalacja testowa w grze} Stopped {Porównanie przerwane} Installed {Na grze jest zainstalowana paczka} NotReady {{work}} other {Nie udało się porównać}}</value>
   </data>
   <data name="Creator_BeforeBuild" xml:space="preserve">
     <value>Przed zbudowaniem</value>

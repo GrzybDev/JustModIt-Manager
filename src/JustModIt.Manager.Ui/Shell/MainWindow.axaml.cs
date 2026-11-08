@@ -15,7 +15,8 @@ namespace JustModIt.Manager.Ui.Shell;
 
 /// <summary>
 /// The window: its own title bar, the sidebar and the pages. It follows the agent's requests to come to the front and
-/// to close, tells the agent whether it is in front, and lets looping animations run only while it can be seen.
+/// to close, tells the agent whether it is in front and the page shown when it comes back, and lets looping animations run
+/// only while it can be seen.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
@@ -152,6 +153,7 @@ public sealed partial class MainWindow : Window
         // The system setting may have changed while the window was in the background.
         Motion.SetReduced(_systemMotion?.IsReduced() == true);
         _shell?.Agent.ReportActivity(true);
+        _shell?.Navigator.Current?.OnWindowActivated();
     }
 
     private void OnDeactivated(object? sender, EventArgs e) => _shell?.Agent.ReportActivity(false);

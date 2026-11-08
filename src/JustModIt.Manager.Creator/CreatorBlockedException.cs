@@ -15,6 +15,9 @@ public enum CreatorBlockReason
     GameFolderMissing,
     AuthorFolderMissing,
 
+    /// <summary>The drive of the author's folder does not answer, so the folder may come back with it.</summary>
+    AuthorFolderUnavailable,
+
     /// <summary>One folder holds the other, so the author's files would count as game files or the other way round.</summary>
     FoldersOverlap,
 

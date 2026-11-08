@@ -431,7 +431,8 @@ public sealed class FolderComparerTests : IDisposable
         files.Hang(_workspace.AuthorDirectory);
         var comparing = comparer.CompareAsync(new ComparisonRequest(listed, _workspace.AuthorDirectory, []), progress: null, token);
         await files.RunOutOfTimeAsync(time);
-        await ((Func<Task>)(() => comparing)).Should().ThrowAsync<TimeoutException>();
+        (await ((Func<Task>)(() => comparing)).Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle()
+            .Which.Reason.Should().Be(CreatorBlockReason.AuthorFolderUnavailable, "the folder may come back with its drive");
     }
 
     [Fact]

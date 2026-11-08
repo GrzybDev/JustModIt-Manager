@@ -81,7 +81,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
 
     public bool HasProblem => ProblemTitle.Length > 0;
 
-    /// <summary>The files changed since the comparison, which the author has to compare again before building.</summary>
+    /// <summary>The files changed since the comparison, which runs again by itself before the next build.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowsBuild))]
     public partial bool NeedsComparison { get; private set; }
@@ -210,9 +210,6 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     private void Accept(string key) => _session.Change(project => project.Acknowledge(key));
 
     [RelayCommand]
-    private Task CompareAgainAsync() => _page.Cell.CompareAsync();
-
-    [RelayCommand]
     private void Reveal()
     {
         if (ResultFolder.Length > 0)
@@ -299,6 +296,10 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_BuildFailed, ("failure", failed.Failure.ToString()),
                 ("files", failed.Paths.Count), ("file", failed.Paths.Count == 0 ? ""
                     : failed.Failure == BuildFailure.FolderUnavailable ? failed.Paths[0] : InFolder(plan, failed.Paths[0]))));
+            if (NeedsComparison)
+            {
+                _ = _page.CheckAsync(anyway: true);
+            }
         }
         catch (CreatorBlockedException blocked)
         {

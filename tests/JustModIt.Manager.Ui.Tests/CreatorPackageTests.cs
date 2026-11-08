@@ -17,6 +17,7 @@ using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Building;
 using JustModIt.Manager.Creator.Planning;
+using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
@@ -664,13 +665,15 @@ public sealed class CreatorPackageTests : IDisposable
     [AvaloniaFact]
     public async Task A_build_that_fails_after_a_good_one_shows_the_good_one_as_an_earlier_package()
     {
-        using var ui = await OpenAsync();
+        var held = HeldComparison();
+        using var ui = await OpenAsync(held);
         var package = await PackageAsync(ui);
         package.Description.Version = "1.0";
         await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         await BuildAsync(ui);
         await BuiltAsync(package);
         _work.Author("data/extra/credits.txt", "credits of the author's work, with one more name");
+        held.Reads.Reset();
 
         await BuildAsync(ui);
         await BuildEndedAsync(package);
@@ -681,49 +684,107 @@ public sealed class CreatorPackageTests : IDisposable
         package.Build.EarlierText.Should().StartWith(Strings.Creator_EarlierPackage.ToUpper(Text.Culture));
         ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == package.Build.EarlierText);
         Shows(ui, Strings.Creator_TestInstall).Should().BeFalse("only a package the last build made is tried in the game");
-        Page(ui).CanBuild.Should().BeFalse("comparing the files again is the way on");
+        await UiHarness.WaitUntilAsync(() => package.Cell.IsComparing);
+        Page(ui).CanBuild.Should().BeFalse("the files are compared again first");
         await RenderAsync(ui, "creator-rebuild-failed", 1700);
+        held.Reads.Set();
     }
 
     [AvaloniaFact]
-    public async Task A_file_changed_since_the_comparison_fails_the_build_until_a_new_comparison_lets_it_build()
+    public async Task A_file_changed_since_the_comparison_fails_the_build_and_compares_again_by_itself()
     {
-        using var ui = await OpenAsync();
+        var held = HeldComparison();
+        using var ui = await OpenAsync(held);
         var package = await PackageAsync(ui);
         package.Description.Version = "1.0";
         await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
-        _work.Author("data/extra/credits.txt", "credits of the author's work, with one more name");
 
-        await BuildAsync(ui);
-        await BuildEndedAsync(package);
+        foreach (var (change, file) in new (Action Change, string File)[]
+        {
+            (() => _work.Author("data/extra/credits.txt", "credits of the author's work, with one more name"), "data/extra/credits.txt"),
+            (() => _work.Game("data/strings.bin", "strings of the original game, as its store updated them"), "data/strings.bin"),
+        })
+        {
+            change();
+            held.Reads.Reset();
+            await BuildAsync(ui);
+            await BuildEndedAsync(package);
 
-        package.Build.NeedsComparison.Should().BeTrue();
-        package.Build.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FilesChanged)),
-            ("files", 1), ("file", "data/extra/credits.txt")), "the author's file is named by its path in the folder, not above it");
-        ui.Click(Button(ui, Strings.Creator_CompareAgain));
-        await UiHarness.WaitUntilAsync(() => Page(ui).Cell.IsCompared && Page(ui).Session!.Review is not null);
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+            package.Build.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FilesChanged)),
+                ("files", 1), ("file", file)), "a file is named by its path in the folder or the game, not above it");
+            await UiHarness.WaitUntilAsync(() => package.Cell.IsComparing);
+            held.Reads.Set();
+            await UiHarness.WaitUntilAsync(() => package.Cell.IsCompared && !package.Build.HasProblem);
+        }
 
-        (package.Build.NeedsComparison, package.Build.HasProblem).Should().Be((false, false), "the files were compared again");
         await BuildAsync(ui);
         await BuiltAsync(package);
     }
 
     [AvaloniaFact]
-    public async Task A_game_file_changed_since_the_comparison_is_named_by_its_path_in_the_game()
+    public async Task A_file_rewritten_with_the_same_bytes_counts_as_no_change()
     {
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
         package.Description.Version = "1.0";
         await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
-        _work.Game("data/strings.bin", "strings of the original game, as its store updated them");
-
         await BuildAsync(ui);
-        await BuildEndedAsync(package);
+        await BuiltAsync(package);
+        (string, object?)[] since = [("hasVersion", "true"), ("version", GameWording.ShortVersion("1.0"))];
+        var unchanged = Text.Format(Strings.Creator_CellState, [("state", "Unchanged"), ("work", ""), .. since]);
+        package.Cell.Detail.Should().Be(unchanged);
 
-        package.Build.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FilesChanged)),
-            ("files", 1), ("file", "data/strings.bin")));
+        var credits = Path.Combine(_work.AuthorFolder, "data", "extra", "credits.txt");
+        File.WriteAllText(credits, File.ReadAllText(credits));
+        File.SetLastWriteTimeUtc(credits, DateTime.UtcNow.AddMinutes(1));
+        var compared = package.Session!.Comparison;
+        ui.Click(Button(ui, Strings.Creator_Projects));
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        await UiHarness.WaitUntilAsync(() => creator.Cards.Single().Line?.Label == Card("Changed", [("count", 1), .. since]),
+            () => creator.Cards.Single().Line?.Label ?? "");
+        creator.OpenCardCommand.Execute(creator.Cards.Single());
+
+        await UiHarness.WaitUntilAsync(() => package.Session.Comparison != compared && package.Cell.Detail == unchanged, () => package.Cell.Line.Label);
+        package.Cell.HasChanges.Should().BeFalse("the file holds the bytes the package was built from");
+        using (var library = new ProjectLibrary(ui.CreatorDirectory, TimeProvider.System))
+        {
+            (await library.ReadBuildAsync(package.ProjectId, CancellationToken.None))!.Parts[0].Folders[0].Files["data/extra/credits.txt"].LastWriteTime
+                .Should().Be(File.GetLastWriteTimeUtc(credits), "the card tells it next time without reading the file");
+        }
+
+        ui.Click(Button(ui, Strings.Creator_Projects));
+        await UiHarness.WaitUntilAsync(() => creator.Cards.Single().Line?.Label == Card("Unchanged", since));
+        _work.Author("data/strings.bin", "strings changed by the author, a little longer, and once more");
+        creator.OpenCardCommand.Execute(creator.Cards.Single());
+
+        await UiHarness.WaitUntilAsync(() => package.Cell.HasChanges);
+        package.Cell.ChangedText.Should().Be(Text.Format(Strings.Creator_ChangedSince, [("count", 1), .. since]));
+        package.Cell.Changes.Select(row => (row.KindText, row.Folder + row.Name)).Should().Equal((Strings.Creator_KindPatch, "data/strings.bin"));
+        await RenderAsync(ui, "creator-single-changes", null);
+        (ui.Window.Width, ui.Window.Height) = (960, 600);
+        await RenderAsync(ui, "creator-single-changes-960", null);
+
+        static string Card(string state, (string, object?)[] values) => Text.Format(Strings.Creator_CardState, [("state", state), ("path", ""), .. values]);
+    }
+
+    [AvaloniaFact]
+    public async Task Coming_back_during_a_build_compares_only_after_it_ended()
+    {
+        var (ui, package, files) = await BuildingAsync();
+        using var shown = ui;
+        var compared = package.Session!.Comparison;
+        _work.Author("data/extra/notes.txt", "notes the author added during the build");
+
+        ui.Window.Activate();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        (package.Cell.IsComparing, package.Session.Comparison).Should().Be((false, compared), "the build reads the files a comparison would plan from");
+
+        files.Reads.Set();
+        await BuiltAsync(package);
+        await UiHarness.WaitUntilAsync(() => package.Session.Comparison != compared && package.Cell.HasChanges);
+        package.Cell.Changes.Select(row => row.Folder + row.Name).Should().Equal("data/extra/notes.txt");
+        package.Cell.ChangedText.Should().Be(Text.Format(Strings.Creator_ChangedSince, ("count", 1), ("hasVersion", "true"),
+            ("version", GameWording.ShortVersion("0.9"))));
     }
 
     [AvaloniaFact]
@@ -1015,6 +1076,15 @@ public sealed class CreatorPackageTests : IDisposable
         await BuildAsync(ui);
         await UiHarness.WaitUntilAsync(() => package.Build.FileLine.Length > 0);
         return (ui, package, files);
+    }
+
+    // The author's file of the game file's size is hashed, which the held file system keeps a comparison from finishing once the
+    // test resets it.
+    private HeldFileSystem HeldComparison()
+    {
+        var held = new HeldFileSystem(_work.Author("data/config.xml", "<config language=\"xx\" />"));
+        held.Reads.Set();
+        return held;
     }
 
     // A build is waited for until it ends, however it ends, so one that fails says why at once rather than once the wait for a

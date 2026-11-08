@@ -108,8 +108,6 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Button Classes="primary compact" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_CompareAgain}" IsVisible="{Binding Build.NeedsComparison}"
-                  ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding Build.CompareAgainCommand}" />
           <Button Classes="primary compact" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_Rebuild}" IsVisible="{Binding Build.AcceptedAll}"
                   ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding Build.BuildCommand}" theme:Motion.Enter="True" />
         </StackPanel>

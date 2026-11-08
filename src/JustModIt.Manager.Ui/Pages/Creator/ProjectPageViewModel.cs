@@ -191,16 +191,13 @@ public sealed partial class ProjectPageViewModel : PageViewModel
 
     public override void OnShown()
     {
-        // A game the stores did not report, or a question left unanswered, may have an answer by now.
-        if (Game is null && HasVersion && _resuming is not { IsCompleted: false })
-        {
-            _resuming = ResumeAsync();
-        }
-
+        _ = CheckAsync();
         _ = Description.HintAsync();
         _ = ReadKeptPathsAsync();
         Test.ShowTest();
     }
+
+    public override void OnWindowActivated() => _ = CheckAsync();
 
     public override bool GoBackWithin()
     {
@@ -289,9 +286,31 @@ public sealed partial class ProjectPageViewModel : PageViewModel
     internal async Task ReadRecordAsync()
     {
         Record = await Library.ReadBuildAsync(ProjectId, CancellationToken.None).ConfigureAwait(true);
-        Cell.ShowRecord(Record);
         ShowSession();
         ShowBar();
+        await Cell.ShowRecordAsync(Record, CancellationToken.None).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Asks the stores where the game is and which build it has, then compares again when the game or the author's files
+    /// changed since the comparison. Nothing watches them meanwhile, so coming back, e.g. from an editor, is when it matters.
+    /// </summary>
+    /// <param name="anyway">Compares again whatever changed, as a build that found the files changed asks.</param>
+    /// <returns>Completes once the check ended; a comparison it starts goes on.</returns>
+    internal async Task CheckAsync(bool anyway = false)
+    {
+        if (!HasVersion || Session is null)
+        {
+            return;
+        }
+
+        if (_resuming is not { IsCompleted: false })
+        {
+            _resuming = ResumeAsync();
+        }
+
+        await _resuming.ConfigureAwait(true);
+        await (anyway ? Cell.CompareAsync() : Cell.CheckAsync()).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -322,8 +341,9 @@ public sealed partial class ProjectPageViewModel : PageViewModel
     {
         var session = Session!;
         _resumedAt = Agent.State.Library.ScannedAt;
-        var (_, answer) = await AgentRequests.AskAsync(Services, new GetDetectedGames()).ConfigureAwait(true);
-        if (Session != session || answer is not DetectedGames detected || session.Version is not { } version)
+        // Asked again whenever the page or the window comes back, so an agent out of reach only means no answer this time.
+        if (await AgentRequests.AskQuietlyAsync(Agent, new GetDetectedGames()).ConfigureAwait(true) is not DetectedGames detected || Session != session
+            || session.Version is not { } version)
         {
             return;
         }
@@ -336,6 +356,16 @@ public sealed partial class ProjectPageViewModel : PageViewModel
             return;
         }
 
+        // Stores spell a title differently now and then, e.g. with a colon, so titles are compared as the search folds them.
+        IsGameOnOtherStores = detected.Games.Any(other => other.Key.Store != entry.Key.Store
+            && string.Equals(SearchText.Fold(other.Name), SearchText.Fold(entry.Name), StringComparison.Ordinal));
+        IsGameGone = false;
+        // The game first, so a folder the store moved is compared with the game where it is now.
+        if (Game?.Key != entry.Key || Game.Game != entry.Game)
+        {
+            Game = entry;
+        }
+
         if (version.GameFolder != entry.Game.InstallDirectory)
         {
             session.Change(project => project with
@@ -343,12 +373,6 @@ public sealed partial class ProjectPageViewModel : PageViewModel
                 Versions = new(project.Versions.Items.SetItem(0, version with { Game = new ProjectGame(entry.Key, entry.Name), GameFolder = entry.Game.InstallDirectory })),
             });
         }
-
-        // Stores spell a title differently now and then, e.g. with a colon, so titles are compared as the search folds them.
-        IsGameOnOtherStores = detected.Games.Any(other => other.Key.Store != entry.Key.Store
-            && string.Equals(SearchText.Fold(other.Name), SearchText.Fold(entry.Name), StringComparison.Ordinal));
-        IsGameGone = false;
-        Game = entry;
     }
 
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
@@ -400,6 +424,11 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         if (e.PropertyName is nameof(CellViewModel.State) or nameof(BuildViewModel.State))
         {
             OnPropertyChanged(nameof(Work));
+        }
+
+        if (sender == Build && e.PropertyName == nameof(BuildViewModel.State) && !Build.IsBuilding)
+        {
+            Cell.CheckIfAsked();
         }
 
         if (e.PropertyName is nameof(CellViewModel.State) or nameof(BuildViewModel.State) or nameof(TestInstallViewModel.State)

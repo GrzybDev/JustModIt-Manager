@@ -21,6 +21,11 @@ public abstract class PageViewModel : ObservableObject
     {
     }
 
+    /// <summary>Called on the page shown when the window comes to the front, e.g. back from another program.</summary>
+    public virtual void OnWindowActivated()
+    {
+    }
+
     /// <summary>Whether the window may close now; a page with the player's unsaved work asks first and may say no.</summary>
     public virtual Task<bool> CanCloseAsync() => Task.FromResult(true);
 

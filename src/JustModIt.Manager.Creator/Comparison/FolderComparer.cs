@@ -17,9 +17,6 @@ namespace JustModIt.Manager.Creator.Comparison;
 /// <param name="access">Gives up on opening a folder whose drive does not answer; null waits for it.</param>
 public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSystem = null, LibraryAccess? access = null)
 {
-    // The default skips hidden and system files, which in an author's folder are .git, Thumbs.db and desktop.ini.
-    private static readonly EnumerationOptions AuthorFiles = new() { RecurseSubdirectories = true, IgnoreInaccessible = false };
-
     private readonly IFileSystem _fileSystem = fileSystem ?? PhysicalFileSystem.Instance;
     private readonly LibraryAccess _access = access ?? LibraryAccess.Unlimited;
     private readonly ContentHashes _hashes = new(fileSystem ?? PhysicalFileSystem.Instance);
@@ -49,8 +46,7 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
     /// <param name="request">The game, the author's folder and what to leave out of it.</param>
     /// <param name="progress">Receives the comparison's progress; null for none.</param>
     /// <param name="cancellationToken">Cancels the comparison, or the wait for one that a drive holds up.</param>
-    /// <exception cref="CreatorBlockedException">The folder is missing or overlaps the game's.</exception>
-    /// <exception cref="TimeoutException">The folder's drive does not answer.</exception>
+    /// <exception cref="CreatorBlockedException">The folder is missing, its drive does not answer, or it overlaps the game's.</exception>
     public Task<FolderComparison> CompareAsync(ComparisonRequest request, IProgress<CompareProgress>? progress,
         CancellationToken cancellationToken)
     {
@@ -64,9 +60,19 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
     private async Task<FolderComparison> CompareCoreAsync(ComparisonRequest request, IProgress<CompareProgress>? progress,
         CancellationToken cancellationToken)
     {
-        if (!await FolderExistsAsync(request.AuthorDirectory, cancellationToken).ConfigureAwait(false))
+        CreatorBlockReason? unopened;
+        try
         {
-            throw new CreatorBlockedException([new CreatorBlock(CreatorBlockReason.AuthorFolderMissing, request.AuthorDirectory)]);
+            unopened = await FolderExistsAsync(request.AuthorDirectory, cancellationToken).ConfigureAwait(false) ? null : CreatorBlockReason.AuthorFolderMissing;
+        }
+        catch (TimeoutException)
+        {
+            unopened = CreatorBlockReason.AuthorFolderUnavailable;
+        }
+
+        if (unopened is { } reason)
+        {
+            throw new CreatorBlockedException([new CreatorBlock(reason, request.AuthorDirectory)]);
         }
 
         var game = request.Game;
@@ -109,10 +115,8 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
     private List<Candidate> ListAuthorFiles(ComparisonRequest request, string authorDirectory, CancellationToken cancellationToken)
     {
         var game = request.Game;
-        var skipped = request.SkippedFolders.Select(_fileSystem.GetCanonicalPath).ToList();
         var candidates = new List<Candidate>();
-        foreach (var entry in AuthorFilesIn(authorDirectory, cancellationToken)
-            .Where(entry => !skipped.Exists(folder => PathComparison.IsWithin(folder, entry.FullPath))))
+        foreach (var entry in FileChanges.List(_fileSystem, authorDirectory, request.SkippedFolders, cancellationToken))
         {
             var authorPath = PackagePath.FromFullPath(authorDirectory, entry.FullPath);
             // A version's own folder may lie like that version; a path in the project's layout stays as it is.
@@ -123,18 +127,6 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
 
         candidates.Sort((left, right) => StringComparer.OrdinalIgnoreCase.Compare(left.Path, right.Path));
         return candidates;
-    }
-
-    private IEnumerable<FileEntry> AuthorFilesIn(string authorDirectory, CancellationToken cancellationToken)
-    {
-        foreach (var entry in _fileSystem.Enumerate(authorDirectory, "*", AuthorFiles))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!entry.IsDirectory && !entry.IsLink)
-            {
-                yield return entry;
-            }
-        }
     }
 
     private async Task<ComparedFile> ClassifyAsync(Candidate candidate, IReadOnlyList<GameIndex> others, IProgress<long> bytes,

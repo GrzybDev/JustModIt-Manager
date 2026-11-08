@@ -114,6 +114,73 @@ public sealed class CreatorLibraryTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_card_tells_what_changed_without_reading_a_file()
+    {
+        var tidewaterFolder = Directory.CreateDirectory(Path.Combine(_work.Root, "Work", "Tidewater Files")).FullName;
+        File.WriteAllText(Path.Combine(tidewaterFolder, "strings.bin"), "strings of the translation");
+        var ember = Project("Ember Isles", CreatorWorkspace.Lantern, _work.AuthorFolder);
+        var tidewater = Project("Tidewater", CreatorWorkspace.Tidewater, tidewaterFolder);
+        await SeedAsync(ember, tidewater);
+        using (var library = new ProjectLibrary(LibraryFolder, TimeProvider.System))
+        {
+            await library.UpdateBuildAsync(ember.Id, _ => Built(_work.AuthorFolder, "1.0"), CancellationToken.None);
+            await library.UpdateBuildAsync(tidewater.Id, _ => Built(tidewaterFolder, ""), CancellationToken.None);
+        }
+
+        _work.Author("data/strings.bin", "strings changed by the author once more");
+        _work.Author("data/new.txt", "a file the package did not have");
+        // A file of the folders could only be read once the test lets it.
+        using var files = new HangingFileSystem(new HeldFileSystem(_work.Root));
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Ember Isles")?.Line is not null && Card(ui, "Tidewater")?.Line is not null);
+
+        Card(ui, "Ember Isles")!.Line!.Label.Should().Be(State("Changed", count: 2, version: "1.0"));
+        Card(ui, "Tidewater")!.Line!.Label.Should().Be(State("Unchanged"));
+
+        // A project the card has not looked at yet says it looks, while its drive does not answer.
+        var ashfallFolder = Directory.CreateDirectory(Path.Combine(_work.Root, "Work", "Ashfall Files")).FullName;
+        var ashfall = Project("Ashfall", CreatorWorkspace.Ashfall, ashfallFolder);
+        await SeedAsync(ashfall);
+        using (var library = new ProjectLibrary(LibraryFolder, TimeProvider.System))
+        {
+            await library.UpdateBuildAsync(ashfall.Id, _ => Built(ashfallFolder, "2.0"), CancellationToken.None);
+        }
+
+        files.Hang(ashfallFolder);
+        ui.Shell.Navigator.Navigate(new SettingsRoute());
+        ui.Shell.Navigator.Navigate(new CreatorRoute());
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Ashfall")?.Line?.Label == State("Checking"));
+        await RenderBothAsync(ui, "creator-library-changes");
+        await files.RunOutOfTimeAsync(ui.Clock);
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Ashfall")!.FolderTip == ashfallFolder);
+    }
+
+    [AvaloniaFact]
+    public async Task A_drive_that_does_not_answer_holds_only_its_cell()
+    {
+        await SeedAsync(Project("Lantern Isle", CreatorWorkspace.Lantern, _work.AuthorFolder));
+        using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Lantern Isle") is { Details.Length: > 0 });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        files.Hang(_work.AuthorFolder);
+
+        ((CreatorPageViewModel)ui.Shell.Navigator.Current!).OpenCardCommand.Execute(Card(ui, "Lantern Isle"));
+        await files.RunOutOfTimeAsync(ui.Clock);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell.State: CellState.FolderGone });
+        var page = (ProjectPageViewModel)ui.Shell.Navigator.Current!;
+
+        page.Cell.NoticeTitle.Should().Be(Text.Format(Strings.Creator_BlockTitle, ("reason", nameof(CreatorBlockReason.AuthorFolderUnavailable))),
+            "a drive that does not answer does not prove the folder gone");
+        page.Cell.NoticeText.Should().Contain(_work.AuthorFolder);
+        await RenderBothAsync(ui, "creator-folder-unanswered");
+        page.Tab = ProjectTab.Description;
+        page.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => page.BeforeItems.Any(item => item.IsMet && item.Text.Contains("1.0", StringComparison.Ordinal)));
+        page.CanBuild.Should().BeFalse("the version's comparison waits for its drive");
+    }
+
+    [AvaloniaFact]
     public async Task A_comparison_under_way_shows_on_the_project_s_card()
     {
         // A file of the game's size is hashed, which the held file system keeps from finishing.
@@ -336,7 +403,14 @@ public sealed class CreatorLibraryTests : IDisposable
     private static ProjectCard? Card(UiHarness ui, string name) =>
         (ui.Shell.Navigator.Current as CreatorPageViewModel)?.Cards.FirstOrDefault(card => card.Name == name);
 
-    private static string State(string state, string path = "") => Text.Format(Strings.Creator_CardState, ("state", state), ("path", path));
+    private static string State(string state, string path = "", int count = 0, string version = "") => Text.Format(Strings.Creator_CardState,
+        ("state", state), ("path", path), ("count", count), ("hasVersion", version.Length > 0 ? "true" : "false"), ("version", GameWording.ShortVersion(version)));
+
+    // A record of a build that read the folder as it is now.
+    private BuildRecord Built(string folder, string version) => new([new PartBuild("", version,
+        [new FolderBuild(folder, Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).ToDictionary(
+            file => Path.GetRelativePath(folder, file).Replace(Path.DirectorySeparatorChar, '/'), file => new BuiltFile(new FileInfo(file).Length, File.GetLastWriteTimeUtc(file))))],
+        [new BuiltPackage(Path.Combine(_work.Root, "Packages", "package.zip"), PackageKind.Zip, 1024, [], version, BuiltAt)])]);
 
     private static Button MoreButton(UiHarness ui, ProjectCard card) =>
         ui.Find<Button>().First(button => button.DataContext == card && button.Classes.Contains("cardMore"));

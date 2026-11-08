@@ -85,11 +85,15 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         _ = ReadDetectedAsync();
     }
 
+    // Back from another program, e.g. an editor, the author's files may have changed.
+    public override void OnWindowActivated() => _ = RefreshCardsAsync(Cards);
+
     public override Task<bool> CanCloseAsync() => OpenPage?.LeaveAsync() ?? Task.FromResult(true);
 
     public void Dispose()
     {
         Services.Agent.PropertyChanged -= OnAgentChanged;
+        _refreshing.Cancel();
         Library.Dispose();
     }
 
@@ -284,7 +288,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         if (e.PropertyName == nameof(ProjectPageViewModel.Work))
         {
             // A build that ended has written the package's row, which the card names.
-            _ = Cards.FirstOrDefault(card => card.Id == ((ProjectPageViewModel)sender!).ProjectId)?.RefreshAsync();
+            _ = Cards.FirstOrDefault(card => card.Id == ((ProjectPageViewModel)sender!).ProjectId)?.RefreshAsync(_refreshing.Token);
             ShowStates();
         }
     }

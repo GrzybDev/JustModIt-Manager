@@ -258,6 +258,32 @@ public sealed class CreatorTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_file_changed_while_the_window_was_away_compares_again_when_it_comes_back()
+    {
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
+        await UiHarness.WaitUntilAsync(() => page.Cell.IsCompared && page.Session!.Review is not null);
+        var compared = page.Session!.Comparison;
+
+        ui.Window.Activate();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        page.Session.Comparison.Should().BeSameAs(compared, "nothing changed while the window was away");
+
+        _work.Author("data/extra/notes.txt", "notes the author added in an editor");
+        ui.Window.Activate();
+        await UiHarness.WaitUntilAsync(() => page.Session!.Comparison != compared && page.Cell.IsCompared);
+        page.Session.Comparison!.FindAuthorFile("data/extra/notes.txt").Should().NotBeNull();
+
+        compared = page.Session.Comparison;
+        ui.Agent.Answer = request => request is GetDetectedGames
+            ? new DetectedGames([.. _work.Detected.Select(entry => entry.Key == CreatorWorkspace.Lantern ? entry with { Game = entry.Game with { BuildId = "18002" } } : entry)])
+            : null;
+        ui.Window.Activate();
+        await UiHarness.WaitUntilAsync(() => page.Session!.Comparison != compared && page.Cell.IsCompared);
+        page.VersionLine.Should().Contain(Text.Format(Strings.Creator_GameBuild, ("build", "18002")), "the store updated the game meanwhile");
+    }
+
+    [AvaloniaFact]
     public async Task A_version_with_an_install_holds_the_build_and_says_why()
     {
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
