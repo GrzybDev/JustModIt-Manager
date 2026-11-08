@@ -73,6 +73,19 @@ public sealed class CatalogueCacheTests : IDisposable
     }
 
     [Fact]
+    public async Task A_saved_index_keeps_a_file_s_layout()
+    {
+        var layout = new FileLayout { Folders = [new("Ember Isles_Data", "EmberIsles_Data")], ObjectSize = 2048, ObjectSha256 = new string('a', 64) };
+        var file = TestProjects.File(TestProjects.FileOne) with { Layout = layout, Replaces = [TestProjects.FileTwo] };
+
+        await _cache.SaveIndexAsync(new InstallableIndex(FetchedAt, [TestProjects.Entry(release: TestProjects.Release(TestProjects.ReleaseOne, 1, file))]), Token);
+
+        var saved = (await _cache.LoadIndexAsync(Token))!.Entries.Single().PublicRelease!.Files.Single();
+        saved.Layout.Should().BeEquivalentTo(layout);
+        saved.Replaces.Should().Equal(TestProjects.FileTwo);
+    }
+
+    [Fact]
     public async Task Keeps_the_saved_listing_and_logs_why_when_the_new_one_cannot_be_written()
     {
         var log = new LogLines<CatalogueCache>();

@@ -22,9 +22,7 @@ internal static class ManifestSteps
     public static IReadOnlyList<PackageStep> From(PackageManifest manifest, IReadOnlyDictionary<string, ZipArchiveEntry> files, GameKey? game)
     {
         // The serializer checks the nullability of properties but not of list items.
-        if (manifest.Targets.Any(target => target is null || string.IsNullOrWhiteSpace(target.Id)
-            || target.Folders?.All(folder => folder is not null && PackagePath.IsValid(folder.Package) && PackagePath.IsValid(folder.Game)
-                && !PackagePath.HasShortName(folder.Game)) == false)
+        if (manifest.Targets.Any(target => target is null || string.IsNullOrWhiteSpace(target.Id) || target.Folders?.All(FolderRename.IsSafe) == false)
             || manifest.Operations.Any(operation => operation.Only is { Count: 0 }))
         {
             throw new InvalidPackageException(PackageError.InvalidManifest, "targets");

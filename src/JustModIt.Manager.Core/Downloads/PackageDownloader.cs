@@ -13,7 +13,8 @@ namespace JustModIt.Manager.Core.Downloads;
 
 /// <summary>
 /// Downloads release files one release at a time into one folder, each named after its file uuid, under which its content
-/// never changes, so a verified download stays valid for as long as it is kept.
+/// never changes, so a verified download stays valid for as long as it is kept. A file with a layout has two kinds of bytes,
+/// what a browser gets and its shared object, whose downloads, partial ones and saved addresses have names of their own.
 /// </summary>
 public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
 {
@@ -26,6 +27,7 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
     private const int BufferSize = 128 * 1024;
     private const long MaxRecordLength = 64 * 1024;
     private const string PartialMarker = ".part";
+    private const string SharedObjectMarker = ".object";
 
     private readonly ICatalogueApi _api;
     private readonly HttpClient _storage;
@@ -117,9 +119,8 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
         // another game's download.
         try
         {
-            var files = PackageFiles.For(_directory, _packageExtension, request);
-            return await FindVerifiedAsync(files, request, forgetUnverified: false, cancellationToken).ConfigureAwait(false)
-                ?? await FindOriginalAsync(request, cancellationToken).ConfigureAwait(false);
+            return await FindKeptAsync(PackageFiles.For(_directory, _packageExtension, request), request, forgetUnverified: false,
+                cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -183,8 +184,7 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
         {
             var request = download.Files[index];
             var files = PackageFiles.For(_directory, _packageExtension, request);
-            packages[index] = await FindVerifiedAsync(files, request, forgetUnverified: true, cancellationToken).ConfigureAwait(false)
-                ?? await FindOriginalAsync(request, cancellationToken).ConfigureAwait(false);
+            packages[index] = await FindKeptAsync(files, request, forgetUnverified: true, cancellationToken).ConfigureAwait(false);
             if (packages[index] is null)
             {
                 missing.Add(await PendingAsync(index, request, files, cancellationToken).ConfigureAwait(false));
@@ -251,8 +251,8 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
 
         foreach (var file in pending)
         {
-            await SaveAddressAsync(file, await _api.ResolveDownloadAsync(file.Request.Locator, cancellationToken).ConfigureAwait(false))
-                .ConfigureAwait(false);
+            await SaveAddressAsync(file, await _api.ResolveDownloadAsync(file.Request.Locator, file.Request.IsSharedObject, cancellationToken)
+                .ConfigureAwait(false)).ConfigureAwait(false);
         }
     }
 
@@ -295,25 +295,28 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
     }
 
     // A held download has other bytes than the request describes, which only its own sidecar vouches for, and is named after
-    // the site's format for its own file, which may differ from this one's; a package's kind comes from its content anyway. A
-    // copy has the bytes of the file it copies, so the original's kept download serves for it. Neither is deleted from here.
-    private async Task<DownloadedPackage?> FindOriginalAsync(PackageRequest request, CancellationToken cancellationToken)
+    // the site's format for its own file, which may differ from this one's; a package's kind comes from its content anyway. It
+    // comes first, so an install keeps the bytes it came from. A copy has the bytes of the file it copies, so the original's
+    // kept download serves for it. Neither is deleted from here.
+    private async Task<DownloadedPackage?> FindKeptAsync(PackageFiles files, PackageRequest request, bool forgetUnverified,
+        CancellationToken cancellationToken)
     {
         if (request.HeldDownload is { } held)
         {
             foreach (var format in Enum.GetValues<PackageFormat>())
             {
-                if (await FindKeptAsAsync(held, request with { Format = format, Size = null, Md5 = "", Sha256 = "" }, cancellationToken)
-                    .ConfigureAwait(false) is { } kept)
+                var asHeld = request with { Format = format, Size = null, Md5 = "", Sha256 = "", IsSharedObject = request.HeldIsSharedObject };
+                if (await FindKeptAsAsync(held, asHeld, cancellationToken).ConfigureAwait(false) is { } kept)
                 {
                     return kept;
                 }
             }
         }
 
-        return request is { CopiedFrom: { } original, Size: not null }
-            ? await FindKeptAsAsync(original, request, cancellationToken).ConfigureAwait(false)
-            : null;
+        return await FindVerifiedAsync(files, request, forgetUnverified, cancellationToken).ConfigureAwait(false)
+            ?? (request is { CopiedFrom: { } original, Size: not null }
+                ? await FindKeptAsAsync(original, request, cancellationToken).ConfigureAwait(false)
+                : null);
     }
 
     private async Task<DownloadedPackage?> FindKeptAsAsync(Guid file, PackageRequest request, CancellationToken cancellationToken)
@@ -669,7 +672,7 @@ public sealed partial class PackageDownloader : IPackageDownloader, IDisposable
     {
         public static PackageFiles For(string directory, string packageExtension, PackageRequest request)
         {
-            var stem = Path.Combine(directory, request.Locator.FileUuid.ToString("D"));
+            var stem = Path.Combine(directory, request.Locator.FileUuid.ToString("D") + (request.IsSharedObject ? SharedObjectMarker : ""));
             var extension = request.Format == PackageFormat.Manifest ? packageExtension : PackageLayout.ZipExtension;
             return new PackageFiles(stem + extension, stem + ".json", stem + PartialMarker, stem + PartialMarker + ".json");
         }

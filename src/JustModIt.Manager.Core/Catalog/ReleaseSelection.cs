@@ -69,7 +69,7 @@ public sealed record PlanPart(string? FeatureKey, string? FeatureName, ReleaseFi
 public sealed record ReleasePlan(IReadOnlyList<PlanPart> Parts, IReadOnlyList<string> FeatureKeys, string? Variant)
 {
     /// <summary>The bytes of every package, as far as the site gives their sizes.</summary>
-    public long Size => Parts.Sum(part => part.File.Size ?? 0);
+    public long Size => Parts.Sum(part => part.File.DownloadSize ?? 0);
 }
 
 /// <summary>

@@ -14,21 +14,33 @@ public sealed record PackageRequest(ReleaseFileLocator Locator, PackageFormat Fo
     public Guid? CopiedFrom { get; init; }
 
     /// <summary>
-    /// The kept download of a file this one replaces, in the install being replaced, which serves for it though its bytes
-    /// differ; null for none.
+    /// A kept download of the install being replaced that serves for this file though its bytes may differ: a file this one
+    /// replaces, or this file's own archive from before its layout; null for none.
     /// </summary>
     public Guid? HeldDownload { get; init; }
 
-    /// <summary>The request for a release file, with the catalogue's size and hashes.</summary>
+    /// <summary>The held download is a shared object, not what a browser gets.</summary>
+    public bool HeldIsSharedObject { get; init; }
+
+    /// <summary>
+    /// The bytes wanted are the file's shared object, to install with its layout's rule, not what a browser gets, which
+    /// the uuid names too and which an install without a rule needs.
+    /// </summary>
+    public bool IsSharedObject { get; init; }
+
+    /// <summary>The request for a release file, with what the catalogue says of the bytes the app gets for it.</summary>
     /// <param name="locator">Names the file for the download endpoint.</param>
     /// <param name="file">The file as the catalogue describes it.</param>
     /// <exception cref="ArgumentException">The file is in a format the app does not install.</exception>
     public static PackageRequest For(ReleaseFileLocator locator, ReleaseFile file)
     {
         var format = file.Format ?? throw new ArgumentException($"Release file {file.Uuid:D} is in no format the app installs.", nameof(file));
-        return new PackageRequest(locator, format, file.Size, file.Md5.ToLowerInvariant(), file.Sha256.ToLowerInvariant())
+        // Beside a layout, the file's own size and hashes describe what a browser gets.
+        return new PackageRequest(locator, format, file.DownloadSize, file.Layout is null ? file.Md5.ToLowerInvariant() : "",
+            (file.Layout?.ObjectSha256 ?? file.Sha256).ToLowerInvariant())
         {
             CopiedFrom = file.CopiedFrom,
+            IsSharedObject = file.Layout is not null,
         };
     }
 }
@@ -56,7 +68,7 @@ public readonly record struct DownloadProgress(long BytesReceived, long? TotalBy
 /// <param name="FromCache">An earlier verified download was reused without asking the site, which counts nothing.</param>
 public sealed record DownloadedPackage(string Path, long Size, string Md5, string? Sha256, PackageFormat Format, bool FromCache)
 {
-    /// <summary>The file whose kept download served, when the requested file copies or replaces it; null otherwise.</summary>
+    /// <summary>The held or copied file whose kept download served; null when the package holds the bytes the request describes.</summary>
     public Guid? CopyOf { get; init; }
 }
 
@@ -87,8 +99,8 @@ public interface IPackageDownloader
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// The verified package if it was downloaded before, the kept download of a file it replaces in the install being
-    /// replaced, or the original's when the file is a copy of the same size; asks nothing of the site.
+    /// The held download, the verified package if it was downloaded before, or the original's when the file is a copy of
+    /// the same size; asks nothing of the site.
     /// </summary>
     /// <param name="request">The file and what to verify it against.</param>
     /// <param name="cancellationToken">Cancels the check.</param>

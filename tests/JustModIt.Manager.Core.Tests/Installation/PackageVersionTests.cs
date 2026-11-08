@@ -158,7 +158,7 @@ public sealed class PackageVersionTests : IAsyncDisposable
                 held => PackagePath.ToFullPath(game.Root, held.GetProperty("path").GetString()!),
                 held => new SimulatedFile(held.GetProperty("size").GetInt64(), held.GetProperty("sha256").GetString(), DiskPath: null),
                 PathComparison.Comparer);
-            await using var opened = await new PackageReader().OpenAsync(file, key, InstallHarness.Token);
+            await using var opened = await new PackageReader().OpenAsync(file, key, null, InstallHarness.Token);
             var simulation = new InstallSimulation(game, new ProgressTracker(null, InstallStage.Checking, 0, 0), path => holds.GetValueOrDefault(path));
 
             await simulation.RunAsync(opened.Steps, InstallHarness.Token);

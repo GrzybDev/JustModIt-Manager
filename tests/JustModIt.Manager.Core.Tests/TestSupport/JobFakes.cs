@@ -190,9 +190,12 @@ internal sealed class FakeDownloader : IPackageDownloader
 {
     public ConcurrentQueue<Guid> Downloads { get; } = new();
 
-    public ConcurrentQueue<ReleaseFileLocator> DownloadedFrom { get; } = new();
+    public ConcurrentQueue<PackageRequest> DownloadedFrom { get; } = new();
 
     public ConcurrentDictionary<Guid, bool> Cached { get; } = new();
+
+    /// <summary>The kept shared objects, which a file's uuid names apart from what a browser gets.</summary>
+    public ConcurrentDictionary<Guid, bool> CachedObjects { get; } = new();
 
     public ConcurrentQueue<(IReadOnlySet<Guid> Keep, bool KeepPartial)> Prunes { get; } = new();
 
@@ -208,8 +211,8 @@ internal sealed class FakeDownloader : IPackageDownloader
 
     public string Folder { get; set; } = Path.Join(Path.GetTempPath(), "ExampleApp.Tests", "downloads");
 
-    public string PathOf(Guid file, PackageFormat format = PackageFormat.Zip) =>
-        Path.Join(Folder, file.ToString("D") + (format == PackageFormat.Manifest ? ".examplemod" : ".zip"));
+    public string PathOf(Guid file, PackageFormat format = PackageFormat.Zip, bool sharedObject = false) =>
+        Path.Join(Folder, file.ToString("D") + (sharedObject ? ".object" : "") + (format == PackageFormat.Manifest ? ".examplemod" : ".zip"));
 
     public async Task<DownloadedPackage> DownloadAsync(PackageRequest request, IProgress<DownloadProgress>? progress,
         CancellationToken cancellationToken)
@@ -220,7 +223,7 @@ internal sealed class FakeDownloader : IPackageDownloader
         }
 
         Downloads.Enqueue(request.Locator.FileUuid);
-        DownloadedFrom.Enqueue(request.Locator);
+        DownloadedFrom.Enqueue(request);
         progress?.Report(new DownloadProgress(0, 1024));
         if (Gates.TryGetValue(request.Locator.FileUuid, out var gate))
         {
@@ -234,8 +237,8 @@ internal sealed class FakeDownloader : IPackageDownloader
         }
 
         progress?.Report(new DownloadProgress(1024, 1024));
-        Cached[request.Locator.FileUuid] = true;
-        return new DownloadedPackage(PathOf(request.Locator.FileUuid, request.Format), 1024, "", null, request.Format, FromCache: false);
+        (request.IsSharedObject ? CachedObjects : Cached)[request.Locator.FileUuid] = true;
+        return Kept(request.Locator.FileUuid, request.Format, request.IsSharedObject) with { FromCache = false };
     }
 
     public async Task<IReadOnlyList<DownloadedPackage>> DownloadReleaseAsync(ReleaseDownload download, IProgress<DownloadProgress>? progress,
@@ -257,12 +260,13 @@ internal sealed class FakeDownloader : IPackageDownloader
     }
 
     public Task<DownloadedPackage?> FindCachedAsync(PackageRequest request, CancellationToken cancellationToken) =>
-        Task.FromResult(Cached.ContainsKey(request.Locator.FileUuid)
-            ? new DownloadedPackage(PathOf(request.Locator.FileUuid, request.Format), 1024, "", null, request.Format, FromCache: true)
-            : (request.HeldDownload is { } held && Cached.ContainsKey(held) ? held
-                : request.CopiedFrom is { } original && Cached.ContainsKey(original) ? original : (Guid?)null) is { } kept
-                ? new DownloadedPackage(PathOf(kept, request.Format), 1024, "", null, request.Format, FromCache: true) { CopyOf = kept }
-                : null);
+        Task.FromResult(request.HeldDownload is { } held && Keeps(held, request.HeldIsSharedObject)
+            ? Kept(held, request.Format, request.HeldIsSharedObject) with { CopyOf = held }
+            : Keeps(request.Locator.FileUuid, request.IsSharedObject)
+                ? Kept(request.Locator.FileUuid, request.Format, request.IsSharedObject)
+                : request.CopiedFrom is { } original && Keeps(original, request.IsSharedObject)
+                    ? Kept(original, request.Format, request.IsSharedObject) with { CopyOf = original }
+                    : null);
 
     public Task<int> PruneAsync(IReadOnlySet<Guid> keep, bool keepPartial, CancellationToken cancellationToken)
     {
@@ -275,6 +279,11 @@ internal sealed class FakeDownloader : IPackageDownloader
 
         return Task.FromResult(removed);
     }
+
+    private bool Keeps(Guid file, bool sharedObject) => (sharedObject ? CachedObjects : Cached).ContainsKey(file);
+
+    private DownloadedPackage Kept(Guid file, PackageFormat format, bool sharedObject) =>
+        new(PathOf(file, format, sharedObject), 1024, "", null, format, FromCache: true);
 }
 
 /// <summary>
@@ -382,7 +391,7 @@ internal sealed class FakeInstallEngine : IInstallEngine
             InstalledAt = TestProjects.Now,
             Package = new InstalledPackage(PackageKind.Zip, Path.GetFileName(request.Parts[0].PackagePath)),
             Parts = [.. request.Parts.Select(part => new InstalledPart(new InstalledPackage(PackageKind.Zip, Path.GetFileName(part.PackagePath)),
-                part.FeatureKey, part.FeatureName, part.ReleaseFileId, part.CachedFileId))],
+                part.FeatureKey, part.FeatureName, part.ReleaseFileId, part.CachedFileId, part.Folders))],
             Source = request.Source,
             Backup = new BackupFolder(request.Backup.Location, Path.Join(request.Game.InstallDirectory, ".example-app", "backups")),
             FileCount = 2,

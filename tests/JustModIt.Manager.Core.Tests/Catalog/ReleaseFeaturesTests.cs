@@ -1,5 +1,6 @@
 using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Packages;
 
 namespace JustModIt.Manager.Core.Tests.Catalog;
 
@@ -51,6 +52,22 @@ public sealed class ReleaseFeaturesTests
 
         release.Files[0].Replaces.Should().Equal(Guid.Parse("33333333-0000-4000-8000-000000000008"), Guid.Parse("33333333-0000-4000-8000-000000000009"));
         release.Files.Skip(1).Should().AllSatisfy(file => file.Replaces.Should().BeEmpty());
+    }
+
+    [Fact]
+    public void Reads_a_file_s_layout_and_downloads_the_shared_object_it_names()
+    {
+        var file = Read("""
+            {
+              "uuid": "22222222-0000-4000-8000-000000000002",
+              "files": [{"uuid": "33333333-0000-4000-8000-000000000001", "name": "", "size": null, "sha256": "", "layout": {
+                "folders": [{"package": "Ember Isles_Data", "game": "EmberIsles_Data"}], "object_size": 1200100, "object_sha256": "abc"}}]
+            }
+            """).Files.Single();
+
+        file.Layout!.Folders.Should().Equal(new FolderRename("Ember Isles_Data", "EmberIsles_Data"));
+        file.Layout.ObjectSha256.Should().Be("abc");
+        file.DownloadSize.Should().Be(1200100);
     }
 
     [Theory]

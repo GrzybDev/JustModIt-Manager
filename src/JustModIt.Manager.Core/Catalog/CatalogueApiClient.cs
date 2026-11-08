@@ -95,9 +95,9 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
             : throw new CatalogueException(CatalogueErrorReason.InvalidResponse, $"GET {path} returned a JSON {root.ValueKind}.");
     }
 
-    public async Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, CancellationToken cancellationToken)
+    public async Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, bool layouts, CancellationToken cancellationToken)
     {
-        var path = $"{ReleasePath(file.Release)}files/{file.FileUuid:D}/download/";
+        var path = $"{ReleasePath(file.Release)}files/{file.FileUuid:D}/download/{(layouts ? "?layouts=1" : "")}";
         var json = await GetDownloadAsync(path, cancellationToken).ConfigureAwait(false);
         return AddressOf(path, Parse(path, () => JsonSerializer.Deserialize(json, Json.DownloadLink)).DownloadUrl);
     }
@@ -105,7 +105,7 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
     public async Task<IReadOnlyDictionary<Guid, Uri>> ResolveDownloadsAsync(ReleaseLocator release, IReadOnlyList<Guid> files,
         CancellationToken cancellationToken)
     {
-        var path = $"{ReleasePath(release)}download/?files={string.Join(',', files.Select(file => file.ToString("D")))}";
+        var path = $"{ReleasePath(release)}download/?files={string.Join(',', files.Select(file => file.ToString("D")))}&layouts=1";
         var json = await GetDownloadAsync(path, cancellationToken).ConfigureAwait(false);
         var links = Parse(path, () => JsonSerializer.Deserialize(json, Json.ReleaseDownloadLinks)).Files
             .GroupBy(link => link.Uuid)

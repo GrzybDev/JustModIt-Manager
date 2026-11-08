@@ -14,7 +14,10 @@ public sealed record InstalledFeature(string Key, string Name);
 /// <param name="Files">The release files the install's packages are.</param>
 public sealed record InstalledRelease(Guid ReleaseUuid, int ReleaseVersion, DateTimeOffset? PublishedAt, IReadOnlyList<Guid> Files)
 {
-    /// <summary>The kept downloads the packages' bytes came from, when that is another file: one they copy or replace.</summary>
+    /// <summary>
+    /// The kept downloads the packages' bytes came from, when not fetched for these files: ones they copy or replace, or their
+    /// own archives from before their layouts.
+    /// </summary>
     public IReadOnlyList<Guid> Downloads { get; init; } = [];
 
     /// <summary>The add-ons the install has.</summary>
@@ -127,7 +130,7 @@ public static class ReleaseUpdates
             Drops = drops,
             WaitsForPlayer = drops.Count > 0 || GainsFeatures(installed, selection, plan, choices)
                 || LostVariant(installed, selection, plan, choices),
-            Size = plan.Parts.Where(part => !installed.Holds(part.File)).Sum(part => part.File.Size ?? 0),
+            Size = plan.Parts.Where(part => !installed.Holds(part.File)).Sum(part => part.File.DownloadSize ?? 0),
         };
     }
 

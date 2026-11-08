@@ -102,9 +102,15 @@ public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? M
 /// <param name="FeatureKey">The add-on it installed, by its key in the release; null for the base.</param>
 /// <param name="FeatureName">The add-on's name when it was installed, shown offline.</param>
 /// <param name="ReleaseFileId">The release file the package is; null for a package the package creator built.</param>
-/// <param name="CachedFileId">The download the package's bytes came from, when that is another file: one it copies or replaces.</param>
+/// <param name="CachedFileId">
+/// The download the package's bytes came from, when not fetched for this file: one it copies or replaces, or its own archive
+/// from before its layout.
+/// </param>
+/// <param name="Folders">
+/// Where a plain archive's folders lay on the game, whose bytes are then a shared object; null for the archive as it is written.
+/// </param>
 public sealed record InstalledPart(InstalledPackage Package, string? FeatureKey = null, string? FeatureName = null,
-    string? ReleaseFileId = null, string? CachedFileId = null)
+    string? ReleaseFileId = null, string? CachedFileId = null, IReadOnlyList<FolderRename>? Folders = null)
 {
     /// <summary>The download that stays kept for the package; null for a package that came from none.</summary>
     [JsonIgnore]

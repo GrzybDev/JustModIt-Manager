@@ -285,7 +285,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
 
     private static InstalledPart InstalledPartOf(CompositePart part, InstallPart requested) =>
         new(InstalledPackage.From(part.Package!), requested.FeatureKey, requested.FeatureName, requested.ReleaseFileId,
-            requested.CachedFileId);
+            requested.CachedFileId, requested.Folders);
 
     private static List<LeftOutFeature>? LeftOutFeaturesOf(ValueList<LeftOutPart> leftOut) =>
         leftOut.Any(part => part.Part.FeatureKey is not null)
@@ -296,8 +296,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     // An install of optional parts alone could end up installing nothing.
     private Task<CompositePackage> OpenAsync(InstallRequest request, CancellationToken cancellationToken) =>
         request.Parts.Any(part => !part.IsOptional)
-            ? CompositePackage.OpenAsync(_packages, [.. request.Parts.Select(part => (part.PackagePath, part.IsOptional))], request.Game.Key,
-                cancellationToken)
+            ? CompositePackage.OpenAsync(_packages, [.. request.Parts.Select(part => (part.PackagePath, part.IsOptional, part.Folders))],
+                request.Game.Key, cancellationToken)
             : throw new ArgumentException("An install needs a package it cannot go without.", nameof(request));
 
     // An optional part whose own check fails is left out and the rest checked again without it, so it never holds back the

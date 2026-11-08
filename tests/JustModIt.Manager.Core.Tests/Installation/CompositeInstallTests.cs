@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
@@ -49,6 +51,50 @@ public sealed class CompositeInstallTests : IAsyncDisposable
 
         _harness.Snapshot().Should().BeEquivalentTo(_before);
         _harness.AppFiles().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_laid_out_zip_installs_in_the_game_s_folders_and_undoes_by_its_file_list()
+    {
+        FolderRename[] folders = [new("Ember Isles_Data", "data")];
+        var basePackage = _harness.Zip(new TestPackage().Entry("Ember Isles_Data/lang/text.txt", "Text").Entry("Ember Isles_Data/strings.pak", "Translated")
+            .Entry("readme.txt", "Translated read me"));
+        var addOn = _harness.ManifestPackage(new TestPackage().Copy("data/lang/voice.txt", "Voice"));
+
+        var result = await _harness.Engine.InstallAsync(_harness.Request(new InstallPart(basePackage) { Folders = folders }, InstallHarness.AddOn(addOn)),
+            null, Token);
+
+        _harness.ReadGameFile("data/lang/text.txt").Should().Be("Text");
+        _harness.ReadGameFile("data/strings.pak").Should().Be("Translated");
+        _harness.ReadGameFile("data/lang/voice.txt").Should().Be("Voice");
+        Directory.Exists(_harness.GameFile("Ember Isles_Data")).Should().BeFalse();
+        (await _harness.Engine.LoadFilesAsync(result.Record.Id, Token)).Files.Select(file => file.Path).Should().BeEquivalentTo(
+            "data/lang/text.txt", "data/strings.pak", "readme.txt", "data/lang/voice.txt");
+        (await _harness.Engine.LoadRecordsAsync(Token)).Single().Parts![0].Folders.Should().Equal(folders);
+        (await _harness.Engine.VerifyAsync(result.Record.Id, null, Token)).IsIntact.Should().BeTrue();
+
+        (await _harness.UninstallAsync(result.Record.Id)).KeptFiles.Should().BeEmpty();
+
+        _harness.Snapshot().Should().BeEquivalentTo(_before);
+        _harness.AppFiles().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_part_s_folder_rule_round_trips_and_a_record_without_one_stays_as_it_was()
+    {
+        var saved = await File.ReadAllBytesAsync(Path.Join(AppContext.BaseDirectory, "Installation", "Fixtures", "v1-parts", "AppData", "installs",
+            "2a8f35a350864e4e9618d0b34b7363a4", "record.json"), Token);
+        var context = InstallationJsonContext.Default.InstallRecord;
+        var record = JsonSerializer.Deserialize(saved, context)!;
+        FolderRename[] folders = [new("Ember Isles_Data", "EmberIsles_Data")];
+
+        var again = JsonSerializer.SerializeToUtf8Bytes(record, context);
+        var withRule = JsonSerializer.Deserialize(JsonSerializer.SerializeToUtf8Bytes(
+            record with { Parts = [record.Parts![0] with { Folders = folders }, record.Parts[1]] }, context), context)!;
+
+        JsonNode.DeepEquals(JsonNode.Parse(again), JsonNode.Parse(saved)).Should().BeTrue();
+        withRule.Parts![0].Folders.Should().Equal(folders);
+        withRule.Parts[1].Folders.Should().BeNull();
     }
 
     [Fact]

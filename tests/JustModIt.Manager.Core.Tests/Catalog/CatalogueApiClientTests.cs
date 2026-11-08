@@ -141,18 +141,21 @@ public sealed class CatalogueApiClientTests
         storage.Timeout.Should().Be(Timeout.InfiniteTimeSpan);
     }
 
-    [Fact]
-    public async Task Resolves_a_download_with_one_request_to_the_exact_path()
+    [Theory]
+    [InlineData(true, "?layouts=1")]
+    [InlineData(false, "")]
+    public async Task Resolves_a_download_with_one_request_to_the_exact_path(bool layouts, string query)
     {
         var handler = FakeHttpHandler.Sequence(() =>
             FakeHttpHandler.Json("""{"download_url": "https://storage.example.com/releases/a/b/c/package.zip"}"""));
         using var client = Client(handler);
 
-        var url = await client.ResolveDownloadAsync(File, Token);
+        var url = await client.ResolveDownloadAsync(File, layouts, Token);
 
         url.Should().Be(new Uri("https://storage.example.com/releases/a/b/c/package.zip"));
         handler.Paths.Should().Equal(
-            "/projects/v1/teams/lantern-works/starlight-harbor/releases/f3e0e0e0-0000-4000-8000-000000000032/files/a0000000-0000-4000-8000-000000000001/download/");
+            "/projects/v1/teams/lantern-works/starlight-harbor/releases/f3e0e0e0-0000-4000-8000-000000000032/files/a0000000-0000-4000-8000-000000000001/download/"
+            + query);
     }
 
     [Fact]
@@ -175,7 +178,7 @@ public sealed class CatalogueApiClientTests
             [voices] = new("https://storage.example.com/voices.zip"),
         });
         handler.Paths.Should().Equal("/projects/v1/teams/lantern-works/starlight-harbor/releases/f3e0e0e0-0000-4000-8000-000000000032/download/"
-            + "?files=a0000000-0000-4000-8000-000000000001,a0000000-0000-4000-8000-000000000002");
+            + "?files=a0000000-0000-4000-8000-000000000001,a0000000-0000-4000-8000-000000000002&layouts=1");
     }
 
     [Fact]
@@ -188,7 +191,7 @@ public sealed class CatalogueApiClientTests
         using var client = new CatalogueApiClient(CatalogueFixtures.Options(), _time, handler, () => installation);
 
         await client.GetStatusesAsync(Token);
-        await client.ResolveDownloadAsync(File, Token);
+        await client.ResolveDownloadAsync(File, layouts: true, Token);
 
         handler.Requests.Select(request => request.Installation).Should().Equal(null, "c0ffee00-0000-4000-8000-000000000042");
     }
@@ -226,9 +229,9 @@ public sealed class CatalogueApiClientTests
         using var second = Client(dropped);
         using var third = Client(stalled);
 
-        var unavailable = await Catching(first.ResolveDownloadAsync(File, Token));
-        var lost = await Catching(second.ResolveDownloadAsync(File, Token));
-        var unanswered = await Catching(CompleteAsync(third.ResolveDownloadAsync(File, Token), TimeSpan.FromSeconds(1)));
+        var unavailable = await Catching(first.ResolveDownloadAsync(File, layouts: true, Token));
+        var lost = await Catching(second.ResolveDownloadAsync(File, layouts: true, Token));
+        var unanswered = await Catching(CompleteAsync(third.ResolveDownloadAsync(File, layouts: true, Token), TimeSpan.FromSeconds(1)));
 
         unavailable.Reason.Should().Be(CatalogueErrorReason.Maintenance);
         lost.Reason.Should().Be(CatalogueErrorReason.Offline);
@@ -246,7 +249,7 @@ public sealed class CatalogueApiClientTests
         var handler = new FakeHttpHandler(_ => FakeHttpHandler.Json(body, status));
         using var client = Client(handler);
 
-        var error = await Catching(client.ResolveDownloadAsync(File, Token));
+        var error = await Catching(client.ResolveDownloadAsync(File, layouts: true, Token));
 
         error.Reason.Should().Be(CatalogueErrorReason.ReleaseUnavailable);
         error.IsTransient.Should().BeFalse();
@@ -262,7 +265,7 @@ public sealed class CatalogueApiClientTests
             : FakeHttpHandler.Json("""{"download_url": "https://storage.example.com/package.zip"}"""));
         using var client = Client(handler);
 
-        var url = await CompleteAsync(client.ResolveDownloadAsync(File, Token));
+        var url = await CompleteAsync(client.ResolveDownloadAsync(File, layouts: true, Token));
 
         url.AbsolutePath.Should().Be("/package.zip");
         handler.Requests.Should().HaveCount(2);
@@ -278,7 +281,7 @@ public sealed class CatalogueApiClientTests
         var handler = new FakeHttpHandler(_ => FakeHttpHandler.Json($$"""{"download_url": "{{address}}"}"""));
         using var client = Client(handler);
 
-        var error = await Catching(client.ResolveDownloadAsync(File, Token));
+        var error = await Catching(client.ResolveDownloadAsync(File, layouts: true, Token));
 
         error.Reason.Should().Be(CatalogueErrorReason.InvalidResponse);
     }
@@ -290,7 +293,7 @@ public sealed class CatalogueApiClientTests
         using var client = new CatalogueApiClient(
             new CatalogueApiOptions(new Uri("http://localhost:8000"), null, "ExampleApp", "1.0"), _time, handler);
 
-        var url = await client.ResolveDownloadAsync(File, Token);
+        var url = await client.ResolveDownloadAsync(File, layouts: true, Token);
 
         url.Should().Be(new Uri("http://localhost:8000/media/package.zip"));
         handler.Requests.Single().Uri.AbsolutePath.Should().StartWith("/projects/v1/teams/");

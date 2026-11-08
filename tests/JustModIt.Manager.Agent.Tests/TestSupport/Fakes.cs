@@ -263,7 +263,7 @@ internal sealed class OfflineCatalogueApi : ICatalogueApi
 
     public Task<SiteConfiguration> GetSiteConfigurationAsync(CancellationToken cancellationToken) => throw Offline;
 
-    public Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, CancellationToken cancellationToken) => throw Offline;
+    public Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, bool layouts, CancellationToken cancellationToken) => throw Offline;
 
     public Task<IReadOnlyDictionary<Guid, Uri>> ResolveDownloadsAsync(ReleaseLocator release, IReadOnlyList<Guid> files,
         CancellationToken cancellationToken) => throw Offline;

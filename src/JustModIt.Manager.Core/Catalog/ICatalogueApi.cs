@@ -65,8 +65,9 @@ public interface ICatalogueApi
     /// reached the server.
     /// </summary>
     /// <param name="file">The release file to download.</param>
+    /// <param name="layouts">Whether the app wants the shared object of a file with a layout, rather than its derived archive.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
-    Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, CancellationToken cancellationToken);
+    Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, bool layouts, CancellationToken cancellationToken);
 
     /// <summary>
     /// The storage addresses of files one install of a release takes, at most one per part, in one request, which the site

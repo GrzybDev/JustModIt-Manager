@@ -5,6 +5,11 @@ namespace JustModIt.Manager.Core.Packages;
 /// <param name="Game">Where it lies on the game.</param>
 public sealed record FolderRename(string Package, string Game)
 {
+    /// <summary>Whether a rule read from outside names safe folders; neither serializer checks the items of a list for null.</summary>
+    /// <param name="folder">The rule.</param>
+    internal static bool IsSafe(FolderRename? folder) =>
+        folder is not null && PackagePath.IsValid(folder.Package) && PackagePath.IsValid(folder.Game) && !PackagePath.HasShortName(folder.Game);
+
     /// <summary>
     /// A package path as it lies on a game: the longest rule that is whole leading segments of the path, the whole path
     /// included and letter case ignored, is replaced once and never again; of rules of one length, the first.

@@ -73,7 +73,7 @@ public sealed class ReinstallJobTests
         var result = await jobs.RunAsync(new UpdateJobRequest(record));
 
         result.RestoredPrevious.Should().BeTrue();
-        jobs.Downloader.DownloadedFrom.Select(locator => (locator.TeamSlug, locator.FileUuid))
+        jobs.Downloader.DownloadedFrom.Select(request => (request.Locator.TeamSlug, request.Locator.FileUuid))
             .Should().Equal(("renamed-team", FileTwo), ("renamed-team", FileOne));
     }
 

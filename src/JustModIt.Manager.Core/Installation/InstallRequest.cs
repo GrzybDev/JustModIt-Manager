@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 
 namespace JustModIt.Manager.Core.Installation;
@@ -64,6 +65,12 @@ public sealed record InstallPart(string PackagePath)
     /// <summary>The release file the package is; null for a package the package creator built.</summary>
     public string? ReleaseFileId { get; init; }
 
-    /// <summary>The download the package's bytes came from, when that is another file: one it copies or replaces.</summary>
+    /// <summary>
+    /// The download the package's bytes came from, when not fetched for this file: one it copies or replaces, or its own
+    /// archive from before its layout.
+    /// </summary>
     public string? CachedFileId { get; init; }
+
+    /// <summary>Where a plain archive's folders lie on the game, as the site says of the file; null for the archive as it is written.</summary>
+    public IReadOnlyList<FolderRename>? Folders { get; init; }
 }

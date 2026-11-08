@@ -210,6 +210,6 @@ public sealed record PackageView(Guid FileId, string FileName)
     /// <param name="file">The file as the release lists it.</param>
     public static PackageView From(ReleaseFile file)
     {
-        return new PackageView(file.Uuid, file.DownloadFilename) { Size = file.Size, Format = file.Format };
+        return new PackageView(file.Uuid, file.DownloadFilename) { Size = file.DownloadSize, Format = file.Format };
     }
 }

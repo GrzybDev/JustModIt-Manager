@@ -110,6 +110,12 @@ public sealed record ReleaseFile
     /// </summary>
     public IReadOnlyList<Guid> Replaces { get; init => field = value ?? []; } = [];
 
+    /// <summary>
+    /// The shared object a plain archive installs from, with where its folders lie on the file's store versions; null when
+    /// the file's bytes are its own, as <see cref="Size"/> and <see cref="Sha256"/> say.
+    /// </summary>
+    public FileLayout? Layout { get; init; }
+
     public string Description { get; init => field = value ?? ""; } = "";
 
     /// <summary>Set for packages in the app's own format, which the site does not offer as direct downloads.</summary>
@@ -150,6 +156,10 @@ public sealed record ReleaseFile
     [JsonIgnore]
     public bool IsReady => Status == ReadyStatus;
 
+    /// <summary>The bytes the app downloads for the file; null while the upload is pending.</summary>
+    [JsonIgnore]
+    public long? DownloadSize => Layout?.ObjectSize ?? Size;
+
     /// <summary>
     /// How the app installs the file, null when it does not; a file that needs the app is known by the site's flag,
     /// whatever its extension, since apps name manifest packages differently.
@@ -170,6 +180,18 @@ public sealed record ReleaseFileMirror
     public string Url { get; init => field = value ?? ""; } = "";
 
     public int Position { get; init; }
+}
+
+/// <summary>A plain archive shared by several store versions, and where its folders lie on the versions of one release file.</summary>
+public sealed record FileLayout
+{
+    public required IReadOnlyList<FolderRename> Folders { get; init; }
+
+    /// <summary>In bytes.</summary>
+    public required long ObjectSize { get; init; }
+
+    /// <summary>Lower-case hex.</summary>
+    public required string ObjectSha256 { get; init; }
 }
 
 /// <summary>What the download endpoint needs to name one release file.</summary>

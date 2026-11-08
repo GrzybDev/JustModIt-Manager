@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json.Nodes;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Downloads;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Tests.Catalog.TestSupport;
 using JustModIt.Manager.Core.Tests.Downloads.TestSupport;
 using JustModIt.Manager.Core.Tests.TestSupport;
@@ -138,6 +139,59 @@ public sealed class ReleaseDownloadTests : IDisposable
         fellBack.Single().Should().Match<DownloadedPackage>(package => package.CopyOf == null && package.Size == 300 * 1024);
         _api.Requests[^1].Should().Equal(merged);
         File.Exists(found.Path).Should().BeTrue("a file that serves for another is never deleted from here");
+    }
+
+    [Fact]
+    public async Task A_laid_out_file_is_verified_against_the_shared_object()
+    {
+        var shared = FakeStorage.Bytes(200 * 1024);
+        var file = TestProjects.File(BaseFile) with
+        {
+            Size = 999,
+            Md5 = new string('0', 32),
+            Sha256 = new string('0', 64),
+            Layout = new FileLayout { Folders = [new("Ember Isles_Data", "EmberIsles_Data")], ObjectSize = shared.Length, ObjectSha256 = TestPackage.Sha256(shared) },
+        };
+        var request = PackageRequest.For(new ReleaseFileLocator(Release.TeamSlug, Release.ProjectSlug, Release.ReleaseUuid, BaseFile), file);
+
+        var fetched = await _downloader.DownloadAsync(request, null, Token);
+        var kept = await _downloader.DownloadReleaseAsync(new ReleaseDownload(Release, [request, Request(VoicesFile, 150 * 1024)], ResolveTogether: true), null, Token);
+
+        fetched.Size.Should().Be(shared.Length);
+        fetched.Path.Should().Be(_directory.Combine($"{BaseFile:D}.object.zip"));
+        kept[0].FromCache.Should().BeTrue("the shared object is what the file is checked against, so it is not deleted");
+        _api.Requests.Should().HaveCount(2);
+        _api.Requests[1].Should().Equal(VoicesFile);
+        var held = Request(MusicFile, 100 * 1024) with { HeldDownload = BaseFile };
+        (await _downloader.FindCachedAsync(held with { HeldIsSharedObject = true }, Token))!.Path.Should().Be(fetched.Path);
+        (await _downloader.FindCachedAsync(held, Token)).Should().BeNull("the file's uuid names the other kind of bytes there");
+
+        foreach (var (other, size) in new[] { (VoicesFile, shared.Length), (MusicFile, 100 * 1024) })
+        {
+            var derived = () => _downloader.DownloadAsync(request with { Locator = request.Locator with { FileUuid = other }, Size = size }, null, Token);
+
+            (await derived.Should().ThrowAsync<CatalogueException>()).Which.Reason.Should().Be(CatalogueErrorReason.CorruptDownload);
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_partial_and_a_saved_address_of_one_kind_of_a_file_s_bytes_never_serve_for_the_other(bool sharedObject)
+    {
+        var other = sharedObject ? $"{BaseFile:D}" : $"{BaseFile:D}.object";
+        _directory.Write($"{other}.part", "other bytes");
+        _directory.Write($"{other}.part.json", $$"""
+            {"version":1,"address":"https://storage.example.com/other/{{BaseFile:D}}.zip","resolved_at":"2026-09-01T11:00:00+00:00"}
+            """);
+
+        var package = await _downloader.DownloadAsync(Request(BaseFile, 200 * 1024) with { IsSharedObject = sharedObject }, null, Token);
+
+        _api.Requests.Should().ContainSingle();
+        _api.Layouts.Should().Be(sharedObject, "the site is told which of the two is wanted");
+        _storage.Requests.Select(request => request.Uri.AbsolutePath).Should().Equal($"/releases/{BaseFile:D}/package.zip");
+        package.Path.Should().Be(_directory.Combine(sharedObject ? $"{BaseFile:D}.object.zip" : $"{BaseFile:D}.zip"));
+        File.Exists(_directory.Combine($"{other}.part")).Should().BeTrue();
     }
 
     [Fact]

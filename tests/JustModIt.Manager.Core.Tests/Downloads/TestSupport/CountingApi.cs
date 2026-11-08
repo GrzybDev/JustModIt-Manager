@@ -18,15 +18,22 @@ internal sealed class CountingApi(Func<ReleaseFileLocator, Uri> resolve) : ICata
     /// <summary>Runs before each request is answered, e.g. to look at what was saved before it.</summary>
     public Action? BeforeAnswer { get; set; }
 
+    /// <summary>Whether the last request of a single file wanted a shared object; null before the first.</summary>
+    public bool? Layouts { get; private set; }
+
+    /// <summary>Gives the address of a request that wants a shared object; null for the same as any other.</summary>
+    public Func<ReleaseFileLocator, Uri>? ResolveObject { get; init; }
+
     /// <summary>Answers the next request of a release's files with this failure instead.</summary>
     public Exception? NextFailure { get; set; }
 
-    public Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, CancellationToken cancellationToken)
+    public Task<Uri> ResolveDownloadAsync(ReleaseFileLocator file, bool layouts, CancellationToken cancellationToken)
     {
+        Layouts = layouts;
         Interlocked.Increment(ref _resolved);
         _requests.Enqueue([file.FileUuid]);
         BeforeAnswer?.Invoke();
-        return Task.FromResult(resolve(file));
+        return Task.FromResult((layouts ? ResolveObject ?? resolve : resolve)(file));
     }
 
     public Task<IReadOnlyDictionary<Guid, Uri>> ResolveDownloadsAsync(ReleaseLocator release, IReadOnlyList<Guid> files,

@@ -42,14 +42,15 @@ public sealed class PackageReader(PackageLimits? limits = null)
     /// <param name="path">The package's full path.</param>
     /// <param name="cancellationToken">Cancels the validation.</param>
     /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
-    public Task<IPackage> OpenAsync(string path, CancellationToken cancellationToken) => OpenAsync(path, null, cancellationToken);
+    public Task<IPackage> OpenAsync(string path, CancellationToken cancellationToken) => OpenAsync(path, null, null, cancellationToken);
 
-    /// <summary>Opens a package file for a game and validates it in full.</summary>
+    /// <summary>Opens a package file for a game, with what the site says of a plain archive's layout, and validates it in full.</summary>
     /// <param name="path">The package's full path.</param>
-    /// <param name="game">The game, whose target says where the package's folders lie on it; null for the package as written.</param>
+    /// <param name="game">The game, whose target says where a manifest package's folders lie on it; null for the package as written.</param>
+    /// <param name="folders">Where a plain archive's folders lie on the game; null for the archive as written.</param>
     /// <param name="cancellationToken">Cancels the validation.</param>
     /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
-    public async Task<IPackage> OpenAsync(string path, GameKey? game, CancellationToken cancellationToken)
+    public async Task<IPackage> OpenAsync(string path, GameKey? game, IReadOnlyList<FolderRename>? folders, CancellationToken cancellationToken)
     {
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize,
             FileOptions.Asynchronous | FileOptions.RandomAccess);
@@ -76,7 +77,7 @@ public sealed class PackageReader(PackageLimits? limits = null)
             var files = await ArchiveEntries.ValidateAsync(archive, _limits,
                 kind == PackageKind.Manifest ? IsManifestPackageEntry : _ => true, cancellationToken).ConfigureAwait(false);
             var manifest = kind == PackageKind.Manifest ? await ReadManifestAsync(files, cancellationToken).ConfigureAwait(false) : null;
-            var steps = manifest is null ? ZipSteps(files) : ManifestSteps.From(manifest, files, game);
+            var steps = manifest is null ? ZipSteps(files, folders) : ManifestSteps.From(manifest, files, game);
             var runtimeFiles = manifest is null ? [] : RuntimeDeclarations.From(manifest, game);
             return new ZipPackage(kind, Path.GetFileName(path), archive, files, manifest, steps, runtimeFiles);
         }
@@ -162,10 +163,39 @@ public sealed class PackageReader(PackageLimits? limits = null)
         return content;
     }
 
-    private static List<PackageStep> ZipSteps(OrderedDictionary<string, ZipArchiveEntry> files) =>
-        files.Count == 0
-            ? throw new InvalidPackageException(PackageError.Empty)
-            : [.. files.Select(file => new CopyStep(file.Key, file.Key, file.Value.Length, Sha256: null))];
+    // The archive was validated under its own names, so the paths a rule makes of them are checked here.
+    private static List<PackageStep> ZipSteps(OrderedDictionary<string, ZipArchiveEntry> files, IReadOnlyList<FolderRename>? folders)
+    {
+        if (files.Count == 0)
+        {
+            throw new InvalidPackageException(PackageError.Empty);
+        }
+
+        if (folders?.All(FolderRename.IsSafe) == false)
+        {
+            throw new InvalidPackageException(PackageError.UnsafeEntryName, "folders");
+        }
+
+        var paths = new HashSet<string>(PackagePath.Comparer);
+        List<PackageStep> steps = [];
+        foreach (var (entry, file) in files)
+        {
+            var path = FolderRename.Map(folders, entry);
+            if (!PackagePath.IsValid(path))
+            {
+                throw new InvalidPackageException(PackageError.UnsafeEntryName, path);
+            }
+
+            if (!paths.Add(path))
+            {
+                throw new InvalidPackageException(PackageError.DuplicateEntry, path);
+            }
+
+            steps.Add(new CopyStep(path, entry, file.Length, Sha256: null));
+        }
+
+        return steps;
+    }
 
     private sealed class ZipPackage(
         PackageKind kind,

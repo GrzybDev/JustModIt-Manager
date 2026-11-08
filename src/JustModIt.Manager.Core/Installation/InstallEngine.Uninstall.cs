@@ -397,7 +397,7 @@ public sealed partial class InstallEngine
         var declared = new HashSet<string>(PathComparison.Comparer);
         foreach (var path in packagePaths ?? [])
         {
-            var package = await _packages.OpenAsync(path, key, cancellationToken).ConfigureAwait(false);
+            var package = await _packages.OpenAsync(path, key, null, cancellationToken).ConfigureAwait(false);
             await using (package.ConfigureAwait(false))
             {
                 declared.UnionWith(DeclaredBy(package, game));

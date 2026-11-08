@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Downloads;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
@@ -13,10 +14,10 @@ internal sealed class JobsHarness : IAsyncDisposable
 {
     private readonly TempDirectory _markers = new();
 
-    private JobsHarness(IInstallPolicy? policy, IInstallEngine? engine)
+    private JobsHarness(IInstallPolicy? policy, IInstallEngine? engine, IPackageDownloader? downloader)
     {
         Markers = new ReplacementMarkers(_markers.Path, Time, NullLogger<ReplacementMarkers>.Instance);
-        Runner = new JobRunner(engine ?? Engine, Catalogue, Downloader, Library, RunningGames, Settings, Markers, Time,
+        Runner = new JobRunner(engine ?? Engine, Catalogue, downloader ?? Downloader, Library, RunningGames, Settings, Markers, Time,
             NullLogger<JobRunner>.Instance, policy);
         Runner.Changed += (_, job) => Changes.Enqueue(job);
         Runner.Progressed += (_, job) => Progress.Enqueue(job);
@@ -59,9 +60,11 @@ internal sealed class JobsHarness : IAsyncDisposable
     /// <param name="recover">False to leave crash recovery to the test, so jobs wait for it.</param>
     /// <param name="policy">The app's install policy; null for the platform's, which lets projects share a game.</param>
     /// <param name="engine">The engine jobs run on; null for <see cref="Engine"/>, which keeps installs in memory.</param>
-    public static async Task<JobsHarness> CreateAsync(bool recover = true, IInstallPolicy? policy = null, IInstallEngine? engine = null)
+    /// <param name="downloader">What jobs download with; null for <see cref="Downloader"/>, which keeps nothing on disk.</param>
+    public static async Task<JobsHarness> CreateAsync(bool recover = true, IInstallPolicy? policy = null, IInstallEngine? engine = null,
+        IPackageDownloader? downloader = null)
     {
-        var harness = new JobsHarness(policy, engine);
+        var harness = new JobsHarness(policy, engine, downloader);
         if (recover)
         {
             await harness.Runner.RecoverAsync(Token);

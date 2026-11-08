@@ -64,24 +64,25 @@ public sealed class CompositePackage : IPackage
 
     /// <summary>Opens every package in order, each validated in full.</summary>
     /// <param name="reader">Opens and validates one package.</param>
-    /// <param name="files">Each package's full path, and whether the install may go on without it.</param>
+    /// <param name="files">Each package's full path, whether the install may go on without it, and where a plain archive's folders lie.</param>
     /// <param name="game">The game they open for, whose target in each package says where its folders lie.</param>
     /// <param name="cancellationToken">Stops opening them.</param>
     /// <exception cref="InvalidPackageException">
     /// A package is malformed or unsafe, or a package the install needs was made for a newer app; an optional one made for
     /// a newer app is kept with its <see cref="CompositePart.Refusal"/> instead.
     /// </exception>
-    public static async Task<CompositePackage> OpenAsync(PackageReader reader, IReadOnlyList<(string Path, bool IsOptional)> files,
-        GameKey game, CancellationToken cancellationToken)
+    public static async Task<CompositePackage> OpenAsync(PackageReader reader,
+        IReadOnlyList<(string Path, bool IsOptional, IReadOnlyList<FolderRename>? Folders)> files, GameKey game, CancellationToken cancellationToken)
     {
         var parts = new List<CompositePart>(files.Count);
         try
         {
-            foreach (var (path, isOptional) in files)
+            foreach (var (path, isOptional, folders) in files)
             {
                 try
                 {
-                    parts.Add(new CompositePart(parts.Count, isOptional, await reader.OpenAsync(path, game, cancellationToken).ConfigureAwait(false)));
+                    parts.Add(new CompositePart(parts.Count, isOptional,
+                        await reader.OpenAsync(path, game, folders, cancellationToken).ConfigureAwait(false)));
                 }
                 catch (InvalidPackageException refused) when (isOptional && refused.Error.NeedsNewerApp())
                 {

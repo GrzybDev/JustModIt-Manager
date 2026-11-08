@@ -625,6 +625,47 @@ public sealed class PackageReaderTests : IDisposable
         (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidManifest);
     }
 
+    [Theory]
+    [InlineData("Ember Isles_Data/level.dat", "EmberIsles_Data/level.dat")]
+    [InlineData("ember isles_DATA/level.dat", "EmberIsles_Data/level.dat")]
+    [InlineData("Ember Isles_Data2/level.dat", "Ember Isles_Data2/level.dat")]
+    [InlineData("Ember Isles_Data/Movies/intro.bik", "Cinematics/intro.bik")]
+    [InlineData("readme.txt", "readme.txt")]
+    public async Task A_folder_rule_moves_a_zip_s_steps_and_leaves_its_entries_by_their_names(string entry, string path)
+    {
+        var token = TestContext.Current.CancellationToken;
+        new TestPackage().Entry(entry, "content").WriteZip(Zip);
+        FolderRename[] folders = [new("Ember Isles_Data", "EmberIsles_Data"), new("Ember Isles_Data/Movies", "Cinematics")];
+
+        await using var package = await _reader.OpenAsync(Zip, null, folders, token);
+
+        package.Steps.Should().Equal(new CopyStep(path, entry, "content".Length, Sha256: null));
+        using var text = new StreamReader(await package.OpenEntryAsync(entry, token));
+        (await text.ReadToEndAsync(token)).Should().Be("content");
+    }
+
+    public static TheoryData<string, string?, string?, PackageError> UnsafeZipRules => new()
+    {
+        { "Isles/level.dat", "Isles", "Data", PackageError.DuplicateEntry },
+        { "Isles/level.dat", "Isles", "../Data", PackageError.UnsafeEntryName },
+        { "Isles/level.dat", "Isles", "PROGRA~1", PackageError.UnsafeEntryName },
+        { "Isles/level.dat", null, "Data", PackageError.UnsafeEntryName },
+        { "Isles/level.dat", "Isles", null, PackageError.UnsafeEntryName },
+        { "Isles/level.dat", "Isles", new string('d', 300) + "/" + new string('d', 200), PackageError.UnsafeEntryName },
+    };
+
+    [Theory]
+    [MemberData(nameof(UnsafeZipRules))]
+    public async Task A_folder_rule_that_makes_two_entries_one_path_or_an_unsafe_one_refuses_the_package(string entry, string? package, string? game,
+        PackageError error)
+    {
+        new TestPackage().Entry(entry, "content").Entry("Data/level.dat", "content").WriteZip(Zip);
+
+        var open = () => _reader.OpenAsync(Zip, null, [new FolderRename(package!, game!)], TestContext.Current.CancellationToken);
+
+        (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(error);
+    }
+
     [Fact]
     public async Task Opening_for_a_game_maps_every_path_once_and_keeps_payload_entries()
     {
@@ -641,7 +682,7 @@ public sealed class PackageReaderTests : IDisposable
             .Targets(new PackageTarget(StoreId.Steam, "1000", Folders: folders), new PackageTarget(StoreId.Gog, "2000"))
             .WriteManifestPackage(ManifestPackage);
 
-        await using var mapped = await _reader.OpenAsync(ManifestPackage, new GameKey(StoreId.Steam, "1000"), TestContext.Current.CancellationToken);
+        await using var mapped = await _reader.OpenAsync(ManifestPackage, new GameKey(StoreId.Steam, "1000"), null, TestContext.Current.CancellationToken);
 
         mapped.Steps.Should().Equal(
             new RenameStep("B/first.dat", "C/first.dat"),
@@ -654,7 +695,7 @@ public sealed class PackageReaderTests : IDisposable
         mapped.RuntimeFiles.Single().Path.Should().Be("C/list.dat");
         foreach (var game in new GameKey?[] { new GameKey(StoreId.Gog, "2000"), new GameKey(StoreId.Steam, "3000"), null })
         {
-            await using var unmapped = await _reader.OpenAsync(ManifestPackage, game, TestContext.Current.CancellationToken);
+            await using var unmapped = await _reader.OpenAsync(ManifestPackage, game, null, TestContext.Current.CancellationToken);
             unmapped.Steps[0].Should().Be(new RenameStep("a/first.dat", "B/first.dat"));
             unmapped.RuntimeFiles.Single().Path.Should().Be("b/list.dat");
         }
@@ -672,7 +713,7 @@ public sealed class PackageReaderTests : IDisposable
 
         foreach (var package in new[] { ManifestPackage, twice })
         {
-            var open = () => _reader.OpenAsync(package, game, TestContext.Current.CancellationToken);
+            var open = () => _reader.OpenAsync(package, game, null, TestContext.Current.CancellationToken);
 
             (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.InvalidManifest);
         }
@@ -690,8 +731,8 @@ public sealed class PackageReaderTests : IDisposable
         var steam = new GameKey(StoreId.Steam, "1000");
         var gog = new GameKey(StoreId.Gog, "2000");
 
-        await using var onSteam = await _reader.OpenAsync(ManifestPackage, steam, token);
-        await using var onGog = await _reader.OpenAsync(ManifestPackage, gog, token);
+        await using var onSteam = await _reader.OpenAsync(ManifestPackage, steam, null, token);
+        await using var onGog = await _reader.OpenAsync(ManifestPackage, gog, null, token);
         await using var asWritten = await _reader.OpenAsync(ManifestPackage, token);
 
         onSteam.Steps.OfType<CopyStep>().Select(step => step.Path).Should().Equal("text.txt", "steam.txt");
@@ -700,7 +741,7 @@ public sealed class PackageReaderTests : IDisposable
         asWritten.Steps.Should().HaveCount(3);
         foreach (var game in new GameKey?[] { steam, gog, null })
         {
-            var open = () => _reader.OpenAsync(broken, game, token);
+            var open = () => _reader.OpenAsync(broken, game, null, token);
 
             (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.MissingPayload);
         }
@@ -712,7 +753,7 @@ public sealed class PackageReaderTests : IDisposable
         var token = TestContext.Current.CancellationToken;
         new TestPackage().Delete("old.txt").Only(StoreId.Gog).WriteManifestPackage(ManifestPackage);
 
-        var open = () => _reader.OpenAsync(ManifestPackage, new GameKey(StoreId.Steam, "1000"), token);
+        var open = () => _reader.OpenAsync(ManifestPackage, new GameKey(StoreId.Steam, "1000"), null, token);
 
         (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.Empty,
             "such a package would commit a record with no files");

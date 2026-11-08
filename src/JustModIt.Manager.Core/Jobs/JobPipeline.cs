@@ -332,6 +332,11 @@ internal sealed partial class JobPipeline(
             var (detail, selection, plan) = await PlanAsync(job, game, project, record).ConfigureAwait(false);
             var release = selection.Release!;
             var files = plan.Parts.Select(part => part.File).ToList();
+            // After a repair the record names the replacing file itself, with the download it came from. A part without a rule of
+            // a file that has one by now came from the file's derived archive, an earlier app's, so the file's id names two kinds of bytes.
+            var held = files.Select(file => installed.FirstOrDefault(part => (Guid.TryParse(part.ReleaseFileId, out var id)
+                && (file.Replaces.Contains(id) || (id == file.Uuid && part.Folders is null && file.Layout is not null)))
+                || (part.KeptDownload is { } kept && file.Replaces.Contains(kept)))).ToList();
             var locator = new ReleaseLocator(detail.Team.Slug, detail.Slug, release.Uuid);
             foreach (var file in files)
             {
@@ -348,12 +353,11 @@ internal sealed partial class JobPipeline(
             try
             {
                 // Only a backend that says which add-ons a release has gives a release's files in one request.
-                downloaded = await DownloadAsync(job, new ReleaseDownload(locator, [.. files.Select(file =>
+                downloaded = await DownloadAsync(job, new ReleaseDownload(locator, [.. files.Select((file, index) =>
                     PackageRequest.For(new ReleaseFileLocator(locator.TeamSlug, locator.ProjectSlug, release.Uuid, file.Uuid), file) with
                     {
-                        // After a repair the record names the replacing file itself, with the download it came from.
-                        HeldDownload = installed.FirstOrDefault(part => (Guid.TryParse(part.ReleaseFileId, out var id) && file.Replaces.Contains(id))
-                            || (part.KeptDownload is { } kept && file.Replaces.Contains(kept)))?.KeptDownload,
+                        HeldDownload = held[index]?.KeptDownload,
+                        HeldIsSharedObject = held[index]?.Folders is not null,
                     })],
                     ResolveTogether: release.Features is not null)).ConfigureAwait(false);
             }
@@ -390,6 +394,8 @@ internal sealed partial class JobPipeline(
                 FeatureName = part.FeatureName,
                 ReleaseFileId = part.File.Uuid.ToString("D"),
                 CachedFileId = downloaded[index].CopyOf?.ToString("D"),
+                // A kept download keeps its own layout; old bytes never take the new file's rule.
+                Folders = held[index] is { } kept && kept.KeptDownload == downloaded[index].CopyOf ? kept.Folders : part.File.Layout?.Folders,
             })], release.Uuid, source);
         }
     }
@@ -541,7 +547,7 @@ internal sealed partial class JobPipeline(
                 var locator = new ReleaseFileLocator(listed?.Team.Slug ?? team, listed?.ProjectSlug ?? project, release,
                     Guid.Parse(part.ReleaseFileId!));
                 var path = await FindPreviousPackageAsync(locator, Guid.TryParse(part.CachedFileId, out var cached) ? cached : (Guid?)null,
-                    part.Package.Kind).ConfigureAwait(false);
+                    part.Package.Kind, sharedObject: part.Folders is not null).ConfigureAwait(false);
                 // The install that worked before should work again; an add-on that no longer does still lets the rest come back.
                 restoring.Add(new InstallPart(path)
                 {
@@ -550,6 +556,7 @@ internal sealed partial class JobPipeline(
                     FeatureName = part.FeatureName,
                     ReleaseFileId = part.ReleaseFileId,
                     CachedFileId = part.CachedFileId,
+                    Folders = part.Folders,
                 });
             }
 
@@ -574,12 +581,15 @@ internal sealed partial class JobPipeline(
         record.Parts ?? (record.Source?.ReleaseFileId is { } single ? [new InstalledPart(record.Package, ReleaseFileId: single)] : []);
 
     // The package of an install is kept for exactly this, so a download here is rare; it still has to stay bounded. A copy of
-    // another release's file was taken from that file's download, which is kept under its own id.
-    private async Task<string> FindPreviousPackageAsync(ReleaseFileLocator locator, Guid? cachedAs, PackageKind kind)
+    // another release's file was taken from that file's download, which is kept under its own id. A part with a rule came from
+    // a shared object, and one without never takes one, whose bytes would land as they are written.
+    private async Task<string> FindPreviousPackageAsync(ReleaseFileLocator locator, Guid? cachedAs, PackageKind kind, bool sharedObject)
     {
         var request = new PackageRequest(locator, kind == PackageKind.Manifest ? PackageFormat.Manifest : PackageFormat.Zip, null)
         {
             HeldDownload = cachedAs ?? locator.FileUuid,
+            HeldIsSharedObject = sharedObject,
+            IsSharedObject = sharedObject,
         };
         return (await downloader.DownloadAsync(request, null, halting).ConfigureAwait(false)).Path;
     }

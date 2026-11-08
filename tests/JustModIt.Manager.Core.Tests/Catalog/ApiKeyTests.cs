@@ -66,7 +66,7 @@ public sealed class ApiKeyTests
             : FakeHttpHandler.Json("""{"download_url": "https://storage.example.com/package.zip"}"""));
         using var client = Keyed(handler);
 
-        var url = await client.ResolveDownloadAsync(File, Token);
+        var url = await client.ResolveDownloadAsync(File, layouts: true, Token);
 
         url.AbsolutePath.Should().Be("/package.zip");
         handler.Requests.Select(request => request.Authorization is not null).Should().Equal(true, false);
