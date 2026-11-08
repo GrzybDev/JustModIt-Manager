@@ -11,7 +11,7 @@ using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
-public sealed partial class ReviewStepViewModel
+public sealed partial class ReviewViewModel
 {
     private const int FoldedGroupSize = 7;
 

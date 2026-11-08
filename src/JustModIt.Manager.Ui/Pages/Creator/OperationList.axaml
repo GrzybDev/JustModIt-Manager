@@ -5,7 +5,7 @@
              xmlns:theme="using:JustModIt.Manager.Ui.Theme"
              xmlns:loc="using:JustModIt.Manager.Localization"
              x:Class="JustModIt.Manager.Ui.Pages.Creator.OperationList"
-             x:DataType="creator:ReviewStepViewModel">
+             x:DataType="creator:ReviewViewModel">
   <Border Classes="creatorCard" ClipToBounds="True">
     <StackPanel>
       <WrapPanel Margin="20,12,16,12" MinHeight="36">
@@ -18,7 +18,7 @@
           <DataTemplate DataType="creator:OperationGroup">
             <Grid ColumnDefinitions="28,136,*,84,76" ColumnSpacing="14" Margin="20,14,16,12">
               <Button Classes="icon groupToggle" Classes.expanded="{Binding IsExpanded}" ToolTip.Tip="{x:Static loc:Strings.Creator_ToggleGroup}"
-                      Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ToggleGroupCommand}"
+                      Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).ToggleGroupCommand}"
                       CommandParameter="{Binding}" VerticalAlignment="Top" Width="28" Height="28">
                 <ui:Icon Data="{x:Static theme:Icons.ChevronDown}" Width="16" Height="16" />
               </Button>
@@ -78,7 +78,7 @@
                              IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   <Button Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_Restore}" IsVisible="{Binding IsExcluded}"
                           ui:ButtonAssist.Icon="{x:Static theme:Icons.Undo}"
-                          Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RestoreCommand}"
+                          Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).RestoreCommand}"
                           CommandParameter="{Binding}" />
                 </WrapPanel>
                 <ItemsControl ItemsSource="{Binding Findings}" ItemTemplate="{StaticResource FindingTemplate}" IsVisible="{Binding HasFindings}" />
@@ -89,7 +89,7 @@
                       <DataTemplate x:DataType="creator:ChoiceOption">
                         <RadioButton Theme="{StaticResource ChoicePill}" Content="{Binding Title}" IsChecked="{Binding IsChecked, Mode=OneWay}"
                                      GroupName="{Binding $parent[ContentPresenter].((creator:OperationRow)DataContext).Key}"
-                                     Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ChooseCommand}"
+                                     Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).ChooseCommand}"
                                      CommandParameter="{Binding}" />
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -105,7 +105,7 @@
                             <RadioButton Theme="{StaticResource ChoicePill}" IsChecked="{Binding IsChecked, Mode=OneWay}"
                                          AutomationProperties.Name="{Binding Title}"
                                          GroupName="{Binding $parent[ContentPresenter].((creator:OperationRow)DataContext).Key}"
-                                         Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ChooseCommand}"
+                                         Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).ChooseCommand}"
                                          CommandParameter="{Binding}">
                               <StackPanel Orientation="Horizontal" Spacing="6">
                                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
@@ -137,12 +137,12 @@
                   <ui:Icon Data="{x:Static theme:Icons.Pencil}" Width="16" Height="16" />
                 </Button>
                 <Button Classes="icon" ToolTip.Tip="{x:Static loc:Strings.Creator_Exclude}" IsVisible="{Binding CanExclude}"
-                        Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ExcludeCommand}"
+                        Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).ExcludeCommand}"
                         CommandParameter="{Binding}">
                   <ui:Icon Data="{x:Static theme:Icons.CircleMinus}" Width="16" Height="16" />
                 </Button>
                 <Button Classes="icon" ToolTip.Tip="{x:Static loc:Strings.Creator_RemoveOperation}" IsVisible="{Binding CanRemove}"
-                        Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RemoveCommand}"
+                        Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).RemoveCommand}"
                         CommandParameter="{Binding}">
                   <ui:Icon Data="{x:Static theme:Icons.X}" Width="16" Height="16" />
                 </Button>

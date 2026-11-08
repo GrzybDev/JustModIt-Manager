@@ -12,7 +12,7 @@ using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
-public sealed partial class ReviewStepViewModel
+public sealed partial class ReviewViewModel
 {
     private readonly Dictionary<string, StepRow> _stepRows = new(StringComparer.Ordinal);
 

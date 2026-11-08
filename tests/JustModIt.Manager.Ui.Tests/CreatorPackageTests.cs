@@ -450,7 +450,7 @@ public sealed class CreatorPackageTests : IDisposable
 
         var page = Page(ui);
         page.GoTo(CreatorStep.Review);
-        var review = (ReviewStepViewModel)page.Content!;
+        var review = (ReviewViewModel)page.Content!;
         review.ExcludeCommand.Execute(review.Operations.OfType<OperationRow>().Single(row => row.Entry?.File.Path == "data/voices.pak"));
         await UiHarness.WaitUntilAsync(() => page.Session!.Review!.Plan.Operations.All(operation => operation.Path != "data/voices.pak"));
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));

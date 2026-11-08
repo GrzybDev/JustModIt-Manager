@@ -738,7 +738,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         ];
         Lead = IsManifest ? Strings.Creator_PackageLead : Strings.Creator_ZipLead;
         ShowMetadata(project.Metadata);
-        MetadataProblem = string.Join(' ', plan.Findings.Where(finding => ReviewStepViewModel.IsMetadata(finding.Kind))
+        MetadataProblem = string.Join(' ', plan.Findings.Where(finding => ReviewViewModel.IsMetadata(finding.Kind))
             .Select(finding => CreatorWording.Finding(finding)));
         if (_page.Game is { } game)
         {
@@ -1035,7 +1035,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             && planned.SourceFile == operation.SourceFile);
 
     private static string ReviewLine(PlanFinding finding) =>
-        ReviewStepViewModel.IsHosting(finding.Kind) ? CreatorWording.RuleTitle(finding) : CreatorWording.Finding(finding);
+        ReviewViewModel.IsHosting(finding.Kind) ? CreatorWording.RuleTitle(finding) : CreatorWording.Finding(finding);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The package build failed unexpectedly")]
     private static partial void LogBuildFailed(ILogger logger, Exception exception);

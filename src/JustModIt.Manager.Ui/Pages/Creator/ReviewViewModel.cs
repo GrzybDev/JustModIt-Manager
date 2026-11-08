@@ -18,7 +18,7 @@ namespace JustModIt.Manager.Ui.Pages.Creator;
 /// advanced one the author's ordered steps, edited in place. The site's hosting rules come first and the call to check
 /// everything last; only a plan nothing blocks can be confirmed.
 /// </summary>
-public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStepView
+public sealed partial class ReviewViewModel : ObservableObject, ICreatorStepView
 {
     // Beyond a few numbers, the marks on the rows tell more than a list of them.
     private const int NamedPlaces = 5;
@@ -32,7 +32,7 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
     /// <summary>Creates the step for a project.</summary>
     /// <param name="page">The creator.</param>
     /// <param name="session">The project.</param>
-    public ReviewStepViewModel(CreatorPageViewModel page, CreatorSession session)
+    public ReviewViewModel(CreatorPageViewModel page, CreatorSession session)
     {
         _page = page;
         _session = session;

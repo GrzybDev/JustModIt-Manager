@@ -420,9 +420,9 @@ public sealed class CreatorReviewTests : IDisposable
         ui.Links.Folders.Should().Equal(Path.Combine(_work.GameFolder, "data"));
         File.Delete(Path.Combine(_work.GameFolder, "data", "movies_original.idx"));
         ui.Click(Button(ui, Strings.Creator_CompareAgain));
-        await UiHarness.WaitUntilAsync(() => Page(ui).Content is ReviewStepViewModel { HasRuntimeProblems: false, CanConfirm: true }
+        await UiHarness.WaitUntilAsync(() => Page(ui).Content is ReviewViewModel { HasRuntimeProblems: false, CanConfirm: true }
             && Page(ui).Session!.Review!.Plan.Findings.All(finding => finding.RuntimeIndex is null));
-        var compared = (ReviewStepViewModel)Page(ui).Content!;
+        var compared = (ReviewViewModel)Page(ui).Content!;
         compared.IsRuntimeOpen.Should().BeFalse("once its problem is solved the card folds to its title");
         compared.RuntimeCount.Should().Be("2 pliki");
         ui.Find<Border>("RuntimeCard").BringIntoView();
@@ -524,7 +524,7 @@ public sealed class CreatorReviewTests : IDisposable
         review.RuntimeRows.Single().OffersFixes.Should().BeTrue();
         leftovers.Clear();
         ui.Click(Button(ui, Strings.Creator_CompareAgain));
-        await UiHarness.WaitUntilAsync(() => Page(ui).Content is ReviewStepViewModel { HasRuntimeProblems: false, CanConfirm: true });
+        await UiHarness.WaitUntilAsync(() => Page(ui).Content is ReviewViewModel { HasRuntimeProblems: false, CanConfirm: true });
     }
 
     [AvaloniaFact]
@@ -581,7 +581,7 @@ public sealed class CreatorReviewTests : IDisposable
         return ui;
     }
 
-    private async Task<ReviewStepViewModel> ReviewAsync(UiHarness ui)
+    private async Task<ReviewViewModel> ReviewAsync(UiHarness ui)
     {
         var page = Page(ui);
         page.NewProjectCommand.Execute(null);
@@ -591,10 +591,10 @@ public sealed class CreatorReviewTests : IDisposable
         ((FilesStepViewModel)page.Content!).UseFolder(_work.AuthorFolder);
         await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review && page.Session!.Review is not null);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        return (ReviewStepViewModel)page.Content!;
+        return (ReviewViewModel)page.Content!;
     }
 
-    private static OperationRow Row(ReviewStepViewModel review, string name) =>
+    private static OperationRow Row(ReviewViewModel review, string name) =>
         review.Operations.OfType<OperationRow>().Single(row => row.Name == name);
 
     // Only the rows in sight have controls, as a player scrolling the list would find them.

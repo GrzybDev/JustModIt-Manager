@@ -17,7 +17,7 @@
                    Classes.dangerText="{Binding Tone, Converter={x:Static creator:ReviewRows.IsDanger}}"
                    Classes.warningText="{Binding Tone, Converter={x:Static creator:ReviewRows.IsWarning}}" />
         <Button Grid.Column="2" Classes="outline small" Content="{x:Static loc:Strings.Creator_Accept}" IsVisible="{Binding CanAcknowledge}"
-                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).AcceptCommand}"
+                Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).AcceptCommand}"
                 CommandParameter="{Binding AcknowledgementKey}" />
       </Grid>
     </DataTemplate>

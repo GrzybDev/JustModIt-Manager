@@ -5,7 +5,7 @@
              xmlns:theme="using:JustModIt.Manager.Ui.Theme"
              xmlns:loc="using:JustModIt.Manager.Localization"
              x:Class="JustModIt.Manager.Ui.Pages.Creator.ReviewStepView"
-             x:DataType="creator:ReviewStepViewModel">
+             x:DataType="creator:ReviewViewModel">
   <StackPanel Spacing="20">
     <StackPanel Spacing="4">
       <Panel>
@@ -96,7 +96,7 @@
                                  IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     </StackPanel>
                     <Button Grid.Column="2" Classes="icon" VerticalAlignment="Top" Margin="0,-2,0,0" ToolTip.Tip="{Binding RemoveName}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RemoveRuntimeCommand}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).RemoveRuntimeCommand}"
                             CommandParameter="{Binding}">
                       <ui:Icon Data="{x:Static theme:Icons.X}" Width="16" Height="16" />
                     </Button>
@@ -105,25 +105,25 @@
                         <ItemsControl ItemsSource="{Binding Findings}" ItemTemplate="{StaticResource FindingTemplate}" />
                         <Button Grid.Column="1" Classes="outline small" VerticalAlignment="Bottom" Content="{Binding SuggestionText}"
                                 ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}" IsVisible="{Binding HasSuggestion}"
-                                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).UseRuntimeSuggestionCommand}"
+                                Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).UseRuntimeSuggestionCommand}"
                                 CommandParameter="{Binding}" />
                       </Grid>
                       <WrapPanel ItemSpacing="8" LineSpacing="8" Margin="22,0,0,0" IsVisible="{Binding OffersFixes}">
-                        <Button Classes="outline fixAction" AutomationProperties.Name="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CheckFilesLabel}"
-                                IsVisible="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CanCheckFiles}"
-                                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CheckFilesCommand}">
+                        <Button Classes="outline fixAction" AutomationProperties.Name="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).CheckFilesLabel}"
+                                IsVisible="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).CanCheckFiles}"
+                                Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).CheckFilesCommand}">
                           <StackPanel Orientation="Horizontal" Spacing="8">
                             <ui:StoreIcon Store="steam" Width="16" Height="16" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CheckFilesLabel}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).CheckFilesLabel}" VerticalAlignment="Center" />
                             <ui:Icon Data="{x:Static theme:Icons.ArrowUpRight}" Width="14" Height="14" VerticalAlignment="Center"
                                      Foreground="{StaticResource TextSecondaryBrush}" />
                           </StackPanel>
                         </Button>
                         <Button Classes="outline fixAction" Content="{x:Static loc:Strings.Creator_Reveal}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
-                                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ShowRuntimeFileCommand}"
+                                Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).ShowRuntimeFileCommand}"
                                 CommandParameter="{Binding}" />
                         <Button Classes="outline fixAction" Content="{x:Static loc:Strings.Creator_CompareAgain}" ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}"
-                                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).CompareAgainCommand}" />
+                                Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).CompareAgainCommand}" />
                       </WrapPanel>
                     </StackPanel>
                   </Grid>

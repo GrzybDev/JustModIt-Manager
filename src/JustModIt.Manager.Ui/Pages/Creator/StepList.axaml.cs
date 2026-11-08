@@ -33,7 +33,7 @@ public sealed partial class StepList : UserControl
 
     private void OnReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (_dragged is { } row && DataContext is ReviewStepViewModel review && TargetAt(e.GetPosition(StepRows).Y) is { } target)
+        if (_dragged is { } row && DataContext is ReviewViewModel review && TargetAt(e.GetPosition(StepRows).Y) is { } target)
         {
             review.MoveStep(row.Index, target);
         }

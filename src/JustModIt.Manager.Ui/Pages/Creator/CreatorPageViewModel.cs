@@ -372,7 +372,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         session.PropertyChanged += OnSessionChanged;
         var game = new GameStepViewModel(this, session);
         var files = new FilesStepViewModel(this, session);
-        _steps = [game, files, new ReviewStepViewModel(this, session), new PackageStepViewModel(this, session)];
+        _steps = [game, files, new ReviewViewModel(this, session), new PackageStepViewModel(this, session)];
         Step = CreatorStep.Game;
         Content = null;
         ShowSession();

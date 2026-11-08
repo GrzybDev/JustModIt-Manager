@@ -6,7 +6,7 @@
              xmlns:loc="using:JustModIt.Manager.Localization"
              xmlns:pkg="using:JustModIt.Manager.Core.Packages"
              x:Class="JustModIt.Manager.Ui.Pages.Creator.RulesList"
-             x:DataType="creator:ReviewStepViewModel">
+             x:DataType="creator:ReviewViewModel">
   <Panel>
     <ui:Callout Classes="success" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.ShieldCheck}"
                 Title="{x:Static loc:Strings.Creator_RulesMetTitle}" Message="{x:Static loc:Strings.Creator_RulesClean}"
@@ -48,12 +48,12 @@
                   <TextBlock Classes="rowText" LineHeight="20" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Text}" />
                   <Button Classes="outline headerAction" HorizontalAlignment="Left" Margin="0,12,0,0" IsVisible="{Binding CanExclude}"
                           Content="{x:Static loc:Strings.Creator_Exclude}" ui:ButtonAssist.Icon="{x:Static theme:Icons.CircleMinus}"
-                          Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).ExcludeRuleCommand}"
+                          Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).ExcludeRuleCommand}"
                           CommandParameter="{Binding}" />
                   <Panel Margin="0,12,0,0" IsVisible="{Binding IsAccept}">
                     <Button Classes="outline headerAction" HorizontalAlignment="Left" IsVisible="{Binding !IsAccepted}"
                             Content="{x:Static loc:Strings.Creator_AcceptWork}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).AcceptRuleCommand}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).AcceptRuleCommand}"
                             CommandParameter="{Binding}" />
                     <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsAccepted}">
                       <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" Classes="successText" />
@@ -66,17 +66,17 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <RadioButton Theme="{StaticResource ChoicePill}" Content="{x:Static loc:Strings.Creator_LibraryOwnCode}"
                                    IsChecked="{Binding !IsThirdParty, Mode=OneWay}" GroupName="{Binding Key}"
-                                   Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MarkOwnCodeCommand}"
+                                   Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).MarkOwnCodeCommand}"
                                    CommandParameter="{Binding}" />
                       <RadioButton Theme="{StaticResource ChoicePill}" Content="{x:Static loc:Strings.Creator_LibraryThirdParty}"
                                    IsChecked="{Binding IsThirdParty, Mode=OneWay}" GroupName="{Binding Key}"
-                                   Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MarkThirdPartyCommand}"
+                                   Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).MarkThirdPartyCommand}"
                                    CommandParameter="{Binding}" />
                     </StackPanel>
                   </WrapPanel>
                   <Button Classes="link" FontSize="13" Margin="0,10,0,0" HorizontalAlignment="Left" IsVisible="{Binding OffersNotice}"
                           Content="{x:Static loc:Strings.Creator_LibraryAddNotice}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}"
-                          Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).AddLibraryNoticeCommand}"
+                          Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).AddLibraryNoticeCommand}"
                           CommandParameter="{Binding}" />
                   <StackPanel Spacing="12" Margin="0,12,0,0" IsVisible="{Binding NeedsNotice}">
                     <Grid ColumnSpacing="12" RowDefinitions="Auto,Auto">
@@ -107,7 +107,7 @@
                     <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_LibraryHint}" IsVisible="{Binding IsLibrary}" />
                     <Button Classes="link" FontSize="13" HorizontalAlignment="Left" IsVisible="{Binding CanRemoveNotice}"
                             Content="{x:Static loc:Strings.Creator_LibraryRemoveNotice}" ui:ButtonAssist.Icon="{x:Static theme:Icons.X}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RemoveLibraryNoticeCommand}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).RemoveLibraryNoticeCommand}"
                             CommandParameter="{Binding}" />
                   </StackPanel>
                 </StackPanel>

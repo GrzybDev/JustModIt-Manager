@@ -5,7 +5,7 @@
              xmlns:theme="using:JustModIt.Manager.Ui.Theme"
              xmlns:loc="using:JustModIt.Manager.Localization"
              x:Class="JustModIt.Manager.Ui.Pages.Creator.StepList"
-             x:DataType="creator:ReviewStepViewModel">
+             x:DataType="creator:ReviewViewModel">
   <Border Classes="creatorCard" ClipToBounds="True">
     <StackPanel>
       <Grid ColumnDefinitions="*,Auto" Margin="20,12,16,12" MinHeight="36">
@@ -53,7 +53,7 @@
                         <TextBox.InnerRightContent>
                           <Button Classes="icon" Width="32" Height="32" Margin="0,0,4,0" ToolTip.Tip="{x:Static loc:Strings.Creator_PickFile}"
                                   IsVisible="{Binding PicksAuthorFile}"
-                                  Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).PickSourceCommand}"
+                                  Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).PickSourceCommand}"
                                   CommandParameter="{Binding}">
                             <ui:Icon Data="{x:Static theme:Icons.FolderOpen}" Width="16" Height="16" />
                           </Button>
@@ -71,17 +71,17 @@
                   <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                               Margin="0,0,0,4">
                     <Button Classes="icon" ToolTip.Tip="{Binding MoveUpName}" IsEnabled="{Binding CanMoveUp}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MoveUpCommand}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).MoveUpCommand}"
                             CommandParameter="{Binding}">
                       <ui:Icon Data="{x:Static theme:Icons.ArrowUp}" Width="16" Height="16" />
                     </Button>
                     <Button Classes="icon" ToolTip.Tip="{Binding MoveDownName}" IsEnabled="{Binding CanMoveDown}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MoveDownCommand}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).MoveDownCommand}"
                             CommandParameter="{Binding}">
                       <ui:Icon Data="{x:Static theme:Icons.ArrowDown}" Width="16" Height="16" />
                     </Button>
                     <Button Classes="icon" ToolTip.Tip="{Binding RemoveName}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).RemoveStepCommand}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).RemoveStepCommand}"
                             CommandParameter="{Binding}">
                       <ui:Icon Data="{x:Static theme:Icons.Trash}" Width="16" Height="16" />
                     </Button>
@@ -100,7 +100,7 @@
                     <TextBlock Grid.Column="1" Classes="rowText dangerText" LineHeight="20" Text="{Binding MoveBeforeText}" />
                     <Button Grid.Column="2" Classes="outline small" Content="{Binding MoveBeforeAction}"
                             ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUp}"
-                            Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).MoveBeforeCommand}"
+                            Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).MoveBeforeCommand}"
                             CommandParameter="{Binding}" />
                   </Grid>
                 </StackPanel>
