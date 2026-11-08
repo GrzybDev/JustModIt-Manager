@@ -24,13 +24,17 @@ internal sealed class CountingTimeProvider : FakeTimeProvider
 
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {
+        // Counted only once it exists: a test that sees the count moves the clock, and a timer made after that would
+        // count its due time from the moved clock.
+        var timer = base.CreateTimer(callback, state, dueTime, period);
+
         // A time limit on a drive that may not answer does not mean the loop sleeps.
         if (dueTime != LibraryAccess.TimeLimit)
         {
             Interlocked.Increment(ref _timers);
         }
 
-        return base.CreateTimer(callback, state, dueTime, period);
+        return timer;
     }
 
     /// <summary>Runs <paramref name="action"/> and waits until the loop it wakes has started a new timer.</summary>
