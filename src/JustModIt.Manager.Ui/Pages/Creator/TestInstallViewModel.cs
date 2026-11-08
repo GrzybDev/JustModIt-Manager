@@ -50,7 +50,7 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OffersTestInstall), nameof(IsTestInstalled), nameof(IsTestRunning), nameof(WasTested),
-        nameof(CanRebuild), nameof(FinishText))]
+        nameof(CanRebuild))]
     public partial TestInstallState State { get; private set; }
 
     public bool OffersTestInstall => State is TestInstallState.None or TestInstallState.Failed;
@@ -81,9 +81,6 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     public partial bool CanLaunch { get; private set; }
-
-    /// <summary>What finishing the project does, or that a test package in the game has to go first.</summary>
-    public string FinishText => Text.Format(Strings.Creator_FinishText, ("blocked", CanRebuild ? "false" : "true"));
 
     /// <summary>The installed test package of the game; null while there is none.</summary>
     private InstallView? TestInstall =>

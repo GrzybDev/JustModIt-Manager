@@ -157,6 +157,20 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Open(NavigationItem item) => Navigator.Navigate(item.Route);
 
+    // Esc closes the dialog shown, else leaves a view within the page, such as a project's operations, wherever the focus is.
+    [RelayCommand]
+    private void Escape()
+    {
+        if (Dialogs.Current is not null)
+        {
+            Dialogs.CancelCurrent();
+        }
+        else
+        {
+            Navigator.Current?.GoBackWithin();
+        }
+    }
+
     // The agent is this same program in the background; started this way it takes over and the window reconnects to it.
     [RelayCommand]
     private void StartAgent()

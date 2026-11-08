@@ -48,18 +48,18 @@ public sealed partial class ReviewViewModel
     }
 
     [RelayCommand]
-    private void Accept(string key) => _session.Describe(project => project.Acknowledge(key));
+    private void Accept(string key) => _session.Change(project => project.Acknowledge(key));
 
     [RelayCommand]
     private void AcceptRule(RuleRow rule)
     {
         var keys = rule.Findings.Select(finding => finding.AcknowledgementKey).OfType<string>().ToList();
-        _session.Describe(project => keys.Aggregate(project, (changed, key) => changed.Acknowledge(key)));
+        _session.Change(project => keys.Aggregate(project, (changed, key) => changed.Acknowledge(key)));
     }
 
     // Whose code a library is changes only the answer: a name, licence and source typed for it stay.
     [RelayCommand]
-    private void MarkOwnCode(RuleRow rule) => _session.Describe(project => project.LibraryNoticeOf(rule.Path) switch
+    private void MarkOwnCode(RuleRow rule) => _session.Change(project => project.LibraryNoticeOf(rule.Path) switch
     {
         null or { IsOwn: true } => project,
         { License.Length: 0, SourceUrl.Length: 0 } notice when notice.Name.Length == 0 || notice.Name == rule.FileName
@@ -68,7 +68,7 @@ public sealed partial class ReviewViewModel
     });
 
     [RelayCommand]
-    private void MarkThirdParty(RuleRow rule) => _session.Describe(project => project.LibraryNoticeOf(rule.Path) switch
+    private void MarkThirdParty(RuleRow rule) => _session.Change(project => project.LibraryNoticeOf(rule.Path) switch
     {
         { IsOwn: false } => project,
         null => project.WithLibraryNotice(new LibraryNotice(rule.Path, "", "", rule.FileName)),
@@ -77,10 +77,10 @@ public sealed partial class ReviewViewModel
 
     [RelayCommand]
     private void AddLibraryNotice(RuleRow rule) =>
-        _session.Describe(project => project.WithLibraryNotice(new LibraryNotice(rule.Path, "", "", rule.FileName, IsOwn: true)));
+        _session.Change(project => project.WithLibraryNotice(new LibraryNotice(rule.Path, "", "", rule.FileName, IsOwn: true)));
 
     [RelayCommand]
-    private void RemoveLibraryNotice(RuleRow rule) => _session.Describe(project => project.WithoutLibraryNotice(rule.Path));
+    private void RemoveLibraryNotice(RuleRow rule) => _session.Change(project => project.WithoutLibraryNotice(rule.Path));
 
     // The author decides about a file, not about each operation the rules find it in, e.g. a store library renamed away
     // and replaced.
@@ -167,8 +167,8 @@ public sealed partial class ReviewViewModel
                 : ("", "", "", false);
         (row.LibraryName, row.License, row.Source, row.IsComplete) = (name, license, source, complete);
         row.Edited = row.IsTool
-            ? edited => _session.Describe(project => project.WithToolNotice(new ToolNotice(edited.ToolId, edited.License, edited.Source)))
-            : edited => _session.Describe(project => project.WithLibraryNotice(
+            ? edited => _session.Change(project => project.WithToolNotice(new ToolNotice(edited.ToolId, edited.License, edited.Source)))
+            : edited => _session.Change(project => project.WithLibraryNotice(
                 new LibraryNotice(edited.Path, edited.License, edited.Source, edited.LibraryName, IsOwn: !edited.IsThirdParty)));
     }
 

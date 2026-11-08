@@ -4,6 +4,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
+using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Pages.Library;
@@ -80,6 +81,16 @@ public sealed partial class ProjectCard(CreatorPageViewModel page, Guid id) : Ob
         : project.Versions.Count > 0 ? project.Versions[0].Game.Name
         : Strings.Creator_New;
 
+    /// <summary>What a project's record says of its last package.</summary>
+    /// <param name="builds">The record of its builds; null when it has none.</param>
+    /// <param name="clock">Tells the local day of the build.</param>
+    /// <returns>The words for the package; null when there is none.</returns>
+    internal static string? LastPackageOf(BuildRecord? builds, TimeProvider clock) =>
+        builds?.Parts.SelectMany(part => part.Packages).MaxBy(package => package.BuiltAt) is { } last
+            ? Text.Format(Strings.Creator_LastPackage, ("hasVersion", last.Version.Length > 0 ? "true" : "false"),
+                ("version", GameWording.ShortVersion(last.Version)), ("date", Formats.Date(last.BuiltAt, clock.LocalTimeZone)))
+            : null;
+
     /// <summary>Shows what the project says of itself.</summary>
     /// <param name="project">The project as the library or the open page holds it.</param>
     internal void Show(CreatorProject project)
@@ -96,10 +107,7 @@ public sealed partial class ProjectCard(CreatorPageViewModel page, Guid id) : Ob
     /// <returns>Completes once the card shows what it found.</returns>
     internal async Task RefreshAsync()
     {
-        var builds = await page.Library.ReadBuildAsync(Id, CancellationToken.None).ConfigureAwait(true);
-        var last = builds?.Parts.SelectMany(part => part.Packages).MaxBy(package => package.BuiltAt);
-        _lastPackage = last is null ? "" : Text.Format(Strings.Creator_LastPackage, ("hasVersion", last.Version.Length > 0 ? "true" : "false"),
-            ("version", GameWording.ShortVersion(last.Version)), ("date", Formats.Date(last.BuiltAt, page.Services.Clock.LocalTimeZone)));
+        _lastPackage = LastPackageOf(await page.Library.ReadBuildAsync(Id, CancellationToken.None).ConfigureAwait(true), page.Services.Clock) ?? "";
         string? unavailable = null;
         var files = page.FileSystem ?? PhysicalFileSystem.Instance;
         foreach (var folder in _project.Parts.SelectMany(part => part.VersionFolders.Values.Prepend(part.AuthorFolder)).Where(folder => folder.Length > 0))

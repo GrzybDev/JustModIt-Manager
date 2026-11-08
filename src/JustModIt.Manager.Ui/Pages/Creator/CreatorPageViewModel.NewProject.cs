@@ -61,33 +61,36 @@ public sealed partial class CreatorPageViewModel
             return;
         }
 
-        await OpenAsync(new CreatorProject { Id = Guid.NewGuid(), CreatedAt = Services.Clock.GetUtcNow(), Parts = [new ProjectPart { AuthorFolder = folder }] })
-            .ConfigureAwait(true);
-    }
-
-    // A project works on a game, so one that names none takes it first, and stays as it was when the author cancels.
-    private async Task OpenAsync(CreatorProject project)
-    {
-        if (project.Versions.Count == 0)
+        // A project works on a game, so a new one takes it first, and nothing is made when the author cancels.
+        using var dialog = new NewProjectDialogViewModel(Services, folder);
+        if (await Services.Dialogs.ShowAsync(dialog).ConfigureAwait(true) is not { Game: var game })
         {
-            using var dialog = new NewProjectDialogViewModel(Services, project.Parts[0].AuthorFolder);
-            if (await Services.Dialogs.ShowAsync(dialog).ConfigureAwait(true) is not { Game: var game })
-            {
-                return;
-            }
-
-            project = project with { Versions = [new ProjectVersion(new ProjectGame(game.Key, game.Name)) { GameFolder = game.Game.InstallDirectory }] };
-            try
-            {
-                await Library.Store(project.Id).SaveAsync(project, CancellationToken.None).ConfigureAwait(true);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                (ProblemTitle, ProblemText) = (Strings.Creator_SaveFailedTitle, Strings.Creator_ExportFailed);
-                return;
-            }
+            return;
         }
 
+        var project = new CreatorProject
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = Services.Clock.GetUtcNow(),
+            Versions = [new ProjectVersion(new ProjectGame(game.Key, game.Name)) { GameFolder = game.Game.InstallDirectory }],
+            Parts = [new ProjectPart { AuthorFolder = folder }],
+        };
+        try
+        {
+            await Library.Store(project.Id).SaveAsync(project, CancellationToken.None).ConfigureAwait(true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            (ProblemTitle, ProblemText) = (Strings.Creator_SaveFailedTitle, Strings.Creator_ExportFailed);
+            return;
+        }
+
+        await OpenAsync(project).ConfigureAwait(true);
+    }
+
+    // A project with no version opens on the page, which takes one first.
+    private async Task OpenAsync(CreatorProject project)
+    {
         if (await CloseProjectAsync().ConfigureAwait(true))
         {
             OpenPage = new ProjectPageViewModel(this, project);

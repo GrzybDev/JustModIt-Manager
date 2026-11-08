@@ -66,26 +66,13 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
     /// </summary>
     public IReadOnlySet<string> KeptPaths { get; private set; } = new HashSet<string>(PackagePath.Comparer);
 
-    /// <summary>The author checked the operations of the plan, which any change to them takes back.</summary>
+    /// <summary>A plan is being made, so <see cref="Review"/> may not cover the project as it is now.</summary>
     [ObservableProperty]
-    public partial bool IsConfirmed { get; set; }
+    public partial bool IsPlanning { get; private set; }
 
-    /// <summary>Changes what the package does, which asks the author to check it again.</summary>
+    /// <summary>Changes the project, which is planned again and saved.</summary>
     /// <param name="change">Turns the project into the changed one.</param>
     public void Change(Func<CreatorProject, CreatorProject> change)
-    {
-        IsConfirmed = false;
-        Describe(change);
-    }
-
-    /// <summary>Changes what the package of the part the window works on does, which asks the author to check it again.</summary>
-    /// <param name="change">Turns the part into the changed one.</param>
-    public void ChangePart(Func<ProjectPart, ProjectPart> change) =>
-        Change(project => project with { Parts = new(project.Parts.Items.SetItem(0, change(project.Parts[0]))) });
-
-    /// <summary>Changes what does not change the operations, such as the package's metadata or third-party notices.</summary>
-    /// <param name="change">Turns the project into the changed one.</param>
-    public void Describe(Func<CreatorProject, CreatorProject> change)
     {
         var changed = change(Project);
         if (changed == Project)
@@ -103,13 +90,17 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
         _planning = PlanAsync();
     }
 
+    /// <summary>Changes the part the window works on, which is planned again and saved.</summary>
+    /// <param name="change">Turns the part into the changed one.</param>
+    public void ChangePart(Func<ProjectPart, ProjectPart> change) =>
+        Change(project => project with { Parts = new(project.Parts.Items.SetItem(0, change(project.Parts[0]))) });
+
     /// <summary>Takes the folders as compared now, or forgets them.</summary>
     /// <param name="comparison">The comparison that ended; null when the folders changed.</param>
     /// <returns>Completes once the plan over it is there.</returns>
     public Task UseAsync(FolderComparison? comparison)
     {
         Comparison = comparison;
-        IsConfirmed = false;
         return _planning = PlanAsync();
     }
 
@@ -183,17 +174,18 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
         var plan = ++_plans;
         if (Comparison is not { } comparison || Version is not { } version)
         {
-            Review = null;
+            (Review, IsPlanning) = (null, false);
             return;
         }
 
         var project = Project;
         var part = Part;
         var kept = KeptPaths;
+        IsPlanning = true;
         var review = await Task.Run(() => CreatorPlanner.Plan(comparison, project, part, version, _options, kept)).ConfigureAwait(true);
         if (plan == _plans)
         {
-            Review = review;
+            (Review, IsPlanning) = (review, false);
         }
     }
 }

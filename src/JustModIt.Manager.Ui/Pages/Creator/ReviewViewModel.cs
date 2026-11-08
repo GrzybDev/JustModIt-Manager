@@ -11,20 +11,16 @@ using JustModIt.Manager.Localization;
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
 /// <summary>
-/// The third step: what the package does for players, in the order it does it, for the author to check. A simple
-/// project shows the operations the comparison derived, each with its reason and the choices the rules allow; an
-/// advanced one the author's ordered steps, edited in place. The site's hosting rules come first and the call to check
-/// everything last; only a plan nothing blocks can be confirmed.
+/// What the package does for players, in the order it does it, for the author to check. A simple part shows the operations
+/// the comparison derived, each with its reason and the choices the rules allow; an advanced one the author's ordered steps,
+/// edited in place. The site's hosting rules and the files the package's software changes in the game stand beside them.
 /// </summary>
-public sealed partial class ReviewViewModel : ObservableObject, ICreatorStepView
+public sealed partial class ReviewViewModel : ObservableObject, IDisposable
 {
-    // Beyond a few numbers, the marks on the rows tell more than a list of them.
-    private const int NamedPlaces = 5;
-
     private readonly ProjectPageViewModel _page;
     private readonly CreatorSession _session;
 
-    /// <summary>Creates the step for a project.</summary>
+    /// <summary>Creates the check of a project.</summary>
     /// <param name="page">The project's page.</param>
     /// <param name="session">The project.</param>
     public ReviewViewModel(ProjectPageViewModel page, CreatorSession session)
@@ -50,37 +46,7 @@ public sealed partial class ReviewViewModel : ObservableObject, ICreatorStepView
 
     public bool HasProblems => Problems.Count > 0;
 
-    [ObservableProperty]
-    public partial string CheckText { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial IReadOnlyList<string> Checklist { get; private set; } = [];
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
-    public partial bool CanConfirm { get; private set; }
-
-    /// <summary>Why the plan cannot be confirmed yet; empty when it can.</summary>
-    [ObservableProperty]
-    public partial string ConfirmBlocked { get; private set; } = "";
-
-    public void OnShown()
-    {
-        Show();
-        _ = _page.ReadKeptPathsAsync();
-    }
-
     public void Dispose() => _session.PropertyChanged -= OnSessionChanged;
-
-    [RelayCommand(CanExecute = nameof(CanConfirm))]
-    private void Confirm()
-    {
-        _session.IsConfirmed = true;
-        _page.GoTo(CreatorStep.Package);
-    }
-
-    [RelayCommand]
-    private void Back() => _page.GoTo(CreatorStep.Files);
 
     private async Task<string?> PickGameFileAsync()
     {
@@ -96,17 +62,18 @@ public sealed partial class ReviewViewModel : ObservableObject, ICreatorStepView
             : null;
     }
 
-    // Every edit, also of the package's metadata on the last step, is planned again; a check out of sight catches up once
-    // it is shown, so a large package's rows are not rebuilt for each key the author types elsewhere.
+    // Every edit, also of the package's description, is planned again; a check out of sight catches up once it is shown, so a
+    // large package's rows are not rebuilt for each key the author types in the description.
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(CreatorSession.Review) && ReferenceEquals(_page.Content, this))
+        if (e.PropertyName == nameof(CreatorSession.Review) && _page.Tab != ProjectTab.Description)
         {
             Show();
         }
     }
 
-    private void Show()
+    /// <summary>Shows the plan as it is now.</summary>
+    internal void Show()
     {
         if (_session.Review is not { } review || _session.Comparison is not { } comparison)
         {
@@ -148,61 +115,6 @@ public sealed partial class ReviewViewModel : ObservableObject, ICreatorStepView
         }
 
         IdenticalCount = Text.Format(Strings.Creator_IdenticalLeftOut, ("count", IdenticalFiles.Count));
-        ShowCheck(plan);
-    }
-
-    private void ShowCheck(PackagePlan plan)
-    {
-        var errors = Rules.Count(row => row.IsError);
-        var questions = Rules.Count(row => !row.IsError && row.Findings.Any(finding => finding.BlocksBuild));
-        var runtime = plan.Findings.Count(finding => finding.BlocksBuild && finding.RuntimeIndex is not null && !IsHosting(finding.Kind));
-        var found = plan.Findings.Where(finding => finding.BlocksBuild && finding.RuntimeIndex is null && !IsHosting(finding.Kind)
-            && !IsMetadata(finding.Kind)).ToList();
-        var atPlaces = found.Select(finding => IsAdvanced ? finding.StepIndex : finding.OperationIndex).OfType<int>().ToList();
-        var marked = found.Count(finding => (IsAdvanced ? finding.StepIndex : finding.OperationIndex) is null);
-        List<string> places = [.. atPlaces.Distinct().Order().Select(index => (index + 1).ToString(Text.Culture))];
-        CanConfirm = errors + questions + atPlaces.Count + marked + runtime == 0 && plan.Operations.Count > 0;
-        List<string> clauses = [];
-        if (errors + questions > 0)
-        {
-            clauses.Add(Text.Format(Strings.Creator_BlockedRules, ("case", errors == 0 ? "questions" : questions == 0 ? "errors" : "both"),
-                ("errors", errors), ("questions", questions)));
-        }
-
-        if (places.Count is > 0 and <= NamedPlaces)
-        {
-            clauses.Add(Text.Format(Strings.Creator_BlockedAt, ("count", atPlaces.Count), ("advanced", IsAdvanced ? "true" : "false"),
-                ("places", places.Count), ("numbers", CreatorWording.List(places))));
-        }
-        else
-        {
-            marked += atPlaces.Count;
-        }
-
-        if (runtime > 0)
-        {
-            clauses.Add(Text.Format(Strings.Creator_BlockedRuntime, ("count", runtime)));
-        }
-
-        if (marked > 0 || (!CanConfirm && clauses.Count == 0))
-        {
-            clauses.Add(Text.Format(Strings.Creator_BlockedMarked, ("count", Math.Max(marked, 1))));
-        }
-
-        ConfirmBlocked = CanConfirm ? "" : Text.Format(Strings.Creator_ConfirmBlocked, ("what", CreatorWording.List(clauses)));
-        CheckText = Text.Format(IsAdvanced ? Strings.Creator_CheckSteps : Strings.Creator_CheckOperations,
-            ("count", plan.Operations.Count));
-        List<string> checklist = IsAdvanced
-            ? [Strings.Creator_CheckStepFiles, Strings.Creator_CheckRenameOrder]
-            : plan.Operations.Any(operation => operation.Kind == OperationKind.Rename)
-                ? [Strings.Creator_CheckPlaces, Strings.Creator_CheckRename]
-                : [Strings.Creator_CheckPlaces];
-        if (plan.CarriesCode)
-        {
-            checklist.Add(Strings.Creator_CheckRuntime);
-        }
-
-        Checklist = [.. checklist, Strings.Creator_CheckNothingExtra];
     }
 
     private static FindingLine Line(PlanFinding finding) =>

@@ -3,8 +3,8 @@
         xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
         xmlns:ui="using:JustModIt.Manager.Ui.Controls"
         xmlns:loc="using:JustModIt.Manager.Localization">
-  <!-- The package creator (the Kreator boards): its projects' cards, a step bar under the page's head, raised cards of radius 16 for each
-       part of a step, soft rows of radius 12 for lists, and the step's actions at the end of its content. -->
+  <!-- The package creator (the Kreator boards): its projects' cards, a project's tabs over raised cards of radius 16, soft rows of radius
+       12 for lists, and the bar pinned under the tabs that holds the build. -->
 
   <Styles.Resources>
     <!-- A finding at an operation or a step, with a way to accept it where the rules allow. -->
@@ -30,9 +30,6 @@
   </Style>
   <Style Selector="Button.headerAction.quiet">
     <Setter Property="Padding" Value="12,0" />
-  </Style>
-  <Style Selector="Button.footerAction">
-    <Setter Property="Height" Value="44" />
   </Style>
   <Style Selector="TextBlock.separator">
     <Setter Property="Text" Value="·" />
@@ -73,7 +70,7 @@
     <Setter Property="Background" Value="#99030712" />
   </Style>
 
-  <!-- A number in a ring: the steps. -->
+  <!-- A number in a ring: an operation's or a step's place, or a file's mark. -->
   <Style Selector="Border.number">
     <Setter Property="Width" Value="28" />
     <Setter Property="Height" Value="28" />
@@ -95,66 +92,31 @@
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <Style Selector="Border.number.current">
-    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
-    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
-  </Style>
-  <Style Selector="Border.number.done">
-    <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="Background" Value="#2922C55E" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource SuccessTextBrush}" />
-  </Style>
 
-  <!-- The step bar: each step is a link once it can be opened, joined to the next by a line that turns green once done. -->
-  <Style Selector="Button.step">
-    <Setter Property="Height" Value="NaN" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="CornerRadius" Value="999" />
-  </Style>
-  <Style Selector="Button.step:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.step:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.step:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="Transparent" />
-  </Style>
-  <Style Selector="Button.step TextBlock.stepTitle">
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="FontWeight" Value="Medium" />
-    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-  <Style Selector="Button.step.done TextBlock.stepTitle, Button.step.available TextBlock.stepTitle">
-    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
-  </Style>
-  <Style Selector="Button.step:pointerover:not(:disabled) TextBlock.stepTitle">
-    <Setter Property="TextDecorations" Value="Underline" />
-  </Style>
-  <Style Selector="Button.step.current TextBlock.stepTitle">
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
-  </Style>
-  <Style Selector="Border.stepLine">
-    <Setter Property="Height" Value="2" />
-    <Setter Property="MinWidth" Value="24" />
-    <Setter Property="CornerRadius" Value="2" />
-    <Setter Property="Background" Value="#1FFFFFFF" />
-    <Setter Property="Transitions">
-      <Transitions>
-        <BrushTransition Property="Background" Duration="0:0:0.3" />
-      </Transitions>
-    </Setter>
-  </Style>
-  <Style Selector="Border.stepLine.done">
-    <Setter Property="Background" Value="#734ADE80" />
-  </Style>
 
-  <!-- A raised part of a step, and a soft row inside or beside one. -->
+  <!-- A raised part of a tab, and a soft row inside or beside one. -->
   <Style Selector="Border.creatorCard">
     <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="16" />
     <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+  </Style>
+  <!-- The bar under a project's tabs, and the strip of the tabs. A part's card takes the accent while a folder is dragged over it. -->
+  <Style Selector="Border.buildBar">
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="16,14" />
+  </Style>
+  <Style Selector="Border.tabs">
+    <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="4" />
+  </Style>
+  <Style Selector="Border.cellCard.over">
+    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
   </Style>
   <Style Selector="Border.soft">
     <Setter Property="Background" Value="#08FFFFFF" />
@@ -231,6 +193,9 @@
   <Style Selector="Border.kind > StackPanel">
     <Setter Property="Orientation" Value="Horizontal" />
     <Setter Property="Spacing" Value="6" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.kind > TextBlock">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.kind ui|Icon">
@@ -360,23 +325,6 @@
     <Setter Property="Background" Value="{StaticResource FillBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
   </Style>
-  <!-- A card that folds to its head: the head is one button, with a hairline under it while the card is open. -->
-  <Style Selector="Button.cardHeader">
-    <Setter Property="Height" Value="NaN" />
-    <Setter Property="Padding" Value="20,14,16,14" />
-    <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-  </Style>
-  <Style Selector="Button.cardHeader.open">
-    <Setter Property="BorderThickness" Value="0,0,0,1" />
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-  </Style>
-  <Style Selector="Button.cardHeader.open ui|Icon.cardChevron">
-    <Setter Property="RenderTransform" Value="rotate(180deg)" />
-  </Style>
   <Style Selector="ItemsControl.runtimeRows">
     <Setter Property="BorderThickness" Value="0,1,0,0" />
     <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
@@ -427,25 +375,6 @@
     <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
   </Style>
 
-  <!-- The call to check: the one red button of the step on a card tinted by the accent from the top. -->
-  <Style Selector="Border.checkCard">
-    <Setter Property="CornerRadius" Value="16" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
-    <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
-    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-    <Setter Property="ClipToBounds" Value="True" />
-  </Style>
-  <Style Selector="Border.checkGlow">
-    <Setter Property="IsHitTestVisible" Value="False" />
-    <Setter Property="Opacity" Value="0.55" />
-    <Setter Property="Background">
-      <LinearGradientBrush StartPoint="50%,0%" EndPoint="50%,60%">
-        <GradientStop Offset="0" Color="{DynamicResource AccentSoftColor}" />
-        <GradientStop Offset="1" Color="#00000000" />
-      </LinearGradientBrush>
-    </Setter>
-  </Style>
 
   <!-- A choice of a game: a row with its cover that turns to the accent once chosen; a game that cannot be chosen keeps
        its full colour and says why in its own. -->

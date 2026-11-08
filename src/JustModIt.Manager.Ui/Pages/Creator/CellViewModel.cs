@@ -1,0 +1,481 @@
+using System.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Creator;
+using JustModIt.Manager.Creator.Comparison;
+using JustModIt.Manager.Creator.Projects;
+using JustModIt.Manager.Localization;
+using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Controls;
+using JustModIt.Manager.Ui.Pages.Library;
+using JustModIt.Manager.Ui.Theme;
+using Microsoft.Extensions.Logging;
+
+namespace JustModIt.Manager.Ui.Pages.Creator;
+
+/// <summary>Where a part stands on a version of the game.</summary>
+public enum CellState
+{
+    /// <summary>The part has no folder of the author's yet.</summary>
+    NoFolder,
+    Comparing,
+
+    /// <summary>The author stopped the comparison.</summary>
+    Stopped,
+
+    /// <summary>The comparison refused or failed; <see cref="CellViewModel.ProblemTitle"/> says why.</summary>
+    Failed,
+
+    /// <summary>The author's folder is not there.</summary>
+    FolderGone,
+
+    /// <summary>Every file of the author's is the game's own, so the package would be empty.</summary>
+    NothingToPackage,
+    Compared,
+
+    /// <summary>The stores do not report the version's game.</summary>
+    GameGone,
+
+    /// <summary>A package is installed on the game, whose files would count as the game's.</summary>
+    Installed,
+
+    /// <summary>The store or a job is at work on the game.</summary>
+    NotReady,
+
+    /// <summary>A test package is in the game, so its files are no baseline for a comparison or a build.</summary>
+    TestInstalled,
+}
+
+/// <summary>
+/// The project's part on its version of the game: the author's folder, laid out like the game, compared with the game on the
+/// thread pool, with the stage, the bytes and the file shown and a way to stop, or why it cannot be compared now.
+/// </summary>
+public sealed partial class CellViewModel : ObservableObject, IDisposable
+{
+    private readonly ProjectPageViewModel _page;
+    private readonly CreatorSession _session;
+    private CancellationTokenSource? _comparing;
+    private (GameKey? Key, string? Folder)? _comparedWith;
+    private CellState _compared = CellState.NoFolder;
+    private CellState? _block;
+    private (string Title, string Text) _blockNotice = ("", "");
+    private DateTimeOffset _comparedAt;
+    private string _work = "";
+
+    /// <summary>Creates the part's cell, which compares once the stores tell where its game is.</summary>
+    /// <param name="page">The project's page.</param>
+    /// <param name="session">The project.</param>
+    public CellViewModel(ProjectPageViewModel page, CreatorSession session)
+    {
+        _page = page;
+        _session = session;
+        _compared = session.Part.AuthorFolder.Length > 0 ? CellState.Comparing : CellState.NoFolder;
+        (Stage, State) = (Strings.Creator_CompareListing, _compared);
+        _session.PropertyChanged += OnSessionChanged;
+        ShowFolder();
+    }
+
+    public ProjectPageViewModel Page => _page;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsComparing), nameof(HasNothingToPackage), nameof(IsCompared), nameof(IsBlockedByInstall),
+        nameof(CanCompare), nameof(IsBlocked), nameof(Line))]
+    public partial CellState State { get; private set; }
+
+    public bool IsComparing => State == CellState.Comparing;
+
+    public bool HasNothingToPackage => State == CellState.NothingToPackage;
+
+    public bool IsCompared => State == CellState.Compared;
+
+    /// <summary>The version's game cannot be compared or built for now.</summary>
+    public bool IsBlocked => _block is not null;
+
+    public bool IsBlockedByInstall => State == CellState.Installed;
+
+    /// <summary>The comparison can start again: the cell has a folder, a game and nothing in the way.</summary>
+    public bool CanCompare => _page.Game is not null && _block is null && !IsComparing && _session.Part.AuthorFolder.Length > 0;
+
+    /// <summary>How the cell stands, as its head says it, with what the base's last package says of the compared files.</summary>
+    public LineContent Line => State switch
+    {
+        CellState.Comparing => new LineContent(Icons.LoaderCircle, Tone.Info, Text.Format(Strings.Creator_Comparing, ("percent", Percent))) { IsBusy = true },
+        CellState.Compared or CellState.NothingToPackage => new LineContent(Icons.CircleCheck, Tone.Success, Text.Format(Strings.Creator_ComparedWhen,
+            ("when", Formats.RelativeTime(_comparedAt, _page.Services.Clock).ToLower(Text.Culture))), Detail),
+        _ => new LineContent(State switch
+            {
+                CellState.NotReady => Icons.Clock,
+                CellState.TestInstalled or CellState.Installed => Icons.TriangleAlert,
+                CellState.NoFolder or CellState.FolderGone => Icons.FolderOpen,
+                CellState.GameGone => Icons.Gamepad,
+                _ => Icons.CircleX,
+            },
+            State is CellState.NoFolder or CellState.Stopped or CellState.GameGone or CellState.NotReady ? Tone.Neutral
+                : State == CellState.TestInstalled ? Tone.Warning : Tone.Danger,
+            Text.Format(Strings.Creator_CellState, ("state", State.ToString()), ("work", _work), ("version", ""))),
+    };
+
+    /// <summary>What the base's last package says of the compared files; empty when there is nothing to say.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Line))]
+    public partial string Detail { get; private set; } = "";
+
+    [ObservableProperty]
+    public partial string FolderPath { get; private set; } = "";
+
+    /// <summary>What stopped the comparison; empty while nothing did.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NoticeTitle), nameof(HasNotice))]
+    public partial string ProblemTitle { get; private set; } = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NoticeText), nameof(HasNotice))]
+    public partial string ProblemText { get; private set; } = "";
+
+    /// <summary>What the cell's callout says: what keeps the version from being compared, else what stopped the comparison.</summary>
+    public string NoticeTitle => _block is null ? ProblemTitle : _blockNotice.Title;
+
+    public string NoticeText => _block is null ? ProblemText : _blockNotice.Text;
+
+    public bool HasNotice => NoticeTitle.Length > 0 || NoticeText.Length > 0;
+
+    /// <summary>Files rather than a folder were dropped.</summary>
+    [ObservableProperty]
+    public partial bool DroppedFiles { get; private set; }
+
+    [ObservableProperty]
+    public partial string Stage { get; private set; } = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Line))]
+    public partial string Percent { get; private set; } = "";
+
+    [ObservableProperty]
+    public partial double Progress { get; private set; }
+
+    [ObservableProperty]
+    public partial bool IsIndeterminate { get; private set; } = true;
+
+    [ObservableProperty]
+    public partial string FileLine { get; private set; } = "";
+
+    /// <summary>Why there is nothing to package: the folder is empty, or its files are the game's own.</summary>
+    [ObservableProperty]
+    public partial string NothingTitle { get; private set; } = "";
+
+    [ObservableProperty]
+    public partial string NothingText { get; private set; } = "";
+
+    /// <summary>The files that are the game's own, which the package leaves out.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasIdentical))]
+    public partial IReadOnlyList<string> IdenticalFiles { get; private set; } = [];
+
+    public bool HasIdentical => IdenticalFiles.Count > 0;
+
+    [ObservableProperty]
+    public partial string IdenticalCount { get; private set; } = "";
+
+    [ObservableProperty]
+    public partial bool ShowsIdentical { get; set; }
+
+    public void Dispose()
+    {
+        _session.PropertyChanged -= OnSessionChanged;
+        _comparing?.Cancel();
+    }
+
+    /// <summary>
+    /// Tells again what keeps the version's game from being compared, once the agent's state or the game changed; a block that
+    /// goes compares the folder again, since the game's files may have changed meanwhile, except after a test, whose undo
+    /// puts the files back as they were.
+    /// </summary>
+    internal void ShowGame()
+    {
+        var was = _block;
+        if (_page.Game is not { } game)
+        {
+            Block(_page.IsGameGone ? CellState.GameGone : null, Strings.Creator_GameGoneTitle,
+                Text.Format(Strings.Creator_GameGone, ("game", _session.Version?.Game.Name ?? ""), ("store", _page.GameStoreName)));
+        }
+        else
+        {
+            var (block, text) = NewProjectDialogViewModel.Judge(game, _page.Agent.State, Strings.Creator_VersionNotReady);
+            switch (block)
+            {
+                case GameBlock.Installed:
+                    Block(CellState.Installed, Text.Format(Strings.Creator_CellState, ("state", nameof(CellState.Installed)), ("work", ""), ("version", "")), text);
+                    break;
+                case GameBlock.TestInstalled:
+                    Block(CellState.TestInstalled, Strings.Creator_GameTestInstalled, Strings.Creator_RebuildBlocked);
+                    break;
+                case GameBlock.NotReady:
+                    _work = GameWording.GameState(game.Game.State, game.Game.Reason, game.Key.Store);
+                    Block(CellState.NotReady, "", text);
+                    break;
+                default:
+                    Block(null, "", "");
+                    break;
+            }
+        }
+
+        if (_block is null && _page.Game is not null && (was is not (null or CellState.TestInstalled) || _comparedWith is null))
+        {
+            _ = CompareAsync();
+        }
+    }
+
+    /// <summary>Compares the part's folder with its game.</summary>
+    /// <returns>Completes once the comparison ended, was stopped or refused.</returns>
+    [RelayCommand]
+    public async Task CompareAsync()
+    {
+        if (_page.Game is not { } game || _block is not null || _session.Part.AuthorFolder is not { Length: > 0 } folder)
+        {
+            return;
+        }
+
+        _comparing?.Cancel();
+        using var comparing = _comparing = new CancellationTokenSource();
+        _comparedWith = (_session.Version?.Game.Key, _session.Version?.GameFolder);
+        ShowFolder();
+        (ProblemTitle, ProblemText, DroppedFiles) = ("", "", false);
+        (Stage, Percent, FileLine, Progress, IsIndeterminate) = (Strings.Creator_CompareListing, "", "", 0, true);
+        Show(CellState.Comparing);
+        var installs = _page.Agent.State.Games.SelectMany(view => view.Installs)
+            .Select(install => new ExistingInstall(install.Id, install.InstallDirectory))
+            .ToList();
+        try
+        {
+            var comparer = new FolderComparer(_page.Options, _page.FileSystem, _page.Access);
+            var listed = await comparer.ListGameAsync(game.Game.InstallDirectory, installs, comparing.Token)
+                .ConfigureAwait(true);
+            var comparison = await comparer.CompareAsync(new ComparisonRequest(listed, folder, []),
+                new LatestProgress<CompareProgress>(Show), comparing.Token).ConfigureAwait(true);
+            if (_comparing == comparing)
+            {
+                await _session.UseAsync(comparison).ConfigureAwait(true);
+                // What an undone test left in the game may have gone meanwhile, e.g. by the store's check of the files.
+                await _page.ReadKeptPathsAsync().ConfigureAwait(true);
+            }
+
+            if (_comparing == comparing)
+            {
+                Finish(comparison);
+            }
+        }
+        catch (OperationCanceledException) when (comparing.IsCancellationRequested)
+        {
+            Stop(comparing, CellState.Stopped, Strings.Creator_CompareCancelledTitle, Strings.Creator_CompareCancelled);
+        }
+        catch (CreatorBlockedException blocked)
+        {
+            Stop(comparing, blocked.Blocks[0].Reason == CreatorBlockReason.AuthorFolderMissing ? CellState.FolderGone : CellState.Failed,
+                CreatorWording.BlockTitle(blocked.Blocks[0], game.Game.InstallDirectory),
+                string.Join(' ', blocked.Blocks.Select(block => CreatorWording.Block(block, game.Game.InstallDirectory))));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or TimeoutException)
+        {
+            Stop(comparing, CellState.Failed, Strings.Creator_CompareFailedTitle, Strings.Creator_CompareFailed);
+        }
+        // Anything else ends the comparison like the failures above rather than the window.
+        catch (Exception exception)
+        {
+            LogComparisonFailed(_page.Log, exception);
+            Stop(comparing, CellState.Failed, Strings.Creator_CompareStoppedTitle, Text.Format(Strings.Creator_Unexpected, ("error", exception.GetType().Name)));
+        }
+        finally
+        {
+            if (_comparing == comparing)
+            {
+                _comparing = null;
+            }
+        }
+    }
+
+    /// <summary>Tells again what the base's last package says of the compared files.</summary>
+    /// <param name="record">The project's record of its builds; null when it has none.</param>
+    internal void ShowRecord(BuildRecord? record)
+    {
+        var part = record?.Parts.FirstOrDefault(built => built.Part == _session.Part.Name);
+        var stamps = part?.Folders.FirstOrDefault(built => PathComparison.AreSame(built.Folder, _session.Part.AuthorFolder))?.Files;
+        // Stamps alone say nothing changed; a file with another stamp may still hold the same bytes, so it is not told as changed.
+        var unchanged = stamps is not null && _session.Comparison is { } comparison
+            && comparison.Files.Count(file => file.Author is not null) == stamps.Count
+            && comparison.Files.Where(file => file.Author is not null).All(file => stamps.TryGetValue(file.AuthorPath!, out var built)
+                && built.Size == file.Author!.Value.Size && built.LastWriteTime == file.Author.Value.LastWriteTime);
+        Detail = !IsCompared ? ""
+            : part is null ? Text.Format(Strings.Creator_CellState, ("state", "Ready"), ("work", ""), ("version", ""))
+            : unchanged ? Text.Format(Strings.Creator_CellState, ("state", "Unchanged"), ("work", ""), ("version", GameWording.ShortVersion(part.Version)))
+            : "";
+    }
+
+    [RelayCommand]
+    private void Drop(string? folder)
+    {
+        if (folder is null)
+        {
+            DroppedFiles = true;
+        }
+        else
+        {
+            UseFolder(folder);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ChangeFolderAsync()
+    {
+        var folder = await _page.Services.Pickers.PickFolderAsync(Strings.Creator_PickFolderTitle,
+            _session.Part.AuthorFolder.Length > 0 ? _session.Part.AuthorFolder : null).ConfigureAwait(true);
+        if (folder is not null)
+        {
+            UseFolder(folder);
+        }
+    }
+
+    [RelayCommand]
+    private void Cancel() => _comparing?.Cancel();
+
+    [RelayCommand]
+    private void OpenGame()
+    {
+        if (_page.Game is { } game)
+        {
+            _page.Services.Navigator.Navigate(new GameRoute(game.Key));
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleIdentical() => ShowsIdentical = !ShowsIdentical;
+
+    // A folder in the game's or around it would pass off the game's own files as the author's.
+    private void UseFolder(string folder)
+    {
+        DroppedFiles = false;
+        if (_page.Game is { } game && PathComparison.Overlaps(game.Game.InstallDirectory, folder))
+        {
+            _page.ShowProblem(PathComparison.AreSame(game.Game.InstallDirectory, folder) ? Strings.Creator_GameFolderTitle : Strings.Creator_InsideGameTitle,
+                Strings.Creator_GameFolder);
+            return;
+        }
+
+        _page.ClearProblem();
+        if (_session.Part.AuthorFolder.Length == 0 || !PathComparison.AreSame(folder, _session.Part.AuthorFolder))
+        {
+            _comparing?.Cancel();
+            _ = _session.UseAsync(null);
+            _session.ChangePart(part => part with { AuthorFolder = folder });
+        }
+
+        _ = CompareAsync();
+    }
+
+    private void Block(CellState? block, string title, string text)
+    {
+        if (block is not null && block != CellState.TestInstalled)
+        {
+            _comparing?.Cancel();
+            _comparing = null;
+        }
+
+        (_block, _blockNotice) = (block, (title, text));
+        Show(_compared);
+    }
+
+    private void Show(CellState state)
+    {
+        _compared = state;
+        State = _block ?? state;
+        OnPropertyChanged(nameof(CanCompare));
+        OnPropertyChanged(nameof(Line));
+        OnPropertyChanged(nameof(NoticeTitle));
+        OnPropertyChanged(nameof(NoticeText));
+        OnPropertyChanged(nameof(HasNotice));
+    }
+
+    private void ShowFolder() => FolderPath = _session.Part.AuthorFolder;
+
+    private void Show(CompareProgress progress)
+    {
+        if (State != CellState.Comparing)
+        {
+            return;
+        }
+
+        IsIndeterminate = progress.Stage == ComparisonStage.ListingFiles || progress.BytesTotal == 0;
+        Progress = progress.BytesTotal > 0 ? 100.0 * progress.BytesDone / progress.BytesTotal : 0;
+        Percent = IsIndeterminate ? "" : Formats.Percent(progress.BytesDone, progress.BytesTotal);
+        Stage = GameWording.Join(
+        [
+            Text.Format(Strings.Creator_CompareStage, ("stage", progress.Stage.ToString())),
+            IsIndeterminate ? "" : Text.Format(Strings.Creator_BytesOf, ("done", Formats.FileSize(progress.BytesDone)),
+                ("total", Formats.FileSize(progress.BytesTotal))),
+        ]);
+        FileLine = progress.FileCount == 0 ? ""
+            : GameWording.Join(
+            [
+                Text.Format(Strings.Creator_FileOf, ("number", Math.Min(progress.FilesDone + 1, progress.FileCount)),
+                    ("count", progress.FileCount)),
+                progress.CurrentFile ?? "",
+            ]);
+    }
+
+    private void Finish(FolderComparison comparison)
+    {
+        var identical = comparison.Files.Where(file => file.Difference == FileDifference.Identical).Select(file => file.Path).ToList();
+        IdenticalFiles = identical;
+        IdenticalCount = Text.Format(Strings.Creator_IdenticalCount, ("count", identical.Count));
+        ShowsIdentical = false;
+        _comparedAt = _page.Services.Clock.GetUtcNow();
+        if (ProjectPageViewModel.HasNothingToPackage(_session))
+        {
+            (NothingTitle, NothingText) = identical.Count > 0
+                ? (Strings.Creator_NothingTitle, Strings.Creator_Nothing)
+                : (Strings.Creator_EmptyFolderTitle, Strings.Creator_EmptyFolder);
+            Show(CellState.NothingToPackage);
+        }
+        else
+        {
+            Show(CellState.Compared);
+        }
+
+        ShowRecord(_page.Record);
+    }
+
+    // A comparison the author has moved on from, e.g. by changing the folder, has nothing to say.
+    private void Stop(CancellationTokenSource comparing, CellState state, string title, string text)
+    {
+        if (_comparing == comparing)
+        {
+            (ProblemTitle, ProblemText) = (title, text);
+            Show(state);
+        }
+    }
+
+    // A comparison with a game the project no longer names counts for nothing, so the folder is compared again with the game
+    // it names now.
+    private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        var version = _session.Version;
+        if (e.PropertyName != nameof(CreatorSession.Project) || _comparedWith is not { } compared
+            || (compared.Key == version?.Game.Key && compared.Folder == version?.GameFolder))
+        {
+            return;
+        }
+
+        _comparing?.Cancel();
+        (_comparing, _comparedWith) = (null, null);
+        // The page takes the game the version names a moment later, and the comparison then starts with it.
+        if (_page.Game?.Key == version?.Game.Key)
+        {
+            _ = CompareAsync();
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The comparison of the files failed unexpectedly")]
+    private static partial void LogComparisonFailed(ILogger logger, Exception exception);
+}

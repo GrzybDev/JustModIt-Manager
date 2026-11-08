@@ -5,10 +5,10 @@
              xmlns:theme="using:JustModIt.Manager.Ui.Theme"
              xmlns:loc="using:JustModIt.Manager.Localization"
              x:Class="JustModIt.Manager.Ui.Pages.Creator.DescriptionTab"
-             x:DataType="creator:PackageStepViewModel"
+             x:DataType="creator:PackageDescriptionViewModel"
              ClipToBounds="False">
   <!-- The cards' shadows fall outside the control. -->
-  <StackPanel Spacing="20">
+  <StackPanel Spacing="20" Margin="0,4,0,16">
     <Border Classes="creatorCard" Padding="24">
       <Grid ColumnDefinitions="56,*" RowDefinitions="Auto,Auto" ColumnSpacing="18" RowSpacing="16">
         <Border Classes="folderChip" Width="56" Height="56" CornerRadius="14" VerticalAlignment="Top">
@@ -16,12 +16,12 @@
         </Border>
         <StackPanel Grid.Column="1" Spacing="6">
           <TextBlock Classes="overline" Text="{x:Static creator:DescriptionTab.FormatOverline}" />
-          <TextBlock Text="{Binding Description.FormatTitle}" FontSize="20" LineHeight="28" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}" />
-          <TextBlock Classes="bodyL" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding Description.FormatText}" />
+          <TextBlock Text="{Binding FormatTitle}" FontSize="20" LineHeight="28" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}" />
+          <TextBlock Classes="bodyL" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding FormatText}" />
         </StackPanel>
         <Border Grid.Row="1" Grid.Column="1" CornerRadius="12" BorderThickness="1" BorderBrush="{StaticResource HairlineBrush}"
                 Background="#05FFFFFF" ClipToBounds="True">
-          <ItemsControl Classes="rows" ItemsSource="{Binding Description.FormatRows}" Grid.IsSharedSizeScope="True"
+          <ItemsControl Classes="rows" ItemsSource="{Binding FormatRows}" Grid.IsSharedSizeScope="True"
                         AutomationProperties.Name="{x:Static loc:Strings.Creator_FormatRules}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="creator:FormatRow">
@@ -53,39 +53,39 @@
     <Border Classes="creatorCard" Padding="24,20,24,22">
       <StackPanel Spacing="18">
         <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_Metadata}" />
-        <StackPanel Spacing="6" IsVisible="{Binding Description.IsManifest}">
+        <StackPanel Spacing="6" IsVisible="{Binding IsManifest}">
           <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_PackageTitle}" />
-          <TextBox x:Name="TitleBox" Text="{Binding Description.PackageTitle}" FontSize="14" IsReadOnly="{Binding Build.IsBuilding}"
+          <TextBox x:Name="TitleBox" Text="{Binding PackageTitle}" FontSize="14"
                    AutomationProperties.Name="{x:Static loc:Strings.Creator_PackageTitle}" />
           <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_PackageTitleHint}" />
         </StackPanel>
         <Grid ColumnDefinitions="220,*" ColumnSpacing="20">
           <StackPanel Spacing="6">
             <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_Version}" />
-            <TextBox x:Name="VersionBox" Text="{Binding Description.Version}" FontSize="14" IsReadOnly="{Binding Build.IsBuilding}"
+            <TextBox x:Name="VersionBox" Text="{Binding Version}" FontSize="14"
                      AutomationProperties.Name="{x:Static loc:Strings.Creator_Version}">
               <TextBox.InnerLeftContent>
                 <TextBlock Text="{x:Static loc:Strings.Creator_VersionPrefix}" Margin="12,0,0,0" FontWeight="SemiBold"
                            VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
               </TextBox.InnerLeftContent>
             </TextBox>
-            <TextBlock Classes="caption" Text="{Binding Description.LastRelease}"
-                       IsVisible="{Binding Description.LastRelease, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Classes="caption" Text="{Binding LastRelease}"
+                       IsVisible="{Binding LastRelease, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
-          <StackPanel Grid.Column="1" Spacing="6" IsVisible="{Binding Description.IsManifest}">
+          <StackPanel Grid.Column="1" Spacing="6" IsVisible="{Binding IsManifest}">
             <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_Authors}" />
             <Border CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource FieldBorderBrush}" Background="{StaticResource FillSubtleBrush}"
                     Padding="6,5" MinHeight="40">
               <WrapPanel ItemSpacing="6" LineSpacing="6">
-                <ItemsControl ItemsSource="{Binding Description.Authors}" ItemsPanel="{StaticResource WrapItems6}">
+                <ItemsControl ItemsSource="{Binding Authors}" ItemsPanel="{StaticResource WrapItems6}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="x:String">
                       <Border Height="28" CornerRadius="999" Padding="10,0,4,0" Background="{StaticResource FillStrongBrush}">
                         <StackPanel Orientation="Horizontal" Spacing="4">
                           <TextBlock Text="{Binding}" FontSize="13" FontWeight="Medium" VerticalAlignment="Center" />
-                          <Button Classes="icon" Width="22" Height="22" CornerRadius="999" IsEnabled="{Binding !$parent[UserControl].((creator:PackageStepViewModel)DataContext).Build.IsBuilding}"
+                          <Button Classes="icon" Width="22" Height="22" CornerRadius="999"
                                   ToolTip.Tip="{Binding Converter={x:Static creator:DescriptionTab.RemoveAuthorName}}"
-                                  Command="{Binding $parent[UserControl].((creator:PackageStepViewModel)DataContext).Description.RemoveAuthorCommand}"
+                                  Command="{Binding $parent[UserControl].((creator:PackageDescriptionViewModel)DataContext).RemoveAuthorCommand}"
                                   CommandParameter="{Binding}">
                             <ui:Icon Data="{x:Static theme:Icons.X}" Width="13" Height="13" />
                           </Button>
@@ -94,35 +94,24 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBox x:Name="AuthorBox" Text="{Binding Description.NewAuthor}" MinWidth="160" MinHeight="28" Padding="6,0" BorderThickness="0"
-                         Background="Transparent" FontSize="14" IsReadOnly="{Binding Build.IsBuilding}"
+                <TextBox x:Name="AuthorBox" Text="{Binding NewAuthor}" MinWidth="160" MinHeight="28" Padding="6,0" BorderThickness="0"
+                         Background="Transparent" FontSize="14"
                          PlaceholderText="{x:Static loc:Strings.Creator_AddAuthor}" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddAuthor}">
                   <TextBox.KeyBindings>
-                    <KeyBinding Gesture="Enter" Command="{Binding Description.AddAuthorCommand}" />
+                    <KeyBinding Gesture="Enter" Command="{Binding AddAuthorCommand}" />
                   </TextBox.KeyBindings>
                 </TextBox>
               </WrapPanel>
             </Border>
-            <TextBlock Classes="caption" Text="{Binding Description.AuthorsNote}" />
+            <TextBlock Classes="caption" Text="{Binding AuthorsNote}" />
           </StackPanel>
         </Grid>
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding !Description.IsManifest}">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding !IsManifest}">
           <ui:Icon Data="{x:Static theme:Icons.Info}" Width="16" Height="16" Margin="0,2,0,0" VerticalAlignment="Top"
                    Foreground="{StaticResource TextSecondaryBrush}" />
           <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" Text="{x:Static loc:Strings.Creator_ZipMetadata}" />
         </Grid>
-        <TextBlock Classes="rowText" Classes.dangerText="True" Text="{Binding Description.MetadataProblem}" IsVisible="{Binding Description.HasMetadataProblem}" />
-        <Border Classes="divider" />
-        <StackPanel Spacing="4">
-          <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}" Text="{x:Static loc:Strings.Creator_ForGame}" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <ui:StoreIcon Store="{Binding Build.GameStore}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
-            <TextBlock Text="{Binding Build.GameName}" FontSize="14" LineHeight="22" />
-            <TextBlock Classes="separator" />
-            <TextBlock Text="{Binding Build.GameDetails}" FontSize="14" LineHeight="22" Foreground="{StaticResource TextBodyBrush}" />
-          </StackPanel>
-          <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_BuildChecked}" />
-        </StackPanel>
+        <TextBlock Classes="rowText" Classes.dangerText="True" Text="{Binding MetadataProblem}" IsVisible="{Binding HasMetadataProblem}" />
       </StackPanel>
     </Border>
   </StackPanel>

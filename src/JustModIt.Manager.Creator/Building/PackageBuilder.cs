@@ -50,7 +50,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
     /// <param name="folder">The place, canonical.</param>
     /// <param name="plan">A plan of the run.</param>
     /// <exception cref="PackageBuildException">The place lies inside the game's or the author's folder.</exception>
-    internal static void CheckOutputFolder(string folder, PackagePlan plan)
+    public static void CheckOutputFolder(string folder, PackagePlan plan)
     {
         if (PathComparison.IsWithin(plan.GameDirectory, folder))
         {

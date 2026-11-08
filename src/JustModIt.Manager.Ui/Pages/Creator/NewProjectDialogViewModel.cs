@@ -22,6 +22,9 @@ public enum GameBlock
     /// <summary>A package of this app is installed on it, whose files would count as the game's.</summary>
     Installed,
 
+    /// <summary>A package of the creator's is installed on it for a test.</summary>
+    TestInstalled,
+
     /// <summary>The store or a job is working on it, or it is not installed and idle.</summary>
     NotReady,
 }
@@ -57,7 +60,7 @@ public sealed partial class GameOption(DetectedGameEntry entry) : ObservableObje
 
     public bool IsSelectable => Block == GameBlock.None;
 
-    public bool IsBlockedByInstall => Block == GameBlock.Installed;
+    public bool IsBlockedByInstall => Block is GameBlock.Installed or GameBlock.TestInstalled;
 
     public bool IsNotReady => Block == GameBlock.NotReady;
 }
@@ -149,15 +152,16 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
     /// <summary>Tells whether a game can be what a package is compared with now.</summary>
     /// <param name="game">A detected game.</param>
     /// <param name="state">The agent's state.</param>
+    /// <param name="notReady">The words for a game the store or a job works on, around the game's state.</param>
     /// <returns>What blocks the game, and the words for it.</returns>
-    public static (GameBlock Block, string Text) Judge(DetectedGameEntry game, AppStateView state)
+    public static (GameBlock Block, string Text) Judge(DetectedGameEntry game, AppStateView state, string notReady)
     {
         // A package on the game, or a store or job at work on it, would make its files no baseline for the package.
         var install = state.Games.SelectMany(view => view.Installs)
             .FirstOrDefault(install => Core.IO.PathComparison.Overlaps(install.InstallDirectory, game.Game.InstallDirectory));
         if (install is { IsTest: true })
         {
-            return (GameBlock.Installed, Strings.Creator_GameTestInstalled);
+            return (GameBlock.TestInstalled, Strings.Creator_GameTestInstalled);
         }
 
         if (install is not null)
@@ -168,7 +172,7 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
         }
 
         return state.Jobs.Any(job => job.Game == game.Key) || game.Game.State != GameInstallState.Installed || game.Game.IsStale
-            ? (GameBlock.NotReady, Text.Format(Strings.Creator_GameNotReady, ("state", GameWording.GameState(game.Game.State, game.Game.Reason, game.Key.Store))))
+            ? (GameBlock.NotReady, Text.Format(notReady, ("state", GameWording.GameState(game.Game.State, game.Game.Reason, game.Key.Store))))
             : (GameBlock.None, "");
     }
 
@@ -264,7 +268,7 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
     {
         foreach (var option in _options)
         {
-            (option.Block, option.BlockText) = Judge(option.Entry, _services.Agent.State);
+            (option.Block, option.BlockText) = Judge(option.Entry, _services.Agent.State, Strings.Creator_GameNotReady);
         }
 
         Selected = _options.FirstOrDefault(option => option.IsSelected);

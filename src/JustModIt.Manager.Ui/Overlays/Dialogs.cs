@@ -167,7 +167,6 @@ public sealed partial class DialogHost : ObservableObject
     }
 
     /// <summary>Dismisses the dialog shown, as Esc and a click beside it do.</summary>
-    [RelayCommand]
     public void CancelCurrent() => Current?.Cancel();
 
     private async Task PresentAsync(DialogViewModel dialog)

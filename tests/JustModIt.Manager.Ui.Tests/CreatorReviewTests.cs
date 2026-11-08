@@ -39,7 +39,7 @@ public sealed class CreatorReviewTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task The_check_lists_the_operations_in_their_order_with_their_reasons_and_its_confirmation_opens_the_package()
+    public async Task The_bar_lists_what_blocks_and_the_build_is_the_confirmation()
     {
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
@@ -61,13 +61,17 @@ public sealed class CreatorReviewTests : IDisposable
         review.RulesMet.Should().BeTrue();
         await RenderAsync(ui, "creator-review", 1700);
 
-        ui.Click(Button(ui, Strings.Creator_Confirm));
-        Page(ui).Step.Should().Be(CreatorStep.Package);
-        Page(ui).Session!.IsConfirmed.Should().BeTrue();
+        Page(ui).HasBlockedText.Should().BeFalse("a missing version is said by its item and its box");
+        Page(ui).BeforeItems.Should().Contain(item => item.Text == Strings.Creator_RulesTitle && item.IsMet);
+        var noVersion = Text.Format(Strings.Creator_BeforeItem, ("item", "NoVersion"));
+        Page(ui).BeforeItems.Should().Contain(item => item.IsMissing && item.Text == noVersion);
+        Page(ui).CanBuild.Should().BeFalse();
+        Page(ui).Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => Page(ui).CanBuild);
     }
 
     [AvaloniaFact]
-    public async Task Leaving_a_file_out_or_carrying_a_whole_game_file_plans_again_and_asks_for_a_new_check()
+    public async Task Leaving_a_file_out_or_carrying_a_whole_game_file_plans_again_and_asks_for_the_author_s_word()
     {
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
@@ -86,11 +90,11 @@ public sealed class CreatorReviewTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_EditOperation, config));
         ui.Click(Pill(ui, CreatorWording.Choice(FileChoice.Copy, Creator.Comparison.FileDifference.Changed)));
         await UiHarness.WaitUntilAsync(() => review.Rules.Any(rule => rule.IsAccept));
-        review.CanConfirm.Should().BeFalse("a whole game file needs the author's word first");
+        Page(ui).HasBlockedText.Should().BeTrue("a whole game file needs the author's word first");
         await RenderAsync(ui, "creator-review-whole-file", 1900);
 
         ui.Click(Button(ui, Strings.Creator_AcceptWork));
-        await UiHarness.WaitUntilAsync(() => review.CanConfirm);
+        await UiHarness.WaitUntilAsync(() => !Page(ui).HasBlockedText);
         Page(ui).Session!.Project.Acknowledged.Should().ContainSingle();
     }
 
@@ -104,19 +108,19 @@ public sealed class CreatorReviewTests : IDisposable
         var review = await ReviewAsync(ui);
 
         review.Rules.Select(rule => rule.Kind).Should().BeEquivalentTo([RuleKind.Error, RuleKind.Library, RuleKind.Tool]);
-        review.CanConfirm.Should().BeFalse();
-        review.ConfirmBlocked.Should().Be(
-            "Najpierw trzeba poprawić błąd i odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń” na górze strony.");
+        Page(ui).HasBlockedText.Should().BeTrue();
+        Page(ui).BlockedText.Should().Be(
+            "Najpierw trzeba poprawić błąd i odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń”.");
         await RenderAsync(ui, "creator-review-rules", 2250);
 
         ui.Click(Button(ui, Strings.Creator_Exclude, review.Rules.Single(rule => rule.IsError)));
         await UiHarness.WaitUntilAsync(() => review.Rules.All(rule => !rule.IsError));
-        review.ConfirmBlocked.Should().Be("Najpierw trzeba odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń” na górze strony.");
+        Page(ui).BlockedText.Should().Be("Najpierw trzeba odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń”.");
         var tool = review.Rules.Single(rule => rule.IsTool);
         tool.License = "MIT";
         tool.Source = "https://code.example.com/asi-loader";
 
-        await UiHarness.WaitUntilAsync(() => review.CanConfirm);
+        await UiHarness.WaitUntilAsync(() => !Page(ui).HasBlockedText);
         Page(ui).Session!.Project.ToolNotices.Should().ContainSingle().Which.IsComplete.Should().BeTrue();
     }
 
@@ -130,13 +134,13 @@ public sealed class CreatorReviewTests : IDisposable
         library.Should().Match<RuleRow>(rule => rule.IsLibrary && !rule.IsThirdParty && !rule.NeedsNotice);
         library.Title.Should().Be(CreatorWording.RuleTitle(new PlanFinding(FindingKind.AddedLibrary, "dx11/lantern_loc.dll")));
         review.RulesMet.Should().BeTrue();
-        review.CanConfirm.Should().BeTrue();
+        Page(ui).HasBlockedText.Should().BeFalse();
         ui.Click(Pill(ui, Strings.Creator_LibraryThirdParty));
         await UiHarness.WaitUntilAsync(() => library.NeedsNotice);
         ui.Find<TextBlock>().Where(text => text.IsEffectivelyVisible).Select(text => text.Text).Should()
             .Contain(Strings.Creator_LibraryHint, "the caption names the library's name too").And.NotContain(Strings.Creator_ToolHint);
         review.RulesState.Should().Be(Text.Format(Strings.Creator_RulesQuestions, ("count", 1)));
-        review.CanConfirm.Should().BeFalse("another author's tool needs its licence and source");
+        Page(ui).HasBlockedText.Should().BeTrue("another author's tool needs its licence and source");
         await RenderAsync(ui, "creator-review-library", 1900);
         var (width, height) = (ui.Window.Width, ui.Window.Height);
         (ui.Window.Width, ui.Window.Height) = (960, 600);
@@ -148,7 +152,7 @@ public sealed class CreatorReviewTests : IDisposable
 
         library.License = "MIT";
         library.Source = "https://code.example.com/lantern-hook";
-        await UiHarness.WaitUntilAsync(() => review.CanConfirm);
+        await UiHarness.WaitUntilAsync(() => !Page(ui).HasBlockedText);
         Page(ui).Session!.Review!.Plan.ThirdPartyNotices.Should().ContainSingle().Which.Paths.Should().Equal("dx11/lantern_loc.dll");
         ui.Click(Pill(ui, Strings.Creator_LibraryOwnCode));
         await UiHarness.WaitUntilAsync(() => !library.IsThirdParty);
@@ -169,12 +173,12 @@ public sealed class CreatorReviewTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_LibraryAddNotice));
         await UiHarness.WaitUntilAsync(() => library.NeedsNotice);
         library.IsThirdParty.Should().BeFalse();
-        review.CanConfirm.Should().BeFalse("a licence once added is given whole");
+        Page(ui).HasBlockedText.Should().BeTrue("a licence once added is given whole");
         Box(ui, Strings.Creator_LibraryName).Text.Should().Be("lantern_loc.dll", "the tool is named after its file until the author names it");
         Box(ui, Strings.Creator_LibraryName).Text = "Lantern Streamer";
         library.License = "GPL-3.0-or-later";
         library.Source = "https://code.example.com/lantern-streamer";
-        await UiHarness.WaitUntilAsync(() => review.CanConfirm);
+        await UiHarness.WaitUntilAsync(() => !Page(ui).HasBlockedText);
         await RenderAsync(ui, "creator-review-library-own-licence", 1900);
 
         Page(ui).Session!.Project.LibraryNotices.Should().Equal(new LibraryNotice("dx11/lantern_loc.dll", "GPL-3.0-or-later",
@@ -197,24 +201,24 @@ public sealed class CreatorReviewTests : IDisposable
 
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
-        Page(ui).Session!.Describe(project => Enumerable.Range(1, ThirdPartyNotice.MaxPerPackage - 1).Aggregate(
+        Page(ui).Session!.Change(project => Enumerable.Range(1, ThirdPartyNotice.MaxPerPackage - 1).Aggregate(
             project.WithLibraryNotice(new LibraryNotice("dx11/lantern_loc.dll", "MIT", "https://code.example.com/lantern-hook")),
             (named, i) => named.WithLibraryNotice(new LibraryNotice($"plugins/hook{i}.dll", "MIT", "https://code.example.com/hooks"))));
-        await UiHarness.WaitUntilAsync(() => review.CanConfirm && review.Rules.Count(rule => rule.HasNotice) == ThirdPartyNotice.MaxPerPackage);
+        await UiHarness.WaitUntilAsync(() => !Page(ui).HasBlockedText && review.Rules.Count(rule => rule.HasNotice) == ThirdPartyNotice.MaxPerPackage);
         var last = review.Rules.Single(rule => rule.Path == $"plugins/hook{ThirdPartyNotice.MaxPerPackage}.dll");
 
         ui.Click(Pill(ui, Strings.Creator_LibraryThirdParty, last));
         await UiHarness.WaitUntilAsync(() => review.HasProblems);
 
         review.Problems.Select(line => line.Text).Should().Equal("Opis paczki mieści licencję i kod źródłowy najwyżej 32 narzędzi i bibliotek.");
-        review.CanConfirm.Should().BeFalse();
-        review.ConfirmBlocked.Should().Be(
-            "Najpierw trzeba odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń” na górze strony i rozwiązać problem zaznaczony wyżej.");
+        Page(ui).HasBlockedText.Should().BeTrue();
+        Page(ui).BlockedText.Should().Be(
+            "Najpierw trzeba odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń” i rozwiązać problem zaznaczony w szczegółach.");
         ui.Find<ItemsControl>().Single(items => items.ItemsSource == review.Problems).BringIntoView();
         await RenderAsync(ui, "creator-review-too-many-notices", null);
 
         ui.Click(Pill(ui, Strings.Creator_LibraryOwnCode, last));
-        await UiHarness.WaitUntilAsync(() => !review.HasProblems && review.CanConfirm);
+        await UiHarness.WaitUntilAsync(() => !review.HasProblems && !Page(ui).HasBlockedText);
     }
 
     [AvaloniaFact]
@@ -229,16 +233,15 @@ public sealed class CreatorReviewTests : IDisposable
         var refused = review.Rules.Should().ContainSingle(rule => rule.IsError).Subject;
         refused.Findings.Select(finding => finding.OperationIndex).Should().HaveCount(2);
 
-        Page(ui).OpenStepCommand.Execute(Page(ui).Steps[(int)CreatorStep.Files]);
-        Page(ui).OpenStepCommand.Execute(Page(ui).Steps[(int)CreatorStep.Review]);
-        await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review);
+        await Page(ui).Cell.CompareAsync();
+        await Page(ui).Session!.SettledAsync();
         review.Rules.Should().ContainSingle(rule => rule.IsError).Which.Should().BeSameAs(refused, "the row stays across plans");
 
         ui.Click(Button(ui, Strings.Creator_Exclude, refused));
         await UiHarness.WaitUntilAsync(() => review.Rules.All(rule => !rule.IsError));
         Page(ui).Session!.Review!.Plan.Operations.Should().NotContain(operation =>
             operation.Path.StartsWith("bin/steam_api64", StringComparison.Ordinal));
-        review.CanConfirm.Should().BeTrue();
+        Page(ui).HasBlockedText.Should().BeFalse();
     }
 
     [AvaloniaFact]
@@ -298,8 +301,7 @@ public sealed class CreatorReviewTests : IDisposable
         await UiHarness.WaitUntilAsync(() => review.IsAdvanced && review.Steps.Count == operations.Count);
         Page(ui).Session!.Review!.Plan.Operations.Select(operation => (operation.Kind, operation.Path))
             .Should().Equal(operations.Select(operation => (operation.Kind, operation.Path)));
-        Page(ui).IsAdvanced.Should().BeTrue();
-        Page(ui).Steps[(int)CreatorStep.Review].Title.Should().Be(Strings.Creator_StepSteps);
+        Page(ui).PartLine.Should().Contain(Text.Format(Strings.Creator_PartMode, ("mode", nameof(CreatorMode.Advanced))));
 
         review.MoveStep(7, 0);
         await UiHarness.WaitUntilAsync(() => review.Steps[1].MoveBefore == 0);
@@ -310,8 +312,8 @@ public sealed class CreatorReviewTests : IDisposable
         mistyped.Findings.Should().ContainSingle().Which.Text.Should().Be(CreatorWording.Finding(
             new PlanFinding(FindingKind.GameFileMissing, "data/config.xlm") { SuggestedPath = "data/config.xml" }));
         mistyped.Should().Match<StepRow>(row => row.HasProblem && row.IsSecondFaulty && !row.IsFirstFaulty);
-        review.CanConfirm.Should().BeFalse("the rename would set the author's library aside instead of the game's");
-        review.ConfirmBlocked.Should().Be("Najpierw trzeba odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń” na górze strony"
+        Page(ui).HasBlockedText.Should().BeTrue("the rename would set the author's library aside instead of the game's");
+        Page(ui).BlockedText.Should().Be("Najpierw trzeba odpowiedzieć na pytanie w „Zasadach Bazy Spolszczeń”"
             + " i poprawić 2 problemy w krokach 2 i 3.");
         await RenderAsync(ui, "creator-advanced-problem", 2150);
 
@@ -319,14 +321,14 @@ public sealed class CreatorReviewTests : IDisposable
         await UiHarness.WaitUntilAsync(() => !mistyped.HasProblem);
         mistyped.Second.Should().Be("data/config.xml");
         ui.Click(Button(ui, moved.MoveBeforeAction));
-        await UiHarness.WaitUntilAsync(() => review.Steps[0].Kind == OperationKind.Rename && review.CanConfirm);
+        await UiHarness.WaitUntilAsync(() => review.Steps[0].Kind == OperationKind.Rename && !Page(ui).HasBlockedText);
         review.Steps.Should().OnlyContain(step => step.MoveBefore == null);
 
         ui.Click(Button(ui, Strings.Creator_ToSimpleButton));
         await Answer(ui, Strings.Creator_ToSimpleConfirm);
-        await UiHarness.WaitUntilAsync(() => !review.IsAdvanced && review.CanConfirm);
+        await UiHarness.WaitUntilAsync(() => !review.IsAdvanced && !Page(ui).HasBlockedText);
         Page(ui).Session!.Part.Steps.Should().BeEmpty();
-        Page(ui).Steps[(int)CreatorStep.Review].Title.Should().Be(Strings.Creator_StepReview);
+        Page(ui).PartLine.Should().Contain(Text.Format(Strings.Creator_PartMode, ("mode", nameof(CreatorMode.Simple))));
     }
 
     [AvaloniaFact]
@@ -352,18 +354,16 @@ public sealed class CreatorReviewTests : IDisposable
     {
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
+        await RuntimeTabAsync(ui);
 
-        review.IsRuntimeOpen.Should().BeTrue("the package carries a library and names no file yet");
         review.ShowsRuntimePrompt.Should().BeTrue();
         review.HasRuntimeRows.Should().BeFalse();
         review.RuntimeCount.Should().BeEmpty();
-        review.Checklist.Should().Contain(Strings.Creator_CheckRuntime);
-        review.CanConfirm.Should().BeTrue();
+        Page(ui).BeforeItems.Should().Contain(item => item.Text == Strings.Creator_BeforeRuntime && item.IsReminder);
+        Page(ui).HasBlockedText.Should().BeFalse();
         ui.Find<Border>("RuntimeCard").BringIntoView();
         await RenderAsync(ui, "creator-runtime-prompt", null);
 
-        ui.Click(ui.Find<Button>("RuntimeHeader"));
-        review.IsRuntimeOpen.Should().BeFalse();
     }
 
     [AvaloniaTheory]
@@ -376,6 +376,7 @@ public sealed class CreatorReviewTests : IDisposable
         _work.Game("data/movies_original.idx", Movies);
         using var ui = await OpenAsync(width, height);
         var review = await ReviewAsync(ui);
+        await RuntimeTabAsync(ui);
         ui.Pickers.File = Path.Combine(_work.GameFolder, "data", "movies.idx");
 
         ui.Click(ui.Find<Button>("AddRuntimeChanges"));
@@ -391,9 +392,8 @@ public sealed class CreatorReviewTests : IDisposable
             ("data/movies_original.idx", "Nowy – tworzy go oprogramowanie"));
         review.RuntimeCount.Should().Be("2 pliki");
         review.RuntimeProblems.Should().Be("Do poprawienia: 1 problem");
-        review.IsRuntimeOpen.Should().BeTrue();
-        review.CanConfirm.Should().BeFalse();
-        review.ConfirmBlocked.Should().Be("Najpierw trzeba poprawić problem na liście plików zmienianych podczas gry.");
+        Page(ui).HasBlockedText.Should().BeTrue();
+        Page(ui).BlockedText.Should().Be("Najpierw trzeba poprawić problem na karcie „Pliki zmieniane w grze”.");
         Page(ui).Session!.Part.RuntimeFiles.Should().Equal(
             new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile),
             new RuntimeFileChoice("data/movies_original.idx", RuntimeFileKind.CreatesFile));
@@ -406,19 +406,18 @@ public sealed class CreatorReviewTests : IDisposable
         refused.OffersFixes.Should().BeTrue();
         ui.Find<ItemsControl>("RuntimeRows").BringIntoView();
         UiHarness.Settle();
-        ui.Click(Button(ui, review.CheckFilesLabel));
+        Tap(ui, Button(ui, review.CheckFilesLabel));
         ui.Links.Opened.Should().Equal(new Uri("steam://validate/5100"));
-        ui.Click(Button(ui, Strings.Creator_Reveal, refused));
+        Tap(ui, Button(ui, Strings.Creator_Reveal, refused));
         ui.Links.Folders.Should().Equal(Path.Combine(_work.GameFolder, "data"));
         File.Delete(Path.Combine(_work.GameFolder, "data", "movies_original.idx"));
-        ui.Click(Button(ui, Strings.Creator_CompareAgain));
-        await UiHarness.WaitUntilAsync(() => Page(ui).Content is ReviewViewModel { HasRuntimeProblems: false, CanConfirm: true }
+        await Page(ui).Cell.CompareAsync();
+        await UiHarness.WaitUntilAsync(() => Page(ui) is { Review.HasRuntimeProblems: false, HasBlockedText: false }
             && Page(ui).Session!.Review!.Plan.Findings.All(finding => finding.RuntimeIndex is null));
-        var compared = (ReviewViewModel)Page(ui).Content!;
-        compared.IsRuntimeOpen.Should().BeFalse("once its problem is solved the card folds to its title");
+        var compared = Page(ui).Review;
         compared.RuntimeCount.Should().Be("2 pliki");
         ui.Find<Border>("RuntimeCard").BringIntoView();
-        await RenderAsync(ui, "creator-runtime-folded" + suffix, null);
+        await RenderAsync(ui, "creator-runtime" + suffix, null);
     }
 
     [AvaloniaTheory]
@@ -429,6 +428,7 @@ public sealed class CreatorReviewTests : IDisposable
         _work.Game("data/movies.idx", Movies);
         using var ui = await OpenAsync(width, height);
         var review = await ReviewAsync(ui);
+        await RuntimeTabAsync(ui);
         ui.Pickers.File = Path.Combine(_work.GameFolder, "data", "movies.idx");
         ui.Click(ui.Find<Button>("AddRuntimeChanges"));
         await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 1);
@@ -470,6 +470,7 @@ public sealed class CreatorReviewTests : IDisposable
         row.Reason.Should().Be(Strings.Creator_RuntimeWhy);
         review.Operations.OfType<OperationRow>().Should().NotContain(operation => operation.Name == "config.xml");
         review.Rules.Should().Contain(rule => rule.Kind == RuleKind.Accept, "a game's settings file asks first");
+        await RuntimeTabAsync(ui);
         ui.Click(ui.Find<Button>().First(button => button.DataContext == row && ToolTip.GetTip(button) as string == row.RemoveName));
 
         await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 0);
@@ -482,6 +483,7 @@ public sealed class CreatorReviewTests : IDisposable
         _work.Game("data/movies.idx", Movies);
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
+        await RuntimeTabAsync(ui);
         Page(ui).Session!.ChangePart(part => part
             .WithRuntimeFile(new RuntimeFileChoice("data/movie.idx", RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice("logs/streamer.log", RuntimeFileKind.CreatesFile)));
@@ -508,6 +510,7 @@ public sealed class CreatorReviewTests : IDisposable
         var leftovers = new List<LeftoverBackup> { kept };
         using var ui = await OpenAsync(answer: request => request is GetLeftoverBackups ? new LeftoverBackups([.. leftovers]) : null);
         var review = await ReviewAsync(ui);
+        await RuntimeTabAsync(ui);
 
         Page(ui).Session!.ChangePart(part => part.WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile)));
         await UiHarness.WaitUntilAsync(() => review.HasRuntimeProblems);
@@ -515,8 +518,8 @@ public sealed class CreatorReviewTests : IDisposable
         review.RuntimeRows.Single().Findings.Should().ContainSingle();
         review.RuntimeRows.Single().OffersFixes.Should().BeTrue();
         leftovers.Clear();
-        ui.Click(Button(ui, Strings.Creator_CompareAgain));
-        await UiHarness.WaitUntilAsync(() => Page(ui).Content is ReviewViewModel { HasRuntimeProblems: false, CanConfirm: true });
+        await Page(ui).Cell.CompareAsync();
+        await UiHarness.WaitUntilAsync(() => Page(ui) is { Review.HasRuntimeProblems: false, HasBlockedText: false });
     }
 
     [AvaloniaFact]
@@ -533,6 +536,7 @@ public sealed class CreatorReviewTests : IDisposable
         LeftoverBackups leftovers = new([Kept(_work.GameFolder, "data/sounds.idx"), Kept(_work.GameFolder + " (old)", "data/movies.idx")]);
         using var ui = await OpenAsync(answer: request => request is GetLeftoverBackups ? leftovers : null);
         var review = await ReviewAsync(ui);
+        await RuntimeTabAsync(ui);
 
         Page(ui).Session!.ChangePart(part => part
             .WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile))
@@ -547,14 +551,20 @@ public sealed class CreatorReviewTests : IDisposable
     {
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
+        Reveal(ui, Row(review, "config.xml"));
         ui.Click(Button(ui, Strings.Creator_EditOperation, Row(review, "config.xml")));
         Page(ui).Session!.ChangePart(part => part.WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.CreatesFile)));
         await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 1);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Unnamed().Should().BeEmpty();
+        await RuntimeTabAsync(ui);
         ui.Click(ui.Find<Button>("AddRuntimeCreates"));
         await UiHarness.WaitUntilAsync(() => review.IsTypingRuntime);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
 
         ui.Unnamed().Should().BeEmpty();
+        Page(ui).Tab = ProjectTab.Release;
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Click(Button(ui, Strings.Creator_ToAdvancedButton));
         await Answer(ui, Strings.Creator_ToAdvancedConfirm);
         await UiHarness.WaitUntilAsync(() => review.IsAdvanced);
@@ -576,9 +586,16 @@ public sealed class CreatorReviewTests : IDisposable
     private async Task<ReviewViewModel> ReviewAsync(UiHarness ui)
     {
         var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
-        await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review && page.Session!.Review is not null);
+        await UiHarness.WaitUntilAsync(() => page.Cell.IsCompared && page.Session!.Review is not null);
+        page.ShowOperationsCommand.Execute(null);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        return (ReviewViewModel)page.Content!;
+        return page.Review;
+    }
+
+    private static async Task RuntimeTabAsync(UiHarness ui)
+    {
+        Page(ui).Tab = ProjectTab.Runtime;
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
     }
 
     private static OperationRow Row(ReviewViewModel review, string name) =>

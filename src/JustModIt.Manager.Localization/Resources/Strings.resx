@@ -2688,9 +2688,6 @@
   <data name="Creator_Import" xml:space="preserve">
     <value>Import a project file…</value>
   </data>
-  <data name="Creator_AdvancedMode" xml:space="preserve">
-    <value>Advanced mode</value>
-  </data>
   <data name="Creator_DismissProblem" xml:space="preserve">
     <value>Dismiss</value>
   </data>
@@ -2743,28 +2740,7 @@
     <value>The project's game is not detected</value>
   </data>
   <data name="Creator_GameGone" xml:space="preserve">
-    <value>{game} is not among the detected games. The project can be opened again once a store reports it.</value>
-  </data>
-  <data name="Creator_Steps" xml:space="preserve">
-    <value>Steps of the package creator</value>
-  </data>
-  <data name="Creator_StepFiles" xml:space="preserve">
-    <value>Files</value>
-  </data>
-  <data name="Creator_StepReview" xml:space="preserve">
-    <value>Check</value>
-  </data>
-  <data name="Creator_StepPackage" xml:space="preserve">
-    <value>Package</value>
-  </data>
-  <data name="Creator_StepName" xml:space="preserve">
-    <value>Step {number}: {title} – {state, select, Current {current} Done {done} Locked {not available yet} other {available}}</value>
-  </data>
-  <data name="Creator_StepLocked" xml:space="preserve">
-    <value>Finish the “{step}” step first.</value>
-  </data>
-  <data name="Creator_Back" xml:space="preserve">
-    <value>Back</value>
+    <value>{game} on {store} is not among the detected games. It comes back by itself once the store reports it.</value>
   </data>
   <data name="Creator_GameTitle" xml:space="preserve">
     <value>Choose the game</value>
@@ -2807,12 +2783,6 @@
   </data>
   <data name="Creator_MissingGameLink" xml:space="preserve">
     <value>See what the stores found</value>
-  </data>
-  <data name="Creator_FilesTitle" xml:space="preserve">
-    <value>Choose the folder with the files</value>
-  </data>
-  <data name="Creator_FilesLead" xml:space="preserve">
-    <value>A folder of files laid out as in the game's folder. Only the files added or changed are needed; the rest of the game stays as it is.</value>
   </data>
   <data name="Creator_DropZone" xml:space="preserve">
     <value>Folder with the files</value>
@@ -2865,11 +2835,8 @@
   <data name="Creator_ChangeFolder" xml:space="preserve">
     <value>Change folder</value>
   </data>
-  <data name="Creator_ComparingTitle" xml:space="preserve">
-    <value>Comparing the files with the game</value>
-  </data>
-  <data name="Creator_ComparingText" xml:space="preserve">
-    <value>The check of the operations opens once it ends.</value>
+  <data name="Creator_Comparing" xml:space="preserve">
+    <value>Comparing… {percent}</value>
   </data>
   <data name="Creator_CompareListing" xml:space="preserve">
     <value>Listing the files</value>
@@ -2924,15 +2891,6 @@
   </data>
   <data name="Creator_IdenticalCount" xml:space="preserve">
     <value>{count, plural, one {# file is the same as in the game} other {# files are the same as in the game}}</value>
-  </data>
-  <data name="Creator_Compared" xml:space="preserve">
-    <value>{count, plural, one {# file compared with the game} other {# files compared with the game}}</value>
-  </data>
-  <data name="Creator_ToReview" xml:space="preserve">
-    <value>Next: check</value>
-  </data>
-  <data name="Creator_ReviewTitle" xml:space="preserve">
-    <value>Check what the package does for players</value>
   </data>
   <data name="Creator_ReviewLead" xml:space="preserve">
     <value>{count, plural, one {# file was compared with {game}} other {# files were compared with {game}}} and arranged into operations in the order the app runs them. An operation can change its kind, a file can be left out and operations can be added.</value>
@@ -3058,7 +3016,7 @@
     <value>{reason, select, NewFile {The game does not have this file, so it goes in whole.} ChangedFile {A changed game file: the package keeps only the differences, not the whole file.} ReplacedFile {The whole file replaces the game's.} OriginalRenamedAway {This file takes the place of the original that operation {number} renamed.} RenamedGameFile {{name} has the same content as the original {from}, so the package renames the game's file instead of carrying a copy.} RemovedFile {The package deletes this file for players; the original goes to the backup.} AddedStep {An operation added by hand.} other {}}</value>
   </data>
   <data name="Creator_Finding" xml:space="preserve">
-    <value>{kind, select, EmptyPackage {The package changes nothing.} InvalidPath {The path “{path}” is empty or not valid.} PathEscapesFolder {The path “{path}” leads out of the game's folder.} ReservedPath {“{path}” is in the app's or a store's folder in the game, where a package may not write.} DuplicatePath {The package writes “{path}” a second time, so the first write is lost.} AuthorFilesOnOnePath {“{path}” and “{related}” in the folder with the files land in one place in the game, so a package can hold only one of them; the other has to leave the folder.}ConflictingOperations {This operation undoes an earlier one, e.g. deletes a file the package wrote or renames a file to its own name: “{path}”.} PathConflict {At “{path}” there is a folder where the package needs a file, or a file where it needs a folder.} AuthorFileMissing {The folder with the files has no “{path}”; the files can be compared again.} GameFileMissing {There is no “{path}” in the game or in the steps before this one.} FileRemovedEarlier {An earlier operation already deleted or renamed “{path}”.} RenameOverwritesFile {The rename replaces the game file “{path}”.} RenamedFileNotReplaced {After the rename the game lacks “{related}”, as the package writes nothing in its place.} TooManyFiles {The package has more files than the app installs from one package.} PackageTooLarge {The package is larger than the app installs from one package.} TooManyThirdPartyNotices {The package's description holds the licence and source code of at most {notices, plural, one {# tool or library} other {# tools and libraries}}.} MissingTitle {A package of the app needs a name.} MissingVersion {A package of the app needs a version.} LargerThanSiteTakes {The package has {size}, more than the site takes as a release file.} FormatNotOnSite {The site takes no release files of this format.} RuntimeFileInGame {The game already has “{path}”, which the package's software creates, so it was probably started with that software before. The game's files are best checked in its store, this file removed and the files compared again.} RuntimeFileKept {Undoing a test left “{path}” as the package's software changed it, so the game no longer has the file its store ships. Checking the game's files in its store, removing the kept copies and comparing the files again fixes it.} RuntimeFilePatched {“{path}” changes while the game runs, so a patch, which needs the file as its store ships it, cannot change it; the package can carry the whole file instead.} TooManyRuntimePaths {The list holds at most {files, plural, one {# file} other {# files}}.} RuntimeWithoutCode {The package carries no program, and only a program from the package changes files while the game runs. Files the game changes itself stay off the list.} other {“{path}” is against the site's rules.}}</value>
+    <value>{kind, select, EmptyPackage {The package changes nothing.} InvalidPath {The path “{path}” is empty or not valid.} PathEscapesFolder {The path “{path}” leads out of the game's folder.} ReservedPath {“{path}” is in the app's or a store's folder in the game, where a package may not write.} DuplicatePath {The package writes “{path}” a second time, so the first write is lost.} AuthorFilesOnOnePath {“{path}” and “{related}” in the folder with the files land in one place in the game, so a package can hold only one of them; the other has to leave the folder.}ConflictingOperations {This operation undoes an earlier one, e.g. deletes a file the package wrote or renames a file to its own name: “{path}”.} PathConflict {At “{path}” there is a folder where the package needs a file, or a file where it needs a folder.} AuthorFileMissing {The folder with the files has no “{path}”; the files can be compared again.} GameFileMissing {There is no “{path}” in the game or in the steps before this one.} FileRemovedEarlier {An earlier operation already deleted or renamed “{path}”.} RenameOverwritesFile {The rename replaces the game file “{path}”.} RenamedFileNotReplaced {After the rename the game lacks “{related}”, as the package writes nothing in its place.} TooManyFiles {The package has more files than the app installs from one package.} PackageTooLarge {The package is larger than the app installs from one package.} TooManyThirdPartyNotices {The package's description holds the licence and source code of at most {notices, plural, one {# tool or library} other {# tools and libraries}}.} MissingTitle {A package of the app needs a name.} MissingVersion {A package of the app needs a version.} LargerThanSiteTakes {The package has {size}, more than the site takes as a release file.} FormatNotOnSite {The site takes no release files of this format.} RuntimeFileInGame {The game already has “{path}”, which the package's software creates, so it was probably started with that software before. The game's original files are best restored, this file removed and the files compared again.} RuntimeFileKept {Undoing a test left “{path}” as the package's software changed it, so the game no longer has the file its store ships. Restoring the game's original files, removing the kept copies and comparing the files again fixes it.} RuntimeFilePatched {“{path}” changes while the game runs, so a patch, which needs the file as its store ships it, cannot change it; the package can carry the whole file instead.} TooManyRuntimePaths {The list holds at most {files, plural, one {# file} other {# files}}.} RuntimeWithoutCode {The package carries no program, and only a program from the package changes files while the game runs. Files the game changes itself stay off the list.} other {“{path}” is against the site's rules.}}</value>
   </data>
   <data name="Creator_FindingSuggestion" xml:space="preserve">
     <value>{finding} Was {path} meant?</value>
@@ -3135,14 +3093,11 @@
   <data name="Creator_PickFileTitle" xml:space="preserve">
     <value>File of the folder with the files</value>
   </data>
-  <data name="Creator_AdvancedHintTitle" xml:space="preserve">
-    <value>Steps in an order of one's own?</value>
-  </data>
   <data name="Creator_AdvancedHint" xml:space="preserve">
     <value> Advanced mode sets the order and the paths by hand, e.g. to patch a file after renaming it.</value>
   </data>
   <data name="Creator_ToAdvancedButton" xml:space="preserve">
-    <value>Advanced mode…</value>
+    <value>Switch to advanced mode</value>
   </data>
   <data name="Creator_ToAdvancedTitle" xml:space="preserve">
     <value>Switch to advanced mode?</value>
@@ -3173,9 +3128,6 @@
   </data>
   <data name="Creator_StepsCardTitle" xml:space="preserve">
     <value>The package's steps</value>
-  </data>
-  <data name="Creator_StepSteps" xml:space="preserve">
-    <value>Package steps</value>
   </data>
   <data name="Creator_StepsInOrder" xml:space="preserve">
     <value>The steps are in order</value>
@@ -3249,50 +3201,11 @@
   <data name="Creator_AddEarlierText" xml:space="preserve">
     <value>Of the game or of an earlier step.</value>
   </data>
-  <data name="Creator_CheckTitle" xml:space="preserve">
-    <value>Check that everything is right</value>
-  </data>
-  <data name="Creator_CheckOperations" xml:space="preserve">
-    <value>The app runs exactly {count, plural, one {this # operation} other {these # operations}} for every player, in this order. Before going on, it is worth making sure that:</value>
-  </data>
-  <data name="Creator_CheckSteps" xml:space="preserve">
-    <value>The app runs exactly {count, plural, one {this # step} other {these # steps}} for every player, in this order. Before going on, it is worth making sure that:</value>
-  </data>
-  <data name="Creator_CheckPlaces" xml:space="preserve">
-    <value>every file goes where the game looks for it,</value>
-  </data>
-  <data name="Creator_CheckRename" xml:space="preserve">
-    <value>the rename takes the right game file,</value>
-  </data>
-  <data name="Creator_CheckNothingExtra" xml:space="preserve">
-    <value>the package holds nothing extra, such as notes or working copies.</value>
-  </data>
-  <data name="Creator_CheckStepFiles" xml:space="preserve">
-    <value>every step works on the right file, as the steps before it left it,</value>
-  </data>
-  <data name="Creator_CheckRenameOrder" xml:space="preserve">
-    <value>a rename comes before the step that writes the file under its old name,</value>
-  </data>
-  <data name="Creator_Confirm" xml:space="preserve">
-    <value>Everything is right</value>
-  </data>
-  <data name="Creator_ConfirmNext" xml:space="preserve">
-    <value>Next: the package's format and build.</value>
-  </data>
-  <data name="Creator_BuildHeading" xml:space="preserve">
-    <value>Build the package</value>
-  </data>
   <data name="Creator_BuiltHeading" xml:space="preserve">
-    <value>The package is ready</value>
+    <value>{count, plural, one {The package is ready} other {The packages are ready}}</value>
   </data>
   <data name="Creator_EarlierPackage" xml:space="preserve">
     <value>A package from an earlier build</value>
-  </data>
-  <data name="Creator_PackageLead" xml:space="preserve">
-    <value>The format follows from the operations of the previous step. What remains is the package's data, which goes into its description that the app reads.</value>
-  </data>
-  <data name="Creator_ZipLead" xml:space="preserve">
-    <value>The format follows from the operations of the previous step. What remains is the version, which goes into the file's name.</value>
   </data>
   <data name="Creator_FormatChosen" xml:space="preserve">
     <value>Format chosen automatically</value>
@@ -3325,7 +3238,7 @@
     <value>Your package</value>
   </data>
   <data name="Creator_Metadata" xml:space="preserve">
-    <value>Package data</value>
+    <value>Package description</value>
   </data>
   <data name="Creator_PackageTitle" xml:space="preserve">
     <value>Name</value>
@@ -3360,9 +3273,6 @@
   <data name="Creator_ZipMetadata" xml:space="preserve">
     <value>A plain .zip has no description, so the authors and the changes are given with the release on the site.</value>
   </data>
-  <data name="Creator_ForGame" xml:space="preserve">
-    <value>For the game</value>
-  </data>
   <data name="Creator_GameBuild" xml:space="preserve">
     <value>build {build}</value>
   </data>
@@ -3372,32 +3282,14 @@
   <data name="Creator_Build" xml:space="preserve">
     <value>Build the package</value>
   </data>
-  <data name="Creator_BuildHint" xml:space="preserve">
-    <value>The save dialog suggests “{name}”. The package may not lie in the game's folder or in the folder with the files.</value>
-  </data>
-  <data name="Creator_BuildTo" xml:space="preserve">
-    <value>The package goes to the same place as at the last build: “{name}”.</value>
-  </data>
   <data name="Creator_PackageName" xml:space="preserve">
     <value>{game} v{version}</value>
   </data>
   <data name="Creator_PackageGameOnStore" xml:space="preserve">
     <value>{game} ({store})</value>
   </data>
-  <data name="Creator_BuildTitle" xml:space="preserve">
-    <value>Save the package</value>
-  </data>
-  <data name="Creator_ZipFiles" xml:space="preserve">
-    <value>ZIP archives</value>
-  </data>
-  <data name="Creator_PackageFiles" xml:space="preserve">
-    <value>Packages of the app</value>
-  </data>
   <data name="Creator_BuildingTitle" xml:space="preserve">
     <value>Building the package</value>
-  </data>
-  <data name="Creator_BuildTarget" xml:space="preserve">
-    <value>Saving to {path}</value>
   </data>
   <data name="Creator_BuildStage" xml:space="preserve">
     <value>{stage, select, Checking {Checking the files} Copying {Packing the files} HashingOriginal {Hashing the original} CreatingPatch {Making a patch} HashingRuntimeFiles {Hashing the files changed while the game runs} other {Writing the package's description}}</value>
@@ -3440,9 +3332,6 @@
   </data>
   <data name="Creator_SiteWarningTitle" xml:space="preserve">
     <value>The site may not take this package</value>
-  </data>
-  <data name="Creator_Next" xml:space="preserve">
-    <value>What next</value>
   </data>
   <data name="Creator_TestTitle" xml:space="preserve">
     <value>Try the package in the game</value>
@@ -3487,7 +3376,7 @@
     <value>{reason, select, GameUpdated {{game} has its original files back, except the files the package's software changed: the game was updated during the test, so they stay as they are and copies of their originals are kept. Checking the game's files in {store} brings the game's own back.} OriginalUnknown {{game} has its original files back; the files the package's software changed are as they were before the test, but they had been changed already then. Checking the game's files in {store} brings the game's own back.} Backup {{game} has its original files back, except {count, plural, one {# file whose original's copy is missing or damaged} other {# files whose originals' copies are missing or damaged}}. Checking the game's files in {store} brings the game's own back.} other {{game} has its original files back, except {count, plural, one {# file} other {# files}} that an update of the game changed during the test.}}</value>
   </data>
   <data name="Creator_RuntimeTitle" xml:space="preserve">
-    <value>Changed while the game runs</value>
+    <value>Files changed in the game</value>
   </data>
   <data name="Creator_RuntimeLead" xml:space="preserve">
     <value>Files that software from the package writes in the game's folder while the game runs, such as a list it rewrites, a copy of a game file it keeps or a log. The app copies them before the install, leaves them out of its checks and undoes their changes with the rest of the package.</value>
@@ -3520,7 +3409,7 @@
     <value>Cancel adding</value>
   </data>
   <data name="Creator_RuntimeState" xml:space="preserve">
-    <value>{state, select, InGame {In the game ({size}): copied and put back} New {New: the software creates it} Package {A file the package installs} Folder {New folder: the software creates it} other {}}</value>
+    <value>{state, select, InGame {In the game ({size}): copied and put back} New {New: the software creates it} Package {A file the package installs} other {}}</value>
   </data>
   <data name="Creator_RuntimeFromFolder" xml:space="preserve">
     <value>From the folder with the files</value>
@@ -3532,10 +3421,10 @@
     <value>The package does not carry this file: software from the package writes it while the game runs, and the app undoes that.</value>
   </data>
   <data name="Creator_BlockedRuntime" xml:space="preserve">
-    <value>fix {count, plural, one {the problem} other {the # problems}} in the list of files changed while the game runs</value>
+    <value>fix {count, plural, one {the problem} other {the # problems}} on the tab “Files changed in the game”</value>
   </data>
-  <data name="Creator_CheckRuntime" xml:space="preserve">
-    <value>every file the package's software writes while the game runs is on the list,</value>
+  <data name="Creator_BeforeRuntime" xml:space="preserve">
+    <value>A program in the package: does it write anything in the game?</value>
   </data>
   <data name="Creator_TestAgain" xml:space="preserve">
     <value>Install for a test again</value>
@@ -3561,23 +3450,8 @@
   <data name="Creator_OpenDashboard" xml:space="preserve">
     <value>Open the dashboard on the site</value>
   </data>
-  <data name="Creator_FinishTitle" xml:space="preserve">
-    <value>Finish the project</value>
-  </data>
-  <data name="Creator_FinishText" xml:space="preserve">
-    <value>{blocked, select, true {Once the test install is undone, the creator can go back to its start, to a new project or a saved one.} other {The creator goes back to its start, where a new project begins or a saved one opens.}}</value>
-  </data>
-  <data name="Creator_Finish" xml:space="preserve">
-    <value>Finish</value>
-  </data>
-  <data name="Creator_RebuildQuestion" xml:space="preserve">
-    <value>Did the files or the project change?</value>
-  </data>
   <data name="Creator_Rebuild" xml:space="preserve">
     <value>Build again</value>
-  </data>
-  <data name="Creator_BuildElsewhere" xml:space="preserve">
-    <value>Save elsewhere…</value>
   </data>
   <data name="Creator_RebuildBlocked" xml:space="preserve">
     <value>Once the test install is undone, the package can be built again or the files compared: the creator would compare them with the files the package changed.</value>
@@ -3586,18 +3460,90 @@
     <value>First, {what}.</value>
   </data>
   <data name="Creator_BlockedRules" xml:space="preserve">
-    <value>{case, select, errors {fix {errors, plural, one {the error} other {the {errors} errors}}} questions {answer {questions, plural, one {the question} other {the {questions} questions}}} other {fix {errors, plural, one {the error} other {the {errors} errors}} and answer {questions, plural, one {the question} other {the {questions} questions}}}} under “Publishing rules” at the top of the page</value>
+    <value>{case, select, errors {fix {errors, plural, one {the error} other {the {errors} errors}}} questions {answer {questions, plural, one {the question} other {the {questions} questions}}} other {fix {errors, plural, one {the error} other {the {errors} errors}} and answer {questions, plural, one {the question} other {the {questions} questions}}}} under “Publishing rules”</value>
   </data>
   <data name="Creator_BlockedAt" xml:space="preserve">
     <value>fix {count, plural, one {the problem} other {the # problems}} in {advanced, select, true {{places, plural, one {step} other {steps}}} other {{places, plural, one {operation} other {operations}}}} {numbers}</value>
   </data>
   <data name="Creator_BlockedMarked" xml:space="preserve">
-    <value>solve {count, plural, one {the problem marked above} other {the # problems marked above}}</value>
+    <value>solve {count, plural, one {the problem marked in the details} other {the # problems marked in the details}}</value>
   </data>
   <data name="Creator_ListNext" xml:space="preserve">
     <value>{list}, {item}</value>
   </data>
   <data name="Creator_ListLast" xml:space="preserve">
     <value>{list} and {item}</value>
+  </data>
+  <data name="Creator_ProjectViews" xml:space="preserve">
+    <value>Project view</value>
+  </data>
+  <data name="Creator_TabRelease" xml:space="preserve">
+    <value>Release</value>
+  </data>
+  <data name="Creator_PartBase" xml:space="preserve">
+    <value>Base</value>
+  </data>
+  <data name="Creator_PartMode" xml:space="preserve">
+    <value>{mode, select, Simple {simple mode} other {advanced mode}}</value>
+  </data>
+  <data name="Creator_PackageFilesTitle" xml:space="preserve">
+    <value>The package's files</value>
+  </data>
+  <data name="Creator_ComparedWhen" xml:space="preserve">
+    <value>Compared {when}</value>
+  </data>
+  <data name="Creator_AllOperations" xml:space="preserve">
+    <value>All operations ({count})</value>
+  </data>
+  <data name="Creator_CellState" xml:space="preserve">
+    <value>{state, select, Unchanged {No changes since {version}} Ready {Ready} NoFolder {No folder} FolderGone {Folder unavailable} GameGone {The game is not on this computer} TestInstalled {Test install in the game} Stopped {Comparison stopped} Installed {A package is installed on the game} NotReady {{work}} other {The comparison failed}}</value>
+  </data>
+  <data name="Creator_BeforeBuild" xml:space="preserve">
+    <value>Before building</value>
+  </data>
+  <data name="Creator_BeforeItem" xml:space="preserve">
+    <value>{item, select, Version {Version {version}} NoVersion {No version} NoTitle {No package name} Authors {Authors} AuthorsFromSite {Authors from the site} Comparison {{store} compared} VersionBlocked {The {store} version} Plan {Arranging the operations} NoOutput {Choose a folder for the packages} other {Files changed in the game}}</value>
+  </data>
+  <data name="Creator_BeforeItemState" xml:space="preserve">
+    <value>{item}: {state, select, Met {met} Missing {missing} Pending {in progress} other {to check}}</value>
+  </data>
+  <data name="Creator_OutputTo" xml:space="preserve">
+    <value>The packages go to {path}</value>
+  </data>
+  <data name="Creator_ChangeOutput" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="Creator_OutputTitle" xml:space="preserve">
+    <value>Folder for the packages</value>
+  </data>
+  <data name="Creator_OutputName" xml:space="preserve">
+    <value>{name} – packages</value>
+  </data>
+  <data name="Creator_StoreCheckWords" xml:space="preserve">
+    <value>{storeId, select, gog {Reinstalling the game in {store} brings the original files back.} other {Checking the game's files in {store} brings the original files back.}}</value>
+  </data>
+  <data name="Creator_ReplaceFilesTitle" xml:space="preserve">
+    <value>Replace the existing files?</value>
+  </data>
+  <data name="Creator_ReplaceFilesMessage" xml:space="preserve">
+    <value>These files are already in the folder for the packages, and this project did not build them: {names}.</value>
+  </data>
+  <data name="Creator_ReplaceFilesConfirm" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="Creator_AddGameVersion" xml:space="preserve">
+    <value>Add a game version</value>
+  </data>
+  <data name="Creator_NoVersionText" xml:space="preserve">
+    <value>The project has no game version to compare the files with.</value>
+  </data>
+  <data name="Creator_VersionNotReady" xml:space="preserve">
+    <value>{state}. The comparison starts once the game is ready.</value>
+  </data>
+  <data name="Creator_BlockedVersion" xml:space="preserve">
+    <value>{reason, select, Install {uninstall the package from the {store} version} Test {undo the test install in the {store} version} Gone {remove the {store} version from the project or wait until the store reports it} other {wait until the {store} version is ready}}</value>
+  </data>
+  <data name="Creator_BlockedTitle" xml:space="preserve">
+    <value>enter the package's name on the tab “Package description”</value>
   </data>
 </root>

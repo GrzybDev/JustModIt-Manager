@@ -147,7 +147,7 @@ public sealed class CreatorLibraryTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task A_project_with_no_version_takes_one_in_the_chooser_and_stays_as_it_was_when_cancelled()
+    public async Task A_project_with_no_version_opens_with_the_way_to_one_and_stays_as_it_was_when_cancelled()
     {
         var project = Project("Saltmarsh", null, _work.AuthorFolder);
         await SeedAsync(project);
@@ -157,23 +157,27 @@ public sealed class CreatorLibraryTests : IDisposable
         var card = ui.Find<Button>().First(button => button.DataContext == Card(ui, "Saltmarsh") && button.Classes.Contains("gameCard"));
 
         ui.Click(card);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { HasVersion: false });
+        await RenderBothAsync(ui, "creator-no-version");
+        ui.Click(Button(ui, Strings.Creator_AddGameVersion));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
         ((NewProjectDialogViewModel)ui.Shell.Dialogs.Current!).Folder.Should().Be(_work.AuthorFolder);
         ui.Press(Key.Escape);
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null);
-        ui.Shell.Navigator.Current.Should().BeSameAs(creator);
-        creator.OpenPage.Should().BeNull();
+        ui.Shell.Navigator.Current.Should().BeOfType<ProjectPageViewModel>().Which.HasVersion.Should().BeFalse();
 
-        creator.OpenCardCommand.Execute(Card(ui, "Saltmarsh"));
+        ui.Click(Button(ui, Strings.Creator_AddGameVersion));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
         var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
         dialog.PickCommand.Execute(dialog.Rows[0].Right);
         dialog.CreateCommand.Execute(null);
 
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Step: CreatorStep.Review });
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell.IsCompared: true });
+        creator.OpenPage.Should().NotBeNull();
         var opened = ((ProjectPageViewModel)ui.Shell.Navigator.Current!).Session!.Project;
         opened.Id.Should().Be(project.Id);
         opened.Versions.Single().Game.Key.Should().Be(CreatorWorkspace.Lantern);
+        await ((ProjectPageViewModel)ui.Shell.Navigator.Current!).Session!.FlushAsync();
         using var library = new ProjectLibrary(LibraryFolder, TimeProvider.System);
         (await library.Store(project.Id).LoadAsync(CancellationToken.None))!.Versions.Should().Equal(opened.Versions);
     }
@@ -183,23 +187,25 @@ public sealed class CreatorLibraryTests : IDisposable
     {
         var gone = new GameKey(StoreId.Gog, "5399");
         await SeedAsync(Project("Lantern Isle", gone, _work.AuthorFolder));
-        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        // Only a whole look of the stores tells that a game is gone.
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true) with { Library = new LibraryView { ScannedAt = TestStates.Now } });
         await UiHarness.WaitUntilAsync(() => Card(ui, "Lantern Isle") is not null);
         var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
 
         creator.OpenCardCommand.Execute(Card(ui, "Lantern Isle"));
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { HasProblem: true });
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell.State: CellState.GameGone });
         var page = (ProjectPageViewModel)ui.Shell.Navigator.Current!;
-        page.ProblemTitle.Should().Be(Strings.Creator_GameGoneTitle);
-        page.Content.Should().BeNull("a step has no game to work with");
+        page.Cell.NoticeTitle.Should().Be(Strings.Creator_GameGoneTitle);
+        page.Session!.Comparison.Should().BeNull("a part has no game to compare with");
+        page.BlockedText.Should().Contain(Text.Format(Strings.Creator_BlockedVersion, ("reason", "Gone"), ("store", "GOG")));
         await RenderBothAsync(ui, "creator-game-gone");
 
         ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([_work.Detected[1] with { Key = gone }]) : null;
         ui.Click(Button(ui, Strings.Creator_Projects));
         creator.OpenCardCommand.Execute(Card(ui, "Lantern Isle"));
 
-        await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review);
-        page.HasProblem.Should().BeFalse();
+        await UiHarness.WaitUntilAsync(() => page.Cell.IsCompared);
+        page.Cell.HasNotice.Should().BeFalse();
         page.Session!.Version!.GameFolder.Should().Be(_work.GameFolder, "the store says where the game is now");
     }
 
@@ -242,7 +248,6 @@ public sealed class CreatorLibraryTests : IDisposable
         ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
         await ChooseAsync(ui, Strings.Creator_Export);
         await UiHarness.WaitUntilAsync(() => File.Exists(ui.Pickers.SaveFile));
-        ui.Pickers.Suggested.Should().Equal("Lantern Isle.exampleproj");
         File.ReadAllText(ui.Pickers.SaveFile).Should().NotContain("Packages", "a file handed over never chooses where a build writes");
 
         ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));

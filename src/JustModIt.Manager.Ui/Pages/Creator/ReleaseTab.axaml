@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Creator.ReleaseTab"
+             x:DataType="creator:CellViewModel"
+             ClipToBounds="False">
+  <!-- The cards' shadows fall outside the control. -->
+  <StackPanel Spacing="20" Margin="0,4,0,16">
+    <!-- A project imported without a game has nothing to compare yet. -->
+    <Border x:Name="NoVersion" Classes="creatorCard" Padding="28" IsVisible="{Binding !Page.HasVersion}">
+      <StackPanel Spacing="10" HorizontalAlignment="Center">
+        <Border Classes="folderChip" Width="56" Height="56" CornerRadius="14" HorizontalAlignment="Center">
+          <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="26" Height="26" />
+        </Border>
+        <TextBlock Classes="h4" HorizontalAlignment="Center" Text="{x:Static creator:ReleaseTab.NoVersionTitle}" />
+        <TextBlock Classes="bodyText" HorizontalAlignment="Center" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_NoVersionText}" />
+        <Button Classes="primary" HorizontalAlignment="Center" Margin="0,6,0,0" Content="{x:Static loc:Strings.Creator_AddGameVersion}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding Page.AddVersionCommand}" />
+      </StackPanel>
+    </Border>
+
+    <creator:CellPanel>
+      <creator:CellPanel.IsVisible>
+        <MultiBinding Converter="{x:Static BoolConverters.And}">
+          <Binding Path="Page.HasVersion" />
+          <Binding Path="!Page.ShowsOperations" />
+        </MultiBinding>
+      </creator:CellPanel.IsVisible>
+    </creator:CellPanel>
+
+    <!-- The part's operations, or its steps in advanced mode, take the column, since their rows need its width. -->
+    <Panel x:Name="PartView" IsVisible="{Binding Page.ShowsOperations}">
+      <StackPanel Spacing="16" DataContext="{Binding Page.Review}" x:DataType="creator:ReviewViewModel">
+        <TextBlock Classes="lead" Text="{Binding Lead}" />
+        <Button Classes="link" FontSize="13" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_ToAdvancedButton}"
+                ToolTip.Tip="{x:Static loc:Strings.Creator_AdvancedHint}" Command="{Binding ToAdvancedCommand}" IsVisible="{Binding !IsAdvanced}" />
+        <creator:RulesList />
+        <creator:OperationList IsVisible="{Binding !IsAdvanced}" />
+        <creator:StepList IsVisible="{Binding IsAdvanced}" />
+      </StackPanel>
+    </Panel>
+
+    <creator:BuiltCard DataContext="{Binding Page}" />
+  </StackPanel>
+</UserControl>

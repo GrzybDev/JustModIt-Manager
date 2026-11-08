@@ -8,6 +8,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Projects;
@@ -61,13 +62,12 @@ public sealed class CreatorTests : IDisposable
         await RenderBothAsync(ui, "creator-new-other-game");
         ui.Click(Button(ui, Strings.Creator_Create));
 
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Step: CreatorStep.Review });
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell.IsCompared: true });
         var page = Page(ui);
         page.Session!.Comparison!.Files.Select(file => (file.Path, file.Difference)).Should().Equal(
             ("data/extra/credits.txt", FileDifference.New), ("data/strings.bin", FileDifference.Changed));
         page.Session.Version.Should().Be(new ProjectVersion(new ProjectGame(CreatorWorkspace.Lantern, "Lantern Isle")) { GameFolder = _work.GameFolder });
         page.Session.Part.AuthorFolder.Should().Be(_work.AuthorFolder);
-        page.Steps.Select(step => step.State).Should().Equal(StepState.Done, StepState.Current, StepState.Locked);
     }
 
     [AvaloniaFact]
@@ -138,7 +138,7 @@ public sealed class CreatorTests : IDisposable
         _work.Author("data/strings.bin", "strings of the changed  game");
         var files = new HeldFileSystem(_work.Root);
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
-        var step = (FilesStepViewModel)(await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle")).Content!;
+        var step = (await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle")).Cell;
 
         await UiHarness.WaitUntilAsync(() => step.FileLine.Length > 0);
         step.IsComparing.Should().BeTrue();
@@ -147,10 +147,10 @@ public sealed class CreatorTests : IDisposable
         ui.Click(Button(ui, Strings.Dialog_Cancel));
         files.Reads.Set();
 
-        await UiHarness.WaitUntilAsync(() => step.IsStopped);
+        await UiHarness.WaitUntilAsync(() => step.State is CellState.Stopped or CellState.Failed);
         step.ProblemTitle.Should().Be(Strings.Creator_CompareCancelledTitle);
         Page(ui).Session!.Comparison.Should().BeNull();
-        Page(ui).Steps[(int)CreatorStep.Review].State.Should().Be(StepState.Locked);
+        Page(ui).CanBuild.Should().BeFalse();
     }
 
     [AvaloniaFact]
@@ -160,14 +160,14 @@ public sealed class CreatorTests : IDisposable
         var files = new HeldFileSystem(_work.Root) { Failure = new InvalidDataException("The disk returned nonsense.") };
         files.Reads.Set();
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
-        var step = (FilesStepViewModel)(await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle")).Content!;
+        var step = (await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle")).Cell;
 
-        await UiHarness.WaitUntilAsync(() => step.IsStopped);
+        await UiHarness.WaitUntilAsync(() => step.State is CellState.Stopped or CellState.Failed);
 
         (step.ProblemTitle, step.ProblemText).Should().Be(
             (Strings.Creator_CompareStoppedTitle, Text.Format(Strings.Creator_Unexpected, ("error", nameof(InvalidDataException)))));
         files.Failure = null;
-        step.UseFolder(_work.AuthorFolder);
+        step.CompareCommand.Execute(null);
         await UiHarness.WaitUntilAsync(() => Page(ui).Session!.Comparison is not null);
     }
 
@@ -198,24 +198,25 @@ public sealed class CreatorTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task A_project_without_a_folder_takes_one_in_its_files_step_outside_its_game()
+    public async Task A_project_without_a_folder_takes_one_on_its_card_outside_its_game()
     {
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
         ui.Pickers.File = Path.Combine(_work.Root, "no-folder.exampleproj");
         File.WriteAllText(ui.Pickers.File, """{ "formatVersion": 4, "game": { "store": "steam", "id": "5100", "name": "Lantern Isle" } }""");
         ui.Click(Button(ui, Strings.Creator_Import));
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Content: FilesStepViewModel });
-        var step = (FilesStepViewModel)Page(ui).Content!;
-        step.ShowsDropZone.Should().BeTrue();
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Game: not null });
+        var step = Page(ui).Cell;
+        step.State.Should().Be(CellState.NoFolder);
         await RenderBothAsync(ui, "creator-files");
 
         step.DropCommand.Execute(_work.GameFolder);
-        step.ProblemTitle.Should().Be(Strings.Creator_GameFolderTitle);
+        Page(ui).ProblemTitle.Should().Be(Strings.Creator_GameFolderTitle);
         Page(ui).Session!.Part.AuthorFolder.Should().BeEmpty();
 
         ui.Pickers.Folder = _work.AuthorFolder;
-        ui.Click(Button(ui, Strings.Creator_PickFolder));
-        await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review);
+        ui.Click(Button(ui, Strings.Creator_ChangeFolder));
+        await UiHarness.WaitUntilAsync(() => Page(ui).Cell.IsCompared);
+        Page(ui).HasProblem.Should().BeFalse();
     }
 
     [AvaloniaFact]
@@ -225,13 +226,81 @@ public sealed class CreatorTests : IDisposable
         _work.Author("data/strings.bin", "strings of the original game");
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
         var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
-        var step = (FilesStepViewModel)page.Content!;
+        var step = page.Cell;
 
         await UiHarness.WaitUntilAsync(() => step.HasNothingToPackage);
         step.NothingTitle.Should().Be(Strings.Creator_NothingTitle);
         step.IdenticalFiles.Should().Equal("data/strings.bin");
-        Page(ui).Steps[(int)CreatorStep.Review].State.Should().Be(StepState.Locked);
+        Page(ui).CanBuild.Should().BeFalse();
         await RenderAsync(ui, "creator-identical");
+    }
+
+    [AvaloniaFact]
+    public async Task Going_back_from_the_operations_returns_to_the_table()
+    {
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
+        await UiHarness.WaitUntilAsync(() => page.Cell.IsCompared && page.Session!.Review is not null);
+        await RenderBothAsync(ui, "creator-single");
+
+        ui.Click(Button(ui, page.AllOperationsText));
+        page.IsPartView.Should().BeTrue();
+        await RenderBothAsync(ui, "creator-operations");
+        ui.Press(Key.Left, RawInputModifiers.Alt);
+        page.IsPartView.Should().BeFalse("the way back leaves the operations before it leaves the project");
+        ui.Shell.Navigator.Current.Should().BeSameAs(page);
+
+        ui.Click(Button(ui, page.AllOperationsText));
+        ui.Press(Key.Escape);
+        page.IsPartView.Should().BeFalse();
+        ui.Press(Key.Left, RawInputModifiers.Alt);
+        ui.Shell.Navigator.Current.Should().BeOfType<CreatorPageViewModel>();
+    }
+
+    [AvaloniaFact]
+    public async Task A_version_with_an_install_holds_the_build_and_says_why()
+    {
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
+        page.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => page.CanBuild);
+
+        ui.Push(TestStates.Idle(creatorMode: true) with
+        {
+            Version = 2,
+            Games =
+            [
+                new GameView
+                {
+                    Key = CreatorWorkspace.Lantern,
+                    Name = "Lantern Isle",
+                    Status = new GameStatusView(MyGameState.Installed),
+                    Detected = _work.Detected[1].Game,
+                    Installs =
+                    [
+                        new InstallView
+                        {
+                            Id = new Guid("3b9e2c41-7d5a-4f60-9c18-a2e4b7d1f053"),
+                            Status = new GameStatusView(MyGameState.Installed),
+                            InstalledAt = TestStates.Now,
+                            InstallDirectory = _work.GameFolder,
+                            BackupDirectory = Path.Combine(_work.GameFolder, ".example-app"),
+                            PackageFileName = "Lantern Isle.zip",
+                        },
+                    ],
+                },
+            ],
+        });
+
+        page.Cell.State.Should().Be(CellState.Installed);
+        page.CanBuild.Should().BeFalse();
+        page.BlockedText.Should().Be(Text.Format(Strings.Creator_ConfirmBlocked,
+            ("what", Text.Format(Strings.Creator_BlockedVersion, ("reason", "Install"), ("store", "Steam")))));
+        Button(ui, Strings.Shell_Library).Should().NotBeNull("the install's way to its game stands under it");
+        await RenderBothAsync(ui, "creator-version-installed");
+
+        ui.Push(TestStates.Idle(creatorMode: true) with { Version = 3 });
+        await UiHarness.WaitUntilAsync(() => page.Cell.IsCompared && page.CanBuild);
     }
 
     [AvaloniaFact]
@@ -270,7 +339,7 @@ public sealed class CreatorTests : IDisposable
 
         ui.Click(Button(ui, Strings.Creator_Import));
 
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Step: CreatorStep.Review });
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell.IsCompared: true });
         Page(ui).Session!.Comparison!.GameDirectory.Should().Be(_work.GameFolder);
         Page(ui).Session!.Part.AuthorFolder.Should().Be(_work.AuthorFolder);
         Page(ui).ProjectName.Should().Be("earlier");
@@ -304,8 +373,8 @@ public sealed class CreatorTests : IDisposable
         using (var ui = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library))
         {
             await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
-            await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review);
-            Page(ui).Session!.Describe(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
+            await UiHarness.WaitUntilAsync(() => Page(ui).Cell.IsCompared);
+            Page(ui).Session!.Change(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
             saved = Page(ui).Session!.Project;
             await UiHarness.WaitUntilAsync(() => Stored(library, saved.Id) == saved);
             await RenderBothAsync(ui, "creator-project");
@@ -317,7 +386,7 @@ public sealed class CreatorTests : IDisposable
 
         reopened.Click(Card(reopened, "Lantern Isle"));
 
-        await UiHarness.WaitUntilAsync(() => reopened.Shell.Navigator.Current is ProjectPageViewModel { Step: CreatorStep.Review });
+        await UiHarness.WaitUntilAsync(() => reopened.Shell.Navigator.Current is ProjectPageViewModel { Cell.IsCompared: true });
         Page(reopened).Session!.Project.Should().Be(saved);
     }
 
@@ -327,7 +396,7 @@ public sealed class CreatorTests : IDisposable
         var library = Path.Combine(_work.Root, "Library");
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library);
         var session = (await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle")).Session!;
-        session.Describe(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
+        session.Change(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
 
         (await ui.Agent.ShutdownHandler!(ShutdownReason.Exit)).Should().BeTrue();
 
@@ -346,7 +415,7 @@ public sealed class CreatorTests : IDisposable
         ui.Shell.Dialogs.CancelCurrent();
         (await closing).Should().BeFalse();
 
-        session.Describe(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
+        session.Change(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
 
         await UiHarness.WaitUntilAsync(() => Stored(library, session.Project.Id) == session.Project);
     }
@@ -356,11 +425,11 @@ public sealed class CreatorTests : IDisposable
     {
         var store = new HeldStore();
         await using var session = new CreatorSession(UiHarness.Context().Creator, new CreatorProject(), store, NullLogger.Instance);
-        session.Describe(project => project with { Name = "first" });
+        session.Change(project => project with { Name = "first" });
 
         var flushing = session.FlushAsync();
         await store.Saving.WaitAsync(UiHarness.TimeLimit);
-        session.Describe(project => project with { Name = "second" });
+        session.Change(project => project with { Name = "second" });
         store.Release();
 
         (await flushing).Should().BeTrue();
@@ -375,7 +444,7 @@ public sealed class CreatorTests : IDisposable
         var session = (await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle")).Session!;
         var file = Path.Combine(library, session.Project.Id.ToString(), "project.json");
         await UiHarness.WaitUntilAsync(() => File.Exists(file));
-        var name = (string title) => session.Describe(project => project with { Metadata = project.Metadata with { Title = title } });
+        var name = (string title) => session.Change(project => project with { Metadata = project.Metadata with { Title = title } });
 
         // A folder in the file's place refuses the save, as a disk that is full or read-only does.
         File.Delete(file);
@@ -413,7 +482,7 @@ public sealed class CreatorTests : IDisposable
         _work.Author("data/strings.bin", "strings of the changed  game");
         var files = new HeldFileSystem(_work.Root);
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
-        var step = (FilesStepViewModel)(await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle")).Content!;
+        var step = (await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle")).Cell;
         await UiHarness.WaitUntilAsync(() => step.FileLine.Length > 0);
 
         var closing = ui.Shell.CloseFlow.DecideAsync();
@@ -424,7 +493,7 @@ public sealed class CreatorTests : IDisposable
         step.IsComparing.Should().BeTrue();
 
         files.Reads.Set();
-        await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review);
+        await UiHarness.WaitUntilAsync(() => Page(ui).Cell.IsCompared);
     }
 
     [AvaloniaFact]
@@ -480,7 +549,7 @@ public sealed class CreatorTests : IDisposable
 
         ui.Click(Choice(ui, "Lantern Isle"));
         ui.Click(Button(ui, Strings.Creator_Create));
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Step: CreatorStep.Review });
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell.IsCompared: true });
         ui.Unnamed().Should().BeEmpty();
     }
 

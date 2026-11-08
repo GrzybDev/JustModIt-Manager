@@ -12,8 +12,6 @@ namespace JustModIt.Manager.Ui.Pages.Creator;
 public sealed partial class ReviewViewModel
 {
     private readonly Dictionary<string, RuntimeRow> _runtimeRows = new(StringComparer.Ordinal);
-    private bool _runtimeFoldsWhenSolved;
-    private bool _runtimeAsks;
 
     /// <summary>The files the package's software writes while the game runs, as the plan declares them.</summary>
     public ObservableCollection<RuntimeRow> RuntimeRows { get; } = [];
@@ -28,10 +26,6 @@ public sealed partial class ReviewViewModel
     public partial string RuntimeProblems { get; private set; } = "";
 
     public bool HasRuntimeProblems => RuntimeProblems.Length > 0;
-
-    /// <summary>The card shows its files and tiles rather than only its title.</summary>
-    [ObservableProperty]
-    public partial bool IsRuntimeOpen { get; set; }
 
     /// <summary>The package carries a program but the list is empty, so the card asks.</summary>
     [ObservableProperty]
@@ -79,17 +73,15 @@ public sealed partial class ReviewViewModel
     /// <summary>The store can start its check of the game's files from a link.</summary>
     public bool CanCheckFiles => _page.Game is { } game && Navigation.PageLinks.ValidateFiles(game.Key) is not null;
 
-    [RelayCommand]
-    private void ToggleRuntime()
-    {
-        IsRuntimeOpen = !IsRuntimeOpen;
-        _runtimeFoldsWhenSolved = false;
-    }
+    /// <summary>The store of the version, whose icon the button of its check shows.</summary>
+    public string CheckStore => _page.Game?.Key.Store.Value ?? "";
+
+    /// <summary>How the store brings the original files back where it has no link to start that.</summary>
+    public string StoreCheckWords => Text.Format(Strings.Creator_StoreCheckWords, ("storeId", CheckStore), ("store", _page.GameStoreName));
 
     [RelayCommand(CanExecute = nameof(CanAddRuntime))]
     private async Task AddRuntimeChangesAsync()
     {
-        _runtimeFoldsWhenSolved = false;
         if (await PickGameFileAsync().ConfigureAwait(true) is { } path)
         {
             _session.ChangePart(part => part.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.ChangesGameFile)));
@@ -100,7 +92,6 @@ public sealed partial class ReviewViewModel
     private void StartRuntimePath()
     {
         (RuntimePath, RuntimePathProblem, IsTypingRuntime) = ("", "", true);
-        _runtimeFoldsWhenSolved = false;
     }
 
     [RelayCommand]
@@ -117,7 +108,6 @@ public sealed partial class ReviewViewModel
     [RelayCommand]
     private void RemoveRuntime(RuntimeRow row)
     {
-        _runtimeFoldsWhenSolved = false;
         if (row.Entry is { } entry)
         {
             _session.ChangePart(part => part.WithChoice(entry, entry.DefaultChoice));
@@ -131,7 +121,6 @@ public sealed partial class ReviewViewModel
     [RelayCommand]
     private void UseRuntimeSuggestion(RuntimeRow row)
     {
-        _runtimeFoldsWhenSolved = false;
         var (path, suggested) = (row.Path, row.Suggestion);
         _session.ChangePart(part => part.RuntimeFiles.FirstOrDefault(file => PackagePath.Comparer.Equals(file.Path, path)) is { } file
             ? part with { RuntimeFiles = new(part.RuntimeFiles.Items.Replace(file, file with { Path = suggested })) }
@@ -141,25 +130,16 @@ public sealed partial class ReviewViewModel
     [RelayCommand]
     private void CheckFiles()
     {
-        _runtimeFoldsWhenSolved = true;
         _page.Services.Links.Open(_page.Game is { } game ? Navigation.PageLinks.ValidateFiles(game.Key) : null);
     }
 
     [RelayCommand]
     private void ShowRuntimeFile(RuntimeRow row)
     {
-        _runtimeFoldsWhenSolved = true;
         if (_session.Comparison is { } comparison)
         {
             _page.Services.Links.OpenFolder(Path.GetDirectoryName(PackagePath.ToFullPath(comparison.GameDirectory, comparison.Game.Layout.ToGame(row.Path)))!);
         }
-    }
-
-    [RelayCommand]
-    private Task CompareAgainAsync()
-    {
-        _runtimeFoldsWhenSolved = true;
-        return _page.CompareAgainAsync();
     }
 
     // An author on Windows may well type the folder's own separator, and the problem names the path as typed.
@@ -177,9 +157,6 @@ public sealed partial class ReviewViewModel
         CanConfirmRuntimePath = path.Length > 0 && problem is null;
     }
 
-    // The card opens by itself once it asks for files or a file has a problem, unless the author folded it meanwhile. It folds
-    // again once a problem is solved outside it, by the store, in the folder or by comparing again, but stays open while the
-    // author edits the list in it.
     private void ShowRuntime(CreatorReview review)
     {
         var plan = review.Plan;
@@ -201,20 +178,10 @@ public sealed partial class ReviewViewModel
             ? CreatorWording.Finding(notice)
             : "";
         CanAddRuntime = rows.Count < RuntimeFile.MaxPerPackage;
-        var asks = problems > 0 || ShowsRuntimePrompt;
-        if (asks && !_runtimeAsks && !IsRuntimeOpen)
-        {
-            (IsRuntimeOpen, _runtimeFoldsWhenSolved) = (true, problems > 0);
-        }
-        else if (!asks && _runtimeFoldsWhenSolved && !IsTypingRuntime)
-        {
-            (IsRuntimeOpen, _runtimeFoldsWhenSolved) = (false, false);
-        }
-
-        _runtimeAsks = asks;
-
         OnPropertyChanged(nameof(CheckFilesLabel));
         OnPropertyChanged(nameof(CanCheckFiles));
+        OnPropertyChanged(nameof(CheckStore));
+        OnPropertyChanged(nameof(StoreCheckWords));
 
         static void CopyRuntime(RuntimeRow from, RuntimeRow to)
         {

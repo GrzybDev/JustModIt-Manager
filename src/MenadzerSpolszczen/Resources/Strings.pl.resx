@@ -599,23 +599,17 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Creator_DropTitle" xml:space="preserve">
     <value>Upuść tu folder z plikami spolszczenia</value>
   </data>
-  <data name="Creator_StepFiles" xml:space="preserve">
-    <value>Twoje pliki</value>
-  </data>
   <data name="Creator_CleanGame" xml:space="preserve">
     <value>Bez spolszczeń i modów, w takiej wersji, jaką mają gracze. Pliki tłumaczone wprost w folderze gry najlepiej najpierw skopiować w bezpieczne miejsce – sprawdzenie plików gry w sklepie je nadpisze.</value>
   </data>
   <data name="Creator_GameInstalled" xml:space="preserve">
     <value>{hasVersion, select, true {Zainstalowane spolszczenie {project} {version}} other {Zainstalowane spolszczenie {project}}}</value>
   </data>
-  <data name="Creator_FilesLead" xml:space="preserve">
-    <value>Folder z przetłumaczonymi plikami, ułożonymi tak jak w folderze gry. Wystarczą pliki dodane albo zmienione – reszta gry zostaje bez zmian.</value>
-  </data>
   <data name="Creator_Nothing" xml:space="preserve">
     <value>Paczka byłaby pusta. Najczęściej znaczy to, że spolszczenie wgrano już ręcznie do folderu gry. Po skopiowaniu plików w bezpieczne miejsce i przywróceniu oryginału (sprawdzeniem plików gry w sklepie) można porównać pliki ponownie.</value>
   </data>
   <data name="Creator_ReviewLead" xml:space="preserve">
-    <value>{count, plural, one {Porównano # plik z grą {game}} few {Porównano # pliki z grą {game}} many {Porównano # plików z grą {game}} other {Porównano # pliku z grą {game}}} i ułożono z nich operacje w kolejności, w jakiej wykona je Menadżer. Można zmienić rodzaj operacji, wykluczyć plik albo dodać operację.</value>
+    <value>{count, plural, one {Porównano # plik z grą {game}} few {Porównano # pliki z grą {game}} many {Porównano # plików z grą {game}} other {Porównano # pliku z grą {game}}} i ułożono z nich operacje w kolejności, w jakiej wykona je Menadżer Spolszczeń. Można zmienić rodzaj operacji, wykluczyć plik albo dodać operację.</value>
   </data>
   <data name="Creator_RulesTitle" xml:space="preserve">
     <value>Zasady Bazy Spolszczeń</value>
@@ -627,7 +621,7 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
     <value>Paczka spełnia zasady Bazy Spolszczeń</value>
   </data>
   <data name="Creator_BlockedRules" xml:space="preserve">
-    <value>{case, select, errors {poprawić {errors, plural, one {błąd} few {{errors} błędy} many {{errors} błędów} other {{errors} błędu}}} questions {odpowiedzieć na {questions, plural, one {pytanie} few {{questions} pytania} many {{questions} pytań} other {{questions} pytania}}} other {poprawić {errors, plural, one {błąd} few {{errors} błędy} many {{errors} błędów} other {{errors} błędu}} i odpowiedzieć na {questions, plural, one {pytanie} few {{questions} pytania} many {{questions} pytań} other {{questions} pytania}}}} w „Zasadach Bazy Spolszczeń” na górze strony</value>
+    <value>{case, select, errors {poprawić {errors, plural, one {błąd} few {{errors} błędy} many {{errors} błędów} other {{errors} błędu}}} questions {odpowiedzieć na {questions, plural, one {pytanie} few {{questions} pytania} many {{questions} pytań} other {{questions} pytania}}} other {poprawić {errors, plural, one {błąd} few {{errors} błędy} many {{errors} błędów} other {{errors} błędu}} i odpowiedzieć na {questions, plural, one {pytanie} few {{questions} pytania} many {{questions} pytań} other {{questions} pytania}}}} w „Zasadach Bazy Spolszczeń”</value>
   </data>
   <data name="Creator_RuleText" xml:space="preserve">
     <value>{kind, select, StoreLibrary {Paczka nie może zmieniać, podmieniać ani usuwać bibliotek sklepu ani zabezpieczeń – Baza Spolszczeń nie przyjmie takiej paczki. Plik, który nie jest częścią spolszczenia, wystarczy wykluczyć.} CircumventionFile {Baza Spolszczeń nie przyjmuje plików, które omijają zabezpieczenia gry, więc plik trzeba wykluczyć z paczki.} CopyOfGameFile {Paczka nie może zawierać plików gry. Plik trzeba wykluczyć z paczki.} WholeGameExecutable {Plik .exe gry może się zmienić tylko łatką, którą Kreator zrobi z tego samego pliku.} WholeGameFile {Baza Spolszczeń przyjmuje cały plik tylko wtedy, gdy w całości jest pracą autora; w innym razie wystarczy łatka.} WholeGameArchive {Cały plik archiwum niesie dużą część zasobów gry. Baza Spolszczeń przyjmie go tylko wtedy, gdy w całości jest pracą autora; zwykle wystarczy łatka.} ThirdPartyTool {Baza Spolszczeń przyjmuje narzędzia innych autorów z ich licencją i adresem kodu źródłowego.} AddedLibrary {Baza Spolszczeń przyjmuje własny kod autora oraz narzędzia innych autorów z licencją i kodem źródłowym.} LargePatch {Taka łatka niesie większość pliku, np. zaszyfrowanego albo spakowanego archiwum. Baza Spolszczeń przyjmie ją tylko wtedy, gdy plik jest pracą autora.} RuntimeCode {Menadżer nie sprawdzałby zmian tego programu, więc nie zauważy aktualizacji gry, która go podmieni, a sprawdzenie paczki przez Bazę Spolszczeń nie obejmuje kodu zapisanego podczas gry. Potwierdzenie oznacza, że tak ma być.} RuntimeSettings {Odinstalowanie przywróci ten plik w postaci sprzed instalacji, więc ustawienia zmienione przez gracza, gdy paczka była zainstalowana, przepadną. Potwierdzenie oznacza, że plik zapisuje oprogramowanie z paczki.} RuntimeSave {Odinstalowanie przywróciłoby stary zapis i przepadłyby postępy gracza, więc zapisu stanu gry nie można dodać do listy.} other {}}</value>
@@ -640,15 +634,6 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   </data>
   <data name="Creator_StepsLead" xml:space="preserve">
     <value>Menadżer wykona je u gracza jeden po drugim, a każdy krok widzi pliki gry takie, jakie zostawiły kroki przed nim – można np. najpierw zmienić nazwę pliku, a potem nałożyć na niego łatkę.</value>
-  </data>
-  <data name="Creator_CheckOperations" xml:space="preserve">
-    <value>Menadżer wykona u każdego gracza dokładnie {count, plural, one {tę # operację} few {te # operacje} many {te # operacji} other {te # operacji}}, w tej kolejności. Przed przejściem dalej warto się upewnić, że:</value>
-  </data>
-  <data name="Creator_CheckSteps" xml:space="preserve">
-    <value>Menadżer wykona u każdego gracza dokładnie {count, plural, one {ten # krok} few {te # kroki} many {te # kroków} other {te # kroku}}, w tej kolejności. Przed przejściem dalej warto się upewnić, że:</value>
-  </data>
-  <data name="Creator_PackageLead" xml:space="preserve">
-    <value>Format wynika z operacji z poprzedniego kroku. Zostały jeszcze dane paczki – trafią do jej opisu, który czyta Menadżer.</value>
   </data>
   <data name="Creator_ManifestTitle" xml:space="preserve">
     <value>Paczka Menadżera ({extension})</value>
@@ -666,16 +651,13 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
     <value>Łatka, zmiana nazwy albo usunięcie pliku gry lub pliki zmieniane podczas gry. Instaluje tylko Menadżer Spolszczeń.</value>
   </data>
   <data name="Creator_PackageTitleHint" xml:space="preserve">
-    <value>Nazwa, którą Menadżer pokaże graczom.</value>
+    <value>Nazwa, którą Menadżer Spolszczeń pokaże graczom.</value>
   </data>
   <data name="Creator_AuthorsFromProject" xml:space="preserve">
     <value>Uzupełniono z projektu {project} w Bazie Spolszczeń.</value>
   </data>
   <data name="Creator_ZipMetadata" xml:space="preserve">
     <value>Zwykły .zip nie ma opisu paczki, więc autorów i opis zmian podaje się przy wydaniu w Bazie Spolszczeń.</value>
-  </data>
-  <data name="Creator_PackageFiles" xml:space="preserve">
-    <value>Paczki Menadżera</value>
   </data>
   <data name="Creator_ManifestKind" xml:space="preserve">
     <value>Paczka Menadżera</value>
@@ -691,9 +673,6 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   </data>
   <data name="Creator_OpenDashboard" xml:space="preserve">
     <value>Otwórz panel w Bazie Spolszczeń</value>
-  </data>
-  <data name="Creator_FinishText" xml:space="preserve">
-    <value>{blocked, select, true {Po cofnięciu instalacji testowej Kreator może wrócić do początku, do nowego projektu albo zapisanego.} other {Kreator wróci do początku, gdzie można zacząć nowy projekt albo otworzyć zapisany.}}</value>
   </data>
   <data name="Creator_RebuildBlocked" xml:space="preserve">
     <value>Po cofnięciu instalacji testowej można zbudować paczkę ponownie albo porównać pliki – Kreator porównywałby je z plikami, które zmieniła paczka.</value>
@@ -717,7 +696,7 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
     <value>Podczas gry oprogramowanie spolszczenia zmienia też pliki w folderze gry; odinstalowanie cofnie i te zmiany.</value>
   </data>
   <data name="Creator_RuntimeLead" xml:space="preserve">
-    <value>Pliki, które oprogramowanie z paczki zapisuje w folderze gry podczas gry, np. lista, którą nadpisuje, kopia pliku gry, którą sobie zostawia, albo dziennik. Menadżer skopiuje je przed instalacją, pominie przy sprawdzaniu plików i cofnie ich zmiany razem z resztą paczki.</value>
+    <value>Pliki, które oprogramowanie z paczki zapisuje w folderze gry podczas gry, np. lista, którą nadpisuje, kopia pliku gry, którą sobie zostawia, albo dziennik. Menadżer Spolszczeń skopiuje je przed instalacją, pominie przy sprawdzaniu plików i cofnie ich zmiany razem z resztą paczki.</value>
   </data>
   <data name="Creator_RuntimeWhy" xml:space="preserve">
     <value>Paczka nie zawiera tego pliku – zapisuje go podczas gry oprogramowanie z paczki, a Menadżer cofnie te zmiany.</value>
@@ -730,5 +709,8 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   </data>
   <data name="Creator_PublishZip" xml:space="preserve">
     <value>Na stronie plik trafia do wydania: jako spolszczenie albo jako składnik. Tam też ustawia się opis zmian, autorów i składniki.</value>
+  </data>
+  <data name="Creator_PackageFilesTitle" xml:space="preserve">
+    <value>Pliki spolszczenia</value>
   </data>
 </root>

@@ -4,13 +4,14 @@ using JustModIt.Manager.Localization;
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
 /// <summary>
-/// The package's build, its result and what comes next, from <see cref="BuildViewModel"/> and
-/// <see cref="TestInstallViewModel"/>.
+/// The package built, or an earlier one after a failed build, with the site's warnings about it, its test in the game and the
+/// way to publish it, from <see cref="BuildViewModel"/> and <see cref="TestInstallViewModel"/>.
 /// </summary>
 public sealed partial class BuiltCard : UserControl
 {
     /// <summary>Creates the view.</summary>
     public BuiltCard() => InitializeComponent();
 
-    public static string NextOverline => Strings.Creator_Next.ToUpper(Text.Culture);
+    /// <summary>The line over a package just built.</summary>
+    public static string BuiltOverline => Text.Format(Strings.Creator_BuiltHeading, ("count", 1)).ToUpper(Text.Culture);
 }

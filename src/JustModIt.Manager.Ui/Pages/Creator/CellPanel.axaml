@@ -1,0 +1,101 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Creator.CellPanel"
+             x:DataType="creator:CellViewModel"
+             ClipToBounds="False">
+  <!-- A folder dropped on the card takes the place of the part's folder. -->
+  <Border x:Name="Cell" Classes="creatorCard cellCard" Padding="20,18" creator:FolderDrop.Command="{Binding DropCommand}"
+          AutomationProperties.Name="{x:Static loc:Strings.Creator_PackageFilesTitle}">
+    <StackPanel Spacing="14">
+      <!-- The head, the one place to compare again. -->
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="caption" Text="{Binding Page.PartLine}" />
+          <WrapPanel ItemSpacing="12" LineSpacing="4">
+            <TextBlock Classes="h4" Text="{x:Static loc:Strings.Creator_PackageFilesTitle}" VerticalAlignment="Center" />
+            <ui:StatusLine x:Name="CellState" FontSize="13" LineHeight="20" VerticalAlignment="Center" Icon="{Binding Line.Icon}" Tone="{Binding Line.Tone}"
+                           Label="{Binding Line.Label}" Detail="{Binding Line.Detail}" IsBusy="{Binding Line.IsBusy}" />
+          </WrapPanel>
+          <TextBlock Classes="pathLine" Text="{Binding FolderPath}" ToolTip.Tip="{Binding FolderPath}" />
+          <TextBlock Classes="meta" Text="{Binding Page.Review.Counts}" IsVisible="{Binding IsCompared}" />
+        </StackPanel>
+        <WrapPanel Grid.Column="1" ItemSpacing="8" VerticalAlignment="Top" HorizontalAlignment="Right">
+          <Button x:Name="ChangeFolder" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_ChangeFolder}"
+                  ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding ChangeFolderCommand}" />
+          <Button x:Name="CompareAgain" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_CompareAgain}"
+                  ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CompareCommand}" IsEnabled="{Binding CanCompare}"
+                  IsVisible="{Binding !IsComparing}" />
+          <Button x:Name="CancelButton" Classes="outline headerAction" Content="{x:Static loc:Strings.Dialog_Cancel}"
+                  Command="{Binding CancelCommand}" IsVisible="{Binding IsComparing}" />
+        </WrapPanel>
+      </Grid>
+
+      <StackPanel x:Name="Comparing" Spacing="10" IsVisible="{Binding IsComparing}" theme:Motion.Enter="True">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <TextBlock Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Stage}" TextTrimming="CharacterEllipsis" />
+          <TextBlock Grid.Column="1" Classes="meta" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Text="{Binding Percent}" />
+        </Grid>
+        <ProgressBar Maximum="100" Value="{Binding Progress}" IsIndeterminate="{Binding IsIndeterminate}"
+                     AutomationProperties.Name="{Binding Line.Label}" />
+        <TextBlock Classes="pathLine" Text="{Binding FileLine}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <ui:Icon Data="{x:Static theme:Icons.Info}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
+          <TextBlock Classes="meta" Text="{x:Static loc:Strings.Creator_ReadOnlyNote}" VerticalAlignment="Center" />
+        </StackPanel>
+      </StackPanel>
+
+      <!-- What stopped the comparison, or what keeps the version from being compared now. -->
+      <ui:Callout x:Name="CellProblem" Classes.danger="{Binding Line.Tone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Danger}}"
+                  MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{Binding Line.Icon}" Title="{Binding NoticeTitle}" Message="{Binding NoticeText}"
+                  IsVisible="{Binding HasNotice}" theme:Motion.Enter="True">
+        <WrapPanel IsVisible="{Binding IsBlockedByInstall}">
+          <TextBlock Classes="rowText" LineHeight="18" Foreground="{StaticResource TextBodyBrush}" Text="{x:Static loc:Strings.Creator_UninstallFirst}"
+                     Margin="0,0,4,0" />
+          <Button Classes="link" FontSize="13" Content="{x:Static loc:Strings.Shell_Library}" Command="{Binding OpenGameCommand}" />
+        </WrapPanel>
+      </ui:Callout>
+      <ui:Callout MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Info}"
+                  Title="{x:Static loc:Strings.Creator_DroppedFilesTitle}" Message="{x:Static loc:Strings.Creator_DroppedFiles}"
+                  IsVisible="{Binding DroppedFiles}" theme:Motion.Enter="True" />
+
+      <StackPanel Spacing="8" IsVisible="{Binding HasNothingToPackage}">
+        <ui:Callout Classes="warning" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.TriangleAlert}"
+                    Title="{Binding NothingTitle}" Message="{Binding NothingText}" theme:Motion.Enter="True" />
+        <Button Classes="quiet" HorizontalAlignment="Left" Margin="-12,0,0,0" Content="{Binding IdenticalCount}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}" Classes.expanded="{Binding ShowsIdentical}"
+                Command="{Binding ToggleIdenticalCommand}" IsVisible="{Binding HasIdentical}" />
+        <ItemsControl ItemsSource="{Binding IdenticalFiles}" IsVisible="{Binding ShowsIdentical}" Margin="28,0,0,0">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="pathLine" Text="{Binding}" Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- The compared part: the rules it meets, the problems of the whole package and the way to its operations. -->
+      <Panel IsVisible="{Binding IsCompared}">
+        <StackPanel Spacing="14" DataContext="{Binding Page.Review}" x:DataType="creator:ReviewViewModel">
+          <creator:RulesList />
+          <ItemsControl ItemsSource="{Binding Problems}" IsVisible="{Binding HasProblems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="creator:FindingLine">
+                <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                            Message="{Binding Text}" Margin="0,0,0,8" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Panel>
+      <WrapPanel ItemSpacing="18" IsVisible="{Binding IsCompared}">
+        <Button x:Name="AllOperations" Classes="link" FontSize="13" Content="{Binding Page.AllOperationsText}" Command="{Binding Page.ShowOperationsCommand}" />
+        <Button x:Name="ToAdvanced" Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_ToAdvancedButton}" ToolTip.Tip="{x:Static loc:Strings.Creator_AdvancedHint}"
+                Command="{Binding Page.Review.ToAdvancedCommand}" IsVisible="{Binding !Page.Review.IsAdvanced}" />
+      </WrapPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

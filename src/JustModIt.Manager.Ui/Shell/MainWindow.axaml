@@ -17,7 +17,7 @@
 
   <Window.KeyBindings>
     <KeyBinding Gesture="Alt+Left" Command="{Binding Navigator.GoBackCommand}" />
-    <KeyBinding Gesture="Escape" Command="{Binding Dialogs.CancelCurrentCommand}" />
+    <KeyBinding Gesture="Escape" Command="{Binding EscapeCommand}" />
   </Window.KeyBindings>
 
   <Window.DataTemplates>

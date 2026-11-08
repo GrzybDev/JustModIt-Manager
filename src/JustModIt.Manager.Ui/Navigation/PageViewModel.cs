@@ -23,4 +23,8 @@ public abstract class PageViewModel : ObservableObject
 
     /// <summary>Whether the window may close now; a page with the player's unsaved work asks first and may say no.</summary>
     public virtual Task<bool> CanCloseAsync() => Task.FromResult(true);
+
+    /// <summary>Goes back to an earlier view within the page, before the window goes back to the page before it.</summary>
+    /// <returns>Whether the page went back, so the window stays on it.</returns>
+    public virtual bool GoBackWithin() => false;
 }

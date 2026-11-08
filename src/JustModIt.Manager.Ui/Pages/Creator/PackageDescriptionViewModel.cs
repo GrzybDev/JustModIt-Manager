@@ -50,9 +50,6 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
     public partial IReadOnlyList<FormatRow> FormatRows { get; private set; } = [];
 
     [ObservableProperty]
-    public partial string Lead { get; private set; } = "";
-
-    [ObservableProperty]
     public partial string PackageTitle { get; set; } = "";
 
     [ObservableProperty]
@@ -71,6 +68,9 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
     [ObservableProperty]
     public partial string AuthorsNote { get; private set; } = Strings.Creator_AuthorsHint;
 
+    /// <summary>The authors are the site's project's own, as filled in from it.</summary>
+    public bool AreAuthorsFromSite => _hints is { Authors.Count: > 0 } project && Authors.SequenceEqual(project.Authors);
+
     /// <summary>Why the metadata keeps the package from being built; empty when nothing does.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMetadataProblem))]
@@ -83,6 +83,8 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
     {
         if (_session.Review?.Plan is not { } plan)
         {
+            // The bar's version box shows from the start, also while the first comparison runs.
+            ShowMetadata(_session.Project.Metadata);
             return;
         }
 
@@ -99,7 +101,6 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
             new FormatRow(PackageLayout.ZipExtension, Strings.Creator_ZipRule, !IsManifest),
             new FormatRow(extension, Strings.Creator_ManifestRule, IsManifest),
         ];
-        Lead = IsManifest ? Strings.Creator_PackageLead : Strings.Creator_ZipLead;
         ShowMetadata(project.Metadata);
         MetadataProblem = string.Join(' ', plan.Findings.Where(finding => ReviewViewModel.IsMetadata(finding.Kind))
             .Select(finding => CreatorWording.Finding(finding)));
@@ -110,7 +111,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
     {
         if (NewAuthor.Trim() is { Length: > 0 } author)
         {
-            _session.Describe(project => project with { Metadata = project.Metadata with { Authors = project.Metadata.Authors.Add(author) } });
+            _session.Change(project => project with { Metadata = project.Metadata with { Authors = project.Metadata.Authors.Add(author) } });
         }
 
         NewAuthor = "";
@@ -118,16 +119,16 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
 
     [RelayCommand]
     private void RemoveAuthor(string author) =>
-        _session.Describe(project => project with
+        _session.Change(project => project with
         {
             Metadata = project.Metadata with { Authors = project.Metadata.Authors.RemoveAll(existing => existing == author) },
         });
 
     partial void OnPackageTitleChanged(string value) =>
-        _session.Describe(project => project with { Metadata = project.Metadata with { Title = value } });
+        _session.Change(project => project with { Metadata = project.Metadata with { Title = value } });
 
     partial void OnVersionChanged(string value) =>
-        _session.Describe(project => project with { Metadata = project.Metadata with { Version = value } });
+        _session.Change(project => project with { Metadata = project.Metadata with { Version = value } });
 
     private void ShowMetadata(PackageMetadata metadata)
     {
@@ -153,9 +154,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
         LastRelease = _hints is { Release.Length: > 0 } hints
             ? Text.Format(Strings.Creator_LastRelease, ("version", GameWording.ShortVersion(hints.Release)))
             : "";
-        AuthorsNote = _hints is { Authors.Count: > 0 } project && Authors.SequenceEqual(project.Authors)
-            ? Text.Format(Strings.Creator_AuthorsFromProject, ("project", project.Project))
-            : Strings.Creator_AuthorsHint;
+        AuthorsNote = AreAuthorsFromSite ? Text.Format(Strings.Creator_AuthorsFromProject, ("project", _hints!.Project)) : Strings.Creator_AuthorsHint;
     }
 
     /// <summary>Fills in what the author left empty from the game's project on the site, once per game.</summary>
@@ -195,7 +194,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
         }
 
         _hints = hints;
-        _session.Describe(current => current with
+        _session.Change(current => current with
         {
             Metadata = current.Metadata with
             {

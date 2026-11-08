@@ -123,7 +123,7 @@ public sealed partial class Navigator(Func<Route, PageViewModel> create) : Obser
     [RelayCommand(CanExecute = nameof(CanGoBack))]
     private void GoBack()
     {
-        if (!_back.TryPop(out var previous))
+        if (Current?.GoBackWithin() == true || !_back.TryPop(out var previous))
         {
             return;
         }

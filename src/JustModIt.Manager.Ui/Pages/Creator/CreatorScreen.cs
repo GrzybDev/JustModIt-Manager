@@ -16,8 +16,8 @@ internal static class CreatorScreen
         ui.Views.Register<ProjectPageViewModel>(() => new ProjectPage());
         ui.Views.Register<CreatorPageViewModel>(() => new CreatorPage());
         ui.Views.Register<NewProjectDialogViewModel>(() => new NewProjectDialog());
-        ui.Views.Register<FilesStepViewModel>(() => new FilesStepView());
-        ui.Views.Register<ReviewViewModel>(() => new ReviewStepView());
-        ui.Views.Register<PackageStepViewModel>(() => new PackageStepView());
+        ui.Views.Register<CellViewModel>(() => new ReleaseTab());
+        ui.Views.Register<ReviewViewModel>(() => new RuntimeTab());
+        ui.Views.Register<PackageDescriptionViewModel>(() => new DescriptionTab());
     }
 }

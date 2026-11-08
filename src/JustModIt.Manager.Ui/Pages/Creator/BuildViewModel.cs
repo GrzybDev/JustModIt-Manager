@@ -1,7 +1,9 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Creator;
@@ -19,10 +21,10 @@ using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
-/// <summary>Where the last step stands.</summary>
+/// <summary>Where the project's build stands.</summary>
 public enum PackageState
 {
-    /// <summary>The format and the metadata, before a build or after one that failed.</summary>
+    /// <summary>Before a build, or after one that failed or stopped.</summary>
     Ready,
     Building,
     Built,
@@ -41,7 +43,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
 
     private CancellationTokenSource? _building;
     private Task? _build;
-    private (string Path, string Name)? _target;
+    private bool _asksForFolder;
     private IReadOnlyList<(PlanFinding Finding, PlannedOperation? Operation)> _buildFindings = [];
     private DateTimeOffset _builtAt;
 
@@ -68,22 +70,6 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     public bool IsBuilding => State == PackageState.Building;
 
     public bool IsBuilt => State == PackageState.Built;
-
-    [ObservableProperty]
-    public partial string GameName { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string GameStore { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string GameDetails { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string BuildHint { get; private set; } = "";
-
-    /// <summary>The next build goes where the last one of the same name went, which the author may change.</summary>
-    [ObservableProperty]
-    public partial bool ReusesTarget { get; private set; }
 
     /// <summary>Why the last build failed; empty when it did not.</summary>
     [ObservableProperty]
@@ -114,9 +100,6 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     /// The build's button, which a failed build replaces with its own way on: the warnings to accept, or comparing again.
     /// </summary>
     public bool ShowsBuild => IsReady && !HasBuildFindings && !NeedsComparison;
-
-    [ObservableProperty]
-    public partial string BuildTarget { get; private set; } = "";
 
     [ObservableProperty]
     public partial string Stage { get; private set; } = "";
@@ -184,11 +167,12 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        // The window may close as soon as this returns, and a stopped build still removes the package it was writing.
+        // The window may close as soon as this returns, and a stopped build still removes the package it was writing, unless its
+        // drive stopped answering, which the window does not wait for.
         if (_build is { IsCompleted: false } build)
         {
             CancelBuild();
-            await build.ConfigureAwait(ConfigureAwaitOptions.ContinueOnCapturedContext | ConfigureAwaitOptions.SuppressThrowing);
+            await Task.WhenAny(build, Task.Delay(LibraryAccess.TimeLimit, _page.Services.Clock)).ConfigureAwait(true);
         }
 
         return true;
@@ -196,40 +180,26 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
 
     public void Dispose() => _building?.Cancel();
 
-    [RelayCommand(CanExecute = nameof(CanBuild))]
-    private Task BuildAsync() => BuildToAsync(askWhere: false);
-
-    private bool CanBuild() => !_description.HasMetadataProblem;
-
     [RelayCommand]
-    private Task BuildElsewhereAsync() => BuildToAsync(askWhere: true);
-
-    private async Task BuildToAsync(bool askWhere)
+    private async Task BuildAsync()
     {
+        // A place the last build refused or could not write to is asked for again rather than taken by this build.
+        if (_asksForFolder)
+        {
+            if (!await _page.PickOutputAsync().ConfigureAwait(true))
+            {
+                return;
+            }
+
+            _asksForFolder = false;
+        }
+
         // A name or version typed a moment ago may not be planned yet, and the package takes them from the plan.
         await _session.SettledAsync().ConfigureAwait(true);
-        if (_session.Review?.Plan is not { } plan || _page.Game is not { } game || _description.HasMetadataProblem)
-        {
-            return;
-        }
 
-        if (!plan.CanBuild)
+        if (_session.Review?.Plan is { } plan && _page.Game is { } game && _page.CanBuild)
         {
-            _page.GoTo(CreatorStep.Review);
-            return;
-        }
-
-        // A package of another version or format goes to a file of its own, so building it keeps the earlier package.
-        var extension = _page.Options.ExtensionFor(plan.Format.Kind);
-        var name = SuggestedName(game, extension);
-        var path = !askWhere && _target is { } target && target.Name == name
-            ? target.Path
-            : await _page.Services.Pickers.PickSaveFileAsync(Strings.Creator_BuildTitle, name,
-                new FileKind(plan.Format.Kind == PackageKind.Zip ? Strings.Creator_ZipFiles : Strings.Creator_PackageFiles, extension),
-                Path.GetDirectoryName(_target?.Path ?? _session.Part.AuthorFolder)).ConfigureAwait(true);
-        if (path is not null)
-        {
-            await (_build = BuildAsync(plan, game, path, name)).ConfigureAwait(true);
+            await (_build = BuildAsync(plan, game, _page.OutputFolder)).ConfigureAwait(true);
         }
     }
 
@@ -237,10 +207,10 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     private void CancelBuild() => _building?.Cancel();
 
     [RelayCommand]
-    private void Accept(string key) => _session.Describe(project => project.Acknowledge(key));
+    private void Accept(string key) => _session.Change(project => project.Acknowledge(key));
 
     [RelayCommand]
-    private Task CompareAgainAsync() => _page.CompareAgainAsync();
+    private Task CompareAgainAsync() => _page.Cell.CompareAsync();
 
     [RelayCommand]
     private void Reveal()
@@ -258,28 +228,6 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     internal void Show()
     {
         ShowBuildFindings();
-        BuildCommand.NotifyCanExecuteChanged();
-        if (_session.Review?.Plan is not { } plan)
-        {
-            return;
-        }
-
-        if (_page.Game is { } game)
-        {
-            GameName = game.Name;
-            GameStore = game.Key.Store.Value;
-            GameDetails = GameWording.Join(
-            [
-                GameWording.StoreName(game.Key.Store),
-                game.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "",
-            ]);
-            var name = SuggestedName(game, _page.Options.ExtensionFor(plan.Format.Kind));
-            ReusesTarget = _target is { } target && target.Name == name;
-            BuildHint = ReusesTarget
-                ? Text.Format(Strings.Creator_BuildTo, ("name", Path.GetFileName(_target!.Value.Path)))
-                : Text.Format(Strings.Creator_BuildHint, ("name", name));
-        }
-
         PublishText = _description.IsManifest ? Strings.Creator_PublishManifest : Strings.Creator_PublishZip;
     }
 
@@ -295,35 +243,47 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     /// <summary>Forgets the package and the last build's failure, which belong to another copy of the game.</summary>
     internal void Forget()
     {
-        (OutputPath, _target, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings) = ("", null, "", "", "", "", []);
-        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings, BuildTarget) = ("", "", false, [], [], "");
+        (OutputPath, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings) = ("", "", "", "", "", []);
+        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings) = ("", "", false, [], []);
         State = PackageState.Ready;
     }
 
-    private async Task BuildAsync(PackagePlan plan, DetectedGameEntry game, string path, string name)
+    private async Task BuildAsync(PackagePlan plan, DetectedGameEntry game, string folder)
     {
         using var building = _building = new CancellationTokenSource();
-        _target = (path, name);
         (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings) = ("", "", false, [], []);
         (Stage, Percent, Progress, FileLine) = (Text.Format(Strings.Creator_BuildStage, ("stage", nameof(BuildStage.Checking))), "", 0, "");
-        BuildTarget = Text.Format(Strings.Creator_BuildTarget, ("path", path));
         State = PackageState.Building;
         try
         {
             // The game's build may have changed since the comparison, and the package names the one it was made against.
             var detected = await CurrentGameAsync(game).ConfigureAwait(true);
-            var request = new BuildRequest
+            var request = new ProjectBuildRequest
             {
-                OutputPath = path,
-                Game = detected,
+                ProjectId = _session.Project.Id,
+                OutputFolder = folder,
+                Parts = [(_session.Part.Name, [new BuildVersion(detected, plan)])],
+                PackageName = (_, _) => SuggestedName(game),
+                FallbackName = Strings.Creator_ProjectFallbackName,
+                // The run asks on its own thread, and the dialogs live on the window's.
+                ReplaceFiles = names => Dispatcher.UIThread.InvokeAsync(() => _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(
+                    Strings.Creator_ReplaceFilesTitle, Text.Format(Strings.Creator_ReplaceFilesMessage, ("names", CreatorWording.List(names))),
+                    Strings.Creator_ReplaceFilesConfirm, Icons.TriangleAlert, DialogTone.Danger))),
                 Installs = [.. _page.Agent.State.Games.SelectMany(view => view.Installs)
                     .Select(install => new ExistingInstall(install.Id, install.InstallDirectory))],
                 Site = _page.Agent.State.Catalogue.ReleaseFiles,
             };
-            var result = await new PackageBuilder(new XDelta3Patcher(), _page.Options, fileSystem: _page.FileSystem)
-                .BuildAsync(plan, request, new LatestProgress<BuildProgress>(Show), building.Token)
+            var finished = await new ProjectBuilder(new XDelta3Patcher(), _page.Options, _page.Library, _page.Access, _page.Services.Clock, _page.FileSystem)
+                .BuildAsync(request, new LatestProgress<ProjectBuildProgress>(progress => Show(progress.Build)), building.Token)
                 .ConfigureAwait(true);
-            await BuiltAsync(result, detected.Key).ConfigureAwait(true);
+            if (finished is [var package])
+            {
+                Built(package);
+            }
+            else
+            {
+                State = PackageState.Ready;
+            }
         }
         catch (OperationCanceledException) when (building.IsCancellationRequested)
         {
@@ -334,14 +294,11 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             NeedsComparison = failed.Failure is BuildFailure.FilesChanged or BuildFailure.OtherGame;
             _buildFindings = [.. failed.Findings.Where(finding => finding.BlocksBuild)
                 .Select(finding => (finding, finding.OperationIndex is { } index ? plan.Operations[index] : null))];
-            // The next build asks for a place again rather than going back to one the build refused or could not write to.
-            if (failed.Failure is BuildFailure.OutputInGameFolder or BuildFailure.OutputInAuthorFolder)
-            {
-                _target = null;
-            }
-
+            _asksForFolder = failed.Failure is BuildFailure.OutputInGameFolder or BuildFailure.OutputInAuthorFolder;
+            // A folder that does not answer is named as the author knows it, a file of the package by its path in the game.
             Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_BuildFailed, ("failure", failed.Failure.ToString()),
-                ("files", failed.Paths.Count), ("file", failed.Paths.Count > 0 ? InFolder(plan, failed.Paths[0]) : "")));
+                ("files", failed.Paths.Count), ("file", failed.Paths.Count == 0 ? ""
+                    : failed.Failure == BuildFailure.FolderUnavailable ? failed.Paths[0] : InFolder(plan, failed.Paths[0]))));
         }
         catch (CreatorBlockedException blocked)
         {
@@ -350,7 +307,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _target = null;
+            _asksForFolder = true;
             Fail(Strings.Creator_BuildFailedTitle, Strings.Creator_BuildWriteFailed);
         }
         // Anything else, such as a patch the encoder could not make, ends the build like the failures above rather than the
@@ -369,6 +326,9 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
 
             Show();
         }
+
+        // The run wrote the record of what it finished, which the page and the library's card tell.
+        await _page.ReadRecordAsync().ConfigureAwait(true);
     }
 
     private async Task<InstalledGame> CurrentGameAsync(DetectedGameEntry game)
@@ -390,22 +350,9 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         };
     }
 
-    private async Task BuiltAsync(PackageBuildResult result, GameKey game)
+    private void Built(FinishedPackage package)
     {
-        var project = _session.Project;
-        var part = _session.Part.Name;
-        var row = new BuiltPackage(result.OutputPath, result.Kind, result.PackageSize, [game], project.Metadata.Version.Trim(), _page.Services.Clock.GetUtcNow());
-        try
-        {
-            await _page.Library.UpdateBuildAsync(project.Id, record => (record ?? new BuildRecord([])).WithPackage(part, row), CancellationToken.None)
-                .ConfigureAwait(true);
-        }
-        // The package is there whatever becomes of its row, which only tells the library's card about it.
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            LogRecordFailed(_page.Log, exception);
-        }
-
+        var result = package.Result;
         OutputPath = result.OutputPath;
         ResultName = Path.GetFileName(result.OutputPath);
         ResultSize = Formats.FileSize(result.PackageSize);
@@ -417,7 +364,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             result.Kind == PackageKind.Manifest ? string.Join(", ", metadata.Authors) : "",
         ]);
         ResultFolder = Path.GetDirectoryName(result.OutputPath) ?? "";
-        _builtAt = row.BuiltAt;
+        _builtAt = package.Package.BuiltAt;
         SiteWarnings = [.. result.Findings.Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
             .Select(finding => CreatorWording.Finding(finding))];
         _test.Built();
@@ -483,15 +430,14 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     }
 
     // A copy of the game from another store gets a package of its own, which a name without the store would overwrite.
-    private string SuggestedName(DetectedGameEntry game, string extension)
+    private string SuggestedName(DetectedGameEntry game)
     {
         var name = _page.IsGameOnOtherStores
             ? Text.Format(Strings.Creator_PackageGameOnStore, ("game", game.Name), ("store", GameWording.StoreName(game.Key.Store)))
             : game.Name;
-        return FileNames.Suggest(_session.Project.Metadata.Version.Trim() is { Length: > 0 } version
-                ? Text.Format(Strings.Creator_PackageName, ("game", name), ("version", version))
-                : name,
-            Strings.Creator_ProjectFallbackName, extension);
+        return _session.Project.Metadata.Version.Trim() is { Length: > 0 } version
+            ? Text.Format(Strings.Creator_PackageName, ("game", name), ("version", version))
+            : name;
     }
 
     private static string ReviewLine(PlanFinding finding) =>
@@ -504,7 +450,4 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The package build failed unexpectedly")]
     private static partial void LogBuildFailed(ILogger logger, Exception exception);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The record of a built package could not be written")]
-    private static partial void LogRecordFailed(ILogger logger, Exception exception);
 }
