@@ -31,7 +31,6 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
     private readonly CreatorSession _session;
     private readonly Dictionary<string, bool> _expanded = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IReviewRow> _operationRows = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, RuleRow> _ruleRows = new(StringComparer.Ordinal);
     private readonly Dictionary<string, StepRow> _stepRows = new(StringComparer.Ordinal);
     private readonly Dictionary<string, RuntimeRow> _runtimeRows = new(StringComparer.Ordinal);
     private bool _runtimeFoldsWhenSolved;
@@ -53,21 +52,6 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
 
     [ObservableProperty]
     public partial string Lead { get; private set; } = "";
-
-    public ObservableCollection<RuleRow> Rules { get; } = [];
-
-    [ObservableProperty]
-    public partial string RulesState { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial RowTone RulesTone { get; private set; }
-
-    [ObservableProperty]
-    public partial bool HasRules { get; private set; }
-
-    /// <summary>The rules found nothing that keeps the site from taking the package.</summary>
-    [ObservableProperty]
-    public partial bool RulesMet { get; private set; }
 
     /// <summary>The operations shown: every one but those of a folded group of new files.</summary>
     public ObservableCollection<IReviewRow> Operations { get; } = [];
@@ -251,61 +235,6 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
 
     [RelayCommand]
     private void ToggleIdentical() => ShowsIdentical = !ShowsIdentical;
-
-    // A store library renamed away and replaced is found in both operations, and leaving out one leaves the other against
-    // the rules.
-    [RelayCommand]
-    private void ExcludeRule(RuleRow rule)
-    {
-        if (IsAdvanced)
-        {
-            var steps = rule.Findings.Select(finding => finding.StepIndex).OfType<int>().Distinct().OrderDescending().ToList();
-            _session.Change(project => project with
-            {
-                Steps = new(steps.Aggregate(project.Steps.Items, (remaining, step) => remaining.RemoveAt(step))),
-            });
-            return;
-        }
-
-        var entries = rule.Findings.Select(finding => RowOf(finding)?.Entry).OfType<ReviewEntry>()
-            .Where(entry => entry.Choices.Contains(FileChoice.Skip)).ToList();
-        _session.Change(project => entries.Aggregate(project, (changed, entry) => changed.WithChoice(entry, FileChoice.Skip)));
-    }
-
-    [RelayCommand]
-    private void Accept(string key) => _session.Describe(project => project.Acknowledge(key));
-
-    [RelayCommand]
-    private void AcceptRule(RuleRow rule)
-    {
-        var keys = rule.Findings.Select(finding => finding.AcknowledgementKey).OfType<string>().ToList();
-        _session.Describe(project => keys.Aggregate(project, (changed, key) => changed.Acknowledge(key)));
-    }
-
-    // Whose code a library is changes only the answer: a name, licence and source typed for it stay.
-    [RelayCommand]
-    private void MarkOwnCode(RuleRow rule) => _session.Describe(project => project.LibraryNoticeOf(rule.Path) switch
-    {
-        null or { IsOwn: true } => project,
-        { License.Length: 0, SourceUrl.Length: 0 } notice when notice.Name.Length == 0 || notice.Name == rule.FileName
-            => project.WithoutLibraryNotice(rule.Path),
-        var notice => project.WithLibraryNotice(notice with { IsOwn = true }),
-    });
-
-    [RelayCommand]
-    private void MarkThirdParty(RuleRow rule) => _session.Describe(project => project.LibraryNoticeOf(rule.Path) switch
-    {
-        { IsOwn: false } => project,
-        null => project.WithLibraryNotice(new LibraryNotice(rule.Path, "", "", rule.FileName)),
-        var notice => project.WithLibraryNotice(notice with { IsOwn = false }),
-    });
-
-    [RelayCommand]
-    private void AddLibraryNotice(RuleRow rule) =>
-        _session.Describe(project => project.WithLibraryNotice(new LibraryNotice(rule.Path, "", "", rule.FileName, IsOwn: true)));
-
-    [RelayCommand]
-    private void RemoveLibraryNotice(RuleRow rule) => _session.Describe(project => project.WithoutLibraryNotice(rule.Path));
 
     [RelayCommand]
     private void ToggleAdding()
@@ -703,104 +632,6 @@ public sealed partial class ReviewStepViewModel : ObservableObject, ICreatorStep
                     CreatorWording.FolderOf(suggestion)) ? CreatorWording.GameIndexName(suggestion) : suggestion)),
         };
     }
-
-    // The author decides about a file, not about each operation the rules find it in, e.g. a store library renamed away
-    // and replaced.
-    private void ShowRules(PackagePlan plan)
-    {
-        var fresh = plan.Findings.Where(finding => IsHosting(finding.Kind))
-            .GroupBy(finding => $"{finding.Kind}:{finding.ToolId ?? finding.Path}", StringComparer.Ordinal)
-            .Select(found => RuleOf(found.Key, [.. found]))
-            .ToList();
-        var rows = ReviewRows.Reuse(_ruleRows, fresh, Update);
-        Controls.CardGrid.Sync(Rules, rows);
-        foreach (var row in rows)
-        {
-            ShowNotice(row);
-        }
-
-        var errors = rows.Count(row => row.IsError);
-        var questions = rows.Count(row => !row.IsError && row.Findings.Any(finding => finding.BlocksBuild));
-        HasRules = rows.Count > 0;
-        RulesMet = errors == 0 && questions == 0;
-        RulesTone = errors > 0 ? RowTone.Danger : questions > 0 ? RowTone.Warning : RowTone.Success;
-        RulesState = RulesMet
-            ? Strings.Creator_RulesMet
-            : Library.GameWording.Join(
-            [
-                errors > 0 ? Text.Format(Strings.Creator_RulesErrors, ("count", errors)) : "",
-                questions > 0 ? Text.Format(Strings.Creator_RulesQuestions, ("count", questions)) : "",
-            ]);
-
-        static void Update(RuleRow fresh, RuleRow kept)
-        {
-            (kept.Findings, kept.Kind, kept.Title, kept.Text, kept.Tone, kept.Icon) =
-                (fresh.Findings, fresh.Kind, fresh.Title, fresh.Text, fresh.Tone, fresh.Icon);
-            (kept.CanExclude, kept.IsAccepted, kept.IsThirdParty, kept.HasNotice, kept.ToolId, kept.Path) =
-                (fresh.CanExclude, fresh.IsAccepted, fresh.IsThirdParty, fresh.HasNotice, fresh.ToolId, fresh.Path);
-        }
-    }
-
-    private RuleRow RuleOf(string key, IReadOnlyList<PlanFinding> findings)
-    {
-        var finding = findings[0];
-        var tool = finding.ToolId is { } id ? _page.Options.Rules.ThirdPartyTools.FirstOrDefault(rule => rule.Id == id) : null;
-        var blocks = findings.Any(found => found.BlocksBuild);
-        var kind = finding.Kind switch
-        {
-            FindingKind.ThirdPartyTool => RuleKind.Tool,
-            FindingKind.AddedLibrary => RuleKind.Library,
-            _ when finding.Severity == FindingSeverity.Error => RuleKind.Error,
-            _ => RuleKind.Accept,
-        };
-        var notice = kind == RuleKind.Library ? _session.Project.LibraryNoticeOf(finding.Path!) : null;
-        return new RuleRow(key)
-        {
-            Findings = findings,
-            Kind = kind,
-            Title = CreatorWording.RuleTitle(finding, tool?.Name ?? ""),
-            Text = CreatorWording.RuleText(finding),
-            Tone = kind == RuleKind.Error ? RowTone.Danger
-                : blocks ? RowTone.Warning
-                : kind == RuleKind.Library && notice is null ? RowTone.Neutral
-                : RowTone.Success,
-            Icon = kind == RuleKind.Error ? Icons.CircleX
-                : blocks || kind == RuleKind.Library ? Icons.FileCode
-                : Icons.CircleCheck,
-            CanExclude = kind == RuleKind.Error && findings.All(CanExclude),
-            IsAccepted = !blocks,
-            IsThirdParty = notice is { IsOwn: false },
-            HasNotice = notice is not null,
-            ToolId = finding.ToolId ?? "",
-            Path = finding.Path ?? "",
-        };
-    }
-
-    // Filled with Edited unset, so showing the project's licence and source does not write them back as an edit.
-    private void ShowNotice(RuleRow row)
-    {
-        row.Edited = null;
-        var (name, license, source, complete) = row.IsTool
-            ? _session.Project.ToolNotices.FirstOrDefault(notice => notice.ToolId == row.ToolId) is { } tool
-                ? ("", tool.License, tool.SourceUrl, tool.IsComplete)
-                : ("", "", "", false)
-            : _session.Project.LibraryNoticeOf(row.Path) is { } library
-                ? (library.Name, library.License, library.SourceUrl, library.IsComplete)
-                : ("", "", "", false);
-        (row.LibraryName, row.License, row.Source, row.IsComplete) = (name, license, source, complete);
-        row.Edited = row.IsTool
-            ? edited => _session.Describe(project => project.WithToolNotice(new ToolNotice(edited.ToolId, edited.License, edited.Source)))
-            : edited => _session.Describe(project => project.WithLibraryNotice(
-                new LibraryNotice(edited.Path, edited.License, edited.Source, edited.LibraryName, IsOwn: !edited.IsThirdParty)));
-    }
-
-    private bool CanExclude(PlanFinding finding) =>
-        IsAdvanced ? finding.StepIndex is not null : RowOf(finding)?.Entry?.Choices.Contains(FileChoice.Skip) == true;
-
-    private OperationRow? RowOf(PlanFinding finding) =>
-        finding.OperationIndex is { } index && _session.Review is { } review && index < review.Plan.Operations.Count
-            ? _operationRows.GetValueOrDefault(KeyOf(review.Plan.Operations[index])) as OperationRow
-            : null;
 
     private void ShowOperations(List<IReviewRow> fresh)
     {

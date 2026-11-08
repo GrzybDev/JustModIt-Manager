@@ -1,4 +1,5 @@
 using System.Globalization;
+using Avalonia.Data.Converters;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -463,9 +464,18 @@ public sealed partial class StepRow(string key) : ObservableObject, IReviewRow
     partial void OnSecondChanged(string value) => Edited?.Invoke(this);
 }
 
-/// <summary>Brings the shown rows in line with the rows of a new plan, keeping each instance that stays.</summary>
+/// <summary>Brings the shown rows in line with the rows of a new plan, keeping each instance that stays, and turns their values for the views.</summary>
 internal static class ReviewRows
 {
+    public static readonly IValueConverter IsDanger = new FuncValueConverter<RowTone, bool>(tone => tone == RowTone.Danger);
+
+    public static readonly IValueConverter IsWarning = new FuncValueConverter<RowTone, bool>(tone => tone == RowTone.Warning);
+
+    public static readonly IValueConverter IsSuccess = new FuncValueConverter<RowTone, bool>(tone => tone == RowTone.Success);
+
+    /// <summary>A delete step has one path, which takes the room of both.</summary>
+    public static readonly IValueConverter SpanWhenAlone = new FuncValueConverter<bool, int>(hasSecond => hasSecond ? 1 : 3);
+
     /// <summary>The rows to show, each taking the instance shown before under its key, brought up to date.</summary>
     /// <param name="known">The rows shown before, by key; replaced with the rows returned.</param>
     /// <param name="fresh">The rows of the new plan, in order, with keys of their own.</param>

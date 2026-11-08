@@ -1,8 +1,27 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="using:JustModIt.Manager.Ui.Controls">
+        xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+        xmlns:loc="using:JustModIt.Manager.Localization">
   <!-- The package creator (the Kreator boards): a step bar under the page's head, raised cards of radius 16 for each
        part of a step, soft rows of radius 12 for lists, and the step's actions at the end of its content. -->
+
+  <Styles.Resources>
+    <!-- A finding at an operation or a step, with a way to accept it where the rules allow. -->
+    <DataTemplate x:Key="FindingTemplate" x:DataType="creator:FindingLine">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,6,0,0">
+        <ui:Icon Data="{Binding Icon}" Width="14" Height="14" Margin="0,3,0,0" VerticalAlignment="Top"
+                 Classes.dangerText="{Binding Tone, Converter={x:Static creator:ReviewRows.IsDanger}}"
+                 Classes.warningText="{Binding Tone, Converter={x:Static creator:ReviewRows.IsWarning}}" />
+        <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" Text="{Binding Text}"
+                   Classes.dangerText="{Binding Tone, Converter={x:Static creator:ReviewRows.IsDanger}}"
+                   Classes.warningText="{Binding Tone, Converter={x:Static creator:ReviewRows.IsWarning}}" />
+        <Button Grid.Column="2" Classes="outline small" Content="{x:Static loc:Strings.Creator_Accept}" IsVisible="{Binding CanAcknowledge}"
+                Command="{Binding $parent[UserControl].((creator:ReviewStepViewModel)DataContext).AcceptCommand}"
+                CommandParameter="{Binding AcknowledgementKey}" />
+      </Grid>
+    </DataTemplate>
+  </Styles.Resources>
 
   <!-- The head's actions are 36 px, a step smaller than the page's own. -->
   <Style Selector="Button.headerAction">

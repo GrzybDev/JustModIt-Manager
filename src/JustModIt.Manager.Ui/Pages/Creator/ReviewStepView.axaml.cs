@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -10,15 +9,6 @@ namespace JustModIt.Manager.Ui.Pages.Creator;
 /// <summary>The view of <see cref="ReviewStepViewModel"/>, where a step of an advanced project is dragged by its grip to another place.</summary>
 public sealed partial class ReviewStepView : UserControl
 {
-    public static readonly IValueConverter IsDanger = new FuncValueConverter<RowTone, bool>(tone => tone == RowTone.Danger);
-
-    public static readonly IValueConverter IsWarning = new FuncValueConverter<RowTone, bool>(tone => tone == RowTone.Warning);
-
-    public static readonly IValueConverter IsSuccess = new FuncValueConverter<RowTone, bool>(tone => tone == RowTone.Success);
-
-    /// <summary>A delete step has one path, which takes the room of both.</summary>
-    public static readonly IValueConverter SpanWhenAlone = new FuncValueConverter<bool, int>(hasSecond => hasSecond ? 1 : 3);
-
     private StepRow? _dragged;
 
     /// <summary>Creates the view.</summary>
