@@ -32,6 +32,11 @@ public sealed record CopyStep(string Path, string Entry, long Size, string? Sha2
 public sealed record PatchStep(string Path, string Entry, long SourceSize, string SourceSha256, long TargetSize,
     string TargetSha256) : PackageStep;
 
+/// <summary>Patches a game file with whichever patch fits what the path holds at this point of the install.</summary>
+/// <param name="Path">The game-relative file to patch.</param>
+/// <param name="Alternatives">The patches, each for another original.</param>
+public sealed record PatchChoiceStep(string Path, IReadOnlyList<PatchStep> Alternatives) : PackageStep;
+
 /// <summary>Renames a game file.</summary>
 /// <param name="From">The game-relative file to rename.</param>
 /// <param name="To">Its new game-relative path.</param>

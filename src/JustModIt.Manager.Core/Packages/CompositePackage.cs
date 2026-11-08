@@ -8,7 +8,24 @@ namespace JustModIt.Manager.Core.Packages;
 /// <param name="IsOptional">The install may go on without it.</param>
 /// <param name="Package">The opened package; null for an optional one that only a newer app can open.</param>
 /// <param name="Refusal">Why only a newer app can open it; null when it opened.</param>
-public sealed record CompositePart(int Index, bool IsOptional, IPackage? Package, PackageError? Refusal = null);
+public sealed record CompositePart(int Index, bool IsOptional, IPackage? Package, PackageError? Refusal = null)
+{
+    /// <summary>What separates a part's index from the name of its entry.</summary>
+    internal const char EntrySeparator = '/';
+
+    /// <summary>The package's steps, each payload entry named <c>&lt;part&gt;/&lt;entry&gt;</c>; none when it did not open.</summary>
+    public IEnumerable<PackageStep> Steps => (Package?.Steps ?? []).Select(Prefixed);
+
+    private PackageStep Prefixed(PackageStep step) => step switch
+    {
+        CopyStep copy => copy with { Entry = EntryOf(copy.Entry) },
+        PatchStep patch => patch with { Entry = EntryOf(patch.Entry) },
+        PatchChoiceStep choice => choice with { Alternatives = [.. choice.Alternatives.Select(patch => patch with { Entry = EntryOf(patch.Entry) })] },
+        _ => step,
+    };
+
+    private string EntryOf(string entry) => Index.ToString(CultureInfo.InvariantCulture) + EntrySeparator + entry;
+}
 
 /// <summary>
 /// The packages of one install, each opened and validated on its own, whose steps run in order as one package, so a later
@@ -16,8 +33,6 @@ public sealed record CompositePart(int Index, bool IsOptional, IPackage? Package
 /// </summary>
 public sealed class CompositePackage : IPackage
 {
-    private const char EntrySeparator = '/';
-
     private readonly IReadOnlyList<CompositePart> _opened;
     private readonly bool _owns;
 
@@ -26,7 +41,7 @@ public sealed class CompositePackage : IPackage
         _opened = opened;
         _owns = owns;
         Parts = parts;
-        Steps = [.. parts.Where(part => part.Package is not null).SelectMany(part => part.Package!.Steps.Select(step => Prefixed(step, part.Index)))];
+        Steps = [.. parts.SelectMany(part => part.Steps)];
         RuntimeFiles = [.. parts.SelectMany(part => part.Package?.RuntimeFiles ?? [])];
     }
 
@@ -92,7 +107,7 @@ public sealed class CompositePackage : IPackage
 
     public Task<Stream> OpenEntryAsync(string entry, CancellationToken cancellationToken)
     {
-        var separator = entry.IndexOf(EntrySeparator, StringComparison.Ordinal);
+        var separator = entry.IndexOf(CompositePart.EntrySeparator, StringComparison.Ordinal);
         return separator > 0 && int.TryParse(entry.AsSpan(0, separator), NumberStyles.None, CultureInfo.InvariantCulture, out var index)
             && Parts.FirstOrDefault(part => part.Index == index)?.Package is { } package
                 ? package.OpenEntryAsync(entry[(separator + 1)..], cancellationToken)
@@ -100,16 +115,6 @@ public sealed class CompositePackage : IPackage
     }
 
     public ValueTask DisposeAsync() => _owns ? DisposeAllAsync(_opened) : ValueTask.CompletedTask;
-
-    private static PackageStep Prefixed(PackageStep step, int index) => step switch
-    {
-        CopyStep copy => copy with { Entry = EntryOf(index, copy.Entry) },
-        PatchStep patch => patch with { Entry = EntryOf(index, patch.Entry) },
-        _ => step,
-    };
-
-    private static string EntryOf(int index, string entry) =>
-        index.ToString(CultureInfo.InvariantCulture) + EntrySeparator + entry;
 
     private static async ValueTask DisposeAllAsync(IEnumerable<CompositePart> parts)
     {

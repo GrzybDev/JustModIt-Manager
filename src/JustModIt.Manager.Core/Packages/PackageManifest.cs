@@ -88,15 +88,30 @@ public abstract record PackageOperation
 /// <param name="Sha256">The payload's SHA-256 in hex.</param>
 public sealed record CopyOperation(string Path, string Source, long Size, string Sha256) : PackageOperation;
 
-/// <summary>Patches a game file with an xdelta3 payload.</summary>
+/// <summary>Patches a game file with an xdelta3 payload, or with the one of several that fits what the file holds.</summary>
 /// <param name="Path">The game-relative file to patch.</param>
-/// <param name="Patch">The xdelta3 payload entry, under <c>patches/</c>.</param>
+/// <param name="Patch">The xdelta3 payload entry, under <c>patches/</c>; null with <paramref name="Alternatives"/>.</param>
+/// <param name="SourceSize">The original's size in bytes; null with <paramref name="Alternatives"/>.</param>
+/// <param name="SourceSha256">The original's SHA-256 in hex; null with <paramref name="Alternatives"/>.</param>
+/// <param name="TargetSize">The patched file's size in bytes; null with <paramref name="Alternatives"/>.</param>
+/// <param name="TargetSha256">The patched file's SHA-256 in hex; null with <paramref name="Alternatives"/>.</param>
+/// <param name="Alternatives">
+/// The patches for each original the file may hold, which an app that ignored them would call damaged, so a list needs
+/// <see cref="PackageCapabilities.PatchAlternatives"/>; null for one patch.
+/// </param>
+public sealed record PatchOperation(string Path, string? Patch = null, long? SourceSize = null, string? SourceSha256 = null,
+    long? TargetSize = null, string? TargetSha256 = null, IReadOnlyList<PatchAlternative>? Alternatives = null) : PackageOperation
+{
+    public const int MaxAlternatives = 8;
+}
+
+/// <summary>A patch for one of the originals a file may hold.</summary>
+/// <param name="Patch">The xdelta3 payload entry, under <c>patches/</c>, which alternatives may share.</param>
 /// <param name="SourceSize">The original's size in bytes.</param>
 /// <param name="SourceSha256">The original's SHA-256 in hex.</param>
 /// <param name="TargetSize">The patched file's size in bytes.</param>
 /// <param name="TargetSha256">The patched file's SHA-256 in hex.</param>
-public sealed record PatchOperation(string Path, string Patch, long SourceSize, string SourceSha256, long TargetSize,
-    string TargetSha256) : PackageOperation;
+public sealed record PatchAlternative(string Patch, long SourceSize, string SourceSha256, long TargetSize, string TargetSha256);
 
 /// <summary>Renames a game file.</summary>
 /// <param name="From">The game-relative file to rename.</param>

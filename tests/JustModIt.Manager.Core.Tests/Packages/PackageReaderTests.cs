@@ -9,6 +9,7 @@ namespace JustModIt.Manager.Core.Tests.Packages;
 public sealed class PackageReaderTests : IDisposable
 {
     private const string Hash = "0000000000000000000000000000000000000000000000000000000000000000";
+    private const string OtherHash = "1111111111111111111111111111111111111111111111111111111111111111";
 
     private static readonly ThirdPartyNotice Loader = new()
     {
@@ -587,6 +588,7 @@ public sealed class PackageReaderTests : IDisposable
     [Theory]
     [InlineData(""" "targets": [ { "store": "steam", "id": "1000", "folders": [ { "package": "Data", "game": "Content" } ] } ], "operations": [ { "type": "delete", "path": "old.txt" } ] """)]
     [InlineData(""" "operations": [ { "type": "delete", "path": "old.txt", "only": [ "steam" ] } ] """)]
+    [InlineData(""" "operations": [ { "type": "patch", "path": "strings.pak", "alternatives": [ { }, { } ] } ] """)]
     public async Task A_manifest_that_uses_a_new_field_without_its_capability_is_damaged(string fields)
     {
         new TestPackage().RawManifest($$"""
@@ -717,6 +719,46 @@ public sealed class PackageReaderTests : IDisposable
         await using var asWritten = await _reader.OpenAsync(ManifestPackage, token);
         asWritten.Steps.Should().ContainSingle();
     }
+
+    public static TheoryData<string, PackageError> MalformedAlternatives => new()
+    {
+        // One, none and nine.
+        { Alternatives(Alternative(Hash)), PackageError.InvalidManifest },
+        { Alternatives(), PackageError.InvalidManifest },
+        { Alternatives([.. Enumerable.Range(0, 9).Select(digit => Alternative(new string((char)('0' + digit), 64)))]), PackageError.InvalidManifest },
+        // The same source in another letter case.
+        { Alternatives(Alternative(new string('a', 64)), Alternative(new string('A', 64))), PackageError.InvalidManifest },
+        // The operation's own fields beside them.
+        { """, "patch": "patches/a.xdelta" """ + Alternatives(Alternative(Hash), Alternative(OtherHash)), PackageError.InvalidManifest },
+        { """, "targetSize": 1 """ + Alternatives(Alternative(Hash), Alternative(OtherHash)), PackageError.InvalidManifest },
+        // A broken item.
+        { Alternatives(Alternative(Hash), "null"), PackageError.InvalidManifest },
+        { Alternatives(Alternative(Hash), """{ "patch": "patches/a.xdelta" }"""), PackageError.InvalidManifest },
+        { Alternatives(Alternative(Hash), Alternative(OtherHash, entry: "patches/missing.xdelta")), PackageError.MissingPayload },
+        { Alternatives(Alternative(Hash), Alternative(OtherHash, entry: "files/a.xdelta")), PackageError.InvalidPath },
+        { Alternatives(Alternative(Hash), Alternative(OtherHash, size: -1)), PackageError.InvalidManifest },
+        { Alternatives(Alternative(Hash), Alternative("abc")), PackageError.InvalidManifest },
+        // Neither alternatives nor all of the operation's own fields.
+        { "", PackageError.InvalidManifest },
+        { """, "patch": "patches/a.xdelta", "sourceSize": 1 """, PackageError.InvalidManifest },
+    };
+
+    [Theory]
+    [MemberData(nameof(MalformedAlternatives))]
+    public async Task Rejects_malformed_patch_alternatives(string fields, PackageError error)
+    {
+        new TestPackage().Entry("patches/a.xdelta", "x").RawManifest($$"""
+            { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": [ "op:patch", "patch:alternatives@1" ],
+              "operations": [ { "type": "patch", "path": "data/strings.pak"{{fields}} } ] }
+            """).WriteManifestPackage(ManifestPackage);
+
+        (await ErrorAsync(ManifestPackage)).Should().Be(error);
+    }
+
+    private static string Alternatives(params string[] items) => $""", "alternatives": [ {string.Join(", ", items)} ]""";
+
+    private static string Alternative(string source, string entry = "patches/a.xdelta", int size = 1) =>
+        $$"""{ "patch": "{{entry}}", "sourceSize": {{size}}, "sourceSha256": "{{source}}", "targetSize": 1, "targetSha256": "{{Hash}}" }""";
 
     private static string Declaring(string runtimeFiles) => $$"""
         { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": [ "op:delete", "runtime:files@1" ],

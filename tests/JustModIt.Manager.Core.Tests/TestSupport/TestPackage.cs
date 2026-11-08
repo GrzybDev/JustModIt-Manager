@@ -137,6 +137,7 @@ internal sealed partial class TestPackage
         {
             (PackageCapabilities.TargetFolders, _targets.Any(target => target.Folders is not null)),
             (PackageCapabilities.TargetsOnly, _operations.Exists(operation => operation.Only is not null)),
+            (PackageCapabilities.PatchAlternatives, _operations.Exists(operation => operation is PatchOperation { Alternatives: not null })),
         }.Where(field => field.Item2).Select(field => field.Item1).ToList();
         return _runtimeFiles.Count > 0 || fields.Count > 0
             ? [.. PackageCapabilities.Of(_operations, declaresFiles: _runtimeFiles.Count > 0), .. fields]

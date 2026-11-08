@@ -46,14 +46,10 @@ public sealed class PackageManifestTests
     }
 
     [Fact]
-    public void A_manifest_as_the_creator_writes_it_round_trips_byte_for_byte()
-    {
-        var written = File.ReadAllBytes(Path.Join(AppContext.BaseDirectory, "Packages", "Fixtures", "manifest-single-version.json"));
+    public void A_manifest_as_the_creator_writes_it_round_trips_byte_for_byte() => RoundTrips("manifest-single-version.json");
 
-        var manifest = ManifestReader.Parse(written);
-
-        JsonSerializer.SerializeToUtf8Bytes(manifest, PackageJsonContext.Default.PackageManifest).Should().Equal(written);
-    }
+    [Fact]
+    public void A_manifest_merged_for_several_versions_round_trips_byte_for_byte() => RoundTrips("manifest-merged.json");
 
     [Fact]
     public void The_capabilities_of_a_package_name_its_declarations()
@@ -64,5 +60,14 @@ public sealed class PackageManifestTests
         PackageCapabilities.Of(operations).Should().Equal("op:delete", "op:rename");
         PackageCapabilities.Supported.Should().Contain(PackageCapabilities.RuntimeFiles)
             .And.NotContain(PackageCapabilities.RuntimeFolders, "this version cannot undo folders the software fills");
+    }
+
+    private static void RoundTrips(string fixture)
+    {
+        var written = File.ReadAllBytes(Path.Join(AppContext.BaseDirectory, "Packages", "Fixtures", fixture));
+
+        var manifest = ManifestReader.Parse(written);
+
+        JsonSerializer.SerializeToUtf8Bytes(manifest, PackageJsonContext.Default.PackageManifest).Should().Equal(written);
     }
 }

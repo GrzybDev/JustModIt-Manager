@@ -17,6 +17,7 @@ internal static class ManifestReader
     private const string TargetsProperty = "targets";
     private const string FoldersProperty = "folders";
     private const string OnlyProperty = "only";
+    private const string AlternativesProperty = "alternatives";
 
     /// <summary>Reads a package's manifest, refusing one made for a newer app before anything else.</summary>
     /// <param name="json">The bytes of <c>manifest.json</c>, with or without a byte order mark.</param>
@@ -128,6 +129,7 @@ internal static class ManifestReader
 
             RequireSupported(PackageCapabilities.ForOperation(name), TypeProperty);
             CheckDeclarations(operation, OnlyProperty, PackageCapabilities.TargetsOnly, required);
+            CheckDeclarations(operation, AlternativesProperty, PackageCapabilities.PatchAlternatives, required);
         }
     }
 

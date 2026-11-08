@@ -1,0 +1,156 @@
+{
+  "formatVersion": 1,
+  "id": "3c1f0a52-7d44-4e0b-9a61-2b8e5d90c7f1",
+  "title": "Ember Isles translation",
+  "version": "2.0",
+  "authors": [
+    "Tidewater",
+    "Ashfall"
+  ],
+  "createdAt": "2026-11-07T12:00:00+00:00",
+  "generator": "ExampleSite 1.0",
+  "targets": [
+    {
+      "store": "steam",
+      "id": "1000001",
+      "buildId": "7654321"
+    },
+    {
+      "store": "gog",
+      "id": "1000002",
+      "folders": [
+        {
+          "package": "Data",
+          "game": "Content"
+        },
+        {
+          "package": "Data/Lang",
+          "game": "Locale"
+        },
+        {
+          "package": "Bin",
+          "game": "Game/Bin"
+        }
+      ]
+    },
+    {
+      "store": "epic",
+      "id": "embernamespace",
+      "folders": [
+        {
+          "package": "Data",
+          "game": "Content"
+        }
+      ]
+    }
+  ],
+  "requires": [
+    "op:copy",
+    "op:delete",
+    "op:patch",
+    "op:rename",
+    "patch:alternatives@1",
+    "runtime:files@1",
+    "targets:folders@1",
+    "targets:only@1"
+  ],
+  "runtimeFiles": [
+    {
+      "path": "Data/list.idx",
+      "originals": [
+        {
+          "size": 3000,
+          "sha256": "e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1"
+        },
+        {
+          "size": 3100,
+          "sha256": "e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2"
+        }
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "type": "rename",
+      "from": "Bin/engine.dll",
+      "to": "Bin/engine_o.dll"
+    },
+    {
+      "type": "copy",
+      "path": "Bin/engine.dll",
+      "source": "files/Bin/engine.dll",
+      "size": 6,
+      "sha256": "f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1"
+    },
+    {
+      "type": "copy",
+      "path": "Data/Lang/text.txt",
+      "source": "files/Data/Lang/text.txt",
+      "size": 4,
+      "sha256": "f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"
+    },
+    {
+      "type": "patch",
+      "path": "Data/strings.pak",
+      "alternatives": [
+        {
+          "patch": "patches/Data/strings.pak.xdelta",
+          "sourceSize": 65536,
+          "sourceSha256": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "targetSize": 65600,
+          "targetSha256": "a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2"
+        },
+        {
+          "patch": "patches/Data/strings.pak.xdelta.2",
+          "sourceSize": 65536,
+          "sourceSha256": "b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+          "targetSize": 65640,
+          "targetSha256": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+        }
+      ]
+    },
+    {
+      "type": "rename",
+      "from": "Data/music.pak",
+      "to": "Data/music_o.pak"
+    },
+    {
+      "type": "patch",
+      "path": "Data/music_o.pak",
+      "alternatives": [
+        {
+          "patch": "patches/Data/music.pak.xdelta",
+          "sourceSize": 2048,
+          "sourceSha256": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+          "targetSize": 3000,
+          "targetSha256": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2"
+        },
+        {
+          "patch": "patches/Data/music.pak.xdelta",
+          "sourceSize": 4096,
+          "sourceSha256": "d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1",
+          "targetSize": 3000,
+          "targetSha256": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2"
+        }
+      ]
+    },
+    {
+      "type": "delete",
+      "path": "Movies/intro.bik",
+      "only": [
+        "steam"
+      ]
+    },
+    {
+      "type": "copy",
+      "path": "Data/store.cfg",
+      "source": "files/Data/store.cfg",
+      "size": 5,
+      "sha256": "f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3",
+      "only": [
+        "gog",
+        "epic"
+      ]
+    }
+  ]
+}

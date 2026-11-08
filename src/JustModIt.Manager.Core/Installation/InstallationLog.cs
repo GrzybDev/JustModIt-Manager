@@ -4,6 +4,13 @@ namespace JustModIt.Manager.Core.Installation;
 
 internal static partial class InstallationLog
 {
+    /// <summary>Logs what the check before an install found against it.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="recordId">The id the install would have.</param>
+    /// <param name="issues">Every problem the check found, as text.</param>
+    [LoggerMessage(Level = LogLevel.Information, Message = "The check of install {RecordId} found: {Issues}")]
+    public static partial void CheckFoundIssues(this ILogger logger, Guid recordId, string issues);
+
     /// <summary>Logs a finished install.</summary>
     /// <param name="logger">The logger to write to.</param>
     /// <param name="package">The package file's name.</param>

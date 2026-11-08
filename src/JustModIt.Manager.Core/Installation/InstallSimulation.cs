@@ -87,6 +87,9 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
     /// <summary>The files the package declares, one per file however many spellings reach it, in the order declared.</summary>
     public List<DeclaredFile> Declared { get; } = [];
 
+    /// <summary>The steps played so far as the install runs them, each patch the one that fits what its path holds by then.</summary>
+    public List<PackageStep> Planned { get; } = [];
+
     /// <summary>Declared files no step touches that the game has, which the install copies, by full path.</summary>
     public Dictionary<string, long> RuntimeOriginals { get; } = new(PathComparison.Comparer);
 
@@ -99,7 +102,12 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
 
     /// <summary>Bytes a patch source must be hashed for, which is the bulk of a check.</summary>
     /// <param name="steps">The package's steps.</param>
-    public static long BytesToHash(IEnumerable<PackageStep> steps) => steps.OfType<PatchStep>().Sum(step => step.SourceSize);
+    public static long BytesToHash(IEnumerable<PackageStep> steps) => steps.Sum(step => step switch
+    {
+        PatchStep patch => patch.SourceSize,
+        PatchChoiceStep choice => choice.Alternatives.Max(patch => patch.SourceSize),
+        _ => 0,
+    });
 
     /// <summary>Plays the steps in order, collecting every problem in <see cref="Issues"/>.</summary>
     /// <param name="steps">The package's steps.</param>
@@ -109,13 +117,17 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
         foreach (var step in steps)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var planned = step;
             switch (step)
             {
                 case CopyStep copy:
                     Copy(copy);
                     break;
                 case PatchStep patch:
-                    await PatchAsync(patch, cancellationToken).ConfigureAwait(false);
+                    planned = await PatchAsync(patch.Path, [patch], cancellationToken).ConfigureAwait(false) ?? step;
+                    break;
+                case PatchChoiceStep choice:
+                    planned = await PatchAsync(choice.Path, choice.Alternatives, cancellationToken).ConfigureAwait(false) ?? step;
                     break;
                 case RenameStep rename:
                     Rename(rename);
@@ -125,6 +137,8 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
                     break;
             }
 
+            // A patch that fits nothing raised an issue, so the install never runs what is planned here.
+            Planned.Add(planned);
             progress.FinishFile();
         }
     }
@@ -209,30 +223,41 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
         CopiedBytes += step.Size;
     }
 
-    private async Task PatchAsync(PatchStep step, CancellationToken cancellationToken)
+    private async Task<PatchStep?> PatchAsync(string path, IReadOnlyList<PatchStep> alternatives, CancellationToken cancellationToken)
     {
-        if (Resolve(step.Path) is not { } target)
+        if (Resolve(path) is not { } target)
         {
-            return;
+            return null;
         }
 
-        progress.StartFile(step.Path);
-        if (Touch(target, step.Path) is not { } current)
+        progress.StartFile(path);
+        if (Touch(target, path) is not { } current)
         {
-            Raise(new MissingFileIssue(step.Path));
-            return;
+            Raise(new MissingFileIssue(path));
+            return null;
         }
 
-        if (!await HasContentAsync(current, step.SourceSize, step.SourceSha256, cancellationToken).ConfigureAwait(false))
+        foreach (var step in alternatives)
         {
-            var alreadyPatched = await HasContentAsync(current, step.TargetSize, step.TargetSha256, cancellationToken)
-                .ConfigureAwait(false);
-            Raise(new FileMismatchIssue(step.Path, alreadyPatched));
-            return;
+            if (await HasContentAsync(current, step.SourceSize, step.SourceSha256, cancellationToken).ConfigureAwait(false))
+            {
+                _overlay[target] = new SimulatedFile(step.TargetSize, step.TargetSha256, DiskPath: null);
+                PatchedBytes += step.TargetSize;
+                return step;
+            }
         }
 
-        _overlay[target] = new SimulatedFile(step.TargetSize, step.TargetSha256, DiskPath: null);
-        PatchedBytes += step.TargetSize;
+        var alreadyPatched = false;
+        foreach (var step in alternatives)
+        {
+            alreadyPatched |= await HasContentAsync(current, step.TargetSize, step.TargetSha256, cancellationToken).ConfigureAwait(false);
+        }
+
+        Raise(new FileMismatchIssue(path, alreadyPatched)
+        {
+            Sources = alternatives.Count > 1 ? [.. alternatives.Select(step => new FileContent(step.SourceSize, step.SourceSha256))] : [],
+        });
+        return null;
     }
 
     private void Rename(RenameStep step)

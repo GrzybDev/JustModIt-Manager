@@ -365,11 +365,17 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         var probe = await _games.ProbeAsync(installation.Key, cancellationToken).ConfigureAwait(false);
         List<InstallWarning> storeWarnings =
             probe.Game?.Reason == GameStateReason.UnfinishedDownload ? [new UnfinishedStoreDownloadWarning()] : [];
-        return (report with
+        report = report with
         {
             Issues = [.. report.Issues, .. others, .. ReadinessIssues(probe, forUninstall: false)],
             Warnings = [.. report.Warnings, .. storeWarnings],
-        }, plan, backup);
+        };
+        if (!report.CanProceed)
+        {
+            _logger.CheckFoundIssues(recordId, report.Issues.ToString());
+        }
+
+        return (report, plan, backup);
     }
 
     // An interrupted operation on this game blocks it until recovery has run, and so does a journal that cannot be read at

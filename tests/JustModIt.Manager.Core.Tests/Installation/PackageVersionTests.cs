@@ -1,5 +1,9 @@
+using System.Text;
+using System.Text.Json;
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using static JustModIt.Manager.Core.Tests.Installation.RuntimeFileTests;
@@ -10,6 +14,10 @@ public sealed class PackageVersionTests : IAsyncDisposable
 {
     private const string List = "tool/list.dat";
     private const string Rewritten = "List rewritten by the software";
+
+    // Of the original's size, so only a hash tells the two originals apart, and with a patched size of its own.
+    private static readonly byte[] OtherPak = TestPatch.RandomBytes(InstallHarness.OriginalPak.Length, seed: 5);
+    private static readonly byte[] OtherChangedPak = TestPatch.RandomBytes(InstallHarness.OriginalPak.Length + 7, seed: 6);
 
     private readonly InstallHarness _harness = WithList(new InstallHarness());
 
@@ -120,6 +128,197 @@ public sealed class PackageVersionTests : IAsyncDisposable
 
         blocked.Issues.Should().Equal(new KeptFileIssue(List, removed.Record.Id));
     }
+
+    [Fact]
+    public async Task The_merged_fixture_resolves_to_the_expected_steps_per_version()
+    {
+        var fixtures = Path.Join(AppContext.BaseDirectory, "Packages", "Fixtures");
+        var written = await File.ReadAllBytesAsync(Path.Join(fixtures, "manifest-merged.json"), InstallHarness.Token);
+        var manifest = ManifestReader.Parse(written);
+        var package = new TestPackage().RawManifest(Encoding.UTF8.GetString(written));
+        foreach (var copy in manifest.Operations.OfType<CopyOperation>())
+        {
+            package.Entry(copy.Source, new byte[copy.Size]);
+        }
+
+        foreach (var entry in manifest.Operations.OfType<PatchOperation>().SelectMany(patch => patch.Alternatives!).Select(patch => patch.Patch).Distinct())
+        {
+            package.Entry(entry, new byte[1]);
+        }
+
+        var file = _harness.ManifestPackage(package);
+        var game = GameFolder.TryOpen(_harness.GameRoot, InstallHarness.HiddenFolderName)!;
+        using var expected = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Join(fixtures, "manifest-merged.expected.json"), InstallHarness.Token));
+        var versions = expected.RootElement.GetProperty("versions").EnumerateArray().ToList();
+        versions.Should().HaveSameCount(manifest.Targets);
+        foreach (var version in versions)
+        {
+            var key = new GameKey(new StoreId(version.GetProperty("store").GetString()!), version.GetProperty("id").GetString()!);
+            var holds = version.GetProperty("holds").EnumerateArray().ToDictionary(
+                held => PackagePath.ToFullPath(game.Root, held.GetProperty("path").GetString()!),
+                held => new SimulatedFile(held.GetProperty("size").GetInt64(), held.GetProperty("sha256").GetString(), DiskPath: null),
+                PathComparison.Comparer);
+            await using var opened = await new PackageReader().OpenAsync(file, key, InstallHarness.Token);
+            var simulation = new InstallSimulation(game, new ProgressTracker(null, InstallStage.Checking, 0, 0), path => holds.GetValueOrDefault(path));
+
+            await simulation.RunAsync(opened.Steps, InstallHarness.Token);
+
+            simulation.Issues.Should().BeEmpty();
+            simulation.Planned.Select(OperationOf).Should().Equal(version.GetProperty("operations").EnumerateArray()
+                .Select(operation => operation.Deserialize(PackageJsonContext.Default.PackageOperation)!));
+            opened.RuntimeFiles.Select(declared => declared.Path).Should().Equal(version.GetProperty("runtimeFiles").EnumerateArray()
+                .Select(path => path.GetString()!));
+        }
+    }
+
+    [Theory]
+    [InlineData(0, "game folder")]
+    [InlineData(1, "game folder")]
+    [InlineData(0, "custom folder on another drive")]
+    [InlineData(1, "custom folder on another drive")]
+    public async Task A_patch_takes_the_alternative_the_game_holds_and_the_uninstall_undoes_it(int held, string location)
+    {
+        await using var harness = InstallHarness.At(location);
+        var patches = await TwoPatchesAsync();
+        harness.WriteGameFile("data/strings.pak", held == 0 ? InstallHarness.OriginalPak : OtherPak);
+        var before = harness.Snapshot();
+        var reports = new List<InstallProgress>();
+
+        var result = await harness.InstallAsync(harness.ManifestPackage(new TestPackage().Alternatives("data/strings.pak", patches)),
+            new InlineProgress<InstallProgress>(reports.Add));
+
+        (await File.ReadAllBytesAsync(harness.GameFile("data/strings.pak"), InstallHarness.Token)).Should()
+            .Equal(held == 0 ? InstallHarness.ChangedPak : OtherChangedPak);
+        var file = (await harness.FilesOnDiskAsync(result.Record.Id)).Files.Should().ContainSingle().Which;
+        file.Original!.Sha256.Should().Be(patches[held].Info.SourceSha256);
+        file.Installed!.Sha256.Should().Be(patches[held].Info.TargetSha256);
+        var installed = reports.Last(report => report.Stage == InstallStage.Installing);
+        installed.BytesDone.Should().Be(installed.BytesTotal, "the install hashes nothing the check chose by");
+        (await harness.Engine.VerifyAsync(result.Record.Id, null, InstallHarness.Token)).IsIntact.Should().BeTrue();
+
+        await harness.UninstallAsync(result.Record.Id);
+        harness.Snapshot().Should().BeEquivalentTo(before);
+        harness.AppFiles().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task No_alternative_fits_and_the_refusal_names_every_source_and_changes_nothing()
+    {
+        var patches = await TwoPatchesAsync();
+        var package = _harness.ManifestPackage(new TestPackage().Alternatives("data/strings.pak", patches));
+        ValueList<FileContent> sources = [.. patches.Select(patch => new FileContent(patch.Info.SourceSize, patch.Info.SourceSha256))];
+        _harness.WriteGameFile("data/strings.pak", TestPatch.RandomBytes(OtherPak.Length, seed: 7));
+
+        var foreign = await _harness.InstallBlockedAsync(package);
+        _harness.WriteGameFile("data/strings.pak", OtherChangedPak);
+        var patched = await _harness.InstallBlockedAsync(package);
+
+        foreign.Issues.Should().Equal(new FileMismatchIssue("data/strings.pak", AlreadyPatched: false) { Sources = sources });
+        patched.Issues.Should().Equal(new FileMismatchIssue("data/strings.pak", AlreadyPatched: true) { Sources = sources });
+    }
+
+    [Fact]
+    public async Task An_alternative_is_chosen_by_what_an_earlier_step_left()
+    {
+        var patches = await TwoPatchesAsync();
+        // The bytes a patch from the first original replaces may differ, so that patch serves this original too.
+        var near = InstallHarness.OriginalPak.ToArray();
+        "Another line!"u8.CopyTo(near.AsSpan(4096));
+        // Until the rename, the path holds the other alternative's original.
+        _harness.WriteGameFile("data/moved.pak", OtherPak);
+        _harness.WriteGameFile("data/near.pak", near);
+        var before = _harness.Snapshot();
+        var first = patches[0].Info;
+        var package = new TestPackage()
+            .Rename("data/strings.pak", "data/moved.pak")
+            .Alternatives("data/moved.pak", patches)
+            .Copy("data/copied.pak", OtherPak)
+            .Alternatives("data/copied.pak", patches)
+            .Entry("patches/shared.xdelta", patches[0].Content)
+            .Operation(new PatchOperation("data/near.pak", Alternatives:
+            [
+                new("patches/shared.xdelta", first.SourceSize, first.SourceSha256, first.TargetSize, first.TargetSha256),
+                new("patches/shared.xdelta", near.Length, TestPackage.Sha256(near), first.TargetSize, first.TargetSha256),
+            ]));
+
+        var result = await _harness.InstallAsync(_harness.ManifestPackage(package));
+
+        (await File.ReadAllBytesAsync(_harness.GameFile("data/moved.pak"), InstallHarness.Token)).Should().Equal(InstallHarness.ChangedPak);
+        (await File.ReadAllBytesAsync(_harness.GameFile("data/copied.pak"), InstallHarness.Token)).Should().Equal(OtherChangedPak);
+        (await File.ReadAllBytesAsync(_harness.GameFile("data/near.pak"), InstallHarness.Token)).Should().Equal(InstallHarness.ChangedPak);
+        await _harness.UninstallAsync(result.Record.Id);
+        _harness.Snapshot().Should().BeEquivalentTo(before);
+    }
+
+    [Fact]
+    public async Task A_later_package_chooses_after_an_earlier_one_and_is_left_out_when_nothing_fits()
+    {
+        var patches = await TwoPatchesAsync();
+        var before = _harness.Snapshot();
+        var chooses = _harness.Request(new InstallPart(_harness.ManifestPackage(new TestPackage().Copy("data/strings.pak", OtherPak))),
+            InstallHarness.AddOn(_harness.ManifestPackage(new TestPackage().Alternatives("data/strings.pak", patches))));
+
+        var result = await _harness.Engine.InstallAsync(chooses, null, InstallHarness.Token);
+
+        result.LeftOut.Should().BeEmpty();
+        (await File.ReadAllBytesAsync(_harness.GameFile("data/strings.pak"), InstallHarness.Token)).Should().Equal(OtherChangedPak);
+        await _harness.UninstallAsync(result.Record.Id);
+        _harness.Snapshot().Should().BeEquivalentTo(before);
+
+        // The add-on's sources have the size of the file it patches, so the first check reads that file as well.
+        var size = (int)new FileInfo(_harness.GameFile("bin/game.exe")).Length;
+        TestPatch[] foreign =
+        [
+            await TestPatch.CreateAsync(TestPatch.RandomBytes(size, seed: 8), [1, 2, 3]),
+            await TestPatch.CreateAsync(TestPatch.RandomBytes(size, seed: 9), [4, 5, 6]),
+        ];
+        var leavesOut = _harness.Request(new InstallPart(_harness.ManifestPackage(new TestPackage().Patch("data/strings.pak", patches[0]))),
+            InstallHarness.AddOn(_harness.ManifestPackage(new TestPackage().Alternatives("bin/game.exe", foreign))));
+        var checking = new List<InstallProgress>();
+
+        var check = await _harness.Engine.CheckInstallAsync(leavesOut, new InlineProgress<InstallProgress>(report =>
+        {
+            if (report.Stage == InstallStage.Checking)
+            {
+                checking.Add(report);
+            }
+        }), InstallHarness.Token);
+
+        check.CanProceed.Should().BeTrue();
+        check.LeftOut.Should().Equal(new LeftOutPart(1, leavesOut.Parts[1], PartLeftOutReason.GameVersion));
+        checking.Where(report => report.FileCount == 2).Max(report => report.BytesDone).Should().BeGreaterThan(0);
+        checking.Where(report => report.FileCount == 1).Should().NotBeEmpty()
+            .And.OnlyContain(report => report.BytesDone == 0, "the check without the add-on knows the file already");
+    }
+
+    [Fact]
+    public async Task A_prediction_chooses_the_alternative_the_uninstall_leaves()
+    {
+        var patches = await TwoPatchesAsync();
+        var installed = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Patch("data/strings.pak", patches[0])));
+        var fromThePatched = await TestPatch.CreateAsync(InstallHarness.ChangedPak, OtherChangedPak);
+
+        var afterUninstall = await PredictAsync(new TestPackage().Alternatives("data/strings.pak", patches));
+        var onlyOnDiskNow = await PredictAsync(new TestPackage().Alternatives("data/strings.pak", fromThePatched, patches[1]));
+
+        afterUninstall.CanProceed.Should().BeTrue("the uninstall puts back the first patch's original");
+        onlyOnDiskNow.Issues.Should().ContainSingle().Which.Should().BeOfType<FileMismatchIssue>();
+
+        Task<PreflightReport> PredictAsync(TestPackage replacement) => _harness.Engine.PredictReplacementAsync(installed.Record.Id,
+            _harness.Request(_harness.ManifestPackage(replacement)), null, InstallHarness.Token);
+    }
+
+    private static async Task<TestPatch[]> TwoPatchesAsync() =>
+        [await TestPatch.CreateAsync(InstallHarness.OriginalPak, InstallHarness.ChangedPak), await TestPatch.CreateAsync(OtherPak, OtherChangedPak)];
+
+    private static PackageOperation OperationOf(PackageStep step) => step switch
+    {
+        CopyStep copy => new CopyOperation(copy.Path, copy.Entry, copy.Size, copy.Sha256!),
+        PatchStep patch => new PatchOperation(patch.Path, patch.Entry, patch.SourceSize, patch.SourceSha256, patch.TargetSize, patch.TargetSha256),
+        RenameStep rename => new RenameOperation(rename.From, rename.To),
+        DeleteStep delete => new DeleteOperation(delete.Path),
+        _ => throw new ArgumentOutOfRangeException(nameof(step)),
+    };
 
     private static PackageTarget Here(IReadOnlyList<FolderRename> folders) =>
         new(TestProjects.Game.Store, TestProjects.Game.StoreGameId, Folders: folders);

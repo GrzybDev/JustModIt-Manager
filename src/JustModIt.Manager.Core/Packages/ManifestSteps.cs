@@ -65,16 +65,43 @@ internal static class ManifestSteps
         return new CopyStep(GamePath(copy.Path, folders), copy.Source, copy.Size, Sha256(copy.Sha256));
     }
 
-    private static PatchStep Patch(PatchOperation patch, IReadOnlyDictionary<string, ZipArchiveEntry> files,
+    private static PackageStep Patch(PatchOperation patch, IReadOnlyDictionary<string, ZipArchiveEntry> files,
+        IReadOnlyList<FolderRename>? folders)
+    {
+        if (patch.Alternatives is not { } alternatives)
+        {
+            return patch is
+                {
+                    Patch: { } entry, SourceSize: { } sourceSize, SourceSha256: { } sourceSha256, TargetSize: { } targetSize,
+                    TargetSha256: { } targetSha256,
+                }
+                ? PatchOf(patch.Path, new PatchAlternative(entry, sourceSize, sourceSha256, targetSize, targetSha256), files, folders)
+                : throw new InvalidPackageException(PackageError.InvalidManifest, patch.Path);
+        }
+
+        // The serializer checks the nullability of properties but not of list items.
+        if (patch is not { Patch: null, SourceSize: null, SourceSha256: null, TargetSize: null, TargetSha256: null }
+            || alternatives.Count is < 2 or > PatchOperation.MaxAlternatives || alternatives.Any(alternative => alternative is null))
+        {
+            throw new InvalidPackageException(PackageError.InvalidManifest, patch.Path);
+        }
+
+        List<PatchStep> steps = [.. alternatives.Select(alternative => PatchOf(patch.Path, alternative, files, folders))];
+        return steps.DistinctBy(step => (step.SourceSize, step.SourceSha256)).Count() == steps.Count
+            ? new PatchChoiceStep(steps[0].Path, steps)
+            : throw new InvalidPackageException(PackageError.InvalidManifest, patch.Path);
+    }
+
+    private static PatchStep PatchOf(string path, PatchAlternative patch, IReadOnlyDictionary<string, ZipArchiveEntry> files,
         IReadOnlyList<FolderRename>? folders)
     {
         Payload(patch.Patch, PackageLayout.PatchesFolder, files);
         if (patch.SourceSize < 0 || patch.TargetSize < 0)
         {
-            throw new InvalidPackageException(PackageError.InvalidManifest, patch.Path);
+            throw new InvalidPackageException(PackageError.InvalidManifest, path);
         }
 
-        return new PatchStep(GamePath(patch.Path, folders), patch.Patch, patch.SourceSize, Sha256(patch.SourceSha256),
+        return new PatchStep(GamePath(path, folders), patch.Patch, patch.SourceSize, Sha256(patch.SourceSha256),
             patch.TargetSize, Sha256(patch.TargetSha256));
     }
 

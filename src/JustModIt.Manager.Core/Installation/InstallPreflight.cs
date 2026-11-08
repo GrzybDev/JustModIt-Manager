@@ -7,12 +7,14 @@ using JustModIt.Manager.Core.Safety;
 namespace JustModIt.Manager.Core.Installation;
 
 /// <summary>What the check before an install found out, for the install to reuse.</summary>
+/// <param name="Steps">The steps to run in order, each patch the one the check found fits.</param>
 /// <param name="Paths">The full path of every game-relative path the steps and declarations use.</param>
 /// <param name="Hashes">Hashes the check took, which the install reuses for files that did not change since.</param>
 /// <param name="MovesOriginals">The backup folder is on the game's volume, so originals are moved there, not copied.</param>
 /// <param name="BytesTotal">Bytes the install reads and writes, for progress.</param>
 /// <param name="Runtime">The files the package's software changes while the game runs.</param>
 internal sealed record InstallPlan(
+    IReadOnlyList<PackageStep> Steps,
     IReadOnlyDictionary<string, string> Paths,
     IReadOnlyDictionary<string, DiskHash> Hashes,
     bool MovesOriginals,
@@ -65,7 +67,7 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
             simulation.Part = part.IsOptional ? part.Index : null;
             if (part.Package is { } opened)
             {
-                await simulation.RunAsync(opened.Steps, cancellationToken).ConfigureAwait(false);
+                await simulation.RunAsync(part.Steps, cancellationToken).ConfigureAwait(false);
                 CheckTargets(opened.Manifest, installation, simulation.Part, issues, warnings);
             }
             else
@@ -114,7 +116,7 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
             : 2 * originalBytes);
         var runtime = new RuntimePlan(simulation.Declared, kept.Inherited);
         return (new PreflightReport([.. issues], [.. warnings.Distinct()]),
-            new InstallPlan(simulation.Paths, simulation.Hashes, movesOriginals, bytesTotal, runtime));
+            new InstallPlan(simulation.Planned, simulation.Paths, simulation.Hashes, movesOriginals, bytesTotal, runtime));
     }
 
     // A file another install owns is the issue of each optional part that touches it, unless a part the install needs does.

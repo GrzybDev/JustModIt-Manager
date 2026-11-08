@@ -37,4 +37,21 @@ internal sealed partial class TestPackage
             patch.Info.TargetSha256));
         return this;
     }
+
+    /// <summary>Patches a file with whichever patch fits what it holds, each with a payload entry of its own.</summary>
+    /// <param name="path">The game-relative file.</param>
+    /// <param name="patches">The patches, each for another original.</param>
+    public TestPackage Alternatives(string path, params TestPatch[] patches)
+    {
+        List<PatchAlternative> alternatives = [];
+        foreach (var patch in patches)
+        {
+            var entry = UniqueEntry(PackageLayout.PatchesFolder + path + PackageLayout.PatchExtension);
+            _entries.Add((entry, patch.Content, 0));
+            alternatives.Add(new PatchAlternative(entry, patch.Info.SourceSize, patch.Info.SourceSha256, patch.Info.TargetSize, patch.Info.TargetSha256));
+        }
+
+        _operations.Add(new PatchOperation(path, Alternatives: alternatives));
+        return this;
+    }
 }

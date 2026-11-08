@@ -96,7 +96,11 @@ public sealed record MissingFileIssue(string Path) : InstallIssue;
 /// <summary>A file to patch is not the version the package was made for.</summary>
 /// <param name="Path">The file to patch.</param>
 /// <param name="AlreadyPatched">The file already has the patched content, e.g. from a manual install.</param>
-public sealed record FileMismatchIssue(string Path, bool AlreadyPatched) : InstallIssue;
+public sealed record FileMismatchIssue(string Path, bool AlreadyPatched) : InstallIssue
+{
+    /// <summary>Every original a patch with alternatives fits; none for a patch of one original.</summary>
+    public ValueList<FileContent> Sources { get; init; }
+}
 
 /// <summary>Another program holds a file the operation changes.</summary>
 /// <param name="Path">The file.</param>

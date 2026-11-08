@@ -75,14 +75,14 @@ internal sealed partial class InstallTransaction : IDisposable
         }
     }
 
-    /// <summary>Carries out the package's steps.</summary>
-    /// <param name="package">The opened package.</param>
+    /// <summary>Carries out the steps of the plan.</summary>
+    /// <param name="package">The opened package, which holds the steps' payloads.</param>
     /// <param name="progress">Counts steps and bytes.</param>
     /// <param name="cancellationToken">Stops the install before the record commits it; the caller then rolls it back.</param>
     public async Task ExecuteAsync(IPackage package, ProgressTracker progress, CancellationToken cancellationToken)
     {
         await PrepareRuntimeAsync(progress, cancellationToken).ConfigureAwait(false);
-        foreach (var step in package.Steps)
+        foreach (var step in _plan.Steps)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var paths = PathsOf(step);
