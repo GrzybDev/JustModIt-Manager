@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using JustModIt.Manager.Core.Games;
 
 namespace JustModIt.Manager.Core.Packages;
 
@@ -37,11 +38,18 @@ public sealed class PackageReader(PackageLimits? limits = null)
 
     private readonly PackageLimits _limits = limits ?? PackageLimits.Default;
 
-    /// <summary>Opens a package file and validates it in full.</summary>
+    /// <summary>Opens a package file as it is written and validates it in full.</summary>
     /// <param name="path">The package's full path.</param>
     /// <param name="cancellationToken">Cancels the validation.</param>
     /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
-    public async Task<IPackage> OpenAsync(string path, CancellationToken cancellationToken)
+    public Task<IPackage> OpenAsync(string path, CancellationToken cancellationToken) => OpenAsync(path, null, cancellationToken);
+
+    /// <summary>Opens a package file for a game and validates it in full.</summary>
+    /// <param name="path">The package's full path.</param>
+    /// <param name="game">The game, whose target says where the package's folders lie on it; null for the package as written.</param>
+    /// <param name="cancellationToken">Cancels the validation.</param>
+    /// <exception cref="InvalidPackageException">The package is malformed, unsafe or made for a newer app.</exception>
+    public async Task<IPackage> OpenAsync(string path, GameKey? game, CancellationToken cancellationToken)
     {
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize,
             FileOptions.Asynchronous | FileOptions.RandomAccess);
@@ -68,8 +76,8 @@ public sealed class PackageReader(PackageLimits? limits = null)
             var files = await ArchiveEntries.ValidateAsync(archive, _limits,
                 kind == PackageKind.Manifest ? IsManifestPackageEntry : _ => true, cancellationToken).ConfigureAwait(false);
             var manifest = kind == PackageKind.Manifest ? await ReadManifestAsync(files, cancellationToken).ConfigureAwait(false) : null;
-            var steps = manifest is null ? ZipSteps(files) : ManifestSteps.From(manifest, files);
-            var runtimeFiles = manifest is null ? [] : RuntimeDeclarations.From(manifest);
+            var steps = manifest is null ? ZipSteps(files) : ManifestSteps.From(manifest, files, game);
+            var runtimeFiles = manifest is null ? [] : RuntimeDeclarations.From(manifest, game);
             return new ZipPackage(kind, Path.GetFileName(path), archive, files, manifest, steps, runtimeFiles);
         }
         catch

@@ -49,13 +49,23 @@ public sealed record PackageManifest
     public IReadOnlyList<RuntimeFile>? RuntimeFiles { get; init; }
 
     public required IReadOnlyList<PackageOperation> Operations { get; init; }
+
+    /// <summary>Where the package's folders lie on a game, as the first target with its store and id names them.</summary>
+    /// <param name="game">The game; null for the package as written.</param>
+    /// <returns>The target's rules; null when no target names the game or its target names none.</returns>
+    public IReadOnlyList<FolderRename>? FoldersOn(GameKey? game) =>
+        Targets.FirstOrDefault(target => target.Store == game?.Store && target.Id == game?.StoreGameId)?.Folders;
 }
 
 /// <summary>A game the package is made for.</summary>
 /// <param name="Store">The store the game comes from.</param>
 /// <param name="Id">The store's id of the game, e.g. a Steam AppID or a GOG product id.</param>
 /// <param name="BuildId">The build the package was made and tested with.</param>
-public sealed record PackageTarget(StoreId Store, string Id, string? BuildId = null);
+/// <param name="Folders">
+/// Where the package's folders lie on this game, which an app that ignored them would miss, so a list that is not empty
+/// needs <see cref="PackageCapabilities.TargetFolders"/>; null while the game has the package's layout.
+/// </param>
+public sealed record PackageTarget(StoreId Store, string Id, string? BuildId = null, IReadOnlyList<FolderRename>? Folders = null);
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
 [JsonDerivedType(typeof(CopyOperation), PackageCapabilities.Copy)]

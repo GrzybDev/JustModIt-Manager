@@ -14,6 +14,8 @@ internal static class ManifestReader
     private const string ThirdPartyNoticesProperty = "thirdPartyNotices";
     private const string RuntimeFilesProperty = "runtimeFiles";
     private const string RuntimeFoldersProperty = "runtimeFolders";
+    private const string TargetsProperty = "targets";
+    private const string FoldersProperty = "folders";
 
     /// <summary>Reads a package's manifest, refusing one made for a newer app before anything else.</summary>
     /// <param name="json">The bytes of <c>manifest.json</c>, with or without a byte order mark.</param>
@@ -99,6 +101,15 @@ internal static class ManifestReader
         CheckDeclarations(root, RuntimeFilesProperty, PackageCapabilities.RuntimeFiles, required);
         CheckDeclarations(root, RuntimeFoldersProperty, PackageCapabilities.RuntimeFolders, required);
 
+        // What is no list or no object here is left for the serializer to refuse.
+        if (root.TryGetProperty(TargetsProperty, out var targets) && targets.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var target in targets.EnumerateArray().Where(target => target.ValueKind == JsonValueKind.Object))
+            {
+                CheckDeclarations(target, FoldersProperty, PackageCapabilities.TargetFolders, required);
+            }
+        }
+
         if (!root.TryGetProperty(OperationsProperty, out var operations) || operations.ValueKind != JsonValueKind.Array)
         {
             throw Invalid(OperationsProperty);
@@ -118,11 +129,11 @@ internal static class ManifestReader
         }
     }
 
-    // An app that ignored the list would install the package without ever undoing what its software changes, which is why
-    // the list needs its capability while notices do not.
-    private static void CheckDeclarations(JsonElement root, string property, string capability, HashSet<string> required)
+    // An app that ignored such a list would install the package wrongly, say without ever undoing what its software changes
+    // or in folders the game does not have, which is why the list needs its capability while notices do not.
+    private static void CheckDeclarations(JsonElement owner, string property, string capability, HashSet<string> required)
     {
-        if (!root.TryGetProperty(property, out var list) || list.ValueKind == JsonValueKind.Null)
+        if (!owner.TryGetProperty(property, out var list) || list.ValueKind == JsonValueKind.Null)
         {
             return;
         }

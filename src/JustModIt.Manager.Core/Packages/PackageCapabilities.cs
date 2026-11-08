@@ -20,11 +20,14 @@ public static class PackageCapabilities
     /// <summary>The package declares folders its software fills while the game runs, which this version cannot undo yet.</summary>
     public const string RuntimeFolders = "runtime:folders@1";
 
+    /// <summary>The package's targets name where its folders lie on each game (<see cref="PackageTarget.Folders"/>).</summary>
+    public const string TargetFolders = "targets:folders@1";
+
     private const string OperationPrefix = "op:";
 
     /// <summary>Everything this version of the app can install.</summary>
     public static FrozenSet<string> Supported { get; } =
-        FrozenSet.Create(StringComparer.Ordinal, [.. new[] { Copy, Patch, Rename, Delete }.Select(ForOperation), RuntimeFiles]);
+        FrozenSet.Create(StringComparer.Ordinal, [.. new[] { Copy, Patch, Rename, Delete }.Select(ForOperation), RuntimeFiles, TargetFolders]);
 
     /// <summary>The capability an operation needs.</summary>
     /// <param name="type">The operation's type as the manifest names it, e.g. <c>patch</c>.</param>

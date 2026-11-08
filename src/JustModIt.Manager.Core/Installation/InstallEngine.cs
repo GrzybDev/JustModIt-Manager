@@ -296,7 +296,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
     // An install of optional parts alone could end up installing nothing.
     private Task<CompositePackage> OpenAsync(InstallRequest request, CancellationToken cancellationToken) =>
         request.Parts.Any(part => !part.IsOptional)
-            ? CompositePackage.OpenAsync(_packages, [.. request.Parts.Select(part => (part.PackagePath, part.IsOptional))], cancellationToken)
+            ? CompositePackage.OpenAsync(_packages, [.. request.Parts.Select(part => (part.PackagePath, part.IsOptional))], request.Game.Key,
+                cancellationToken)
             : throw new ArgumentException("An install needs a package it cannot go without.", nameof(request));
 
     // An optional part whose own check fails is left out and the rest checked again without it, so it never holds back the

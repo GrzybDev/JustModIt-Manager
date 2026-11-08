@@ -584,6 +584,92 @@ public sealed class PackageReaderTests : IDisposable
         package.RuntimeFiles.Should().BeEmpty();
     }
 
+    [Theory]
+    [InlineData(""" "targets": [ { "store": "steam", "id": "1000", "folders": [ { "package": "Data", "game": "Content" } ] } ], "operations": [ { "type": "delete", "path": "old.txt" } ] """)]
+    public async Task A_manifest_that_uses_a_new_field_without_its_capability_is_damaged(string fields)
+    {
+        new TestPackage().RawManifest($$"""
+            { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": [ "op:delete" ], {{fields}} }
+            """).WriteManifestPackage(ManifestPackage);
+
+        var exception = await OpenFailureAsync(ManifestPackage);
+
+        exception.Error.Should().Be(PackageError.InvalidManifest, "an app that ignored the field would install the package wrongly");
+        exception.Detail.Should().Be("requires");
+    }
+
+    [Theory]
+    [InlineData("[ null ]")]
+    [InlineData("[ 1 ]")]
+    [InlineData("""[ { "store": "steam", "id": "1000", "folders": [ null ] } ]""")]
+    [InlineData("""[ { "store": "steam", "id": "1000", "folders": { "package": "Data", "game": "Content" } } ]""")]
+    [InlineData("""[ { "store": "steam", "id": "1000", "folders": [ { "package": "Data" } ] } ]""")]
+    [InlineData("""[ { "store": "steam", "id": "1000", "folders": [ { "package": "../a", "game": "b" } ] } ]""")]
+    [InlineData("""[ { "store": "steam", "id": "1000", "folders": [ { "package": "Data", "game": "../b" } ] } ]""")]
+    [InlineData("""[ { "store": "steam", "id": "1000", "folders": [ { "package": "Data", "game": "PROGRA~1" } ] } ]""")]
+    public async Task Rejects_malformed_targets_and_stores(string targets)
+    {
+        new TestPackage().RawManifest($$"""
+            { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": [ "op:delete", "targets:folders@1" ],
+              "targets": {{targets}}, "operations": [ { "type": "delete", "path": "old.txt" } ] }
+            """).WriteManifestPackage(ManifestPackage);
+
+        (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidManifest);
+    }
+
+    [Fact]
+    public async Task Opening_for_a_game_maps_every_path_once_and_keeps_payload_entries()
+    {
+        var patch = await TestPatch.CreateAsync(TestPatch.RandomBytes(1000, seed: 3), TestPatch.RandomBytes(1000, seed: 4));
+        FolderRename[] folders = [new("A", "B"), new("B", "C"), new("Data", "Content"), new("DATA", "Other"), new("data/lang", "Languages")];
+        new TestPackage()
+            .Rename("a/first.dat", "B/first.dat")
+            .Copy("A/new.txt", "new")
+            .Patch("Data/strings.pak", patch)
+            .Copy("Data/Lang/text.txt", "text")
+            .Copy("Data2/other.txt", "other")
+            .Delete("Data")
+            .Declare("b/list.dat")
+            .Targets(new PackageTarget(StoreId.Steam, "1000", Folders: folders), new PackageTarget(StoreId.Gog, "2000"))
+            .WriteManifestPackage(ManifestPackage);
+
+        await using var mapped = await _reader.OpenAsync(ManifestPackage, new GameKey(StoreId.Steam, "1000"), TestContext.Current.CancellationToken);
+
+        mapped.Steps.Should().Equal(
+            new RenameStep("B/first.dat", "C/first.dat"),
+            new CopyStep("B/new.txt", "files/A/new.txt", 3, TestPackage.Sha256("new"u8.ToArray())),
+            new PatchStep("Content/strings.pak", "patches/Data/strings.pak.xdelta", patch.Info.SourceSize, patch.Info.SourceSha256,
+                patch.Info.TargetSize, patch.Info.TargetSha256),
+            new CopyStep("Languages/text.txt", "files/Data/Lang/text.txt", 4, TestPackage.Sha256("text"u8.ToArray())),
+            new CopyStep("Data2/other.txt", "files/Data2/other.txt", 5, TestPackage.Sha256("other"u8.ToArray())),
+            new DeleteStep("Content"));
+        mapped.RuntimeFiles.Single().Path.Should().Be("C/list.dat");
+        foreach (var game in new GameKey?[] { new GameKey(StoreId.Gog, "2000"), new GameKey(StoreId.Steam, "3000"), null })
+        {
+            await using var unmapped = await _reader.OpenAsync(ManifestPackage, game, TestContext.Current.CancellationToken);
+            unmapped.Steps[0].Should().Be(new RenameStep("a/first.dat", "B/first.dat"));
+            unmapped.RuntimeFiles.Single().Path.Should().Be("b/list.dat");
+        }
+    }
+
+    [Fact]
+    public async Task A_declared_file_a_patch_reaches_after_mapping_is_refused()
+    {
+        var patch = await TestPatch.CreateAsync(TestPatch.RandomBytes(1000, seed: 3), TestPatch.RandomBytes(1000, seed: 4));
+        var game = new GameKey(StoreId.Steam, "1000");
+        var target = new PackageTarget(game.Store, game.StoreGameId, Folders: [new("Data", "Content")]);
+        var twice = _temp.Combine("twice.examplemod");
+        new TestPackage().Patch("Data/strings.pak", patch).Declare("Content/strings.pak").Targets(target).WriteManifestPackage(ManifestPackage);
+        new TestPackage().Delete("old.txt").Declare("Data/list.dat").Declare("Content/list.dat").Targets(target).WriteManifestPackage(twice);
+
+        foreach (var package in new[] { ManifestPackage, twice })
+        {
+            var open = () => _reader.OpenAsync(package, game, TestContext.Current.CancellationToken);
+
+            (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.InvalidManifest);
+        }
+    }
+
     private static string Declaring(string runtimeFiles) => $$"""
         { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": [ "op:delete", "runtime:files@1" ],
           "runtimeFiles": {{runtimeFiles}}, "operations": [ { "type": "delete", "path": "old.txt" } ] }

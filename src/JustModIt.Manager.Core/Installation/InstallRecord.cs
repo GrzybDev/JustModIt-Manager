@@ -83,7 +83,7 @@ public sealed record BackupFolder(BackupLocation Location, string Directory);
 /// <param name="Title">The manifest's title.</param>
 /// <param name="Version">The manifest's version.</param>
 /// <param name="ThirdPartyNotices">The licences of third-party tools the manifest lists.</param>
-/// <param name="RuntimeFiles">The game files the package's software changes while the game runs, as the manifest names them.</param>
+/// <param name="RuntimeFiles">The game files the package's software changes while the game runs, as they lie in the game.</param>
 public sealed record InstalledPackage(PackageKind Kind, string FileName, Guid? ManifestId = null, string? Title = null,
     string? Version = null, IReadOnlyList<ThirdPartyNotice>? ThirdPartyNotices = null, IReadOnlyList<string>? RuntimeFiles = null)
 {

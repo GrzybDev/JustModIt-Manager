@@ -92,6 +92,21 @@ public sealed class ReplacementPredictionTests : IAsyncDisposable
         (await predict.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.UnsafeEntryName);
     }
 
+    [Fact]
+    public async Task A_package_for_a_newer_app_is_refused_before_the_install_goes()
+    {
+        var installed = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed"));
+        var files = await _harness.FilesOnDiskAsync(installed.Record.Id);
+        var game = _harness.Snapshot();
+
+        var predict = () => PredictAsync(installed, new TestPackage().Copy("readme.txt", "Newer").Requires("op:copy", "handler:example@9"));
+
+        (await predict.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.UnsupportedCapability);
+        (await _harness.Engine.LoadRecordsAsync(InstallHarness.Token)).Should().ContainSingle().Which.Should().BeEquivalentTo(installed.Record);
+        (await _harness.FilesOnDiskAsync(installed.Record.Id)).Should().BeEquivalentTo(files);
+        _harness.Snapshot().Should().BeEquivalentTo(game);
+    }
+
     private Task<InstallResult> InstallAsync(TestPackage package) => _harness.InstallAsync(_harness.ManifestPackage(package));
 
     private Task<PreflightReport> PredictAsync(InstallResult installed, TestPackage replacement) =>

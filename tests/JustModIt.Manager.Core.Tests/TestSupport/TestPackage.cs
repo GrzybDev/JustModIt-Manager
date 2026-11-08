@@ -105,7 +105,7 @@ internal sealed partial class TestPackage
         Title = "Example package",
         Version = "1.0",
         Targets = _targets,
-        Requires = _requires ?? (_runtimeFiles.Count > 0 ? PackageCapabilities.Of(_operations, declaresFiles: true) : null),
+        Requires = _requires ?? Capabilities(),
         ThirdPartyNotices = _notices,
         RuntimeFiles = _runtimeFiles.Count > 0 ? [.. _runtimeFiles] : null,
         Operations = [.. _operations],
@@ -120,6 +120,15 @@ internal sealed partial class TestPackage
     public string WriteZip(string path) => Write(path, _entries);
 
     public static string Sha256(byte[] content) => Convert.ToHexStringLower(SHA256.HashData(content));
+
+    // A manifest may leave out what its operations need, but not what its other fields need.
+    private List<string>? Capabilities()
+    {
+        var folders = _targets.Any(target => target.Folders is not null);
+        return _runtimeFiles.Count > 0 || folders
+            ? [.. PackageCapabilities.Of(_operations, declaresFiles: _runtimeFiles.Count > 0).Concat(folders ? [PackageCapabilities.TargetFolders] : [])]
+            : null;
+    }
 
     private string UniqueEntry(string name)
     {

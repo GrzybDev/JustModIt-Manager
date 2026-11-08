@@ -296,7 +296,7 @@ public sealed partial class InstallEngine
 
         ThrowIfAny(issues);
         using var gameLock = Lock(game);
-        var handedOver = await DeclaredByAsync(replacedBy, game, cancellationToken).ConfigureAwait(false);
+        var handedOver = await DeclaredByAsync(replacedBy, record.Game, game, cancellationToken).ConfigureAwait(false);
         var plan = await Uninstaller.PlanAsync(record, files, game, handedOver, progress, cancellationToken).ConfigureAwait(false);
         if (plan.MissingOriginals.Count > 0)
         {
@@ -389,13 +389,15 @@ public sealed partial class InstallEngine
         };
     }
 
-    private async Task<IReadOnlySet<string>> DeclaredByAsync(IReadOnlyList<string>? packagePaths, GameFolder game,
+    // Opened for the game: a declared path that a folder rule moves would otherwise miss the file, and the uninstall would
+    // undo the software's state instead of handing it over.
+    private async Task<IReadOnlySet<string>> DeclaredByAsync(IReadOnlyList<string>? packagePaths, GameKey key, GameFolder game,
         CancellationToken cancellationToken)
     {
         var declared = new HashSet<string>(PathComparison.Comparer);
         foreach (var path in packagePaths ?? [])
         {
-            var package = await _packages.OpenAsync(path, cancellationToken).ConfigureAwait(false);
+            var package = await _packages.OpenAsync(path, key, cancellationToken).ConfigureAwait(false);
             await using (package.ConfigureAwait(false))
             {
                 declared.UnionWith(DeclaredBy(package, game));
