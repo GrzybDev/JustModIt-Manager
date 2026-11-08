@@ -122,7 +122,7 @@
       <!-- The copies and patches folded at the end of a long list. -->
       <StackPanel Orientation="Horizontal" Spacing="6" Margin="20,12,20,0" IsVisible="{Binding HasMoreSteps}">
         <TextBlock Classes="rowText" VerticalAlignment="Center" Text="{Binding MoreSteps}" />
-        <TextBlock Classes="separator" />
+        <TextBlock Text="·" Margin="2,0" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
         <Button x:Name="ShowAllSteps" Classes="link" FontSize="13" VerticalAlignment="Center" Content="{x:Static loc:Strings.Creator_ShowMore}"
                 Command="{Binding ShowAllStepsCommand}" />
       </StackPanel>
@@ -133,7 +133,7 @@
           <Button Classes="stepTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddCopy}" Command="{Binding AddStepCommand}"
                   CommandParameter="Copy">
             <StackPanel Spacing="10">
-              <Border Classes="folderChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
+              <Border Classes="iconChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
                 <ui:Icon Data="{x:Static theme:Icons.Copy}" Width="22" Height="22" />
               </Border>
               <TextBlock Classes="rowTitle" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddCopy}" />
@@ -143,7 +143,7 @@
           <Button Classes="stepTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddPatch}" Command="{Binding AddStepCommand}"
                   CommandParameter="Patch">
             <StackPanel Spacing="10">
-              <Border Classes="folderChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
+              <Border Classes="iconChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
                 <ui:Icon Data="{x:Static theme:Icons.FileDiff}" Width="22" Height="22" />
               </Border>
               <TextBlock Classes="rowTitle" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddPatch}" />
@@ -153,7 +153,7 @@
           <Button Classes="stepTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddRenameStep}" Command="{Binding AddStepCommand}"
                   CommandParameter="Rename">
             <StackPanel Spacing="10">
-              <Border Classes="folderChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
+              <Border Classes="iconChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
                 <ui:Icon Data="{x:Static theme:Icons.FilePen}" Width="22" Height="22" />
               </Border>
               <TextBlock Classes="rowTitle" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddRenameStep}" />
@@ -163,7 +163,7 @@
           <Button Classes="stepTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddDeleteStep}" Command="{Binding AddStepCommand}"
                   CommandParameter="Delete">
             <StackPanel Spacing="10">
-              <Border Classes="folderChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
+              <Border Classes="iconChip" Width="44" Height="44" CornerRadius="12" HorizontalAlignment="Center">
                 <ui:Icon Data="{x:Static theme:Icons.FileX}" Width="22" Height="22" />
               </Border>
               <TextBlock Classes="rowTitle" TextAlignment="Center" Text="{x:Static loc:Strings.Creator_AddDeleteStep}" />

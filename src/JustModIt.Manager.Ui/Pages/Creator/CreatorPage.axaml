@@ -169,7 +169,7 @@
 
       <!-- Under the cards, and all an empty library shows. -->
       <Border x:Name="DropZone" Classes="dropZone" Classes.strip="{Binding !IsEmpty}" creator:FolderDrop.Command="{Binding DropCommand}"
-              AutomationProperties.Name="{x:Static loc:Strings.Creator_DropZone}">
+              AutomationProperties.Name="{x:Static loc:Strings.Creator_PickFolderTitle}">
         <Panel>
           <Rectangle Classes="dropFrame" />
           <DockPanel Classes="dropBody">

@@ -36,7 +36,7 @@
             <TextBlock Grid.Column="1" Classes="rowText warningText" LineHeight="20" Text="{Binding RuntimeNotice}" />
           </Grid>
         </StackPanel>
-        <ItemsControl x:Name="RuntimeRows" Classes="runtimeRows" ItemsSource="{Binding RuntimeRows}" IsVisible="{Binding HasRuntimeRows}"
+        <ItemsControl x:Name="RuntimeRows" Classes="runtimeRows rows" ItemsSource="{Binding RuntimeRows}" IsVisible="{Binding !!RuntimeRows.Count}"
                       AutomationProperties.Name="{x:Static loc:Strings.GamePage_RuntimeFiles}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="creator:RuntimeRow">
@@ -113,23 +113,11 @@
           <ui:PixelUniformGrid Columns="2" ColumnSpacing="12">
             <Button x:Name="AddRuntimeChanges" Classes="addTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddRuntimeChanges}"
                     Command="{Binding AddRuntimeChangesCommand}">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-                <Border Classes="folderChip" Width="36" Height="36">
-                  <ui:Icon Data="{x:Static theme:Icons.FilePen}" Width="18" Height="18" />
-                </Border>
-                <TextBlock Grid.Column="1" Classes="rowTitle" FontSize="14" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_AddRuntimeChanges}" />
-                <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
-              </Grid>
+              <ui:TileContent Theme="{StaticResource AddTile}" Icon="{x:Static theme:Icons.FilePen}" Title="{x:Static loc:Strings.Creator_AddRuntimeChanges}" />
             </Button>
             <Button x:Name="AddRuntimeCreates" Classes="addTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddRuntimeCreates}"
                     Command="{Binding StartRuntimePathCommand}">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-                <Border Classes="folderChip" Width="36" Height="36">
-                  <ui:Icon Data="{x:Static theme:Icons.FileDiff}" Width="18" Height="18" />
-                </Border>
-                <TextBlock Grid.Column="1" Classes="rowTitle" FontSize="14" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_AddRuntimeCreates}" />
-                <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
-              </Grid>
+              <ui:TileContent Theme="{StaticResource AddTile}" Icon="{x:Static theme:Icons.FileDiff}" Title="{x:Static loc:Strings.Creator_AddRuntimeCreates}" />
             </Button>
           </ui:PixelUniformGrid>
         </Border>
@@ -147,7 +135,7 @@
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
               <TextBox x:Name="RuntimePath" Classes="monoField" Text="{Binding RuntimePath}" Classes.faulty="{Binding HasRuntimePathProblem}"
                        AutomationProperties.Name="{x:Static loc:Strings.Creator_RuntimePathName}" />
-              <Button Grid.Column="1" x:Name="ConfirmRuntimePath" Classes="outline" Height="40" Content="{x:Static loc:Strings.Creator_RuntimeAdd}"
+              <Button Grid.Column="1" x:Name="ConfirmRuntimePath" Classes="outline" Height="40" Content="{x:Static loc:Strings.Creator_AddConfirm}"
                       ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding ConfirmRuntimePathCommand}" />
               <Button Grid.Column="2" Classes="icon large" ToolTip.Tip="{x:Static loc:Strings.Creator_RuntimeCancel}"
                       Command="{Binding CancelRuntimePathCommand}">

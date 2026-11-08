@@ -75,6 +75,7 @@ public sealed partial class NewProjectDialogViewModel
 
     /// <summary>The files fit no detected game, which the list says above the games.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsNotRecognized))]
     public partial bool IsNotRecognized { get; private set; }
 
     /// <summary>The site's project of the game and its last release; empty while none is surely the author's.</summary>

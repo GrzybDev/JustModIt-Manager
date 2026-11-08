@@ -11,7 +11,7 @@
   <StackPanel Spacing="20" Margin="0,4,0,16">
     <Border Classes="creatorCard" Padding="24">
       <Grid ColumnDefinitions="56,*" RowDefinitions="Auto,Auto" ColumnSpacing="18" RowSpacing="16">
-        <Border Classes="folderChip" Width="56" Height="56" CornerRadius="14" VerticalAlignment="Top">
+        <Border Classes="iconChip" Width="56" Height="56" CornerRadius="14" VerticalAlignment="Top">
           <ui:Icon Data="{x:Static theme:Icons.Package}" Width="26" Height="26" />
         </Border>
         <StackPanel Grid.Column="1" Spacing="6">

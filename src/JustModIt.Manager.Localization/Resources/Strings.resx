@@ -2793,9 +2793,6 @@
   <data name="Creator_GameCount" xml:space="preserve">
     <value>{count, plural, one {# game detected on this computer} other {# games detected on this computer}}</value>
   </data>
-  <data name="Creator_CheckNow" xml:space="preserve">
-    <value>Check now</value>
-  </data>
   <data name="Creator_NoGames" xml:space="preserve">
     <value>No game matches the search</value>
   </data>
@@ -2816,9 +2813,6 @@
   </data>
   <data name="Creator_MissingGameLink" xml:space="preserve">
     <value>See what the stores found</value>
-  </data>
-  <data name="Creator_DropZone" xml:space="preserve">
-    <value>Folder with the files</value>
   </data>
   <data name="Creator_DropTitle" xml:space="preserve">
     <value>Drop the folder with the files here</value>
@@ -2876,9 +2870,6 @@
   </data>
   <data name="Creator_CompareStage" xml:space="preserve">
     <value>{stage, select, ListingFiles {Listing the files} Comparing {Comparing the files} other {Looking for game files under new names}}</value>
-  </data>
-  <data name="Creator_BytesOf" xml:space="preserve">
-    <value>{done} of {total}</value>
   </data>
   <data name="Creator_FileOf" xml:space="preserve">
     <value>File {number} of {count}</value>
@@ -2966,12 +2957,6 @@
   </data>
   <data name="Creator_UndoAccept" xml:space="preserve">
     <value>Undo</value>
-  </data>
-  <data name="Creator_ToolLicense" xml:space="preserve">
-    <value>Licence</value>
-  </data>
-  <data name="Creator_ToolSource" xml:space="preserve">
-    <value>Source code</value>
   </data>
   <data name="Creator_ToolSourcePlaceholder" xml:space="preserve">
     <value>https://…</value>
@@ -3333,9 +3318,6 @@
   <data name="Creator_ZipMetadata" xml:space="preserve">
     <value>A plain .zip has no description, so the authors and the changes are given with the release on the site.</value>
   </data>
-  <data name="Creator_GameBuild" xml:space="preserve">
-    <value>build {build}</value>
-  </data>
   <data name="Creator_BuildChecked" xml:space="preserve">
     <value>The build number is read again right before building, so the package fits the game after an update.</value>
   </data>
@@ -3461,9 +3443,6 @@
   </data>
   <data name="Creator_RuntimePathName" xml:space="preserve">
     <value>Path in the game's folder</value>
-  </data>
-  <data name="Creator_RuntimeAdd" xml:space="preserve">
-    <value>Add</value>
   </data>
   <data name="Creator_RuntimeCancel" xml:space="preserve">
     <value>Cancel adding</value>

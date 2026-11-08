@@ -7,6 +7,7 @@ using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Ui.Controls;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
@@ -109,7 +110,8 @@ public sealed partial class ReviewViewModel : ObservableObject, IDisposable
         }
         else
         {
-            _steps = ReviewRows.Reuse(_stepRows, [], null);
+            _steps = [];
+            _stepRows.Clear();
             SyncSteps();
             ShowOperations(OperationRows(review, findings));
         }
@@ -130,7 +132,7 @@ public sealed partial class ReviewViewModel : ObservableObject, IDisposable
     }
 
     private static FindingLine Line(PlanFinding finding) =>
-        new(CreatorWording.Finding(finding), finding.Severity == FindingSeverity.Error ? RowTone.Danger : finding.IsAcknowledged ? RowTone.Success : RowTone.Warning,
+        new(CreatorWording.Finding(finding), finding.Severity == FindingSeverity.Error ? Tone.Danger : finding.IsAcknowledged ? Tone.Success : Tone.Warning,
             finding.AcknowledgementKey, finding.IsAcknowledged);
 
     /// <summary>Whether a finding is the site's hosting rule rather than a problem of the plan itself.</summary>

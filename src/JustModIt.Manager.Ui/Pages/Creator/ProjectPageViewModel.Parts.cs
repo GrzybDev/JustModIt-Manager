@@ -70,7 +70,7 @@ public sealed partial class ProjectPageViewModel
 
         try
         {
-            await Library.UpdateBuildAsync(ProjectId, record => new([.. (record?.Parts ?? []).Select(built => built.Part == part ? built with { Part = name } : built)]), CancellationToken.None)
+            await _creator.Library.UpdateBuildAsync(ProjectId, record => new([.. (record?.Parts ?? []).Select(built => built.Part == part ? built with { Part = name } : built)]), CancellationToken.None)
                 .ConfigureAwait(true);
         }
         // The record keeps the old name, so the add-on's packages go unlisted until its next build.

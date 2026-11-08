@@ -2781,9 +2781,6 @@
   <data name="Creator_GameCount" xml:space="preserve">
     <value>{count, plural, one {# gra wykryta na tym komputerze} few {# gry wykryte na tym komputerze} many {# gier wykrytych na tym komputerze} other {# gry wykrytej na tym komputerze}}</value>
   </data>
-  <data name="Creator_CheckNow" xml:space="preserve">
-    <value>Sprawdź teraz</value>
-  </data>
   <data name="Creator_NoGames" xml:space="preserve">
     <value>Żadna gra nie pasuje do wyszukiwania</value>
   </data>
@@ -2804,9 +2801,6 @@
   </data>
   <data name="Creator_MissingGameLink" xml:space="preserve">
     <value>Zobacz, co znalazły sklepy</value>
-  </data>
-  <data name="Creator_DropZone" xml:space="preserve">
-    <value>Folder z plikami</value>
   </data>
   <data name="Creator_DropTitle" xml:space="preserve">
     <value>Upuść tu folder z plikami</value>
@@ -2864,9 +2858,6 @@
   </data>
   <data name="Creator_CompareStage" xml:space="preserve">
     <value>{stage, select, ListingFiles {Wyszukiwanie plików} Comparing {Porównywanie plików} other {Szukanie plików gry pod nową nazwą}}</value>
-  </data>
-  <data name="Creator_BytesOf" xml:space="preserve">
-    <value>{done} z {total}</value>
   </data>
   <data name="Creator_FileOf" xml:space="preserve">
     <value>Plik {number} z {count}</value>
@@ -2954,12 +2945,6 @@
   </data>
   <data name="Creator_UndoAccept" xml:space="preserve">
     <value>Cofnij</value>
-  </data>
-  <data name="Creator_ToolLicense" xml:space="preserve">
-    <value>Licencja</value>
-  </data>
-  <data name="Creator_ToolSource" xml:space="preserve">
-    <value>Kod źródłowy</value>
   </data>
   <data name="Creator_ToolSourcePlaceholder" xml:space="preserve">
     <value>https://…</value>
@@ -3321,9 +3306,6 @@
   <data name="Creator_ZipMetadata" xml:space="preserve">
     <value>Zwykły .zip nie ma opisu paczki, więc autorów i opis zmian podaje się przy wydaniu na stronie.</value>
   </data>
-  <data name="Creator_GameBuild" xml:space="preserve">
-    <value>kompilacja {build}</value>
-  </data>
   <data name="Creator_BuildChecked" xml:space="preserve">
     <value>Numer kompilacji zostanie sprawdzony jeszcze raz tuż przed budowaniem, żeby paczka pasowała do gry po aktualizacji.</value>
   </data>
@@ -3449,9 +3431,6 @@
   </data>
   <data name="Creator_RuntimePathName" xml:space="preserve">
     <value>Ścieżka w folderze gry</value>
-  </data>
-  <data name="Creator_RuntimeAdd" xml:space="preserve">
-    <value>Dodaj</value>
   </data>
   <data name="Creator_RuntimeCancel" xml:space="preserve">
     <value>Anuluj dodawanie</value>

@@ -87,7 +87,7 @@ public sealed partial class BuildViewModel
         [
             Text.Format(Strings.Creator_BuildStage, ("stage", progress.Stage.ToString())),
             progress.FileNumber > 0 ? Text.Format(Strings.Creator_FileOf, ("number", progress.FileNumber), ("count", progress.FileCount)) : "",
-            progress.BytesTotal > 0 ? Text.Format(Strings.Creator_BytesOf, ("done", Formats.FileSize(progress.BytesDone)),
+            progress.BytesTotal > 0 ? Text.Format(Strings.GamePage_BytesOf, ("done", Formats.FileSize(progress.BytesDone)),
                 ("total", Formats.FileSize(progress.BytesTotal))) : "",
         ]);
         FileLine = progress.FileNumber > 0 ? progress.CurrentFile ?? "" : "";

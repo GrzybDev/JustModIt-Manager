@@ -5,6 +5,7 @@ using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
@@ -12,8 +13,6 @@ namespace JustModIt.Manager.Ui.Pages.Creator;
 public sealed partial class ReviewViewModel
 {
     private readonly Dictionary<string, RuleRow> _ruleRows = new(StringComparer.Ordinal);
-
-    public ObservableCollection<RuleRow> Rules { get; } = [];
 
     /// <summary>
     /// The rules that wait for the author: those to fix or to answer, and every added library, which counts as the authors'
@@ -25,19 +24,10 @@ public sealed partial class ReviewViewModel
     public ObservableCollection<RuleRow> AcceptedRules { get; } = [];
 
     [ObservableProperty]
-    public partial bool HasOpenRules { get; private set; }
-
-    [ObservableProperty]
-    public partial bool HasAcceptedRules { get; private set; }
-
-    [ObservableProperty]
     public partial string RulesState { get; private set; } = "";
 
     [ObservableProperty]
-    public partial RowTone RulesTone { get; private set; }
-
-    [ObservableProperty]
-    public partial bool HasRules { get; private set; }
+    public partial Tone RulesTone { get; private set; }
 
     /// <summary>The rules found nothing that keeps the site from taking the package.</summary>
     [ObservableProperty]
@@ -140,22 +130,18 @@ public sealed partial class ReviewViewModel
 
     private void ShowRules(PackagePlan plan)
     {
-        var fresh = RuleGroups(plan).Select(found => RuleOf(found.Key, [.. found])).ToList();
-        var rows = ReviewRows.Reuse(_ruleRows, fresh, Update);
-        Controls.CardGrid.Sync(Rules, rows);
+        List<RuleRow> rows = [.. RuleGroups(plan).Select(found => RuleOf(found.Key, [.. found]))];
+        ReviewRows.Remember(_ruleRows, rows);
         Controls.CardGrid.Sync(OpenRules, [.. rows.Where(row => !row.IsAccepted || row.IsLibrary)]);
         Controls.CardGrid.Sync(AcceptedRules, [.. rows.Where(row => row.IsAccepted && !row.IsLibrary)]);
-        (HasOpenRules, HasAcceptedRules) = (OpenRules.Count > 0, AcceptedRules.Count > 0);
         foreach (var row in rows)
         {
             ShowNotice(row);
         }
 
-        var errors = rows.Count(row => row.IsError);
-        var questions = rows.Count(row => !row.IsError && row.Findings.Any(finding => finding.BlocksBuild));
-        HasRules = rows.Count > 0;
+        var (errors, questions, _, _) = Tally(plan);
         RulesMet = errors == 0 && questions == 0;
-        RulesTone = errors > 0 ? RowTone.Danger : questions > 0 ? RowTone.Warning : RowTone.Success;
+        RulesTone = errors > 0 ? Tone.Danger : questions > 0 ? Tone.Warning : Tone.Success;
         RulesState = RulesMet
             ? Strings.Creator_RulesMet
             : Library.GameWording.Join(
@@ -163,20 +149,12 @@ public sealed partial class ReviewViewModel
                 errors > 0 ? Text.Format(Strings.Creator_RulesErrors, ("count", errors)) : "",
                 questions > 0 ? Text.Format(Strings.Creator_RulesQuestions, ("count", questions)) : "",
             ]);
-
-        static void Update(RuleRow fresh, RuleRow kept)
-        {
-            (kept.Findings, kept.Kind, kept.Title, kept.Text, kept.Tone, kept.Icon) =
-                (fresh.Findings, fresh.Kind, fresh.Title, fresh.Text, fresh.Tone, fresh.Icon);
-            (kept.CanExclude, kept.IsAccepted, kept.IsThirdParty, kept.HasNotice, kept.ToolId, kept.Path) =
-                (fresh.CanExclude, fresh.IsAccepted, fresh.IsThirdParty, fresh.HasNotice, fresh.ToolId, fresh.Path);
-        }
     }
 
     private RuleRow RuleOf(string key, IReadOnlyList<PlanFinding> findings)
     {
         var finding = findings[0];
-        var tool = finding.ToolId is { } id ? _page.Options.Rules.ThirdPartyTools.FirstOrDefault(rule => rule.Id == id) : null;
+        var tool = finding.ToolId is { } id ? _page.Creator.Options.Rules.ThirdPartyTools.FirstOrDefault(rule => rule.Id == id) : null;
         var blocks = findings.Any(found => found.BlocksBuild);
         var kind = finding.Kind switch
         {
@@ -186,26 +164,25 @@ public sealed partial class ReviewViewModel
             _ => RuleKind.Accept,
         };
         var notice = kind == RuleKind.Library ? _session.Project.LibraryNoticeOf(finding.Path!) : null;
-        return new RuleRow(key)
-        {
-            Findings = findings,
-            Kind = kind,
-            Title = CreatorWording.RuleTitle(finding, tool?.Name ?? ""),
-            Text = CreatorWording.RuleText(finding),
-            Tone = kind == RuleKind.Error ? RowTone.Danger
-                : blocks ? RowTone.Warning
-                : kind == RuleKind.Library && notice is null ? RowTone.Neutral
-                : RowTone.Success,
-            Icon = kind == RuleKind.Error ? Icons.CircleX
-                : blocks || kind == RuleKind.Library ? Icons.FileCode
-                : Icons.CircleCheck,
-            CanExclude = kind == RuleKind.Error && findings.All(CanExclude),
-            IsAccepted = !blocks,
-            IsThirdParty = notice is { IsOwn: false },
-            HasNotice = notice is not null,
-            ToolId = finding.ToolId ?? "",
-            Path = finding.Path ?? "",
-        };
+        var row = _ruleRows.GetValueOrDefault(key) ?? new RuleRow(key);
+        row.Findings = findings;
+        row.Kind = kind;
+        row.Title = CreatorWording.RuleTitle(finding, tool?.Name ?? "");
+        row.Text = Text.Format(Strings.Creator_RuleText, ("kind", finding.Kind.ToString()));
+        row.Tone = kind == RuleKind.Error ? Tone.Danger
+            : blocks ? Tone.Warning
+            : kind == RuleKind.Library && notice is null ? Tone.Neutral
+            : Tone.Success;
+        row.Icon = kind == RuleKind.Error ? Icons.CircleX
+            : blocks || kind == RuleKind.Library ? Icons.FileCode
+            : Icons.CircleCheck;
+        row.CanExclude = kind == RuleKind.Error && findings.All(CanExclude);
+        row.IsAccepted = !blocks;
+        row.IsThirdParty = notice is { IsOwn: false };
+        row.HasNotice = notice is not null;
+        row.ToolId = finding.ToolId ?? "";
+        row.Path = finding.Path ?? "";
+        return row;
     }
 
     // Filled with Edited unset, so showing the project's licence and source does not write them back as an edit.
@@ -220,7 +197,7 @@ public sealed partial class ReviewViewModel
                 ? (library.Name, library.License, library.SourceUrl, library.IsComplete)
                 : ("", "", "", false);
         (row.LibraryName, row.License, row.Source, row.IsComplete) = (name, license, source, complete);
-        row.KnownNotice = row.NeedsNotice && !complete ? _page.Library.KnownNotice(_session.Project.Id, row.IsTool ? row.ToolId : "", row.IsTool ? "" : row.Path) : null;
+        row.KnownNotice = row.NeedsNotice && !complete ? _page.Creator.Library.KnownNotice(_session.Project.Id, row.IsTool ? row.ToolId : "", row.IsTool ? "" : row.Path) : null;
         row.UseNoticeText = row.KnownNotice is { } known ? Text.Format(Strings.Creator_UseNotice, ("project", ProjectCard.NameOf(known.Project))) : "";
         row.Edited = row.IsTool
             ? edited => _session.Change(project => project.WithToolNotice(new ToolNotice(edited.ToolId, edited.License, edited.Source)))

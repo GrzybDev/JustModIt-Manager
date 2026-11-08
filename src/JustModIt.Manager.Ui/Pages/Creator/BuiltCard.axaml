@@ -29,10 +29,10 @@
             <TextBlock Classes="caption" Text="{Binding Build.BuiltAtText}" VerticalAlignment="Center" />
           </WrapPanel>
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" HorizontalAlignment="Left" IsVisible="{Binding !Build.HasSeveral}">
-            <TextBlock Text="{Binding Build.ResultName}" FontSize="17" LineHeight="24" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}"
-                       TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Build.OutputPath}" />
+            <TextBlock Text="{Binding Build.First.Name, FallbackValue=''}" FontSize="17" LineHeight="24" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}"
+                       TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Build.First.Path, FallbackValue=''}" />
             <Border Grid.Column="1" Classes="kind" Classes.warning="{Binding Build.IsGone}" VerticalAlignment="Center">
-              <TextBlock Text="{Binding Build.ResultSize}" />
+              <TextBlock Text="{Binding Build.First.Size, FallbackValue=''}" />
             </Border>
           </Grid>
           <TextBlock Classes="meta" Text="{Binding Build.ResultDetails}" TextWrapping="Wrap" IsVisible="{Binding !Build.HasSeveral}" />
@@ -65,13 +65,7 @@
 
     <!-- After the build: what the site would say, the test in the game and the way to publish packages that are still there. A test
          package in the game keeps its test here whatever the packages, since its undo has no other place on the page. -->
-    <StackPanel Spacing="20">
-      <StackPanel.IsVisible>
-        <MultiBinding Converter="{x:Static BoolConverters.Or}">
-          <Binding Path="Build.IsReadyToUse" />
-          <Binding Path="Build.ShowsTest" />
-        </MultiBinding>
-      </StackPanel.IsVisible>
+    <StackPanel Spacing="20" IsVisible="{Binding Build.ShowsAfterBuild}">
       <ItemsControl ItemsSource="{Binding Build.SiteWarnings}" IsVisible="{Binding Build.HasSiteWarnings}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="x:String">
@@ -89,13 +83,7 @@
               <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding Test.TestText}"
                          Classes.dangerText="{Binding Test.HasTestProblem}" />
               <!-- The add-ons go in after their base, each one the author leaves on. -->
-              <StackPanel x:Name="TestFeatures" Spacing="8" Margin="0,10,0,0">
-                <StackPanel.IsVisible>
-                  <MultiBinding Converter="{x:Static BoolConverters.And}">
-                    <Binding Path="Test.OffersTestInstall" />
-                    <Binding Path="Test.HasTestFeatures" />
-                  </MultiBinding>
-                </StackPanel.IsVisible>
+              <StackPanel x:Name="TestFeatures" Spacing="8" Margin="0,10,0,0" IsVisible="{Binding Test.ShowsFeatures}">
                 <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_TestFeatures}" />
                 <ItemsControl ItemsSource="{Binding Test.TestFeatures}" ItemsPanel="{StaticResource WrapItems8}"
                               AutomationProperties.Name="{x:Static loc:Strings.Creator_TestFeatures}">
@@ -116,14 +104,7 @@
                 <Button x:Name="TestButton" Classes="primary compact" Content="{x:Static loc:Strings.Creator_TestInstall}" IsVisible="{Binding Test.OffersTestInstall}"
                         ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding Test.InstallTestCommand}" />
                 <Button Classes="primary compact" Content="{x:Static loc:Strings.Creator_Launch}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Play}"
-                        Command="{Binding Test.LaunchCommand}">
-                  <Button.IsVisible>
-                    <MultiBinding Converter="{x:Static BoolConverters.And}">
-                      <Binding Path="Test.IsTestInstalled" />
-                      <Binding Path="Test.CanLaunch" />
-                    </MultiBinding>
-                  </Button.IsVisible>
-                </Button>
+                        Command="{Binding Test.LaunchCommand}" IsVisible="{Binding Test.ShowsLaunch}" />
                 <Button x:Name="UndoTestButton" Classes="outline" Content="{x:Static loc:Strings.Creator_UndoTest}" IsVisible="{Binding Test.IsTestInstalled}"
                         ui:ButtonAssist.Icon="{x:Static theme:Icons.RotateCcw}" Command="{Binding Test.UndoTestCommand}" />
                 <Button Classes="quiet" Content="{x:Static loc:Strings.Creator_TestAgain}" IsVisible="{Binding Test.WasTested}"
@@ -134,14 +115,7 @@
                       Command="{Binding Test.InstallTestTogetherCommand}" />
             </StackPanel>
           </Border>
-          <Border Classes="divider" Opacity="0.6">
-            <Border.IsVisible>
-              <MultiBinding Converter="{x:Static BoolConverters.And}">
-                <Binding Path="Build.IsReadyToUse" />
-                <Binding Path="Build.ShowsTest" />
-              </MultiBinding>
-            </Border.IsVisible>
-          </Border>
+          <Border Classes="divider" Opacity="0.6" IsVisible="{Binding Build.ShowsDivider}" />
           <Border Padding="20,18" IsVisible="{Binding Build.IsReadyToUse}">
             <StackPanel Spacing="4">
               <TextBlock Text="{Binding Build.PublishTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />

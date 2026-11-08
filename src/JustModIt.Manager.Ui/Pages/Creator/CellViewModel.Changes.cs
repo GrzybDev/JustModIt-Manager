@@ -24,10 +24,12 @@ public sealed partial class CellViewModel
 
     /// <summary>How many files changed since the part's last build, as the head of <see cref="Changes"/>; empty when none did.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasChanges))]
+    [NotifyPropertyChangedFor(nameof(HasChanges), nameof(ShowsChanges))]
     public partial string ChangedText { get; private set; } = "";
 
     public bool HasChanges => ChangedText.Length > 0;
+
+    public bool ShowsChanges => IsCompared && HasChanges;
 
     /// <summary>The operations of the files that changed since the part's last build, in the package's order.</summary>
     [ObservableProperty]
@@ -59,7 +61,7 @@ public sealed partial class CellViewModel
             var stamps = comparison.Files.Where(file => file.Author is not null).ToDictionary(file => file.AuthorPath!, file => file.Author!.Value);
             if ((game.Game.BuildId != _comparedWith?.Build
                     || await FileChanges.CheckAsync(comparison.AuthorDirectory, stamps, _session.Project.FoldersInside(Key.Part, comparison.AuthorDirectory),
-                        _page.Access, _page.FileSystem ?? PhysicalFileSystem.Instance, checking.Token).ConfigureAwait(true) is not { Count: 0 })
+                        _page.Creator.Access, _page.Creator.FileSystem ?? PhysicalFileSystem.Instance, checking.Token).ConfigureAwait(true) is not { Count: 0 })
                 && !checking.IsCancellationRequested)
             {
                 _ = CompareAsync();
@@ -124,13 +126,13 @@ public sealed partial class CellViewModel
         BuildChanges? changes = null;
         if (IsCompared && part is not null && folder is not null)
         {
-            changes = await FileChanges.SinceAsync(comparison!, folder, _page.FileSystem, cancellationToken)
+            changes = await FileChanges.SinceAsync(comparison!, folder, _page.Creator.FileSystem, cancellationToken)
                 .ConfigureAwait(true);
             if (changes.Restamped.Count > 0)
             {
                 try
                 {
-                    await _page.Library.UpdateBuildAsync(_page.ProjectId,
+                    await _page.Creator.Library.UpdateBuildAsync(_page.ProjectId,
                         current => (current ?? new BuildRecord([])).WithStamps(part.Part, folder.Folder, changes.Restamped), CancellationToken.None)
                             .ConfigureAwait(true);
                 }
@@ -167,7 +169,10 @@ public sealed partial class CellViewModel
 
     /// <summary>What the cell's plan has in common with the first version's and which folders lie elsewhere; empty when nothing.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsFolded))]
     public partial string Folded { get; private set; } = "";
+
+    public bool ShowsFolded => IsCompared && Folded.Length > 0;
 
     // The rows follow the plan, which changes with every edit, and so do the table's words.
     private void ShowChanges()

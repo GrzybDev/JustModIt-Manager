@@ -96,7 +96,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
         var format = plan.Format;
         var manifest = format.Kind == PackageKind.Manifest;
         IsManifest = plans.Any(each => each.Format.Kind == PackageKind.Manifest);
-        var extension = _page.Options.PackageExtension;
+        var extension = _page.Creator.Options.PackageExtension;
         FormatTitle = manifest ? Text.Format(Strings.Creator_ManifestTitle, ("extension", extension)) : Strings.Creator_ZipTitle;
         FormatText = string.Join(' ',
             [.. format.Reasons.Select(reason => Text.Format(Strings.Creator_FormatReason, ("reason", reason.ToString()))),
@@ -176,7 +176,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
         }
 
         _asked = true;
-        var hints = await ProjectHints.AskAsync(_page.Agent, site, _page.Game).ConfigureAwait(true);
+        var hints = await ProjectHints.AskAsync(_page.Creator.Agent, site, _page.Game).ConfigureAwait(true);
         // The site may take long enough for the project to be closed and opened again, as a session of its own.
         if (_page.Session != _session)
         {

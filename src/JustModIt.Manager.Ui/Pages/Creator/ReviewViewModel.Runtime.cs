@@ -38,12 +38,6 @@ public sealed partial class ReviewViewModel
 
     public bool HasRuntimeNotice => RuntimeNotice.Length > 0;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasRuntimeRows))]
-    public partial int RuntimeRowCount { get; private set; }
-
-    public bool HasRuntimeRows => RuntimeRowCount > 0;
-
     /// <summary>The list has room for another file.</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddRuntimeChangesCommand), nameof(StartRuntimePathCommand))]
@@ -156,7 +150,7 @@ public sealed partial class ReviewViewModel
         var path = TypedRuntimePath;
         var listed = _session.Review?.Plan.RuntimeFiles.Select(file => file.Path) ?? [];
         var problem = path.Length == 0 ? null
-            : CreatorPlanner.RuntimePathProblem(path, _page.Options)
+            : CreatorPlanner.RuntimePathProblem(path, _page.Creator.Options)
                 ?? (listed.Contains(path, PackagePath.Comparer) ? FindingKind.DuplicatePath : null);
         RuntimePathProblem = problem is { } kind ? CreatorWording.Finding(new PlanFinding(kind, value.Trim())) : "";
         CanConfirmRuntimePath = path.Length > 0 && problem is null;
@@ -170,11 +164,9 @@ public sealed partial class ReviewViewModel
         var findings = plan.Findings.Where(finding => finding.RuntimeIndex is not null && !IsHosting(finding.Kind))
             .ToLookup(finding => finding.RuntimeIndex!.Value);
         var keys = new RowKeys();
-        var fresh = plan.RuntimeFiles.Select((file, index) => RuntimeRowOf(file, keys.Next("runtime:" + file.Path), entries, findings[index]))
-            .ToList();
-        var rows = ReviewRows.Reuse(_runtimeRows, fresh, CopyRuntime);
+        List<RuntimeRow> rows = [.. plan.RuntimeFiles.Select((file, index) => RuntimeRowOf(file, keys.Next("runtime:" + file.Path), entries, findings[index]))];
+        ReviewRows.Remember(_runtimeRows, rows);
         Controls.CardGrid.Sync(RuntimeRows, rows);
-        RuntimeRowCount = rows.Count;
         RuntimeCount = rows.Count > 0 ? Text.Format(Strings.Creator_FileCount, ("count", rows.Count)) : "";
         var problems = rows.Count(row => row.HasProblem);
         RuntimeProblems = problems > 0 ? Text.Format(Strings.Creator_RuntimeProblems, ("count", problems)) : "";
@@ -188,21 +180,9 @@ public sealed partial class ReviewViewModel
         OnPropertyChanged(nameof(CanCheckFiles));
         OnPropertyChanged(nameof(CheckStore));
         OnPropertyChanged(nameof(StoreCheckWords));
-
-        static void CopyRuntime(RuntimeRow from, RuntimeRow to)
-        {
-            (to.Path, to.Entry, to.Folder, to.Name, to.State, to.StateIcon) = (from.Path, from.Entry, from.Folder, from.Name, from.State, from.StateIcon);
-            (to.IsFromChoice, to.Reason, to.RemoveName, to.HasProblem, to.OffersFixes) =
-                (from.IsFromChoice, from.Reason, from.RemoveName, from.HasProblem, from.OffersFixes);
-            (to.Suggestion, to.SuggestionText) = (from.Suggestion, from.SuggestionText);
-            if (!to.Findings.SequenceEqual(from.Findings))
-            {
-                to.Findings = from.Findings;
-            }
-        }
     }
 
-    private static RuntimeRow RuntimeRowOf(PlannedRuntimeFile file, string key, Dictionary<string, ReviewEntry> entries,
+    private RuntimeRow RuntimeRowOf(PlannedRuntimeFile file, string key, Dictionary<string, ReviewEntry> entries,
         IEnumerable<PlanFinding> found)
     {
         List<PlanFinding> findings = [.. found];
@@ -213,25 +193,24 @@ public sealed partial class ReviewViewModel
             : ("", Icons.File);
         var missing = findings.FirstOrDefault(finding => finding.SuggestedPath is not null);
         var suggestion = file.FromChoice ? "" : missing?.SuggestedPath ?? "";
-        return new RuntimeRow(key)
+        var row = _runtimeRows.GetValueOrDefault(key) ?? new RuntimeRow(key) { Path = file.Path };
+        row.Entry = file.FromChoice ? entries.GetValueOrDefault(file.Path) : null;
+        row.State = Text.Format(Strings.Creator_RuntimeState, ("state", state), ("size", file.GameFile is { } game ? Formats.FileSize(game.Stamp.Size) : ""));
+        row.StateIcon = icon;
+        row.IsFromChoice = file.FromChoice;
+        row.Reason = file.FromChoice ? Strings.Creator_RuntimeWhy : "";
+        List<FindingLine> lines = [.. findings.Select(Line)];
+        if (!lines.SequenceEqual(row.Findings))
         {
-            Path = file.Path,
-            Entry = file.FromChoice ? entries.GetValueOrDefault(file.Path) : null,
-            Folder = CreatorWording.FolderOf(file.Path),
-            Name = CreatorWording.GameIndexName(file.Path),
-            State = Text.Format(Strings.Creator_RuntimeState, ("state", state),
-                ("size", file.GameFile is { } game ? Formats.FileSize(game.Stamp.Size) : "")),
-            StateIcon = icon,
-            IsFromChoice = file.FromChoice,
-            Reason = file.FromChoice ? Strings.Creator_RuntimeWhy : "",
-            RemoveName = Text.Format(Strings.Creator_RemoveRuntime, ("path", file.Path)),
-            Findings = [.. findings.Select(Line)],
-            HasProblem = findings.Any(finding => finding.BlocksBuild),
-            OffersFixes = findings.Any(finding => finding.Kind is FindingKind.RuntimeFileInGame or FindingKind.RuntimeFileKept),
-            Suggestion = suggestion,
-            SuggestionText = suggestion.Length == 0 ? ""
-                : Text.Format(Strings.Creator_FixPath, ("name", PackagePath.Comparer.Equals(CreatorWording.FolderOf(file.Path),
-                    CreatorWording.FolderOf(suggestion)) ? CreatorWording.GameIndexName(suggestion) : suggestion)),
-        };
+            row.Findings = lines;
+        }
+
+        row.HasProblem = findings.Any(finding => finding.BlocksBuild);
+        row.OffersFixes = findings.Any(finding => finding.Kind is FindingKind.RuntimeFileInGame or FindingKind.RuntimeFileKept);
+        row.Suggestion = suggestion;
+        row.SuggestionText = suggestion.Length == 0 ? ""
+            : Text.Format(Strings.Creator_FixPath, ("name", PackagePath.Comparer.Equals(CreatorWording.FolderOf(file.Path),
+                CreatorWording.FolderOf(suggestion)) ? CreatorWording.GameIndexName(suggestion) : suggestion));
+        return row;
     }
 }

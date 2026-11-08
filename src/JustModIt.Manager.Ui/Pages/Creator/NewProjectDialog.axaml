@@ -74,7 +74,7 @@
                      CommandParameter="{Binding}">
           <ContentControl Content="{Binding}" ContentTemplate="{StaticResource GameFace}" />
         </RadioButton>
-        <Border Classes="gameBlocked" Classes.installed="{Binding IsBlockedByInstall}" IsVisible="{Binding !IsSelectable}">
+        <Border Classes="soft" Padding="14" Classes.installed="{Binding IsBlockedByInstall}" IsVisible="{Binding !IsSelectable}">
           <ContentControl Content="{Binding}" ContentTemplate="{StaticResource GameFace}" />
         </Border>
       </Panel>
@@ -152,7 +152,7 @@
                                   Command="{Binding $parent[UserControl].((creator:NewProjectDialogViewModel)DataContext).ToggleVersionCommand}"
                                   CommandParameter="{Binding}">
                       <StackPanel Spacing="4">
-                        <Border Classes="folderChip" Width="36" Height="36" HorizontalAlignment="Center" Margin="0,0,0,4">
+                        <Border Classes="iconChip" HorizontalAlignment="Center" Margin="0,0,0,4" TextElement.Foreground="{StaticResource TextEmphasisBrush}">
                           <ui:StoreIcon Store="{Binding Store}" Width="20" Height="20" />
                         </Border>
                         <TextBlock Text="{Binding StoreName}" FontSize="15" LineHeight="20" FontWeight="SemiBold" TextAlignment="Center" Foreground="{StaticResource TextBrush}" />
@@ -167,9 +167,9 @@
               <ItemsControl ItemsSource="{Binding BlockedVersions}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="creator:GameOption">
-                    <Border Classes="gameBlocked" Classes.installed="{Binding IsBlockedByInstall}" Margin="0,0,0,8">
+                    <Border Classes="soft" Padding="14" Classes.installed="{Binding IsBlockedByInstall}" Margin="0,0,0,8">
                       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <Border Classes="folderChip" Width="34" Height="34" CornerRadius="8" VerticalAlignment="Top">
+                        <Border Classes="iconChip" Width="34" Height="34" CornerRadius="8" VerticalAlignment="Top" TextElement.Foreground="{StaticResource TextEmphasisBrush}">
                           <ui:StoreIcon Store="{Binding Store}" Width="18" Height="18" />
                         </Border>
                         <StackPanel Grid.Column="1" Spacing="3">
@@ -228,29 +228,16 @@
 
           <!-- Every detected game, for files that fit none or another game than the one they fit. -->
           <ui:Callout Classes="info" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Info}"
-                      Message="{x:Static loc:Strings.Creator_NotRecognized}">
-            <ui:Callout.IsVisible>
-              <MultiBinding Converter="{x:Static BoolConverters.And}">
-                <Binding Path="ShowsSearch" />
-                <Binding Path="IsNotRecognized" />
-              </MultiBinding>
-            </ui:Callout.IsVisible>
-          </ui:Callout>
+                      Message="{x:Static loc:Strings.Creator_NotRecognized}" IsVisible="{Binding ShowsNotRecognized}" />
           <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" IsVisible="{Binding ShowsSearch}">
             <TextBox x:Name="Search" Classes="search" Width="290" Text="{Binding Query}" PlaceholderText="{x:Static loc:Strings.Creator_SearchGames}"
                      AutomationProperties.Name="{x:Static loc:Strings.Creator_SearchGames}" />
             <TextBlock Grid.Column="2" Classes="meta" Text="{Binding Count}" VerticalAlignment="Center" />
-            <Button Grid.Column="3" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_CheckNow}"
+            <Button Grid.Column="3" Classes="quiet headerAction" Content="{x:Static loc:Strings.Library_CheckNow}"
                     ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CheckNowCommand}" IsEnabled="{Binding !IsChecking}" />
           </Grid>
 
-          <StackPanel Spacing="12">
-            <StackPanel.IsVisible>
-              <MultiBinding Converter="{x:Static BoolConverters.And}">
-                <Binding Path="ShowsSearch" />
-                <Binding Path="IsLoading" />
-              </MultiBinding>
-            </StackPanel.IsVisible>
+          <StackPanel Spacing="12" IsVisible="{Binding ShowsSkeletons}">
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
               <ui:Skeleton Height="72" CornerRadius="12" />
               <ui:Skeleton Grid.Column="1" Height="72" CornerRadius="12" />
@@ -283,7 +270,7 @@
             <ui:EmptyState Classes="neutral compact" Padding="16,26" Icon="{x:Static theme:Icons.Gamepad}" Title="{x:Static loc:Strings.Creator_NoDetected}">
               <StackPanel Spacing="14">
                 <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MissingGame}" />
-                <Button Classes="outline small" HorizontalAlignment="Center" Content="{x:Static loc:Strings.Creator_CheckNow}"
+                <Button Classes="outline small" HorizontalAlignment="Center" Content="{x:Static loc:Strings.Library_CheckNow}"
                         ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CheckNowCommand}" IsEnabled="{Binding !IsChecking}" />
               </StackPanel>
             </ui:EmptyState>

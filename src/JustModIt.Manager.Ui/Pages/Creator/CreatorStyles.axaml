@@ -8,6 +8,30 @@
        12 for lists, and the bar pinned under the tabs that holds the build. -->
 
   <Styles.Resources>
+    <!-- A file's path on a line of its own, in a list of paths. -->
+    <DataTemplate x:Key="PathLineTemplate" x:DataType="x:String">
+      <TextBlock Classes="pathLine" Text="{Binding}" Margin="0,2" />
+    </DataTemplate>
+
+    <!-- What a tile that adds something holds: its icon, its name, a text when it has one and the arrow on. -->
+    <ControlTheme x:Key="AddTile" TargetType="ui:TileContent">
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+            <Border Classes="iconChip">
+              <ui:Icon Data="{TemplateBinding Icon}" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="rowTitle" Text="{TemplateBinding Title}" />
+              <TextBlock Classes="rowText" Text="{TemplateBinding Message}"
+                         IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+            <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+
     <!-- A finding at an operation or a step, with a way to accept it where the rules allow, and once accepted the way back. -->
     <DataTemplate x:Key="FindingTemplate" x:DataType="creator:FindingLine">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,6,0,0">
@@ -43,12 +67,6 @@
   </Style>
   <Style Selector="Button.headerAction.quiet">
     <Setter Property="Padding" Value="12,0" />
-  </Style>
-  <Style Selector="TextBlock.separator">
-    <Setter Property="Text" Value="·" />
-    <Setter Property="Margin" Value="2,0" />
-    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <!-- A project's card rises as one with the button over its cover, which a rise of the card alone would leave behind. -->
@@ -105,7 +123,6 @@
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-
 
   <!-- A raised part of a tab, and a soft row inside or beside one. -->
   <Style Selector="Border.creatorCard">
@@ -225,268 +242,7 @@
     <Setter Property="HorizontalAlignment" Value="Left" />
     <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
   </Style>
-  <Style Selector="TextBlock.rowTitle">
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="LineHeight" Value="20" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-  </Style>
-  <Style Selector="TextBlock.rowText">
-    <Setter Property="FontWeight" Value="Normal" />
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="LineHeight" Value="19" />
-    <Setter Property="TextWrapping" Value="Wrap" />
-    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-  </Style>
-  <!-- The page's styles win over the theme's, so a row text in a tone takes the tone here too. -->
-  <Style Selector="TextBlock.rowText.successText">
-    <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
-  </Style>
-  <Style Selector="TextBlock.rowText.warningText">
-    <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
-  </Style>
-  <Style Selector="TextBlock.rowText.dangerText">
-    <Setter Property="Foreground" Value="{StaticResource DangerTextStrongBrush}" />
-  </Style>
-  <Style Selector="TextBlock.rowText.infoText">
-    <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}" />
-  </Style>
-  <Style Selector="TextBlock.pathLine">
-    <Setter Property="FontWeight" Value="Normal" />
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="LineHeight" Value="18" />
-    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-  </Style>
-  <Style Selector="Border.smallCover">
-    <Setter Property="Width" Value="28" />
-    <Setter Property="Height" Value="42" />
-    <Setter Property="CornerRadius" Value="4" />
-    <Setter Property="ClipToBounds" Value="True" />
-    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
-    <Setter Property="BoxShadow" Value="0 0 0 1 #14FFFFFF" />
-  </Style>
-  <Style Selector="Border.cover">
-    <Setter Property="Width" Value="34" />
-    <Setter Property="Height" Value="44" />
-    <Setter Property="CornerRadius" Value="5" />
-    <Setter Property="ClipToBounds" Value="True" />
-    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
-    <Setter Property="BoxShadow" Value="0 0 0 1 #14FFFFFF" />
-  </Style>
-
-  <!-- An operation's kind: a 24 px chip with its icon. -->
-  <Style Selector="Border.kind">
-    <Setter Property="Height" Value="24" />
-    <Setter Property="Padding" Value="8,0,10,0" />
-    <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
-    <Setter Property="HorizontalAlignment" Value="Left" />
-    <Setter Property="VerticalAlignment" Value="Top" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
-  </Style>
-  <Style Selector="Border.kind > StackPanel">
-    <Setter Property="Orientation" Value="Horizontal" />
-    <Setter Property="Spacing" Value="6" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-  <Style Selector="Border.kind > TextBlock">
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-  <Style Selector="Border.kind ui|Icon">
-    <Setter Property="Width" Value="13" />
-    <Setter Property="Height" Value="13" />
-  </Style>
-  <Style Selector="Border.kind TextBlock">
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-  </Style>
-  <Style Selector="Border.kind.danger">
-    <Setter Property="Background" Value="#29EF4444" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource DangerTextBrush}" />
-  </Style>
-  <Style Selector="Border.kind.success">
-    <Setter Property="Background" Value="#2922C55E" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource SuccessTextBrush}" />
-  </Style>
-  <Style Selector="Border.kind.warning">
-    <Setter Property="Background" Value="#29F59E0B" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource WarningTextBrush}" />
-  </Style>
-  <Style Selector="Border.kind.neutral">
-    <Setter Property="Background" Value="{StaticResource FillBrush}" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource NeutralTextBrush}" />
-  </Style>
-  <!-- A step that runs on some versions only. -->
-  <Style Selector="Border.kind.limited">
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource TextStrongBrush}" />
-  </Style>
-
-  <!-- A warning only the build found, tinted green once the author accepted it. -->
-  <Style Selector="Border.buildFinding">
-    <Setter Property="Padding" Value="10,6" />
-    <Setter Property="CornerRadius" Value="10" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Transitions">
-      <Transitions>
-        <BrushTransition Property="Background" Duration="0:0:0.2" />
-        <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
-      </Transitions>
-    </Setter>
-  </Style>
-  <Style Selector="Border.buildFinding.accepted">
-    <Setter Property="Background" Value="#1F22C55E" />
-    <Setter Property="BorderBrush" Value="#4022C55E" />
-  </Style>
-
-  <!-- The rules' chip turns green once the package meets them. -->
-  <Style Selector="Border.iconChip.success">
-    <Setter Property="Background" Value="#2922C55E" />
-  </Style>
-  <Style Selector="Border.iconChip.success > ui|Icon">
-    <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
-  </Style>
-
-  <!-- Lists of operations, steps and rules: rows split by faint lines. -->
-  <Style Selector="ItemsControl.rows > ContentPresenter">
-    <Setter Property="BorderBrush" Value="#0FFFFFFF" />
-  </Style>
-  <Style Selector="ItemsControl.rows > ContentPresenter:not(:nth-child(1))">
-    <Setter Property="BorderThickness" Value="0,1,0,0" />
-  </Style>
-  <!-- A step with a problem: a faint red row, its number in red and the path the problem is about framed in red. -->
-  <Style Selector="Border.stepRow">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Transitions">
-      <Transitions>
-        <BrushTransition Property="Background" Duration="0:0:0.2" />
-      </Transitions>
-    </Setter>
-  </Style>
-  <Style Selector="Border.stepRow.problem">
-    <Setter Property="Background" Value="#0FEF4444" />
-  </Style>
-  <Style Selector="Border.number.problem">
-    <Setter Property="BorderBrush" Value="#80F87171" />
-    <Setter Property="Background" Value="#24EF4444" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource DangerTextBrush}" />
-  </Style>
-  <!-- An add-on's name in its row of the table: a bold name, which the field's frame shows editable under the pointer and while typing. -->
-  <Style Selector="TextBox.partName">
-    <Setter Property="MinHeight" Value="30" />
-    <Setter Property="Padding" Value="8,4" />
-    <Setter Property="Margin" Value="-8,0,0,2" />
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderBrush" Value="Transparent" />
-  </Style>
-  <Style Selector="TextBox.faulty">
-    <Setter Property="BorderBrush" Value="#B3F87171" />
-  </Style>
-  <Style Selector="TextBox.faulty:pointerover /template/ Border#PART_BorderElement">
-    <Setter Property="BorderBrush" Value="#B3F87171" />
-  </Style>
-  <Style Selector="Border.editPanel">
-    <Setter Property="Padding" Value="18,16" />
-    <Setter Property="CornerRadius" Value="12" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
-    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
-  </Style>
-  <Style Selector="Button.groupToggle">
-    <Setter Property="Background" Value="{StaticResource FillBrush}" />
-  </Style>
-  <Style Selector="Button.groupToggle ui|Icon">
-    <Setter Property="RenderTransform" Value="rotate(-90deg)" />
-    <Setter Property="Transitions">
-      <Transitions>
-        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut" />
-      </Transitions>
-    </Setter>
-  </Style>
-  <Style Selector="Button.groupToggle.expanded ui|Icon">
-    <Setter Property="RenderTransform" Value="rotate(0deg)" />
-  </Style>
-  <Style Selector="Border.grip">
-    <Setter Property="Height" Value="32" />
-    <Setter Property="Cursor" Value="SizeNorthSouth" />
-  </Style>
-  <Style Selector="Button.addTile, Button.stepTile">
-    <Setter Property="Height" Value="NaN" />
-    <Setter Property="CornerRadius" Value="12" />
-    <Setter Property="Background" Value="#08FFFFFF" />
-    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
-    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="VerticalContentAlignment" Value="Top" />
-  </Style>
-  <Style Selector="Button.addTile">
-    <Setter Property="Padding" Value="12,14,14,14" />
-  </Style>
-  <Style Selector="Button.stepTile">
-    <Setter Property="Padding" Value="14,16,14,14" />
-  </Style>
-  <Style Selector="Button.addTile:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.stepTile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{StaticResource FillBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
-  </Style>
-  <Style Selector="ItemsControl.runtimeRows">
-    <Setter Property="BorderThickness" Value="0,1,0,0" />
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-  </Style>
-  <Style Selector="Border.runtimeRow">
-    <Setter Property="Padding" Value="20,12,16,14" />
-    <Setter Property="BorderThickness" Value="0,1,0,0" />
-    <Setter Property="BorderBrush" Value="#0FFFFFFF" />
-  </Style>
-  <Style Selector="ContentPresenter:nth-child(1) > Border.runtimeRow">
-    <Setter Property="BorderThickness" Value="0" />
-  </Style>
-  <Style Selector="Border.runtimeRow.problem">
-    <Setter Property="Background" Value="#0FEF4444" />
-  </Style>
-  <Style Selector="TextBlock.monoPath">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="LineHeight" Value="22" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-  </Style>
-  <Style Selector="TextBox.monoField">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
-    <Setter Property="FontSize" Value="14" />
-  </Style>
-  <Style Selector="Border.runtimePrompt">
-    <Setter Property="Margin" Value="0,4,0,0" />
-    <Setter Property="Padding" Value="16,12" />
-    <Setter Property="CornerRadius" Value="12" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource InfoEdgeBrush}" />
-  </Style>
-  <Style Selector="Border.runtimeAdd">
-    <Setter Property="Padding" Value="20,14,20,18" />
-    <Setter Property="BorderThickness" Value="0,1,0,0" />
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-  </Style>
-  <Style Selector="Border.runtimeAdd.typing">
-    <Setter Property="Background" Value="#05FFFFFF" />
-  </Style>
-  <Style Selector="Button.fixAction">
-    <Setter Property="Height" Value="32" />
-    <Setter Property="Padding" Value="14,0" />
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
-  </Style>
-
+  <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Creator/CreatorRowStyles.axaml" />
 
   <!-- A choice of a game: a row with its cover that turns to the accent once chosen; a game that cannot be chosen keeps
        its full colour and says why in its own. -->
@@ -495,21 +251,14 @@
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
-  <Style Selector="Border.gameBlocked">
-    <Setter Property="Padding" Value="14" />
-    <Setter Property="CornerRadius" Value="12" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Background" Value="#08FFFFFF" />
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-  </Style>
-  <Style Selector="Border.gameBlocked.installed">
+  <Style Selector="Border.soft.installed">
     <Setter Property="BorderBrush" Value="{StaticResource WarningEdgeBrush}" />
   </Style>
   <Style Selector="Border.chosenMark">
     <Setter Property="Width" Value="28" />
     <Setter Property="Height" Value="28" />
     <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="Background" Value="#38D4213D" />
+    <Setter Property="Background" Value="{DynamicResource AccentSoftStrongBrush}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
     <Setter Property="IsVisible" Value="False" />
   </Style>
@@ -529,101 +278,7 @@
     <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
   </Style>
 
-  <!-- The drop zone: a dashed frame, in the accent while a folder is dragged over it. It stands tall and centred where nothing
-       else is on offer, and as a strip under a library's cards. -->
-  <Style Selector="Border.dropZone">
-    <Setter Property="Height" Value="232" />
-    <Setter Property="Padding" Value="24" />
-    <Setter Property="CornerRadius" Value="16" />
-    <Setter Property="Background">
-      <SolidColorBrush Color="{DynamicResource AccentColor}" Opacity="0.05" />
-    </Setter>
-    <Setter Property="Transitions">
-      <Transitions>
-        <BrushTransition Property="Background" Duration="0:0:0.15" />
-      </Transitions>
-    </Setter>
-  </Style>
-  <Style Selector="Border.dropZone.over">
-    <Setter Property="Background" Value="{DynamicResource AccentFilterBrush}" />
-  </Style>
-  <Style Selector="Rectangle.dropFrame">
-    <Setter Property="Margin" Value="-24" />
-    <Setter Property="Stroke" Value="{DynamicResource AccentBorderBrush}" />
-    <Setter Property="StrokeThickness" Value="2" />
-    <Setter Property="StrokeDashArray" Value="4,3" />
-    <Setter Property="RadiusX" Value="16" />
-    <Setter Property="RadiusY" Value="16" />
-  </Style>
-  <Style Selector="Border.dropZone.over Rectangle.dropFrame">
-    <Setter Property="Stroke" Value="{DynamicResource AccentTextBrush}" />
-  </Style>
-  <Style Selector="Border.dropChip">
-    <Setter Property="Width" Value="56" />
-    <Setter Property="Height" Value="56" />
-    <Setter Property="CornerRadius" Value="16" />
-    <Setter Property="Margin" Value="0,0,0,12" />
-    <Setter Property="Background" Value="{StaticResource FillBrush}" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
-    <Setter Property="HorizontalAlignment" Value="Center" />
-  </Style>
-  <Style Selector="Border.dropZone.over Border.dropChip">
-    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
-  </Style>
-  <Style Selector="Border.dropZone:not(.strip) DockPanel.dropBody">
-    <Setter Property="HorizontalAlignment" Value="Center" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-  <Style Selector="Border.dropZone:not(.strip) DockPanel.dropBody > Button">
-    <Setter Property="DockPanel.Dock" Value="Bottom" />
-    <Setter Property="HorizontalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="0,16,0,0" />
-  </Style>
-  <Style Selector="Border.dropZone:not(.strip) TextBlock">
-    <Setter Property="TextAlignment" Value="Center" />
-  </Style>
-  <Style Selector="Border.dropZone TextBlock.whileOver">
-    <Setter Property="IsVisible" Value="False" />
-  </Style>
-  <Style Selector="Border.dropZone.over TextBlock.whileOver">
-    <Setter Property="IsVisible" Value="True" />
-  </Style>
-  <Style Selector="Border.dropZone.over TextBlock.atRest">
-    <Setter Property="IsVisible" Value="False" />
-  </Style>
-  <Style Selector="Border.dropZone.strip">
-    <Setter Property="Height" Value="NaN" />
-    <Setter Property="Padding" Value="18,16" />
-    <Setter Property="CornerRadius" Value="12" />
-  </Style>
-  <Style Selector="Border.dropZone.strip Rectangle.dropFrame">
-    <Setter Property="Margin" Value="-18,-16" />
-    <Setter Property="RadiusX" Value="12" />
-    <Setter Property="RadiusY" Value="12" />
-  </Style>
-  <Style Selector="Border.dropZone.strip Border.dropChip">
-    <Setter Property="IsVisible" Value="False" />
-  </Style>
-  <Style Selector="Border.dropZone.strip DockPanel.dropBody > Button">
-    <Setter Property="DockPanel.Dock" Value="Right" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="16,0,0,0" />
-  </Style>
-  <Style Selector="Border.workChip">
-    <Setter Property="Width" Value="40" />
-    <Setter Property="Height" Value="40" />
-    <Setter Property="CornerRadius" Value="10" />
-    <Setter Property="Background" Value="#2ED4213D" />
-    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
-  </Style>
-  <Style Selector="Border.folderChip">
-    <Setter Property="Width" Value="40" />
-    <Setter Property="Height" Value="40" />
-    <Setter Property="CornerRadius" Value="10" />
-    <Setter Property="Background" Value="{StaticResource FillBrush}" />
-    <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
-  </Style>
+  <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Creator/CreatorDropStyles.axaml" />
 
   <!-- A dialog's quieter parts: a note that explains rather than warns, and an empty state under its own title. -->
   <Style Selector="ui|Callout.note">

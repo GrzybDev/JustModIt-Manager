@@ -7,6 +7,7 @@ using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
@@ -137,34 +138,10 @@ public sealed partial class ReviewViewModel
         (RenameFrom, IsAdding) = ("", false);
     }
 
-    private void ShowOperations(List<IReviewRow> fresh)
+    private void ShowOperations(List<IReviewRow> rows)
     {
-        OperationGroup? group = null;
-        _operations = ReviewRows.Reuse(_operationRows, fresh, (from, to) =>
-        {
-            switch (from, to)
-            {
-                case (OperationGroup newer, OperationGroup kept):
-                    (kept.Folder, kept.Count, kept.Range, kept.Size) = (newer.Folder, newer.Count, newer.Range, newer.Size);
-                    break;
-                case (OperationRow newer, OperationRow kept):
-                    Copy(newer, kept);
-                    break;
-            }
-        });
-        foreach (var row in _operations)
-        {
-            switch (row)
-            {
-                case OperationGroup head:
-                    group = head;
-                    break;
-                case OperationRow { Group: not null } member:
-                    member.Group = group;
-                    break;
-            }
-        }
-
+        _operations = rows;
+        ReviewRows.Remember(_operationRows, rows);
         Controls.CardGrid.Sync(Operations, Visible(_operations));
     }
 
@@ -214,7 +191,9 @@ public sealed partial class ReviewViewModel
             for (; i <= last; i++)
             {
                 var operation = operations[i];
-                var row = new OperationRow(keys.Next(KeyOf(operation))) { Group = group };
+                var key = keys.Next(KeyOf(operation));
+                var row = _operationRows.GetValueOrDefault(key) as OperationRow ?? new OperationRow(key);
+                row.Group = group;
                 var entry = operation.Reason == OperationReason.AddedStep ? null : entries.GetValueOrDefault(operation.Path);
                 Fill(row, operation, i, entry, findings[i], renames.GetValueOrDefault(operation.Path));
                 row.BreaksRules = refused.Contains(i);
@@ -225,7 +204,8 @@ public sealed partial class ReviewViewModel
         foreach (var entry in review.Entries.Where(entry => entry.Choice == FileChoice.Skip
             && (entry.IsChangedByAuthor || entry.File.Difference == FileDifference.Missing)))
         {
-            var row = new OperationRow(keys.Next("left out:" + entry.File.Path));
+            var key = keys.Next("left out:" + entry.File.Path);
+            var row = _operationRows.GetValueOrDefault(key) as OperationRow ?? new OperationRow(key);
             Fill(row, entry);
             rows.Add(row);
         }
@@ -237,36 +217,13 @@ public sealed partial class ReviewViewModel
     {
         var folder = CreatorWording.FolderOf(operations[first].Path).TrimEnd('/');
         var key = keys.Next("group:" + folder);
-        return new OperationGroup(key)
-        {
-            Folder = folder,
-            Count = Text.Format(Strings.Creator_GroupCount, ("count", last - first + 1)),
-            Range = Text.Format(Strings.Creator_GroupRange, ("first", first + 1), ("last", last + 1)),
-            Size = Formats.FileSize(Enumerable.Range(first, last - first + 1).Sum(i => operations[i].SourceFile?.Stamp.Size ?? 0)),
-            IsExpanded = _expanded.TryGetValue(key, out var expanded) ? expanded : last - first + 1 < FoldedGroupSize,
-        };
-    }
-
-    private static void Copy(OperationRow from, OperationRow to)
-    {
-        (to.Entry, to.ExtraStep, to.Group, to.Number, to.KindText, to.KindIcon, to.KindTone, to.ShowsKind) =
-            (from.Entry, from.ExtraStep, from.Group, from.Number, from.KindText, from.KindIcon, from.KindTone, from.ShowsKind);
-        (to.Folder, to.Name, to.FromFolder, to.FromName, to.Reason, to.Size) =
-            (from.Folder, from.Name, from.FromFolder, from.FromName, from.Reason, from.Size);
-        (to.CanEdit, to.CanExclude, to.CanRemove, to.IsExcluded, to.IsDecision) =
-            (from.CanEdit, from.CanExclude, from.CanRemove, from.IsExcluded, from.IsDecision);
-        // New pills would take the keyboard focus from the one just pressed.
-        if (!to.Choices.Select(choice => (choice.Choice, choice.IsChecked))
-            .SequenceEqual(from.Choices.Select(choice => (choice.Choice, choice.IsChecked))))
-        {
-            to.Choices = from.Choices;
-        }
-
-        (to.EditText, to.EditNote, to.BreaksRules) = (from.EditText, from.EditNote, from.BreaksRules);
-        if (!to.Findings.SequenceEqual(from.Findings))
-        {
-            to.Findings = from.Findings;
-        }
+        var group = _operationRows.GetValueOrDefault(key) as OperationGroup
+            ?? new OperationGroup(key) { IsExpanded = _expanded.TryGetValue(key, out var expanded) ? expanded : last - first + 1 < FoldedGroupSize };
+        group.Folder = folder;
+        group.Count = Text.Format(Strings.Creator_GroupCount, ("count", last - first + 1));
+        group.Range = Text.Format(Strings.Creator_GroupRange, ("first", first + 1), ("last", last + 1));
+        group.Size = Formats.FileSize(Enumerable.Range(first, last - first + 1).Sum(i => operations[i].SourceFile?.Stamp.Size ?? 0));
+        return group;
     }
 
     private static bool IsNewFile(PlannedOperation operation) =>
@@ -289,7 +246,8 @@ public sealed partial class ReviewViewModel
             ? (CreatorWording.FolderOf(from), CreatorWording.GameIndexName(from))
             : ("", "");
         row.Reason = IsNewFile(operation) ? ""
-            : CreatorWording.Why(operation, operation.Reason == OperationReason.OriginalRenamedAway ? renamedBy : 0);
+            : Text.Format(Strings.Creator_Why, ("reason", operation.Reason.ToString()), ("name", CreatorWording.GameIndexName(operation.Path)),
+                ("from", CreatorWording.GameIndexName(operation.From ?? "")), ("number", operation.Reason == OperationReason.OriginalRenamedAway ? renamedBy : 0));
         row.Size = operation.Kind == OperationKind.Copy && operation.SourceFile is { } source ? Formats.FileSize(source.Stamp.Size) : "";
         row.Entry = entry;
         row.ExtraStep = operation.Reason == OperationReason.AddedStep ? operation.StepIndex : null;
@@ -299,18 +257,28 @@ public sealed partial class ReviewViewModel
         row.IsExcluded = false;
         row.IsDecision = false;
         row.ShowsKind = row.Group is null;
-        row.Findings = [.. findings.Select(Line)];
-        if (entry is not null)
-        {
-            row.Choices = ChoicesOf(entry);
-            row.EditText = Text.Format(Strings.Creator_EditText, ("difference", entry.File.Difference.ToString()),
-                ("from", CreatorWording.GameIndexName(entry.File.RenameFrom ?? "")));
-            row.EditNote = entry.Choices.Contains(FileChoice.Patch) ? Strings.Creator_WholeFileNote : "";
-        }
-
+        Show(row, entry is null ? [] : ChoicesOf(entry));
+        row.EditText = entry is null ? "" : Text.Format(Strings.Creator_EditText, ("difference", entry.File.Difference.ToString()),
+            ("from", CreatorWording.GameIndexName(entry.File.RenameFrom ?? "")));
+        row.EditNote = entry?.Choices.Contains(FileChoice.Patch) == true ? Strings.Creator_WholeFileNote : "";
+        List<FindingLine> lines = [.. findings.Select(Line)];
         if (entry?.File.ExpectedFolder is { } expected)
         {
-            row.Findings = [.. row.Findings, new FindingLine(Text.Format(Strings.Creator_ExpectedFolder, ("folder", expected)), RowTone.Warning)];
+            lines.Add(new FindingLine(Text.Format(Strings.Creator_ExpectedFolder, ("folder", expected)), Tone.Warning));
+        }
+
+        if (!lines.SequenceEqual(row.Findings))
+        {
+            row.Findings = lines;
+        }
+    }
+
+    // New pills would take the keyboard focus from the one just pressed.
+    private static void Show(OperationRow row, IReadOnlyList<ChoiceOption> choices)
+    {
+        if (!row.Choices.Select(choice => (choice.Choice, choice.IsChecked)).SequenceEqual(choices.Select(choice => (choice.Choice, choice.IsChecked))))
+        {
+            row.Choices = choices;
         }
     }
 
@@ -319,8 +287,8 @@ public sealed partial class ReviewViewModel
         var missing = entry.File.Difference == FileDifference.Missing;
         (row.Number, row.Folder, row.Name) = ("–", CreatorWording.FolderOf(entry.File.Path), CreatorWording.GameIndexName(entry.File.Path));
         (row.KindText, row.KindIcon, row.KindTone) = missing
-            ? (Strings.Creator_KindKept, Icons.File, RowTone.Neutral)
-            : (Strings.Creator_KindExcluded, Icons.CircleMinus, RowTone.Neutral);
+            ? (Strings.Creator_KindKept, Icons.File, Tone.Neutral)
+            : (Strings.Creator_KindExcluded, Icons.CircleMinus, Tone.Neutral);
         row.Entry = entry;
         row.IsExcluded = !missing;
         row.IsDecision = missing;
@@ -329,7 +297,7 @@ public sealed partial class ReviewViewModel
             ? Text.Format(Strings.Creator_MissingReason, ("folder", folder), ("root", folder.Length == 0 ? "true" : "false"))
             : Strings.Creator_ExcludedReason;
         row.Size = entry.File.Author is { } author ? Formats.FileSize(author.Size) : "";
-        row.Choices = missing ? ChoicesOf(entry) : [];
+        Show(row, missing ? ChoicesOf(entry) : []);
         (row.CanEdit, row.CanExclude, row.CanRemove, row.ShowsKind, row.BreaksRules) = (false, false, false, true, false);
         row.Findings = [];
     }

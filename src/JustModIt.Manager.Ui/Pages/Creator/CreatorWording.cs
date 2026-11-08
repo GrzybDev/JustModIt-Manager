@@ -5,6 +5,7 @@ using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
@@ -38,12 +39,12 @@ internal static class CreatorWording
 
     /// <summary>An operation's kind as its chip says it.</summary>
     /// <param name="kind">The operation's kind.</param>
-    public static (string Text, Geometry Icon, RowTone Tone) Kind(OperationKind kind) => kind switch
+    public static (string Text, Geometry Icon, Tone Tone) Kind(OperationKind kind) => kind switch
     {
-        OperationKind.Copy => (Strings.Creator_KindCopy, Icons.Copy, RowTone.Neutral),
-        OperationKind.Patch => (Strings.Creator_KindPatch, Icons.FileDiff, RowTone.Neutral),
-        OperationKind.Rename => (Strings.Creator_KindRename, Icons.FilePen, RowTone.Neutral),
-        _ => (Strings.Creator_KindDelete, Icons.FileX, RowTone.Danger),
+        OperationKind.Copy => (Strings.Creator_KindCopy, Icons.Copy, Tone.Neutral),
+        OperationKind.Patch => (Strings.Creator_KindPatch, Icons.FileDiff, Tone.Neutral),
+        OperationKind.Rename => (Strings.Creator_KindRename, Icons.FilePen, Tone.Neutral),
+        _ => (Strings.Creator_KindDelete, Icons.FileX, Tone.Danger),
     };
 
     /// <summary>How a pill names a choice for a file.</summary>
@@ -51,13 +52,6 @@ internal static class CreatorWording
     /// <param name="difference">How the file differs from the game's.</param>
     public static string Choice(FileChoice choice, FileDifference difference) =>
         Text.Format(Strings.Creator_Choice, ("choice", choice.ToString()), ("difference", difference.ToString()));
-
-    /// <summary>Why the package holds an operation, as the review says it.</summary>
-    /// <param name="operation">The operation.</param>
-    /// <param name="number">The number of the operation that renamed its original away; 0 for none.</param>
-    public static string Why(PlannedOperation operation, int number) =>
-        Text.Format(Strings.Creator_Why, ("reason", operation.Reason.ToString()), ("name", GameIndexName(operation.Path)),
-            ("from", GameIndexName(operation.From ?? "")), ("number", number));
 
     /// <summary>A finding as a sentence beside what it is about.</summary>
     /// <param name="finding">The finding.</param>
@@ -75,11 +69,6 @@ internal static class CreatorWording
     /// <param name="tool">The tool's name, for a third-party tool.</param>
     public static string RuleTitle(PlanFinding finding, string tool = "") =>
         Text.Format(Strings.Creator_RuleTitle, Arguments(finding, tool));
-
-    /// <summary>What the site's hosting rules ask about a finding, under its title.</summary>
-    /// <param name="finding">The finding.</param>
-    public static string RuleText(PlanFinding finding) =>
-        Text.Format(Strings.Creator_RuleText, ("kind", finding.Kind.ToString()));
 
     /// <summary>The counts of a list of operations or steps, e.g. "8 operations · 1 rename · 6 copies".</summary>
     /// <param name="operations">The operations, in order.</param>

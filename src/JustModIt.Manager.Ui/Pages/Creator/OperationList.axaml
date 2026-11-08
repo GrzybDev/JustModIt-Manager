@@ -157,40 +157,16 @@
                 ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Classes.expanded="{Binding IsAdding}" Command="{Binding ToggleAddingCommand}" />
       </Grid>
       <ItemsControl ItemsSource="{Binding IdenticalFiles}" IsVisible="{Binding ShowsIdentical}" Margin="44,0,20,12"
-                    ItemsPanel="{StaticResource VirtualItems}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="x:String">
-            <TextBlock Classes="pathLine" Text="{Binding}" Margin="0,2" />
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+                    ItemsPanel="{StaticResource VirtualItems}" ItemTemplate="{StaticResource PathLineTemplate}" />
       <Border Classes="editPanel" Margin="20,0,20,20" IsVisible="{Binding IsAdding}" theme:Motion.Enter="True">
         <StackPanel Spacing="12">
           <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddOperation}" />
           <ui:PixelUniformGrid Columns="2" ColumnSpacing="12" IsVisible="{Binding !IsNamingRename}">
             <Button Classes="addTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddDelete}" Command="{Binding AddDeleteCommand}">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-                <Border Classes="folderChip" Width="36" Height="36">
-                  <ui:Icon Data="{x:Static theme:Icons.FileX}" Width="18" Height="18" />
-                </Border>
-                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                  <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddDelete}" />
-                  <TextBlock Classes="rowText" Text="{x:Static loc:Strings.Creator_AddDeleteText}" />
-                </StackPanel>
-                <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
-              </Grid>
+              <ui:TileContent Theme="{StaticResource AddTile}" Icon="{x:Static theme:Icons.FileX}" Title="{x:Static loc:Strings.Creator_AddDelete}" Message="{x:Static loc:Strings.Creator_AddDeleteText}" />
             </Button>
             <Button Classes="addTile" AutomationProperties.Name="{x:Static loc:Strings.Creator_AddRename}" Command="{Binding AddRenameCommand}">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-                <Border Classes="folderChip" Width="36" Height="36">
-                  <ui:Icon Data="{x:Static theme:Icons.FilePen}" Width="18" Height="18" />
-                </Border>
-                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                  <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_AddRename}" />
-                  <TextBlock Classes="rowText" Text="{x:Static loc:Strings.Creator_AddRenameText}" />
-                </StackPanel>
-                <ui:Icon Grid.Column="2" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
-              </Grid>
+              <ui:TileContent Theme="{StaticResource AddTile}" Icon="{x:Static theme:Icons.FilePen}" Title="{x:Static loc:Strings.Creator_AddRename}" Message="{x:Static loc:Strings.Creator_AddRenameText}" />
             </Button>
           </ui:PixelUniformGrid>
           <Grid ColumnDefinitions="*,Auto,*,Auto" ColumnSpacing="10" IsVisible="{Binding IsNamingRename}">

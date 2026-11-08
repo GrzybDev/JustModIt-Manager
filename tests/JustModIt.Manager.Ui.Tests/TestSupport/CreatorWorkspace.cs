@@ -1,3 +1,5 @@
+using Avalonia.Automation.Peers;
+using Avalonia.Controls;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Protocol.Messages;
@@ -116,6 +118,23 @@ public sealed class CreatorWorkspace : IDisposable
         return (ProjectPageViewModel)ui.Shell.Navigator.Current!;
     }
 
+    /// <summary>Opens the window on the creator's library, with the agent answering from this workspace.</summary>
+    /// <param name="state">The agent's state; null for an idle one in creator mode.</param>
+    /// <param name="files">Reads the folders; null for the real file system.</param>
+    /// <param name="width">The window's width.</param>
+    /// <param name="height">The window's height.</param>
+    /// <param name="creatorDirectory">The library's folder; null for the harness's own.</param>
+    public async Task<UiHarness> OpenAsync(AppStateView? state = null, IFileSystem? files = null, double width = 1280, double height = 800, string? creatorDirectory = null)
+    {
+        var ui = new UiHarness(state ?? TestStates.Idle(creatorMode: true), Compose(files), width, height,
+            context: creatorDirectory is null ? null : context => context with { CreatorDirectory = creatorDirectory });
+        ui.Agent.Answer = Answer;
+        ui.Shell.Navigator.Navigate(new CreatorRoute());
+        await UiHarness.WaitUntilAsync(() => ui.Find<CreatorPage>().Any(page => page.IsEffectivelyVisible));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        return ui;
+    }
+
     /// <summary>Answers the window's question for the detected games, and every other request with nothing.</summary>
     public Func<Message, Message?> Answer => request => request is GetDetectedGames ? new DetectedGames(Detected) : null;
 
@@ -176,6 +195,56 @@ public sealed class DriveRootFileSystem(string root, string folder) : IFileSyste
     private string Real(string path) => path.StartsWith(root, StringComparison.OrdinalIgnoreCase) ? Path.Join(folder, path[root.Length..]) : path;
 
     private string Shown(string path) => path.StartsWith(folder, StringComparison.OrdinalIgnoreCase) ? Path.Join(root, path[folder.Length..].TrimStart(Path.DirectorySeparatorChar)) : path;
+}
+
+/// <summary>What the creator's window tests do in the window.</summary>
+public static class CreatorUi
+{
+    /// <summary>The project's page the window shows.</summary>
+    /// <param name="ui">The window.</param>
+    public static ProjectPageViewModel Page(this UiHarness ui) => (ProjectPageViewModel)ui.Shell.Navigator.Current!;
+
+    /// <summary>The first button in sight that can be pressed, by its screen-reader name.</summary>
+    /// <param name="ui">The window.</param>
+    /// <param name="name">The button's name.</param>
+    /// <param name="context">The row it belongs to; null for any.</param>
+    public static Button Button(this UiHarness ui, string name, object? context = null) =>
+        ui.Find<Button>().First(button => button.IsEffectivelyVisible && button.IsEffectivelyEnabled && (context is null || button.DataContext == context)
+            && ControlAutomationPeer.CreatePeerForElement(button).GetName() == name);
+
+    /// <summary>Saves what the window shows once its transitions ended.</summary>
+    /// <param name="ui">The window.</param>
+    /// <param name="name">The picture's name.</param>
+    /// <param name="height">The window's height for the picture; null for its own.</param>
+    /// <returns>Completes once the picture is saved.</returns>
+    public static async Task RenderAsync(this UiHarness ui, string name, double? height = null)
+    {
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render(name, height);
+    }
+
+    /// <summary>Presses a button of the dialog shown and waits for the dialog to go; its scrim takes the clicks meant for the page until then.</summary>
+    /// <param name="ui">The window.</param>
+    /// <param name="button">The button's name.</param>
+    /// <returns>Completes once another dialog or none is shown.</returns>
+    public static async Task AnswerAsync(this UiHarness ui, string button)
+    {
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is { IsClosing: false });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+        var dialog = ui.Shell.Dialogs.Current;
+        ui.Click(ui.Button(button));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current != dialog);
+    }
+
+    /// <summary>Types a version into a project and waits until its metadata holds nothing back.</summary>
+    /// <param name="page">The project's page.</param>
+    /// <param name="version">The version.</param>
+    /// <returns>Completes once the plan took it.</returns>
+    public static async Task ReleaseAsAsync(this ProjectPageViewModel page, string version)
+    {
+        page.Description.Version = version;
+        await UiHarness.WaitUntilAsync(() => !page.Description.HasMetadataProblem);
+    }
 }
 
 /// <summary>

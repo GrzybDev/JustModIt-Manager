@@ -1,0 +1,253 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+        xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+        xmlns:loc="using:JustModIt.Manager.Localization">
+  <!-- The rows of the creator's lists: their texts, their kind chips, their tints and what they edit in place. -->
+  <Style Selector="TextBlock.rowTitle">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="TextBlock.rowText">
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LineHeight" Value="19" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+  <!-- The page's styles win over the theme's, so a row text in a tone takes the tone here too. -->
+  <Style Selector="TextBlock.rowText.successText">
+    <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.rowText.warningText">
+    <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.rowText.dangerText">
+    <Setter Property="Foreground" Value="{StaticResource DangerTextStrongBrush}" />
+  </Style>
+  <Style Selector="TextBlock.rowText.infoText">
+    <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.pathLine">
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LineHeight" Value="18" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="Border.cover">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+    <Setter Property="BoxShadow" Value="0 0 0 1 #14FFFFFF" />
+  </Style>
+
+  <!-- An operation's kind: a 24 px chip with its icon. -->
+  <Style Selector="Border.kind">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Padding" Value="8,0,10,0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Background" Value="{StaticResource FillStrongBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+  <Style Selector="Border.kind > StackPanel">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="6" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.kind > TextBlock">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.kind ui|Icon">
+    <Setter Property="Width" Value="13" />
+    <Setter Property="Height" Value="13" />
+  </Style>
+  <Style Selector="Border.kind TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Border.kind.danger">
+    <Setter Property="Background" Value="#29EF4444" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+  <Style Selector="Border.kind.success">
+    <Setter Property="Background" Value="#2922C55E" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource SuccessTextBrush}" />
+  </Style>
+  <Style Selector="Border.kind.warning">
+    <Setter Property="Background" Value="#29F59E0B" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="Border.kind.neutral">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource NeutralTextBrush}" />
+  </Style>
+  <!-- A step that runs on some versions only. -->
+  <Style Selector="Border.kind.limited">
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+
+  <!-- A warning only the build found, tinted green once the author accepted it. -->
+  <Style Selector="Border.buildFinding">
+    <Setter Property="Padding" Value="10,6" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.2" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.buildFinding.accepted">
+    <Setter Property="Background" Value="#1F22C55E" />
+    <Setter Property="BorderBrush" Value="#4022C55E" />
+  </Style>
+
+  <!-- The rules' chip turns green once the package meets them. -->
+  <Style Selector="Border.iconChip.success">
+    <Setter Property="Background" Value="#2922C55E" />
+  </Style>
+  <Style Selector="Border.iconChip.success > ui|Icon">
+    <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+  </Style>
+
+  <!-- Lists of operations, steps and rules: rows split by faint lines. -->
+  <Style Selector="ItemsControl.rows > ContentPresenter">
+    <Setter Property="BorderBrush" Value="#0FFFFFFF" />
+  </Style>
+  <Style Selector="ItemsControl.rows > ContentPresenter:not(:nth-child(1))">
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <!-- A step with a problem: a faint red row, its number in red and the path the problem is about framed in red. -->
+  <Style Selector="Border.stepRow">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.stepRow.problem, Border.runtimeRow.problem">
+    <Setter Property="Background" Value="#0FEF4444" />
+  </Style>
+  <Style Selector="Border.number.problem">
+    <Setter Property="BorderBrush" Value="#80F87171" />
+    <Setter Property="Background" Value="#24EF4444" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource DangerTextBrush}" />
+  </Style>
+  <!-- An add-on's name in its row of the table: a bold name, which the field's frame shows editable under the pointer and while typing. -->
+  <Style Selector="TextBox.partName">
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="Margin" Value="-8,0,0,2" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="TextBox.faulty">
+    <Setter Property="BorderBrush" Value="#B3F87171" />
+  </Style>
+  <Style Selector="TextBox.faulty:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="#B3F87171" />
+  </Style>
+  <Style Selector="Border.editPanel">
+    <Setter Property="Padding" Value="18,16" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+    <Setter Property="Background" Value="{StaticResource SurfaceFloatingBrush}" />
+  </Style>
+  <Style Selector="Button.groupToggle">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+  </Style>
+  <Style Selector="Button.groupToggle ui|Icon">
+    <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.groupToggle.expanded ui|Icon">
+    <Setter Property="RenderTransform" Value="rotate(0deg)" />
+  </Style>
+  <Style Selector="Border.grip">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Cursor" Value="SizeNorthSouth" />
+  </Style>
+  <Style Selector="Button.addTile, Button.stepTile">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="#08FFFFFF" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Button.addTile">
+    <Setter Property="Padding" Value="12,14,14,14" />
+  </Style>
+  <Style Selector="Button.stepTile">
+    <Setter Property="Padding" Value="14,16,14,14" />
+  </Style>
+  <Style Selector="Button.addTile:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.stepTile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+  </Style>
+  <Style Selector="ItemsControl.runtimeRows">
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+  </Style>
+  <Style Selector="Border.runtimeRow">
+    <Setter Property="Padding" Value="20,12,16,14" />
+  </Style>
+  <Style Selector="TextBlock.monoPath">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LineHeight" Value="22" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+  </Style>
+  <Style Selector="TextBox.monoField">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="Border.runtimePrompt">
+    <Setter Property="Margin" Value="0,4,0,0" />
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource InfoEdgeBrush}" />
+  </Style>
+  <Style Selector="Border.runtimeAdd">
+    <Setter Property="Padding" Value="20,14,20,18" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+  </Style>
+  <Style Selector="Border.runtimeAdd.typing">
+    <Setter Property="Background" Value="#05FFFFFF" />
+  </Style>
+  <Style Selector="Button.fixAction">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="14,0" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+</Styles>

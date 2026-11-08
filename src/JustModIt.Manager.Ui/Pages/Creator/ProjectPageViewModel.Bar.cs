@@ -45,10 +45,14 @@ public sealed partial class ProjectPageViewModel
 
     /// <summary>What has to happen before a build, as one sentence; empty when nothing holds it back.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasBlockedText))]
+    [NotifyPropertyChangedFor(nameof(HasBlockedText), nameof(IsBlockedHere), nameof(IsBlockedInTable))]
     public partial string BlockedText { get; private set; } = "";
 
     public bool HasBlockedText => BlockedText.Length > 0;
+
+    public bool IsBlockedHere => HasBlockedText && !IsTable;
+
+    public bool IsBlockedInTable => HasBlockedText && IsTable;
 
     [ObservableProperty]
     public partial bool CanBuild { get; private set; }
@@ -77,7 +81,7 @@ public sealed partial class ProjectPageViewModel
 
         try
         {
-            var files = FileSystem ?? PhysicalFileSystem.Instance;
+            var files = _creator.FileSystem ?? PhysicalFileSystem.Instance;
             var plans = Cells.Select(cell => cell.Review?.Plan).OfType<PackagePlan>().ToList();
             await Task.Run(() => plans.ForEach(plan => PackageBuilder.CheckOutputFolder(files.GetCanonicalPath(folder), plan)))
                 .ConfigureAwait(true);

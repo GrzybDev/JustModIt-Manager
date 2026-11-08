@@ -49,7 +49,7 @@ public sealed partial class GameOption(DetectedGameEntry entry) : ObservableObje
     public bool HasCover => Cover.Length > 0;
 
     /// <summary>The store's build as a version's tile names it; empty when the store names none.</summary>
-    public string Build => Entry.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "";
+    public string Build => Entry.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.GamePage_Build, ("build", build)) : "";
 
     /// <summary>The store's build, and that the game's folders lie unlike the first version's once that is known.</summary>
     public string Detail => GameWording.Join([Build, IsOtherLayout ? Strings.Creator_OtherLayout : ""]);
@@ -147,7 +147,7 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLoading), nameof(HasFailed), nameof(HasNoGames), nameof(IsListed), nameof(ShowsSearch), nameof(ShowsNoResults),
-        nameof(ShowsGame))]
+        nameof(ShowsGame), nameof(ShowsNotRecognized), nameof(ShowsSkeletons))]
     public partial GameListState State { get; private set; }
 
     public bool IsLoading => State == GameListState.Loading;
@@ -160,9 +160,13 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
 
     public bool ShowsSearch => ShowsList && State is GameListState.Loading or GameListState.Listed;
 
+    public bool ShowsSkeletons => ShowsSearch && IsLoading;
+
+    public bool ShowsNotRecognized => ShowsSearch && IsNotRecognized;
+
     /// <summary>The dialog shows every detected game rather than the one its files fit.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsListed), nameof(ShowsSearch), nameof(ShowsNoResults), nameof(ShowsGame))]
+    [NotifyPropertyChangedFor(nameof(IsListed), nameof(ShowsSearch), nameof(ShowsNoResults), nameof(ShowsGame), nameof(ShowsNotRecognized), nameof(ShowsSkeletons))]
     [NotifyCanExecuteChangedFor(nameof(CreateCommand))]
     public partial bool ShowsList { get; private set; }
 

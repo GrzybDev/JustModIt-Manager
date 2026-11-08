@@ -179,7 +179,8 @@ public sealed partial class ReviewViewModel
         var operations = PartCells().Select(_session.ReviewOf).OfType<CreatorReview>().SelectMany(each => each.Plan.Operations)
             .Where(operation => operation.StepIndex is not null).ToLookup(operation => operation.StepIndex!.Value);
         var own = plan.Operations.Where(operation => operation.StepIndex is not null).ToDictionary(operation => operation.StepIndex!.Value);
-        _steps = ReviewRows.Reuse(_stepRows, [.. Enumerable.Range(0, part.Steps.Count).Select(i => new StepRow(StepKey(i)))], null);
+        _steps = [.. Enumerable.Range(0, part.Steps.Count).Select(i => _stepRows.GetValueOrDefault(StepKey(i)) ?? new StepRow(StepKey(i)))];
+        ReviewRows.Remember(_stepRows, _steps);
         for (var i = 0; i < _steps.Count; i++)
         {
             Fill(_steps[i], i, part.Steps, findings[i]);
@@ -217,23 +218,9 @@ public sealed partial class ReviewViewModel
         };
         var number = (index + 1).ToString(Text.Culture);
         (row.Index, row.Number, row.Kind) = (index, number, kind);
-        (row.KindText, row.KindIcon, row.KindTone) = CreatorWording.Kind(kind);
-        (row.First, row.Second, row.HasSecond, row.PicksAuthorFile) = (first, second, kind != OperationKind.Delete,
-            kind is OperationKind.Copy or OperationKind.Patch);
-        (row.FirstLabel, row.SecondLabel) = kind switch
-        {
-            OperationKind.Copy => (Strings.Creator_StepSource, Strings.Creator_StepCopyTo),
-            OperationKind.Patch => (Strings.Creator_StepSource, Strings.Creator_StepPatchOf),
-            OperationKind.Rename => (Strings.Creator_StepGameFile, Strings.Creator_StepNewName),
-            _ => (Strings.Creator_StepGameFile, ""),
-        };
+        (row.First, row.Second) = (first, second);
         (row.CanMoveUp, row.CanMoveDown) = (index > 0, index < steps.Count - 1);
-        row.EditName = Text.Format(Strings.Creator_EditStep, ("number", number));
-        row.MoveUpName = Text.Format(Strings.Creator_StepMoveUp, ("number", number));
-        row.MoveDownName = Text.Format(Strings.Creator_StepMoveDown, ("number", number));
-        row.RemoveName = Text.Format(Strings.Creator_StepRemove, ("number", number));
-        row.DragName = Text.Format(Strings.Creator_StepDrag, ("number", number));
-        FillVersions(row, steps[index].Only, number);
+        FillVersions(row, steps[index].Only);
         List<PlanFinding> found = [.. findings];
         // The row says this one in words of its own, with the move that solves it.
         List<FindingLine> lines = [.. found.Where(finding => finding.MoveBefore is null).Select(Line)];
@@ -265,7 +252,7 @@ public sealed partial class ReviewViewModel
     }
 
     // Pills of a project's versions, kept while its versions stay, so the one just pressed keeps the keyboard's focus.
-    private void FillVersions(StepRow row, ValueList<GameKey> only, string number)
+    private void FillVersions(StepRow row, ValueList<GameKey> only)
     {
         var versions = _session.Project.Versions;
         if (versions.Count < 2)
@@ -286,7 +273,6 @@ public sealed partial class ReviewViewModel
 
         row.ShowVersions();
         row.IsLimited = only.Count > 0;
-        row.VersionsName = Text.Format(Strings.Creator_StepVersionsName, ("number", number));
         row.VersionsText = Text.Format(Strings.Creator_StepVersions, ("all", only.Count == 0 ? "true" : "false"),
             ("stores", only.Count == 0 ? "" : CreatorWording.List([.. only.Select(key => GameWording.StoreName(key.Store))])));
     }

@@ -1,0 +1,89 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+        xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+        xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+        xmlns:loc="using:JustModIt.Manager.Localization">
+  <!-- The places that take a folder dropped on them. -->
+  <!-- The drop zone: a dashed frame, in the accent while a folder is dragged over it. It stands tall and centred where nothing
+       else is on offer, and as a strip under a library's cards. -->
+  <Style Selector="Border.dropZone">
+    <Setter Property="Height" Value="232" />
+    <Setter Property="Padding" Value="24" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Background">
+      <SolidColorBrush Color="{DynamicResource AccentColor}" Opacity="0.05" />
+    </Setter>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.dropZone.over">
+    <Setter Property="Background" Value="{DynamicResource AccentFilterBrush}" />
+  </Style>
+  <Style Selector="Rectangle.dropFrame">
+    <Setter Property="Margin" Value="-24" />
+    <Setter Property="Stroke" Value="{DynamicResource AccentBorderBrush}" />
+    <Setter Property="StrokeThickness" Value="2" />
+    <Setter Property="StrokeDashArray" Value="4,3" />
+    <Setter Property="RadiusX" Value="16" />
+    <Setter Property="RadiusY" Value="16" />
+  </Style>
+  <Style Selector="Border.dropZone.over Rectangle.dropFrame">
+    <Setter Property="Stroke" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.dropChip">
+    <Setter Property="Width" Value="56" />
+    <Setter Property="Height" Value="56" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Margin" Value="0,0,0,12" />
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{StaticResource TextEmphasisBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.dropZone.over Border.dropChip">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Border.dropZone:not(.strip) DockPanel.dropBody">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.dropZone:not(.strip) DockPanel.dropBody > Button">
+    <Setter Property="DockPanel.Dock" Value="Bottom" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,16,0,0" />
+  </Style>
+  <Style Selector="Border.dropZone:not(.strip) TextBlock">
+    <Setter Property="TextAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.dropZone TextBlock.whileOver">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Border.dropZone.over TextBlock.whileOver">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+  <Style Selector="Border.dropZone.over TextBlock.atRest">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Border.dropZone.strip">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="Padding" Value="18,16" />
+    <Setter Property="CornerRadius" Value="12" />
+  </Style>
+  <Style Selector="Border.dropZone.strip Rectangle.dropFrame">
+    <Setter Property="Margin" Value="-18,-16" />
+    <Setter Property="RadiusX" Value="12" />
+    <Setter Property="RadiusY" Value="12" />
+  </Style>
+  <Style Selector="Border.dropZone.strip Border.dropChip">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Border.dropZone.strip DockPanel.dropBody > Button">
+    <Setter Property="DockPanel.Dock" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="16,0,0,0" />
+  </Style>
+</Styles>

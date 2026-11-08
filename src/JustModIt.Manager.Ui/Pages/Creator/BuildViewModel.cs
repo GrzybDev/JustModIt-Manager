@@ -12,6 +12,7 @@ using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
@@ -61,6 +62,8 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             if (e.PropertyName == nameof(TestInstallViewModel.State))
             {
                 OnPropertyChanged(nameof(ShowsTest));
+                OnPropertyChanged(nameof(ShowsAfterBuild));
+                OnPropertyChanged(nameof(ShowsDivider));
                 ShowLast();
             }
         };
@@ -68,7 +71,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsReady), nameof(IsBuilding), nameof(IsBuilt), nameof(HasEarlierPackage),
-        nameof(ShowsPackage), nameof(EarlierText), nameof(IsReadyToUse), nameof(IsGone), nameof(ShowsTest))]
+        nameof(ShowsPackage), nameof(EarlierText), nameof(IsReadyToUse), nameof(IsGone), nameof(ShowsTest), nameof(ShowsAfterBuild), nameof(ShowsDivider))]
     public partial PackageState State { get; private set; }
 
     public bool IsReady => State == PackageState.Ready;
@@ -216,16 +219,19 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
                 ReplaceFiles = names => Dispatcher.UIThread.InvokeAsync(() => _page.Services.Dialogs.ShowAsync(new ConfirmDialogViewModel(
                     Strings.Creator_ReplaceFilesTitle, Text.Format(Strings.Creator_ReplaceFilesMessage, ("names", CreatorWording.List(names))),
                     Strings.Creator_ReplaceFilesConfirm, Icons.TriangleAlert, DialogTone.Danger))),
-                Installs = [.. _page.Agent.State.Games.SelectMany(view => view.Installs)
+                Installs = [.. _page.Creator.Agent.State.Games.SelectMany(view => view.Installs)
                     .Select(install => new ExistingInstall(install.Id, install.InstallDirectory))],
-                Site = _page.Agent.State.Catalogue.ReleaseFiles,
+                Site = _page.Creator.Agent.State.Catalogue.ReleaseFiles,
             };
-            var finished = await new ProjectBuilder(new XDelta3Patcher(), _page.Options, _page.Library, _page.Access, _page.Services.Clock, _page.FileSystem)
+            var finished = await new ProjectBuilder(new XDelta3Patcher(), _page.Creator.Options, _page.Creator.Library, _page.Creator.Access, _page.Services.Clock, _page.Creator.FileSystem)
                 .BuildAsync(request, new LatestProgress<ProjectBuildProgress>(Show), building.Token)
                 .ConfigureAwait(true);
             if (finished.Count > 0)
             {
-                Built(finished);
+                Show([.. finished.Select(built => (built.Part, built.Package))], [.. finished.SelectMany(built => built.Result.Findings
+                    .Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
+                    .Select(finding => finished.Count == 1 ? CreatorWording.Finding(finding) : Text.Format(Strings.Creator_BlockedCell,
+                        ("part", built.Part.Length > 0 ? built.Part : Strings.Creator_PartBase), ("store", Stores(built.Package.Versions)), ("text", CreatorWording.Finding(finding)))))]);
             }
             else
             {
@@ -270,7 +276,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         // window.
         catch (Exception exception)
         {
-            LogBuildFailed(_page.Log, exception);
+            LogBuildFailed(_page.Creator.Log, exception);
             Fail(Strings.Creator_BuildFailedTitle, Text.Format(Strings.Creator_Unexpected, ("error", exception.GetType().Name)));
         }
         finally
@@ -336,7 +342,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         }
 
         var acknowledged = _session.Project.Acknowledged;
-        List<FindingLine> lines = [.. _buildFindings.Select(found => new FindingLine(ReviewLine(found.Finding), RowTone.Warning,
+        List<FindingLine> lines = [.. _buildFindings.Select(found => new FindingLine(ReviewLine(found.Finding), Tone.Warning,
             found.Finding.AcknowledgementKey, found.Finding.AcknowledgementKey is { } key && acknowledged.Contains(key)))];
         if (!lines.SequenceEqual(BuildFindings))
         {

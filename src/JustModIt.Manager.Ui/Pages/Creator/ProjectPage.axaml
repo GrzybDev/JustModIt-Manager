@@ -16,7 +16,7 @@
     <Grid RowDefinitions="Auto,*,Auto" MaxWidth="{StaticResource PageMaxWidth}" Margin="40,28,40,20" RowSpacing="16">
       <StackPanel Spacing="12">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-          <Border Classes="smallCover" Width="44" Height="58" CornerRadius="6" VerticalAlignment="Center">
+          <Border Classes="cover" Width="44" Height="58" CornerRadius="6" VerticalAlignment="Center">
             <Panel>
               <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="16" Height="16" Foreground="{StaticResource TextMutedBrush}" />
               <ui:RemoteImage Source="{Binding Game.Cover, FallbackValue={x:Null}}" />
@@ -49,7 +49,7 @@
                          IsChecked="{Binding Tab, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static creator:ProjectTab.Runtime}}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <TextBlock Text="{x:Static loc:Strings.Creator_RuntimeTitle}" VerticalAlignment="Center" />
-                <Border Classes="kind" VerticalAlignment="Center" IsVisible="{Binding Review.HasRuntimeRows}">
+                <Border Classes="kind" VerticalAlignment="Center" IsVisible="{Binding !!Review.RuntimeRows.Count}">
                   <TextBlock Text="{Binding Review.RuntimeCount}" />
                 </Border>
                 <Border Classes="kind danger" VerticalAlignment="Center" IsVisible="{Binding Review.HasRuntimeProblems}">
@@ -76,7 +76,7 @@
           <!-- A project imported without a game has nothing to compare yet. -->
           <Border x:Name="NoVersion" Classes="creatorCard" Padding="28" Margin="0,4,0,16" VerticalAlignment="Top" IsVisible="{Binding !HasVersion}">
             <StackPanel Spacing="10" HorizontalAlignment="Center">
-              <Border Classes="folderChip" Width="56" Height="56" CornerRadius="14" HorizontalAlignment="Center">
+              <Border Classes="iconChip" Width="56" Height="56" CornerRadius="14" HorizontalAlignment="Center">
                 <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="26" Height="26" />
               </Border>
               <TextBlock Classes="h4" HorizontalAlignment="Center" Text="{x:Static creator:ReleaseTab.NoVersionTitle}" />
@@ -186,21 +186,8 @@
                   </ItemsControl>
                 </WrapPanel>
                 <!-- In a table, a click on the reasons picks the cell they are about. -->
-                <TextBlock x:Name="BlockedText" Classes="rowText dangerText" Text="{Binding BlockedText}">
-                  <TextBlock.IsVisible>
-                    <MultiBinding Converter="{x:Static BoolConverters.And}">
-                      <Binding Path="HasBlockedText" />
-                      <Binding Path="!IsTable" />
-                    </MultiBinding>
-                  </TextBlock.IsVisible>
-                </TextBlock>
-                <Button x:Name="BlockedCell" Classes="inlineLink" HorizontalAlignment="Left" Command="{Binding SelectBlockedCommand}">
-                  <Button.IsVisible>
-                    <MultiBinding Converter="{x:Static BoolConverters.And}">
-                      <Binding Path="HasBlockedText" />
-                      <Binding Path="IsTable" />
-                    </MultiBinding>
-                  </Button.IsVisible>
+                <TextBlock x:Name="BlockedText" Classes="rowText dangerText" Text="{Binding BlockedText}" IsVisible="{Binding IsBlockedHere}" />
+                <Button x:Name="BlockedCell" Classes="inlineLink" HorizontalAlignment="Left" Command="{Binding SelectBlockedCommand}" IsVisible="{Binding IsBlockedInTable}">
                   <TextBlock Classes="rowText dangerText" Text="{Binding BlockedText}" />
                 </Button>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" IsVisible="{Binding HasOutput}">
@@ -215,7 +202,7 @@
             <!-- The build under way: where the run stands, each of its packages with its size or how far it got, and the way to stop it. -->
             <StackPanel x:Name="Building" Spacing="10" IsVisible="{Binding Build.IsBuilding}" theme:Motion.Enter="True">
               <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
-                <Border Classes="workChip">
+                <Border Classes="iconChip accent" Width="40" Height="40">
                   <ui:Icon Classes="spin" Data="{x:Static theme:Icons.LoaderCircle}" Width="20" Height="20" />
                 </Border>
                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">

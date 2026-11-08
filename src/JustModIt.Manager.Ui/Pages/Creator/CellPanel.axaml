@@ -51,13 +51,7 @@
       </Grid>
 
       <!-- What changed since the part's last build, by the operations it touches. -->
-      <StackPanel x:Name="Changes" Spacing="4" theme:Motion.Enter="True">
-        <StackPanel.IsVisible>
-          <MultiBinding Converter="{x:Static BoolConverters.And}">
-            <Binding Path="IsCompared" />
-            <Binding Path="HasChanges" />
-          </MultiBinding>
-        </StackPanel.IsVisible>
+      <StackPanel x:Name="Changes" Spacing="4" theme:Motion.Enter="True" IsVisible="{Binding ShowsChanges}">
         <TextBlock Classes="rowText" Foreground="{StaticResource TextBodyBrush}" Text="{Binding ChangedText}" />
         <ItemsControl ItemsSource="{Binding Changes}">
           <ItemsControl.ItemTemplate>
@@ -116,13 +110,7 @@
         <Button Classes="quiet" HorizontalAlignment="Left" Margin="-12,0,0,0" Content="{Binding IdenticalCount}"
                 ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}" Classes.expanded="{Binding ShowsIdentical}"
                 Command="{Binding ToggleIdenticalCommand}" IsVisible="{Binding HasIdentical}" />
-        <ItemsControl ItemsSource="{Binding IdenticalFiles}" IsVisible="{Binding ShowsIdentical}" Margin="28,0,0,0">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="x:String">
-              <TextBlock Classes="pathLine" Text="{Binding}" Margin="0,2" />
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <ItemsControl ItemsSource="{Binding IdenticalFiles}" IsVisible="{Binding ShowsIdentical}" Margin="28,0,0,0" ItemTemplate="{StaticResource PathLineTemplate}" />
       </StackPanel>
 
       <!-- The compared part: the rules it meets, the problems of the whole package and the way to its operations. -->
@@ -140,13 +128,7 @@
         </StackPanel>
       </Panel>
       <!-- What the cell shares with the first version, and where its folders lie, which no finding would tell. -->
-      <StackPanel x:Name="Folded" Spacing="4">
-        <StackPanel.IsVisible>
-          <MultiBinding Converter="{x:Static BoolConverters.And}">
-            <Binding Path="IsCompared" />
-            <Binding Path="Folded" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
-          </MultiBinding>
-        </StackPanel.IsVisible>
+      <StackPanel x:Name="Folded" Spacing="4" IsVisible="{Binding ShowsFolded}">
         <TextBlock Classes="rowTitle" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Text="{x:Static loc:Strings.Creator_Folded}" />
         <TextBlock Classes="rowText" Text="{Binding Folded}" />
       </StackPanel>

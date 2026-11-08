@@ -26,7 +26,7 @@ public sealed partial class ProjectPageViewModel
 
     /// <summary>The project's cells, part by part over the versions.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsTable), nameof(TabContent), nameof(BuildText))]
+    [NotifyPropertyChangedFor(nameof(IsTable), nameof(TabContent), nameof(BuildText), nameof(ShowsCard), nameof(ShowsTable), nameof(IsBlockedHere), nameof(IsBlockedInTable))]
     public partial IReadOnlyList<CellViewModel> Cells { get; private set; } = [];
 
     /// <summary>The table's rows, one per part.</summary>
@@ -43,6 +43,10 @@ public sealed partial class ProjectPageViewModel
 
     /// <summary>The project has more than one cell, so its page shows them as a table with the chosen one in a panel.</summary>
     public bool IsTable => Cells.Count > 1;
+
+    public bool ShowsCard => !IsTable && !ShowsOperations;
+
+    public bool ShowsTable => IsTable && !ShowsOperations;
 
     public string BuildText => IsTable ? Strings.Creator_BuildAll : Strings.Creator_Build;
 
@@ -101,8 +105,8 @@ public sealed partial class ProjectPageViewModel
             try
             {
                 progress.Report(new CompareProgress(ComparisonStage.ListingFiles, null, 0, 0, 0, 0));
-                var comparer = new FolderComparer(Options, FileSystem, Access);
-                var installs = Agent.State.Games.SelectMany(view => view.Installs).Select(install => new ExistingInstall(install.Id, install.InstallDirectory)).ToList();
+                var comparer = new FolderComparer(_creator.Options, _creator.FileSystem, _creator.Access);
+                var installs = _creator.Agent.State.Games.SelectMany(view => view.Installs).Select(install => new ExistingInstall(install.Id, install.InstallDirectory)).ToList();
                 var session = Session!;
                 var present = session.Project.Versions.Where(version => version.Game.Key == cell.Key.Version
                     || Cells.Any(other => other.Key.Version == version.Game.Key && other.CanBeRead)).ToList();
@@ -204,7 +208,7 @@ public sealed partial class ProjectPageViewModel
         if (copies.Count > 0)
         {
             static string Detail(DetectedGameEntry copy) =>
-                copy.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : CreatorWording.Wrappable(copy.Game.InstallDirectory);
+                copy.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.GamePage_Build, ("build", build)) : CreatorWording.Wrappable(copy.Game.InstallDirectory);
 
             List<DialogChoice> tiles = [.. copies.Select(copy => new DialogChoice(copy.Key.ToString(), Icons.Gamepad, GameWording.StoreName(copy.Key.Store), Detail(copy)))];
             using var layouts = new CancellationTokenSource();
@@ -284,7 +288,7 @@ public sealed partial class ProjectPageViewModel
 
         try
         {
-            await Library.UpdateBuildAsync(ProjectId, record => new([.. (record?.Parts ?? []).Select(part => part with
+            await _creator.Library.UpdateBuildAsync(ProjectId, record => new([.. (record?.Parts ?? []).Select(part => part with
             {
                 Packages = [.. part.Packages.Select(package => package with { Versions = [.. package.Versions.Where(version => version != key)] })
                     .Where(package => package.Versions.Count > 0)],
@@ -334,7 +338,7 @@ public sealed partial class ProjectPageViewModel
         Heads = [.. session.Project.Versions.Select(version => GameWording.Join(
         [
             GameWording.StoreName(version.Game.Key.Store),
-            GameOf(version.Game.Key)?.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "",
+            GameOf(version.Game.Key)?.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.GamePage_Build, ("build", build)) : "",
         ]))];
         // A row kept as it was keeps its head, so an add-on's name being typed is not lost to a state the agent sent meanwhile.
         List<CellRow> rows = [.. session.Project.Parts.Select(part =>

@@ -73,14 +73,14 @@
                 </StackPanel>
                 <StackPanel Spacing="6">
                   <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}"
-                             Text="{x:Static loc:Strings.Creator_ToolLicense}" />
-                  <TextBox Text="{Binding License}" FontSize="14" AutomationProperties.Name="{x:Static loc:Strings.Creator_ToolLicense}" />
+                             Text="{x:Static loc:Strings.Licenses_LicenseHead}" />
+                  <TextBox Text="{Binding License}" FontSize="14" AutomationProperties.Name="{x:Static loc:Strings.Licenses_LicenseHead}" />
                 </StackPanel>
                 <StackPanel Spacing="6">
                   <TextBlock Classes="rowTitle" FontSize="13" Foreground="{StaticResource TextEmphasisBrush}"
-                             Text="{x:Static loc:Strings.Creator_ToolSource}" />
+                             Text="{x:Static loc:Strings.GamePage_LicenseSource}" />
                   <TextBox Text="{Binding Source}" FontSize="14" PlaceholderText="{x:Static loc:Strings.Creator_ToolSourcePlaceholder}"
-                           AutomationProperties.Name="{x:Static loc:Strings.Creator_ToolSource}" />
+                           AutomationProperties.Name="{x:Static loc:Strings.GamePage_LicenseSource}" />
                 </StackPanel>
               </StackPanel>
             </Grid>
@@ -100,9 +100,9 @@
   <StackPanel Spacing="12">
     <ui:Callout Classes="success" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.ShieldCheck}"
                 Title="{x:Static loc:Strings.Creator_RulesMetTitle}" Message="{x:Static loc:Strings.Creator_RulesClean}"
-                IsVisible="{Binding !HasOpenRules}" />
-    <TextBlock Classes="rowTitle" FontSize="14" Text="{x:Static loc:Strings.Creator_Decisions}" IsVisible="{Binding HasOpenRules}" />
-    <Border Classes="creatorCard" ClipToBounds="True" IsVisible="{Binding HasOpenRules}">
+                IsVisible="{Binding !OpenRules.Count}" />
+    <TextBlock Classes="rowTitle" FontSize="14" Text="{x:Static loc:Strings.Creator_Decisions}" IsVisible="{Binding !!OpenRules.Count}" />
+    <Border Classes="creatorCard" ClipToBounds="True" IsVisible="{Binding !!OpenRules.Count}">
       <StackPanel>
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Margin="20,14,16,14">
           <Border Classes="iconChip" Classes.success="{Binding RulesMet}"
@@ -134,8 +134,8 @@
       </StackPanel>
     </Border>
     <TextBlock Classes="rowTitle" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Text="{x:Static loc:Strings.Creator_Accepted}"
-               IsVisible="{Binding HasAcceptedRules}" />
-    <Border Classes="creatorCard" ClipToBounds="True" IsVisible="{Binding HasAcceptedRules}">
+               IsVisible="{Binding !!AcceptedRules.Count}" />
+    <Border Classes="creatorCard" ClipToBounds="True" IsVisible="{Binding !!AcceptedRules.Count}">
       <ItemsControl x:Name="AcceptedRows" Classes="rows" ItemsSource="{Binding AcceptedRules}" ItemTemplate="{StaticResource RuleTemplate}" />
     </Border>
   </StackPanel>

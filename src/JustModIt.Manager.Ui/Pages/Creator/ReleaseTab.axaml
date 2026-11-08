@@ -18,24 +18,11 @@
       </StackPanel>
     </ui:Callout>
 
-    <creator:CellPanel IsEnabled="{Binding !Page.Build.IsBuilding}">
-      <creator:CellPanel.IsVisible>
-        <MultiBinding Converter="{x:Static BoolConverters.And}">
-          <Binding Path="!Page.IsTable" />
-          <Binding Path="!Page.ShowsOperations" />
-        </MultiBinding>
-      </creator:CellPanel.IsVisible>
-    </creator:CellPanel>
+    <creator:CellPanel IsEnabled="{Binding !Page.Build.IsBuilding}" IsVisible="{Binding Page.ShowsCard}" />
 
     <!-- The parts over the versions; a cell opens its panel, and the arrows move between the cells. While a build runs the project
          stands still, but choosing a cell stays. -->
-    <StackPanel x:Name="Table" Spacing="10">
-      <StackPanel.IsVisible>
-        <MultiBinding Converter="{x:Static BoolConverters.And}">
-          <Binding Path="Page.IsTable" />
-          <Binding Path="!Page.ShowsOperations" />
-        </MultiBinding>
-      </StackPanel.IsVisible>
+    <StackPanel x:Name="Table" Spacing="10" IsVisible="{Binding Page.ShowsTable}">
       <Grid ColumnDefinitions="150,*" ColumnSpacing="10">
         <ItemsControl Grid.Column="1" ItemsSource="{Binding Page.Heads}">
           <ItemsControl.ItemsPanel>

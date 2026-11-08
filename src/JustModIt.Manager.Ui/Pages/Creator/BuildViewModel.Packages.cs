@@ -37,8 +37,12 @@ public sealed partial class BuildViewModel
 
     /// <summary>The packages the last run made, each with the versions it serves.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSeveral), nameof(PublishTitle), nameof(BuiltOverline), nameof(IsReadyToUse), nameof(IsGone), nameof(ShowsTest))]
+    [NotifyPropertyChangedFor(nameof(First), nameof(HasSeveral), nameof(PublishTitle), nameof(BuiltOverline), nameof(IsReadyToUse), nameof(IsGone), nameof(ShowsTest),
+        nameof(HasEarlierPackage), nameof(ShowsPackage), nameof(ShowsAfterBuild), nameof(ShowsDivider))]
     public partial IReadOnlyList<BuiltRow> Packages { get; private set; } = [];
+
+    /// <summary>The package built first; null before a build.</summary>
+    public BuiltRow? First => Packages.Count > 0 ? Packages[0] : null;
 
     public bool HasSeveral => Packages.Count > 1;
 
@@ -50,6 +54,11 @@ public sealed partial class BuildViewModel
     /// <summary>A test of the packages can start, or a test package is in the game, whose undo has no other place.</summary>
     public bool ShowsTest => (IsBuilt && Packages.Any(row => row.Part.Length == 0 && !row.IsMissing)) || !_test.CanRebuild;
 
+    /// <summary>The test or the way to publish has something to show under the packages.</summary>
+    public bool ShowsAfterBuild => IsReadyToUse || ShowsTest;
+
+    public bool ShowsDivider => IsReadyToUse && ShowsTest;
+
     public string PublishTitle => Text.Format(Strings.Creator_PublishTitle, ("several", HasSeveral ? "true" : "false"));
 
     /// <summary>That the packages of the last run are ready, over them.</summary>
@@ -59,25 +68,14 @@ public sealed partial class BuildViewModel
     [ObservableProperty]
     public partial string BuiltAtText { get; private set; } = "";
 
-    /// <summary>The package built first; empty before a build.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasEarlierPackage), nameof(ShowsPackage))]
-    public partial string OutputPath { get; private set; } = "";
-
     /// <summary>A build failed or stopped after an earlier one, whose package is still there but is not this build's.</summary>
-    public bool HasEarlierPackage => IsReady && OutputPath.Length > 0;
+    public bool HasEarlierPackage => IsReady && Packages.Count > 0;
 
     public bool ShowsPackage => IsBuilt || HasEarlierPackage;
 
     /// <summary>That the package shown is an earlier build's, and when it was built.</summary>
     public string EarlierText => GameWording.Join(
         [Strings.Creator_EarlierPackage, HasEarlierPackage ? Formats.RelativeTime(_builtAt, _page.Services.Clock) : ""]).ToUpper(Text.Culture);
-
-    [ObservableProperty]
-    public partial string ResultName { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string ResultSize { get; private set; } = "";
 
     [ObservableProperty]
     public partial string ResultDetails { get; private set; } = "";
@@ -125,14 +123,14 @@ public sealed partial class BuildViewModel
         _record = record;
         if (!_ran && record is not null)
         {
-            var files = _page.FileSystem ?? PhysicalFileSystem.Instance;
+            var files = _page.Creator.FileSystem ?? PhysicalFileSystem.Instance;
             Dictionary<string, bool> onDisk = new(PathComparison.Comparer);
             foreach (var folder in record.Parts.SelectMany(part => part.Packages).Select(package => package.Path).Distinct(PathComparison.Comparer)
                 .GroupBy(path => Path.GetDirectoryName(path) ?? path, PathComparison.Comparer))
             {
                 try
                 {
-                    foreach (var (path, exists) in await _page.Access.ReadAsync(folder.Key,
+                    foreach (var (path, exists) in await _page.Creator.Access.ReadAsync(folder.Key,
                         _ => Task.FromResult(folder.Select(path => (path, files.FileExists(path))).ToList()), CancellationToken.None).ConfigureAwait(true))
                     {
                         onDisk[path] = exists;
@@ -185,23 +183,15 @@ public sealed partial class BuildViewModel
 
     private void Clear()
     {
-        (OutputPath, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings, SiteStoresText, BuiltAtText, Packages) = ("", "", "", "", "", [], "", "", []);
+        (ResultDetails, ResultFolder, SiteWarnings, SiteStoresText, BuiltAtText, Packages) = ("", "", [], "", "", []);
         State = PackageState.Ready;
     }
-
-    private void Built(IReadOnlyList<FinishedPackage> finished) =>
-        Show([.. finished.Select(built => (built.Part, built.Package))], [.. finished.SelectMany(built => built.Result.Findings
-            .Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
-            .Select(finding => finished.Count == 1 ? CreatorWording.Finding(finding) : Text.Format(Strings.Creator_BlockedCell,
-                ("part", built.Part.Length > 0 ? built.Part : Strings.Creator_PartBase), ("store", Stores(built.Package.Versions)), ("text", CreatorWording.Finding(finding)))))]);
 
     // The packages of a run, or the last ones the record holds.
     private void Show(List<(string Part, BuiltPackage Package)> built, IReadOnlyList<string> siteWarnings)
     {
         Packages = Rows(built);
         var package = built[0].Package;
-        OutputPath = package.Path;
-        (ResultName, ResultSize) = (Packages[0].Name, Packages[0].Size);
         ResultDetails = GameWording.Join(
         [
             package.Kind == PackageKind.Zip ? Strings.Creator_ZipKind : Strings.Creator_ManifestKind,
@@ -221,14 +211,14 @@ public sealed partial class BuildViewModel
     private async Task EstimateAsync(IReadOnlyList<BuiltRow> rows)
     {
         List<(string Part, string Path)> packages = [.. rows.Where(row => !row.IsMissing).Select(row => (row.Part, row.Path))];
-        if (!_page.Agent.State.Catalogue.ReleaseFiles.VersionsMerged || !packages.GroupBy(package => package.Part).Any(part => part.Count() > 1))
+        if (!_page.Creator.Agent.State.Catalogue.ReleaseFiles.VersionsMerged || !packages.GroupBy(package => package.Part).Any(part => part.Count() > 1))
         {
             return;
         }
 
         try
         {
-            var (stored, total) = await _page.Access.ReadAsync(packages[0].Path, _ => Task.FromResult(SiteStorage.Estimate(packages)), CancellationToken.None)
+            var (stored, total) = await _page.Creator.Access.ReadAsync(packages[0].Path, _ => Task.FromResult(SiteStorage.Estimate(packages)), CancellationToken.None)
                 .ConfigureAwait(true);
             if (Packages == rows)
             {

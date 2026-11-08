@@ -215,7 +215,7 @@ public sealed class CreatorLibraryTests : IDisposable
 
         ui.Click(ui.Find<Button>().First(button => button.DataContext == card && button.Classes.Contains("gameCard")));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Work: ProjectWork.Comparing });
-        ui.Click(Button(ui, Strings.Creator_Projects));
+        ui.Click(ui.Button(Strings.Creator_Projects));
 
         await UiHarness.WaitUntilAsync(() => card.Line?.Label == State("Comparing"));
         files.Reads.Set();
@@ -247,14 +247,14 @@ public sealed class CreatorLibraryTests : IDisposable
         ui.Click(card);
         await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { HasVersion: false });
         await ui.RenderBothAsync("creator-no-version");
-        ui.Click(Button(ui, Strings.Creator_AddGameVersion));
+        ui.Click(ui.Button(Strings.Creator_AddGameVersion));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
         ((NewProjectDialogViewModel)ui.Shell.Dialogs.Current!).Folder.Should().Be(_work.AuthorFolder);
         ui.Press(Key.Escape);
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null);
         ui.Shell.Navigator.Current.Should().BeOfType<ProjectPageViewModel>().Which.HasVersion.Should().BeFalse();
 
-        ui.Click(Button(ui, Strings.Creator_AddGameVersion));
+        ui.Click(ui.Button(Strings.Creator_AddGameVersion));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
         var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
         dialog.PickCommand.Execute(dialog.Rows[0].Right);
@@ -289,7 +289,7 @@ public sealed class CreatorLibraryTests : IDisposable
         await ui.RenderBothAsync("creator-game-gone");
 
         ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([_work.Detected[1] with { Key = gone }]) : null;
-        ui.Click(Button(ui, Strings.Creator_Projects));
+        ui.Click(ui.Button(Strings.Creator_Projects));
         creator.OpenCardCommand.Execute(Card(ui, "Lantern Isle"));
 
         await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared);
@@ -308,7 +308,7 @@ public sealed class CreatorLibraryTests : IDisposable
         ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
         await ui.RenderBothAsync("creator-card-tiles");
-        await ChooseAsync(ui, Strings.Creator_Duplicate);
+        await ui.AnswerAsync(Strings.Creator_Duplicate);
 
         await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel);
         var copy = ((ProjectPageViewModel)ui.Shell.Navigator.Current!).Session!.Project;
@@ -319,7 +319,7 @@ public sealed class CreatorLibraryTests : IDisposable
         (await library.Store(original.Id).LoadAsync(CancellationToken.None)).Should().Be(original);
         (await library.ReadBuildAsync(copy.Id, CancellationToken.None)).Should().BeNull();
 
-        ui.Click(Button(ui, Strings.Creator_Projects));
+        ui.Click(ui.Button(Strings.Creator_Projects));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is CreatorPageViewModel creator && creator.Cards.Count() == 2);
     }
 
@@ -334,12 +334,12 @@ public sealed class CreatorLibraryTests : IDisposable
 
         ui.Pickers.SaveFile = Path.Combine(_work.Root, "Lantern Isle.exampleproj");
         ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
-        await ChooseAsync(ui, Strings.Creator_Export);
+        await ui.AnswerAsync(Strings.Creator_Export);
         await UiHarness.WaitUntilAsync(() => File.Exists(ui.Pickers.SaveFile));
         File.ReadAllText(ui.Pickers.SaveFile).Should().NotContain("Packages", "a file handed over never chooses where a build writes");
 
         ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
-        await ChooseAsync(ui, Strings.Creator_Remove);
+        await ui.AnswerAsync(Strings.Creator_Remove);
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false, Title: var title } && title == Strings.Creator_RemoveTitle);
         ((ConfirmDialogViewModel)ui.Shell.Dialogs.Current!).Message.Should().Be(Text.Format(Strings.Creator_RemoveMessage, ("name", "Lantern Isle")));
         ui.Shell.Dialogs.CancelCurrent();
@@ -347,12 +347,12 @@ public sealed class CreatorLibraryTests : IDisposable
         Directory.Exists(Path.Combine(LibraryFolder, project.Id.ToString())).Should().BeTrue();
 
         ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
-        await ChooseAsync(ui, Strings.Creator_Remove);
+        await ui.AnswerAsync(Strings.Creator_Remove);
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
         await ui.RenderBothAsync("creator-remove");
         using (File.Open(Path.Combine(LibraryFolder, project.Id.ToString(), "project.json"), FileMode.Open, FileAccess.Read, FileShare.None))
         {
-            ui.Click(Button(ui, Strings.Creator_Remove));
+            ui.Click(ui.Button(Strings.Creator_Remove));
             await UiHarness.WaitUntilAsync(() => creator.HasProblem);
         }
 
@@ -364,10 +364,8 @@ public sealed class CreatorLibraryTests : IDisposable
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
 
         ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
-        await ChooseAsync(ui, Strings.Creator_Remove);
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
-        ui.Click(Button(ui, Strings.Creator_Remove));
+        await ui.AnswerAsync(Strings.Creator_Remove);
+        await ui.AnswerAsync(Strings.Creator_Remove);
 
         await UiHarness.WaitUntilAsync(() => !creator.Cards.Any());
         Directory.Exists(Path.Combine(LibraryFolder, project.Id.ToString())).Should().BeFalse();
@@ -388,7 +386,7 @@ public sealed class CreatorLibraryTests : IDisposable
 
         creator.UnreadableText.Should().Be(Text.Format(Strings.Creator_UnreadableProjects, ("count", 1)));
         await ui.RenderBothAsync("creator-unreadable");
-        ui.Click(Button(ui, Strings.Creator_Reveal));
+        ui.Click(ui.Button(Strings.Creator_Reveal));
         ui.Links.Folders.Should().Equal(damaged);
         File.ReadAllText(Path.Combine(damaged, "project.json")).Should().Be("{ not a project");
     }
@@ -411,15 +409,7 @@ public sealed class CreatorLibraryTests : IDisposable
         }
     }
 
-    private async Task<UiHarness> OpenAsync(AppStateView state, IFileSystem? files = null)
-    {
-        var ui = new UiHarness(state, CreatorWorkspace.Compose(files), context: context => context with { CreatorDirectory = LibraryFolder });
-        ui.Agent.Answer = _work.Answer;
-        ui.Shell.Navigator.Navigate(new CreatorRoute());
-        await UiHarness.WaitUntilAsync(() => ui.Find<CreatorPage>().Any(page => page.IsEffectivelyVisible));
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        return ui;
-    }
+    private Task<UiHarness> OpenAsync(AppStateView state, IFileSystem? files = null) => _work.OpenAsync(state, files, creatorDirectory: LibraryFolder);
 
     private static ProjectCard? Card(UiHarness ui, string name) =>
         (ui.Shell.Navigator.Current as CreatorPageViewModel)?.Cards.FirstOrDefault(card => card.Name == name);
@@ -436,15 +426,4 @@ public sealed class CreatorLibraryTests : IDisposable
     private static Button MoreButton(UiHarness ui, ProjectCard card) =>
         ui.Find<Button>().First(button => button.DataContext == card && button.Classes.Contains("cardMore"));
 
-    private static Button Button(UiHarness ui, string name) =>
-        ui.Find<Button>().First(button => button.IsEffectivelyVisible && ControlAutomationPeer.CreatePeerForElement(button).GetName() == name);
-
-    // The dialog's scrim takes the clicks meant for the page until the dialog has faded out.
-    private static async Task ChooseAsync(UiHarness ui, string tile)
-    {
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
-        ui.Click(Button(ui, tile));
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is not ChoiceDialogViewModel);
-    }
 }
