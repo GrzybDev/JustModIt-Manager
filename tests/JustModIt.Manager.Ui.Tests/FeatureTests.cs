@@ -47,7 +47,7 @@ public sealed class FeatureTests
     public async Task Before_an_install_the_line_unfolds_into_pills_whose_turns_the_install_takes()
     {
         var game = Available("Ember Hollow", "4100", Ember);
-        using var ui = Open(State(game), game, Ember);
+        using var ui = await OpenAsync(State(game), game, Ember);
         var page = Page(ui);
         var panel = page.NewFeatures!;
 
@@ -83,7 +83,7 @@ public sealed class FeatureTests
     public async Task An_install_that_is_up_to_date_applies_the_turned_pills_and_turning_them_back_drops_the_change()
     {
         var game = Installed("Ember Hollow", "4100", offer: Ember);
-        using var ui = Open(State(game), game, Ember);
+        using var ui = await OpenAsync(State(game), game, Ember);
         var page = Page(ui);
         var row = page.Installs.Single();
         var panel = row.Features!;
@@ -121,7 +121,7 @@ public sealed class FeatureTests
                 UpdateKind = UpdateKind.NewRelease,
                 UpdateSize = 5_347_738,
             });
-        using var ui = Open(State(update), update, Ember);
+        using var ui = await OpenAsync(State(update), update, Ember);
         var page = Page(ui);
         var panel = page.Installs.Single().Features!;
         page.Step!.PrimaryCaption.Should().Be("Do wersji 3 · 5,1 MB");
@@ -167,7 +167,7 @@ public sealed class FeatureTests
                 UpdateDrops = [new InstalledFeature("lektor", "Lektor")],
             });
         update = update with { Installs = [update.Installs[0] with { Features = [new InstalledFeature("lektor", "Lektor")] }] };
-        using var ui = Open(State(update), update, Ember);
+        using var ui = await OpenAsync(State(update), update, Ember);
         var page = Page(ui);
 
         page.Step!.Warning.Should().Be("Nowa wersja zainstaluje się bez składnika „Lektor”.");
@@ -190,7 +190,7 @@ public sealed class FeatureTests
                 UpdateSize = 46_871_347,
             });
         changed = changed with { Installs = [changed.Installs[0] with { Features = [new InstalledFeature("lektor", "Lektor")] }] };
-        using var ui = Open(State(changed), changed, Ember);
+        using var ui = await OpenAsync(State(changed), changed, Ember);
         var page = Page(ui);
 
         page.Step!.Title.Should().Be("Grupa zmieniła paczki tej wersji");
@@ -203,7 +203,7 @@ public sealed class FeatureTests
     public async Task While_a_job_runs_the_line_names_what_is_installed_without_a_way_to_change_it()
     {
         var game = Installed("Ember Hollow", "4100", offer: Ember);
-        using var ui = Open(State(game), game, Ember);
+        using var ui = await OpenAsync(State(game), game, Ember);
         var page = Page(ui);
         var panel = page.Installs.Single().Features!;
         ui.Click(ui.Find<Button>("FeatureToggle"));
@@ -235,7 +235,7 @@ public sealed class FeatureTests
                 },
             ],
         };
-        using var ui = Open(State(game), game, Ember);
+        using var ui = await OpenAsync(State(game), game, Ember);
         var page = Page(ui);
         var row = page.Installs.Single();
 
@@ -260,7 +260,7 @@ public sealed class FeatureTests
         var legacy = Offer("Ember Hollow", twoVariants: true);
         legacy = legacy with { Features = [legacy.Features[0] with { IsPresent = true }, legacy.Features[1]] };
         var game = Installed("Ember Hollow", "4100", offer: legacy);
-        using var ui = Open(State(game), game, legacy);
+        using var ui = await OpenAsync(State(game), game, legacy);
         var page = Page(ui);
         var panel = page.Installs.Single().Features!;
 
@@ -288,7 +288,7 @@ public sealed class FeatureTests
         var first = Offer("Ember Hollow", Lanterns, version: 2, released: TestStates.Now.AddMonths(-2), features: [Textures with { IsOn = true }, .. group]);
         var second = Offer("Ember Hollow", Owls, version: 1, released: TestStates.Now.AddDays(-3));
         var game = Available("Ember Hollow", "4100", first) with { Projects = [first, second] };
-        using var ui = Open(State(game), game, first);
+        using var ui = await OpenAsync(State(game), game, first);
         var page = Page(ui);
         var panel = page.NewFeatures!;
 
@@ -357,9 +357,7 @@ public sealed class FeatureTests
         double height)
     {
         var game = Available("Ember Hollow", "4100", Ember);
-        using var ui = new UiHarness(State(game), width: width, height: height, answer: TestPages.Answer(Ember));
-        ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(game.Key)]);
-        UiHarness.Settle();
+        using var ui = await OpenAsync(State(game), game, Ember, width, height);
         ui.Click(ui.Find<Button>("FeatureToggle"));
         var textures = Pill(ui, "tekstury");
         var scroller = Shown<ScrollViewer>(ui, "Scroller");
@@ -403,9 +401,7 @@ public sealed class FeatureTests
     public async Task At_the_smallest_window_the_pills_wrap_and_the_apply_button_stays_under_them()
     {
         var game = Installed("Ember Hollow", "4100", offer: Ember);
-        using var ui = new UiHarness(State(game), width: 960, height: 600, answer: TestPages.Answer(Ember));
-        ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(game.Key)]);
-        UiHarness.Settle();
+        using var ui = await OpenAsync(State(game), game, Ember, 960, 600);
         var page = Page(ui);
         ui.Click(ui.Find<Button>("FeatureToggle"));
         ui.Click(Pill(ui, "tekstury"));
@@ -487,16 +483,21 @@ public sealed class FeatureTests
     private static GameView WithStatus(GameView game, GameStatusView status) =>
         game with { Status = status, Installs = [game.Installs[0] with { Status = status }] };
 
-    private static UiHarness Open(AppStateView state, GameView game, ProjectOfferView? page = null)
+    private static UiHarness Open(AppStateView state, GameView game)
     {
         var ui = new UiHarness(state);
-        if (page is not null)
-        {
-            ui.Agent.Answer = TestPages.Answer(page);
-        }
-
         ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(game.Key)]);
         UiHarness.Settle();
+        return ui;
+    }
+
+    // The project's page is read off the UI thread, and its arrival takes the skeleton above the rows away, which moves a row
+    // from under a click spread over several frames, so nothing clicks before it came.
+    private static async Task<UiHarness> OpenAsync(AppStateView state, GameView game, ProjectOfferView page, double width = 1280, double height = 800)
+    {
+        var ui = new UiHarness(state, width: width, height: height, answer: TestPages.Answer(page));
+        ui.Shell.Navigator.Open([new LibraryRoute(), new GameRoute(game.Key)]);
+        await UiHarness.WaitUntilAsync(() => Page(ui).Details is not null);
         return ui;
     }
 

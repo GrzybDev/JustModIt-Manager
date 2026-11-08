@@ -54,6 +54,7 @@ public sealed class InstallLinkTests
         panel.IsOpen.Should().BeTrue("the player sees what the site chose");
         panel.Line.Should().Be("Ze składnikiem „Polskie tekstury”");
         page.Step!.PrimaryCaption.Should().Be("Wersja 2 · 48,3 MB");
+        await UiHarness.WaitUntilAsync(() => page.Details is not null);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
         ui.Render("link-1-new-install");
 
