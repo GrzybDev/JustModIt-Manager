@@ -56,6 +56,8 @@
                   Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).AddLibraryNoticeCommand}"
                   CommandParameter="{Binding}" />
           <StackPanel Spacing="12" Margin="0,12,0,0" IsVisible="{Binding NeedsNotice}">
+            <Button Classes="link" FontSize="13" HorizontalAlignment="Left" Content="{Binding UseNoticeText}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Copy}"
+                    IsVisible="{Binding UseNoticeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Command="{Binding UseNoticeCommand}" />
             <!-- One above the other, so they fit the panel beside a table; on a wider page they keep to the left, like the text above them. -->
             <Grid>
               <Grid.ColumnDefinitions>

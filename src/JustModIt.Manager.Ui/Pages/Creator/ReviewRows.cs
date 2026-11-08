@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
+using JustModIt.Manager.Creator.Projects;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
@@ -279,8 +280,30 @@ public sealed partial class RuleRow(string key) : ObservableObject, IReviewRow
     [ObservableProperty]
     public partial bool IsComplete { get; set; }
 
+    /// <summary>What another project of the library gives for it, offered while the row's own is incomplete; null for none.</summary>
+    public KnownNotice? KnownNotice { get; set; }
+
+    /// <summary>The words of the link that takes <see cref="KnownNotice"/>; empty while there is none.</summary>
+    [ObservableProperty]
+    public partial string UseNoticeText { get; set; } = "";
+
     /// <summary>Called when the author typed the tool's licence or source, or the library's name.</summary>
     public Action<RuleRow>? Edited { get; set; }
+
+    // Only on the author's click, since filling it in unasked would clear a block the author never looked at; one edit for all three.
+    [RelayCommand]
+    private void UseNotice()
+    {
+        if (KnownNotice is not { } known || Edited is not { } edited)
+        {
+            return;
+        }
+
+        Edited = null;
+        (License, Source, LibraryName) = (known.License, known.SourceUrl, known.Name.Length > 0 ? known.Name : LibraryName);
+        Edited = edited;
+        edited(this);
+    }
 
     partial void OnLibraryNameChanged(string value) => Edited?.Invoke(this);
 

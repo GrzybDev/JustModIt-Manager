@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Creator.Comparison;
 
 namespace JustModIt.Manager.Creator.Projects;
 
@@ -15,6 +17,13 @@ public sealed record LibraryProject(CreatorProject Project, DateTimeOffset Chang
 /// <param name="Projects">The projects, the one changed last first.</param>
 /// <param name="Unreadable">The folders of the projects that cannot be read, left as they are.</param>
 public sealed record ProjectListing(IReadOnlyList<LibraryProject> Projects, IReadOnlyList<string> Unreadable);
+
+/// <summary>A licence and source another project of the library gives for a tool or a library.</summary>
+/// <param name="Project">The project that gives them.</param>
+/// <param name="Name">What that project calls the library; empty for a tool.</param>
+/// <param name="License">The licence text.</param>
+/// <param name="SourceUrl">The address of the source code.</param>
+public sealed record KnownNotice(CreatorProject Project, string Name, string License, string SourceUrl);
 
 /// <summary>What became of the project files on the list an earlier version kept.</summary>
 /// <param name="Imported">The files now in the library, those brought over earlier included.</param>
@@ -39,6 +48,8 @@ public sealed class ProjectLibrary(string directory, TimeProvider time) : IDispo
     private const long MaxBuildsLength = 64 << 20;
 
     private readonly SemaphoreSlim _buildsGate = new(1, 1);
+    // Written by a listing on the thread pool and read by the window, which looks up what other projects give without a read.
+    private volatile IReadOnlyList<LibraryProject> _listed = [];
 
     /// <summary>Reads every project of the library.</summary>
     /// <param name="access">Reads the library's folder.</param>
@@ -67,8 +78,26 @@ public sealed class ProjectLibrary(string directory, TimeProvider time) : IDispo
                 }
             }
 
-            return new ProjectListing([.. projects.OrderByDescending(entry => entry.Changed)], unreadable);
+            _listed = [.. projects.OrderByDescending(entry => entry.Changed)];
+            return new ProjectListing(_listed, unreadable);
         }, cancellationToken);
+
+    /// <summary>
+    /// The complete licence and source that the newest other project of the last listing gives for a tool, or for a library of
+    /// the same file name, which the author may take over.
+    /// </summary>
+    /// <param name="project">The project asking, whose own notices do not count.</param>
+    /// <param name="toolId">The tool as the hosting rules name it; empty for a library.</param>
+    /// <param name="path">The library's game path; empty for a tool.</param>
+    /// <returns>The notice with the project that gives it; null when no other project gives one.</returns>
+    public KnownNotice? KnownNotice(Guid project, string toolId, string path) => _listed
+        .Select(listed => listed.Project).Where(other => other.Id != project)
+        .Select(other => toolId.Length > 0
+            ? other.ToolNotices.Where(notice => notice.ToolId == toolId && notice.IsComplete)
+                .Select(notice => new KnownNotice(other, "", notice.License, notice.SourceUrl)).FirstOrDefault()
+            : other.LibraryNotices.Where(notice => notice.IsComplete && PackagePath.Comparer.Equals(GameIndex.NameOf(notice.Path), GameIndex.NameOf(path)))
+                .Select(notice => new KnownNotice(other, notice.Name, notice.License, notice.SourceUrl)).FirstOrDefault())
+        .FirstOrDefault(known => known is not null);
 
     /// <summary>Where a project of the library is kept.</summary>
     /// <param name="id">The project's id.</param>

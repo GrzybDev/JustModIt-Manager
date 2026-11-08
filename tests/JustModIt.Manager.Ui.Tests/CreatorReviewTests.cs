@@ -10,6 +10,7 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
+using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Ui.Navigation;
@@ -156,6 +157,35 @@ public sealed class CreatorReviewTests : IDisposable
 
         await UiHarness.WaitUntilAsync(() => !Page(ui).HasBlockedText);
         Page(ui).Session!.Project.ToolNotices.Should().ContainSingle().Which.IsComplete.Should().BeTrue();
+    }
+
+    [AvaloniaFact]
+    public async Task A_tool_s_licence_from_another_project_is_offered_and_not_taken_unasked()
+    {
+        _work.Author("dinput8.dll", "an asi loader that the translation needs");
+        using var ui = await OpenAsync();
+        var known = new ToolNotice("asi-loader", "MIT", "https://code.example.com/asi-loader");
+        using (var library = new ProjectLibrary(ui.CreatorDirectory, TimeProvider.System))
+        {
+            var id = Guid.NewGuid();
+            await library.Store(id).SaveAsync(new CreatorProject { Id = id, Name = "Tidewater", ToolNotices = [known] }, CancellationToken.None);
+        }
+
+        ui.Shell.Navigator.Navigate(new SettingsRoute());
+        ui.Shell.Navigator.Navigate(new CreatorRoute());
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is CreatorPageViewModel { Cards: var cards } && cards.Any());
+        var review = await ReviewAsync(ui);
+        var tool = review.Rules.Single(rule => rule.IsTool);
+
+        tool.UseNoticeText.Should().Be(Text.Format(Strings.Creator_UseNotice, ("project", "Tidewater")));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        (Page(ui).Session!.Project.ToolNotices.Count, Page(ui).HasBlockedText).Should().Be((0, true), "another project's licence is only offered");
+        await ui.RenderBothAsync("creator-known-notice", () => Box(ui, Strings.Creator_ToolSource).BringIntoView());
+
+        ui.Click(Button(ui, tool.UseNoticeText));
+        await UiHarness.WaitUntilAsync(() => !Page(ui).HasBlockedText);
+        Page(ui).Session!.Project.ToolNotices.Should().Equal(known);
+        tool.UseNoticeText.Should().BeEmpty("a complete licence needs nothing more");
     }
 
     [AvaloniaFact]

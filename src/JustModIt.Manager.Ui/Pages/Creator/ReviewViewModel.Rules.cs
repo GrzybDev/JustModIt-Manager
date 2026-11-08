@@ -220,6 +220,8 @@ public sealed partial class ReviewViewModel
                 ? (library.Name, library.License, library.SourceUrl, library.IsComplete)
                 : ("", "", "", false);
         (row.LibraryName, row.License, row.Source, row.IsComplete) = (name, license, source, complete);
+        row.KnownNotice = row.NeedsNotice && !complete ? _page.Library.KnownNotice(_session.Project.Id, row.IsTool ? row.ToolId : "", row.IsTool ? "" : row.Path) : null;
+        row.UseNoticeText = row.KnownNotice is { } known ? Text.Format(Strings.Creator_UseNotice, ("project", ProjectCard.NameOf(known.Project))) : "";
         row.Edited = row.IsTool
             ? edited => _session.Change(project => project.WithToolNotice(new ToolNotice(edited.ToolId, edited.License, edited.Source)))
             : edited => _session.Change(project => project.WithLibraryNotice(

@@ -2997,6 +2997,9 @@
   <data name="Creator_LibraryRemoveNotice" xml:space="preserve">
     <value>Remove the licence</value>
   </data>
+  <data name="Creator_UseNotice" xml:space="preserve">
+    <value>Use the details from {project}</value>
+  </data>
   <data name="Creator_LibraryName" xml:space="preserve">
     <value>Name</value>
   </data>
