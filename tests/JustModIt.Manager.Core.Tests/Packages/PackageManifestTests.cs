@@ -46,6 +46,16 @@ public sealed class PackageManifestTests
     }
 
     [Fact]
+    public void A_manifest_as_the_creator_writes_it_round_trips_byte_for_byte()
+    {
+        var written = File.ReadAllBytes(Path.Join(AppContext.BaseDirectory, "Packages", "Fixtures", "manifest-single-version.json"));
+
+        var manifest = ManifestReader.Parse(written);
+
+        JsonSerializer.SerializeToUtf8Bytes(manifest, PackageJsonContext.Default.PackageManifest).Should().Equal(written);
+    }
+
+    [Fact]
     public void The_capabilities_of_a_package_name_its_declarations()
     {
         PackageOperation[] operations = [new RenameOperation("tool/list.dat", "tool/list_old.dat"), new DeleteOperation("a")];

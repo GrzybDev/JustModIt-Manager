@@ -12,7 +12,67 @@ namespace JustModIt.Manager.Creator.Tests.Projects;
 
 public sealed class CreatorProjectStoreTests : IDisposable
 {
+    private static readonly string Fixtures = Path.Join(AppContext.BaseDirectory, "Projects", "Fixtures");
+
     private readonly Workspace _workspace = new();
+
+    public static TheoryData<string, CreatorProject> ProjectFiles => new()
+    {
+        {
+            "v4/every-member.exampleproj", new CreatorProject
+            {
+                Mode = CreatorMode.Advanced,
+                Game = new ProjectGame(new GameKey(StoreId.Gog, "1100000002000000001"), "Lantern Isle"),
+                GameFolder = @"C:\Games\Lantern Isle",
+                AuthorFolder = @"D:\Translations\Lantern Isle",
+                Choices = Choices(("data/fonts.bin", FileChoice.Copy), ("data/maps.bin", FileChoice.Patch), ("data/old.bin", FileChoice.Rename),
+                    ("movies/intro.bik", FileChoice.Delete), ("readme.txt", FileChoice.Skip), ("data/list.idx", FileChoice.Runtime)),
+                ExtraSteps = [new RenameFileStep("bin/engine.dll", "bin/engine_o.dll")],
+                Steps =
+                [
+                    new CopyFileStep("text/naïve café.txt", "data/text.txt"),
+                    new PatchFileStep("strings.pak", "data/strings.pak"),
+                    new RenameFileStep("a.bin", "b.bin"),
+                    new DeleteFileStep("c.bin"),
+                ],
+                Metadata = new PackageMetadata { Title = "Lantern Isle translation", Version = "2.0", Authors = ["Tidewater", "Ashfall"] },
+                ToolNotices = [new ToolNotice("example-loader", "LGPL-2.1", "https://code.example.com/loader")],
+                LibraryNotices =
+                [
+                    new LibraryNotice("bin/hook.dll", "MIT", ""),
+                    new LibraryNotice("bin/subtitles.dll", "MIT", "https://code.example.com/subtitles", "Lantern Subtitles", IsOwn: true),
+                ],
+                Acknowledged = ["whole-game-file:data/fonts.bin:1234"],
+                RuntimeFiles =
+                [
+                    new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile),
+                    new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile),
+                ],
+            }
+        },
+        {
+            "v4/relative-folder.exampleproj", new CreatorProject
+            {
+                Game = new ProjectGame(new GameKey(StoreId.Steam, "1000002"), "Ember Isles"),
+                GameFolder = @"C:\Games\Ember Isles",
+                AuthorFolder = Path.Join(Fixtures, "v4", "author"),
+                Metadata = new PackageMetadata { Title = "Ember Isles translation", Version = "1.0" },
+            }
+        },
+        { "v3/choices.exampleproj", new CreatorProject { Choices = Choices(("data/fonts.bin", FileChoice.Copy)) } },
+        {
+            "v2/first-creator.exampleproj", new CreatorProject
+            {
+                Mode = CreatorMode.Simple,
+                Game = new ProjectGame(new GameKey(StoreId.Steam, "1000001"), "Example Game"),
+                GameFolder = @"C:\Games\Example",
+                AuthorFolder = @"C:\Work\Example",
+                Choices = Choices(("data/fonts.pak", FileChoice.Copy), ("readme.txt", FileChoice.Skip), ("bin/engine_o.dll", FileChoice.Rename)),
+                ExtraSteps = [new DeleteFileStep("movies/intro_en.bik")],
+                Steps = [new PatchFileStep("strings.pak", "data/strings_xx.pak")],
+            }
+        },
+    };
 
     public void Dispose() => _workspace.Dispose();
 
@@ -174,16 +234,13 @@ public sealed class CreatorProjectStoreTests : IDisposable
         (await load.Should().ThrowAsync<ProjectLoadException>()).Which.Error.Should().Be(ProjectLoadError.Unreadable);
     }
 
-    [Fact]
-    public async Task Opens_a_project_of_the_format_before_the_files_changed_while_the_game_runs()
+    [Theory]
+    [MemberData(nameof(ProjectFiles))]
+    public async Task Reads_a_project_file_of_every_format_into_the_expected_project(string file, CreatorProject expected)
     {
-        await File.WriteAllTextAsync(ProjectPath, """{ "formatVersion": 3, "choices": { "data/fonts.bin": "copy" } }""",
-            TestContext.Current.CancellationToken);
+        var project = await CreatorProjectStore.LoadAsync(Path.Join(Fixtures, file), TestContext.Current.CancellationToken);
 
-        var project = await CreatorProjectStore.LoadAsync(ProjectPath, TestContext.Current.CancellationToken);
-
-        project.Choices.Should().ContainSingle();
-        project.RuntimeFiles.Should().BeEmpty();
+        project.Should().Be(expected);
     }
 
     [Fact]
@@ -214,43 +271,6 @@ public sealed class CreatorProjectStoreTests : IDisposable
             TestContext.Current.CancellationToken);
 
         (await CreatorProjectStore.LoadAsync(ProjectPath, TestContext.Current.CancellationToken)).Mode.Should().Be(CreatorMode.Advanced);
-    }
-
-    [Fact]
-    public async Task Opens_a_project_of_the_first_creator_with_only_the_choices_the_author_changed()
-    {
-        await File.WriteAllTextAsync(ProjectPath, """
-            {
-              "formatVersion": 2,
-              "gameFolder": "C:\\Games\\Example",
-              "modFolder": "C:\\Work\\Example",
-              "gameName": "Example Game",
-              "targets": [ { "store": "steam", "id": "1000001", "buildId": "42" } ],
-              "mode": "Easy",
-              "entries": [
-                { "path": "data/lang/xx.txt", "difference": "New", "action": "Add" },
-                { "path": "data/strings.pak", "difference": "Changed", "action": "Patch" },
-                { "path": "data/fonts.pak", "difference": "Changed", "action": "Replace" },
-                { "path": "readme.txt", "difference": "New", "action": "Skip" },
-                { "path": "bin/engine_o.dll", "difference": "New", "action": "Move", "from": "bin/engine.dll" }
-              ],
-              "extraOperations": [ { "type": "delete", "path": "movies/intro_en.bik" } ],
-              "steps": [ { "type": "patch", "source": "strings.pak", "path": "data/strings_xx.pak" }, { "type": "unknown" } ]
-            }
-            """, TestContext.Current.CancellationToken);
-
-        var project = await CreatorProjectStore.LoadAsync(ProjectPath, TestContext.Current.CancellationToken);
-
-        project.Should().Be(new CreatorProject
-        {
-            Mode = CreatorMode.Simple,
-            Game = new ProjectGame(new GameKey(StoreId.Steam, "1000001"), "Example Game"),
-            GameFolder = @"C:\Games\Example",
-            AuthorFolder = @"C:\Work\Example",
-            Choices = Choices(("data/fonts.pak", FileChoice.Copy), ("readme.txt", FileChoice.Skip), ("bin/engine_o.dll", FileChoice.Rename)),
-            ExtraSteps = [new DeleteFileStep("movies/intro_en.bik")],
-            Steps = [new PatchFileStep("strings.pak", "data/strings_xx.pak")],
-        });
     }
 
     private static ValueDictionary<string, FileChoice> Choices(params (string Path, FileChoice Choice)[] choices) =>

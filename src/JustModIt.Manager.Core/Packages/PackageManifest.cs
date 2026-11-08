@@ -93,6 +93,8 @@ public sealed record DeleteOperation(string Path) : PackageOperation;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     WriteIndented = true,
+    // Not the system's line ending, so a manifest's bytes do not depend on the OS that wrote it.
+    NewLine = "\n",
     RespectNullableAnnotations = true,
     RespectRequiredConstructorParameters = true,
     // Hand-written manifests may put "type" after the other fields.

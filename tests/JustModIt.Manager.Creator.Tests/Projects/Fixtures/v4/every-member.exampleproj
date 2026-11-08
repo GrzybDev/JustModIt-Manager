@@ -1,0 +1,90 @@
+{
+  "formatVersion": 4,
+  "mode": "advanced",
+  "game": {
+    "store": "gog",
+    "id": "1100000002000000001",
+    "name": "Lantern Isle"
+  },
+  "gameFolder": "C:\\Games\\Lantern Isle",
+  "authorFolder": "D:\\Translations\\Lantern Isle",
+  "choices": {
+    "data/old.bin": "rename",
+    "data/list.idx": "runtime",
+    "readme.txt": "skip",
+    "data/maps.bin": "patch",
+    "data/fonts.bin": "copy",
+    "movies/intro.bik": "delete"
+  },
+  "extraSteps": [
+    {
+      "type": "rename",
+      "from": "bin/engine.dll",
+      "to": "bin/engine_o.dll"
+    }
+  ],
+  "steps": [
+    {
+      "type": "copy",
+      "source": "text/naïve café.txt",
+      "path": "data/text.txt"
+    },
+    {
+      "type": "patch",
+      "source": "strings.pak",
+      "path": "data/strings.pak"
+    },
+    {
+      "type": "rename",
+      "from": "a.bin",
+      "to": "b.bin"
+    },
+    {
+      "type": "delete",
+      "path": "c.bin"
+    }
+  ],
+  "metadata": {
+    "title": "Lantern Isle translation",
+    "version": "2.0",
+    "authors": [
+      "Tidewater",
+      "Ashfall"
+    ]
+  },
+  "thirdParty": [
+    {
+      "toolId": "example-loader",
+      "license": "LGPL-2.1",
+      "sourceUrl": "https://code.example.com/loader"
+    }
+  ],
+  "libraries": [
+    {
+      "path": "bin/hook.dll",
+      "license": "MIT",
+      "sourceUrl": "",
+      "name": ""
+    },
+    {
+      "path": "bin/subtitles.dll",
+      "license": "MIT",
+      "sourceUrl": "https://code.example.com/subtitles",
+      "name": "Lantern Subtitles",
+      "isOwn": true
+    }
+  ],
+  "acknowledged": [
+    "whole-game-file:data/fonts.bin:1234"
+  ],
+  "runtimeFiles": [
+    {
+      "path": "data/list.idx",
+      "kind": "changesgamefile"
+    },
+    {
+      "path": "data/list_original.idx",
+      "kind": "createsfile"
+    }
+  ]
+}

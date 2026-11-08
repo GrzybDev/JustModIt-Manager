@@ -1,0 +1,17 @@
+{
+  "formatVersion": 2,
+  "gameFolder": "C:\\Games\\Example",
+  "modFolder": "C:\\Work\\Example",
+  "gameName": "Example Game",
+  "targets": [ { "store": "steam", "id": "1000001", "buildId": "42" } ],
+  "mode": "Easy",
+  "entries": [
+    { "path": "data/lang/xx.txt", "difference": "New", "action": "Add" },
+    { "path": "data/strings.pak", "difference": "Changed", "action": "Patch" },
+    { "path": "data/fonts.pak", "difference": "Changed", "action": "Replace" },
+    { "path": "readme.txt", "difference": "New", "action": "Skip" },
+    { "path": "bin/engine_o.dll", "difference": "New", "action": "Move", "from": "bin/engine.dll" }
+  ],
+  "extraOperations": [ { "type": "delete", "path": "movies/intro_en.bik" } ],
+  "steps": [ { "type": "patch", "source": "strings.pak", "path": "data/strings_xx.pak" }, { "type": "unknown" } ]
+}

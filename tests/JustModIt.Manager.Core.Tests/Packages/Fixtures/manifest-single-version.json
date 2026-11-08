@@ -1,0 +1,84 @@
+{
+  "formatVersion": 1,
+  "id": "cc9d7e1b-16c6-4cb7-806a-54165919a4a0",
+  "title": "Lantern Isle translation",
+  "version": "1.2",
+  "authors": [
+    "Tidewater",
+    "Ashfall"
+  ],
+  "createdAt": "2026-11-07T00:45:31.0286532+00:00",
+  "generator": "ExampleApp 1.2.3",
+  "targets": [
+    {
+      "store": "steam",
+      "id": "1000001",
+      "buildId": "7654321"
+    }
+  ],
+  "requires": [
+    "op:copy",
+    "op:delete",
+    "op:patch",
+    "op:rename",
+    "runtime:files@1"
+  ],
+  "thirdPartyNotices": [
+    {
+      "name": "Lantern Hook",
+      "license": "MIT",
+      "sourceUrl": "https://code.example.com/lantern-hook",
+      "paths": [
+        "bin/engine.dll"
+      ]
+    }
+  ],
+  "runtimeFiles": [
+    {
+      "path": "data/list.idx",
+      "originals": [
+        {
+          "size": 3000,
+          "sha256": "2784fdb96912d48a82bf3ee00f2e3c9072e95a298703cbee6348bd4b8c63d47f"
+        }
+      ]
+    },
+    {
+      "path": "data/list_original.idx"
+    }
+  ],
+  "operations": [
+    {
+      "type": "rename",
+      "from": "bin/engine.dll",
+      "to": "bin/engine_o.dll"
+    },
+    {
+      "type": "copy",
+      "path": "bin/engine.dll",
+      "source": "files/bin/engine.dll",
+      "size": 6000,
+      "sha256": "b65c5aaa3230a365cd32c056e083459119cd983683dc7cc46a5df6f715fa5565"
+    },
+    {
+      "type": "copy",
+      "path": "data/text/caf\u00E9.txt",
+      "source": "files/data/text/caf\u00E9.txt",
+      "size": 23,
+      "sha256": "9b03cf0831d3e87004b96b51f1fe71244f98c7f30cde9ceaaff4c6ab2bc98d73"
+    },
+    {
+      "type": "patch",
+      "path": "data/strings.pak",
+      "patch": "patches/data/strings.pak.xdelta",
+      "sourceSize": 65536,
+      "sourceSha256": "2046e553a718cde719fb5ea1993036439635c65b5e2ce86af091e2b50008da77",
+      "targetSize": 65536,
+      "targetSha256": "1d36564a5e7ceb60f99779c6375c9c884be52d114867d86d6d77fd0c084a42b7"
+    },
+    {
+      "type": "delete",
+      "path": "movies/intro.bik"
+    }
+  ]
+}

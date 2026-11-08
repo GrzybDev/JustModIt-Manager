@@ -4,6 +4,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="**\Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\Shared\JsonContracts.cs" Link="Shared\JsonContracts.cs" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,16 @@
+{
+  "formatVersion": 4,
+  "mode": "simple",
+  "game": {
+    "store": "steam",
+    "id": "1000002",
+    "name": "Ember Isles"
+  },
+  "gameFolder": "C:\\Games\\Ember Isles",
+  "authorFolder": "author",
+  "metadata": {
+    "title": "Ember Isles translation",
+    "version": "1.0",
+    "authors": []
+  }
+}
