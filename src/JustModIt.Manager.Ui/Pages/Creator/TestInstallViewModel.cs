@@ -121,14 +121,23 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
         _page.Agent.JobEnded -= OnJobEnded;
     }
 
-    // A run for several versions made a base for each, of which the author tries one in its own copy of the game.
     [RelayCommand]
-    private async Task InstallTestAsync(string package)
+    private async Task InstallTestAsync()
     {
-        List<(GameKey Version, string Path)> choices = [.. _page.Build.Packages.Where(row => row.Part.Length == 0)
+        if (await ChooseVersionAsync().ConfigureAwait(true) is (true, var version))
+        {
+            await TestAsync(version, []).ConfigureAwait(true);
+        }
+    }
+
+    // A run for several versions made a base for each, of which the author tries one in its own copy of the game; no version means
+    // the chosen cell's.
+    private async Task<(bool Chosen, GameKey? Version)> ChooseVersionAsync()
+    {
+        List<(GameKey Version, string Path)> choices = [.. _page.Build.Packages.Where(row => row.Part.Length == 0 && !row.IsMissing)
             .SelectMany(row => row.Versions.Select(version => (version, row.Path)))
             .Where(choice => _page.GameOf(choice.version) is not null)];
-        var version = choices.Where(choice => choice.Path == package).Select(choice => (GameKey?)choice.Version).FirstOrDefault();
+        var version = choices is [var only] ? only.Version : (GameKey?)null;
         if (choices.Count > 1)
         {
             var answer = await _page.Services.Dialogs.ShowAsync(new ChoiceDialogViewModel(Strings.Creator_TestInstall, "",
@@ -138,29 +147,30 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
             ])).ConfigureAwait(true);
             if (choices.FirstOrDefault(choice => choice.Version.ToString() == answer.Key) is not { Path: not null } chosen)
             {
-                return;
+                return (false, null);
             }
 
             version = chosen.Version;
         }
 
-        await TestAsync(version, []).ConfigureAwait(true);
+        return (true, version);
     }
 
     // An add-on is tried together with the package it goes with, which installs first, so a clash between the two shows
     // before players meet it.
     [RelayCommand]
-    private async Task InstallTestTogetherAsync(string package)
+    private async Task InstallTestTogetherAsync()
     {
-        if (package.Length == 0)
+        if (_page.Build.OutputPath.Length == 0)
         {
             return;
         }
 
-        var first = await _page.Services.Pickers.PickFileAsync(Strings.Creator_TestTogetherTitle, startIn: Path.GetDirectoryName(package)).ConfigureAwait(true);
-        if (first is not null && !_page.Build.Packages.Any(row => string.Equals(first, row.Path, StringComparison.OrdinalIgnoreCase)))
+        var first = await _page.Services.Pickers.PickFileAsync(Strings.Creator_TestTogetherTitle, startIn: _page.Build.ResultFolder).ConfigureAwait(true);
+        if (first is not null && !_page.Build.Packages.Any(row => string.Equals(first, row.Path, StringComparison.OrdinalIgnoreCase))
+            && await ChooseVersionAsync().ConfigureAwait(true) is (true, var version))
         {
-            await TestAsync(_page.Build.Packages.FirstOrDefault(row => row.Path == package)?.Versions[0], [first]).ConfigureAwait(true);
+            await TestAsync(version, [first]).ConfigureAwait(true);
         }
     }
 
@@ -173,7 +183,8 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
         }
 
         List<string> packages = [.. first, .. _page.Build.Packages
-            .Where(row => row.Versions.Contains(tested) && (row.Part.Length == 0 || TestFeatures.Any(feature => feature.IsOn && feature.Part == row.Part)))
+            .Where(row => !row.IsMissing && row.Versions.Contains(tested)
+                && (row.Part.Length == 0 || TestFeatures.Any(feature => feature.IsOn && feature.Part == row.Part)))
             .Select(row => row.Path)];
         if (packages.Count == first.Count)
         {
@@ -226,7 +237,8 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
             State = TestInstallState.None;
         }
 
-        TestFeatures = [.. _page.Build.Packages.Select(row => row.Part).Where(part => part.Length > 0).Distinct().Select(part => new TestFeature(part, ShowTest))];
+        TestFeatures = [.. _page.Build.Packages.Where(row => row.Part.Length > 0 && !row.IsMissing).Select(row => row.Part).Distinct()
+            .Select(part => new TestFeature(part, ShowTest))];
 
         ShowTest();
     }

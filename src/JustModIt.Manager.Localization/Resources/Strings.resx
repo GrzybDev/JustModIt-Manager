@@ -3207,6 +3207,9 @@
   <data name="Creator_EarlierPackage" xml:space="preserve">
     <value>A package from an earlier build</value>
   </data>
+  <data name="Creator_PackageMissing" xml:space="preserve">
+    <value>The file is gone</value>
+  </data>
   <data name="Creator_FormatChosen" xml:space="preserve">
     <value>Format chosen automatically</value>
   </data>

@@ -9,11 +9,9 @@ using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Building;
 using JustModIt.Manager.Creator.Planning;
-using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
-using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
@@ -30,15 +28,6 @@ public enum PackageState
     Built,
 }
 
-/// <summary>A package a run made.</summary>
-/// <param name="Name">Its file's name.</param>
-/// <param name="Details">Its part and the stores of the versions it serves.</param>
-/// <param name="Size">Its size, as words.</param>
-/// <param name="Path">Its file.</param>
-/// <param name="Versions">The versions of the game it serves.</param>
-/// <param name="Part">The name of its part; empty for the base.</param>
-public sealed record BuiltRow(string Name, string Details, string Size, string Path, IReadOnlyList<GameKey> Versions, string Part);
-
 /// <summary>
 /// The build of every part and version on the thread pool, with its package, stage, file and bytes and a way to cancel it, why
 /// it failed, and the packages it made with the site's warnings about them.
@@ -54,7 +43,6 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     private Task? _build;
     private bool _asksForFolder;
     private IReadOnlyList<(PlanFinding Finding, PlannedOperation? Operation)> _buildFindings = [];
-    private DateTimeOffset _builtAt;
 
     /// <summary>Creates the build of a project's package.</summary>
     /// <param name="page">The project's page.</param>
@@ -67,11 +55,20 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         _session = session;
         _description = description;
         _test = test;
+        // A test package in the game keeps the last packages in sight, since their card holds its undo.
+        _test.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(TestInstallViewModel.State))
+            {
+                OnPropertyChanged(nameof(ShowsTest));
+                ShowLast();
+            }
+        };
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsReady), nameof(IsBuilding), nameof(IsBuilt), nameof(ShowsBuild), nameof(HasEarlierPackage),
-        nameof(ShowsPackage), nameof(EarlierText))]
+    [NotifyPropertyChangedFor(nameof(IsReady), nameof(IsBuilding), nameof(IsBuilt), nameof(HasEarlierPackage),
+        nameof(ShowsPackage), nameof(EarlierText), nameof(IsReadyToUse), nameof(IsGone), nameof(ShowsTest))]
     public partial PackageState State { get; private set; }
 
     public bool IsReady => State == PackageState.Ready;
@@ -92,87 +89,17 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
 
     /// <summary>The files changed since the comparison, which runs again by itself before the next build.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsBuild))]
     public partial bool NeedsComparison { get; private set; }
 
     /// <summary>Warnings only the build found, which the author accepts before building again.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasBuildFindings), nameof(AcceptedAll), nameof(ShowsBuild))]
+    [NotifyPropertyChangedFor(nameof(HasBuildFindings), nameof(AcceptedAll))]
     public partial IReadOnlyList<FindingLine> BuildFindings { get; private set; } = [];
 
     public bool HasBuildFindings => BuildFindings.Count > 0;
 
     /// <summary>The author accepted every warning of the last build, which the next build takes.</summary>
     public bool AcceptedAll => HasBuildFindings && BuildFindings.All(line => line.IsAccepted);
-
-    /// <summary>
-    /// The build's button, which a failed build replaces with its own way on: the warnings to accept, or comparing again.
-    /// </summary>
-    public bool ShowsBuild => IsReady && !HasBuildFindings && !NeedsComparison;
-
-    [ObservableProperty]
-    public partial string Stage { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string Percent { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial double Progress { get; private set; }
-
-    [ObservableProperty]
-    public partial string FileLine { get; private set; } = "";
-
-    /// <summary>Which package of the run is being built; empty for a run of one.</summary>
-    [ObservableProperty]
-    public partial string PackageLine { get; private set; } = "";
-
-    /// <summary>The packages the last run made, each with the versions it serves.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSeveral), nameof(PublishTitle), nameof(BuiltOverline))]
-    public partial IReadOnlyList<BuiltRow> Packages { get; private set; } = [];
-
-    public bool HasSeveral => Packages.Count > 1;
-
-    public string PublishTitle => Text.Format(Strings.Creator_PublishTitle, ("several", HasSeveral ? "true" : "false"));
-
-    /// <summary>That the packages of the last run are ready, over them.</summary>
-    public string BuiltOverline => Text.Format(Strings.Creator_BuiltHeading, ("count", Math.Max(Packages.Count, 1))).ToUpper(Text.Culture);
-
-    /// <summary>The package built first; empty before a build.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasEarlierPackage), nameof(ShowsPackage))]
-    public partial string OutputPath { get; private set; } = "";
-
-    /// <summary>A build failed or stopped after an earlier one, whose package is still there but is not this build's.</summary>
-    public bool HasEarlierPackage => IsReady && OutputPath.Length > 0;
-
-    public bool ShowsPackage => IsBuilt || HasEarlierPackage;
-
-    /// <summary>That the package shown is an earlier build's, and when it was built.</summary>
-    public string EarlierText => GameWording.Join(
-        [Strings.Creator_EarlierPackage, HasEarlierPackage ? Formats.RelativeTime(_builtAt, _page.Services.Clock) : ""]).ToUpper(Text.Culture);
-
-    [ObservableProperty]
-    public partial string ResultName { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string ResultSize { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string ResultDetails { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string ResultFolder { get; private set; } = "";
-
-    /// <summary>Why the site would not take the package as it is.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSiteWarnings))]
-    public partial IReadOnlyList<string> SiteWarnings { get; private set; } = [];
-
-    public bool HasSiteWarnings => SiteWarnings.Count > 0;
-
-    [ObservableProperty]
-    public partial string PublishText { get; private set; } = "";
 
     /// <summary>Asks whether a running build may stop, and waits until it removed its partial package.</summary>
     /// <returns>Whether nothing keeps the project from closing any more.</returns>
@@ -192,12 +119,11 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        // The window may close as soon as this returns, and a stopped build still removes the package it was writing, unless its
-        // drive stopped answering, which the window does not wait for.
+        // The window may close as soon as this returns, and a stopped build still removes the package it was writing.
         if (_build is { IsCompleted: false } build)
         {
             CancelBuild();
-            await Task.WhenAny(build, Task.Delay(LibraryAccess.TimeLimit, _page.Services.Clock)).ConfigureAwait(true);
+            await build.ConfigureAwait(true);
         }
 
         return true;
@@ -234,23 +160,12 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Accept(string key) => _session.Change(project => project.Acknowledge(key));
 
-    [RelayCommand]
-    private void Reveal()
-    {
-        if (ResultFolder.Length > 0)
-        {
-            _page.Services.Links.OpenFolder(ResultFolder);
-        }
-    }
-
-    [RelayCommand]
-    private void OpenSite() => _page.Services.Links.Open(PageLinks.Dashboard(_page.Services.Context.Site.SiteAddress));
-
     /// <summary>Shows what the next build does with the plan as it is now.</summary>
     internal void Show()
     {
         ShowBuildFindings();
         PublishText = _description.IsManifest ? Strings.Creator_PublishManifest : Strings.Creator_PublishZip;
+        ShowLast();
     }
 
     /// <summary>Takes back a failure that asked for the files to be compared again, now that they were.</summary>
@@ -271,16 +186,16 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             return;
         }
 
-        (OutputPath, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings, Packages) = ("", "", "", "", "", [], []);
-        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings) = ("", "", false, [], []);
-        State = PackageState.Ready;
+        Clear();
+        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings, _ran) = ("", "", false, [], [], false);
     }
 
     private async Task BuildAsync(string folder)
     {
         using var building = _building = new CancellationTokenSource();
-        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings) = ("", "", false, [], []);
-        (Stage, Percent, Progress, FileLine, PackageLine) = (Text.Format(Strings.Creator_BuildStage, ("stage", nameof(BuildStage.Checking))), "", 0, "", "");
+        (ProblemTitle, ProblemText, NeedsComparison, _buildFindings, BuildFindings, _ran) = ("", "", false, [], [], true);
+        _onDisk = [];
+        (Stage, Percent, Progress, FileLine, Heading, RunRows, CurrentRow) = (Text.Format(Strings.Creator_BuildStage, ("stage", nameof(BuildStage.Checking))), "", 0, "", Strings.Creator_BuildingTitle, [], null);
         State = PackageState.Building;
         var project = _session.Project;
         var done = 0;
@@ -396,32 +311,6 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
 
     private static string Stores(IEnumerable<GameKey> versions) => CreatorWording.List([.. versions.Select(version => GameWording.StoreName(version.Store))]);
 
-    private void Built(IReadOnlyList<FinishedPackage> finished)
-    {
-        Packages = [.. finished.Select(built => new BuiltRow(Path.GetFileName(built.Result.OutputPath),
-            GameWording.Join([built.Part.Length > 0 ? built.Part : Strings.Creator_PartBase, Stores(built.Package.Versions)]),
-            Formats.FileSize(built.Result.PackageSize), built.Result.OutputPath, built.Package.Versions, built.Part))];
-        var package = finished[0];
-        var result = package.Result;
-        OutputPath = result.OutputPath;
-        ResultName = Path.GetFileName(result.OutputPath);
-        ResultSize = Formats.FileSize(result.PackageSize);
-        var metadata = _session.Project.Metadata;
-        ResultDetails = GameWording.Join(
-        [
-            result.Kind == PackageKind.Zip ? Strings.Creator_ZipKind : Strings.Creator_ManifestKind,
-            metadata.Version.Trim().Length > 0 ? GameWording.ShortVersion(metadata.Version.Trim()) : "",
-            result.Kind == PackageKind.Manifest ? string.Join(", ", metadata.Authors) : "",
-        ]);
-        ResultFolder = Path.GetDirectoryName(result.OutputPath) ?? "";
-        _builtAt = package.Package.BuiltAt;
-        SiteWarnings = [.. finished.SelectMany(built => built.Result.Findings)
-            .Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
-            .Select(finding => CreatorWording.Finding(finding)).Distinct()];
-        _test.Built();
-        State = PackageState.Built;
-    }
-
     private void Fail(string title, string text)
     {
         (ProblemTitle, ProblemText) = (title, text);
@@ -434,31 +323,6 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         PathComparison.IsWithin(plan.AuthorDirectory, path) ? PackagePath.FromFullPath(plan.AuthorDirectory, path)
         : PathComparison.IsWithin(plan.GameDirectory, path) ? PackagePath.FromFullPath(plan.GameDirectory, path)
         : path;
-
-    private void Show(ProjectBuildProgress run)
-    {
-        if (State != PackageState.Building)
-        {
-            return;
-        }
-
-        var progress = run.Build;
-        PackageLine = run.PackageCount > 1 ? Text.Format(Strings.Creator_BuildingOf, ("number", run.Package), ("count", run.PackageCount)) : "";
-        Progress = progress.BytesTotal > 0 ? 100.0 * progress.BytesDone / progress.BytesTotal : 0;
-        Percent = Formats.Percent(progress.BytesDone, progress.BytesTotal);
-        Stage = GameWording.Join(
-        [
-            Text.Format(Strings.Creator_BuildStage, ("stage", progress.Stage.ToString())),
-            progress.BytesTotal > 0 ? Text.Format(Strings.Creator_BytesOf, ("done", Formats.FileSize(progress.BytesDone)),
-                ("total", Formats.FileSize(progress.BytesTotal))) : "",
-        ]);
-        FileLine = progress.FileNumber == 0 ? ""
-            : GameWording.Join(
-            [
-                Text.Format(Strings.Creator_FileOf, ("number", progress.FileNumber), ("count", progress.FileCount)),
-                progress.CurrentFile ?? "",
-            ]);
-    }
 
     // A warning the author accepted stays in the list, marked, so the click shows what it did and the build can go on. One
     // about a patch the plan no longer makes, e.g. of a file left out or changed since, goes, and with the last the failure.

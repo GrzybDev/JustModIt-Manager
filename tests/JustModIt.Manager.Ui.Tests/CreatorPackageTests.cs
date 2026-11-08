@@ -119,7 +119,7 @@ public sealed class CreatorPackageTests : IDisposable
         package.Tab = ProjectTab.Release;
         package.Build.IsBuilding.Should().BeTrue();
 
-        ui.Click(Button(ui, Strings.Dialog_Cancel));
+        ui.Click(Button(ui, Strings.Creator_Stop));
         files.Reads.Set();
         await BuildEndedAsync(package);
         package.Build.ProblemTitle.Should().Be(Strings.Creator_BuildCancelledTitle);
@@ -593,6 +593,71 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task Choosing_a_cell_stays_during_a_build_whose_bar_lists_the_run_s_packages()
+    {
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        var original = Path.Combine(gog.Game.InstallDirectory, "data", "strings.bin");
+        File.WriteAllText(original, "strings of the original game, as the other store ships them");
+        File.WriteAllText(Path.Combine(gog.Game.InstallDirectory, "data", "config.xml"), "<config language=\"en\" store=\"other\" />");
+        var files = new HeldFileSystem(original);
+        files.Reads.Set();
+        using var ui = await OpenAsync(files);
+        var (page, _) = await TwoVersionsAsync(ui, gog);
+        ui.Pickers.Folder = _work.Folder("Captions", ("data/config.xml", "<config language=\"en\" captions=\"on\" />"));
+        ui.Click(Button(ui, Strings.Creator_AddFeature));
+        await UiHarness.WaitUntilAsync(() => page.Cells.Count == 4 && page.CanBuild, () => page.BlockedText);
+
+        files.Reads.Reset();
+        await BuildAsync(ui);
+        await UiHarness.WaitUntilAsync(() => page.Build.RunRows.Count == 4 && page.Build.RunRows[1].IsBuilding);
+
+        page.Build.Heading.Should().Be(Text.Format(Strings.Creator_BuildingOf, ("number", 2), ("count", 4)));
+        page.Build.RunRows.Select(row => (row.Name, row.Details)).Should().Equal(
+            ("Lantern Isle (Steam) v1.0.examplemod", GameWording.Join([Strings.Creator_PartBase, "Steam"])),
+            ("Lantern Isle (GOG) v1.0.examplemod", GameWording.Join([Strings.Creator_PartBase, "GOG"])),
+            ("Lantern Isle (Steam) v1.0 – Captions.examplemod", GameWording.Join(["Captions", "Steam"])),
+            ("Lantern Isle (GOG) v1.0 – Captions.examplemod", GameWording.Join(["Captions", "GOG"])));
+        page.Build.RunRows.Select(row => row.State).Should().Equal(RunRowState.Finished, RunRowState.Building, RunRowState.Waiting, RunRowState.Waiting);
+        page.Build.RunRows[0].Amount.Should().Be(Formats.FileSize(new FileInfo(Output("Lantern Isle (Steam) v1.0.examplemod")).Length));
+        await ui.RenderBothAsync("creator-building-run");
+
+        ui.Click(Button(ui, page.Cells[1].Name));
+        (page.IsPanelOpen, page.Cell).Should().Be((true, page.Cells[1]), "choosing a cell stays during a build");
+        ui.Find<Button>("AddPart").IsEffectivelyEnabled.Should().BeFalse("the project cannot change under its build");
+        ui.Find<Button>().First(button => button.Name == "AddVersion" && button.IsEffectivelyVisible).IsEffectivelyEnabled.Should().BeFalse();
+        ui.Find<TextBox>().First(box => box.Name == "PartName" && box.IsEffectivelyVisible).IsEffectivelyEnabled.Should().BeFalse();
+        ui.Find<CellPanel>().Single(panel => panel.Parent is StackPanel { Parent: ScrollViewer { Parent: Border { Name: "Aside" } } }).IsEffectivelyEnabled.Should().BeFalse();
+        await ui.RenderBothAsync("creator-building-panel");
+
+        ui.Click(Button(ui, Strings.Creator_Stop));
+        files.Reads.Set();
+        await BuildEndedAsync(page);
+        await UiHarness.WaitUntilAsync(() => page.CanBuild);
+        var (bar, change) = (ui.Find<Border>("BuildBar"), ui.Find<Button>("ChangeOutput"));
+        (change.TranslatePoint(new Point(change.Bounds.Width, 0), bar)!.Value.X).Should().BeLessThanOrEqualTo(bar.Bounds.Width, "the way to change the folder stays in the bar beside the panel");
+    }
+
+    [AvaloniaFact]
+    public async Task Renaming_an_add_on_keeps_its_packages_in_the_record_and_on_the_card()
+    {
+        using var ui = await OpenAsync();
+        var page = await PackageAsync(ui);
+        page.Description.Version = "1.0";
+        ui.Pickers.Folder = _work.Folder("Captions", ("data/captions.txt", "captions of the intro"));
+        ui.Click(Button(ui, Strings.Creator_AddFeature));
+        await UiHarness.WaitUntilAsync(() => page.Cells.Count == 2 && page.CanBuild, () => page.BlockedText);
+        await BuildAsync(ui);
+        await BuiltAsync(page);
+
+        await page.RenamePartAsync("Captions", "Film captions");
+
+        page.Record!.Parts.Select(part => part.Part).Should().Equal("", "Film captions");
+        page = await ReopenAsync(ui, () => { });
+        await UiHarness.WaitUntilAsync(() => page.Cells.All(cell => cell.IsCompared) && page.Build.Packages.Count == 2);
+        page.Build.Packages.Select(row => row.Part).Should().Equal("", "Film captions");
+    }
+
+    [AvaloniaFact]
     public async Task A_test_installs_the_base_with_the_chosen_add_ons_in_order()
     {
         var project = TestGames.Offer("Lantern Isle", version: 1);
@@ -902,6 +967,89 @@ public sealed class CreatorPackageTests : IDisposable
         Page(ui).CanBuild.Should().BeFalse("the files are compared again first");
         await RenderAsync(ui, "creator-rebuild-failed", 1700);
         held.Reads.Set();
+    }
+
+    [AvaloniaFact]
+    public async Task A_package_moved_away_since_the_build_offers_no_test()
+    {
+        using var ui = await OpenAsync();
+        var package = await PackageAsync(ui);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
+        await BuildAsync(ui);
+        await BuiltAsync(package);
+
+        var reopened = await ReopenAsync(ui, () => File.Move(Output("Lantern Isle v1.0.examplemod"), Output("Kept elsewhere.examplemod")));
+        await UiHarness.WaitUntilAsync(() => reopened.Build.IsBuilt, () => reopened.Cell!.Line.Label);
+        (reopened.Build.Packages.Single().IsMissing, reopened.Build.ResultSize).Should().Be((true, Strings.Creator_PackageMissing));
+        Shows(ui, Strings.Creator_TestInstall).Should().BeFalse("only a package that is on the disk is tried in the game");
+        Shows(ui, Strings.Creator_Reveal).Should().BeFalse();
+        await RenderAsync(ui, "creator-reopened-missing", null);
+
+        ui.Push(State(null, installed: true));
+        await UiHarness.WaitUntilAsync(() => Shows(ui, Strings.Creator_UndoTest), () => reopened.Test.State.ToString());
+        reopened.Test.TestTitle.Should().Be(Text.Format(Strings.Creator_TestInstalledTitle, ("game", "Lantern Isle"), ("several", "false")),
+            "a test package in the game keeps its undo on the page, whatever became of the package");
+    }
+
+    [AvaloniaFact]
+    public async Task A_version_that_comes_back_compares_again_the_versions_that_share_its_folder()
+    {
+        const string config = "<config language=\"en\" edition=\"store\" />";
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        _work.Game("data/config.xml", config);
+        _work.Author("data/config.xml", config);
+        using var ui = await OpenAsync();
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog]) : null;
+        var page = await PackageAsync(ui);
+        await UiHarness.WaitUntilAsync(() => page.HasOffer);
+        ui.Click(Button(ui, page.OfferAction));
+        await UiHarness.WaitUntilAsync(() => page.IsTable && page.Cells.All(cell => cell.IsCompared && cell.Review is not null));
+        Patches(page.Cells[1]).Should().BeFalse("the file is the first version's own, so it is no work of the author's");
+        var install = LanternWithTestInstall();
+        ui.Push(TestStates.Idle(creatorMode: true) with { Version = ++_version, Games = [install with { Installs = [install.Installs[0] with { IsTest = false }] }] });
+
+        page = await ReopenAsync(ui, () => { });
+        await UiHarness.WaitUntilAsync(() => page.Cells.Count == 2 && page.Cells[0].State == CellState.Installed && page.Cells[1].IsCompared && page.Cells[1].Review is not null);
+        Patches(page.Cells[1]).Should().BeTrue("while the first version holds a package its files cannot be told from the author's");
+
+        ui.Push(TestStates.Idle(creatorMode: true) with { Version = ++_version });
+        await UiHarness.WaitUntilAsync(() => page.Cells[0].IsCompared && page.Cells[1] is { IsCompared: true, Review: not null } && !Patches(page.Cells[1]));
+
+        static bool Patches(CellViewModel cell) => cell.Review!.Plan.Operations.Any(operation => operation.Path == "data/config.xml");
+    }
+
+    [AvaloniaFact]
+    public async Task A_changed_project_shows_the_table_without_the_old_packages()
+    {
+        using var ui = await OpenAsync();
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        File.WriteAllText(Path.Combine(gog.Game.InstallDirectory, "data", "strings.bin"), "strings of the original game, as the other store ships them");
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog]) : _work.Answer(request);
+        var page = await PackageAsync(ui);
+        page.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => page.HasOffer && !page.Description.HasMetadataProblem);
+        ui.Click(Button(ui, page.OfferAction));
+        await UiHarness.WaitUntilAsync(() => page.IsTable && page.CanBuild, () => page.BlockedText);
+        await BuildAsync(ui);
+        await BuiltAsync(page);
+
+        var reopened = await ReopenAsync(ui, () => { });
+        await UiHarness.WaitUntilAsync(() => reopened.IsTable && reopened.Build.IsBuilt, () => reopened.BlockedText);
+        reopened.Build.Packages.Select(row => (row.Name, row.IsMissing)).Should().Equal(
+            ("Lantern Isle (Steam) v1.0.examplemod", false), ("Lantern Isle (GOG) v1.0.examplemod", false));
+        Shows(ui, Strings.Creator_TestInstall).Should().BeTrue("the last build's packages are tried as a run's are");
+        await ui.RenderBothAsync("creator-reopened");
+        reopened.Description.Version = "1.1";
+        await UiHarness.WaitUntilAsync(() => !reopened.Build.ShowsPackage);
+        reopened.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => reopened.Build.IsBuilt);
+
+        reopened = await ReopenAsync(ui, () => _work.Author("data/extra/credits.txt", "credits of the author's work, with one more name"));
+        await UiHarness.WaitUntilAsync(() => reopened.Cells.Count == 2 && reopened.Cells.All(cell => cell.IsCompared && cell.HasChanges));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        (reopened.IsTable, reopened.Build.ShowsPackage, reopened.Build.Packages.Count).Should().Be((true, false, 0),
+            "the packages of 1.0 no longer hold the files as they are");
     }
 
     [AvaloniaFact]
@@ -1236,6 +1384,24 @@ public sealed class CreatorPackageTests : IDisposable
 
     private string Output(string name) => Path.TrimEndingDirectorySeparator(Path.Combine(_work.Root, "Packages", name));
 
+    // A project over Lantern Isle's Steam copy and a GOG copy with another original of the file the author changed, ready to build.
+    private async Task<(ProjectPageViewModel Page, DetectedGameEntry Gog)> TwoVersionsAsync(UiHarness ui, DetectedGameEntry? copy = null)
+    {
+        var gog = copy ?? _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        if (copy is null)
+        {
+            File.WriteAllText(Path.Combine(gog.Game.InstallDirectory, "data", "strings.bin"), "strings of the original game, as the other store ships them");
+        }
+
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog]) : _work.Answer(request);
+        var page = await PackageAsync(ui);
+        page.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => page.HasOffer && !page.Description.HasMetadataProblem);
+        ui.Click(Button(ui, page.OfferAction));
+        await UiHarness.WaitUntilAsync(() => page.IsTable && page.CanBuild, () => page.BlockedText);
+        return (page, gog);
+    }
+
     // A plain package built for the game, with the agent starting the test install and its undoing as the jobs above.
     private async Task<ProjectPageViewModel> TestedPackageAsync()
     {
@@ -1374,6 +1540,19 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     private static ProjectPageViewModel Page(UiHarness ui) => (ProjectPageViewModel)ui.Shell.Navigator.Current!;
+
+    // Closes the project, lets the test change what lies on the disk meanwhile, and opens the project again from its card.
+    private static async Task<ProjectPageViewModel> ReopenAsync(UiHarness ui, Action change)
+    {
+        ui.Click(Button(ui, Strings.Creator_Projects));
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        (await creator.CloseProjectAsync()).Should().BeTrue();
+        change();
+        await UiHarness.WaitUntilAsync(() => creator.Cards.Any());
+        creator.OpenCardCommand.Execute(creator.Cards.Single());
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell: not null });
+        return Page(ui);
+    }
 
     // A plan is made again after every edit, and the bar lets the build go once it has the plan of the project as it is.
     private static async Task BuildAsync(UiHarness ui)

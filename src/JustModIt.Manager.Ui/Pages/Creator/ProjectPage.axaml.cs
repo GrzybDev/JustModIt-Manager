@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Ui.Controls;
 
@@ -33,6 +34,7 @@ public sealed partial class ProjectPage : UserControl
         if (_page is not null)
         {
             _page.PropertyChanged += OnPageChanged;
+            _page.Build.PropertyChanged += OnBuildChanged;
             Lay(Bounds.Width is > 0 and < OverlayBelow);
         }
     }
@@ -43,6 +45,7 @@ public sealed partial class ProjectPage : UserControl
         if (_page is not null)
         {
             _page.PropertyChanged -= OnPageChanged;
+            _page.Build.PropertyChanged -= OnBuildChanged;
             _page = null;
         }
     }
@@ -53,6 +56,15 @@ public sealed partial class ProjectPage : UserControl
         if (e.PropertyName == nameof(ProjectPageViewModel.IsPanelOpen) && _page is { } page)
         {
             (page.IsPanelOpen ? ClosePanel : CellButton(page.Cell))?.Focus(NavigationMethod.Tab);
+        }
+    }
+
+    // A long run scrolls its list, which keeps the package being built in sight.
+    private void OnBuildChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(BuildViewModel.CurrentRow) && _page?.Build.CurrentRow is { } row)
+        {
+            Dispatcher.UIThread.Post(() => RunRows.ContainerFromItem(row)?.BringIntoView(), DispatcherPriority.Loaded);
         }
     }
 

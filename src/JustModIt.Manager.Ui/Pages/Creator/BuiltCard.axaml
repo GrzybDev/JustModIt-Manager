@@ -9,12 +9,14 @@
              ClipToBounds="False">
   <!-- The cards' shadows fall outside the control. -->
   <StackPanel Spacing="20">
-    <!-- The package: the one just built, or after a failed build the earlier one, said to be earlier. -->
+    <!-- The packages: those just built or, in a project opened again, the last build's; after a failed build the earlier one,
+         said to be earlier. A file gone since its build says so. -->
     <Border Classes="creatorCard" Padding="24,20" IsVisible="{Binding Build.ShowsPackage}">
       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-        <Border Classes="kind" Classes.success="{Binding Build.IsBuilt}" Width="48" Height="48" CornerRadius="12" Padding="0" HorizontalAlignment="Center">
+        <Border Classes="kind" Classes.success="{Binding Build.IsReadyToUse}" Width="48" Height="48" CornerRadius="12" Padding="0" HorizontalAlignment="Center">
           <Panel HorizontalAlignment="Center">
-            <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Width="24" Height="24" IsVisible="{Binding Build.IsBuilt}" />
+            <ui:Icon Data="{x:Static theme:Icons.CircleCheck}" Width="24" Height="24" IsVisible="{Binding Build.IsReadyToUse}" />
+            <ui:Icon Data="{x:Static theme:Icons.FileX}" Width="24" Height="24" IsVisible="{Binding Build.IsGone}" />
             <ui:Icon Data="{x:Static theme:Icons.Clock}" Width="24" Height="24" IsVisible="{Binding Build.HasEarlierPackage}" />
           </Panel>
         </Border>
@@ -22,11 +24,11 @@
              packages, so a long list keeps its width. -->
         <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
           <TextBlock Classes="overline" Text="{Binding Build.EarlierText}" IsVisible="{Binding Build.HasEarlierPackage}" />
-          <TextBlock Classes="overline" Text="{Binding Build.BuiltOverline}" IsVisible="{Binding Build.IsBuilt}" />
+          <TextBlock Classes="overline" Text="{Binding Build.BuiltOverline}" IsVisible="{Binding Build.IsReadyToUse}" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" HorizontalAlignment="Left" IsVisible="{Binding !Build.HasSeveral}">
             <TextBlock Text="{Binding Build.ResultName}" FontSize="17" LineHeight="24" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}"
                        TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Build.OutputPath}" />
-            <Border Grid.Column="1" Classes="kind" VerticalAlignment="Center">
+            <Border Grid.Column="1" Classes="kind" Classes.warning="{Binding Build.IsGone}" VerticalAlignment="Center">
               <TextBlock Text="{Binding Build.ResultSize}" />
             </Border>
           </Grid>
@@ -40,7 +42,7 @@
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" HorizontalAlignment="Left">
                     <TextBlock FontSize="14" LineHeight="20" FontWeight="SemiBold" Foreground="{StaticResource TextStrongBrush}" Text="{Binding Name}"
                                TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
-                    <Border Grid.Column="1" Classes="kind" VerticalAlignment="Center">
+                    <Border Grid.Column="1" Classes="kind" Classes.warning="{Binding IsMissing}" VerticalAlignment="Center">
                       <TextBlock Text="{Binding Size}" />
                     </Border>
                   </Grid>
@@ -52,14 +54,21 @@
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,6,0,0">
             <TextBlock Classes="pathLine" Text="{Binding Build.ResultFolder}" VerticalAlignment="Center" ToolTip.Tip="{Binding Build.ResultFolder}" />
             <Button Grid.Column="1" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_Reveal}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
-                    Command="{Binding Build.RevealCommand}" />
+                    Command="{Binding Build.RevealCommand}" IsVisible="{Binding !Build.IsGone}" />
           </Grid>
         </StackPanel>
       </Grid>
     </Border>
 
-    <!-- After the build: what the site would say, the test in the game and the way to publish. -->
-    <StackPanel Spacing="20" IsVisible="{Binding Build.IsBuilt}">
+    <!-- After the build: what the site would say, the test in the game and the way to publish packages that are still there. A test
+         package in the game keeps its test here whatever the packages, since its undo has no other place on the page. -->
+    <StackPanel Spacing="20">
+      <StackPanel.IsVisible>
+        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+          <Binding Path="Build.IsReadyToUse" />
+          <Binding Path="Build.ShowsTest" />
+        </MultiBinding>
+      </StackPanel.IsVisible>
       <ItemsControl ItemsSource="{Binding Build.SiteWarnings}" IsVisible="{Binding Build.HasSiteWarnings}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="x:String">
@@ -71,7 +80,7 @@
 
       <Border Classes="creatorCard" ClipToBounds="True">
         <StackPanel>
-          <Border Padding="20,18">
+          <Border Padding="20,18" IsVisible="{Binding Build.ShowsTest}">
             <StackPanel Spacing="4">
               <TextBlock Text="{Binding Test.TestTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
               <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding Test.TestText}"
@@ -102,7 +111,7 @@
               </StackPanel>
               <WrapPanel ItemSpacing="12" LineSpacing="8" Margin="0,10,0,0">
                 <Button x:Name="TestButton" Classes="primary compact" Content="{x:Static loc:Strings.Creator_TestInstall}" IsVisible="{Binding Test.OffersTestInstall}"
-                        ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding Test.InstallTestCommand}" CommandParameter="{Binding Build.OutputPath}" />
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding Test.InstallTestCommand}" />
                 <Button Classes="primary compact" Content="{x:Static loc:Strings.Creator_Launch}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Play}"
                         Command="{Binding Test.LaunchCommand}">
                   <Button.IsVisible>
@@ -115,15 +124,22 @@
                 <Button x:Name="UndoTestButton" Classes="outline" Content="{x:Static loc:Strings.Creator_UndoTest}" IsVisible="{Binding Test.IsTestInstalled}"
                         ui:ButtonAssist.Icon="{x:Static theme:Icons.RotateCcw}" Command="{Binding Test.UndoTestCommand}" />
                 <Button Classes="quiet" Content="{x:Static loc:Strings.Creator_TestAgain}" IsVisible="{Binding Test.WasTested}"
-                        ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding Test.InstallTestCommand}" CommandParameter="{Binding Build.OutputPath}" />
+                        ui:ButtonAssist.Icon="{x:Static theme:Icons.Download}" Command="{Binding Test.InstallTestCommand}" />
               </WrapPanel>
               <Button x:Name="TestTogether" Classes="link" Margin="0,6,0,0" HorizontalAlignment="Left"
                       Content="{x:Static loc:Strings.Creator_TestTogether}" IsVisible="{Binding Test.OffersTestInstall}"
-                      Command="{Binding Test.InstallTestTogetherCommand}" CommandParameter="{Binding Build.OutputPath}" />
+                      Command="{Binding Test.InstallTestTogetherCommand}" />
             </StackPanel>
           </Border>
-          <Border Classes="divider" Opacity="0.6" />
-          <Border Padding="20,18">
+          <Border Classes="divider" Opacity="0.6">
+            <Border.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="Build.IsReadyToUse" />
+                <Binding Path="Build.ShowsTest" />
+              </MultiBinding>
+            </Border.IsVisible>
+          </Border>
+          <Border Padding="20,18" IsVisible="{Binding Build.IsReadyToUse}">
             <StackPanel Spacing="4">
               <TextBlock Text="{Binding Build.PublishTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
               <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding Build.PublishText}" />

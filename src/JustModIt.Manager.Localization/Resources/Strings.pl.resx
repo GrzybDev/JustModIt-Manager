@@ -3195,6 +3195,9 @@
   <data name="Creator_EarlierPackage" xml:space="preserve">
     <value>Paczka z wcześniejszego budowania</value>
   </data>
+  <data name="Creator_PackageMissing" xml:space="preserve">
+    <value>Nie ma już tego pliku</value>
+  </data>
   <data name="Creator_FormatChosen" xml:space="preserve">
     <value>Format wybrany automatycznie</value>
   </data>

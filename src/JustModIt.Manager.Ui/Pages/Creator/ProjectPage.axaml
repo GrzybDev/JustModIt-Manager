@@ -207,26 +207,60 @@
               </StackPanel>
             </Grid>
 
-            <!-- The build under way: its package, its progress and the way to stop it. -->
+            <!-- The build under way: where the run stands, each of its packages with its size or how far it got, and the way to stop it. -->
             <StackPanel x:Name="Building" Spacing="10" IsVisible="{Binding Build.IsBuilding}" theme:Motion.Enter="True">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+              <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
                 <Border Classes="workChip">
                   <ui:Icon Classes="spin" Data="{x:Static theme:Icons.LoaderCircle}" Width="20" Height="20" />
                 </Border>
                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                  <TextBlock Text="{x:Static loc:Strings.Creator_BuildingTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold"
-                             Foreground="{StaticResource TextStrongBrush}" />
-                  <TextBlock Classes="caption" Text="{Binding Build.PackageLine}" IsVisible="{Binding Build.PackageLine, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                  <TextBlock Classes="caption" Text="{Binding OutputText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip.Tip="{Binding OutputFolder}" />
+                  <TextBlock Classes="rowTitle" FontSize="14" Text="{Binding Build.Heading}" />
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBlock Classes="caption" Text="{Binding OutputText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip.Tip="{Binding OutputFolder}" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Classes="link" FontSize="12" IsEnabled="False" Opacity="0.5" Content="{x:Static loc:Strings.Creator_ChangeOutput}" VerticalAlignment="Center"
+                            AutomationProperties.Name="{x:Static loc:Strings.Creator_OutputTitle}" />
+                  </Grid>
                 </StackPanel>
-                <Button Grid.Column="2" Classes="outline headerAction" Content="{x:Static loc:Strings.Dialog_Cancel}" Command="{Binding Build.CancelBuildCommand}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                  <TextBlock Classes="caption" Text="{x:Static loc:Strings.Creator_Version}" VerticalAlignment="Center" />
+                  <TextBox Width="96" IsEnabled="False" Text="{Binding Description.Version, Mode=OneWay}" AutomationProperties.Name="{x:Static loc:Strings.Creator_Version}" />
+                </StackPanel>
+                <Button Grid.Column="3" Classes="outline headerAction" VerticalAlignment="Center" Content="{x:Static loc:Strings.Creator_Stop}" Command="{Binding Build.CancelBuildCommand}" />
               </Grid>
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                <TextBlock Classes="meta" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Build.Stage}" TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Column="1" Classes="meta" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Text="{Binding Build.Percent}" />
-              </Grid>
-              <ProgressBar Maximum="100" Value="{Binding Build.Progress}" AutomationProperties.Name="{x:Static loc:Strings.Creator_BuildingTitle}" />
-              <TextBlock Classes="pathLine" Text="{Binding Build.FileLine}" />
+              <ScrollViewer MaxHeight="136" Margin="0,0,-12,0" Padding="0,0,12,0" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding Build.HasRunRows}">
+                <ItemsControl x:Name="RunRows" ItemsSource="{Binding Build.RunRows}" AutomationProperties.Name="{x:Static loc:Strings.Creator_BuildingTitle}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="creator:RunRow">
+                      <StackPanel Spacing="3" Margin="0,2">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+                          <Panel Width="14" Height="14" VerticalAlignment="Center">
+                            <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" Classes="successText" IsVisible="{Binding IsFinished}" />
+                            <ui:Icon Classes="spin" Data="{x:Static theme:Icons.LoaderCircle}" Width="14" Height="14" Foreground="{StaticResource InfoTextBrush}" IsVisible="{Binding IsBuilding}" />
+                            <ui:Icon Data="{x:Static theme:Icons.Hourglass}" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" IsVisible="{Binding IsWaiting}" />
+                          </Panel>
+                          <TextBlock Grid.Column="1" Classes="rowText" Foreground="{StaticResource TextEmphasisBrush}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                     ToolTip.Tip="{Binding Name}" VerticalAlignment="Center" />
+                          <TextBlock Grid.Column="2" Classes="caption" Text="{Binding Details}" VerticalAlignment="Center" />
+                          <TextBlock Grid.Column="3" Classes="caption" MinWidth="58" TextAlignment="Right" Text="{Binding Amount}" VerticalAlignment="Center" />
+                        </Grid>
+                        <StackPanel Spacing="3" Margin="24,0,0,0" IsVisible="{Binding IsBuilding}">
+                          <ProgressBar Classes="thin" Maximum="100" Value="{Binding $parent[UserControl].((creator:ProjectPageViewModel)DataContext).Build.Progress}"
+                                       AutomationProperties.Name="{Binding Name}" />
+                          <TextBlock Classes="caption" Text="{Binding $parent[UserControl].((creator:ProjectPageViewModel)DataContext).Build.Stage}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                     ToolTip.Tip="{Binding $parent[UserControl].((creator:ProjectPageViewModel)DataContext).Build.FileLine}" />
+                          <TextBlock Classes="pathLine" Text="{Binding $parent[UserControl].((creator:ProjectPageViewModel)DataContext).Build.FileLine}"
+                                     IsVisible="{Binding $parent[UserControl].((creator:ProjectPageViewModel)DataContext).Build.ShowsFile}" />
+                        </StackPanel>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+              <!-- Before the run knows its packages: the check, or the versions being told apart. -->
+              <StackPanel Spacing="4" IsVisible="{Binding !Build.HasRunRows}">
+                <ProgressBar Classes="thin" Maximum="100" Value="{Binding Build.Progress}" AutomationProperties.Name="{x:Static loc:Strings.Creator_BuildingTitle}" />
+                <TextBlock Classes="caption" Text="{Binding Build.Stage}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+              </StackPanel>
             </StackPanel>
           </Panel>
         </Border>

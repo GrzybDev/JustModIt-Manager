@@ -298,6 +298,7 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         Record = await Library.ReadBuildAsync(ProjectId, CancellationToken.None).ConfigureAwait(true);
         ShowSession();
         ShowBar();
+        await Build.ShowRecordAsync(Record).ConfigureAwait(true);
         foreach (var cell in Cells)
         {
             await cell.ShowRecordAsync(Record, CancellationToken.None).ConfigureAwait(true);
@@ -417,6 +418,12 @@ public sealed partial class ProjectPageViewModel : PageViewModel
         {
             OnPropertyChanged(nameof(Work));
             CompareOutdated();
+        }
+
+        // The last build's packages stand while no comparison runs or found a change since them.
+        if (sender is CellViewModel && e.PropertyName is nameof(CellViewModel.State) or nameof(CellViewModel.HasChanges))
+        {
+            Build.ShowLast();
         }
 
         if (sender is CellViewModel { IsFeature: false } first && e.PropertyName == nameof(CellViewModel.State))
