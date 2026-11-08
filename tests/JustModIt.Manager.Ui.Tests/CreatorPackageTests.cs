@@ -8,6 +8,7 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Core.Platform;

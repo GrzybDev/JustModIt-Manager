@@ -1,4 +1,6 @@
 using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Core.Patching;
+using JustModIt.Manager.Creator.Building;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Creator.Tests.TestSupport;
 
@@ -239,8 +241,10 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Author("data.bin", "changed");
         var untitled = await _workspace.ReviewAsync(new CreatorProject());
         untitled.Plan.Findings.Select(finding => finding.Kind).Should().Equal(FindingKind.MissingTitle, FindingKind.MissingVersion);
-        var confirm = () => untitled.Plan.Confirm();
-        confirm.Should().Throw<InvalidOperationException>();
+        var build = () => new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(untitled.Plan,
+            new BuildRequest { OutputPath = _workspace.Output("example.examplemod"), Game = Workspace.Installed(untitled.Plan.GameDirectory) },
+            progress: null, TestContext.Current.CancellationToken);
+        await build.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]

@@ -1,11 +1,34 @@
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
 
 namespace JustModIt.Manager.Creator.Projects;
 
 /// <summary>What a project's builds left behind, kept apart from the project so a large listing stays out of every save and export.</summary>
 /// <param name="Parts">Each part that was built.</param>
-public sealed record BuildRecord(IReadOnlyList<PartBuild> Parts);
+public sealed record BuildRecord(IReadOnlyList<PartBuild> Parts)
+{
+    /// <summary>The record with a finished package's row, in place of an earlier row of its file.</summary>
+    /// <param name="part">The part the package belongs to.</param>
+    /// <param name="package">Its row, with its own release and date.</param>
+    public BuildRecord WithPackage(string part, BuiltPackage package) =>
+        new BuildRecord([.. Parts.Select(build => build with
+        {
+            Packages = [.. build.Packages.Where(row => !PathComparison.AreSame(row.Path, package.Path))],
+        })]).With(part, build => build with { Packages = [.. build.Packages, package] });
+
+    /// <summary>The record with what a part's finished packages read, and the release that belongs to.</summary>
+    /// <param name="part">The part all of whose packages are done.</param>
+    /// <param name="version">The release they were built as.</param>
+    /// <param name="folders">The author's folders as they read them.</param>
+    public BuildRecord WithFolders(string part, string version, IReadOnlyList<FolderBuild> folders) =>
+        With(part, build => build with { Version = version, Folders = folders });
+
+    private BuildRecord With(string part, Func<PartBuild, PartBuild> change) => new(
+        Parts.Any(build => build.Part == part)
+            ? [.. Parts.Select(build => build.Part == part ? change(build) : build)]
+            : [.. Parts, change(new PartBuild(part, string.Empty, [], []))]);
+}
 
 /// <summary>The builds of one part of a project.</summary>
 /// <param name="Part">The part's name; empty for the base.</param>

@@ -93,6 +93,7 @@ public static class CreatorPlanner
                 .. libraries.Where(library => library.Notice!.IsComplete).Select(library => NoticeOf(library.Path, library.Notice!, layout)),
             ],
             Acknowledged = project.Acknowledged,
+            Compared = comparison.Files,
             RuntimeFiles = [.. runtime],
             CarriesCode = carriesCode,
         };

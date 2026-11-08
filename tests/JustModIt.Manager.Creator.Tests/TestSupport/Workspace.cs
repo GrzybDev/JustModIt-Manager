@@ -1,6 +1,7 @@
 using System.Text;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Creator.Building;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
 
@@ -24,7 +25,11 @@ internal sealed class Workspace : IDisposable
         ProjectExtension = ".exampleproj",
     };
 
-    public static readonly ProjectVersion Version = new(new ProjectGame(new GameKey(StoreId.Steam, "1000010"), "Lantern Isle"));
+    public static readonly GameKey Steam = new(StoreId.Steam, "1000010");
+
+    public static readonly GameKey Gog = new(StoreId.Gog, "1100000002000000001");
+
+    public static readonly ProjectVersion Version = new(new ProjectGame(Steam, "Lantern Isle"));
 
     public Workspace()
     {
@@ -48,6 +53,19 @@ internal sealed class Workspace : IDisposable
     {
         Parts = [part ?? new()],
         Metadata = new PackageMetadata { Title = "Example package", Version = "1.0" },
+    };
+
+    /// <summary>A game as the library reports it, installed and idle.</summary>
+    /// <param name="directory">Its folder.</param>
+    /// <param name="key">Its key; <see cref="Steam"/> when null.</param>
+    /// <param name="buildId">Its store's build; none when null.</param>
+    public static InstalledGame Installed(string directory, GameKey? key = null, string? buildId = null) => new()
+    {
+        Key = key ?? Steam,
+        Name = "Lantern Isle",
+        InstallDirectory = directory,
+        LibraryId = "library",
+        BuildId = buildId,
     };
 
     public static byte[] Bytes(int size, int seed)
@@ -93,6 +111,18 @@ internal sealed class Workspace : IDisposable
         {
             OtherVersions = other is null ? [] : [await comparer.ListGameAsync(other.GameDirectory, [], token)],
         }, progress, token);
+    }
+
+    /// <summary>Plans a project's base on this workspace's game as one version of the project.</summary>
+    /// <param name="project">The project.</param>
+    /// <param name="key">The version's game.</param>
+    /// <param name="layout">Where the project's folders lie on this game; as listed when null.</param>
+    /// <param name="authorDirectory">The author's folder; the workspace's when null.</param>
+    public async Task<BuildVersion> VersionAsync(CreatorProject project, GameKey key, FolderLayout? layout = null, string? authorDirectory = null)
+    {
+        var comparison = await CompareAsync(layout: layout, authorDirectory: authorDirectory);
+        var plan = CreatorPlanner.Plan(comparison, project, project.Parts[0], new ProjectVersion(new ProjectGame(key, "Lantern Isle")), Options).Plan;
+        return new BuildVersion(Installed(plan.GameDirectory, key), plan);
     }
 
     /// <summary>Plans a project's base on <see cref="Version"/> over the folders as they are now.</summary>

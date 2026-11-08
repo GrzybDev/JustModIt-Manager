@@ -1,17 +1,18 @@
 using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Creator.Planning;
 
 namespace JustModIt.Manager.Creator.Building;
 
 public enum BuildFailure
 {
-    /// <summary>The extension does not match the format: a manifest package saved as .zip would unpack its manifest into the game.</summary>
-    WrongExtension,
-
     /// <summary>A package inside the game or the author's folder would be compared as one of their files next time.</summary>
     OutputInGameFolder,
 
     OutputInAuthorFolder,
+
+    /// <summary>A folder's drive did not answer in time; <see cref="PackageBuildException.Paths"/> names the folder.</summary>
+    FolderUnavailable,
 
     /// <summary>The game the caller names lives in another folder than the one the plan was made for.</summary>
     OtherGame,
@@ -53,4 +54,10 @@ public sealed class PackageBuildException : Exception
     public ValueList<string> Paths { get; }
 
     public ValueList<PlanFinding> Findings { get; }
+
+    /// <summary>The part of a project whose package failed; null when no package of a run had started.</summary>
+    public string? Part { get; init; }
+
+    /// <summary>The versions of the game that package serves.</summary>
+    public ValueList<GameKey> Versions { get; init; }
 }

@@ -74,28 +74,34 @@ public sealed class ProjectLibrary(string directory, TimeProvider time) : IDispo
     /// <param name="id">The project's id.</param>
     public IDocumentStore<CreatorProject> Store(Guid id) => new ProjectFile(Path.Join(directory, id.ToString(), ProjectFileName), id);
 
+    /// <summary>Reads a project's record of its builds.</summary>
+    /// <param name="id">The project's id.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    /// <returns>The record; null while there is none or it is damaged, since it only tells what the next build can start from.</returns>
+    public Task<BuildRecord?> ReadBuildAsync(Guid id, CancellationToken cancellationToken) => Task.Run(async () =>
+    {
+        try
+        {
+            var content = await SharedFileRead.ReadAllBytesAsync(Path.Join(directory, id.ToString(), BuildsFileName), MaxBuildsLength, cancellationToken)
+                .ConfigureAwait(false);
+            return JsonSerializer.Deserialize(content, ProjectJsonContext.Default.BuildRecord);
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException or JsonException or InvalidDataException)
+        {
+            return null;
+        }
+    }, cancellationToken);
+
     /// <summary>Changes a project's record of its builds, one change at a time.</summary>
     /// <param name="id">The project's id.</param>
     /// <param name="update">Turns the record, null while there is none or it is damaged, into the new one.</param>
     /// <param name="cancellationToken">Cancels the change and keeps the record as it was.</param>
     public Task UpdateBuildAsync(Guid id, Func<BuildRecord?, BuildRecord> update, CancellationToken cancellationToken) => Task.Run(async () =>
     {
-        var path = Path.Join(directory, id.ToString(), BuildsFileName);
         await _buildsGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            BuildRecord? record = null;
-            try
-            {
-                var content = await SharedFileRead.ReadAllBytesAsync(path, MaxBuildsLength, cancellationToken).ConfigureAwait(false);
-                record = JsonSerializer.Deserialize(content, ProjectJsonContext.Default.BuildRecord);
-            }
-            // Nothing else reads the file, and it only tells what the next build can start from.
-            catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException or JsonException or InvalidDataException)
-            {
-            }
-
-            var updated = update(record);
+            var updated = update(await ReadBuildAsync(id, cancellationToken).ConfigureAwait(false));
             // Sorted, since a file's place in the listing says nothing and one record must always give the same bytes.
             var sorted = updated with
             {
@@ -107,7 +113,7 @@ public sealed class ProjectLibrary(string directory, TimeProvider time) : IDispo
                     })],
                 })],
             };
-            await AtomicFile.WriteJsonAsync(path, AtomicFile.ReadableJson with { NewLine = "\n" },
+            await AtomicFile.WriteJsonAsync(Path.Join(directory, id.ToString(), BuildsFileName), AtomicFile.ReadableJson with { NewLine = "\n" },
                 writer => JsonSerializer.Serialize(writer, sorted, ProjectJsonContext.Default.BuildRecord), cancellationToken).ConfigureAwait(false);
         }
         finally

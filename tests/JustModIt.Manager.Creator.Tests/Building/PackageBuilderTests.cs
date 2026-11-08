@@ -38,7 +38,7 @@ public sealed class PackageBuilderTests : IDisposable
         _workspace.Author("data/strings_xx.txt", "customized strings");
         _workspace.Author("data/fonts/extra.ttf", Workspace.Bytes(3000, 14));
         var plan = await PlanAsync(Project);
-        var game = Game(plan, buildId: "7654321");
+        var game = Workspace.Installed(plan.GameDirectory, buildId: "7654321");
 
         var result = await BuildAsync(plan, "example.examplemod", game);
 
@@ -57,7 +57,7 @@ public sealed class PackageBuilderTests : IDisposable
         manifest.Version.Should().Be("1.2");
         manifest.Authors.Should().Equal("Example Team");
         manifest.Generator.Should().Be(Workspace.Generator);
-        manifest.Targets.Should().Equal(new PackageTarget(StoreId.Steam, "1000001", "7654321"));
+        manifest.Targets.Should().Equal(new PackageTarget(StoreId.Steam, "1000010", "7654321"));
         manifest.Requires.Should().Equal("op:copy", "op:rename");
         result.Operations.Should().Equal(manifest.Operations);
         Directory.GetFileSystemEntries(_workspace.OutputDirectory).Should().Equal(result.OutputPath);
@@ -327,29 +327,17 @@ public sealed class PackageBuilderTests : IDisposable
     }
 
     [Theory]
-    [InlineData(false, "out/example.zip", BuildFailure.WrongExtension)]
-    [InlineData(false, "out/example", BuildFailure.WrongExtension)]
-    [InlineData(false, "out/example.othermod", BuildFailure.WrongExtension)]
-    [InlineData(false, "author/example.examplemod", BuildFailure.OutputInAuthorFolder)]
-    [InlineData(false, "game/example.examplemod", BuildFailure.OutputInGameFolder)]
-    [InlineData(true, "out/example.examplemod", BuildFailure.WrongExtension)]
-    public async Task Refuses_an_output_it_must_not_write(bool copiesOnly, string output, BuildFailure failure)
+    [InlineData("author/example.examplemod", BuildFailure.OutputInAuthorFolder)]
+    [InlineData("game/example.examplemod", BuildFailure.OutputInGameFolder)]
+    public async Task Refuses_an_output_it_must_not_write(string output, BuildFailure failure)
     {
-        if (copiesOnly)
-        {
-            _workspace.Author("data.txt", "text");
-        }
-        else
-        {
-            _workspace.Game("data.bin", "original");
-            _workspace.Author("data.bin", "changed");
-        }
-
-        var plan = await PlanAsync(copiesOnly ? new CreatorProject() : Project);
+        _workspace.Game("data.bin", "original");
+        _workspace.Author("data.bin", "changed");
+        var plan = await PlanAsync(Project);
         var path = Path.Combine(_workspace.Root, output);
 
-        var build = () => new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
-            new BuildRequest { OutputPath = path }, progress: null, TestContext.Current.CancellationToken);
+        var build = () => new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan,
+            new BuildRequest { OutputPath = path, Game = Workspace.Installed(plan.GameDirectory) }, progress: null, TestContext.Current.CancellationToken);
 
         (await build.Should().ThrowAsync<PackageBuildException>()).Which.Failure.Should().Be(failure);
         File.Exists(path).Should().BeFalse();
@@ -372,21 +360,26 @@ public sealed class PackageBuilderTests : IDisposable
         failure.Paths.Should().ContainSingle().Which.Should().EndWith("new.txt");
     }
 
-    [Fact]
-    public async Task Names_a_file_another_program_holds_rather_than_failing_to_write_the_package()
+    [Theory]
+    [InlineData("author", "new.txt")]
+    [InlineData("author", "data.bin")]
+    [InlineData("game", "data.bin")]
+    public async Task Names_a_file_another_program_holds_rather_than_failing_to_write_the_package(string folder, string file)
     {
-        var held = _workspace.Author("new.txt", "new");
-        var plan = await PlanAsync(new CreatorProject());
+        _workspace.Game("data.bin", Workspace.Bytes(4096, 1));
+        _workspace.Author("data.bin", Workspace.Bytes(4096, 2));
+        _workspace.Author("new.txt", "new");
+        var plan = await PlanAsync(Project);
 
         PackageBuildException failure;
-        using (File.Open(held, FileMode.Open, FileAccess.Read, FileShare.None))
+        using (File.Open(Path.Combine(_workspace.Root, folder, file), FileMode.Open, FileAccess.Read, FileShare.None))
         {
-            var build = () => BuildAsync(plan, "example.zip");
+            var build = () => BuildAsync(plan, "example.examplemod");
             failure = (await build.Should().ThrowAsync<PackageBuildException>()).Which;
         }
 
         failure.Failure.Should().Be(BuildFailure.Unreadable);
-        failure.Paths.Should().ContainSingle().Which.Should().EndWith("new.txt");
+        failure.Paths.Should().ContainSingle().Which.Should().EndWith(file);
         Directory.GetFileSystemEntries(_workspace.OutputDirectory).Should().BeEmpty();
     }
 
@@ -398,20 +391,21 @@ public sealed class PackageBuilderTests : IDisposable
         var builder = new PackageBuilder(new XDelta3Patcher(), Workspace.Options);
         var output = _workspace.Output("example.zip");
 
-        var installed = () => builder.BuildAsync(plan.Confirm(), new BuildRequest
+        var installed = () => builder.BuildAsync(plan, new BuildRequest
         {
             OutputPath = output,
+            Game = Workspace.Installed(plan.GameDirectory),
             Installs = [new ExistingInstall(Guid.NewGuid(), plan.GameDirectory)],
         }, progress: null, TestContext.Current.CancellationToken);
-        var updating = () => builder.BuildAsync(plan.Confirm(), new BuildRequest
+        var updating = () => builder.BuildAsync(plan, new BuildRequest
         {
             OutputPath = output,
-            Game = Game(plan) with { State = GameInstallState.Updating },
+            Game = Workspace.Installed(plan.GameDirectory) with { State = GameInstallState.Updating },
         }, progress: null, TestContext.Current.CancellationToken);
-        var other = () => builder.BuildAsync(plan.Confirm(), new BuildRequest
+        var other = () => builder.BuildAsync(plan, new BuildRequest
         {
             OutputPath = output,
-            Game = Game(plan) with { InstallDirectory = _workspace.AuthorDirectory },
+            Game = Workspace.Installed(_workspace.AuthorDirectory),
         }, progress: null, TestContext.Current.CancellationToken);
 
         (await installed.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle()
@@ -419,7 +413,7 @@ public sealed class PackageBuilderTests : IDisposable
         (await updating.Should().ThrowAsync<PackageBuildException>()).Which.Failure.Should().Be(BuildFailure.GameNotReady);
         (await other.Should().ThrowAsync<PackageBuildException>()).Which.Failure.Should().Be(BuildFailure.OtherGame);
         _workspace.MarkGameFolder(".other-app", "OtherApp");
-        var managed = () => builder.BuildAsync(plan.Confirm(), new BuildRequest { OutputPath = output, Game = Game(plan) },
+        var managed = () => builder.BuildAsync(plan, new BuildRequest { OutputPath = output, Game = Workspace.Installed(plan.GameDirectory) },
             progress: null, TestContext.Current.CancellationToken);
         (await managed.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle()
             .Which.Reason.Should().Be(CreatorBlockReason.GameManagedByOtherApp);
@@ -437,8 +431,9 @@ public sealed class PackageBuilderTests : IDisposable
         var options = Workspace.Options with { Limits = limits };
         var plan = (await _workspace.ReviewAsync(Project, options)).Plan;
 
-        var build = () => new PackageBuilder(new XDelta3Patcher(), options).BuildAsync(plan.Confirm(),
-            new BuildRequest { OutputPath = _workspace.Output("example.examplemod") }, progress: null, TestContext.Current.CancellationToken);
+        var build = () => new PackageBuilder(new XDelta3Patcher(), options).BuildAsync(plan,
+            new BuildRequest { OutputPath = _workspace.Output("example.examplemod"), Game = Workspace.Installed(plan.GameDirectory) }, progress: null,
+            TestContext.Current.CancellationToken);
 
         (await build.Should().ThrowAsync<PackageBuildException>()).Which.Failure.Should().Be(failure);
         Directory.GetFileSystemEntries(_workspace.OutputDirectory).Should().BeEmpty();
@@ -482,15 +477,6 @@ public sealed class PackageBuilderTests : IDisposable
         package.Steps.Select(Describe).Should().Equal("copy files/extra.txt");
         package.Steps.OfType<CopyStep>().Single().Entry.Should().Be("files/files/extra.txt");
     }
-
-    private static InstalledGame Game(PackagePlan plan, string? buildId = null) => new()
-    {
-        Key = new GameKey(StoreId.Steam, "1000001"),
-        Name = "Example Game",
-        InstallDirectory = plan.GameDirectory,
-        LibraryId = "library",
-        BuildId = buildId,
-    };
 
     private static string Describe(PackageStep step) => step switch
     {
@@ -538,7 +524,7 @@ public sealed class PackageBuilderTests : IDisposable
     private Task<PackageBuildResult> BuildAsync(PackagePlan plan, string output, InstalledGame? game = null,
         IProgress<BuildProgress>? progress = null, CancellationToken? cancellationToken = null, CreatorOptions? options = null,
         ReleaseFileRules? site = null) =>
-        new PackageBuilder(new XDelta3Patcher(memoryBudget: 64 << 20), options ?? Workspace.Options).BuildAsync(plan.Confirm(),
-            new BuildRequest { OutputPath = _workspace.Output(output), Game = game, Site = site ?? new() }, progress,
+        new PackageBuilder(new XDelta3Patcher(memoryBudget: 64 << 20), options ?? Workspace.Options).BuildAsync(plan,
+            new BuildRequest { OutputPath = _workspace.Output(output), Game = game ?? Workspace.Installed(plan.GameDirectory), Site = site ?? new() }, progress,
             cancellationToken ?? TestContext.Current.CancellationToken);
 }

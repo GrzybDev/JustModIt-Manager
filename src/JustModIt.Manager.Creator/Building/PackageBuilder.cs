@@ -14,8 +14,8 @@ using JustModIt.Manager.Creator.Rules;
 namespace JustModIt.Manager.Creator.Building;
 
 /// <summary>
-/// Builds a confirmed plan into a <c>.zip</c> or a manifest package, written next to the output and renamed into place
-/// at the end, so a failed or cancelled build leaves no package and keeps the one that was there.
+/// Builds a plan into a <c>.zip</c> or a manifest package, written next to the output and renamed into place at the end,
+/// so a failed or cancelled build leaves no package and keeps the one that was there.
 /// </summary>
 /// <param name="encoder">Encodes the patches.</param>
 /// <param name="options">The app's extensions, limits and hosting rules.</param>
@@ -31,28 +31,52 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
     private readonly IFileSystem _fileSystem = fileSystem ?? PhysicalFileSystem.Instance;
 
     /// <summary>Builds the plan's package at the request's output path, off the calling thread.</summary>
-    /// <param name="plan">The plan the author confirmed.</param>
-    /// <param name="request">Where the package goes, and the game and installs as they are now.</param>
+    /// <param name="plan">The plan to build.</param>
+    /// <param name="request">Where the package goes, and the games and installs as they are now.</param>
     /// <param name="progress">Receives the build's progress; null for none.</param>
     /// <param name="cancellationToken">Cancels the build, which keeps the package that was there.</param>
+    /// <exception cref="InvalidOperationException">A finding of a plan blocks the build.</exception>
     /// <exception cref="PackageBuildException">The request or the files do not allow the build; nothing was written.</exception>
-    /// <exception cref="CreatorBlockedException">The game holds an install, or another app manages files of it.</exception>
-    public Task<PackageBuildResult> BuildAsync(ConfirmedPlan plan, BuildRequest request, IProgress<BuildProgress>? progress,
+    /// <exception cref="CreatorBlockedException">A game holds an install, or another app manages files of it.</exception>
+    public Task<PackageBuildResult> BuildAsync(PackagePlan plan, BuildRequest request, IProgress<BuildProgress>? progress,
         CancellationToken cancellationToken)
     {
-        return Task.Run(() => BuildCoreAsync(plan.Plan, request, progress, cancellationToken), cancellationToken);
+        return plan.CanBuild && request.AlsoFor.All(version => version.Plan.CanBuild)
+            ? Task.Run(() => BuildCoreAsync(plan, request, progress, cancellationToken), cancellationToken)
+            : throw new InvalidOperationException("Findings of the plan block the build.");
     }
+
+    /// <summary>Refuses a place for packages inside a plan's folders, where a package would be compared as one of their files next time.</summary>
+    /// <param name="folder">The place, canonical.</param>
+    /// <param name="plan">A plan of the run.</param>
+    /// <exception cref="PackageBuildException">The place lies inside the game's or the author's folder.</exception>
+    internal static void CheckOutputFolder(string folder, PackagePlan plan)
+    {
+        if (PathComparison.IsWithin(plan.GameDirectory, folder))
+        {
+            throw new PackageBuildException(BuildFailure.OutputInGameFolder, [folder]);
+        }
+
+        if (PathComparison.IsWithin(plan.AuthorDirectory, folder))
+        {
+            throw new PackageBuildException(BuildFailure.OutputInAuthorFolder, [folder]);
+        }
+    }
+
+    private static IEnumerable<FileReference> OriginalsOf(IEnumerable<PackagePlan> plans) =>
+        plans.SelectMany(plan => plan.RuntimeFiles).Select(file => file.GameFile).OfType<FileReference>();
 
     private async Task<PackageBuildResult> BuildCoreAsync(PackagePlan plan, BuildRequest request, IProgress<BuildProgress>? progress,
         CancellationToken cancellationToken)
     {
         var output = CheckRequest(plan, request);
+        PackagePlan[] plans = [plan, .. request.AlsoFor.Select(version => version.Plan)];
         var payload = plan.Operations.Where(operation => operation.HasPayload).ToList();
-        var originals = plan.RuntimeFiles.Select(file => file.GameFile).OfType<FileReference>().ToList();
+        var originals = OriginalsOf(plans).ToList();
         var tracker = new Tracker(progress, payload.Count + originals.Count,
             payload.Sum(PlannedBytes) + originals.Sum(original => original.Stamp.Size));
         tracker.Checking();
-        CheckFiles(plan);
+        CheckFiles(plans);
         if (plan.Format.EntryCount(plan.Operations) > options.Limits.MaxEntries)
         {
             throw new PackageBuildException(BuildFailure.TooManyEntries);
@@ -65,6 +89,8 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
         {
             (manifest, operations, findings) = await WriteArchiveAsync(plan, request, stream, tracker, token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
+            // A store may update a copy meanwhile, and the writing read only the files of the version the package is built from.
+            CheckFiles(plans);
         }, cancellationToken, _time, BufferSize).ConfigureAwait(false);
         var size = new FileInfo(output).Length;
         return new PackageBuildResult(output, plan.Format.Kind, manifest, operations, size,
@@ -74,45 +100,33 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
     private string CheckRequest(PackagePlan plan, BuildRequest request)
     {
         var output = Path.GetFullPath(request.OutputPath);
-        if (!Path.GetExtension(output).Equals(options.ExtensionFor(plan.Format.Kind), StringComparison.OrdinalIgnoreCase))
+        var folder = _fileSystem.GetCanonicalPath(Path.GetDirectoryName(output)!);
+        foreach (var version in request.AlsoFor.Prepend(new BuildVersion(request.Game, plan)))
         {
-            throw new PackageBuildException(BuildFailure.WrongExtension, [output]);
-        }
-
-        var canonical = Path.Join(_fileSystem.GetCanonicalPath(Path.GetDirectoryName(output)!), Path.GetFileName(output));
-        if (PathComparison.IsWithin(plan.GameDirectory, canonical))
-        {
-            throw new PackageBuildException(BuildFailure.OutputInGameFolder, [output]);
-        }
-
-        if (PathComparison.IsWithin(plan.AuthorDirectory, canonical))
-        {
-            throw new PackageBuildException(BuildFailure.OutputInAuthorFolder, [output]);
-        }
-
-        if (request.Game is { } game)
-        {
-            if (!PathComparison.AreSame(game.InstallDirectory, plan.GameDirectory))
+            CheckOutputFolder(folder, version.Plan);
+            if (!PathComparison.AreSame(version.Game.InstallDirectory, version.Plan.GameDirectory))
             {
-                throw new PackageBuildException(BuildFailure.OtherGame, [game.InstallDirectory]);
+                throw new PackageBuildException(BuildFailure.OtherGame, [version.Game.InstallDirectory]);
             }
 
-            if (!game.IsReady)
+            if (!version.Game.IsReady)
             {
-                throw new PackageBuildException(BuildFailure.GameNotReady, [game.InstallDirectory]);
+                throw new PackageBuildException(BuildFailure.GameNotReady, [version.Game.InstallDirectory]);
             }
+
+            CreatorBlockedException.ThrowIfManaged(version.Plan.GameDirectory, request.Installs, _fileSystem, options);
         }
 
-        CreatorBlockedException.ThrowIfManaged(plan.GameDirectory, request.Installs, _fileSystem, options);
         return output;
     }
 
-    // The plan was made from these files; one that changed since could make it wrong, e.g. a rename of a different file.
-    private void CheckFiles(PackagePlan plan)
+    // The plans were made from these files; one that changed since could make them wrong, e.g. a rename of a different file, and
+    // what proved that versions share a package no longer holds.
+    private void CheckFiles(IEnumerable<PackagePlan> plans)
     {
-        var changed = plan.Operations
-            .SelectMany(operation => new[] { operation.SourceFile, operation.Original })
-            .Concat(plan.RuntimeFiles.Select(file => file.GameFile))
+        var changed = plans
+            .SelectMany(plan => plan.Operations.SelectMany(operation => new[] { operation.SourceFile, operation.Original })
+                .Concat(plan.RuntimeFiles.Select(file => file.GameFile)))
             .OfType<FileReference>()
             .DistinctBy(file => file.FullPath, PathComparison.Comparer)
             .Where(file => !file.Stamp.Matches(_fileSystem.GetEntry(file.FullPath)))
@@ -148,7 +162,7 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
 
             if (plan.Format.Kind == PackageKind.Manifest)
             {
-                var runtime = await run.RuntimeFilesAsync(cancellationToken).ConfigureAwait(false);
+                var runtime = await run.RuntimeFilesAsync(request.AlsoFor, cancellationToken).ConfigureAwait(false);
                 tracker.Manifest();
                 manifest = CreateManifest(plan, request, createdAt, operations, runtime);
                 await run.WriteManifestAsync(manifest, cancellationToken).ConfigureAwait(false);
@@ -183,9 +197,11 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
         Authors = [.. plan.Metadata.Authors.Select(author => author.Trim()).Where(author => author.Length > 0).Distinct()],
         CreatedAt = createdAt,
         Generator = options.Generator,
-        Targets = request.Game is { } game
-            ? [new PackageTarget(game.Key.Store, game.Key.StoreGameId, string.IsNullOrWhiteSpace(game.BuildId) ? null : game.BuildId)]
-            : [],
+        Targets =
+        [
+            .. request.AlsoFor.Select(version => version.Game).Prepend(request.Game).Select(game =>
+                new PackageTarget(game.Key.Store, game.Key.StoreGameId, string.IsNullOrWhiteSpace(game.BuildId) ? null : game.BuildId)),
+        ],
         Requires = PackageCapabilities.Of(operations, declaresFiles: runtime.Count > 0),
         ThirdPartyNotices = plan.ThirdPartyNotices.Count > 0 ? [.. plan.ThirdPartyNotices] : null,
         RuntimeFiles = runtime.Count > 0 ? runtime : null,
@@ -225,35 +241,35 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
             }
         }
 
-        // The game's own files the software changes are named as the author's game holds them, which is how its store ships
-        // them once the author checked the game's files.
-        public async Task<List<RuntimeFile>> RuntimeFilesAsync(CancellationToken cancellationToken)
+        // The game's own files the software changes are named as the author's games hold them, which is how their stores ship
+        // them once the author checked the games' files. Each version's is named, or the app would not vouch for it there.
+        public async Task<List<RuntimeFile>> RuntimeFilesAsync(IReadOnlyList<BuildVersion> alsoFor, CancellationToken cancellationToken)
         {
             var runtime = new List<RuntimeFile>(plan.RuntimeFiles.Count);
-            foreach (var file in plan.RuntimeFiles)
+            foreach (var (index, file) in plan.RuntimeFiles.Index())
             {
                 var path = plan.Layout.ToGame(file.Path);
-                if (file.GameFile is not { } game)
+                List<FileContent> originals = [];
+                foreach (var game in alsoFor.Select(version => version.Plan.RuntimeFiles[index].GameFile).Prepend(file.GameFile).OfType<FileReference>())
                 {
-                    runtime.Add(new RuntimeFile(path));
-                    continue;
-                }
-
-                tracker.StartFile(path, game.Stamp.Size);
-                long done = 0;
-                var bytes = new InlineProgress<long>(read => tracker.Report(BuildStage.HashingRuntimeFiles, done += read));
-                var source = OpenSource(game.FullPath);
-                await using (source.ConfigureAwait(false))
-                {
-                    var (size, sha256) = await FileHash.CopyAndComputeAsync(source, Stream.Null, HashAlgorithmName.SHA256, bytes,
-                        cancellationToken).ConfigureAwait(false);
-                    if (size != game.Stamp.Size)
+                    tracker.StartFile(path, game.Stamp.Size);
+                    long done = 0;
+                    var bytes = new InlineProgress<long>(read => tracker.Report(BuildStage.HashingRuntimeFiles, done += read));
+                    var source = OpenSource(game.FullPath);
+                    await using (source.ConfigureAwait(false))
                     {
-                        throw new PackageBuildException(BuildFailure.FilesChanged, [game.FullPath]);
-                    }
+                        var (size, sha256) = await FileHash.CopyAndComputeAsync(source, Stream.Null, HashAlgorithmName.SHA256, bytes,
+                            cancellationToken).ConfigureAwait(false);
+                        if (size != game.Stamp.Size)
+                        {
+                            throw new PackageBuildException(BuildFailure.FilesChanged, [game.FullPath]);
+                        }
 
-                    runtime.Add(new RuntimeFile(path, [new FileContent(size, sha256)]));
+                        originals.Add(new FileContent(size, sha256));
+                    }
                 }
+
+                runtime.Add(new RuntimeFile(path, originals.Count > 0 ? [.. originals.Distinct()] : null));
             }
 
             return runtime;
@@ -325,6 +341,9 @@ public sealed class PackageBuilder(XDelta3Patcher encoder, CreatorOptions option
         {
             var target = operation.SourceFile!;
             var original = operation.Original!;
+            // The encoder opens them itself, and a file another program holds would fail it as a package that could not be written.
+            await OpenSource(original.FullPath).DisposeAsync().ConfigureAwait(false);
+            await OpenSource(target.FullPath).DisposeAsync().ConfigureAwait(false);
             tracker.StartFile(operation.Path, original.Stamp.Size + target.Stamp.Size);
             var name = EntryFor(operation);
             var encoding = new InlineProgress<PatchProgress>(report => tracker.Report(

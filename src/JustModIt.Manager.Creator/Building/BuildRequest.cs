@@ -6,18 +6,23 @@ using JustModIt.Manager.Creator.Planning;
 
 namespace JustModIt.Manager.Creator.Building;
 
+/// <summary>A version of the game with the plan of a package for it.</summary>
+/// <param name="Game">The game as the library reports it right before the build.</param>
+/// <param name="Plan">The package's plan over that version.</param>
+public sealed record BuildVersion(InstalledGame Game, PackagePlan Plan);
+
 public sealed record BuildRequest
 {
-    /// <summary>Where the package goes; the extension must be the one of the plan's format.</summary>
+    /// <summary>Where the package goes.</summary>
     public required string OutputPath { get; init; }
 
-    /// <summary>
-    /// The game as the library reports it right before the build, so the package names the build its patches were made
-    /// against; null for a game folder picked by hand, whose package names no game.
-    /// </summary>
-    public InstalledGame? Game { get; init; }
+    /// <summary>The game as the library reports it right before the build, so the package names the build its patches were made against.</summary>
+    public required InstalledGame Game { get; init; }
 
-    /// <summary>Every install the app keeps a record of; one on the game refuses the build.</summary>
+    /// <summary>The other versions the package serves, which <see cref="PackageGroups"/> found to take the same bytes.</summary>
+    public IReadOnlyList<BuildVersion> AlsoFor { get; init; } = [];
+
+    /// <summary>Every install the app keeps a record of; one on any of the games refuses the build.</summary>
     public IReadOnlyList<ExistingInstall> Installs { get; init; } = [];
 
     /// <summary>What the site takes as release files; what it does not say is not checked.</summary>

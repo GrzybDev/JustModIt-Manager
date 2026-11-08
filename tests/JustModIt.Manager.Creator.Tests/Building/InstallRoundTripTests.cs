@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Library;
@@ -48,8 +49,8 @@ public sealed class InstallRoundTripTests : IDisposable
             plan = CreatorPlanner.Plan(comparison, project, project.Parts[0].ToAdvanced(plan), Workspace.Version, Workspace.Options).Plan;
         }
 
-        var game = Game(plan.GameDirectory);
-        var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
+        var game = Workspace.Installed(plan.GameDirectory, Key, "100");
+        var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan,
             new BuildRequest { OutputPath = _workspace.Output("example.examplemod"), Game = game }, progress: null,
             TestContext.Current.CancellationToken);
         var before = Snapshot();
@@ -80,8 +81,8 @@ public sealed class InstallRoundTripTests : IDisposable
         var plan = (await workspace.ReviewAsync(Workspace.Project(new ProjectPart()
             .WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile))))).Plan;
-        var game = Game(plan.GameDirectory);
-        var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
+        var game = Workspace.Installed(plan.GameDirectory, Key, "100");
+        var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan,
             new BuildRequest { OutputPath = workspace.Output("example.examplemod"), Game = game }, progress: null,
             TestContext.Current.CancellationToken);
         var before = Snapshot(workspace);
@@ -105,9 +106,9 @@ public sealed class InstallRoundTripTests : IDisposable
         workspace.Game("ExampleGame.exe", "exe");
         workspace.Author("data/lang/xx.txt", "customized");
         var plan = (await workspace.ReviewAsync(new CreatorProject())).Plan;
-        var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
-            new BuildRequest { OutputPath = workspace.Output("example.zip") }, progress: null, TestContext.Current.CancellationToken);
-        var game = Game(plan.GameDirectory);
+        var game = Workspace.Installed(plan.GameDirectory, Key, "100");
+        var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan,
+            new BuildRequest { OutputPath = workspace.Output("example.zip"), Game = game }, progress: null, TestContext.Current.CancellationToken);
         await using var engine = Engine(game, workspace);
 
         await engine.InstallAsync(new InstallRequest(game, built.OutputPath, BackupChoice.GameFolder), progress: null,
@@ -142,7 +143,7 @@ public sealed class InstallRoundTripTests : IDisposable
         foreach (var (workspace, key, folder) in new[]
         {
             (steam, Key, "Ember Isles_Data"),
-            (gog, new GameKey(StoreId.Gog, "1100000002000000001"), "EmberIsles_Data"),
+            (gog, Workspace.Gog, "EmberIsles_Data"),
         })
         {
             var listed = await comparer.ListGameAsync(workspace.GameDirectory, [], token);
@@ -150,8 +151,8 @@ public sealed class InstallRoundTripTests : IDisposable
                 progress: null, token);
             var plan = CreatorPlanner.Plan(comparison, Workspace.Project(part), part, new ProjectVersion(new ProjectGame(key, "Ember Isles")),
                 Workspace.Options).Plan;
-            var game = Game(plan.GameDirectory, key);
-            var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
+            var game = Workspace.Installed(plan.GameDirectory, key, "100");
+            var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan,
                 new BuildRequest { OutputPath = workspace.Output("example.examplemod"), Game = game }, progress: null, token);
             var before = Snapshot(workspace);
             await using var engine = Engine(game, workspace);
@@ -176,21 +177,58 @@ public sealed class InstallRoundTripTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task One_package_installs_on_both_versions_it_names_without_a_warning()
+    {
+        var token = TestContext.Current.CancellationToken;
+        using var steam = new Workspace();
+        using var gog = new Workspace();
+        foreach (var workspace in new[] { steam, gog })
+        {
+            workspace.Game("LanternIsle.exe", "exe");
+            workspace.Game("data/strings.bin", Strings);
+            workspace.Game("data/lang_x64.dll", Original);
+        }
+
+        steam.Author("data/strings.bin", Changed(Strings));
+        steam.Author("data/lang_x64.dll", Proxy);
+        steam.Author("data/lang_x64_o.dll", Original);
+        steam.Author("data/fonts/extra.ttf", "font");
+        var project = Workspace.Project();
+        var versions = new[] { await steam.VersionAsync(project, Key), await gog.VersionAsync(project, Workspace.Gog, authorDirectory: steam.AuthorDirectory) };
+        var one = (await PackageGroups.GroupAsync(versions, new ContentHashes(PhysicalFileSystem.Instance), new InlineProgress<BuildProgress>(_ => { }), token))
+            .Should().ContainSingle().Subject;
+
+        var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(one[0].Plan,
+            new BuildRequest { OutputPath = steam.Output("example.examplemod"), Game = one[0].Game, AlsoFor = one[1..] }, progress: null, token);
+
+        built.Manifest!.Targets.Select(target => target.Store).Should().Equal(StoreId.Steam, StoreId.Gog);
+        built.Manifest.Targets.Should().OnlyContain(target => target.Folders == null);
+        built.Manifest.Operations.Should().OnlyContain(operation => operation.Only == null);
+        built.Manifest.Operations.OfType<PatchOperation>().Should().NotBeEmpty().And.OnlyContain(patch => patch.Alternatives == null);
+        built.Manifest.Requires.Should().NotContain([PackageCapabilities.TargetFolders, PackageCapabilities.TargetsOnly, PackageCapabilities.PatchAlternatives]);
+        foreach (var (workspace, version) in new[] { steam, gog }.Zip(versions))
+        {
+            var before = Snapshot(workspace);
+            await using var engine = Engine(version.Game, workspace);
+
+            var installed = await engine.InstallAsync(new InstallRequest(version.Game, built.OutputPath, BackupChoice.GameFolder), progress: null, token);
+
+            installed.Warnings.Should().BeEmpty();
+            File.ReadAllBytes(workspace.GamePath("data/strings.bin")).Should().Equal(Changed(Strings));
+            File.ReadAllBytes(workspace.GamePath("data/lang_x64.dll")).Should().Equal(Proxy);
+            File.ReadAllBytes(workspace.GamePath("data/lang_x64_o.dll")).Should().Equal(Original);
+            await engine.UninstallAsync(installed.Record.Id, replacedBy: null, progress: null, token);
+            Snapshot(workspace).Should().BeEquivalentTo(before);
+        }
+    }
+
     private static byte[] Changed(byte[] content)
     {
         var changed = (byte[])content.Clone();
         Workspace.Bytes(500, 99).CopyTo(changed, 1000);
         return changed;
     }
-
-    private static InstalledGame Game(string directory, GameKey? key = null) => new()
-    {
-        Key = key ?? Key,
-        Name = "Example Game",
-        InstallDirectory = directory,
-        LibraryId = "library",
-        BuildId = "100",
-    };
 
     private InstallEngine Engine(InstalledGame game, Workspace? workspace = null)
     {

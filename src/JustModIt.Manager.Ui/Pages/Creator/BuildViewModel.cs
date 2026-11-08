@@ -320,7 +320,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
                 Site = _page.Agent.State.Catalogue.ReleaseFiles,
             };
             var result = await new PackageBuilder(new XDelta3Patcher(), _page.Options, fileSystem: _page.FileSystem)
-                .BuildAsync(plan.Confirm(), request, new LatestProgress<BuildProgress>(Show), building.Token)
+                .BuildAsync(plan, request, new LatestProgress<BuildProgress>(Show), building.Token)
                 .ConfigureAwait(true);
             Built(result);
         }
@@ -334,7 +334,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             _buildFindings = [.. failed.Findings.Where(finding => finding.BlocksBuild)
                 .Select(finding => (finding, finding.OperationIndex is { } index ? plan.Operations[index] : null))];
             // The next build asks for a place again rather than going back to one the build refused or could not write to.
-            if (failed.Failure is BuildFailure.WrongExtension or BuildFailure.OutputInGameFolder or BuildFailure.OutputInAuthorFolder)
+            if (failed.Failure is BuildFailure.OutputInGameFolder or BuildFailure.OutputInAuthorFolder)
             {
                 _target = null;
             }
@@ -370,7 +370,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async Task<InstalledGame?> CurrentGameAsync(DetectedGameEntry game)
+    private async Task<InstalledGame> CurrentGameAsync(DetectedGameEntry game)
     {
         var (_, answer) = await AgentRequests.AskAsync(_page.Services, new GetDetectedGames()).ConfigureAwait(true);
         var current = (answer as DetectedGames)?.Games.FirstOrDefault(entry => entry.Key == game.Key) ?? game;

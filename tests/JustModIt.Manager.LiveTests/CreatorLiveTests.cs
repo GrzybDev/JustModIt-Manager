@@ -89,7 +89,7 @@ public sealed class CreatorLiveTests : IDisposable
         var basePlan = CreatorPlanner.Plan(await CompareAsync(engine, game, CopyFiles(author, baseFiles, "base")), new CreatorProject(),
             new ProjectPart(), version, Options).Plan;
         basePlan.Format.Should().Be(new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]));
-        var baseZip = await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(basePlan.Confirm(),
+        var baseZip = await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(basePlan,
             new BuildRequest { OutputPath = Path.Combine(_workspace, "base.zip"), Game = game }, progress: null, Token);
 
         var installed = await engine.RunAsync(
@@ -130,7 +130,7 @@ public sealed class CreatorLiveTests : IDisposable
 
         copiesOnly.Format.Should().Be(new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]));
         copiesOnly.Operations.Should().OnlyContain(operation => operation.Kind == OperationKind.Copy).And.HaveCount(added.Count);
-        var zip = await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(copiesOnly.Confirm(),
+        var zip = await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(copiesOnly,
             new BuildRequest { OutputPath = Path.Combine(_workspace, "package.zip"), Game = game }, progress: null, Token);
         await using var plain = await new PackageReader().OpenAsync(zip.OutputPath, Token);
         plain.Kind.Should().Be(PackageKind.Zip);
@@ -176,7 +176,7 @@ public sealed class CreatorLiveTests : IDisposable
         var accepted = plan.Findings.Select(finding => finding.AcknowledgementKey).OfType<string>()
             .Aggregate(project, (acknowledged, key) => acknowledged.Acknowledge(key));
         return await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(
-            CreatorPlanner.Plan(comparison, accepted, accepted.Parts[0], accepted.Versions[0], Options).Plan.Confirm(),
+            CreatorPlanner.Plan(comparison, accepted, accepted.Parts[0], accepted.Versions[0], Options).Plan,
             new BuildRequest
             {
                 OutputPath = Path.Combine(_workspace, name + Options.PackageExtension),

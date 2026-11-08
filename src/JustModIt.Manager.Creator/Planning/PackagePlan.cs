@@ -137,6 +137,9 @@ public sealed record PackagePlan
     /// <summary>What the author has acknowledged, for warnings that only the build can find.</summary>
     public ValueList<string> Acknowledged { get; init; }
 
+    /// <summary>The comparison's files, whose stamps a build records so a later look can tell what changed since.</summary>
+    public ValueList<ComparedFile> Compared { get; init; }
+
     public bool CanBuild => !Findings.Any(finding => finding.BlocksBuild);
 
     public PlanSummary Summary => new(
@@ -146,19 +149,4 @@ public sealed record PackagePlan
         Operations.Count(operation => operation.Kind == OperationKind.Delete),
         Operations.Where(operation => operation.Kind == OperationKind.Copy).Sum(operation => operation.SourceFile?.Stamp.Size ?? 0),
         RuntimeFiles.Count);
-
-    /// <summary>The author checked the review and wants this exact plan built.</summary>
-    /// <exception cref="InvalidOperationException">A finding blocks the build.</exception>
-    public ConfirmedPlan Confirm() =>
-        CanBuild ? new ConfirmedPlan(this) : throw new InvalidOperationException("Findings of the plan block the build.");
-}
-
-/// <summary>A plan the author reviewed and confirmed; only such a plan is built.</summary>
-public sealed class ConfirmedPlan
-{
-    /// <summary>Marks a plan as confirmed.</summary>
-    /// <param name="plan">A plan that nothing keeps from building.</param>
-    internal ConfirmedPlan(PackagePlan plan) => Plan = plan;
-
-    public PackagePlan Plan { get; }
 }
