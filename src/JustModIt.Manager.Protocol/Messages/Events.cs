@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Protocol.Views;
 
@@ -28,16 +29,28 @@ public sealed record JobEnded(JobView Job, JobOutcome Outcome, JobFailureView? F
     /// </summary>
     public bool Forgotten { get; init; }
 
+    /// <summary>What the player hears of what the job installed, each once; null when nothing.</summary>
+    public IReadOnlyList<InstallWarningKind>? Warnings { get; init; }
+
     /// <summary>Maps how a job ended.</summary>
     /// <param name="result">The job's result.</param>
     public static JobEnded From(JobResult result)
     {
         var kept = result.KeptFiles.GroupBy(file => file.Reason).OrderBy(files => files.Key)
             .Select(files => new KeptFilesView(files.Key, files.Count()));
+        var warnings = result.Warnings.Select(warning => warning switch
+        {
+            OtherStoreWarning => InstallWarningKind.OtherStore,
+            OtherGameBuildWarning => InstallWarningKind.OtherBuild,
+            UnfinishedStoreDownloadWarning => InstallWarningKind.UnfinishedStoreDownload,
+            // A slow copy of originals matters only before an install, so it stays in the log.
+            _ => (InstallWarningKind?)null,
+        }).OfType<InstallWarningKind>().Distinct().ToList();
         return new JobEnded(JobView.From(result.Job), result.Outcome, result.Failure is { } failure ? JobFailureView.From(failure) : null)
         {
             KeptFiles = result.KeptFiles.Count == 0 ? null : [.. kept],
             Forgotten = result.Forgotten,
+            Warnings = warnings.Count == 0 ? null : warnings,
         };
     }
 }

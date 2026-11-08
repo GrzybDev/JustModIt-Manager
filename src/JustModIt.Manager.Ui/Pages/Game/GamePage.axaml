@@ -481,6 +481,8 @@
                          AutomationProperties.Name="{x:Static loc:Strings.GamePage_OriginalsMissingFiles}" />
             <ui:StatusLine x:Name="StepWarning" FontSize="14" LineHeight="21" Icon="{x:Static theme:Icons.TriangleAlert}" Tone="Warning"
                            Label="{Binding Warning}" IsVisible="{Binding HasWarning}" />
+            <ui:StatusLine x:Name="StepNote" FontSize="14" LineHeight="21" Icon="{x:Static theme:Icons.Info}" Tone="Info"
+                           Label="{Binding Note}" IsVisible="{Binding Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <Button x:Name="CheckFilesUnder" Classes="outline onArt checkFiles" Margin="0,8,0,0" HorizontalAlignment="Left"
                     IsVisible="{Binding ChecksUnder}" AutomationProperties.Name="{Binding CheckFilesLabel}"
                     Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).CheckFilesCommand}" Content="{Binding}" ContentTemplate="{StaticResource CheckFilesBody}" />

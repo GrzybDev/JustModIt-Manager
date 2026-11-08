@@ -1314,6 +1314,9 @@
   <data name="GamePage_InstallTitle" xml:space="preserve">
     <value>Projekt czeka na instalację</value>
   </data>
+  <data name="GamePage_InstallWarning" xml:space="preserve">
+    <value>{reason, select, OtherStore {Paczka jest przygotowana dla innego sklepu.} OtherBuild {Paczka jest przygotowana dla innej kompilacji gry.} UnfinishedStoreDownload {Sklep może jeszcze dokończyć pobieranie aktualizacji gry.} other {}}</value>
+  </data>
   <data name="GamePage_InstalledWhen" xml:space="preserve">
     <value>zainstalowana {when}</value>
   </data>

@@ -557,11 +557,16 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         }
 
         _ended = ended;
-        // The state that ends an uninstall may come first, before the agent tells which files it left as they were or that
-        // the install's folder was gone.
+        // The state that ends a job may come first, before the agent tells which files an uninstall left as they were, that
+        // the install's folder was gone, or what an install warns of.
         if (_result is { Kind: StepKind.Removed } && _finished == ended.Job.Id && (ended.KeptFiles is { Count: > 0 } || ended.Forgotten))
         {
             _result = Removed(_services.Agent.State.Games.Any(game => game.Key == _key), ended);
+            Compose();
+        }
+        else if (_result is { Kind: StepKind.Done } done && _finished == ended.Job.Id && ended.Warnings is { Count: > 0 })
+        {
+            _result = done with { Note = InstallWarnings(ended) };
             Compose();
         }
     }
@@ -626,11 +631,15 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                 Text.Format(Strings.GamePage_DoneTitle, ("kind", job.Kind.ToString())), Strings.GamePage_DoneText)
             {
                 Meta = Strings.TimeJustNow,
+                Note = InstallWarnings(_ended?.Job.Id == job.Id ? _ended : null),
                 OffersHelp = true,
                 CanDismiss = true,
                 PointsToNotes = Details is { Notes.IsEmpty: false },
             };
     }
+
+    private static string InstallWarnings(JobEnded? ended) =>
+        string.Join(' ', (ended?.Warnings ?? []).Select(warning => Text.Format(Strings.GamePage_InstallWarning, ("reason", warning.ToString()))));
 
     private void Compose()
     {

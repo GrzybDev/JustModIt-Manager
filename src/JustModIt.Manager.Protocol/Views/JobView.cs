@@ -110,6 +110,19 @@ public sealed record JobFailureView(JobFailureReason Reason)
 /// <param name="Count">How many files.</param>
 public sealed record KeptFilesView(KeptReason Reason, int Count);
 
+/// <summary>What the player hears of an install that went ahead.</summary>
+public enum InstallWarningKind
+{
+    /// <summary>The package was made with another store's version of the game.</summary>
+    OtherStore,
+
+    /// <summary>The package was made with another build of the game.</summary>
+    OtherBuild,
+
+    /// <summary>The store keeps an unfinished download of the game, which may still change the installed files.</summary>
+    UnfinishedStoreDownload,
+}
+
 /// <summary>A job that did not end well, kept until a later job succeeds or the player dismisses it.</summary>
 /// <param name="Kind">What the job did.</param>
 /// <param name="Origin">Whether the player or the automation started it.</param>

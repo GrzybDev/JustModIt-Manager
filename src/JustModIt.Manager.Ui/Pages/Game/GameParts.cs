@@ -51,6 +51,9 @@ public sealed record NextStep(StepKind Kind, Tone Tone, Geometry Icon, string Ti
     /// <summary>A warning under the text, e.g. that an update goes without an add-on; empty for none.</summary>
     public string Warning { get; init; } = "";
 
+    /// <summary>Information under the text, e.g. what a finished install warns of; empty for none.</summary>
+    public string Note { get; init; } = "";
+
     /// <summary>A line under the text, e.g. when the release came out; empty for none.</summary>
     public string Meta { get; init; } = "";
 

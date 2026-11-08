@@ -1326,6 +1326,9 @@
   <data name="GamePage_InstallTitle" xml:space="preserve">
     <value>The project is ready to install</value>
   </data>
+  <data name="GamePage_InstallWarning" xml:space="preserve">
+    <value>{reason, select, OtherStore {The package was made for another store.} OtherBuild {The package was made for another build of the game.} UnfinishedStoreDownload {The store may still finish downloading an update of the game.} other {}}</value>
+  </data>
   <data name="GamePage_InstalledWhen" xml:space="preserve">
     <value>installed {when}</value>
   </data>

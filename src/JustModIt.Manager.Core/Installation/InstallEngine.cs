@@ -370,9 +370,9 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
             Issues = [.. report.Issues, .. others, .. ReadinessIssues(probe, forUninstall: false)],
             Warnings = [.. report.Warnings, .. storeWarnings],
         };
-        if (!report.CanProceed)
+        if (report.Issues.Count > 0 || report.Warnings.Count > 0)
         {
-            _logger.CheckFoundIssues(recordId, report.Issues.ToString());
+            _logger.CheckFound(recordId, report.Issues.ToString(), report.Warnings.ToString());
         }
 
         return (report, plan, backup);

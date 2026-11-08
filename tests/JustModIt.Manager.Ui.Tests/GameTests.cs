@@ -94,6 +94,35 @@ public sealed class GameTests
     }
 
     [AvaloniaFact]
+    public async Task A_package_made_for_another_store_says_so_in_the_job_s_result()
+    {
+        var available = Available("Ember Hollow", "4100", Ember);
+        var installed = Installed("Ember Hollow", "4100", offer: Ember);
+        using var ui = Open(State(available), available);
+        var page = Page(ui);
+        var first = Job(available, JobKind.Install, JobStage.Installing);
+
+        ui.Push(State(Busy(available, first)) with { Version = 5 });
+        ui.Agent.End(new JobEnded(first, JobOutcome.Succeeded) { Warnings = [InstallWarningKind.OtherStore] });
+        ui.Push(State(installed) with { Version = 6 });
+
+        page.Step!.Kind.Should().Be(StepKind.Done);
+        page.Step.Note.Should().Be("Paczka jest przygotowana dla innego sklepu.");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("game-done-other-store");
+
+        var second = first with { Id = Guid.NewGuid(), Kind = JobKind.Update };
+        ui.Push(State(Busy(installed, second)) with { Version = 7 });
+        ui.Push(State(installed) with { Version = 8 });
+        page.Step!.Note.Should().BeEmpty("the warning belongs to the job that ended before");
+        ui.Agent.End(new JobEnded(second, JobOutcome.Succeeded) { Warnings = [InstallWarningKind.OtherBuild, InstallWarningKind.UnfinishedStoreDownload] });
+
+        page.Step!.Kind.Should().Be(StepKind.Done);
+        page.Step.Note.Should().Be("Paczka jest przygotowana dla innej kompilacji gry. Sklep może jeszcze dokończyć pobieranie aktualizacji gry.",
+            "the agent may tell it after the state ended the job");
+    }
+
+    [AvaloniaFact]
     public async Task Uninstalling_asks_first_and_leaves_its_result_where_the_step_was()
     {
         var game = Installed("Ember Hollow", "4100", offer: Ember);

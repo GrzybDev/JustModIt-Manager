@@ -38,6 +38,7 @@ public sealed class MessageTests
             KeptFiles = [new KeptFilesView(KeptReason.GameUpdatedSinceInstall, 1), new KeptFilesView(KeptReason.OriginalUnknown, 1)],
         },
         new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded) { Forgotten = true },
+        new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded) { Warnings = [InstallWarningKind.OtherStore, InstallWarningKind.UnfinishedStoreDownload] },
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.Failed)
         {
             Game = Game,
@@ -232,6 +233,26 @@ public sealed class MessageTests
 
         JobEnded.From(forgotten).Forgotten.Should().BeTrue();
         JobEnded.From(forgotten with { Forgotten = false }).Forgotten.Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_job_s_end_names_what_its_install_warns_of_once_each_and_leaves_a_slow_copy_to_the_log()
+    {
+        var installed = new JobResult(RunningJob, JobOutcome.Succeeded)
+        {
+            Warnings =
+            [
+                new SlowBackupCopyWarning(1 << 30),
+                new OtherGameBuildWarning("41", "42"),
+                new OtherGameBuildWarning("40", "42"),
+                new OtherStoreWarning([]),
+                new UnfinishedStoreDownloadWarning(),
+            ],
+        };
+
+        JobEnded.From(installed).Warnings.Should().Equal(
+            InstallWarningKind.OtherBuild, InstallWarningKind.OtherStore, InstallWarningKind.UnfinishedStoreDownload);
+        JobEnded.From(installed with { Warnings = [new SlowBackupCopyWarning(1 << 30)] }).Warnings.Should().BeNull();
     }
 
     [Fact]
