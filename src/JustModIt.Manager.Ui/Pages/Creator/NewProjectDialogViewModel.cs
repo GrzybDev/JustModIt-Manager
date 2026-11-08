@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Creator;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
@@ -29,7 +30,7 @@ public enum GameBlock
     NotReady,
 }
 
-/// <summary>A detected game in the creator's list.</summary>
+/// <summary>A detected game in the creator's list, or a version of the game a new project takes.</summary>
 /// <param name="entry">The game as the agent reported it.</param>
 public sealed partial class GameOption(DetectedGameEntry entry) : ObservableObject
 {
@@ -47,6 +48,12 @@ public sealed partial class GameOption(DetectedGameEntry entry) : ObservableObje
 
     public bool HasCover => Cover.Length > 0;
 
+    /// <summary>The store's build as a version's tile names it; empty when the store names none.</summary>
+    public string Build => Entry.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "";
+
+    /// <summary>The store's build, and that the game's folders lie unlike the first version's once that is known.</summary>
+    public string Detail => GameWording.Join([Build, IsOtherLayout ? Strings.Creator_OtherLayout : ""]);
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSelectable), nameof(IsBlockedByInstall), nameof(IsNotReady))]
     public partial GameBlock Block { get; set; }
@@ -57,6 +64,11 @@ public sealed partial class GameOption(DetectedGameEntry entry) : ObservableObje
 
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
+
+    /// <summary>The game's folders lie unlike those of the version a new project takes first.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Detail))]
+    public partial bool IsOtherLayout { get; set; }
 
     public bool IsSelectable => Block == GameBlock.None;
 
@@ -84,31 +96,37 @@ public enum GameListState
     Listed,
 }
 
-/// <summary>What the author chose for a new project.</summary>
-/// <param name="Game">The detected game the project is made for.</param>
-public sealed record NewProjectAnswer(DetectedGameEntry Game);
+/// <summary>What the author chose for a new project, or the version to add to one.</summary>
+/// <param name="Versions">The versions of the game the project is made for, the one whose layout is the project's first.</param>
+/// <param name="Parts">The project's parts: the base in the author's folder and the add-ons given a folder; empty when adding a version.</param>
+/// <param name="Site">The site's project the author's surely is; null when none is known.</param>
+public sealed record NewProjectAnswer(IReadOnlyList<ProjectVersion> Versions, IReadOnlyList<ProjectPart> Parts, ProjectSite? Site);
 
 /// <summary>
-/// The dialog that gives a project its game: the detected games, from the library's last scan, of which one may not be chosen
-/// while a package is installed on it or it is not ready.
+/// The dialog that gives a project its game: the game recognised by the author's files with its versions on this computer
+/// and the add-ons of its project on the site, or any detected game, from the library's last scan, of which one may not be
+/// chosen while a package is installed on it or it is not ready.
 /// </summary>
 public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProjectAnswer?>, IDisposable
 {
+    private readonly CreatorPageViewModel _creator;
     private readonly UiServices _services;
     private readonly IReadOnlyCollection<GameKey>? _versions;
     private List<GameOption> _options = [];
     private DateTimeOffset? _scannedAt;
 
-    /// <summary>Opens the dialog, which reads the detected games at once.</summary>
-    /// <param name="services">The window's services.</param>
+    /// <summary>Opens the dialog, which reads the detected games at once and, for a new project, recognises its game.</summary>
+    /// <param name="creator">The creator's library, whose folders it reads.</param>
     /// <param name="folder">The author's folder; empty for a project without one.</param>
     /// <param name="versions">The versions of a project that takes another, which the list leaves out; null for a new project.</param>
-    public NewProjectDialogViewModel(UiServices services, string folder, IReadOnlyCollection<GameKey>? versions = null) : base(null)
+    public NewProjectDialogViewModel(CreatorPageViewModel creator, string folder, IReadOnlyCollection<GameKey>? versions = null) : base(null)
     {
-        _services = services;
+        (_creator, _services) = (creator, creator.Services);
         Folder = folder;
         _versions = versions;
         (Title, CreateText) = versions is null ? (Strings.Creator_NewTitle, Strings.Creator_Create) : (Strings.Creator_AddGameVersion, Strings.Creator_AddGameVersion);
+        // A version added to a project is one game of the list; a new project's game is recognised by its files first.
+        ShowsList = versions is not null;
         _services.Agent.PropertyChanged += OnAgentChanged;
         _ = ReadAsync();
     }
@@ -128,7 +146,8 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
     public partial string Query { get; set; } = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsLoading), nameof(HasFailed), nameof(HasNoGames), nameof(IsListed), nameof(ShowsSearch), nameof(ShowsNoResults))]
+    [NotifyPropertyChangedFor(nameof(IsLoading), nameof(HasFailed), nameof(HasNoGames), nameof(IsListed), nameof(ShowsSearch), nameof(ShowsNoResults),
+        nameof(ShowsGame))]
     public partial GameListState State { get; private set; }
 
     public bool IsLoading => State == GameListState.Loading;
@@ -137,9 +156,15 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
 
     public bool HasNoGames => State == GameListState.NoGames;
 
-    public bool IsListed => State == GameListState.Listed;
+    public bool IsListed => ShowsList && State == GameListState.Listed;
 
-    public bool ShowsSearch => State is GameListState.Loading or GameListState.Listed;
+    public bool ShowsSearch => ShowsList && State is GameListState.Loading or GameListState.Listed;
+
+    /// <summary>The dialog shows every detected game rather than the one its files fit.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsListed), nameof(ShowsSearch), nameof(ShowsNoResults), nameof(ShowsGame))]
+    [NotifyCanExecuteChangedFor(nameof(CreateCommand))]
+    public partial bool ShowsList { get; private set; }
 
     [ObservableProperty]
     public partial string Count { get; private set; } = "";
@@ -151,6 +176,7 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
     /// <summary>The search leaves none of the games.</summary>
     public bool ShowsNoResults => IsListed && !HasResults;
 
+    /// <summary>The game chosen in the list of a version to add.</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateCommand))]
     public partial GameOption? Selected { get; private set; }
@@ -185,7 +211,27 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
             : (GameBlock.None, "");
     }
 
-    public void Dispose() => _services.Agent.PropertyChanged -= OnAgentChanged;
+    /// <summary>
+    /// Whether a detected game is a copy of another one, e.g. from another store: the same game on the site, or the same title
+    /// as the search folds it, since stores spell titles differently.
+    /// </summary>
+    /// <param name="game">The detected game.</param>
+    /// <param name="name">The other one's name.</param>
+    /// <param name="other">The other one as the agent reported it; null while it does not.</param>
+    internal static bool IsCopy(DetectedGameEntry game, string name, DetectedGameEntry? other) =>
+        string.Equals(SearchText.Fold(game.Name), SearchText.Fold(name), StringComparison.Ordinal)
+        || other?.Projects.Any(mine => game.Projects.Any(theirs => theirs.GameSlug == mine.GameSlug)) == true;
+
+    /// <summary>The version a project takes of a detected game.</summary>
+    /// <param name="game">The game.</param>
+    internal static ProjectVersion VersionOf(DetectedGameEntry game) =>
+        new(new ProjectGame(game.Key, game.Name)) { GameFolder = game.Game.InstallDirectory };
+
+    public void Dispose()
+    {
+        _services.Agent.PropertyChanged -= OnAgentChanged;
+        _closing.Cancel();
+    }
 
     [RelayCommand]
     private async Task ReadAsync()
@@ -205,17 +251,24 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
                 : _scannedAt is null ? GameListState.Loading
                 : GameListState.NoGames;
             Filter();
+            Recognize();
         }
-        else if (!IsListed)
+        else if (State != GameListState.Listed)
         {
             State = GameListState.Failed;
+            Recognize();
         }
     }
 
     [RelayCommand]
     private void Pick(GameOption option)
     {
-        if (option.IsSelectable)
+        // A new project takes the game's versions and parts, which the dialog shows once a game is chosen.
+        if (option.IsSelectable && _versions is null)
+        {
+            Show(option, byAuthor: true);
+        }
+        else if (option.IsSelectable)
         {
             foreach (var other in _options)
             {
@@ -227,9 +280,10 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
     }
 
     [RelayCommand(CanExecute = nameof(CanCreate))]
-    private void Create() => Complete(new NewProjectAnswer(Selected!.Entry));
+    private void Create() => Complete(_versions is not null ? new NewProjectAnswer([VersionOf(Selected!.Entry)], [], null)
+        : new NewProjectAnswer([.. _copies.Where(copy => copy.IsSelectable && copy.IsSelected).Select(copy => VersionOf(copy.Entry))], [.. PartsOf()], _hints?.Site));
 
-    private bool CanCreate() => Selected is { IsSelectable: true };
+    private bool CanCreate() => _versions is not null ? Selected is { IsSelectable: true } : !ShowsList && _copies.Any(copy => copy.IsSelectable && copy.IsSelected);
 
     [RelayCommand]
     private async Task CheckNowAsync()
@@ -280,7 +334,12 @@ public sealed partial class NewProjectDialogViewModel : DialogViewModel<NewProje
             (option.Block, option.BlockText) = Judge(option.Entry, _services.Agent.State, Strings.Creator_GameNotReady);
         }
 
-        Selected = _options.FirstOrDefault(option => option.IsSelected);
+        if (_versions is not null)
+        {
+            Selected = _options.FirstOrDefault(option => option.IsSelected);
+        }
+
+        ShowVersions();
         CreateCommand.NotifyCanExecuteChanged();
     }
 

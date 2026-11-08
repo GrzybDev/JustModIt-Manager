@@ -46,7 +46,7 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
         var answer = await dialogs.ShowAsync(new ChoiceDialogViewModel(Strings.Shell_CloseTitle, Strings.Shell_CloseMessage,
         [
             new DialogChoice(Tray, Icons.MonitorDown, Strings.Shell_CloseToTray, Strings.Shell_CloseToTrayDescription),
-            new DialogChoice(Exit, Icons.Power, Strings.Shell_CloseExit, Strings.Shell_CloseExitDescription, IsDanger: true),
+            new DialogChoice(Exit, Icons.Power, Strings.Shell_CloseExit, Strings.Shell_CloseExitDescription, isDanger: true),
         ])
         {
             RememberText = Strings.Shell_CloseRemember,

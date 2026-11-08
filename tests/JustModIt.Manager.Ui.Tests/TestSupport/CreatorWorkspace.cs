@@ -85,7 +85,10 @@ public sealed class CreatorWorkspace : IDisposable
         ui.Pages.Register<CreatorProjectRoute>((_, services) => (creator ??= new CreatorPageViewModel(services, fileSystem)).OpenPage!);
     };
 
-    /// <summary>Makes a project from a folder the author picked, on a game chosen in the dialog, and opens it.</summary>
+    /// <summary>
+    /// Makes a project from a folder the author picked, on a game the dialog recognised or the author chose from its list, and opens
+    /// it; of the game's copies it takes only the first, as an author who turned the others off.
+    /// </summary>
     /// <param name="ui">The window, on the library.</param>
     /// <param name="folder">The author's folder.</param>
     /// <param name="game">The game's name among the detected ones.</param>
@@ -94,9 +97,20 @@ public sealed class CreatorWorkspace : IDisposable
     {
         ui.Pickers.Folder = folder;
         ((CreatorPageViewModel)ui.Shell.Navigator.Current!).NewProjectCommand.Execute(null);
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { HasShown: true } or NewProjectDialogViewModel { IsListed: true });
         var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
-        dialog.PickCommand.Execute(dialog.Rows.SelectMany(row => new[] { row.Left, row.Right }).First(option => option?.Name == game));
+        if (dialog.Shown?.Name != game)
+        {
+            dialog.ShowListCommand.Execute(null);
+            await UiHarness.WaitUntilAsync(() => dialog.IsListed);
+            dialog.PickCommand.Execute(dialog.Rows.SelectMany(row => new[] { row.Left, row.Right }).First(option => option?.Name == game));
+        }
+
+        foreach (var copy in dialog.VersionTiles.Skip(1))
+        {
+            dialog.ToggleVersionCommand.Execute(copy);
+        }
+
         dialog.CreateCommand.Execute(null);
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null && ui.Shell.Navigator.Current is ProjectPageViewModel { Game: not null });
         return (ProjectPageViewModel)ui.Shell.Navigator.Current!;

@@ -12,8 +12,23 @@
   <Border x:Name="Cell" Classes="creatorCard cellCard" Classes.flat="{Binding Page.IsTable}" Padding="20,18" creator:FolderDrop.Command="{Binding DropCommand}"
           AutomationProperties.Name="{x:Static loc:Strings.Creator_PackageFilesTitle}">
     <StackPanel Spacing="14">
+      <!-- An add-on the site names, added before it had a folder: the card is the place to drop one. -->
+      <Border x:Name="FeatureDrop" Classes="dropZone strip" IsVisible="{Binding WaitsForFolder}">
+        <Panel>
+          <Rectangle Classes="dropFrame" />
+          <StackPanel Spacing="6">
+            <TextBlock Classes="rowTitle" Text="{Binding Key.Part}" />
+            <WrapPanel>
+              <TextBlock Classes="rowText" Foreground="{StaticResource TextBodyBrush}" Text="{Binding DropText}" Margin="0,0,4,0" />
+              <Button Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_PickFeature}" AutomationProperties.Name="{Binding PickName}"
+                      Command="{Binding ChangeFolderCommand}" />
+            </WrapPanel>
+          </StackPanel>
+        </Panel>
+      </Border>
+
       <!-- The head, the one place to compare again; in the panel beside a table its actions stand under it. -->
-      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16">
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16" IsVisible="{Binding !WaitsForFolder}">
         <StackPanel Spacing="4">
           <TextBlock Classes="caption" Text="{Binding Page.PartLine}" IsVisible="{Binding !Page.IsTable}" />
           <WrapPanel ItemSpacing="12" LineSpacing="4">

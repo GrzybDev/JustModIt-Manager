@@ -10,6 +10,31 @@
     <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Creator/CreatorStyles.axaml" />
   </UserControl.Styles>
   <UserControl.Resources>
+    <!-- Why a game cannot be chosen: a package on it, with the way to it, or its store at work. -->
+    <DataTemplate x:Key="GameBlock" x:DataType="creator:GameOption">
+      <StackPanel Spacing="3">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" IsVisible="{Binding IsBlockedByInstall}">
+          <ui:Icon Data="{x:Static theme:Icons.TriangleAlert}" Width="14" Height="14" Margin="0,2,0,0" VerticalAlignment="Top"
+                   Foreground="{StaticResource WarningTextBrush}" />
+          <TextBlock Grid.Column="1" Classes="rowText" LineHeight="18" Foreground="{StaticResource WarningTextBrush}"
+                     Text="{Binding BlockText}" />
+        </Grid>
+        <WrapPanel IsVisible="{Binding IsBlockedByInstall}">
+          <TextBlock Classes="rowText" LineHeight="18" Foreground="{StaticResource TextBodyBrush}"
+                     Text="{x:Static loc:Strings.Creator_UninstallFirst}" Margin="0,0,4,0" />
+          <Button Classes="link" FontSize="13" Content="{x:Static loc:Strings.Shell_Library}"
+                  Command="{Binding $parent[UserControl].((creator:NewProjectDialogViewModel)DataContext).OpenGameCommand}"
+                  CommandParameter="{Binding}" />
+        </WrapPanel>
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" IsVisible="{Binding IsNotReady}">
+          <ui:Icon Data="{x:Static theme:Icons.Clock}" Width="14" Height="14" Margin="0,2,0,0" VerticalAlignment="Top"
+                   Foreground="{StaticResource NeutralTextBrush}" />
+          <TextBlock Grid.Column="1" Classes="rowText" LineHeight="18" Foreground="{StaticResource NeutralTextBrush}"
+                     Text="{Binding BlockText}" />
+        </Grid>
+      </StackPanel>
+    </DataTemplate>
+
     <!-- What a game's row shows whether it can be chosen or not: its cover, its name, its store and, for a game that
          cannot be chosen, why. -->
     <DataTemplate x:Key="GameFace" x:DataType="creator:GameOption">
@@ -29,28 +54,9 @@
           </StackPanel>
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" IsVisible="{Binding IsSelected}">
             <ui:Icon Data="{x:Static theme:Icons.Folder}" Width="13" Height="13" Foreground="{StaticResource TextSecondaryBrush}" />
-            <TextBlock Grid.Column="1" Classes="pathLine" FontSize="12" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Folder}"
-                       ToolTip.Tip="{Binding Folder}" />
+            <TextBlock Grid.Column="1" Classes="pathLine" FontSize="12" Foreground="{StaticResource TextBodyBrush}" Text="{Binding Folder}" ToolTip.Tip="{Binding Folder}" />
           </Grid>
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" IsVisible="{Binding IsBlockedByInstall}">
-            <ui:Icon Data="{x:Static theme:Icons.TriangleAlert}" Width="14" Height="14" Margin="0,2,0,0" VerticalAlignment="Top"
-                     Foreground="{StaticResource WarningTextBrush}" />
-            <TextBlock Grid.Column="1" Classes="rowText" LineHeight="18" Foreground="{StaticResource WarningTextBrush}"
-                       Text="{Binding BlockText}" />
-          </Grid>
-          <WrapPanel IsVisible="{Binding IsBlockedByInstall}">
-            <TextBlock Classes="rowText" LineHeight="18" Foreground="{StaticResource TextBodyBrush}"
-                       Text="{x:Static loc:Strings.Creator_UninstallFirst}" Margin="0,0,4,0" />
-            <Button Classes="link" FontSize="13" Content="{x:Static loc:Strings.Shell_Library}"
-                    Command="{Binding $parent[UserControl].((creator:NewProjectDialogViewModel)DataContext).OpenGameCommand}"
-                    CommandParameter="{Binding}" />
-          </WrapPanel>
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" IsVisible="{Binding IsNotReady}">
-            <ui:Icon Data="{x:Static theme:Icons.Clock}" Width="14" Height="14" Margin="0,2,0,0" VerticalAlignment="Top"
-                     Foreground="{StaticResource NeutralTextBrush}" />
-            <TextBlock Grid.Column="1" Classes="rowText" LineHeight="18" Foreground="{StaticResource NeutralTextBrush}"
-                       Text="{Binding BlockText}" />
-          </Grid>
+          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource GameBlock}" IsVisible="{Binding !IsSelectable}" />
         </StackPanel>
         <Border Grid.Column="2" Classes="chosenMark" VerticalAlignment="Center">
           <ui:Icon Data="{x:Static theme:Icons.Check}" Width="16" Height="16" StrokeThickness="2.5" />
@@ -58,7 +64,8 @@
       </Grid>
     </DataTemplate>
 
-    <!-- A game that can be chosen is a radio tile; one that cannot is a plain row the keyboard passes by. -->
+    <!-- A game that can be chosen is a radio tile; one that cannot is a plain row the keyboard passes by, whose link cannot
+         live in a disabled tile. -->
     <DataTemplate x:Key="GameCell" x:DataType="creator:GameOption">
       <Panel>
         <RadioButton Classes="gameChoice" Theme="{StaticResource ChoiceTile}" GroupName="creatorGame" IsVisible="{Binding IsSelectable}"
@@ -87,28 +94,163 @@
     <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="16">
       <StackPanel Spacing="4">
         <TextBlock Classes="h2" Text="{Binding Title}" />
-        <TextBlock Classes="pathLine" FontSize="12" Text="{Binding Folder}" ToolTip.Tip="{Binding Folder}" IsVisible="{Binding HasFolder}" />
+        <!-- The path gives way to what the files told, which follows it. -->
+        <Grid ColumnDefinitions="*,Auto" HorizontalAlignment="Left" IsVisible="{Binding HasFolder}">
+          <TextBlock Classes="pathLine" FontSize="12" Text="{Binding Folder}" ToolTip.Tip="{Binding Folder}" />
+          <TextBlock Grid.Column="1" Classes="pathLine" FontSize="12" Text="{Binding FolderNote}" />
+        </Grid>
       </StackPanel>
 
       <!-- Only the choice scrolls, so the way on and what it needs stay in sight at the smallest window. Its bar runs in the
            dialog's padding rather than over the tiles. -->
       <ScrollViewer Grid.Row="1" Margin="0,0,-16,0" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="16" Margin="0,0,16,0">
-          <StackPanel Spacing="16" IsVisible="{Binding ShowsSearch}">
-            <StackPanel Spacing="2">
-              <TextBlock Classes="rowTitle" Text="{x:Static loc:Strings.Creator_GameTitle}" />
-              <TextBlock Classes="rowText" Text="{x:Static loc:Strings.Creator_GameLead}" />
+          <!-- The game the files fit, its versions on this computer and the parts of the package. -->
+          <StackPanel x:Name="Recognised" Spacing="16" IsVisible="{Binding ShowsGame}">
+            <Border Classes="soft" Padding="14">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                <Border Classes="cover" VerticalAlignment="Center">
+                  <Panel>
+                    <ui:Skeleton IsVisible="{Binding !HasShown}" />
+                    <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="18" Height="18" Foreground="{StaticResource TextMutedBrush}" IsVisible="{Binding HasShown}" />
+                    <ui:RemoteImage Source="{Binding Shown.Cover, FallbackValue={x:Null}}" IsVisible="{Binding Shown.HasCover, FallbackValue=False}" />
+                  </Panel>
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding !HasShown}">
+                  <ui:StatusLine FontSize="13" LineHeight="20" Icon="{x:Static theme:Icons.LoaderCircle}" Tone="Info" Label="{x:Static loc:Strings.Creator_Recognizing}"
+                                 IsBusy="True" />
+                  <ui:Skeleton Width="220" Height="12" HorizontalAlignment="Left" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center" IsVisible="{Binding HasShown}">
+                  <TextBlock Text="{Binding Shown.Name, FallbackValue=''}" FontSize="15" LineHeight="21" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"
+                             TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="caption" FontSize="12" Text="{Binding SiteLine}" IsVisible="{Binding SiteLine, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+                <Button x:Name="OtherGame" Grid.Column="2" Classes="link" FontSize="13" VerticalAlignment="Center" Content="{x:Static loc:Strings.Creator_ChangeGame}"
+                        Command="{Binding ShowListCommand}" />
+              </Grid>
+            </Border>
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="caption" FontSize="12" Text="{x:Static loc:Strings.Creator_Versions}" />
+              <ui:PixelUniformGrid Columns="3" ColumnSpacing="10" IsVisible="{Binding !HasShown}">
+                <ui:Skeleton Height="96" CornerRadius="12" />
+                <ui:Skeleton Height="96" CornerRadius="12" />
+                <ui:Skeleton Height="96" CornerRadius="12" />
+              </ui:PixelUniformGrid>
+              <ItemsControl x:Name="VersionTiles" ItemsSource="{Binding VersionTiles}" AutomationProperties.Name="{x:Static loc:Strings.Creator_Versions}"
+                            theme:Motion.Stagger="True">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <ui:PixelUniformGrid Columns="3" ColumnSpacing="10" RowSpacing="10" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="creator:GameOption">
+                    <ToggleButton Theme="{StaticResource ChoiceTile}" Padding="12,14" IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                  AutomationProperties.Name="{Binding StoreName}" AutomationProperties.HelpText="{Binding Detail}"
+                                  Command="{Binding $parent[UserControl].((creator:NewProjectDialogViewModel)DataContext).ToggleVersionCommand}"
+                                  CommandParameter="{Binding}">
+                      <StackPanel Spacing="4">
+                        <Border Classes="folderChip" Width="36" Height="36" HorizontalAlignment="Center" Margin="0,0,0,4">
+                          <ui:StoreIcon Store="{Binding Store}" Width="20" Height="20" />
+                        </Border>
+                        <TextBlock Text="{Binding StoreName}" FontSize="15" LineHeight="20" FontWeight="SemiBold" TextAlignment="Center" Foreground="{StaticResource TextBrush}" />
+                        <TextBlock Classes="caption" FontSize="12" LineHeight="17" Text="{Binding Build}" TextAlignment="Center" />
+                        <TextBlock Classes="caption" FontSize="12" LineHeight="17" Text="{x:Static loc:Strings.Creator_OtherLayout}" TextAlignment="Center"
+                                   IsVisible="{Binding IsOtherLayout}" />
+                      </StackPanel>
+                    </ToggleButton>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ItemsControl ItemsSource="{Binding BlockedVersions}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="creator:GameOption">
+                    <Border Classes="gameBlocked" Classes.installed="{Binding IsBlockedByInstall}" Margin="0,0,0,8">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border Classes="folderChip" Width="34" Height="34" CornerRadius="8" VerticalAlignment="Top">
+                          <ui:StoreIcon Store="{Binding Store}" Width="18" Height="18" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="3">
+                          <TextBlock Classes="rowTitle" Text="{Binding StoreName}" />
+                          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource GameBlock}" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
-              <TextBox x:Name="Search" Classes="search" Width="290" Text="{Binding Query}" PlaceholderText="{x:Static loc:Strings.Creator_SearchGames}"
-                       AutomationProperties.Name="{x:Static loc:Strings.Creator_SearchGames}" />
-              <TextBlock Grid.Column="2" Classes="meta" Text="{Binding Count}" VerticalAlignment="Center" />
-              <Button Grid.Column="3" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_CheckNow}"
-                      ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CheckNowCommand}" IsEnabled="{Binding !IsChecking}" />
-            </Grid>
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="caption" FontSize="12" Text="{Binding PartsTitle}" />
+              <Border Classes="soft" Padding="14,12">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                  <ui:Icon Data="{x:Static theme:Icons.Check}" Width="16" Height="16" StrokeThickness="2.5" Foreground="{StaticResource SuccessTextBrush}" />
+                  <TextBlock Grid.Column="1" Classes="rowTitle" Text="{x:Static loc:Strings.Creator_PartBase}" />
+                  <TextBlock Grid.Column="2" Classes="caption" FontSize="12" VerticalAlignment="Center" Text="{x:Static loc:Strings.Creator_ThisFolder}" />
+                </Grid>
+              </Border>
+              <!-- An add-on of the site's takes its folder dropped on its row or picked, and the project takes it then. -->
+              <ItemsControl x:Name="Parts" ItemsSource="{Binding Parts}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="creator:PartOption">
+                    <Panel Margin="0,0,0,8">
+                      <Border Classes="soft" Padding="14,12" IsVisible="{Binding HasFolder}" creator:FolderDrop.Command="{Binding DropCommand}">
+                        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12">
+                          <ui:Icon Data="{x:Static theme:Icons.Check}" Width="16" Height="16" StrokeThickness="2.5" Foreground="{StaticResource SuccessTextBrush}" />
+                          <TextBlock Grid.Column="1" Classes="rowTitle" Text="{Binding Name}" />
+                          <TextBlock Grid.Column="2" Classes="pathLine" FontSize="12" HorizontalAlignment="Right" Text="{Binding Folder}" ToolTip.Tip="{Binding Folder}" />
+                        </Grid>
+                      </Border>
+                      <Border Classes="dropZone strip" Padding="14,12" IsVisible="{Binding !HasFolder}" creator:FolderDrop.Command="{Binding DropCommand}">
+                        <Panel>
+                          <Rectangle Classes="dropFrame" Margin="-14,-12" />
+                          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+                            <ui:Icon Data="{x:Static theme:Icons.Plus}" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Grid.Column="1" Classes="rowTitle" Text="{Binding Name}" />
+                            <TextBlock Grid.Column="2" Classes="caption" FontSize="12" VerticalAlignment="Center" Text="{Binding DropText}" />
+                            <Button Grid.Column="3" Classes="link" FontSize="13" Margin="-8,0,0,0" Content="{x:Static loc:Strings.Creator_PickFeature}"
+                                    AutomationProperties.Name="{Binding PickName}"
+                                    Command="{Binding $parent[UserControl].((creator:NewProjectDialogViewModel)DataContext).PickPartCommand}" CommandParameter="{Binding}" />
+                          </Grid>
+                        </Panel>
+                      </Border>
+                    </Panel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                          Title="{Binding PartProblemTitle}" Message="{Binding PartProblemText}" IsVisible="{Binding PartProblemText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" theme:Motion.Enter="True" />
+            </StackPanel>
           </StackPanel>
 
-          <StackPanel Spacing="12" IsVisible="{Binding IsLoading}">
+          <!-- Every detected game, for files that fit none or another game than the one they fit. -->
+          <ui:Callout Classes="info" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.Info}"
+                      Message="{x:Static loc:Strings.Creator_NotRecognized}">
+            <ui:Callout.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="ShowsSearch" />
+                <Binding Path="IsNotRecognized" />
+              </MultiBinding>
+            </ui:Callout.IsVisible>
+          </ui:Callout>
+          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" IsVisible="{Binding ShowsSearch}">
+            <TextBox x:Name="Search" Classes="search" Width="290" Text="{Binding Query}" PlaceholderText="{x:Static loc:Strings.Creator_SearchGames}"
+                     AutomationProperties.Name="{x:Static loc:Strings.Creator_SearchGames}" />
+            <TextBlock Grid.Column="2" Classes="meta" Text="{Binding Count}" VerticalAlignment="Center" />
+            <Button Grid.Column="3" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_CheckNow}"
+                    ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding CheckNowCommand}" IsEnabled="{Binding !IsChecking}" />
+          </Grid>
+
+          <StackPanel Spacing="12">
+            <StackPanel.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="ShowsSearch" />
+                <Binding Path="IsLoading" />
+              </MultiBinding>
+            </StackPanel.IsVisible>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
               <ui:Skeleton Height="72" CornerRadius="12" />
               <ui:Skeleton Grid.Column="1" Height="72" CornerRadius="12" />
@@ -120,7 +262,7 @@
           </StackPanel>
 
           <ItemsControl x:Name="GameRows" ItemsSource="{Binding Rows}" IsVisible="{Binding IsListed}" theme:Motion.Stagger="True"
-                        AutomationProperties.Name="{x:Static loc:Strings.Creator_GameTitle}" ItemsPanel="{StaticResource VirtualItems}">
+                        AutomationProperties.Name="{x:Static loc:Strings.Creator_ChangeGameText}" ItemsPanel="{StaticResource VirtualItems}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="creator:GameOptionRow">
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,0,0,12">

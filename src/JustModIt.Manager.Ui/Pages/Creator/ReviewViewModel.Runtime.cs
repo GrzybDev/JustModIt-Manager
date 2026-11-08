@@ -174,7 +174,7 @@ public sealed partial class ReviewViewModel
         var rows = ReviewRows.Reuse(_runtimeRows, fresh, CopyRuntime);
         Controls.CardGrid.Sync(RuntimeRows, rows);
         RuntimeRowCount = rows.Count;
-        RuntimeCount = rows.Count > 0 ? Text.Format(Strings.Creator_RuntimeCount, ("count", rows.Count)) : "";
+        RuntimeCount = rows.Count > 0 ? Text.Format(Strings.Creator_FileCount, ("count", rows.Count)) : "";
         var problems = rows.Count(row => row.HasProblem);
         RuntimeProblems = problems > 0 ? Text.Format(Strings.Creator_RuntimeProblems, ("count", problems)) : "";
         ShowsRuntimePrompt = plan.CarriesCode && rows.Count == 0;

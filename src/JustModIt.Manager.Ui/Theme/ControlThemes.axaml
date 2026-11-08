@@ -142,8 +142,9 @@
     </ContentPresenter>
   </ControlTemplate>
 
-  <!-- A choice among a few options: a centred tile whose selection shows through the accent alone, no radio dot. -->
-  <ControlTheme x:Key="ChoiceTile" TargetType="RadioButton">
+  <!-- A choice among a few options: a centred tile whose selection shows through the accent alone, no radio dot; a radio button
+       for one of them, a toggle button where several may be chosen. -->
+  <ControlTheme x:Key="ChoiceTile" TargetType="ToggleButton">
     <Setter Property="Padding" Value="16,18,16,16" />
     <Setter Property="CornerRadius" Value="12" />
     <Setter Property="Background" Value="{StaticResource FillSubtleBrush}" />

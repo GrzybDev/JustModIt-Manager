@@ -145,11 +145,25 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsComparing), nameof(HasNothingToPackage), nameof(IsCompared), nameof(IsBlockedByInstall),
-        nameof(CanCompare), nameof(IsBlocked), nameof(Line), nameof(HoldsTest))]
+        nameof(CanCompare), nameof(IsBlocked), nameof(Line), nameof(HoldsTest), nameof(WaitsForFolder))]
     public partial CellState State { get; private set; }
 
     /// <summary>The cell is an add-on's, planned over its base's cell on the same version.</summary>
     public bool IsFeature => Key.Part.Length > 0;
+
+    /// <summary>The add-on has no folder yet, so its panel is all a place to drop one.</summary>
+    public bool WaitsForFolder => IsFeature && State == CellState.NoFolder;
+
+    /// <summary>Which release on the site offers the add-on; empty when the site's last release offers none of its name.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DropText))]
+    public partial string FromSite { get; internal set; } = "";
+
+    /// <summary>Where the add-on comes from and that its folder can be dropped, before the way to pick one.</summary>
+    public string DropText => GameWording.Join([FromSite, Strings.Creator_FeatureFolder]);
+
+    /// <summary>The picker's title for the add-on's folder, which screen readers read as the way to pick.</summary>
+    public string PickName => Text.Format(Strings.Creator_PickFeatureName, ("name", Key.Part));
 
     public bool IsComparing => State == CellState.Comparing;
 
@@ -193,9 +207,9 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
                 CellState.BaseMissing => Icons.Package,
                 _ => Icons.CircleX,
             },
-            State is CellState.NoFolder or CellState.Stopped or CellState.GameGone or CellState.NotReady or CellState.Waiting or CellState.BaseMissing ? Tone.Neutral
+            State is CellState.Stopped or CellState.GameGone or CellState.NotReady or CellState.Waiting or CellState.BaseMissing ? Tone.Neutral
                 // A drive that does not answer may come back with the folder.
-                : State == CellState.TestInstalled || (State == CellState.FolderGone && _unanswered) ? Tone.Warning : Tone.Danger,
+                : State is CellState.TestInstalled or CellState.NoFolder || (State == CellState.FolderGone && _unanswered) ? Tone.Warning : Tone.Danger,
             Text.Format(Strings.Creator_CellState, ("state", State.ToString()), ("work", _work), ("version", ""), ("store", StoreName)),
             State == CellState.Waiting ? Text.Format(Strings.Creator_CellDetail, ("detail", "Waiting")) : null),
     };
@@ -411,7 +425,7 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task ChangeFolderAsync()
     {
-        if (await _page.Services.Pickers.PickFolderAsync(Strings.Creator_PickFolderTitle, Folder.Length > 0 ? Folder : null).ConfigureAwait(true) is { } folder)
+        if (await _page.Services.Pickers.PickFolderAsync(IsFeature ? PickName : Strings.Creator_PickFolderTitle, Folder.Length > 0 ? Folder : null).ConfigureAwait(true) is { } folder)
         {
             await UseFolderAsync(folder).ConfigureAwait(true);
         }
@@ -484,7 +498,9 @@ public sealed partial class CellViewModel : ObservableObject, IDisposable
     internal void Rename(string part)
     {
         Key = Key with { Part = part };
+        OnPropertyChanged(nameof(Key));
         OnPropertyChanged(nameof(RemovePartText));
+        OnPropertyChanged(nameof(PickName));
     }
 
     private void Block(CellState? block, string title, string text)

@@ -15,5 +15,6 @@
     <Compile Include="..\Shared\JsonContracts.cs" Link="Shared\JsonContracts.cs" />
     <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\Eventually.cs" Link="TestSupport\Eventually.cs" />
     <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\HangingFileSystem.cs" Link="TestSupport\HangingFileSystem.cs" />
+    <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\InMemoryFileSystem.cs" Link="TestSupport\InMemoryFileSystem.cs" />
   </ItemGroup>
 </Project>

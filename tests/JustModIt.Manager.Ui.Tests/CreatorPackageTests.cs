@@ -232,7 +232,8 @@ public sealed class CreatorPackageTests : IDisposable
         var package = await PackageAsync(ui);
 
         await UiHarness.WaitUntilAsync(() => package.Description.LastRelease.Length > 0);
-        ui.Agent.Requests.OfType<GetProjectPage>().Should().Equal(new GetProjectPage(project.GameSlug, project.Team.Slug, project.ProjectId));
+        ui.Agent.Requests.OfType<GetProjectPage>().Should().NotBeEmpty().And.OnlyContain(request => request == new GetProjectPage(project.GameSlug, project.Team.Slug, project.ProjectId),
+            "the new project's dialog and its page ask for the one project that is surely the author's");
         package.Description.LastRelease.Should().Be(Text.Format(Strings.Creator_LastRelease, ("version", GameWording.ShortVersion("1"))));
         package.Description.Version.Should().Be("2");
         package.Description.Authors.Should().Equal("Ada Lantern", "Olek Tide");
@@ -695,10 +696,11 @@ public sealed class CreatorPackageTests : IDisposable
             ("Captions", Text.Format(Strings.Creator_FeatureRow, ("on", "true"))),
             ("Voices", Text.Format(Strings.Creator_FeatureRow, ("on", "false"))));
         ui.Click(Button(ui, page.Cells[2].Name));
-        page.Cells[2].State.Should().Be(CellState.NoFolder);
+        (page.Cells[2].State, page.Cells[2].DropText).Should().Be((CellState.NoFolder, GameWording.Join(
+            [Text.Format(Strings.Creator_FeatureFrom, ("version", GameWording.ShortVersion(GameWording.Version("v1", 1)))), Strings.Creator_FeatureFolder])));
         await ui.RenderBothAsync("creator-panel-add-on");
         ui.Pickers.Folder = _work.Folder("Voices", ("data/voices/intro.ogg", "voices of the intro"));
-        ui.Click(Button(ui, Strings.Creator_ChangeFolder));
+        ui.Click(Button(ui, page.Cells[2].PickName));
 
         // The add-on keeps its comparison under its new name.
         var captions = page.Cells[1];

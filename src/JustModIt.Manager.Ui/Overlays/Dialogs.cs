@@ -93,12 +93,25 @@ public sealed partial class ConfirmDialogViewModel : DialogViewModel<bool>
 }
 
 /// <summary>A choice of a dialog: an action tile with an icon, a title and what it does.</summary>
-/// <param name="Key">What the choice is, as the dialog's answer names it.</param>
-/// <param name="Icon">Its icon.</param>
-/// <param name="Title">Its name.</param>
-/// <param name="Description">What it does.</param>
-/// <param name="IsDanger">It ends or removes something, which its icon's tint says.</param>
-public sealed record DialogChoice(string Key, Geometry Icon, string Title, string Description, bool IsDanger = false);
+/// <param name="key">What the choice is, as the dialog's answer names it.</param>
+/// <param name="icon">Its icon.</param>
+/// <param name="title">Its name.</param>
+/// <param name="description">What it does.</param>
+/// <param name="isDanger">It ends or removes something, which its icon's tint says.</param>
+public sealed partial class DialogChoice(string key, Geometry icon, string title, string description, bool isDanger = false) : ObservableObject
+{
+    public string Key { get; } = key;
+
+    public Geometry Icon { get; } = icon;
+
+    public string Title { get; } = title;
+
+    public bool IsDanger { get; } = isDanger;
+
+    /// <summary>The line under the title, which may follow what a look at the disk finds while the dialog shows.</summary>
+    [ObservableProperty]
+    public partial string Description { get; set; } = description;
+}
 
 /// <summary>The answer to a choice: the choice taken, or null when dismissed, and whether to keep it from now on.</summary>
 /// <param name="Key">The key of the choice taken; null when the dialog was dismissed.</param>

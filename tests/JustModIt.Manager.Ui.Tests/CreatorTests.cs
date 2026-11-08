@@ -8,7 +8,9 @@ using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
@@ -31,9 +33,27 @@ public sealed class CreatorTests : IDisposable
     private readonly CreatorWorkspace _work = new();
 
     [AvaloniaFact]
-    public async Task A_dropped_folder_and_a_chosen_game_make_a_project_that_compares_by_itself()
+    public async Task A_dropped_folder_recognises_the_game_and_offers_its_copies_with_one_confirmation()
     {
-        using var ui = await OpenAsync(Installed(TestStates.Idle(creatorMode: true)));
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        var epic = _work.CopyOfLantern(new GameKey(StoreId.Epic, "lanternisle"));
+        var project = TestGames.Offer("Lantern Isle", version: 1);
+        _work.LanternProjects = [new SiteProjectView(project.ProjectId, project.GameSlug, project.Team.Slug)];
+        var state = TestStates.Idle(creatorMode: true) with
+        {
+            Games = [TestGames.Available("Lantern Isle", epic.Key.StoreGameId) with
+            {
+                Key = epic.Key,
+                Installs = [TestGames.Install(project, 1, new GameStatusView(MyGameState.Installed)) with { InstallDirectory = epic.Game.InstallDirectory }],
+            }],
+        };
+        using var ui = await OpenAsync(state);
+        ui.Agent.Answer = request => request switch
+        {
+            GetDetectedGames => new DetectedGames([.. _work.Detected, gog, epic]),
+            GetProjectPage => TestPages.Page(project, """[{ "uuid": "b1111111-2222-4333-8444-555555555555", "key": "captions", "name": "Captions", "is_default": true }, { "uuid": "c1111111-2222-4333-8444-555555555555", "key": "voices", "name": "Voices" }]"""),
+            _ => null,
+        };
         await ui.RenderBothAsync("creator-library-empty");
 
         Drop(ui, DroppedItem.Of<IStorageFile>(Path.Combine(_work.AuthorFolder, "data", "strings.bin")));
@@ -47,28 +67,124 @@ public sealed class CreatorTests : IDisposable
         await RenderAsync(ui, "creator-library-drop-over");
         Drop(ui, DroppedItem.Of<IStorageFolder>(_work.AuthorFolder));
 
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { Parts.Count: 2 });
         var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
-        dialog.Folder.Should().Be(_work.AuthorFolder);
+        (dialog.Folder, dialog.Shown!.Name, dialog.ShowsList).Should().Be((_work.AuthorFolder, "Lantern Isle", false));
         Library(ui).DroppedFiles.Should().BeFalse();
-        var options = dialog.Rows.SelectMany(row => new[] { row.Left, row.Right }).OfType<GameOption>().ToList();
-        options.Select(option => (option.Name, option.Block)).Should().Equal(
-            ("Ashfall Chronicles", GameBlock.NotReady), ("Lantern Isle", GameBlock.None), ("Tidewater", GameBlock.Installed));
-        options[2].BlockText.Should().Contain("Lantern Team").And.EndWith(GameWording.ShortVersion("1"));
-        dialog.CreateCommand.CanExecute(null).Should().BeFalse("no game is chosen yet");
+        dialog.FolderNote.Should().Be(Text.Format(Strings.Library_Joined, ("first", ""),
+            ("second", GameWording.Join([Text.Format(Strings.Creator_FileCount, ("count", 2)), Strings.Creator_Recognized]))));
+        dialog.VersionTiles.Select(tile => (tile.StoreName, tile.IsSelected)).Should().Equal(("Steam", true), ("GOG", true));
+        dialog.BlockedVersions.Should().ContainSingle().Which.IsBlockedByInstall.Should().BeTrue("a copy with a package on it says why it waits");
+        var release = GameWording.ShortVersion(GameWording.Version("v1", 1));
+        dialog.SiteLine.Should().Be(Text.Format(Strings.Creator_SiteProject, ("team", project.Team.Name), ("hasRelease", "true"), ("release", release)));
+        var from = GameWording.Join([Text.Format(Strings.Creator_FeatureFrom, ("version", release)), Strings.Creator_FeatureFolder]);
+        dialog.Parts.Select(part => (part.Name, part.DropText)).Should().Equal(("Captions", from), ("Voices", from));
         ui.Unnamed().Should().BeEmpty();
-        await ui.RenderBothAsync("creator-new");
+        await ui.RenderBothAsync("creator-new-recognised");
 
-        ui.Click(Choice(ui, "Lantern Isle"));
-        await ui.RenderBothAsync("creator-new-other-game");
+        var captions = _work.Folder("Captions", ("data/captions/intro.srt", "captions of the intro"));
+        PartRow(ui, "Voices").BringIntoView();
+        UiHarness.Settle();
+        Drop(ui, DroppedItem.Of<IStorageFolder>(captions), PartRow(ui, "Captions"));
+        Drop(ui, DroppedItem.Of<IStorageFolder>(_work.AuthorFolder), PartRow(ui, "Voices"));
+        (dialog.Parts[0].Folder, dialog.Parts[1].HasFolder, dialog.PartProblemText).Should().Be((captions, false, Strings.Creator_FolderTaken),
+            "the base's folder is the base's alone");
+        await ui.RenderBothAsync("creator-new-parts");
         ui.Click(Button(ui, Strings.Creator_Create));
 
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Cell.IsCompared: true });
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { IsTable: true } page && page.Cells.All(cell => cell.IsCompared));
         var page = Page(ui);
-        page.Session!.Comparison!.Files.Select(file => (file.Path, file.Difference)).Should().Equal(
+        page.Session!.Project.Versions.Should().Equal(NewProjectDialogViewModel.VersionOf(_work.Detected[1]), NewProjectDialogViewModel.VersionOf(gog));
+        page.Session.Project.Parts.Select(part => (part.Name, part.AuthorFolder)).Should().Equal(("", _work.AuthorFolder), ("Captions", captions));
+        page.Session.Project.Site.Should().Be(new ProjectSite(project.ProjectId, project.GameSlug, project.Team.Slug, project.Team.Name, project.Cover));
+        page.Session.ComparisonOf(new CellKey("", CreatorWorkspace.Lantern))!.Files.Select(file => (file.Path, file.Difference)).Should().Equal(
             ("data/extra/credits.txt", FileDifference.New), ("data/strings.bin", FileDifference.Changed));
-        page.Session.Version.Should().Be(new ProjectVersion(new ProjectGame(CreatorWorkspace.Lantern, "Lantern Isle")) { GameFolder = _work.GameFolder });
-        page.Session.Part.AuthorFolder.Should().Be(_work.AuthorFolder);
+    }
+
+    [AvaloniaFact]
+    public async Task Another_game_can_be_chosen_while_recognising_runs()
+    {
+        using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
+        files.Hang(_work.AuthorFolder);
+        ui.Pickers.Folder = _work.AuthorFolder;
+        ui.Click(Button(ui, Strings.Creator_New));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel && files.Blocked > 0);
+        var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
+        (dialog.HasShown, dialog.CreateCommand.CanExecute(null)).Should().Be((false, false));
+        ui.Unnamed().Should().BeEmpty();
+        await ui.RenderBothAsync("creator-new-recognising");
+
+        ui.Click(Button(ui, Strings.Creator_ChangeGame));
+        await UiHarness.WaitUntilAsync(() => dialog.IsListed);
+        ui.Click(ui.Find<RadioButton>().First(choice => choice.IsEffectivelyVisible && choice.DataContext is GameOption { Name: "Tidewater" }));
+        (dialog.ShowsList, dialog.Shown!.Name).Should().Be((false, "Tidewater"));
+        files.Answer(_work.AuthorFolder);
+
+        await UiHarness.WaitUntilAsync(() => dialog.FolderNote.Length > 0);
+        (dialog.ShowsList, dialog.Shown!.Name, dialog.CreateCommand.CanExecute(null)).Should().Be((false, "Tidewater", true),
+            "a recognition that ends after the author chose leaves the choice as it is");
+        dialog.FolderNote.Should().NotContain(Strings.Creator_Recognized);
+    }
+
+    [AvaloniaFact]
+    public async Task A_folder_that_fits_no_game_opens_the_list()
+    {
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        ui.Pickers.Folder = _work.Folder("Notes", ("mods/readme.txt", "notes of the author"));
+        ui.Click(Button(ui, Strings.Creator_New));
+
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
+        var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
+        (dialog.IsNotRecognized, dialog.CreateCommand.CanExecute(null)).Should().Be((true, false));
+        ui.Unnamed().Should().BeEmpty();
+        await ui.RenderBothAsync("creator-new-not-recognised");
+        ui.Click(Choice(ui, "Lantern Isle"));
+        (dialog.ShowsList, dialog.Shown!.Name, dialog.CreateCommand.CanExecute(null)).Should().Be((false, "Lantern Isle", true));
+        dialog.FolderNote.Should().NotContain(Strings.Creator_Recognized);
+    }
+
+    [AvaloniaFact]
+    public async Task A_drive_that_does_not_answer_does_not_hold_the_dialog()
+    {
+        var tidewater = Path.Combine(_work.Root, "Games", "Tidewater");
+        Directory.CreateDirectory(Path.Combine(tidewater, "data"));
+        using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
+        files.Hang(tidewater);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
+        ui.Pickers.Folder = _work.AuthorFolder;
+        ui.Click(Button(ui, Strings.Creator_New));
+
+        await files.RunOutOfTimeAsync(ui.Clock);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { HasShown: true });
+        var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
+        (dialog.Shown!.Name, dialog.CreateCommand.CanExecute(null)).Should().Be(("Lantern Isle", true), "the games that answered are told apart without the one that did not");
+        files.Answer(tidewater);
+    }
+
+    [AvaloniaFact]
+    public async Task A_copy_laid_out_differently_says_so_and_a_drive_that_does_not_answer_says_nothing()
+    {
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        Directory.Move(Path.Combine(gog.Game.InstallDirectory, "data"), Path.Combine(gog.Game.InstallDirectory, "content"));
+        var epic = _work.CopyOfLantern(new GameKey(StoreId.Epic, "lanternisle"));
+        Directory.Move(Path.Combine(epic.Game.InstallDirectory, "data"), Path.Combine(epic.Game.InstallDirectory, "Content"));
+        using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
+        // The copy's top level answers, so the recognition tells it apart from the folder, but a listing of what lies under it never ends.
+        files.Hang(Path.Combine(epic.Game.InstallDirectory, "Content"));
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog, epic]) : null;
+        ui.Pickers.Folder = _work.AuthorFolder;
+        ui.Click(Button(ui, Strings.Creator_New));
+
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { VersionTiles.Count: 3 } shown
+            && shown.VersionTiles[1].IsOtherLayout && files.Blocked > 0);
+        var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
+        var build = Text.Format(Strings.Creator_GameBuild, ("build", "18001"));
+        dialog.VersionTiles.Select(tile => (tile.StoreName, tile.Detail)).Should().Equal(
+            ("Steam", build), ("GOG", GameWording.Join([build, Strings.Creator_OtherLayout])), (Strings.Library_StoreEpic, build));
+        dialog.CreateCommand.CanExecute(null).Should().BeTrue("the copy that does not answer holds nothing back");
+        await ui.RenderBothAsync("creator-new-layout");
     }
 
     [AvaloniaFact]
@@ -100,6 +216,8 @@ public sealed class CreatorTests : IDisposable
 
         games = _work.Detected;
         ui.Push(state with { Version = 3, Library = new LibraryView { ScannedAt = TestStates.Now.AddMinutes(1) } });
+        await UiHarness.WaitUntilAsync(() => dialog.HasShown);
+        ui.Click(Button(ui, Strings.Creator_ChangeGame));
         await UiHarness.WaitUntilAsync(() => dialog.IsListed);
         dialog.Query = "no such title";
         dialog.ShowsNoResults.Should().BeTrue("a search that finds nothing is not a computer without games");
@@ -119,9 +237,11 @@ public sealed class CreatorTests : IDisposable
         using var ui = await OpenAsync(Installed(TestStates.Idle(creatorMode: true)));
         ui.Pickers.Folder = _work.AuthorFolder;
         ui.Click(Button(ui, Strings.Creator_New));
-        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { HasShown: true });
         var dialog = (NewProjectDialogViewModel)ui.Shell.Dialogs.Current!;
+        ui.Click(Button(ui, Strings.Creator_ChangeGame));
+        await UiHarness.WaitUntilAsync(() => dialog.IsListed);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Find<RadioButton>().Where(choice => choice.IsEffectivelyVisible).Should().ContainSingle("only the game that is ready can be chosen");
 
         ui.Click(ui.Find<Button>().First(button => button.DataContext is GameOption { IsBlockedByInstall: true } && button.IsEffectivelyVisible));
@@ -285,6 +405,22 @@ public sealed class CreatorTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_copy_laid_out_differently_says_so_on_its_tile_when_adding_a_version()
+    {
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        Directory.Move(Path.Combine(gog.Game.InstallDirectory, "data"), Path.Combine(gog.Game.InstallDirectory, "content"));
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog]) : null;
+        var page = await CreatorWorkspace.NewProjectAsync(ui, _work.AuthorFolder, "Lantern Isle");
+        await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared && page.HasOffer);
+
+        ui.Click(Button(ui, Strings.Creator_AddGameVersion));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { Choices: [{ Description: var text }, _] }
+            && text.Contains(Strings.Creator_OtherLayout, StringComparison.Ordinal));
+        await ui.RenderBothAsync("creator-add-version-tiles");
+    }
+
+    [AvaloniaFact]
     public async Task A_version_of_another_title_can_be_added_and_the_first_removed_keeping_the_part_s_work()
     {
         var tidewater = Path.Combine(_work.Root, "Games", "Tidewater");
@@ -303,6 +439,8 @@ public sealed class CreatorTests : IDisposable
         var options = dialog.Rows.SelectMany(row => new[] { row.Left, row.Right }).OfType<GameOption>().ToList();
         options.Select(option => option.Name).Should().Equal("Ashfall Chronicles", "Tidewater");
         dialog.PickCommand.Execute(options[1]);
+        await UiHarness.WaitUntilAsync(() => ui.Find<TextBlock>().Any(text => text.IsEffectivelyVisible && text.Text == tidewater));
+        await ui.RenderBothAsync("creator-add-version-list");
         dialog.CreateCommand.Execute(null);
         await UiHarness.WaitUntilAsync(() => page.IsTable && page.Cells.All(cell => cell.State is CellState.Compared or CellState.NothingToPackage));
 
@@ -758,6 +896,8 @@ public sealed class CreatorTests : IDisposable
         ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([_work.Detected[1], .. many]) : null;
         ui.Pickers.Folder = _work.AuthorFolder;
         ui.Click(Button(ui, Strings.Creator_New));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { HasShown: true });
+        ui.Click(Button(ui, Strings.Creator_ChangeGame));
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is NewProjectDialogViewModel { IsListed: true });
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Unnamed().Should().BeEmpty();
@@ -838,6 +978,9 @@ public sealed class CreatorTests : IDisposable
     private static Button Button(UiHarness ui, string name) =>
         ui.Find<Button>().First(button => button.IsEffectivelyVisible
             && Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(button).GetName() == name);
+
+    private static Border PartRow(UiHarness ui, string name) =>
+        ui.Find<Border>().First(row => row.IsEffectivelyVisible && row.DataContext is PartOption part && part.Name == name && row.Classes.Contains("dropZone"));
 
     private static RadioButton Choice(UiHarness ui, string name) =>
         ui.Find<RadioButton>().First(choice => choice.IsEffectivelyVisible

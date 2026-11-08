@@ -109,8 +109,8 @@ public sealed partial class ProjectPageViewModel
         }
 
         // An add-on the site names may take its folder later, on its cell.
-        var folder = await Services.Pickers.PickFolderAsync(Strings.Creator_PickFolderTitle, session.Project.Parts[0].AuthorFolder is { Length: > 0 } start ? start : null)
-            .ConfigureAwait(true);
+        var folder = await Services.Pickers.PickFolderAsync(name.Length > 0 ? Text.Format(Strings.Creator_PickFeatureName, ("name", name)) : Strings.Creator_PickFolderTitle,
+            session.Project.Parts[0].AuthorFolder is { Length: > 0 } start ? start : null).ConfigureAwait(true);
         if (Session == session && (folder is not null || name.Length > 0))
         {
             AddPart(name, folder ?? "");

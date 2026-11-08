@@ -2673,6 +2673,45 @@
   <data name="Creator_NewTitle" xml:space="preserve">
     <value>New project from a folder</value>
   </data>
+  <data name="Creator_Recognized" xml:space="preserve">
+    <value>recognised by the files</value>
+  </data>
+  <data name="Creator_Recognizing" xml:space="preserve">
+    <value>Recognising the game by the files…</value>
+  </data>
+  <data name="Creator_NotRecognized" xml:space="preserve">
+    <value>The files fit no detected game. The game can be chosen from the list.</value>
+  </data>
+  <data name="Creator_SiteProject" xml:space="preserve">
+    <value>{hasRelease, select, true {Project on the site: {team} · last release {release}} other {Project on the site: {team}}}</value>
+  </data>
+  <data name="Creator_Versions" xml:space="preserve">
+    <value>Game versions in the project</value>
+  </data>
+  <data name="Creator_OtherLayout" xml:space="preserve">
+    <value>another data folder</value>
+  </data>
+  <data name="Creator_Parts" xml:space="preserve">
+    <value>Parts of the package</value>
+  </data>
+  <data name="Creator_PartsFromSite" xml:space="preserve">
+    <value>add-on names from the site</value>
+  </data>
+  <data name="Creator_ThisFolder" xml:space="preserve">
+    <value>this folder</value>
+  </data>
+  <data name="Creator_FeatureFrom" xml:space="preserve">
+    <value>add-on of {version}</value>
+  </data>
+  <data name="Creator_FeatureFolder" xml:space="preserve">
+    <value>drop its folder or</value>
+  </data>
+  <data name="Creator_PickFeature" xml:space="preserve">
+    <value>choose…</value>
+  </data>
+  <data name="Creator_PickFeatureName" xml:space="preserve">
+    <value>Choose the folder of the add-on {name}</value>
+  </data>
   <data name="Creator_NewHint" xml:space="preserve">
     <value>The comparison starts at once. Settings change later in the project.</value>
   </data>
@@ -2741,12 +2780,6 @@
   </data>
   <data name="Creator_GameGone" xml:space="preserve">
     <value>{game} on {store} is not among the detected games. It comes back by itself once the store reports it.</value>
-  </data>
-  <data name="Creator_GameTitle" xml:space="preserve">
-    <value>Choose the game</value>
-  </data>
-  <data name="Creator_GameLead" xml:space="preserve">
-    <value>The creator compares the files with it and installs the finished package in it for a test, the way players will.</value>
   </data>
   <data name="Creator_CleanGameTitle" xml:space="preserve">
     <value>The game must be clean</value>
@@ -3390,7 +3423,7 @@
   <data name="Creator_RuntimePrompt" xml:space="preserve">
     <value>Does software from the package write anything in the game while it runs? Such files belong on this list.</value>
   </data>
-  <data name="Creator_RuntimeCount" xml:space="preserve">
+  <data name="Creator_FileCount" xml:space="preserve">
     <value>{count, plural, one {# file} other {# files}}</value>
   </data>
   <data name="Creator_RuntimeProblems" xml:space="preserve">

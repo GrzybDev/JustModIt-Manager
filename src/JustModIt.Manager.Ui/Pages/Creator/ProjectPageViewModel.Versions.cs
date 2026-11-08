@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
@@ -201,32 +200,41 @@ public sealed partial class ProjectPageViewModel
 
         var versions = session.Project.Versions.Select(version => version.Game.Key).ToList();
         var copies = _detected.Where(game => !versions.Contains(game.Key) && session.Project.Versions.Any(version => IsCopy(game, version))).ToList();
-        var chosen = (DetectedGameEntry?)null;
+        var version = (ProjectVersion?)null;
         if (copies.Count > 0)
         {
+            static string Detail(DetectedGameEntry copy) =>
+                copy.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : CreatorWording.Wrappable(copy.Game.InstallDirectory);
+
+            List<DialogChoice> tiles = [.. copies.Select(copy => new DialogChoice(copy.Key.ToString(), Icons.Gamepad, GameWording.StoreName(copy.Key.Store), Detail(copy)))];
+            using var layouts = new CancellationTokenSource();
+            if (session.Project.Versions.FirstOrDefault(each => GameOf(each.Game.Key) is not null) is { } first)
+            {
+                _ = NewProjectDialogViewModel.TellLayoutsAsync(_creator, GameOf(first.Game.Key)!.Game.InstallDirectory, first.Folders, [.. copies.Select(copy => (copy.Key, copy.Game.InstallDirectory))],
+                    key => tiles[copies.FindIndex(copy => copy.Key == key)].Description = GameWording.Join([Detail(copies.First(copy => copy.Key == key)), Strings.Creator_OtherLayout]), layouts.Token);
+            }
+
             var answer = await Services.Dialogs.ShowAsync(new ChoiceDialogViewModel(Strings.Creator_AddGameVersion, "",
-            [
-                .. copies.Select(copy => new DialogChoice(copy.Key.ToString(), Icons.Gamepad, GameWording.StoreName(copy.Key.Store),
-                    copy.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : CreatorWording.Wrappable(copy.Game.InstallDirectory))),
-                new DialogChoice("", Icons.Store, Strings.Creator_ChangeGame, Strings.Creator_ChangeGameText),
-            ])).ConfigureAwait(true);
+                [.. tiles, new DialogChoice("", Icons.Store, Strings.Creator_ChangeGame, Strings.Creator_ChangeGameText)]))
+                    .ConfigureAwait(true);
+            await layouts.CancelAsync().ConfigureAwait(true);
             if (answer.Key is not { } key || Session != session)
             {
                 return;
             }
 
-            chosen = copies.FirstOrDefault(copy => copy.Key.ToString() == key);
+            version = copies.FirstOrDefault(copy => copy.Key.ToString() == key) is { } copy ? NewProjectDialogViewModel.VersionOf(copy) : null;
         }
 
-        if (chosen is null)
+        if (version is null)
         {
-            using var dialog = new NewProjectDialogViewModel(Services, session.Part.AuthorFolder, versions);
-            chosen = await Services.Dialogs.ShowAsync(dialog).ConfigureAwait(true) is { Game: var game } && Session == session ? game : null;
+            using var dialog = new NewProjectDialogViewModel(_creator, session.Part.AuthorFolder, versions);
+            version = await Services.Dialogs.ShowAsync(dialog).ConfigureAwait(true) is { Versions: [var added] } && Session == session ? added : null;
         }
 
-        if (chosen is not null)
+        if (version is not null)
         {
-            AddVersion(chosen);
+            AddVersion(version);
         }
     }
 
@@ -235,7 +243,7 @@ public sealed partial class ProjectPageViewModel
     {
         if (Offer is { } offer)
         {
-            AddVersion(offer);
+            AddVersion(NewProjectDialogViewModel.VersionOf(offer));
         }
     }
 
@@ -290,21 +298,18 @@ public sealed partial class ProjectPageViewModel
         await ReadRecordAsync().ConfigureAwait(true);
     }
 
-    private void AddVersion(DetectedGameEntry game)
+    private void AddVersion(ProjectVersion version)
     {
         Session?.Change(project => project with
         {
-            Versions = project.Versions.Add(new ProjectVersion(new ProjectGame(game.Key, game.Name)) { GameFolder = game.Game.InstallDirectory }),
-            DeclinedVersions = project.DeclinedVersions.RemoveAll(key => key == game.Key),
+            Versions = project.Versions.Add(version),
+            DeclinedVersions = project.DeclinedVersions.RemoveAll(key => key == version.Game.Key),
         });
         _resuming = ResumeAsync();
     }
 
-    // The same game from another store: the site's game, or the title as the search folds it, since stores spell titles differently.
     private bool IsCopy(DetectedGameEntry game, ProjectVersion version) =>
-        game.Key.Store != version.Game.Key.Store
-        && (string.Equals(SearchText.Fold(game.Name), SearchText.Fold(version.Game.Name), StringComparison.Ordinal)
-            || GameOf(version.Game.Key)?.Projects.Any(mine => game.Projects.Any(theirs => theirs.GameSlug == mine.GameSlug)) == true);
+        game.Key.Store != version.Game.Key.Store && NewProjectDialogViewModel.IsCopy(game, version.Game.Name, GameOf(version.Game.Key));
 
     // The cells follow the project's parts and versions, each kept while its part and version stay.
     private void ShowCells(CreatorSession session)
@@ -343,6 +348,11 @@ public sealed partial class ProjectPageViewModel
         if (!rows.SequenceEqual(Rows))
         {
             Rows = rows;
+        }
+
+        foreach (var cell in Cells)
+        {
+            cell.FromSite = Description.Hints?.FeatureFrom(cell.Key.Part) ?? "";
         }
 
         Offer = _detected.FirstOrDefault(game => !session.Project.Versions.Any(version => version.Game.Key == game.Key)

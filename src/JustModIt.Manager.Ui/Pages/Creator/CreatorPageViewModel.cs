@@ -166,7 +166,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         [
             new DialogChoice(ExportChoice, Icons.Upload, Strings.Creator_Export, Strings.Creator_ExportText),
             new DialogChoice(DuplicateChoice, Icons.Copy, Strings.Creator_Duplicate, Strings.Creator_DuplicateText),
-            new DialogChoice(RemoveChoice, Icons.Trash, Strings.Creator_Remove, Strings.Creator_RemoveText, IsDanger: true),
+            new DialogChoice(RemoveChoice, Icons.Trash, Strings.Creator_Remove, Strings.Creator_RemoveText, isDanger: true),
         ])).ConfigureAwait(true);
         await (answer.Key switch
         {

@@ -11,5 +11,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="JustModIt.Manager.Platform.Windows.Tests" />
+    <InternalsVisibleTo Include="JustModIt.Manager.Creator.Tests" />
   </ItemGroup>
 </Project>

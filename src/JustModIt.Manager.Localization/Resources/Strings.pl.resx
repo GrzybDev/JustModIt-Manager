@@ -2661,6 +2661,45 @@
   <data name="Creator_NewTitle" xml:space="preserve">
     <value>Nowy projekt z folderu</value>
   </data>
+  <data name="Creator_Recognized" xml:space="preserve">
+    <value>rozpoznano po plikach</value>
+  </data>
+  <data name="Creator_Recognizing" xml:space="preserve">
+    <value>Rozpoznawanie gry po plikach…</value>
+  </data>
+  <data name="Creator_NotRecognized" xml:space="preserve">
+    <value>Pliki nie pasują do żadnej wykrytej gry. Grę można wybrać z listy.</value>
+  </data>
+  <data name="Creator_SiteProject" xml:space="preserve">
+    <value>{hasRelease, select, true {Projekt na stronie: {team} · ostatnie wydanie {release}} other {Projekt na stronie: {team}}}</value>
+  </data>
+  <data name="Creator_Versions" xml:space="preserve">
+    <value>Wersje gry w projekcie</value>
+  </data>
+  <data name="Creator_OtherLayout" xml:space="preserve">
+    <value>inny folder danych</value>
+  </data>
+  <data name="Creator_Parts" xml:space="preserve">
+    <value>Części paczki</value>
+  </data>
+  <data name="Creator_PartsFromSite" xml:space="preserve">
+    <value>nazwy składników ze strony</value>
+  </data>
+  <data name="Creator_ThisFolder" xml:space="preserve">
+    <value>ten folder</value>
+  </data>
+  <data name="Creator_FeatureFrom" xml:space="preserve">
+    <value>składnik z {version}</value>
+  </data>
+  <data name="Creator_FeatureFolder" xml:space="preserve">
+    <value>upuść jego folder albo</value>
+  </data>
+  <data name="Creator_PickFeature" xml:space="preserve">
+    <value>wybierz…</value>
+  </data>
+  <data name="Creator_PickFeatureName" xml:space="preserve">
+    <value>Wybierz folder składnika {name}</value>
+  </data>
   <data name="Creator_NewHint" xml:space="preserve">
     <value>Porównanie ruszy od razu. Ustawienia zmienia się później w projekcie.</value>
   </data>
@@ -2729,12 +2768,6 @@
   </data>
   <data name="Creator_GameGone" xml:space="preserve">
     <value>Wersji {store} gry {game} nie ma wśród wykrytych gier. Wróci sama, gdy sklep ją zgłosi.</value>
-  </data>
-  <data name="Creator_GameTitle" xml:space="preserve">
-    <value>Wybierz grę</value>
-  </data>
-  <data name="Creator_GameLead" xml:space="preserve">
-    <value>Kreator porówna z nią pliki, a gotową paczkę zainstaluje w niej testowo – tak, jak zrobi to gracz.</value>
   </data>
   <data name="Creator_CleanGameTitle" xml:space="preserve">
     <value>Gra musi być czysta</value>
@@ -3378,7 +3411,7 @@
   <data name="Creator_RuntimePrompt" xml:space="preserve">
     <value>Czy oprogramowanie z paczki zapisuje coś w grze podczas gry? Takie pliki trzeba dopisać do tej listy.</value>
   </data>
-  <data name="Creator_RuntimeCount" xml:space="preserve">
+  <data name="Creator_FileCount" xml:space="preserve">
     <value>{count, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}</value>
   </data>
   <data name="Creator_RuntimeProblems" xml:space="preserve">

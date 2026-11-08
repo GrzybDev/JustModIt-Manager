@@ -6,8 +6,6 @@ using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
-using JustModIt.Manager.Protocol.Messages;
-using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Pages.Library;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
@@ -173,21 +171,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
         }
 
         (_hintsFor, Hints) = (game.Key, null);
-        // The site's project gives the hints only when the creator can tell it is the author's without guessing: the project
-        // installed on the game, else the game's only one.
-        var installed = _page.Agent.State.Games.FirstOrDefault(view => view.Key == game.Key)?.Installs
-            .Select(install => install.Project).OfType<ProjectOfferView>().FirstOrDefault();
-        var project = installed is not null ? new SiteProjectView(installed.ProjectId, installed.GameSlug, installed.Team.Slug)
-            : game.Projects is [var only] ? only
-            : null;
-        if (project is null)
-        {
-            return;
-        }
-
-        var answer = await AgentRequests.AskQuietlyAsync(_page.Agent, new GetProjectPage(project.GameSlug, project.TeamSlug, project.ProjectId))
-            .ConfigureAwait(true);
-        var hints = answer is ProjectPageResult { Page: { } page } ? await Task.Run(() => ProjectHints.Read(page)).ConfigureAwait(true) : null;
+        var hints = await ProjectHints.AskAsync(_page.Agent, game).ConfigureAwait(true);
         // The site may take long enough for the project to be closed and opened again, as a session of its own.
         if (_page.Session != _session || _page.Game?.Key != game.Key)
         {

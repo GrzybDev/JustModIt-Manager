@@ -62,8 +62,8 @@ public sealed partial class CreatorPageViewModel
         }
 
         // A project works on a game, so a new one takes it first, and nothing is made when the author cancels.
-        using var dialog = new NewProjectDialogViewModel(Services, folder);
-        if (await Services.Dialogs.ShowAsync(dialog).ConfigureAwait(true) is not { Game: var game })
+        using var dialog = new NewProjectDialogViewModel(this, folder);
+        if (await Services.Dialogs.ShowAsync(dialog).ConfigureAwait(true) is not { } answer)
         {
             return;
         }
@@ -72,8 +72,9 @@ public sealed partial class CreatorPageViewModel
         {
             Id = Guid.NewGuid(),
             CreatedAt = Services.Clock.GetUtcNow(),
-            Versions = [new ProjectVersion(new ProjectGame(game.Key, game.Name)) { GameFolder = game.Game.InstallDirectory }],
-            Parts = [new ProjectPart { AuthorFolder = folder }],
+            Versions = [.. answer.Versions],
+            Parts = [.. answer.Parts],
+            Site = answer.Site,
         };
         try
         {
