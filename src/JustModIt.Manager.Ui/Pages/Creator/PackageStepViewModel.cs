@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -45,12 +44,6 @@ public enum TestInstallState
     Failed,
 }
 
-/// <summary>A format in the table that explains how the creator picks it.</summary>
-/// <param name="Extension">The format's extension.</param>
-/// <param name="Text">What packages of it hold.</param>
-/// <param name="IsChosen">The package takes this format.</param>
-public sealed record FormatRow(string Extension, string Text, bool IsChosen);
-
 /// <summary>
 /// The last step: the format the plan needs with the reasons for it, the package's metadata, the build on the thread pool
 /// with its stage, file and bytes and a way to cancel it, the site's warnings about the result, and a test install of the
@@ -62,8 +55,6 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private readonly CreatorSession _session;
 
     private readonly Dictionary<Guid, (JobOutcome Outcome, JobFailureView? Failure, IReadOnlyList<KeptFilesView>? Kept)> _ended = [];
-    private GameKey? _hintsFor;
-    private ProjectHints? _hints;
     private CancellationTokenSource? _building;
     private Task? _build;
     private (string Path, string Name)? _target;
@@ -83,12 +74,15 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     {
         _page = page;
         _session = session;
+        Description = new PackageDescriptionViewModel(page, session);
         _game = (session.Project.Game?.Key, session.Project.GameFolder);
         _session.PropertyChanged += OnSessionChanged;
         _page.Agent.PropertyChanged += OnAgentChanged;
         _page.Agent.JobsProgressed += OnJobsProgressed;
         _page.Agent.JobEnded += OnJobEnded;
     }
+
+    public PackageDescriptionViewModel Description { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsReady), nameof(IsBuilding), nameof(IsBuilt), nameof(ShowsBuild), nameof(HasEarlierPackage),
@@ -100,48 +94,6 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     public bool IsBuilding => State == PackageState.Building;
 
     public bool IsBuilt => State == PackageState.Built;
-
-    [ObservableProperty]
-    public partial bool IsManifest { get; private set; }
-
-    [ObservableProperty]
-    public partial string FormatTitle { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string FormatText { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial IReadOnlyList<FormatRow> FormatRows { get; private set; } = [];
-
-    [ObservableProperty]
-    public partial string Lead { get; private set; } = "";
-
-    [ObservableProperty]
-    public partial string PackageTitle { get; set; } = "";
-
-    [ObservableProperty]
-    public partial string Version { get; set; } = "";
-
-    public ObservableCollection<string> Authors { get; } = [];
-
-    [ObservableProperty]
-    public partial string NewAuthor { get; set; } = "";
-
-    /// <summary>The site's last release of the game's project, under the version; empty when it is not known.</summary>
-    [ObservableProperty]
-    public partial string LastRelease { get; private set; } = "";
-
-    /// <summary>Where the authors go, or that they were filled in from the site's project while they are its own.</summary>
-    [ObservableProperty]
-    public partial string AuthorsNote { get; private set; } = Strings.Creator_AuthorsHint;
-
-    /// <summary>Why the metadata keeps the package from being built; empty when nothing does.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasMetadataProblem))]
-    [NotifyCanExecuteChangedFor(nameof(BuildCommand))]
-    public partial string MetadataProblem { get; private set; } = "";
-
-    public bool HasMetadataProblem => MetadataProblem.Length > 0;
 
     [ObservableProperty]
     public partial string GameName { get; private set; } = "";
@@ -299,7 +251,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
             _session.Describe(project => project with { Metadata = project.Metadata with { Title = game.Name } });
         }
 
-        _ = HintAsync();
+        _ = Description.HintAsync();
         Show();
         ShowTest();
     }
@@ -339,28 +291,10 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         _page.Agent.JobEnded -= OnJobEnded;
     }
 
-    [RelayCommand]
-    private void AddAuthor()
-    {
-        if (NewAuthor.Trim() is { Length: > 0 } author)
-        {
-            _session.Describe(project => project with { Metadata = project.Metadata with { Authors = project.Metadata.Authors.Add(author) } });
-        }
-
-        NewAuthor = "";
-    }
-
-    [RelayCommand]
-    private void RemoveAuthor(string author) =>
-        _session.Describe(project => project with
-        {
-            Metadata = project.Metadata with { Authors = project.Metadata.Authors.RemoveAll(existing => existing == author) },
-        });
-
     [RelayCommand(CanExecute = nameof(CanBuild))]
     private Task BuildAsync() => BuildToAsync(askWhere: false);
 
-    private bool CanBuild() => MetadataProblem.Length == 0;
+    private bool CanBuild() => !Description.HasMetadataProblem;
 
     [RelayCommand]
     private Task BuildElsewhereAsync() => BuildToAsync(askWhere: true);
@@ -369,7 +303,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     {
         // A name or version typed a moment ago may not be planned yet, and the package takes them from the plan.
         await _session.SettledAsync().ConfigureAwait(true);
-        if (_session.Review?.Plan is not { } plan || _page.Game is not { } game || HasMetadataProblem)
+        if (_session.Review?.Plan is not { } plan || _page.Game is not { } game || Description.HasMetadataProblem)
         {
             return;
         }
@@ -484,12 +418,6 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     [RelayCommand]
     private void Back() => _page.GoTo(CreatorStep.Review);
-
-    partial void OnPackageTitleChanged(string value) =>
-        _session.Describe(project => project with { Metadata = project.Metadata with { Title = value } });
-
-    partial void OnVersionChanged(string value) =>
-        _session.Describe(project => project with { Metadata = project.Metadata with { Version = value } });
 
     private async Task BuildAsync(PackagePlan plan, DetectedGameEntry game, string path, string name)
     {
@@ -718,28 +646,13 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private void Show()
     {
         ShowBuildFindings();
+        Description.Show();
+        BuildCommand.NotifyCanExecuteChanged();
         if (_session.Review?.Plan is not { } plan)
         {
             return;
         }
 
-        var project = _session.Project;
-        var format = plan.Format;
-        IsManifest = format.Kind == PackageKind.Manifest;
-        var extension = _page.Options.PackageExtension;
-        FormatTitle = IsManifest ? Text.Format(Strings.Creator_ManifestTitle, ("extension", extension)) : Strings.Creator_ZipTitle;
-        FormatText = string.Join(' ',
-            [.. format.Reasons.Select(reason => Text.Format(Strings.Creator_FormatReason, ("reason", reason.ToString()))),
-            IsManifest ? Strings.Creator_ManifestOutcome : Strings.Creator_ZipOutcome]);
-        FormatRows =
-        [
-            new FormatRow(PackageLayout.ZipExtension, Strings.Creator_ZipRule, !IsManifest),
-            new FormatRow(extension, Strings.Creator_ManifestRule, IsManifest),
-        ];
-        Lead = IsManifest ? Strings.Creator_PackageLead : Strings.Creator_ZipLead;
-        ShowMetadata(project.Metadata);
-        MetadataProblem = string.Join(' ', plan.Findings.Where(finding => ReviewViewModel.IsMetadata(finding.Kind))
-            .Select(finding => CreatorWording.Finding(finding)));
         if (_page.Game is { } game)
         {
             GameName = game.Name;
@@ -749,7 +662,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
                 GameWording.StoreName(game.Key.Store),
                 game.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "",
             ]);
-            var name = SuggestedName(game, _page.Options.ExtensionFor(format.Kind));
+            var name = SuggestedName(game, _page.Options.ExtensionFor(plan.Format.Kind));
             ReusesTarget = _target is { } target && target.Name == name;
             BuildHint = ReusesTarget
                 ? Text.Format(Strings.Creator_BuildTo, ("name", Path.GetFileName(_target!.Value.Path)))
@@ -757,7 +670,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         }
 
         ShowsSaveHint = _session.IsDirty || _session.Path is null;
-        PublishText = IsManifest ? Strings.Creator_PublishManifest : Strings.Creator_PublishZip;
+        PublishText = Description.IsManifest ? Strings.Creator_PublishManifest : Strings.Creator_PublishZip;
     }
 
     // A warning the author accepted stays in the list, marked, so the click shows what it did and the build can go on. One
@@ -780,81 +693,6 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
         {
             BuildFindings = lines;
         }
-    }
-
-    private void ShowMetadata(PackageMetadata metadata)
-    {
-        if (PackageTitle != metadata.Title)
-        {
-            PackageTitle = metadata.Title;
-        }
-
-        if (Version != metadata.Version)
-        {
-            Version = metadata.Version;
-        }
-
-        if (!Authors.SequenceEqual(metadata.Authors))
-        {
-            Authors.Clear();
-            foreach (var author in metadata.Authors)
-            {
-                Authors.Add(author);
-            }
-        }
-
-        LastRelease = _hints is { Release.Length: > 0 } hints
-            ? Text.Format(Strings.Creator_LastRelease, ("version", GameWording.ShortVersion(hints.Release)))
-            : "";
-        AuthorsNote = _hints is { Authors.Count: > 0 } project && Authors.SequenceEqual(project.Authors)
-            ? Text.Format(Strings.Creator_AuthorsFromProject, ("project", project.Project))
-            : Strings.Creator_AuthorsHint;
-    }
-
-    // The site's project gives the hints only when the creator can tell it is the author's without guessing: the project
-    // installed on the game, else the game's only one. They fill in only what the author left empty.
-    private async Task HintAsync()
-    {
-        if (_page.Game is not { } game || _hintsFor == game.Key)
-        {
-            return;
-        }
-
-        (_hintsFor, _hints) = (game.Key, null);
-        var installed = _page.Agent.State.Games.FirstOrDefault(view => view.Key == game.Key)?.Installs
-            .Select(install => install.Project).OfType<ProjectOfferView>().FirstOrDefault();
-        var project = installed is not null ? new SiteProjectView(installed.ProjectId, installed.GameSlug, installed.Team.Slug)
-            : game.Projects is [var only] ? only
-            : null;
-        if (project is null)
-        {
-            return;
-        }
-
-        var answer = await AgentRequests.AskQuietlyAsync(_page.Agent, new GetProjectPage(project.GameSlug, project.TeamSlug, project.ProjectId))
-            .ConfigureAwait(true);
-        var hints = answer is ProjectPageResult { Page: { } page } ? await Task.Run(() => ProjectHints.Read(page)).ConfigureAwait(true) : null;
-        if (_page.Game?.Key != game.Key)
-        {
-            return;
-        }
-
-        if (hints is null)
-        {
-            _hintsFor = null;
-            return;
-        }
-
-        _hints = hints;
-        _session.Describe(current => current with
-        {
-            Metadata = current.Metadata with
-            {
-                Version = current.Metadata.Version.Trim().Length == 0 ? hints.NextVersion : current.Metadata.Version,
-                Authors = current.Metadata.Authors.Count == 0 ? [.. hints.Authors] : current.Metadata.Authors,
-            },
-        });
-        Show();
     }
 
     // The agent says how each job ended, which the state cannot for a job that came and went between two states, or for

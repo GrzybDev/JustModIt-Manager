@@ -46,11 +46,11 @@ public sealed class CreatorPackageTests : IDisposable
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
 
-        package.IsManifest.Should().BeFalse();
-        package.FormatTitle.Should().Be(Strings.Creator_ZipTitle);
-        package.FormatText.Should().StartWith(Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.CopiesOnly))));
-        package.FormatRows.Single(row => row.IsChosen).Extension.Should().Be(".zip");
-        package.Version = "1.2";
+        package.Description.IsManifest.Should().BeFalse();
+        package.Description.FormatTitle.Should().Be(Strings.Creator_ZipTitle);
+        package.Description.FormatText.Should().StartWith(Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.CopiesOnly))));
+        package.Description.FormatRows.Single(row => row.IsChosen).Extension.Should().Be(".zip");
+        package.Description.Version = "1.2";
         await RenderAsync(ui, "creator-package-zip", 1250);
 
         var output = Output("Lantern Isle v1.2.zip");
@@ -80,18 +80,18 @@ public sealed class CreatorPackageTests : IDisposable
         using var ui = await OpenAsync(files);
         var package = await PackageAsync(ui);
 
-        package.IsManifest.Should().BeTrue();
-        package.FormatText.Should().StartWith(Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.PatchesFiles))));
-        package.PackageTitle.Should().Be("Lantern Isle", "a new package is named after its game");
+        package.Description.IsManifest.Should().BeTrue();
+        package.Description.FormatText.Should().StartWith(Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.PatchesFiles))));
+        package.Description.PackageTitle.Should().Be("Lantern Isle", "a new package is named after its game");
         package.GameDetails.Should().Contain(Text.Format(Strings.Creator_GameBuild, ("build", "18001")));
-        package.PackageTitle = "";
-        await UiHarness.WaitUntilAsync(() => package.HasMetadataProblem);
+        package.Description.PackageTitle = "";
+        await UiHarness.WaitUntilAsync(() => package.Description.HasMetadataProblem);
         package.BuildCommand.CanExecute(null).Should().BeFalse();
-        package.PackageTitle = "Lantern Isle in Example";
-        package.Version = "0.9";
-        package.NewAuthor = "Example Team";
-        package.AddAuthorCommand.Execute(null);
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem && package.Authors.Count == 1);
+        package.Description.PackageTitle = "Lantern Isle in Example";
+        package.Description.Version = "0.9";
+        package.Description.NewAuthor = "Example Team";
+        package.Description.AddAuthorCommand.Execute(null);
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem && package.Description.Authors.Count == 1);
         await RenderAsync(ui, "creator-package-manifest", 1500);
 
         var output = Output("Lantern Isle v0.9.examplemod");
@@ -143,8 +143,8 @@ public sealed class CreatorPackageTests : IDisposable
         files.Reads.Set();
         using var ui = await OpenAsync(files);
         var package = await PackageAsync(ui);
-        package.Version = "0.9";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "0.9";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         ui.Pickers.SaveFile = Output("Lantern Isle v0.9.examplemod");
         files.Reads.Reset();
         ui.Click(Button(ui, Strings.Creator_Build));
@@ -176,17 +176,17 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Agent.Answer = request => request is GetProjectPage ? TestPages.Page(project) : _work.Answer(request);
         var package = await PackageAsync(ui);
 
-        await UiHarness.WaitUntilAsync(() => package.LastRelease.Length > 0);
+        await UiHarness.WaitUntilAsync(() => package.Description.LastRelease.Length > 0);
         ui.Agent.Requests.OfType<GetProjectPage>().Should().Equal(new GetProjectPage(project.GameSlug, project.Team.Slug, project.ProjectId));
-        package.LastRelease.Should().Be(Text.Format(Strings.Creator_LastRelease, ("version", GameWording.ShortVersion("1"))));
-        package.Version.Should().Be("2");
-        package.Authors.Should().Equal("Ada Lantern", "Olek Tide");
-        package.AuthorsNote.Should().Be(Text.Format(Strings.Creator_AuthorsFromProject, ("project", "Lantern Isle")));
+        package.Description.LastRelease.Should().Be(Text.Format(Strings.Creator_LastRelease, ("version", GameWording.ShortVersion("1"))));
+        package.Description.Version.Should().Be("2");
+        package.Description.Authors.Should().Equal("Ada Lantern", "Olek Tide");
+        package.Description.AuthorsNote.Should().Be(Text.Format(Strings.Creator_AuthorsFromProject, ("project", "Lantern Isle")));
         await RenderAsync(ui, "creator-package-hints", 1500);
 
         ui.Click(Button(ui, Text.Format(Strings.Creator_RemoveAuthor, ("name", "Olek Tide"))));
-        await UiHarness.WaitUntilAsync(() => package.Authors.Count == 1);
-        package.AuthorsNote.Should().Be(Strings.Creator_AuthorsHint, "the authors are no longer the project's");
+        await UiHarness.WaitUntilAsync(() => package.Description.Authors.Count == 1);
+        package.Description.AuthorsNote.Should().Be(Strings.Creator_AuthorsHint, "the authors are no longer the project's");
     }
 
     [AvaloniaFact]
@@ -202,7 +202,7 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
 
         ui.Agent.Requests.OfType<GetProjectPage>().Should().BeEmpty();
-        (package.LastRelease, package.Version, package.AuthorsNote).Should().Be(("", "", Strings.Creator_AuthorsHint));
+        (package.Description.LastRelease, package.Description.Version, package.Description.AuthorsNote).Should().Be(("", "", Strings.Creator_AuthorsHint));
     }
 
     [AvaloniaFact]
@@ -227,8 +227,8 @@ public sealed class CreatorPackageTests : IDisposable
     {
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         var first = Output("Lantern Isle v1.0.examplemod");
         ui.Pickers.SaveFile = first;
         ui.Click(Button(ui, Strings.Creator_Build));
@@ -238,7 +238,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_Rebuild));
         await BuiltAsync(package);
         File.GetLastWriteTimeUtc(first).Should().NotBe(built, "the package is written again");
-        package.Version = "1.1";
+        package.Description.Version = "1.1";
         await UiHarness.WaitUntilAsync(() => Page(ui).Session!.Project.Metadata.Version == "1.1");
         var second = Output("Lantern Isle v1.1.examplemod");
         ui.Pickers.SaveFile = second;
@@ -269,14 +269,14 @@ public sealed class CreatorPackageTests : IDisposable
             .WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice("data/movies_original.idx", RuntimeFileKind.CreatesFile)));
 
-        package.IsManifest.Should().BeTrue();
-        package.FormatText.Should().StartWith(Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.RenamesFiles)))
+        package.Description.IsManifest.Should().BeTrue();
+        package.Description.FormatText.Should().StartWith(Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.RenamesFiles)))
             + " " + Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.DeclaresRuntimeFiles))));
         ui.Find<CreatorPage>().Single().GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToHome();
         await RenderAsync(ui, "creator-runtime-package" + suffix, null);
 
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
         ui.Click(Button(ui, Strings.Creator_Build));
         await BuiltAsync(package);
@@ -300,8 +300,8 @@ public sealed class CreatorPackageTests : IDisposable
             _ => null,
         };
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         var steam = Output("Lantern Isle (Steam) v1.0.examplemod");
         ui.Pickers.SaveFile = steam;
         ui.Click(Button(ui, Strings.Creator_Build));
@@ -349,8 +349,8 @@ public sealed class CreatorPackageTests : IDisposable
             },
         });
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
 
         ui.Click(Button(ui, Strings.Creator_Build));
@@ -366,8 +366,8 @@ public sealed class CreatorPackageTests : IDisposable
     {
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         ui.Pickers.SaveFile = Path.Combine(_work.GameFolder, "Lantern Isle v1.0.examplemod");
 
         ui.Click(Button(ui, Strings.Creator_Build));
@@ -389,8 +389,8 @@ public sealed class CreatorPackageTests : IDisposable
     {
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         await File.WriteAllTextAsync(Output("Archive"), "a file where the package's folder would be", TestContext.Current.CancellationToken);
         ui.Pickers.SaveFile = Path.Combine(Output("Archive"), "Lantern Isle v1.0.examplemod");
 
@@ -414,8 +414,8 @@ public sealed class CreatorPackageTests : IDisposable
         files.Reads.Set();
         using var ui = await OpenAsync(files);
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         var output = Output("Lantern Isle v1.0.examplemod");
         ui.Pickers.SaveFile = output;
         files.Failure = new PatchException(PatchError.EngineUnavailable, "the engine is missing");
@@ -439,8 +439,8 @@ public sealed class CreatorPackageTests : IDisposable
         _work.Author("data/voices.pak", Noise(2, 1_200_000));
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
         ui.Click(Button(ui, Strings.Creator_Build));
         await BuildEndedAsync(package);
@@ -471,8 +471,8 @@ public sealed class CreatorPackageTests : IDisposable
         _work.Author("data/voices.pak", Noise(2, 1_200_000));
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
 
         ui.Click(Button(ui, Strings.Creator_Build));
@@ -502,8 +502,8 @@ public sealed class CreatorPackageTests : IDisposable
     {
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         ui.Pickers.SaveFile = Output("Lantern Isle v1.0.examplemod");
         ui.Click(Button(ui, Strings.Creator_Build));
         await BuiltAsync(package);
@@ -527,8 +527,8 @@ public sealed class CreatorPackageTests : IDisposable
     {
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         _work.Author("data/extra/credits.txt", "credits of the author's work, with one more name");
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
 
@@ -557,8 +557,8 @@ public sealed class CreatorPackageTests : IDisposable
     {
         using var ui = await OpenAsync();
         var package = await PackageAsync(ui);
-        package.Version = "1.0";
-        await UiHarness.WaitUntilAsync(() => !package.HasMetadataProblem);
+        package.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
         _work.Game("data/strings.bin", "strings of the original game, as its store updated them");
         ui.Pickers.SaveFile = Output("Lantern Isle.examplemod");
 
