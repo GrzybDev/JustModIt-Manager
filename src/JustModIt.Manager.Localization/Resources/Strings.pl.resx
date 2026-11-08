@@ -3495,6 +3495,9 @@
   <data name="Creator_PublishZip" xml:space="preserve">
     <value>Na stronie plik trafia do wydania projektu: jako główna paczka albo jako składnik. Tam też ustawia się opis zmian, autorów i składniki.</value>
   </data>
+  <data name="Creator_SiteStores" xml:space="preserve">
+    <value>Wszystkie pliki wysyła się naraz; strona przypnie je do wersji i scali w jedną paczkę na część. Na stronie zajmą ok. {merged} zamiast {total}.</value>
+  </data>
   <data name="Creator_OpenDashboard" xml:space="preserve">
     <value>Otwórz panel na stronie</value>
   </data>

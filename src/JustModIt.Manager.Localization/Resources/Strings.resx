@@ -3507,6 +3507,9 @@
   <data name="Creator_PublishZip" xml:space="preserve">
     <value>On the site, the file goes into a release of the project, as its main package or as an add-on. The changes, authors and add-ons are set there too.</value>
   </data>
+  <data name="Creator_SiteStores" xml:space="preserve">
+    <value>All the files are sent at once; the site pins them to their versions and merges them into one package per part. On the site they take about {merged} instead of {total}.</value>
+  </data>
   <data name="Creator_OpenDashboard" xml:space="preserve">
     <value>Open the dashboard on the site</value>
   </data>

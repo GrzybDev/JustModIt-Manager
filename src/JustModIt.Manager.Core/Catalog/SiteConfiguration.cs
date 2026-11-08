@@ -54,6 +54,7 @@ public sealed record SiteConfiguration
             ReleaseFiles = new ReleaseFileRules
             {
                 MaxBytes = limits?.GetInt64OrNull("release_file_max_bytes") is { } bytes and > 0 ? bytes : null,
+                VersionsMerged = limits?.GetBooleanOrNull("release_versions_merged") ?? false,
                 Formats = [.. root.GetItems("release_file_formats").Select(ReadFormat).OfType<ReleaseFileFormat>()],
             },
         };
@@ -76,6 +77,9 @@ public sealed record ReleaseFileRules
 {
     /// <summary>The largest file the site takes; null when it does not say.</summary>
     public long? MaxBytes { get; init; }
+
+    /// <summary>The site keeps the packages of a part's game versions as one package; false while it does not say so.</summary>
+    public bool VersionsMerged { get; init; }
 
     /// <summary>The formats it takes uploads of; empty when it does not say.</summary>
     public IReadOnlyList<ReleaseFileFormat> Formats { get; init => field = value ?? []; } = [];

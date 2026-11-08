@@ -55,6 +55,10 @@ public sealed partial class BuildViewModel
     /// <summary>That the packages of the last run are ready, over them.</summary>
     public string BuiltOverline => Text.Format(Strings.Creator_BuiltHeading, ("count", Math.Max(Packages.Count(row => !row.IsMissing), 1))).ToUpper(Text.Culture);
 
+    /// <summary>When the packages shown were built, beside the words that they are ready.</summary>
+    [ObservableProperty]
+    public partial string BuiltAtText { get; private set; } = "";
+
     /// <summary>The package built first; empty before a build.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasEarlierPackage), nameof(ShowsPackage))]
@@ -90,6 +94,13 @@ public sealed partial class BuildViewModel
 
     [ObservableProperty]
     public partial string PublishText { get; private set; } = "";
+
+    /// <summary>
+    /// What the site stores of the packages once it keeps a part's versions as one, an estimate; empty unless the site says it
+    /// does and a part has several packages.
+    /// </summary>
+    [ObservableProperty]
+    public partial string SiteStoresText { get; private set; } = "";
 
     [RelayCommand]
     private void Reveal()
@@ -174,14 +185,15 @@ public sealed partial class BuildViewModel
 
     private void Clear()
     {
-        (OutputPath, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings, Packages) = ("", "", "", "", "", [], []);
+        (OutputPath, ResultName, ResultSize, ResultDetails, ResultFolder, SiteWarnings, SiteStoresText, BuiltAtText, Packages) = ("", "", "", "", "", [], "", "", []);
         State = PackageState.Ready;
     }
 
     private void Built(IReadOnlyList<FinishedPackage> finished) =>
-        Show([.. finished.Select(built => (built.Part, built.Package))], [.. finished.SelectMany(built => built.Result.Findings)
+        Show([.. finished.Select(built => (built.Part, built.Package))], [.. finished.SelectMany(built => built.Result.Findings
             .Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
-            .Select(finding => CreatorWording.Finding(finding)).Distinct()]);
+            .Select(finding => finished.Count == 1 ? CreatorWording.Finding(finding) : Text.Format(Strings.Creator_BlockedCell,
+                ("part", built.Part.Length > 0 ? built.Part : Strings.Creator_PartBase), ("store", Stores(built.Package.Versions)), ("text", CreatorWording.Finding(finding)))))]);
 
     // The packages of a run, or the last ones the record holds.
     private void Show(List<(string Part, BuiltPackage Package)> built, IReadOnlyList<string> siteWarnings)
@@ -197,10 +209,36 @@ public sealed partial class BuildViewModel
             package.Kind == PackageKind.Manifest ? string.Join(", ", _session.Project.Metadata.Authors) : "",
         ]);
         ResultFolder = Path.GetDirectoryName(package.Path) ?? "";
-        _builtAt = package.BuiltAt;
-        SiteWarnings = siteWarnings;
+        _builtAt = built.Max(row => row.Package.BuiltAt);
+        BuiltAtText = Text.Format(Strings.Creator_BuiltAt, ("date", Formats.DateAndTime(_builtAt, _page.Services.Clock.LocalTimeZone)));
+        (SiteWarnings, SiteStoresText) = (siteWarnings, "");
         State = PackageState.Built;
         _test.Built();
+        _ = EstimateAsync(Packages);
+    }
+
+    // Only a site that keeps a part's versions as one package stores less than is uploaded, and only its configuration says so (D21).
+    private async Task EstimateAsync(IReadOnlyList<BuiltRow> rows)
+    {
+        List<(string Part, string Path)> packages = [.. rows.Where(row => !row.IsMissing).Select(row => (row.Part, row.Path))];
+        if (!_page.Agent.State.Catalogue.ReleaseFiles.VersionsMerged || !packages.GroupBy(package => package.Part).Any(part => part.Count() > 1))
+        {
+            return;
+        }
+
+        try
+        {
+            var (stored, total) = await _page.Access.ReadAsync(packages[0].Path, _ => Task.FromResult(SiteStorage.Estimate(packages)), CancellationToken.None)
+                .ConfigureAwait(true);
+            if (Packages == rows)
+            {
+                SiteStoresText = Text.Format(Strings.Creator_SiteStores, ("merged", Formats.FileSize(stored)), ("total", Formats.FileSize(total)));
+            }
+        }
+        // An estimate fails nothing: a drive that does not answer, or a package changed since its build, only leaves it unsaid.
+        catch (Exception exception) when (exception is TimeoutException or IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+        }
     }
 
     private static string Details(string part, IReadOnlyList<GameKey> versions) =>

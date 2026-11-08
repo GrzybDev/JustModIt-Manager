@@ -67,6 +67,7 @@ public sealed class CreatorPackageTests : IDisposable
         }
 
         package.Build.ResultName.Should().Be("Lantern Isle v1.2.zip");
+        package.Build.BuiltAtText.Should().Be(Text.Format(Strings.Creator_BuiltAt, ("date", Formats.DateAndTime(ui.Clock.GetUtcNow(), ui.Clock.LocalTimeZone))));
         package.Build.HasSiteWarnings.Should().BeFalse();
         package.Build.PublishText.Should().Be(Strings.Creator_PublishZip);
         ui.Click(Button(ui, Strings.Creator_Reveal));
@@ -804,6 +805,87 @@ public sealed class CreatorPackageTests : IDisposable
         package.Build.SiteWarnings.Should().HaveCount(2);
         package.Build.SiteWarnings[1].Should().Be(CreatorWording.Finding(new PlanFinding(FindingKind.FormatNotOnSite)));
         await RenderAsync(ui, "creator-built", 1500);
+    }
+
+    [AvaloniaFact]
+    public async Task A_run_s_site_warnings_name_their_package_and_a_test_together_goes_on_the_chosen_version()
+    {
+        using var ui = await OpenAsync(state: TestStates.Idle(creatorMode: true) with
+        {
+            Catalogue = new CatalogueView { ReleaseFiles = new ReleaseFileRules { MaxBytes = 64 } },
+        });
+        var (page, gog) = await TwoVersionsAsync(ui);
+        await BuildAsync(ui);
+        await BuiltAsync(page);
+
+        var larger = CreatorWording.Finding(new PlanFinding(FindingKind.LargerThanSiteTakes) { Size = new FileInfo(page.Build.Packages[1].Path).Length });
+        page.Build.SiteWarnings.Should().HaveCount(2).And.Contain(Text.Format(Strings.Creator_BlockedCell, ("part", Strings.Creator_PartBase), ("store", "GOG"), ("text", larger)));
+        ui.Agent.Answer = request => request switch
+        {
+            GetDetectedGames => new DetectedGames([.. _work.Detected, gog]),
+            TestInstallPackage => new JobStarted(InstallJob),
+            _ => null,
+        };
+        var main = Output("Lantern Isle main.zip");
+        ui.Pickers.File = main;
+        ui.Click(Button(ui, Strings.Creator_TestTogether));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel);
+        var choice = (ChoiceDialogViewModel)ui.Shell.Dialogs.Current!;
+        choice.ChooseCommand.Execute(choice.Choices[1]);
+
+        await UiHarness.WaitUntilAsync(() => ui.Agent.Requests.OfType<TestInstallPackage>().Any());
+        var test = ui.Agent.Requests.OfType<TestInstallPackage>().Single();
+        (test.Game, test.PackagePaths[0], test.PackagePaths[1]).Should().Be((gog.Key, main, Output("Lantern Isle (GOG) v1.0.examplemod")));
+    }
+
+    [AvaloniaFact]
+    public async Task The_site_s_merge_is_mentioned_only_when_the_site_says_so()
+    {
+        using var ui = await OpenAsync();
+        var gog = _work.CopyOfLantern(new GameKey(StoreId.Gog, "1205100"));
+        File.WriteAllText(Path.Combine(gog.Game.InstallDirectory, "data", "strings.bin"), "strings of the original game, as the other store ships them");
+        ui.Agent.Answer = request => request is GetDetectedGames ? new DetectedGames([.. _work.Detected, gog]) : _work.Answer(request);
+        var page = await PackageAsync(ui);
+        page.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => page.HasOffer && !page.Description.HasMetadataProblem);
+        ui.Click(Button(ui, page.OfferAction));
+        await UiHarness.WaitUntilAsync(() => page.IsTable && page.CanBuild, () => page.BlockedText);
+        await BuildAsync(ui);
+        await BuiltAsync(page);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        page.Build.SiteStoresText.Should().BeEmpty("a site that does not say it merges versions may not do it yet");
+
+        ui.Push(TestStates.Idle(creatorMode: true) with
+        {
+            Version = ++_version,
+            Catalogue = new CatalogueView { ReleaseFiles = new ReleaseFileRules { VersionsMerged = true } },
+        });
+        await BuildAsync(ui);
+        await BuiltAsync(page);
+        await UiHarness.WaitUntilAsync(() => page.Build.SiteStoresText.Length > 0);
+
+        var (stored, total) = SiteStorage.Estimate([("", Output("Lantern Isle (Steam) v1.0.examplemod")), ("", Output("Lantern Isle (GOG) v1.0.examplemod"))]);
+        stored.Should().BeLessThan(total, "both versions' packages carry the same new file");
+        page.Build.SiteStoresText.Should().Be(Text.Format(Strings.Creator_SiteStores, ("merged", Formats.FileSize(stored)), ("total", Formats.FileSize(total))));
+        await ui.RenderBothAsync("creator-built-site-stores", () => ui.Find<TextBlock>().First(text => text.Text == page.Build.SiteStoresText).BringIntoView());
+    }
+
+    [AvaloniaFact]
+    public async Task An_author_s_folder_at_a_drive_s_root_asks_for_an_output_folder()
+    {
+        const string root = @"Q:\";
+        using var ui = await OpenAsync(new DriveRootFileSystem(root, _work.AuthorFolder));
+        var page = await CreatorWorkspace.NewProjectAsync(ui, root, "Lantern Isle");
+        page.Description.Version = "1.0";
+        await UiHarness.WaitUntilAsync(() => page.Cell!.IsCompared && page.Session!.Review is not null && page.BeforeItems.Any(item => item.Command is not null));
+
+        (page.HasOutput, page.CanBuild).Should().Be((false, false));
+        await ui.RenderBothAsync("creator-no-output");
+
+        ui.Pickers.Folder = Output("");
+        ui.Click(Button(ui, page.BeforeItems.Single(item => item.Command is not null).Spoken));
+        await UiHarness.WaitUntilAsync(() => page.HasOutput && page.CanBuild, () => page.BlockedText);
+        page.OutputFolder.Should().Be(Output(""));
     }
 
     [AvaloniaFact]

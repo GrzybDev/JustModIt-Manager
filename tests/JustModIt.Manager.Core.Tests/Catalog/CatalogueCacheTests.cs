@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
@@ -70,6 +71,19 @@ public sealed class CatalogueCacheTests : IDisposable
         ReleaseSelector.Select(entry, new GameKey(StoreId.Steam, "1000010"), OperatingSystemKind.Windows).Plan(FeatureChoices.None)!.Parts[0].File.Uuid
             .Should().Be(Guid.Parse("a0000000-0000-4000-8000-000000000002"));
         (await _cache.LoadSiteAsync(Token)).Should().BeEquivalentTo(site);
+    }
+
+    [Fact]
+    public async Task Keeps_whether_the_site_merges_versions_and_reads_a_site_saved_before_as_one_that_does_not()
+    {
+        var site = SiteConfiguration.Read(JsonDocument.Parse("""{"limits": {"release_file_max_bytes": 1024, "release_versions_merged": true}}""").RootElement);
+
+        await _cache.SaveSiteAsync(site, FetchedAt, Token);
+        (await _cache.LoadSiteAsync(Token))!.ReleaseFiles.VersionsMerged.Should().BeTrue();
+
+        await File.WriteAllTextAsync(Path.Combine(_directory.Path, "site.json"),
+            """{"version": 1, "fetched_at": "2026-09-01T12:00:00+02:00", "data": {"name": "Example Mods", "release_files": {"max_bytes": 1024, "formats": []}}}""", Token);
+        (await _cache.LoadSiteAsync(Token)).Should().BeEquivalentTo(new SiteConfiguration { Name = "Example Mods", ReleaseFiles = new ReleaseFileRules { MaxBytes = 1024 } });
     }
 
     [Fact]

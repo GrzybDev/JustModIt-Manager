@@ -24,7 +24,10 @@
              packages, so a long list keeps its width. -->
         <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
           <TextBlock Classes="overline" Text="{Binding Build.EarlierText}" IsVisible="{Binding Build.HasEarlierPackage}" />
-          <TextBlock Classes="overline" Text="{Binding Build.BuiltOverline}" IsVisible="{Binding Build.IsReadyToUse}" />
+          <WrapPanel ItemSpacing="10" IsVisible="{Binding Build.IsReadyToUse}">
+            <TextBlock Classes="overline" Text="{Binding Build.BuiltOverline}" VerticalAlignment="Center" />
+            <TextBlock Classes="caption" Text="{Binding Build.BuiltAtText}" VerticalAlignment="Center" />
+          </WrapPanel>
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" HorizontalAlignment="Left" IsVisible="{Binding !Build.HasSeveral}">
             <TextBlock Text="{Binding Build.ResultName}" FontSize="17" LineHeight="24" FontWeight="Bold" Foreground="{StaticResource TextStrongBrush}"
                        TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Build.OutputPath}" />
@@ -143,6 +146,8 @@
             <StackPanel Spacing="4">
               <TextBlock Text="{Binding Build.PublishTitle}" FontSize="15" LineHeight="22" FontWeight="SemiBold" />
               <TextBlock Classes="bodyText" MaxWidth="760" HorizontalAlignment="Left" Text="{Binding Build.PublishText}" />
+              <TextBlock Classes="meta" MaxWidth="760" HorizontalAlignment="Left" TextWrapping="Wrap" Margin="0,4,0,0"
+                         Text="{Binding Build.SiteStoresText}" IsVisible="{Binding Build.SiteStoresText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               <!-- Once the package was tried in the game, publishing it is the next thing to do. -->
               <Button Classes="link" Margin="0,10,0,0" HorizontalAlignment="Left" Content="{x:Static loc:Strings.Creator_OpenDashboard}"
                       ui:ButtonAssist.Icon="{x:Static theme:Icons.ExternalLink}" Command="{Binding Build.OpenSiteCommand}" IsVisible="{Binding !Test.WasTested}" />
