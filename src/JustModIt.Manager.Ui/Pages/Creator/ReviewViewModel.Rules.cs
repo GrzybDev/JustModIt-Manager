@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Localization;
@@ -66,11 +67,17 @@ public sealed partial class ReviewViewModel
     private void Accept(string key) => _session.Change(project => project.Acknowledge(key));
 
     [RelayCommand]
-    private void AcceptRule(RuleRow rule)
-    {
-        var keys = rule.Findings.Select(finding => finding.AcknowledgementKey).OfType<string>().ToList();
-        _session.Change(project => keys.Aggregate(project, (changed, key) => changed.Acknowledge(key)));
-    }
+    private void UndoAccept(string key) => _session.Change(project => project.Unacknowledge(key));
+
+    [RelayCommand]
+    private void AcceptRule(RuleRow rule) =>
+        _session.Change(project => KeysOf(rule).Aggregate(project, (changed, key) => changed.Acknowledge(key)));
+
+    [RelayCommand]
+    private void UndoRule(RuleRow rule) =>
+        _session.Change(project => KeysOf(rule).Aggregate(project, (changed, key) => changed.Unacknowledge(key)));
+
+    private static List<string> KeysOf(RuleRow rule) => [.. rule.Findings.Select(finding => finding.AcknowledgementKey).OfType<string>()];
 
     // Whose code a library is changes only the answer: a name, licence and source typed for it stay.
     [RelayCommand]
@@ -118,9 +125,18 @@ public sealed partial class ReviewViewModel
     }
 
     // The author decides about a file, not about each operation the rules find it in, e.g. a store library renamed away
-    // and replaced.
-    private static IEnumerable<IGrouping<string, PlanFinding>> RuleGroups(PackagePlan plan) =>
-        plan.Findings.Where(finding => IsHosting(finding.Kind)).GroupBy(finding => $"{finding.Kind}:{finding.ToolId ?? finding.Path}", StringComparer.Ordinal);
+    // and replaced. Only a build finds a large patch, so one the author accepted is known by its key alone, which stands among
+    // the rules, with the way to take it back, while the plan still patches its path.
+    private static IEnumerable<IGrouping<string, PlanFinding>> RuleGroups(PackagePlan plan)
+    {
+        var patched = plan.Operations.Where(operation => operation.Kind == OperationKind.Patch).Select(operation => operation.Path)
+            .ToHashSet(PackagePath.Comparer);
+        return plan.Findings.Where(finding => IsHosting(finding.Kind))
+            .Concat(plan.Acknowledged.Select(key => (Key: key, Path: AcknowledgementKeys.LargePatchPath(key)))
+                .Where(accepted => accepted.Path is not null && patched.Contains(accepted.Path))
+                .Select(accepted => new PlanFinding(FindingKind.LargePatch, accepted.Path) { AcknowledgementKey = accepted.Key, IsAcknowledged = true }))
+            .GroupBy(finding => $"{finding.Kind}:{finding.ToolId ?? finding.Path}", StringComparer.Ordinal);
+    }
 
     private void ShowRules(PackagePlan plan)
     {

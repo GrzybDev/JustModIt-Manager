@@ -117,15 +117,20 @@
                       </Panel>
                       <TextBlock Grid.Column="1" Classes="rowText" LineHeight="20" VerticalAlignment="Center" Foreground="{StaticResource TextEmphasisBrush}"
                                  Text="{Binding Text}" />
-                      <Button Grid.Column="2" Classes="outline small" Content="{x:Static loc:Strings.Creator_AcceptWork}" IsVisible="{Binding CanAcknowledge}"
-                              Command="{Binding $parent[UserControl].((creator:ProjectPageViewModel)DataContext).Build.AcceptCommand}"
+                      <Button Grid.Column="2" Classes="outline small accept" Content="{x:Static loc:Strings.Creator_Accept}" IsVisible="{Binding CanAcknowledge}"
+                              Command="{Binding $parent[UserControl].((creator:ProjectPageViewModel)DataContext).Review.AcceptCommand}"
                               CommandParameter="{Binding AcknowledgementKey}" />
-                      <Border Grid.Column="2" Classes="kind success" VerticalAlignment="Center" IsVisible="{Binding IsAccepted}" theme:Motion.Enter="True">
-                        <StackPanel>
-                          <ui:Icon Data="{x:Static theme:Icons.Check}" />
-                          <TextBlock Text="{x:Static loc:Strings.Creator_Accepted}" />
-                        </StackPanel>
-                      </Border>
+                      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsAccepted}" theme:Motion.Enter="True">
+                        <Border Classes="kind success" VerticalAlignment="Center">
+                          <StackPanel>
+                            <ui:Icon Data="{x:Static theme:Icons.Check}" />
+                            <TextBlock Text="{x:Static loc:Strings.Creator_Accepted}" />
+                          </StackPanel>
+                        </Border>
+                        <Button Classes="outline small undoAccept" Content="{x:Static loc:Strings.Creator_UndoAccept}"
+                                Command="{Binding $parent[UserControl].((creator:ProjectPageViewModel)DataContext).Review.UndoAcceptCommand}"
+                                CommandParameter="{Binding AcknowledgementKey}" />
+                      </StackPanel>
                     </Grid>
                   </Border>
                 </DataTemplate>

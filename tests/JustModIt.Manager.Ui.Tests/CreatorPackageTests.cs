@@ -913,7 +913,7 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task A_patch_carrying_most_of_its_file_stops_the_build_until_it_is_accepted_and_then_builds_where_it_was_going()
+    public async Task An_accepted_large_patch_can_be_taken_back_after_a_rebuild_and_a_reopen()
     {
         _work.Game("data/voices.pak", Noise(1, 1_200_000));
         _work.Author("data/voices.pak", Noise(2, 1_200_000));
@@ -931,16 +931,34 @@ public sealed class CreatorPackageTests : IDisposable
         File.Exists(Output("Lantern Isle v1.0.examplemod")).Should().BeFalse();
         Page(ui).CanBuild.Should().BeFalse("the way on goes through the patches the build found");
         await RenderAsync(ui, "creator-build-findings", 1500);
-        ui.Click(Button(ui, Strings.Creator_AcceptWork));
+        ui.Click(Button(ui, Strings.Creator_Accept));
 
         await UiHarness.WaitUntilAsync(() => Shows(ui, Strings.Creator_Rebuild));
         Page(ui).Session!.Project.Acknowledged.Should().ContainSingle();
-        Shows(ui, Strings.Creator_AcceptWork).Should().BeFalse();
+        Shows(ui, Strings.Creator_Accept).Should().BeFalse();
         ui.Find<TextBlock>().Should().Contain(text => text.IsEffectivelyVisible && text.Text == Strings.Creator_Accepted);
         await RenderAsync(ui, "creator-build-findings-accepted", 1500);
+        ui.Click(Button(ui, Strings.Creator_UndoAccept));
+        await UiHarness.WaitUntilAsync(() => Shows(ui, Strings.Creator_Accept) && !Shows(ui, Strings.Creator_Rebuild));
+        ui.Click(Button(ui, Strings.Creator_Accept));
+        await UiHarness.WaitUntilAsync(() => Shows(ui, Strings.Creator_Rebuild));
         ui.Click(Button(ui, Strings.Creator_Rebuild));
         await BuiltAsync(package);
         File.Exists(Output("Lantern Isle v1.0.examplemod")).Should().BeTrue();
+
+        // Once the build that found it is over, only its key remembers the patch, which the card lists with the way back.
+        package.Review.AcceptedRules.Should().ContainSingle().Which.Title.Should().Be(
+            Text.Format(Strings.Creator_RuleTitle, ("kind", "LargePatchAccepted"), ("path", "data/voices.pak")));
+        await ui.RenderBothAsync("creator-panel-accepted",
+            () => ui.Find<ItemsControl>().First(rows => rows.Name == "AcceptedRows" && rows.IsEffectivelyVisible).BringIntoView());
+        var reopened = await ReopenAsync(ui, () => { });
+        await UiHarness.WaitUntilAsync(() => reopened.Review.AcceptedRules.Count == 1 && reopened.Cell!.IsCompared);
+        ui.Click(Button(ui, Strings.Creator_UndoAccept));
+        await UiHarness.WaitUntilAsync(() => reopened.Review.AcceptedRules.Count == 0);
+        reopened.Session!.Project.Acknowledged.Should().BeEmpty();
+        await BuildAsync(ui);
+        await BuildEndedAsync(reopened);
+        reopened.Build.HasBuildFindings.Should().BeTrue("the patch asks again");
     }
 
     [AvaloniaFact]

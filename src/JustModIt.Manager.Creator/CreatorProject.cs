@@ -326,6 +326,10 @@ public sealed record CreatorProject
         return Acknowledged.Contains(key) ? this : this with { Acknowledged = Acknowledged.Add(key) };
     }
 
+    /// <summary>A copy of the project that takes an acknowledgement back, so its warning asks again.</summary>
+    /// <param name="key">The warning's <see cref="PlanFinding.AcknowledgementKey"/>.</param>
+    public CreatorProject Unacknowledge(string key) => this with { Acknowledged = Acknowledged.RemoveAll(each => each == key) };
+
     /// <summary>A copy of the project with a tool's notice, replacing the notice of the same tool.</summary>
     /// <param name="notice">The licence and source the author gave.</param>
     public CreatorProject WithToolNotice(ToolNotice notice)

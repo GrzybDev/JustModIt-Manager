@@ -130,8 +130,8 @@ public sealed partial class ReviewViewModel : ObservableObject, IDisposable
     }
 
     private static FindingLine Line(PlanFinding finding) =>
-        new(CreatorWording.Finding(finding), finding.Severity == FindingSeverity.Error ? RowTone.Danger : RowTone.Warning,
-            finding.IsAcknowledged ? null : finding.AcknowledgementKey);
+        new(CreatorWording.Finding(finding), finding.Severity == FindingSeverity.Error ? RowTone.Danger : finding.IsAcknowledged ? RowTone.Success : RowTone.Warning,
+            finding.AcknowledgementKey, finding.IsAcknowledged);
 
     /// <summary>Whether a finding is the site's hosting rule rather than a problem of the plan itself.</summary>
     /// <param name="kind">The finding's kind.</param>

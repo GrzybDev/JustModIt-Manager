@@ -16,6 +16,8 @@ public sealed partial class ProjectPage : UserControl
     private const double OverlayBelow = 1000;
 
     private ProjectPageViewModel? _page;
+    private CreatorSession? _session;
+    private (string Opposite, object? Parameter, NavigationMethod How)? _pressed;
 
     /// <summary>Creates the view.</summary>
     public ProjectPage()
@@ -25,6 +27,7 @@ public sealed partial class ProjectPage : UserControl
         // A click on another cell picks it rather than closing the panel.
         LightDismiss.Connect(this, Aside, TabContent, () => _page is { IsPanelOpen: true, IsOverlay: true }, () => _page!.IsPanelOpen = false);
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        AddHandler(Button.ClickEvent, OnClicked);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -35,6 +38,8 @@ public sealed partial class ProjectPage : UserControl
         {
             _page.PropertyChanged += OnPageChanged;
             _page.Build.PropertyChanged += OnBuildChanged;
+            _session = _page.Session;
+            _session?.PropertyChanged += OnSessionChanged;
             Lay(Bounds.Width is > 0 and < OverlayBelow);
         }
     }
@@ -46,7 +51,8 @@ public sealed partial class ProjectPage : UserControl
         {
             _page.PropertyChanged -= OnPageChanged;
             _page.Build.PropertyChanged -= OnBuildChanged;
-            _page = null;
+            _session?.PropertyChanged -= OnSessionChanged;
+            (_page, _session) = (null, null);
         }
     }
 
@@ -66,6 +72,37 @@ public sealed partial class ProjectPage : UserControl
         {
             Dispatcher.UIThread.Post(() => RunRows.ContainerFromItem(row)?.BringIntoView(), DispatcherPriority.Loaded);
         }
+    }
+
+    // The pressed button's row goes with the next plan, so what it was is taken down now.
+    private void OnClicked(object? sender, RoutedEventArgs e)
+    {
+        if (e.Source is Button button && (button.Classes.Contains("accept") || button.Classes.Contains("undoAccept")))
+        {
+            _pressed = (button.Classes.Contains("accept") ? "undoAccept" : "accept", button.CommandParameter,
+                button.Classes.Contains(":focus-visible") ? NavigationMethod.Tab : NavigationMethod.Unspecified);
+        }
+    }
+
+    // A pressed acceptance hides with the plan that holds it, and the keyboard's focus would go with it, so the focus goes to the row's
+    // way back, which the same plan shows.
+    private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(CreatorSession.Review) || _pressed is not var (opposite, parameter, how))
+        {
+            return;
+        }
+
+        _pressed = null;
+        // The row's buttons change, and a row may move to another list, with the layout that follows the plan.
+        void MoveFocus(object? laidOut, EventArgs args)
+        {
+            LayoutUpdated -= MoveFocus;
+            this.GetVisualDescendants().OfType<Button>()
+                .FirstOrDefault(button => button.Classes.Contains(opposite) && button.IsEffectivelyVisible && Equals(button.CommandParameter, parameter))?.Focus(how);
+        }
+
+        LayoutUpdated += MoveFocus;
     }
 
     private void Lay(bool overlay)

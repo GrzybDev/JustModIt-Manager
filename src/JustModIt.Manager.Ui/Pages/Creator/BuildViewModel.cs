@@ -157,9 +157,6 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void CancelBuild() => _building?.Cancel();
 
-    [RelayCommand]
-    private void Accept(string key) => _session.Change(project => project.Acknowledge(key));
-
     /// <summary>Shows what the next build does with the plan as it is now.</summary>
     internal void Show()
     {

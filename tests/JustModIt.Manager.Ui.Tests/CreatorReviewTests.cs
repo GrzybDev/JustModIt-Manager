@@ -95,9 +95,41 @@ public sealed class CreatorReviewTests : IDisposable
         Page(ui).HasBlockedText.Should().BeTrue("a whole game file needs the author's word first");
         await RenderAsync(ui, "creator-review-whole-file", 1900);
 
-        ui.Click(Button(ui, Strings.Creator_AcceptWork));
-        await UiHarness.WaitUntilAsync(() => !Page(ui).HasBlockedText);
+        var whole = review.Rules.Single(rule => rule.IsAccept);
+        ui.Click(Button(ui, Strings.Creator_Accept, whole));
+        await UiHarness.WaitUntilAsync(() => !Page(ui).HasBlockedText && review.AcceptedRules.Contains(whole));
+        await UiHarness.WaitUntilAsync(() => Focused(ui) == Strings.Creator_UndoAccept, () => $"the focus is on {Focused(ui)}");
         Page(ui).Session!.Project.Acknowledged.Should().ContainSingle();
+        Page(ui).Cell!.Brief.Detail.Should().Be(Text.Format(Strings.Creator_CellDetail, ("detail", "Accepted"), ("count", 1)));
+        ui.Click(Button(ui, Strings.Creator_UndoAccept, whole));
+        await UiHarness.WaitUntilAsync(() => Page(ui).HasBlockedText && review.OpenRules.Contains(whole));
+        await UiHarness.WaitUntilAsync(() => Focused(ui) == Strings.Creator_Accept, () => $"the focus is on {Focused(ui)}");
+        Page(ui).Session!.Project.Acknowledged.Should().BeEmpty();
+    }
+
+    [AvaloniaFact]
+    public async Task Accepting_a_warning_and_taking_it_back_changes_what_blocks_the_build()
+    {
+        // The author kept the game's film under another name and put none in its place, so the rename leaves the game without it.
+        _work.Game("data/movies.bin", Movies);
+        _work.Author("data/movies_backup.bin", Movies);
+        using var ui = await OpenAsync();
+        var review = await ReviewAsync(ui);
+        Page(ui).Description.Version = "1.0";
+        FindingLine Warning() => Row(review, "movies_backup.bin").Findings.Single();
+        await UiHarness.WaitUntilAsync(() => Warning().CanAcknowledge && !Page(ui).CanBuild);
+
+        Reveal(ui, Row(review, "movies_backup.bin"));
+        ui.Click(Button(ui, Strings.Creator_Accept, Warning()));
+        await UiHarness.WaitUntilAsync(() => Warning().IsAccepted && Page(ui).CanBuild, () => Page(ui).BlockedText);
+        await UiHarness.WaitUntilAsync(() => Focused(ui) == Strings.Creator_UndoAccept, () => $"the focus is on {Focused(ui)}");
+        Warning().Tone.Should().Be(RowTone.Success, "the line stays, with the way back");
+        await RenderAsync(ui, "creator-operation-accepted", null);
+
+        ui.Click(Button(ui, Strings.Creator_UndoAccept, Warning()));
+        await UiHarness.WaitUntilAsync(() => Warning().CanAcknowledge && !Page(ui).CanBuild);
+        await UiHarness.WaitUntilAsync(() => Focused(ui) == Strings.Creator_Accept, () => $"the focus is on {Focused(ui)}");
+        Page(ui).Session!.Project.Acknowledged.Should().BeEmpty();
     }
 
     [AvaloniaFact]
@@ -777,6 +809,8 @@ public sealed class CreatorReviewTests : IDisposable
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render(name, height);
     }
+
+    private static string? Focused(UiHarness ui) => (ui.Window.FocusManager?.GetFocusedElement() as Button)?.Content as string;
 
     private static ProjectPageViewModel Page(UiHarness ui) => (ProjectPageViewModel)ui.Shell.Navigator.Current!;
 

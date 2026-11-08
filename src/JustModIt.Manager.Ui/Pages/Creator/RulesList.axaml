@@ -23,13 +23,18 @@
                   Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).ExcludeRuleCommand}"
                   CommandParameter="{Binding}" />
           <Panel Margin="0,12,0,0" IsVisible="{Binding IsAccept}">
-            <Button Classes="outline headerAction" HorizontalAlignment="Left" IsVisible="{Binding !IsAccepted}"
-                    Content="{x:Static loc:Strings.Creator_AcceptWork}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}"
+            <Button Classes="outline headerAction accept" HorizontalAlignment="Left" IsVisible="{Binding !IsAccepted}"
+                    Content="{x:Static loc:Strings.Creator_Accept}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Check}"
                     Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).AcceptRuleCommand}"
                     CommandParameter="{Binding}" />
-            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsAccepted}">
-              <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" Classes="successText" />
-              <TextBlock Classes="rowText" Classes.successText="True" Text="{x:Static loc:Strings.Creator_Accepted}" />
+            <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsAccepted}">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" Classes="successText" />
+                <TextBlock Classes="rowText" Classes.successText="True" Text="{x:Static loc:Strings.Creator_Accepted}" />
+              </StackPanel>
+              <Button Classes="outline small undoAccept" Content="{x:Static loc:Strings.Creator_UndoAccept}"
+                      Command="{Binding $parent[UserControl].((creator:ReviewViewModel)DataContext).UndoRuleCommand}"
+                      CommandParameter="{Binding}" />
             </StackPanel>
           </Panel>
           <WrapPanel Margin="0,12,0,0" IsVisible="{Binding IsLibrary}" ItemSpacing="10" LineSpacing="8">

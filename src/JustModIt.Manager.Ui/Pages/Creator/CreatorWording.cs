@@ -120,9 +120,10 @@ internal static class CreatorWording
     private static string Count(IReadOnlyList<PlannedOperation> operations, OperationKind kind, string pattern) =>
         operations.Count(operation => operation.Kind == kind) is > 0 and var count ? Text.Format(pattern, ("count", count)) : "";
 
+    // An accepted large patch outlives the build that measured it, so it is named without its size.
     private static (string, object?)[] Arguments(PlanFinding finding, string tool) =>
     [
-        ("kind", finding.Kind.ToString()),
+        ("kind", finding is { Kind: FindingKind.LargePatch, Size: null } ? "LargePatchAccepted" : finding.Kind.ToString()),
         ("path", finding.Path ?? ""),
         ("related", finding.RelatedPath ?? ""),
         ("size", finding.Size is { } size ? Formats.FileSize(size) : ""),
