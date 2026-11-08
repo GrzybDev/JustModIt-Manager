@@ -26,7 +26,7 @@ public sealed class CreatorTests : IDisposable
     public async Task A_new_project_compares_the_chosen_game_with_the_author_s_folder_and_opens_the_check()
     {
         using var ui = await OpenAsync(Installed(TestStates.Idle(creatorMode: true)));
-        await RenderBothAsync(ui, "creator-start");
+        await RenderBothAsync(ui, "creator-library-empty");
 
         ui.Click(Button(ui, Strings.Creator_New));
         var page = Page(ui);
@@ -175,7 +175,7 @@ public sealed class CreatorTests : IDisposable
     public async Task An_import_failure_adds_nothing_to_the_library()
     {
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
-        var page = Page(ui);
+        var page = Library(ui);
         ui.Pickers.File = Path.Combine(_work.Root, "newer.exampleproj");
         File.WriteAllText(ui.Pickers.File, """{ "formatVersion": 99, "mode": "galaxy" }""");
 
@@ -191,7 +191,7 @@ public sealed class CreatorTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_Import));
         await UiHarness.WaitUntilAsync(() => page.ProblemText.Contains(Text.Format(Strings.Creator_OpenFailed,
             ("reason", nameof(ProjectLoadError.Damaged)), ("product", "Example App")), StringComparison.Ordinal));
-        page.HasProject.Should().BeFalse();
+        page.OpenPage.Should().BeNull();
         Directory.Exists(ui.CreatorDirectory).Should().BeFalse();
     }
 
@@ -207,7 +207,7 @@ public sealed class CreatorTests : IDisposable
 
         ui.Click(Button(ui, Strings.Creator_Import));
 
-        await UiHarness.WaitUntilAsync(() => Page(ui).Step == CreatorStep.Review);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Step: CreatorStep.Review });
         Page(ui).Session!.Comparison!.GameDirectory.Should().Be(_work.GameFolder);
         Page(ui).Session!.Part.AuthorFolder.Should().Be(_work.AuthorFolder);
         Page(ui).ProjectName.Should().Be("earlier");
@@ -224,13 +224,13 @@ public sealed class CreatorTests : IDisposable
         }
 
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library);
-        await UiHarness.WaitUntilAsync(() => Page(ui).HasRecent);
+        await UiHarness.WaitUntilAsync(() => Library(ui).Cards.Any());
         File.Delete(Path.Combine(library, id.ToString(), "project.json"));
 
-        ui.Click(Button(ui, "Lantern Isle"));
+        ui.Click(Card(ui, "Lantern Isle"));
 
-        await UiHarness.WaitUntilAsync(() => Page(ui).HasProblem);
-        Page(ui).ProblemTitle.Should().Be(Strings.Creator_ProjectOpenFailedTitle);
+        await UiHarness.WaitUntilAsync(() => Library(ui).HasProblem);
+        Library(ui).ProblemTitle.Should().Be(Strings.Creator_ProjectOpenFailedTitle);
     }
 
     [AvaloniaFact]
@@ -246,21 +246,16 @@ public sealed class CreatorTests : IDisposable
             Page(ui).Session!.Describe(project => project with { Metadata = project.Metadata with { Title = "Lantern Isle revised" } });
             saved = Page(ui).Session!.Project;
             await UiHarness.WaitUntilAsync(() => Stored(library, saved.Id) == saved);
-            await RenderBothAsync(ui, "creator-header");
+            await RenderBothAsync(ui, "creator-project");
         }
 
-        File.SetLastWriteTimeUtc(Path.Combine(library, saved.Id.ToString(), "project.json"), TestStates.Now.AddDays(-1).UtcDateTime);
         using var reopened = await OpenAsync(TestStates.Idle(creatorMode: true), creatorDirectory: library);
-        await UiHarness.WaitUntilAsync(() => Page(reopened).HasRecent);
-        var recent = Page(reopened).Recent.Should().ContainSingle().Subject;
-        (recent.Name, recent.Folder).Should().Be(("Lantern Isle", _work.AuthorFolder));
-        recent.Changed.Should().Be(Text.Format(Strings.Creator_RecentChanged,
-            ("when", Formats.RelativeTime(TestStates.Now.AddDays(-1), reopened.Clock))));
-        await RenderBothAsync(reopened, "creator-start-projects");
+        await UiHarness.WaitUntilAsync(() => Library(reopened).Cards.Any());
+        Library(reopened).Cards.Should().ContainSingle().Which.Name.Should().Be("Lantern Isle");
 
-        reopened.Click(Button(reopened, "Lantern Isle"));
+        reopened.Click(Card(reopened, "Lantern Isle"));
 
-        await UiHarness.WaitUntilAsync(() => Page(reopened).Step == CreatorStep.Review);
+        await UiHarness.WaitUntilAsync(() => reopened.Shell.Navigator.Current is ProjectPageViewModel { Step: CreatorStep.Review });
         Page(reopened).Session!.Project.Should().Be(saved);
     }
 
@@ -328,13 +323,13 @@ public sealed class CreatorTests : IDisposable
         Directory.CreateDirectory(file);
         name("refused");
         await UiHarness.WaitUntilAsync(() => session.SaveFailed);
-        ui.Find<Grid>("SaveFailedLine").IsEffectivelyVisible.Should().BeTrue();
+        Page(ui).ProblemText.Should().Be(Strings.Creator_SaveFailed);
         await RenderBothAsync(ui, "creator-save-failed");
 
         Directory.Delete(file);
         name("saved");
         await UiHarness.WaitUntilAsync(() => !session.SaveFailed && Stored(library, session.Project.Id) == session.Project);
-        ui.Find<Grid>("SaveFailedLine").IsEffectivelyVisible.Should().BeFalse();
+        Page(ui).HasProblem.Should().BeFalse("a save that works takes the failure back");
 
         File.Delete(file);
         Directory.CreateDirectory(file);
@@ -388,12 +383,19 @@ public sealed class CreatorTests : IDisposable
 
         using var ui = await OpenAsync(state);
 
-        await UiHarness.WaitUntilAsync(() => Page(ui).HasRecent);
-        Page(ui).Recent.Should().ContainSingle().Which.Name.Should().Be("Good");
+        await UiHarness.WaitUntilAsync(() => Library(ui).Cards.Any());
+        Library(ui).Cards.Should().ContainSingle().Which.Name.Should().Be("Good");
         ui.Agent.Requests.OfType<ForgetRecentCreatorProjects>().Should().ContainSingle().Which.Paths.Should().Equal(good, damaged);
-        Page(ui).ProblemText.Should().Contain("Damaged.exampleproj").And.Contain(Text.Format(Strings.Creator_ImportWaiting, ("count", 1)));
+        Library(ui).Notices.Should().BeEquivalentTo(new ImportNotice[]
+        {
+            new(Text.Format(Strings.Creator_ImportSkipped, ("count", 1)), [damaged]),
+            new(Text.Format(Strings.Creator_ImportWaiting, ("count", 1)), []),
+        });
         File.ReadAllText(damaged).Should().Be("{ not a project");
-        await RenderBothAsync(ui, "creator-start-imported");
+        await RenderBothAsync(ui, "creator-library-imported");
+
+        ui.Click(ui.Find<Button>().First(button => Equals(button.DataContext, Library(ui).Notices[0])));
+        Library(ui).Notices.Should().ContainSingle().Which.Files.Should().BeEmpty();
 
         ui.Push(state with { Version = state.Version + 1 });
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(100));
@@ -471,7 +473,12 @@ public sealed class CreatorTests : IDisposable
         return projects.Store(id).LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
     }
 
-    private static CreatorPageViewModel Page(UiHarness ui) => (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+    private static CreatorPageViewModel Library(UiHarness ui) => (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+
+    private static ProjectPageViewModel Page(UiHarness ui) => (ProjectPageViewModel)ui.Shell.Navigator.Current!;
+
+    private static Button Card(UiHarness ui, string name) =>
+        ui.Find<Button>().First(button => button.DataContext is ProjectCard card && card.Name == name && button.Classes.Contains("gameCard"));
 
     private static Button Button(UiHarness ui, string name) =>
         ui.Find<Button>().First(button => button.IsEffectivelyVisible

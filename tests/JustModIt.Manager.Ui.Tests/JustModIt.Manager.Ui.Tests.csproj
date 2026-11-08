@@ -18,6 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\Eventually.cs" Link="TestSupport\Eventually.cs" />
+    <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\HangingFileSystem.cs" Link="TestSupport\HangingFileSystem.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\JustModIt.Manager.Ui\JustModIt.Manager.Ui.csproj" />
   </ItemGroup>
 

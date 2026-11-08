@@ -29,7 +29,7 @@ public enum TestInstallState
 /// <summary>A test install of the built package through the agent, which the agent also undoes.</summary>
 public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
 {
-    private readonly CreatorPageViewModel _page;
+    private readonly ProjectPageViewModel _page;
 
     private readonly Dictionary<Guid, (JobOutcome Outcome, JobFailureView? Failure, IReadOnlyList<KeptFilesView>? Kept)> _ended = [];
     private Guid? _testJob;
@@ -39,8 +39,8 @@ public sealed partial class TestInstallViewModel : ObservableObject, IDisposable
     private (Guid Job, ToastViewModel Toast)? _undone;
 
     /// <summary>Creates the test install of a project's package.</summary>
-    /// <param name="page">The creator.</param>
-    public TestInstallViewModel(CreatorPageViewModel page)
+    /// <param name="page">The project's page.</param>
+    public TestInstallViewModel(ProjectPageViewModel page)
     {
         _page = page;
         _page.Agent.PropertyChanged += OnAgentChanged;

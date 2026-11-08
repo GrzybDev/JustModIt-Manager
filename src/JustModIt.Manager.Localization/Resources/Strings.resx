@@ -2616,35 +2616,56 @@
   <data name="Creator_Subtitle" xml:space="preserve">
     <value>Changed files become a package that players install in one click.</value>
   </data>
-  <data name="Creator_StartTitle" xml:space="preserve">
-    <value>Prepare a package without writing code</value>
+  <data name="Creator_LibrarySubtitle" xml:space="preserve">
+    <value>Projects save by themselves. A new release starts by opening its project.</value>
   </data>
-  <data name="Creator_StartText" xml:space="preserve">
-    <value>It takes a game and a folder with the files. The creator compares them with the game, shows what the package will do for players and picks the format: a plain .zip or a package {extension}.</value>
+  <data name="Creator_LastPackage" xml:space="preserve">
+    <value>{hasVersion, select, true {Last package {version} from {date}} other {Last package from {date}}}</value>
   </data>
-  <data name="Creator_ProjectHint" xml:space="preserve">
-    <value>A project ({extension}) is a draft: it can be saved and finished later.</value>
+  <data name="Creator_NoPackageYet" xml:space="preserve">
+    <value>No package built yet · created {date}</value>
   </data>
-  <data name="Creator_HowItWorks" xml:space="preserve">
-    <value>How it works</value>
+  <data name="Creator_CardState" xml:space="preserve">
+    <value>{state, select, FolderGone {The folder with the files is unavailable ({path})} GameGone {The game is not on this computer} NoVersion {No game version} Comparing {Comparing…} Building {Building the packages…} TestInstalled {Test install in the game} other {}}</value>
   </data>
-  <data name="Creator_HowGame" xml:space="preserve">
-    <value>A detected game, without mods or other changes.</value>
+  <data name="Creator_CardParts" xml:space="preserve">
+    <value>Base + {count, plural, one {# add-on} other {# add-ons}}</value>
   </data>
-  <data name="Creator_HowFiles" xml:space="preserve">
-    <value>A folder of files laid out as in the game.</value>
+  <data name="Creator_CardMore" xml:space="preserve">
+    <value>More: {name}</value>
   </data>
-  <data name="Creator_HowReview" xml:space="preserve">
-    <value>The creator finds copies, patches and renames by itself, to review or to arrange by hand.</value>
+  <data name="Creator_ExportText" xml:space="preserve">
+    <value>A file to hand over or keep as a copy.</value>
   </data>
-  <data name="Creator_HowPackage" xml:space="preserve">
-    <value>The creator picks .zip or {extension}, builds the package and installs it for a test.</value>
+  <data name="Creator_Duplicate" xml:space="preserve">
+    <value>Duplicate</value>
   </data>
-  <data name="Creator_Recent" xml:space="preserve">
-    <value>Recent projects</value>
+  <data name="Creator_DuplicateText" xml:space="preserve">
+    <value>A separate project with the same settings and folders.</value>
   </data>
-  <data name="Creator_RecentChanged" xml:space="preserve">
-    <value>Changed {when}</value>
+  <data name="Creator_CopyName" xml:space="preserve">
+    <value>{name} (copy)</value>
+  </data>
+  <data name="Creator_Remove" xml:space="preserve">
+    <value>Remove from the creator</value>
+  </data>
+  <data name="Creator_RemoveText" xml:space="preserve">
+    <value>The folder with the files and the built packages stay on the disk.</value>
+  </data>
+  <data name="Creator_RemoveTitle" xml:space="preserve">
+    <value>Remove the project from the creator?</value>
+  </data>
+  <data name="Creator_RemoveMessage" xml:space="preserve">
+    <value>The project {name} leaves the creator. The folder with the files and the built packages stay on the disk.</value>
+  </data>
+  <data name="Creator_RemoveFailed" xml:space="preserve">
+    <value>The project could not be removed from the creator, e.g. because another program holds its file.</value>
+  </data>
+  <data name="Creator_Projects" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="Creator_UnreadableProjects" xml:space="preserve">
+    <value>{count, plural, one {# project cannot be read. Its files stay on the disk.} other {# projects cannot be read. Their files stay on the disk.}}</value>
   </data>
   <data name="Creator_New" xml:space="preserve">
     <value>New project</value>
@@ -2677,7 +2698,7 @@
     <value>The file could not be written, e.g. because the folder is read-only or the disk is full.</value>
   </data>
   <data name="Creator_ImportSkipped" xml:space="preserve">
-    <value>{count, plural, one {# project} other {# projects}} of the recent list could not be brought over, since the file is gone or damaged: {files}.</value>
+    <value>{count, plural, one {# project} other {# projects}} of the recent list could not be brought over: the file is gone or damaged.</value>
   </data>
   <data name="Creator_ImportWaiting" xml:space="preserve">
     <value>{count, plural, one {# project of the recent list waits} other {# projects of the recent list wait}} for another try at the next open.</value>

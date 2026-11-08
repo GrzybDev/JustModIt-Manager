@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Creator.ProjectPage"
+             x:DataType="creator:ProjectPageViewModel">
+  <UserControl.Styles>
+    <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Creator/CreatorStyles.axaml" />
+    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(2)">
+      <Setter Property="Grid.Column" Value="1" />
+    </Style>
+    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(3)">
+      <Setter Property="Grid.Column" Value="2" />
+    </Style>
+    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(4)">
+      <Setter Property="Grid.Column" Value="3" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer Classes="page">
+    <StackPanel Classes="page" Spacing="20" MaxWidth="{StaticResource PageMaxWidth}">
+      <StackPanel Spacing="4">
+        <StackPanel Orientation="Horizontal" Spacing="6" TextElement.FontSize="13">
+          <Button x:Name="Breadcrumb" Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_Projects}"
+                  Command="{Binding Services.Navigator.GoBackCommand}" VerticalAlignment="Center" />
+          <ui:Icon Data="{x:Static theme:Icons.ChevronRight}" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+          <TextBlock Classes="pathLine" Text="{Binding ProjectName}" MaxWidth="480" VerticalAlignment="Center" />
+          <Border Classes="kind" Margin="6,0,0,0" IsVisible="{Binding IsAdvanced}" VerticalAlignment="Center">
+            <StackPanel>
+              <ui:Icon Data="{x:Static theme:Icons.ListOrdered}" />
+              <TextBlock Text="{x:Static loc:Strings.Creator_AdvancedMode}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+        <TextBlock Classes="pageTitle" Text="{Binding ProjectName}" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+
+      <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
+                  Title="{Binding ProblemTitle}" Message="{Binding ProblemText}" IsVisible="{Binding HasProblem}"
+                  theme:Motion.Enter="True">
+        <Button Classes="quiet small" Content="{x:Static loc:Strings.Creator_DismissProblem}" HorizontalAlignment="Left"
+                Margin="-12,0,0,0" Command="{Binding ClearProblemCommand}" />
+      </ui:Callout>
+
+      <!-- The steps of a project. -->
+      <ItemsControl x:Name="StepBar" ItemsSource="{Binding Steps}" AutomationProperties.Name="{x:Static loc:Strings.Creator_Steps}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <Grid ColumnDefinitions="*,*,*,Auto" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="creator:StepItem">
+            <Grid ColumnDefinitions="Auto,*">
+              <Button Classes="step" Classes.current="{Binding IsCurrent}" Classes.done="{Binding IsDone}"
+                      Classes.available="{Binding CanOpen}" IsEnabled="{Binding CanOpen}" ToolTip.Tip="{Binding Tip}"
+                      ToolTip.ShowOnDisabled="True" AutomationProperties.Name="{Binding AccessibleName}"
+                      Command="{Binding $parent[UserControl].((creator:ProjectPageViewModel)DataContext).OpenStepCommand}"
+                      CommandParameter="{Binding}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Border Classes="number" Classes.current="{Binding IsCurrent}" Classes.done="{Binding IsDone}">
+                    <Panel>
+                      <TextBlock Text="{Binding Number}" IsVisible="{Binding !IsDone}" />
+                      <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" IsVisible="{Binding IsDone}" />
+                    </Panel>
+                  </Border>
+                  <TextBlock Classes="stepTitle" Text="{Binding Title}" />
+                </StackPanel>
+              </Button>
+              <Border Grid.Column="1" Classes="stepLine" Classes.done="{Binding IsDone}" Margin="14,0" IsVisible="{Binding !IsLast}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <TransitioningContentControl x:Name="StepContent" Content="{Binding Content}" IsTransitionReversed="{Binding IsGoingBack}">
+        <TransitioningContentControl.PageTransition>
+          <theme:PageTransition IsHorizontal="True" Offset="28" />
+        </TransitioningContentControl.PageTransition>
+      </TransitioningContentControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

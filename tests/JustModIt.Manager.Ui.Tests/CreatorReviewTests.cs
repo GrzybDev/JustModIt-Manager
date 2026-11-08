@@ -575,8 +575,8 @@ public sealed class CreatorReviewTests : IDisposable
 
     private async Task<ReviewViewModel> ReviewAsync(UiHarness ui)
     {
+        ((CreatorPageViewModel)ui.Shell.Navigator.Current!).NewProjectCommand.Execute(null);
         var page = Page(ui);
-        page.NewProjectCommand.Execute(null);
         await UiHarness.WaitUntilAsync(() => page.Content is GameStepViewModel { IsLoaded: true });
         ((GameStepViewModel)page.Content!).Choose(_work.Detected[1]);
         page.GoTo(CreatorStep.Files);
@@ -626,7 +626,7 @@ public sealed class CreatorReviewTests : IDisposable
         ui.Render(name, height);
     }
 
-    private static CreatorPageViewModel Page(UiHarness ui) => (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+    private static ProjectPageViewModel Page(UiHarness ui) => (ProjectPageViewModel)ui.Shell.Navigator.Current!;
 
     private static Button Button(UiHarness ui, string name, object? context = null) =>
         ui.Find<Button>().First(button => button.IsEffectivelyVisible && (context is null || button.DataContext == context)

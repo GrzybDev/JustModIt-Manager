@@ -10,7 +10,10 @@ internal static class CreatorScreen
     public static void Register(UiComposition ui)
     {
         ArgumentNullException.ThrowIfNull(ui);
-        ui.Pages.Register<CreatorRoute>((_, services) => new CreatorPageViewModel(services));
+        CreatorPageViewModel? creator = null;
+        ui.Pages.Register<CreatorRoute>((_, services) => creator ??= new CreatorPageViewModel(services));
+        ui.Pages.Register<CreatorProjectRoute>((_, services) => (creator ??= new CreatorPageViewModel(services)).OpenPage!);
+        ui.Views.Register<ProjectPageViewModel>(() => new ProjectPage());
         ui.Views.Register<CreatorPageViewModel>(() => new CreatorPage());
         ui.Views.Register<GameStepViewModel>(() => new GameStepView());
         ui.Views.Register<FilesStepViewModel>(() => new FilesStepView());

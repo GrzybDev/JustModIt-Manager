@@ -71,7 +71,7 @@
                   Title="{x:Static loc:Strings.Creator_DroppedFilesTitle}" Message="{x:Static loc:Strings.Creator_DroppedFiles}"
                   IsVisible="{Binding DroppedFiles}" theme:Motion.Enter="True" />
       <StackPanel Spacing="12">
-        <TextBlock Classes="overline" Text="{x:Static creator:CreatorPage.DetectsTitle}" />
+        <TextBlock Classes="overline" Text="{x:Static creator:FilesStepView.DetectsTitle}" />
         <ui:PixelUniformGrid Columns="4" ColumnSpacing="12">
           <Border Classes="soft" Padding="16">
             <StackPanel Spacing="10">

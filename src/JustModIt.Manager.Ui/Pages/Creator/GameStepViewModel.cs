@@ -73,16 +73,16 @@ public sealed record GameOptionRow(GameOption Left, GameOption? Right);
 /// </summary>
 public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepView
 {
-    private readonly CreatorPageViewModel _page;
+    private readonly ProjectPageViewModel _page;
     private readonly CreatorSession _session;
     private List<GameOption> _options = [];
     private DateTimeOffset? _scannedAt;
     private Task? _loading;
 
     /// <summary>Creates the step for a project.</summary>
-    /// <param name="page">The creator.</param>
+    /// <param name="page">The project's page.</param>
     /// <param name="session">The project.</param>
-    public GameStepViewModel(CreatorPageViewModel page, CreatorSession session)
+    public GameStepViewModel(ProjectPageViewModel page, CreatorSession session)
     {
         _page = page;
         _session = session;

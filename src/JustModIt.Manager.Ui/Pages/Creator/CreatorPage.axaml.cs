@@ -1,42 +1,44 @@
-using Avalonia;
 using Avalonia.Controls;
-using JustModIt.Manager.Localization;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using JustModIt.Manager.Ui.Controls;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
 /// <summary>
-/// The view of <see cref="CreatorPageViewModel"/>, which puts the start's explanation under it and shortens the project's
-/// first button to its icon in a narrow window.
+/// The view of <see cref="CreatorPageViewModel"/>: the grid's columns from its width, the arrows between its cards, and a narrow
+/// window's import button that keeps only its icon.
 /// </summary>
 public sealed partial class CreatorPage : UserControl
 {
-    // Below this width the start's text beside the explanation would wrap into a column too narrow to read.
-    private const double NarrowStart = 860;
+    private const double CardMinWidth = 220;
+    private const double Gap = 14;
 
-    // Below this width the page's title would be cut beside the project's buttons, so the first of them keeps only its icon.
+    // Below this width the page's title would be cut beside the header's buttons.
     private const double NarrowHeader = 720;
 
     /// <summary>Creates the view.</summary>
     public CreatorPage()
     {
         InitializeComponent();
-        StartGrid.SizeChanged += (_, e) => Arrange(e.NewSize.Width < NarrowStart);
-        Header.SizeChanged += (_, e) => (NewButton.IsVisible, NewIconButton.IsVisible) =
+        Header.SizeChanged += (_, e) => (ImportButton.IsVisible, ImportIconButton.IsVisible) =
             (e.NewSize.Width >= NarrowHeader, e.NewSize.Width < NarrowHeader);
+        PageContent.SizeChanged += (_, e) =>
+        {
+            if (Page is { } page && e.NewSize.Width > 0)
+            {
+                page.Columns = CardGrid.ColumnsFor(e.NewSize.Width, CardMinWidth, Gap);
+            }
+        };
+        // Before the list's own arrow handling, which looks for the next row and may recycle the focused one meanwhile.
+        CardList.AddHandler(InputElement.KeyDownEvent, (_, e) =>
+        {
+            if (Page is { } page && e.Source is Control { DataContext: ProjectCard card })
+            {
+                e.Handled = page.Grid.MoveFocus(CardList, card, e.Key);
+            }
+        }, RoutingStrategies.Tunnel);
     }
 
-    public static string HowItWorksTitle => Strings.Creator_HowItWorks.ToUpper(Text.Culture);
-
-    public static string RecentTitle => Strings.Creator_Recent.ToUpper(Text.Culture);
-
-    public static string DetectsTitle => Strings.Creator_Detects.ToUpper(Text.Culture);
-
-    private void Arrange(bool narrow)
-    {
-        Grid.SetColumn(HowItWorksBox, narrow ? 0 : 1);
-        Grid.SetRow(HowItWorksBox, narrow ? 1 : 0);
-        HowItWorksBox.Width = narrow ? double.NaN : 404;
-        HowItWorksBox.Margin = narrow ? new Thickness(0, 24, 0, 0) : default;
-        StartGrid.ColumnSpacing = narrow ? 0 : 32;
-    }
+    private CreatorPageViewModel? Page => DataContext as CreatorPageViewModel;
 }

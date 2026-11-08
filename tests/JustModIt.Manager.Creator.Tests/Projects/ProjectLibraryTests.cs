@@ -197,6 +197,36 @@ public sealed class ProjectLibraryTests : IDisposable
         (await File.ReadAllBytesAsync(Path.Combine(LibraryDirectory, written.ToString(), "builds.json"), Token)).Should().Equal(fixture);
     }
 
+    [Fact]
+    public async Task A_project_removed_from_the_library_leaves_the_author_s_files()
+    {
+        var authors = Path.Combine(_workspace.Root, "Lantern Isle Files");
+        Directory.CreateDirectory(authors);
+        var keptByAuthor = Path.Combine(authors, "strings.bin");
+        await File.WriteAllTextAsync(keptByAuthor, "the author's work", Token);
+        var project = Workspace.Project() with { Id = Guid.NewGuid() };
+        await _library.Store(project.Id).SaveAsync(project, Token);
+        await _library.UpdateBuildAsync(project.Id, _ => new BuildRecord([]), Token);
+        var folder = Path.GetDirectoryName(ProjectFile(project.Id))!;
+        await File.WriteAllTextAsync(ProjectFile(project.Id) + ".0a1b2c3d.tmp", "what a crash left", Token);
+        await File.WriteAllTextAsync(Path.Combine(folder, "builds.json.0a1b2c3d.tmp"), "what a crash left", Token);
+
+        await _library.RemoveAsync(project.Id, Token);
+
+        Directory.Exists(folder).Should().BeFalse();
+        (await File.ReadAllTextAsync(keptByAuthor, Token)).Should().Be("the author's work");
+
+        var other = Workspace.Project() with { Id = Guid.NewGuid() };
+        await _library.Store(other.Id).SaveAsync(other, Token);
+        var notOurs = Path.Combine(Path.GetDirectoryName(ProjectFile(other.Id))!, "notes.txt");
+        await File.WriteAllTextAsync(notOurs, "not the library's", Token);
+
+        await _library.RemoveAsync(other.Id, Token);
+
+        File.Exists(ProjectFile(other.Id)).Should().BeFalse();
+        File.Exists(notOurs).Should().BeTrue("the removal names its files and deletes nothing else");
+    }
+
     private string ProjectFile(Guid id) => Path.Combine(LibraryDirectory, id.ToString(), "project.json");
 
     // Every read that does not end by itself runs out of time at once.

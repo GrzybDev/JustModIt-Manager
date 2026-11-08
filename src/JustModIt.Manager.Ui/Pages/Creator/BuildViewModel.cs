@@ -7,6 +7,7 @@ using JustModIt.Manager.Core.Patching;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Building;
 using JustModIt.Manager.Creator.Planning;
+using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
@@ -33,7 +34,7 @@ public enum PackageState
 /// </summary>
 public sealed partial class BuildViewModel : ObservableObject, IDisposable
 {
-    private readonly CreatorPageViewModel _page;
+    private readonly ProjectPageViewModel _page;
     private readonly CreatorSession _session;
     private readonly PackageDescriptionViewModel _description;
     private readonly TestInstallViewModel _test;
@@ -45,11 +46,11 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
     private DateTimeOffset _builtAt;
 
     /// <summary>Creates the build of a project's package.</summary>
-    /// <param name="page">The creator.</param>
+    /// <param name="page">The project's page.</param>
     /// <param name="session">The project.</param>
     /// <param name="description">The metadata, whose problems hold the build back.</param>
     /// <param name="test">The test install, which a new package starts over.</param>
-    public BuildViewModel(CreatorPageViewModel page, CreatorSession session, PackageDescriptionViewModel description, TestInstallViewModel test)
+    public BuildViewModel(ProjectPageViewModel page, CreatorSession session, PackageDescriptionViewModel description, TestInstallViewModel test)
     {
         _page = page;
         _session = session;
@@ -322,7 +323,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             var result = await new PackageBuilder(new XDelta3Patcher(), _page.Options, fileSystem: _page.FileSystem)
                 .BuildAsync(plan, request, new LatestProgress<BuildProgress>(Show), building.Token)
                 .ConfigureAwait(true);
-            Built(result);
+            await BuiltAsync(result, detected.Key).ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (building.IsCancellationRequested)
         {
@@ -389,8 +390,22 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
         };
     }
 
-    private void Built(PackageBuildResult result)
+    private async Task BuiltAsync(PackageBuildResult result, GameKey game)
     {
+        var project = _session.Project;
+        var part = _session.Part.Name;
+        var row = new BuiltPackage(result.OutputPath, result.Kind, result.PackageSize, [game], project.Metadata.Version.Trim(), _page.Services.Clock.GetUtcNow());
+        try
+        {
+            await _page.Library.UpdateBuildAsync(project.Id, record => (record ?? new BuildRecord([])).WithPackage(part, row), CancellationToken.None)
+                .ConfigureAwait(true);
+        }
+        // The package is there whatever becomes of its row, which only tells the library's card about it.
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            LogRecordFailed(_page.Log, exception);
+        }
+
         OutputPath = result.OutputPath;
         ResultName = Path.GetFileName(result.OutputPath);
         ResultSize = Formats.FileSize(result.PackageSize);
@@ -402,7 +417,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             result.Kind == PackageKind.Manifest ? string.Join(", ", metadata.Authors) : "",
         ]);
         ResultFolder = Path.GetDirectoryName(result.OutputPath) ?? "";
-        _builtAt = _page.Services.Clock.GetUtcNow();
+        _builtAt = row.BuiltAt;
         SiteWarnings = [.. result.Findings.Where(finding => finding.Kind is FindingKind.LargerThanSiteTakes or FindingKind.FormatNotOnSite)
             .Select(finding => CreatorWording.Finding(finding))];
         _test.Built();
@@ -489,4 +504,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The package build failed unexpectedly")]
     private static partial void LogBuildFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The record of a built package could not be written")]
+    private static partial void LogRecordFailed(ILogger logger, Exception exception);
 }

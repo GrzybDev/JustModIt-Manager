@@ -9,15 +9,15 @@ namespace JustModIt.Manager.Ui.Pages.Creator;
 /// <summary>The last step: the package's description, its build and a test install of it.</summary>
 public sealed partial class PackageStepViewModel : ObservableObject, ICreatorStepView
 {
-    private readonly CreatorPageViewModel _page;
+    private readonly ProjectPageViewModel _page;
     private readonly CreatorSession _session;
 
     private (GameKey? Key, string? Folder) _game;
 
     /// <summary>Creates the step for a project.</summary>
-    /// <param name="page">The creator.</param>
+    /// <param name="page">The project's page.</param>
     /// <param name="session">The project.</param>
-    public PackageStepViewModel(CreatorPageViewModel page, CreatorSession session)
+    public PackageStepViewModel(ProjectPageViewModel page, CreatorSession session)
     {
         _page = page;
         _session = session;

@@ -482,6 +482,48 @@
     <Setter Property="BoxShadow" Value="0 24 48 -28 #E6000000, 0 8 24 0 #66000000" />
   </Style>
 
+  <!-- A game's card: one link that rises under the pointer, its cover zooming a little within its frame. -->
+  <Style Selector="Button.gameCard">
+    <Setter Property="Height" Value="NaN" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="RenderTransform" Value="translateY(0px)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.gameCard /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BoxShadow" Value="{StaticResource ElevRest}" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
+        <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.3" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.gameCard:pointerover">
+    <Setter Property="RenderTransform" Value="translateY(-4px)" />
+  </Style>
+  <Style Selector="Button.gameCard:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.gameCard:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource ElevLift}" />
+  </Style>
+  <Style Selector=":is(Window).reducedMotion Button.gameCard:pointerover">
+    <Setter Property="RenderTransform" Value="translateY(0px)" />
+  </Style>
+  <Style Selector="Button.gameCard:pointerover TextBlock.cardName">
+    <Setter Property="TextDecorations" Value="Underline" />
+  </Style>
   <!-- A game card's cover grows under the pointer. -->
   <Style Selector="Button.gameCard ui|RemoteImage.cover, Border.catalogueCard ui|RemoteImage.cover">
     <Setter Property="RenderTransform" Value="scale(1)" />

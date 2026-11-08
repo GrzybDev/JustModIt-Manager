@@ -3,7 +3,7 @@
         xmlns:creator="using:JustModIt.Manager.Ui.Pages.Creator"
         xmlns:ui="using:JustModIt.Manager.Ui.Controls"
         xmlns:loc="using:JustModIt.Manager.Localization">
-  <!-- The package creator (the Kreator boards): a step bar under the page's head, raised cards of radius 16 for each
+  <!-- The package creator (the Kreator boards): its projects' cards, a step bar under the page's head, raised cards of radius 16 for each
        part of a step, soft rows of radius 12 for lists, and the step's actions at the end of its content. -->
 
   <Styles.Resources>
@@ -41,7 +41,39 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <!-- A number in a ring: the steps and the how-it-works list. -->
+  <!-- A project's card rises as one with the button over its cover, which a rise of the card alone would leave behind. -->
+  <Style Selector="Panel.projectCard">
+    <Setter Property="RenderTransform" Value="translateY(0px)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Panel.projectCard:pointerover">
+    <Setter Property="RenderTransform" Value="translateY(-4px)" />
+  </Style>
+  <Style Selector=":is(Window).reducedMotion Panel.projectCard:pointerover">
+    <Setter Property="RenderTransform" Value="translateY(0px)" />
+  </Style>
+  <Style Selector="Panel.projectCard Button.gameCard:pointerover">
+    <Setter Property="RenderTransform" Value="translateY(0px)" />
+  </Style>
+  <!-- A card's state takes two lines at most; its tooltip holds what does not fit. -->
+  <Style Selector="Panel.projectCard ui|StatusLine > TextBlock">
+    <Setter Property="MaxLines" Value="2" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="Button.cardMore">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+    <Setter Property="Background" Value="#99030712" />
+  </Style>
+
+  <!-- A number in a ring: the steps. -->
   <Style Selector="Border.number">
     <Setter Property="Width" Value="28" />
     <Setter Property="Height" Value="28" />

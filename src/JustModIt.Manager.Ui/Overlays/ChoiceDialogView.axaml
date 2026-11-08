@@ -8,7 +8,7 @@
     <StackPanel Spacing="18">
       <StackPanel Spacing="4">
         <TextBlock Classes="dialogTitle" Text="{Binding Title}" />
-        <TextBlock Classes="bodyText" Text="{Binding Message}" />
+        <TextBlock Classes="bodyText" Text="{Binding Message}" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
       <!-- Item margins space the tiles; the negative margin lines the outer ones up with the dialog's content. -->
       <ItemsControl x:Name="Choices" ItemsSource="{Binding Choices}" Margin="-6">

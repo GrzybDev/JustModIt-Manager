@@ -1,0 +1,304 @@
+using Avalonia.Automation.Peers;
+using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Tests.TestSupport;
+using JustModIt.Manager.Creator;
+using JustModIt.Manager.Creator.Projects;
+using JustModIt.Manager.Localization;
+using JustModIt.Manager.Protocol.Messages;
+using JustModIt.Manager.Protocol.Views;
+using JustModIt.Manager.Ui.Controls;
+using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
+using JustModIt.Manager.Ui.Pages.Creator;
+using JustModIt.Manager.Ui.Pages.Library;
+using JustModIt.Manager.Ui.Tests.TestSupport;
+
+namespace JustModIt.Manager.Ui.Tests;
+
+public sealed class CreatorLibraryTests : IDisposable
+{
+    private static readonly DateTimeOffset BuiltAt = new(2026, 8, 14, 12, 0, 0, TimeSpan.Zero);
+
+    private readonly CreatorWorkspace _work = new();
+
+    private string LibraryFolder => Path.Combine(_work.Root, "Library");
+
+    public void Dispose() => _work.Dispose();
+
+    [AvaloniaFact]
+    public async Task The_library_lists_projects_and_their_states()
+    {
+        var sleeping = Directory.CreateDirectory(Path.Combine(_work.Root, "Work", "On a sleeping disk")).FullName;
+        var gone = Path.Combine(_work.Root, "Work", "Gone");
+        var ember = Project("Ember Isles", CreatorWorkspace.Lantern, _work.AuthorFolder) with
+        {
+            Site = new ProjectSite(Guid.NewGuid(), "ember-isles", "nimbus", "Nimbus", ""),
+            Parts = [new ProjectPart { AuthorFolder = _work.AuthorFolder }, new ProjectPart { Name = "Voices" }],
+        };
+        CreatorProject[] projects =
+        [
+            ember,
+            Project("Tidewater", CreatorWorkspace.Tidewater),
+            Project("Ashfall", new GameKey(StoreId.Gog, "5399"), sleeping),
+            Project("Lantern Isle", CreatorWorkspace.Ashfall, gone),
+            Project("Saltmarsh", null),
+        ];
+        await SeedAsync(projects);
+        using (var library = new ProjectLibrary(LibraryFolder, TimeProvider.System))
+        {
+            await library.UpdateBuildAsync(ember.Id, _ => new BuildRecord([new PartBuild("", "1.2", [],
+                [new BuiltPackage(Path.Combine(_work.Root, "Ember Isles v1.2.zip"), PackageKind.Zip, 1024, [CreatorWorkspace.Lantern], "1.2", BuiltAt)])]), CancellationToken.None);
+        }
+
+        using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        await UiHarness.WaitUntilAsync(() => creator.Cards.Count() == projects.Length && creator.Cards.All(shown => shown.Details.Length > 0)
+            && Card(ui, "Lantern Isle")!.Line is not null);
+
+        var card = (string name) => Card(ui, name)!;
+        card("Ember Isles").Details.Should().Be(GameWording.Join(["Nimbus", Text.Format(Strings.Creator_LastPackage, ("hasVersion", "true"),
+            ("version", GameWording.ShortVersion("1.2")), ("date", Formats.Date(BuiltAt, TimeZoneInfo.Utc)))]));
+        card("Ember Isles").Stores.Should().Equal(new StoreChip("steam", Strings.Library_StoreSteam));
+        card("Ember Isles").PartsText.Should().Be(Text.Format(Strings.Creator_CardParts, ("count", 1)));
+        card("Tidewater").Details.Should().Be(Text.Format(Strings.Creator_NoPackageYet, ("date", Formats.Date(TestStates.Now.AddDays(-30), TimeZoneInfo.Utc))));
+        card("Lantern Isle").Line!.Label.Should().Contain("Gone").And.NotContain(_work.Root, "a long path would fill the card");
+        card("Lantern Isle").FolderTip.Should().Be(gone);
+        card("Lantern Isle").AccessibleName.Should().Contain(gone, "screen readers get the whole path");
+        ui.Find<StatusLine>().Single(line => line.DataContext == card("Lantern Isle")).Bounds.Height.Should().BeLessThanOrEqualTo(2 * 17, "a state takes two lines at most");
+        card("Saltmarsh").Line!.Label.Should().Be(State("NoVersion"));
+        card("Ashfall").Line.Should().BeNull("before the stores' first scan a missing game is not a game gone");
+        ui.Agent.Requests.OfType<GetDetectedGames>().Should().BeEmpty();
+
+        ui.Push(TestStates.Idle(creatorMode: true) with { Version = 2, Library = new LibraryView { ScannedAt = TestStates.Now, IsCached = true } });
+        card("Ashfall").Line.Should().BeNull("a saved scan says nothing of today");
+
+        ui.Push(TestStates.Idle(creatorMode: true) with
+        {
+            Version = 3,
+            Library = new LibraryView { ScannedAt = TestStates.Now },
+            Games = [new GameView
+            {
+                Key = CreatorWorkspace.Tidewater,
+                Name = "Tidewater",
+                Status = new GameStatusView(MyGameState.TestInstalled),
+                Installs = [new InstallView { Id = Guid.NewGuid(), Status = new GameStatusView(MyGameState.TestInstalled), InstalledAt = TestStates.Now,
+                    InstallDirectory = _work.GameFolder, BackupDirectory = _work.GameFolder, PackageFileName = "Tidewater.zip", IsTest = true }],
+            }],
+        });
+        await UiHarness.WaitUntilAsync(() => card("Ashfall").Line is not null);
+        card("Ashfall").Line!.Label.Should().Be(State("GameGone"));
+        card("Tidewater").Line!.Label.Should().Be(State("TestInstalled"));
+        ui.Unnamed().Should().BeEmpty();
+        await RenderBothAsync(ui, "creator-library");
+
+        var first = ui.Find<Button>().First(button => button.Classes.Contains("gameCard"));
+        first.Focus(NavigationMethod.Directional);
+        ui.Press(Key.Right);
+        ui.Window.FocusManager!.GetFocusedElement().Should().BeOfType<Button>().Which.DataContext.Should().NotBe(first.DataContext, "the arrows move between cards");
+
+        files.Hang(sleeping);
+        ui.Shell.Navigator.Navigate(new SettingsRoute());
+        ui.Shell.Navigator.Navigate(new CreatorRoute());
+        await UiHarness.WaitUntilAsync(() => files.Blocked > 0);
+        ui.Clock.Advance(LibraryAccess.TimeLimit);
+        await UiHarness.WaitUntilAsync(() => card("Ashfall").FolderTip == sleeping);
+    }
+
+    [AvaloniaFact]
+    public async Task A_comparison_under_way_shows_on_the_project_s_card()
+    {
+        // A file of the game's size is hashed, which the held file system keeps from finishing.
+        _work.Author("data/strings.bin", "strings of the changed  game");
+        var files = new HeldFileSystem(_work.Root);
+        var project = Project("Lantern Isle", CreatorWorkspace.Lantern, _work.AuthorFolder);
+        await SeedAsync(project);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Lantern Isle") is not null);
+        var card = Card(ui, "Lantern Isle")!;
+
+        ui.Click(ui.Find<Button>().First(button => button.DataContext == card && button.Classes.Contains("gameCard")));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Work: ProjectWork.Comparing });
+        ui.Click(Button(ui, Strings.Creator_Projects));
+
+        await UiHarness.WaitUntilAsync(() => card.Line?.Label == State("Comparing"));
+        files.Reads.Set();
+        await UiHarness.WaitUntilAsync(() => card.Line is null);
+    }
+
+    [AvaloniaFact]
+    public async Task Turning_creator_mode_off_leaves_the_project_page_too()
+    {
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        ui.Click(Button(ui, Strings.Creator_New));
+        ui.Shell.Navigator.Current.Should().BeOfType<ProjectPageViewModel>();
+
+        ui.Push(TestStates.Idle(creatorMode: false));
+
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new LibraryRoute());
+    }
+
+    [AvaloniaFact]
+    public async Task Duplicate_opens_as_a_project_of_its_own()
+    {
+        var original = Project("Lantern Isle", CreatorWorkspace.Lantern, _work.AuthorFolder);
+        await SeedAsync(original);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Lantern Isle") is not null);
+
+        ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
+        await RenderBothAsync(ui, "creator-card-tiles");
+        await ChooseAsync(ui, Strings.Creator_Duplicate);
+
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel);
+        var copy = ((ProjectPageViewModel)ui.Shell.Navigator.Current!).Session!.Project;
+        copy.Id.Should().NotBe(original.Id);
+        copy.Name.Should().Be(Text.Format(Strings.Creator_CopyName, ("name", "Lantern Isle")));
+        copy.Parts[0].AuthorFolder.Should().Be(_work.AuthorFolder, "a duplicate keeps the same folders");
+        using var library = new ProjectLibrary(LibraryFolder, TimeProvider.System);
+        (await library.Store(original.Id).LoadAsync(CancellationToken.None)).Should().Be(original);
+        (await library.ReadBuildAsync(copy.Id, CancellationToken.None)).Should().BeNull();
+
+        ui.Click(Button(ui, Strings.Creator_Projects));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is CreatorPageViewModel creator && creator.Cards.Count() == 2);
+    }
+
+    [AvaloniaFact]
+    public async Task A_card_s_tiles_export_and_remove_a_project_and_a_refused_question_keeps_it()
+    {
+        var project = Project("Lantern Isle", CreatorWorkspace.Lantern, _work.AuthorFolder) with { OutputFolder = Path.Combine(_work.Root, "Packages") };
+        await SeedAsync(project);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Lantern Isle") is not null);
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+
+        ui.Pickers.SaveFile = Path.Combine(_work.Root, "Lantern Isle.exampleproj");
+        ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
+        await ChooseAsync(ui, Strings.Creator_Export);
+        await UiHarness.WaitUntilAsync(() => File.Exists(ui.Pickers.SaveFile));
+        ui.Pickers.Suggested.Should().Equal("Lantern Isle.exampleproj");
+        File.ReadAllText(ui.Pickers.SaveFile).Should().NotContain("Packages", "a file handed over never chooses where a build writes");
+
+        ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
+        await ChooseAsync(ui, Strings.Creator_Remove);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false, Title: var title } && title == Strings.Creator_RemoveTitle);
+        ((ConfirmDialogViewModel)ui.Shell.Dialogs.Current!).Message.Should().Be(Text.Format(Strings.Creator_RemoveMessage, ("name", "Lantern Isle")));
+        ui.Shell.Dialogs.CancelCurrent();
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null);
+        Directory.Exists(Path.Combine(LibraryFolder, project.Id.ToString())).Should().BeTrue();
+
+        ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
+        await ChooseAsync(ui, Strings.Creator_Remove);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
+        await RenderBothAsync(ui, "creator-remove");
+        using (File.Open(Path.Combine(LibraryFolder, project.Id.ToString(), "project.json"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            ui.Click(Button(ui, Strings.Creator_Remove));
+            await UiHarness.WaitUntilAsync(() => creator.HasProblem);
+        }
+
+        creator.ProblemText.Should().Be(Strings.Creator_RemoveFailed, "another program holds the project's file");
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null);
+        ui.Shell.Navigator.Navigate(new SettingsRoute());
+        ui.Shell.Navigator.Navigate(new CreatorRoute());
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Lantern Isle") is not null);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
+        await ChooseAsync(ui, Strings.Creator_Remove);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+        ui.Click(Button(ui, Strings.Creator_Remove));
+
+        await UiHarness.WaitUntilAsync(() => !creator.Cards.Any());
+        Directory.Exists(Path.Combine(LibraryFolder, project.Id.ToString())).Should().BeFalse();
+        Directory.Exists(_work.AuthorFolder).Should().BeTrue();
+    }
+
+    [AvaloniaFact]
+    public async Task A_project_that_cannot_be_read_is_told_and_kept()
+    {
+        await SeedAsync(Project("Lantern Isle", CreatorWorkspace.Lantern, _work.AuthorFolder));
+        var damaged = Path.Combine(LibraryFolder, Guid.NewGuid().ToString());
+        Directory.CreateDirectory(damaged);
+        File.WriteAllText(Path.Combine(damaged, "project.json"), "{ not a project");
+
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        await UiHarness.WaitUntilAsync(() => creator.HasUnreadable && creator.Cards.Any());
+
+        creator.UnreadableText.Should().Be(Text.Format(Strings.Creator_UnreadableProjects, ("count", 1)));
+        await RenderBothAsync(ui, "creator-unreadable");
+        ui.Click(Button(ui, Strings.Creator_Reveal));
+        ui.Links.Folders.Should().Equal(damaged);
+        File.ReadAllText(Path.Combine(damaged, "project.json")).Should().Be("{ not a project");
+    }
+
+    private static CreatorProject Project(string name, GameKey? game, string folder = "") => new()
+    {
+        Id = Guid.NewGuid(),
+        Name = name,
+        CreatedAt = TestStates.Now.AddDays(-30),
+        Versions = game is { } key ? [new ProjectVersion(new ProjectGame(key, name))] : [],
+        Parts = [new ProjectPart { AuthorFolder = folder }],
+    };
+
+    private async Task SeedAsync(params CreatorProject[] projects)
+    {
+        using var library = new ProjectLibrary(LibraryFolder, TimeProvider.System);
+        foreach (var project in projects)
+        {
+            await library.Store(project.Id).SaveAsync(project, CancellationToken.None);
+        }
+    }
+
+    private async Task<UiHarness> OpenAsync(AppStateView state, IFileSystem? files = null)
+    {
+        var ui = new UiHarness(state, CreatorWorkspace.Compose(files), context: context => context with { CreatorDirectory = LibraryFolder });
+        ui.Agent.Answer = _work.Answer;
+        ui.Shell.Navigator.Navigate(new CreatorRoute());
+        await UiHarness.WaitUntilAsync(() => ui.Find<CreatorPage>().Any(page => page.IsEffectivelyVisible));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        return ui;
+    }
+
+    private static ProjectCard? Card(UiHarness ui, string name) =>
+        (ui.Shell.Navigator.Current as CreatorPageViewModel)?.Cards.FirstOrDefault(card => card.Name == name);
+
+    private static string State(string state, string path = "") => Text.Format(Strings.Creator_CardState, ("state", state), ("path", path));
+
+    private static Button MoreButton(UiHarness ui, ProjectCard card) =>
+        ui.Find<Button>().First(button => button.DataContext == card && button.Classes.Contains("cardMore"));
+
+    private static Button Button(UiHarness ui, string name) =>
+        ui.Find<Button>().First(button => button.IsEffectivelyVisible && ControlAutomationPeer.CreatePeerForElement(button).GetName() == name);
+
+    // The dialog's scrim takes the clicks meant for the page until the dialog has faded out.
+    private static async Task ChooseAsync(UiHarness ui, string tile)
+    {
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+        ui.Click(Button(ui, tile));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is not ChoiceDialogViewModel);
+    }
+
+    private static async Task RenderBothAsync(UiHarness ui, string name)
+    {
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render(name);
+        var (width, height) = (ui.Window.Width, ui.Window.Height);
+        (ui.Window.Width, ui.Window.Height) = (960, 600);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render(name + "-960");
+        (ui.Window.Width, ui.Window.Height) = (width, height);
+        UiHarness.Settle();
+    }
+}

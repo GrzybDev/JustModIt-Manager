@@ -596,15 +596,6 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Creator_Subtitle" xml:space="preserve">
     <value>Z przetłumaczonych plików powstanie paczka, którą gracze zainstalują jednym kliknięciem.</value>
   </data>
-  <data name="Creator_StartTitle" xml:space="preserve">
-    <value>Przygotuj spolszczenie bez pisania kodu</value>
-  </data>
-  <data name="Creator_StartText" xml:space="preserve">
-    <value>Wystarczy wskazać grę i folder z przetłumaczonymi plikami. Kreator sam porówna je z grą, pokaże, co paczka zrobi u gracza, i wybierze format: zwykły .zip albo paczkę Menadżera {extension}.</value>
-  </data>
-  <data name="Creator_HowGame" xml:space="preserve">
-    <value>Wykryta gra, bez spolszczeń i modów.</value>
-  </data>
   <data name="Creator_StepFiles" xml:space="preserve">
     <value>Twoje pliki</value>
   </data>

@@ -106,7 +106,7 @@ public sealed class CreatorPackageTests : IDisposable
         package.Build.BuildTarget.Should().Be(Text.Format(Strings.Creator_BuildTarget, ("path", output)));
         await RenderAsync(ui, "creator-building", 1500);
 
-        var leaving = Page(ui).CanCloseAsync();
+        var leaving = ui.Shell.Navigator.CanCloseAsync();
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
         ((ConfirmDialogViewModel)ui.Shell.Dialogs.Current!).Title.Should().Be(Strings.Creator_StopBuildTitle);
         ui.Shell.Dialogs.CancelCurrent();
@@ -139,20 +139,11 @@ public sealed class CreatorPackageTests : IDisposable
     [AvaloniaFact]
     public async Task Closing_the_window_during_a_build_waits_until_the_build_removed_its_partial_package()
     {
-        _work.Author("data/pl/fonts.dat", "fonts of the translation");
-        var files = new HeldFileSystem(Path.Combine(_work.AuthorFolder, "data", "pl", "fonts.dat"));
-        files.Reads.Set();
-        using var ui = await OpenAsync(files);
-        var package = await PackageAsync(ui);
-        package.Description.Version = "0.9";
-        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
-        ui.Pickers.SaveFile = Output("Lantern Isle v0.9.examplemod");
-        files.Reads.Reset();
-        ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.Build.FileLine.Length > 0);
+        var (ui, _, files) = await BuildingAsync();
+        using var shown = ui;
         Directory.EnumerateFiles(Output("")).Should().ContainSingle("the build writes its package next to where it goes");
 
-        var closing = Page(ui).CanCloseAsync();
+        var closing = ui.Shell.Navigator.CanCloseAsync();
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
         ui.Click(Button(ui, Strings.Creator_StopBuildConfirm));
@@ -167,17 +158,8 @@ public sealed class CreatorPackageTests : IDisposable
     [AvaloniaFact]
     public async Task A_running_build_keeps_the_window_open_until_it_is_stopped()
     {
-        _work.Author("data/pl/fonts.dat", "fonts of the translation");
-        var files = new HeldFileSystem(Path.Combine(_work.AuthorFolder, "data", "pl", "fonts.dat"));
-        files.Reads.Set();
-        using var ui = await OpenAsync(files);
-        var package = await PackageAsync(ui);
-        package.Description.Version = "0.9";
-        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
-        ui.Pickers.SaveFile = Output("Lantern Isle v0.9.examplemod");
-        files.Reads.Reset();
-        ui.Click(Button(ui, Strings.Creator_Build));
-        await UiHarness.WaitUntilAsync(() => package.Build.FileLine.Length > 0);
+        var (ui, package, files) = await BuildingAsync();
+        using var shown = ui;
 
         foreach (var closing in new Func<Task<bool>>[] { () => ui.Agent.ShutdownHandler!(ShutdownReason.Update), ui.Shell.CloseFlow.DecideAsync })
         {
@@ -223,6 +205,83 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task Going_to_another_page_during_a_build_keeps_it_running_and_the_close_asks_once()
+    {
+        var (ui, package, files) = await BuildingAsync();
+        using var shown = ui;
+        var page = Page(ui);
+
+        ui.Shell.Navigator.Navigate(new SettingsRoute());
+        ui.Shell.Navigator.Navigate(new CreatorRoute());
+        package.Build.IsBuilding.Should().BeTrue("the sidebar drops the project's page, not its work");
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        await UiHarness.WaitUntilAsync(() => creator.Cards.SingleOrDefault()?.Line?.Label == Text.Format(Strings.Creator_CardState, ("state", "Building"), ("path", "")));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        ui.Click(ui.Find<Button>().First(button => button.DataContext is ProjectCard && button.Classes.Contains("gameCard")));
+        ui.Shell.Navigator.Current.Should().BeSameAs(page, "the project's card leads back to the work under way");
+
+        List<DialogViewModel> asked = [];
+        ui.Shell.Dialogs.PropertyChanged += (_, _) =>
+        {
+            if (ui.Shell.Dialogs.Current is { } dialog && !asked.Contains(dialog))
+            {
+                asked.Add(dialog);
+            }
+        };
+        var closing = ui.Agent.ShutdownHandler!(ShutdownReason.Exit);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+        ui.Click(Button(ui, Strings.Creator_StopBuildConfirm));
+        files.Reads.Set();
+
+        (await closing).Should().BeTrue();
+        asked.Should().ContainSingle("the library page alone answers for the open project");
+    }
+
+    [AvaloniaFact]
+    public async Task Removing_the_open_project_during_a_build_asks_stops_and_leaves_no_folder()
+    {
+        var (ui, package, files) = await BuildingAsync();
+        using var shown = ui;
+        var session = Page(ui).Session!;
+        var folder = Path.Combine(ui.CreatorDirectory, session.Project.Id.ToString());
+        await UiHarness.WaitUntilAsync(() => File.Exists(Path.Combine(folder, "project.json")));
+        ui.Click(Button(ui, Strings.Creator_Projects));
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        await UiHarness.WaitUntilAsync(() => creator.Cards.Any());
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        var remove = async () =>
+        {
+            ui.Click(ui.Find<Button>().First(button => button.DataContext is ProjectCard && button.Classes.Contains("cardMore")));
+            await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ChoiceDialogViewModel { IsClosing: false });
+            await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+            ui.Click(Button(ui, Strings.Creator_Remove));
+            await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
+            await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+            ui.Click(Button(ui, Strings.Creator_Remove));
+            await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false, Title: var title } && title == Strings.Creator_StopBuildTitle);
+            await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(250));
+        };
+
+        await remove();
+        ui.Shell.Dialogs.CancelCurrent();
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is null);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(100));
+        (creator.OpenPage is not null, package.Build.IsBuilding, Directory.Exists(folder)).Should().Be((true, true, true), "a refused question ends the removal");
+
+        await remove();
+        ui.Click(Button(ui, Strings.Creator_StopBuildConfirm));
+        files.Reads.Set();
+        await UiHarness.WaitUntilAsync(() => creator.OpenPage is null && !creator.Cards.Any());
+        Directory.Exists(folder).Should().BeFalse();
+
+        session.Describe(project => project with { Name = "Edited after the removal" });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
+        Directory.Exists(folder).Should().BeFalse("nothing brings a removed project's folder back");
+    }
+
+    [AvaloniaFact]
     public async Task A_late_answer_of_the_site_leaves_a_project_closed_and_opened_again_as_it_is()
     {
         var project = TestGames.Offer("Lantern Isle", version: 1);
@@ -232,13 +291,13 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Agent.Answer = request => request is GetProjectPage ? TestPages.Page(project) : _work.Answer(request);
         ui.Agent.Held = request => request is GetProjectPage ? site.Task : Task.CompletedTask;
         await PackageAsync(ui);
-        var page = Page(ui);
-        var closed = page.Session!;
-        await page.FinishAsync();
-        await UiHarness.WaitUntilAsync(() => page.HasRecent);
-        page.OpenRecentCommand.Execute(page.Recent[0]);
-        await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review && page.Session!.Review is not null);
-        var reopened = page.Session!;
+        var closed = Page(ui).Session!;
+        await Page(ui).FinishAsync();
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        await UiHarness.WaitUntilAsync(() => creator.Cards.Any());
+        creator.OpenCardCommand.Execute(creator.Cards.Single());
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Step: CreatorStep.Review, Session.Review: not null });
+        var reopened = Page(ui).Session!;
         reopened.Describe(current => current with { Name = "Edited in the reopened session" });
         (await reopened.FlushAsync()).Should().BeTrue();
 
@@ -267,20 +326,18 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task In_the_smallest_window_the_title_stands_whole_beside_the_project_s_buttons()
+    public async Task In_the_smallest_window_the_title_stands_whole_beside_the_library_s_buttons()
     {
         using var ui = await OpenAsync(width: 960, height: 600);
-        await PackageAsync(ui);
         var page = ui.Find<CreatorPage>().Single();
-        page.GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToHome();
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
 
         var title = page.GetVisualDescendants().OfType<TextBlock>().First(text => text.Classes.Contains("pageTitle"));
         var shown = title.Bounds.Width;
         title.Measure(Size.Infinity);
         title.DesiredSize.Width.Should().BeLessThanOrEqualTo(shown + 0.5, "the title is not cut");
-        Button(ui, Strings.Creator_New).Classes.Should().Contain("icon", "the first button keeps only its icon, and its name");
-        ui.Render("creator-header-minimum");
+        Button(ui, Strings.Creator_Import).Classes.Should().Contain("icon", "the import button keeps only its icon, and its name");
+        Shows(ui, Strings.Creator_New).Should().BeTrue();
     }
 
     [AvaloniaFact]
@@ -333,7 +390,7 @@ public sealed class CreatorPackageTests : IDisposable
         package.Description.IsManifest.Should().BeTrue();
         package.Description.FormatText.Should().StartWith(Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.RenamesFiles)))
             + " " + Text.Format(Strings.Creator_FormatReason, ("reason", nameof(FormatReason.DeclaresRuntimeFiles))));
-        ui.Find<CreatorPage>().Single().GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToHome();
+        ui.Find<Pages.Creator.ProjectPage>().Single().GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToHome();
         await RenderAsync(ui, "creator-runtime-package" + suffix, null);
 
         package.Description.Version = "1.0";
@@ -709,7 +766,7 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task Finishing_the_project_lists_it_and_brings_the_creator_back_to_its_start()
+    public async Task Finishing_the_project_lists_it_and_brings_the_creator_back_to_its_library()
     {
         _work.Author("data/strings.bin", "strings of the original game");
         using var ui = await OpenAsync();
@@ -721,20 +778,21 @@ public sealed class CreatorPackageTests : IDisposable
         await RenderAsync(ui, "creator-built-finish", 1700);
 
         ui.Click(Button(ui, Strings.Creator_Finish));
-        await UiHarness.WaitUntilAsync(() => !page.HasProject);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is CreatorPageViewModel);
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        creator.OpenPage.Should().BeNull();
         ui.Shell.Dialogs.Current.Should().BeNull("the project saved itself");
-        await UiHarness.WaitUntilAsync(() => page.HasRecent);
-        page.Recent.Should().ContainSingle().Which.Name.Should().Be("Lantern Isle");
+        await UiHarness.WaitUntilAsync(() => creator.Cards.Any());
+        creator.Cards.Should().ContainSingle().Which.Name.Should().Be("Lantern Isle");
 
         ui.Shell.Navigator.Navigate(new LibraryRoute());
         ui.Shell.Navigator.Navigate(new CreatorRoute());
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        ui.Shell.Navigator.Current.Should().BeSameAs(page);
-        page.HasProject.Should().BeFalse("the creator opens on its start rather than on the finished project");
+        ui.Shell.Navigator.Current.Should().BeSameAs(creator, "the creator opens on its library rather than on the finished project");
         ui.Click(Button(ui, Strings.Creator_New));
-        await UiHarness.WaitUntilAsync(() => page.Content is GameStepViewModel);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Content: GameStepViewModel });
         ui.Shell.Dialogs.Current.Should().BeNull();
-        (page.Session!.Part.AuthorFolder, page.Game).Should().Be(("", null), "the new project starts without the earlier folders");
+        (Page(ui).Session!.Part.AuthorFolder, Page(ui).Game).Should().Be(("", null), "the new project starts without the earlier folders");
     }
 
     [AvaloniaFact]
@@ -924,8 +982,8 @@ public sealed class CreatorPackageTests : IDisposable
 
     private async Task<PackageStepViewModel> PackageAsync(UiHarness ui, Func<ProjectPart, ProjectPart>? change = null)
     {
+        ((CreatorPageViewModel)ui.Shell.Navigator.Current!).NewProjectCommand.Execute(null);
         var page = Page(ui);
-        page.NewProjectCommand.Execute(null);
         await UiHarness.WaitUntilAsync(() => page.Content is GameStepViewModel { IsLoaded: true });
         ((GameStepViewModel)page.Content!).Choose(_work.Detected[1]);
         page.GoTo(CreatorStep.Files);
@@ -942,6 +1000,23 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitUntilAsync(() => page.Content is PackageStepViewModel);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         return (PackageStepViewModel)page.Content!;
+    }
+
+    // The build stands at a file the held file system keeps it from reading, until the test lets it go on.
+    private async Task<(UiHarness Ui, PackageStepViewModel Package, HeldFileSystem Files)> BuildingAsync()
+    {
+        _work.Author("data/pl/fonts.dat", "fonts of the translation");
+        var files = new HeldFileSystem(Path.Combine(_work.AuthorFolder, "data", "pl", "fonts.dat"));
+        files.Reads.Set();
+        var ui = await OpenAsync(files);
+        var package = await PackageAsync(ui);
+        package.Description.Version = "0.9";
+        await UiHarness.WaitUntilAsync(() => !package.Description.HasMetadataProblem);
+        ui.Pickers.SaveFile = Output("Lantern Isle v0.9.examplemod");
+        files.Reads.Reset();
+        ui.Click(Button(ui, Strings.Creator_Build));
+        await UiHarness.WaitUntilAsync(() => package.Build.FileLine.Length > 0);
+        return (ui, package, files);
     }
 
     // A build is waited for until it ends, however it ends, so one that fails says why at once rather than once the wait for a
@@ -1014,7 +1089,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Render(name, height);
     }
 
-    private static CreatorPageViewModel Page(UiHarness ui) => (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+    private static ProjectPageViewModel Page(UiHarness ui) => (ProjectPageViewModel)ui.Shell.Navigator.Current!;
 
     private static Button Button(UiHarness ui, string name) =>
         ui.Find<Button>().First(button => button.IsEffectivelyVisible && button.IsEffectivelyEnabled

@@ -11,72 +11,22 @@
   </UserControl.KeyBindings>
   <UserControl.Styles>
     <StyleInclude Source="avares://JustModIt.Manager.Ui/Pages/Creator/CreatorStyles.axaml" />
-    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(2)">
-      <Setter Property="Grid.Column" Value="1" />
-    </Style>
-    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(3)">
-      <Setter Property="Grid.Column" Value="2" />
-    </Style>
-    <Style Selector="ItemsControl#StepBar > ContentPresenter:nth-child(4)">
-      <Setter Property="Grid.Column" Value="3" />
-    </Style>
-    <Style Selector="ItemsControl.recentRows > ContentPresenter:not(:nth-child(1))">
-      <Setter Property="BorderBrush" Value="#0FFFFFFF" />
-      <Setter Property="BorderThickness" Value="0,1,0,0" />
-    </Style>
-    <Style Selector="Button.recent">
-      <Setter Property="Height" Value="NaN" />
-      <Setter Property="Padding" Value="14,10,16,10" />
-      <Setter Property="CornerRadius" Value="0" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    </Style>
-    <Style Selector="Button.recent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#08FFFFFF" />
-    </Style>
   </UserControl.Styles>
 
-  <ScrollViewer Classes="page" x:Name="Scroller">
-    <StackPanel Classes="page" Spacing="20" MaxWidth="{StaticResource PageMaxWidth}">
-      <StackPanel Spacing="4">
-        <Grid x:Name="Header" ColumnDefinitions="*,Auto" ColumnSpacing="24">
-          <TextBlock Classes="pageTitle" Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasProject}">
-            <Button x:Name="NewButton" Classes="quiet headerAction" Content="{x:Static loc:Strings.Creator_New}"
-                    ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding NewProjectCommand}" />
-            <Button x:Name="NewIconButton" Classes="icon large" IsVisible="False" ToolTip.Tip="{x:Static loc:Strings.Creator_New}"
-                    Command="{Binding NewProjectCommand}">
-              <ui:Icon Data="{x:Static theme:Icons.Plus}" Foreground="{StaticResource TextEmphasisBrush}" />
-            </Button>
-            <Button x:Name="ImportButton" Classes="outline headerAction" Content="{x:Static loc:Strings.Creator_Import}"
-                    ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding ImportProjectCommand}" />
-          </StackPanel>
-        </Grid>
-        <TextBlock Classes="subtitle" Text="{x:Static loc:Strings.Creator_Subtitle}" IsVisible="{Binding !HasProject}" />
-        <StackPanel x:Name="ProjectLine" Orientation="Horizontal" Spacing="8" Margin="0,2,0,0" MinHeight="24"
-                    IsVisible="{Binding HasProject}" TextElement.FontSize="13">
-          <ui:Icon Data="{x:Static theme:Icons.File}" Width="14" Height="14" Foreground="{StaticResource TextSecondaryBrush}" />
-          <TextBlock Text="{Binding ProjectName}" FontWeight="SemiBold" Foreground="{StaticResource TextEmphasisBrush}"
-                     VerticalAlignment="Center" />
-          <TextBlock Classes="separator" />
-          <Button x:Name="ExportButton" Classes="link" FontSize="13" Content="{x:Static loc:Strings.Creator_Export}"
-                  Command="{Binding ExportProjectCommand}" VerticalAlignment="Center" />
-          <Border Classes="kind" Margin="6,0,0,0" IsVisible="{Binding IsAdvanced}" VerticalAlignment="Center">
-            <StackPanel>
-              <ui:Icon Data="{x:Static theme:Icons.ListOrdered}" />
-              <TextBlock Text="{x:Static loc:Strings.Creator_AdvancedMode}" />
-            </StackPanel>
-          </Border>
+  <ScrollViewer Classes="page">
+    <StackPanel x:Name="PageContent" Classes="page" Spacing="18" MaxWidth="{StaticResource PageMaxWidth}">
+      <ui:PageHeader x:Name="Header" Title="{Binding Title}" Subtitle="{Binding Subtitle}">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button x:Name="ImportButton" Classes="outline" Content="{x:Static loc:Strings.Creator_Import}" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
+                  Command="{Binding ImportProjectCommand}" />
+          <Button x:Name="ImportIconButton" Classes="icon large" IsVisible="False" ToolTip.Tip="{x:Static loc:Strings.Creator_Import}"
+                  Command="{Binding ImportProjectCommand}">
+            <ui:Icon Data="{x:Static theme:Icons.FolderOpen}" Foreground="{StaticResource TextEmphasisBrush}" />
+          </Button>
+          <Button Classes="primary" Height="40" Padding="18,0" FontSize="14" Content="{x:Static loc:Strings.Creator_New}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}"
+                  Command="{Binding NewProjectCommand}" />
         </StackPanel>
-        <Grid x:Name="SaveFailedLine" ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,2,0,0"
-              IsVisible="{Binding Session.SaveFailed, FallbackValue=False}" theme:Motion.Enter="True">
-          <ui:Icon Data="{x:Static theme:Icons.CircleX}" Width="14" Height="14" VerticalAlignment="Top" Margin="0,2,0,0"
-                   Foreground="{StaticResource DangerTextBrush}" />
-          <TextBlock Grid.Column="1" Text="{x:Static loc:Strings.Creator_SaveFailed}" FontSize="13" LineHeight="18" TextWrapping="Wrap"
-                     Foreground="{StaticResource DangerTextBrush}" />
-        </Grid>
-      </StackPanel>
+      </ui:PageHeader>
 
       <ui:Callout Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
                   Title="{Binding ProblemTitle}" Message="{Binding ProblemText}" IsVisible="{Binding HasProblem}"
@@ -85,112 +35,137 @@
                 Margin="-12,0,0,0" Command="{Binding ClearProblemCommand}" />
       </ui:Callout>
 
-      <!-- The start: without a project, the one red button starts one. -->
-      <StackPanel x:Name="Start" Spacing="22" IsVisible="{Binding !HasProject}">
-        <Border Classes="creatorCard" Padding="28,24,24,24">
-          <Grid x:Name="StartGrid" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="32">
-            <StackPanel Spacing="16" Margin="0,6,0,0">
-              <TextBlock Text="{x:Static loc:Strings.Creator_StartTitle}" FontSize="24" LineHeight="32" FontWeight="Bold"
-                         LetterSpacing="-0.24" Foreground="{StaticResource TextStrongBrush}" TextWrapping="Wrap" />
-              <TextBlock Classes="bodyL" MaxWidth="520" HorizontalAlignment="Left" Text="{Binding StartText}" />
-              <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
-                <Button x:Name="StartNew" Classes="primary" Content="{x:Static loc:Strings.Creator_New}"
-                        ui:ButtonAssist.Icon="{x:Static theme:Icons.Plus}" Command="{Binding NewProjectCommand}" />
-                <Button x:Name="StartImport" Classes="outline" Height="48" Content="{x:Static loc:Strings.Creator_Import}"
-                        ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding ImportProjectCommand}" />
-              </StackPanel>
-              <TextBlock Classes="caption" MaxWidth="520" HorizontalAlignment="Left" Text="{Binding ProjectHint}" />
-            </StackPanel>
-            <Border x:Name="HowItWorksBox" Grid.Column="1" Width="404" Classes="soft" Padding="20">
-              <StackPanel Spacing="14">
-                <TextBlock Classes="overline" Text="{x:Static creator:CreatorPage.HowItWorksTitle}" />
-                <ItemsControl ItemsSource="{Binding HowItWorks}" theme:Motion.Stagger="True" ItemsPanel="{StaticResource StackItems12}">
+      <ItemsControl ItemsSource="{Binding Notices}" IsVisible="{Binding !!Notices.Count}" ItemsPanel="{StaticResource StackItems12}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="creator:ImportNotice">
+            <ui:Callout Classes.warning="{Binding IsWarning}" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{Binding Icon}"
+                        Message="{Binding Text}" theme:Motion.Enter="True">
+              <StackPanel Spacing="6">
+                <ItemsControl ItemsSource="{Binding Files}" IsVisible="{Binding IsWarning}">
                   <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="creator:HowItWorksStep">
-                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <Border Classes="number" VerticalAlignment="Top">
-                          <TextBlock Text="{Binding Number}" />
-                        </Border>
-                        <StackPanel Grid.Column="1" Spacing="2">
-                          <TextBlock Classes="rowTitle" Text="{Binding Title}" />
-                          <TextBlock Classes="rowText" Text="{Binding Text}" />
-                        </StackPanel>
-                      </Grid>
+                    <DataTemplate x:DataType="x:String">
+                      <TextBlock Classes="monoPath" Text="{Binding}" TextWrapping="Wrap" />
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <Button Classes="quiet small" Content="{x:Static loc:Strings.Creator_DismissProblem}" HorizontalAlignment="Left" Margin="-12,0,0,0"
+                        Command="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).DismissNoticeCommand}"
+                        CommandParameter="{Binding}" />
               </StackPanel>
-            </Border>
-          </Grid>
-        </Border>
-
-        <StackPanel Spacing="12" IsVisible="{Binding HasRecent}">
-          <TextBlock Classes="overline" Text="{x:Static creator:CreatorPage.RecentTitle}" />
-          <Border Classes="creatorCard" ClipToBounds="True">
-            <ItemsControl x:Name="RecentList" Classes="recentRows" ItemsSource="{Binding Recent}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="creator:RecentProject">
-                  <Button Classes="recent" AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Folder}"
-                          Command="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).OpenRecentCommand}"
-                          CommandParameter="{Binding}">
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
-                      <Border Classes="folderChip" Width="28" Height="28" CornerRadius="6">
-                        <ui:Icon Data="{x:Static theme:Icons.File}" Width="14" Height="14" />
-                      </Border>
-                      <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                        <TextBlock Classes="rowTitle" Text="{Binding Name}" />
-                        <TextBlock Classes="pathLine" Text="{Binding Folder}" IsVisible="{Binding Folder, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                      </StackPanel>
-                      <TextBlock Grid.Column="2" Classes="meta" Text="{Binding Changed}" VerticalAlignment="Center" />
-                      <ui:Icon Grid.Column="3" Data="{x:Static theme:Icons.ChevronRight}" Width="16" Height="16"
-                               Foreground="{StaticResource TextSecondaryBrush}" />
-                    </Grid>
-                  </Button>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </Border>
-        </StackPanel>
-      </StackPanel>
-
-      <!-- The steps of a project. -->
-      <ItemsControl x:Name="StepBar" ItemsSource="{Binding Steps}" IsVisible="{Binding HasProject}"
-                    AutomationProperties.Name="{x:Static loc:Strings.Creator_Steps}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <Grid ColumnDefinitions="*,*,*,Auto" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="creator:StepItem">
-            <Grid ColumnDefinitions="Auto,*">
-              <Button Classes="step" Classes.current="{Binding IsCurrent}" Classes.done="{Binding IsDone}"
-                      Classes.available="{Binding CanOpen}" IsEnabled="{Binding CanOpen}" ToolTip.Tip="{Binding Tip}"
-                      ToolTip.ShowOnDisabled="True" AutomationProperties.Name="{Binding AccessibleName}"
-                      Command="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).OpenStepCommand}"
-                      CommandParameter="{Binding}">
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <Border Classes="number" Classes.current="{Binding IsCurrent}" Classes.done="{Binding IsDone}">
-                    <Panel>
-                      <TextBlock Text="{Binding Number}" IsVisible="{Binding !IsDone}" />
-                      <ui:Icon Data="{x:Static theme:Icons.Check}" Width="14" Height="14" IsVisible="{Binding IsDone}" />
-                    </Panel>
-                  </Border>
-                  <TextBlock Classes="stepTitle" Text="{Binding Title}" />
-                </StackPanel>
-              </Button>
-              <Border Grid.Column="1" Classes="stepLine" Classes.done="{Binding IsDone}" Margin="14,0" IsVisible="{Binding !IsLast}" />
-            </Grid>
+            </ui:Callout>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
 
-      <TransitioningContentControl x:Name="StepContent" Content="{Binding Content}" IsTransitionReversed="{Binding IsGoingBack}"
-                                   IsVisible="{Binding HasProject}">
-        <TransitioningContentControl.PageTransition>
-          <theme:PageTransition IsHorizontal="True" Offset="28" />
-        </TransitioningContentControl.PageTransition>
-      </TransitioningContentControl>
+      <ui:Callout x:Name="UnreadableCallout" Classes="warning" MaxWidth="Infinity" HorizontalAlignment="Stretch"
+                  Icon="{x:Static theme:Icons.TriangleAlert}" Message="{Binding UnreadableText}" IsVisible="{Binding HasUnreadable}"
+                  theme:Motion.Enter="True">
+        <ItemsControl ItemsSource="{Binding Unreadable}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="creator:UnreadableProject">
+              <Border BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,6">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <TextBlock Classes="monoPath" Text="{Binding Shown}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Folder}" />
+                  <Button Grid.Column="1" Classes="quiet small" Content="{x:Static loc:Strings.Creator_Reveal}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Folder}"
+                          Command="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).RevealCommand}"
+                          CommandParameter="{Binding}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ui:Callout>
+
+      <!-- While the first listing runs, cards stand in; the page never claims there are no projects. -->
+      <ItemsControl ItemsSource="{Binding Skeletons}" IsVisible="{Binding IsListing}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <ui:PixelUniformGrid Columns="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).Columns}" ColumnSpacing="14" RowSpacing="14" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:Int32">
+            <Border Classes="card" Padding="14" BoxShadow="{StaticResource ElevNone}">
+              <StackPanel Spacing="10">
+                <ui:Skeleton Height="110" CornerRadius="8" />
+                <ui:Skeleton Height="14" Width="120" HorizontalAlignment="Left" />
+                <ui:Skeleton Height="12" Width="176" HorizontalAlignment="Left" />
+                <ui:Skeleton Height="18" Width="96" HorizontalAlignment="Left" CornerRadius="999" />
+                <ui:Skeleton Height="12" Width="136" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <!-- The grid lies out in rows, so the list virtualises; cards of a row enter one after another. -->
+      <ItemsControl x:Name="CardList" ItemsSource="{Binding Rows}" IsVisible="{Binding !IsListing}" theme:Motion.Stagger="True"
+                    ItemsPanel="{StaticResource VirtualRows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="ui:CardRow">
+            <ItemsControl ItemsSource="{Binding Items}" Margin="0,0,0,14" theme:Motion.Stagger="True">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <ui:PixelUniformGrid x:DataType="ui:CardRow" Columns="{Binding Columns}" ColumnSpacing="14" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.DataTemplates>
+                <DataTemplate x:DataType="creator:ProjectCard">
+                  <Panel Classes="projectCard">
+                    <Button Classes="gameCard" AutomationProperties.Name="{Binding AccessibleName}"
+                            Command="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).OpenCardCommand}"
+                            CommandParameter="{Binding}">
+                      <StackPanel Spacing="10" Margin="14" ClipToBounds="True">
+                        <Border Height="110" CornerRadius="8" ClipToBounds="True">
+                          <Panel Background="{StaticResource SurfaceSunkenBrush}">
+                            <Panel Classes="coverPlaceholder" IsVisible="{Binding !HasCover}">
+                              <ui:Icon Data="{x:Static theme:Icons.Gamepad}" Width="26" Height="26" StrokeThickness="1.5"
+                                       Foreground="#B3C4B5FD" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Panel>
+                            <ui:RemoteImage Classes="cover" Source="{Binding Cover}" />
+                          </Panel>
+                        </Border>
+                        <TextBlock Classes="cardName" Text="{Binding Name}" />
+                        <TextBlock Classes="rowText" FontSize="12" LineHeight="17" Text="{Binding Details}" />
+                        <WrapPanel ItemSpacing="6" LineSpacing="6">
+                          <ItemsControl ItemsSource="{Binding Stores}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <WrapPanel ItemSpacing="6" LineSpacing="6" />
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="creator:StoreChip">
+                                <Border Classes="chip">
+                                  <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <ui:StoreIcon Store="{Binding Store}" Width="12" Height="12" Foreground="{StaticResource TextBodyBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextBodyBrush}" VerticalAlignment="Center" />
+                                  </StackPanel>
+                                </Border>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <Border Classes="chip" IsVisible="{Binding HasParts}">
+                            <TextBlock Text="{Binding PartsText}" />
+                          </Border>
+                        </WrapPanel>
+                        <ui:StatusLine FontSize="12" LineHeight="17" Icon="{Binding Line.Icon, FallbackValue={x:Null}}" Tone="{Binding Line.Tone, FallbackValue={x:Static ui:Tone.Neutral}}"
+                                       Label="{Binding Line.Label, FallbackValue={x:Null}}" IsBusy="{Binding Line.IsBusy, FallbackValue=False}"
+                                       ToolTip.Tip="{Binding FolderTip}" IsVisible="{Binding HasLine}" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="icon cardMore" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,23,23,0" ToolTip.Tip="{Binding MoreName}"
+                            Command="{Binding $parent[UserControl].((creator:CreatorPageViewModel)DataContext).CardMenuCommand}"
+                            CommandParameter="{Binding}">
+                      <ui:Icon Data="{x:Static theme:Icons.Ellipsis}" Width="16" Height="16" Foreground="{StaticResource TextStrongBrush}" />
+                    </Button>
+                  </Panel>
+                </DataTemplate>
+              </ItemsControl.DataTemplates>
+            </ItemsControl>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

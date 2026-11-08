@@ -153,6 +153,47 @@ public sealed class ProjectLibrary(string directory, TimeProvider time) : IDispo
             return true;
         }, cancellationToken);
 
+    /// <summary>Adds a copy of a project to the library as a project of its own, with no builds.</summary>
+    /// <param name="project">The project.</param>
+    /// <param name="name">What the copy is called.</param>
+    /// <param name="cancellationToken">Cancels the copy.</param>
+    /// <returns>The copy as the library holds it.</returns>
+    public async Task<CreatorProject> DuplicateAsync(CreatorProject project, string name, CancellationToken cancellationToken)
+    {
+        var copy = project with { Id = Guid.NewGuid(), Name = name, CreatedAt = time.GetUtcNow() };
+        await Store(copy.Id).SaveAsync(copy, cancellationToken).ConfigureAwait(false);
+        return copy;
+    }
+
+    /// <summary>
+    /// Takes a project out of the library: its two files, what a crash left of writing them and the folder once it is empty.
+    /// Nothing recursive, so nothing else in the folder ever goes with it.
+    /// </summary>
+    /// <param name="id">The project's id.</param>
+    /// <param name="cancellationToken">Cancels the removal before it starts.</param>
+    public Task RemoveAsync(Guid id, CancellationToken cancellationToken) => Task.Run(() =>
+    {
+        var folder = Path.Join(directory, id.ToString());
+        if (!Directory.Exists(folder))
+        {
+            return;
+        }
+
+        foreach (var name in new[] { ProjectFileName, BuildsFileName })
+        {
+            File.Delete(Path.Join(folder, name));
+            foreach (var temporary in Directory.EnumerateFiles(folder, name + ".*.tmp"))
+            {
+                File.Delete(temporary);
+            }
+        }
+
+        if (!Directory.EnumerateFileSystemEntries(folder).Any())
+        {
+            Directory.Delete(folder);
+        }
+    }, cancellationToken);
+
     /// <summary>
     /// Brings over the project files on the list an earlier version kept, each once, whatever stops it halfway. The list is the
     /// only record of those paths, so a file leaves it only once it is in the library or surely gone or damaged.

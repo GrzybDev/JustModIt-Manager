@@ -67,7 +67,11 @@ public sealed class CreatorWorkspace : IDisposable
     /// <summary>Puts the creator's page, with an optional file system, in place of the window's own.</summary>
     /// <param name="fileSystem">Reads the folders; null for the real file system.</param>
     public static Action<UiComposition> Compose(IFileSystem? fileSystem = null) => ui =>
-        ui.Pages.Register<CreatorRoute>((_, services) => new CreatorPageViewModel(services, fileSystem));
+    {
+        CreatorPageViewModel? creator = null;
+        ui.Pages.Register<CreatorRoute>((_, services) => creator ??= new CreatorPageViewModel(services, fileSystem));
+        ui.Pages.Register<CreatorProjectRoute>((_, services) => (creator ??= new CreatorPageViewModel(services, fileSystem)).OpenPage!);
+    };
 
     /// <summary>Answers the window's question for the detected games, and every other request with nothing.</summary>
     public Func<Message, Message?> Answer => request => request is GetDetectedGames ? new DetectedGames(Detected) : null;

@@ -81,6 +81,13 @@ public sealed record CreatorRoute : Route
     public override bool IsRoot => true;
 }
 
+/// <summary>A project of the package creator, open on top of its library.</summary>
+/// <param name="ProjectId">The project's id.</param>
+public sealed record CreatorProjectRoute(Guid ProjectId) : Route
+{
+    public override ShellSection Section => ShellSection.Creator;
+}
+
 public sealed record SettingsRoute : Route
 {
     public override ShellSection Section => ShellSection.Settings;

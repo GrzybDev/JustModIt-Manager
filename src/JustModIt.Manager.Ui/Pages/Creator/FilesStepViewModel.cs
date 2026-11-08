@@ -33,7 +33,7 @@ public enum FilesState
 /// </summary>
 public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepView
 {
-    private readonly CreatorPageViewModel _page;
+    private readonly ProjectPageViewModel _page;
     private readonly CreatorSession _session;
     private readonly LibraryAccess _access;
     private CancellationTokenSource? _comparing;
@@ -41,9 +41,9 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     private bool _comparesOnShow;
 
     /// <summary>Creates the step for a project, which compares the folder of a project opened again once shown.</summary>
-    /// <param name="page">The creator.</param>
+    /// <param name="page">The project's page.</param>
     /// <param name="session">The project.</param>
-    public FilesStepViewModel(CreatorPageViewModel page, CreatorSession session)
+    public FilesStepViewModel(ProjectPageViewModel page, CreatorSession session)
     {
         _page = page;
         _session = session;
@@ -53,7 +53,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         ShowFolder();
     }
 
-    public CreatorPageViewModel Page => _page;
+    public ProjectPageViewModel Page => _page;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowsDropZone), nameof(IsComparing), nameof(IsStopped), nameof(HasNothingToPackage),
@@ -310,7 +310,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
         IdenticalCount = Text.Format(Strings.Creator_IdenticalCount, ("count", identical.Count));
         Summary = Text.Format(Strings.Creator_Compared, ("count", comparison.Files.Count(file => file.AuthorPath is not null)));
         ShowsIdentical = false;
-        if (CreatorPageViewModel.HasNothingToPackage(_session))
+        if (ProjectPageViewModel.HasNothingToPackage(_session))
         {
             (NothingTitle, NothingText) = identical.Count > 0
                 ? (Strings.Creator_NothingTitle, Strings.Creator_Nothing)

@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using JustModIt.Manager.Localization;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
@@ -16,6 +17,8 @@ public sealed partial class FilesStepView : UserControl
         DropZone.AddHandler(DragDrop.DragLeaveEvent, OnDragLeave);
         DropZone.AddHandler(DragDrop.DropEvent, OnDrop);
     }
+
+    public static string DetectsTitle => Strings.Creator_Detects.ToUpper(Text.Culture);
 
     private FilesStepViewModel? Step => DataContext as FilesStepViewModel;
 

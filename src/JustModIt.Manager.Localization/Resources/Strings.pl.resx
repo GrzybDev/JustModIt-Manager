@@ -2604,35 +2604,56 @@
   <data name="Creator_Subtitle" xml:space="preserve">
     <value>Z gotowych plików powstanie paczka, którą gracze zainstalują jednym kliknięciem.</value>
   </data>
-  <data name="Creator_StartTitle" xml:space="preserve">
-    <value>Przygotuj paczkę bez pisania kodu</value>
+  <data name="Creator_LibrarySubtitle" xml:space="preserve">
+    <value>Projekty zapisują się same. Nowe wydanie zaczyna się od otwarcia projektu.</value>
   </data>
-  <data name="Creator_StartText" xml:space="preserve">
-    <value>Wystarczy wskazać grę i folder z plikami. Kreator sam porówna je z grą, pokaże, co paczka zrobi u gracza, i wybierze format: zwykły .zip albo paczkę {extension}.</value>
+  <data name="Creator_LastPackage" xml:space="preserve">
+    <value>{hasVersion, select, true {Ostatnia paczka {version} z {date}} other {Ostatnia paczka z {date}}}</value>
   </data>
-  <data name="Creator_ProjectHint" xml:space="preserve">
-    <value>Projekt ({extension}) to wersja robocza – można go zapisać i dokończyć później.</value>
+  <data name="Creator_NoPackageYet" xml:space="preserve">
+    <value>Bez zbudowanej paczki · utworzony {date}</value>
   </data>
-  <data name="Creator_HowItWorks" xml:space="preserve">
-    <value>Jak to działa</value>
+  <data name="Creator_CardState" xml:space="preserve">
+    <value>{state, select, FolderGone {Folder z plikami niedostępny ({path})} GameGone {Gry nie ma na tym komputerze} NoVersion {Bez wersji gry} Comparing {Porównywanie…} Building {Budowanie paczek…} TestInstalled {Instalacja testowa w grze} other {}}</value>
   </data>
-  <data name="Creator_HowGame" xml:space="preserve">
-    <value>Wykryta gra, bez modów i innych zmian.</value>
+  <data name="Creator_CardParts" xml:space="preserve">
+    <value>Podstawa + {count, plural, one {# składnik} few {# składniki} many {# składników} other {# składnika}}</value>
   </data>
-  <data name="Creator_HowFiles" xml:space="preserve">
-    <value>Folder z plikami ułożonymi jak w grze.</value>
+  <data name="Creator_CardMore" xml:space="preserve">
+    <value>Więcej: {name}</value>
   </data>
-  <data name="Creator_HowReview" xml:space="preserve">
-    <value>Kreator sam wykrywa kopie, łatki i zmiany nazw – do przejrzenia albo ułożenia ręcznie.</value>
+  <data name="Creator_ExportText" xml:space="preserve">
+    <value>Plik do przekazania albo na kopię.</value>
   </data>
-  <data name="Creator_HowPackage" xml:space="preserve">
-    <value>Kreator wybiera .zip albo {extension}, buduje paczkę i instaluje ją testowo.</value>
+  <data name="Creator_Duplicate" xml:space="preserve">
+    <value>Duplikuj</value>
   </data>
-  <data name="Creator_Recent" xml:space="preserve">
-    <value>Ostatnie projekty</value>
+  <data name="Creator_DuplicateText" xml:space="preserve">
+    <value>Osobny projekt z tymi samymi ustawieniami i folderami.</value>
   </data>
-  <data name="Creator_RecentChanged" xml:space="preserve">
-    <value>Zmieniony {when}</value>
+  <data name="Creator_CopyName" xml:space="preserve">
+    <value>{name} (kopia)</value>
+  </data>
+  <data name="Creator_Remove" xml:space="preserve">
+    <value>Usuń z kreatora</value>
+  </data>
+  <data name="Creator_RemoveText" xml:space="preserve">
+    <value>Folder z plikami i zbudowane paczki zostają na dysku.</value>
+  </data>
+  <data name="Creator_RemoveTitle" xml:space="preserve">
+    <value>Usunąć projekt z kreatora?</value>
+  </data>
+  <data name="Creator_RemoveMessage" xml:space="preserve">
+    <value>Projekt {name} zniknie z kreatora. Folder z plikami i zbudowane paczki zostają na dysku.</value>
+  </data>
+  <data name="Creator_RemoveFailed" xml:space="preserve">
+    <value>Nie udało się usunąć projektu z kreatora, np. inny program trzyma jego plik.</value>
+  </data>
+  <data name="Creator_Projects" xml:space="preserve">
+    <value>Projekty</value>
+  </data>
+  <data name="Creator_UnreadableProjects" xml:space="preserve">
+    <value>{count, plural, one {# projektu nie da się odczytać. Jego pliki zostają na dysku.} few {# projektów nie da się odczytać. Ich pliki zostają na dysku.} many {# projektów nie da się odczytać. Ich pliki zostają na dysku.} other {# projektu nie da się odczytać. Ich pliki zostają na dysku.}}</value>
   </data>
   <data name="Creator_New" xml:space="preserve">
     <value>Nowy projekt</value>
@@ -2665,7 +2686,7 @@
     <value>Nie udało się zapisać pliku, np. folder jest tylko do odczytu albo dysk jest pełny.</value>
   </data>
   <data name="Creator_ImportSkipped" xml:space="preserve">
-    <value>Nie udało się przenieść {count, plural, one {# projektu} few {# projektów} many {# projektów} other {# projektu}} z listy ostatnich, bo plik zniknął albo jest uszkodzony: {files}.</value>
+    <value>Nie udało się przenieść {count, plural, one {# projektu} few {# projektów} many {# projektów} other {# projektu}} z listy ostatnich: plik zniknął albo jest uszkodzony.</value>
   </data>
   <data name="Creator_ImportWaiting" xml:space="preserve">
     <value>{count, plural, one {# projekt z listy ostatnich czeka} few {# projekty z listy ostatnich czekają} many {# projektów z listy ostatnich czeka} other {# projektu z listy ostatnich czeka}} na kolejną próbę przy następnym otwarciu.</value>

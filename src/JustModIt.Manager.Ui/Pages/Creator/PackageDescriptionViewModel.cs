@@ -23,15 +23,15 @@ public sealed record FormatRow(string Extension, string Text, bool IsChosen);
 /// </summary>
 public sealed partial class PackageDescriptionViewModel : ObservableObject
 {
-    private readonly CreatorPageViewModel _page;
+    private readonly ProjectPageViewModel _page;
     private readonly CreatorSession _session;
     private GameKey? _hintsFor;
     private ProjectHints? _hints;
 
     /// <summary>Creates the description of a project's package.</summary>
-    /// <param name="page">The creator.</param>
+    /// <param name="page">The project's page.</param>
     /// <param name="session">The project.</param>
-    public PackageDescriptionViewModel(CreatorPageViewModel page, CreatorSession session)
+    public PackageDescriptionViewModel(ProjectPageViewModel page, CreatorSession session)
     {
         _page = page;
         _session = session;

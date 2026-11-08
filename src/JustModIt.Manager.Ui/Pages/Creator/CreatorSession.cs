@@ -24,6 +24,7 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
     private Task? _planning;
     private LatestDocumentWriter<CreatorProject>? _writer;
     private volatile bool _lastSaveFailed;
+    private bool _isClosed;
 
     /// <summary>Opens a project in the creator.</summary>
     /// <param name="options">The app's limits, rules and extensions.</param>
@@ -93,7 +94,12 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
         }
 
         Project = changed;
-        (_writer ??= NewWriter()).Save(Project);
+        // A save that comes after the end would bring a removed project's folder back.
+        if (!_isClosed)
+        {
+            (_writer ??= NewWriter()).Save(Project);
+        }
+
         _planning = PlanAsync();
     }
 
@@ -160,7 +166,11 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
         return !_lastSaveFailed;
     }
 
-    public ValueTask DisposeAsync() => _writer?.DisposeAsync() ?? ValueTask.CompletedTask;
+    public ValueTask DisposeAsync()
+    {
+        _isClosed = true;
+        return _writer?.DisposeAsync() ?? ValueTask.CompletedTask;
+    }
 
     private LatestDocumentWriter<CreatorProject> NewWriter() => new(_store, "creator project", _logger, SettingsService.SaveDelay, saved: failure =>
     {
