@@ -1,4 +1,4 @@
-using JustModIt.Manager.Agent.Lifetime;
+using JustModIt.Manager.Agent.Ipc;
 using JustModIt.Manager.Agent.Tests.TestSupport;
 using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Core.Installation;
@@ -82,11 +82,13 @@ public sealed class ExitTests : IAsyncDisposable
     private IEnumerable<string> TrayExits() =>
         _agent.Tray.Menu.Select(item => item.Command).Where(command => command is TrayCommands.Exit or TrayCommands.ExitNow);
 
+    // The agent publishes its state on a loop of its own, so a window that connects right after the exit began may first get a
+    // state from before it, and waiting for the next one would skip the page the window was sent meanwhile.
     private async Task ExitAfterJobsAsync(FakeWindow window)
     {
-        var lifetime = await _agent.ServiceAsync<AgentLifetime>();
+        var publisher = await _agent.ServiceAsync<StatePublisher>();
         await window.RequestAsync(new ExitApp(ExitMode.AfterJobs));
         (await window.ShutdownRequests.Reader.ReadAsync(AgentHarness.Token)).Should().Be(ShutdownReason.Exit);
-        await Eventually.HoldsAsync(() => lifetime.IsExiting);
+        await Eventually.HoldsAsync(() => publisher.Latest.Activity.IsExitPending);
     }
 }
