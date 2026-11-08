@@ -3297,6 +3297,9 @@
   <data name="Creator_LastRelease" xml:space="preserve">
     <value>Ostatnie wydanie: {version}.</value>
   </data>
+  <data name="Creator_OnSite" xml:space="preserve">
+    <value>na stronie {version}</value>
+  </data>
   <data name="Creator_Authors" xml:space="preserve">
     <value>Autorzy</value>
   </data>

@@ -37,18 +37,20 @@ internal sealed record ProjectHints(string Project, string Release, string NextV
     }
 
     /// <summary>
-    /// Reads the hints of the site's project that a package for a game is surely for, which the creator tells without guessing:
-    /// the project installed on the game, else the game's only one.
+    /// Reads the hints of the site's project a package is for: the one the project names, else the one the creator tells is the
+    /// author's without guessing, the project installed on the game, else the game's only one.
     /// </summary>
     /// <param name="agent">The agent, which reads the project's page.</param>
-    /// <param name="game">The game.</param>
+    /// <param name="site">The project's place on the site; null while the project names none.</param>
+    /// <param name="game">The game; null while the stores have not reported it.</param>
     /// <returns>The hints; null when no project is surely the author's or its page cannot be read.</returns>
-    public static async Task<ProjectHints?> AskAsync(IAgent agent, DetectedGameEntry game)
+    public static async Task<ProjectHints?> AskAsync(IAgent agent, ProjectSite? site, DetectedGameEntry? game)
     {
-        var installed = agent.State.Games.FirstOrDefault(view => view.Key == game.Key)?.Installs
+        var installed = agent.State.Games.FirstOrDefault(view => view.Key == game?.Key)?.Installs
             .Select(install => install.Project).OfType<ProjectOfferView>().FirstOrDefault();
-        var project = installed is not null ? new SiteProjectView(installed.ProjectId, installed.GameSlug, installed.Team.Slug)
-            : game.Projects is [var only] ? only
+        var project = site is not null ? new SiteProjectView(site.ProjectId, site.GameSlug, site.TeamSlug)
+            : installed is not null ? new SiteProjectView(installed.ProjectId, installed.GameSlug, installed.Team.Slug)
+            : game?.Projects is [var only] ? only
             : null;
         return project is not null && await AgentRequests.AskQuietlyAsync(agent, new GetProjectPage(project.GameSlug, project.TeamSlug, project.ProjectId)).ConfigureAwait(true)
             is ProjectPageResult { Page: { } page } ? await Task.Run(() => Read(page)).ConfigureAwait(true) : null;

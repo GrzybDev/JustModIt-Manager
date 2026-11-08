@@ -308,7 +308,7 @@ public sealed partial class NewProjectDialogViewModel
 
     private async Task HintAsync(DetectedGameEntry game)
     {
-        var hints = await ProjectHints.AskAsync(_services.Agent, game).ConfigureAwait(true);
+        var hints = await ProjectHints.AskAsync(_services.Agent, null, game).ConfigureAwait(true);
         if (_shownKey != game.Key || hints is null || _closing.IsCancellationRequested)
         {
             return;

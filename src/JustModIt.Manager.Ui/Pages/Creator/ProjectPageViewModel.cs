@@ -156,7 +156,7 @@ public sealed partial class ProjectPageViewModel : PageViewModel
     [ObservableProperty]
     public partial string PartName { get; private set; } = "";
 
-    /// <summary>The version's store and build and the project's last package, under its title.</summary>
+    /// <summary>The version's store and build, the project's last package and the site's last release, under its title.</summary>
     [ObservableProperty]
     public partial string VersionLine { get; private set; } = "";
 
@@ -434,10 +434,20 @@ public sealed partial class ProjectPageViewModel : PageViewModel
             }
         }
 
-        // The site names the add-ons, which the rows' heads say.
+        // The other versions' cells of a part say what they share with its first version, which only holds while that one is compared.
+        if (sender is CellViewModel told && e.PropertyName == nameof(CellViewModel.State) && told == Cells.FirstOrDefault(cell => cell.Key.Part == told.Key.Part))
+        {
+            foreach (var cell in Cells.Where(cell => cell != told && cell.Key.Part == told.Key.Part))
+            {
+                cell.ShowBrief();
+            }
+        }
+
+        // The site names the add-ons, which the rows' heads say, and its last release, which the head says.
         if (sender == Description && e.PropertyName == nameof(PackageDescriptionViewModel.Hints) && Session is { } session)
         {
             ShowCells(session);
+            ShowSession();
         }
 
         if (sender == Build && e.PropertyName == nameof(BuildViewModel.State) && !Build.IsBuilding)
@@ -543,6 +553,7 @@ public sealed partial class ProjectPageViewModel : PageViewModel
             !IsTable && Game?.Game.BuildId is { Length: > 0 } build ? Text.Format(Strings.Creator_GameBuild, ("build", build)) : "",
             ProjectCard.LastPackageOf(Record, Services.Clock)
                 ?? Text.Format(Strings.Creator_NoPackageYet, ("date", Formats.Date(session.Project.CreatedAt, Services.Clock.LocalTimeZone))),
+            Description.Hints is { Release.Length: > 0 } hints ? Text.Format(Strings.Creator_OnSite, ("version", GameWording.ShortVersion(hints.Release))) : "",
         ]);
         AllOperationsText = Text.Format(Strings.Creator_AllOperations, ("count", session.Review?.Plan.Operations.Count ?? 0));
         OnPropertyChanged(nameof(OutputFolder));

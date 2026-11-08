@@ -3309,6 +3309,9 @@
   <data name="Creator_LastRelease" xml:space="preserve">
     <value>Last release: {version}.</value>
   </data>
+  <data name="Creator_OnSite" xml:space="preserve">
+    <value>on the site {version}</value>
+  </data>
   <data name="Creator_Authors" xml:space="preserve">
     <value>Authors</value>
   </data>

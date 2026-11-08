@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Planning;
@@ -24,7 +23,8 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
 {
     private readonly ProjectPageViewModel _page;
     private readonly CreatorSession _session;
-    private GameKey? _hintsFor;
+    // Set while the site is asked and once it answered, so a page that shows again asks only after no answer came.
+    private bool _asked;
 
     /// <summary>Creates the description of a project's package.</summary>
     /// <param name="page">The project's page.</param>
@@ -58,7 +58,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
     [ObservableProperty]
     public partial string NewAuthor { get; set; } = "";
 
-    /// <summary>The site's last release of the game's project, under the version; empty when it is not known.</summary>
+    /// <summary>The site's last release of the project, under the version; empty when it is not known.</summary>
     [ObservableProperty]
     public partial string LastRelease { get; private set; } = "";
 
@@ -69,7 +69,7 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
     /// <summary>The authors are the site's project's own, as filled in from it.</summary>
     public bool AreAuthorsFromSite => Hints is { Authors.Count: > 0 } project && Authors.SequenceEqual(project.Authors);
 
-    /// <summary>What the site's project of the game suggests; null while none is surely the author's.</summary>
+    /// <summary>What the project on the site suggests; null while none is known or surely the author's.</summary>
     [ObservableProperty]
     internal partial ProjectHints? Hints { get; private set; }
 
@@ -162,34 +162,42 @@ public sealed partial class PackageDescriptionViewModel : ObservableObject
         AuthorsNote = AreAuthorsFromSite ? Text.Format(Strings.Creator_AuthorsFromProject, ("project", Hints!.Project)) : Strings.Creator_AuthorsHint;
     }
 
-    /// <summary>Fills in what the author left empty from the game's project on the site, once per game.</summary>
+    /// <summary>
+    /// Reads, once per open, the site's project the project names, else the one it is surely for, which the project then names.
+    /// The version after the site's last release replaces an empty version or that release's, never one typed, and the credits
+    /// fill an empty list of authors.
+    /// </summary>
     internal async Task HintAsync()
     {
-        if (_page.Game is not { } game || _hintsFor == game.Key)
+        var site = _session.Project.Site;
+        if (_asked || (site is null && _page.Game is null))
         {
             return;
         }
 
-        (_hintsFor, Hints) = (game.Key, null);
-        var hints = await ProjectHints.AskAsync(_page.Agent, game).ConfigureAwait(true);
+        _asked = true;
+        var hints = await ProjectHints.AskAsync(_page.Agent, site, _page.Game).ConfigureAwait(true);
         // The site may take long enough for the project to be closed and opened again, as a session of its own.
-        if (_page.Session != _session || _page.Game?.Key != game.Key)
+        if (_page.Session != _session)
         {
             return;
         }
 
         if (hints is null)
         {
-            _hintsFor = null;
+            _asked = false;
             return;
         }
 
         Hints = hints;
         _session.Change(current => current with
         {
+            Site = current.Site ?? hints.Site,
             Metadata = current.Metadata with
             {
-                Version = current.Metadata.Version.Trim().Length == 0 ? hints.NextVersion : current.Metadata.Version,
+                Version = hints.NextVersion.Length > 0 && current.Metadata.Version.Trim() is var typed && (typed.Length == 0 || typed == hints.Release)
+                    ? hints.NextVersion
+                    : current.Metadata.Version,
                 Authors = current.Metadata.Authors.Count == 0 ? [.. hints.Authors] : current.Metadata.Authors,
             },
         });

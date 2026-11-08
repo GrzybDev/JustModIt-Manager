@@ -370,6 +370,57 @@ public sealed class CreatorPackageTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_new_release_takes_opening_the_card_and_one_build_and_a_typed_version_stays()
+    {
+        var project = TestGames.Offer("Lantern Isle", version: 1);
+        _work.LanternProjects = [new SiteProjectView(project.ProjectId, project.GameSlug, project.Team.Slug)];
+        using var ui = await OpenAsync();
+        ui.Agent.Answer = request => request is GetProjectPage ? TestPages.Page(project) : _work.Answer(request);
+        var package = await PackageAsync(ui);
+        await UiHarness.WaitUntilAsync(() => package.Description.Version == "2");
+        // The site's last release is this project's package.
+        package.Description.Version = "1";
+        await BuildAsync(ui);
+        await BuiltAsync(package);
+
+        var next = await ReopenAsync(ui, () => _work.Author("data/extra/credits.txt", "credits of the next release"));
+        await UiHarness.WaitUntilAsync(() => next.CanBuild, () => next.BlockedText);
+        next.Description.Version.Should().Be("2", "the version that was the site's last release moves on by itself");
+        next.VersionLine.Should().EndWith(Text.Format(Strings.Creator_OnSite, ("version", GameWording.ShortVersion("1"))));
+        await ui.RenderBothAsync("creator-next-version");
+        await BuildAsync(ui);
+        await BuiltAsync(next);
+        File.Exists(Output("Lantern Isle v2.examplemod")).Should().BeTrue("opening the card and one build make the next release");
+
+        next.Description.Version = "2.1-beta";
+        var typed = await ReopenAsync(ui, () => { });
+        await UiHarness.WaitUntilAsync(() => typed.Description.Hints is not null);
+        (typed.Session!.Project.Metadata.Version, typed.Description.Version).Should().Be(("2.1-beta", "2.1-beta"),
+            "a version typed that is not the site's is never replaced");
+    }
+
+    [AvaloniaFact]
+    public async Task An_imported_project_takes_its_site_project_when_the_rule_is_sure()
+    {
+        var project = TestGames.Offer("Lantern Isle", version: 1);
+        _work.LanternProjects = [new SiteProjectView(project.ProjectId, project.GameSlug, project.Team.Slug)];
+        using var ui = await OpenAsync();
+        ui.Agent.Answer = request => request is GetProjectPage ? TestPages.Page(project) : _work.Answer(request);
+        ui.Pickers.File = Path.Combine(_work.Root, "handed over.exampleproj");
+        File.WriteAllText(ui.Pickers.File, """{ "formatVersion": 4, "game": { "store": "steam", "id": "5100", "name": "Lantern Isle" } }""");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        ui.Click(Button(ui, Strings.Creator_Import));
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Navigator.Current is ProjectPageViewModel { Session.Project.Site: not null });
+
+        Page(ui).Session!.Project.Site.Should().Be(new ProjectSite(project.ProjectId, project.GameSlug, project.Team.Slug, project.Team.Name, project.Cover));
+        ui.Click(Button(ui, Strings.Creator_Projects));
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+        await UiHarness.WaitUntilAsync(() => creator.Cards.Any());
+        creator.Cards.Single().Cover.Should().Be(project.Cover, "the card shows the site's project with no request of its own");
+    }
+
+    [AvaloniaFact]
     public async Task In_the_smallest_window_the_title_stands_whole_beside_the_library_s_buttons()
     {
         using var ui = await OpenAsync(width: 960, height: 600);

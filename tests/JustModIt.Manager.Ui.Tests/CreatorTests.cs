@@ -543,6 +543,8 @@ public sealed class CreatorTests : IDisposable
         held.Reads.Set();
         await UiHarness.WaitUntilAsync(() => page.Cells[1].IsCompared);
         page.Cells[0].State.Should().Be(CellState.Stopped);
+        (page.Cells[1].Folded, page.Cells[1].Brief.Detail).Should().NotBe((page.Cells[1].Folded, Text.Format(Strings.Creator_CellDetail, ("detail", "SameAs"))));
+        page.Cells[1].Folded.Should().BeEmpty("a comparison that stopped leaves a plan of the files as they were, which says nothing of what is shared");
         await ui.RenderBothAsync("creator-cell-states");
         ui.Click(Button(ui, page.Cells[0].Name));
         ui.Find<Button>().Should().Contain(button => button.Name == "ToAdvanced" && button.IsEffectivelyVisible, "the stopped cell still has its plan to turn into steps");

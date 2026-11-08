@@ -185,11 +185,13 @@ public sealed partial class CellViewModel
         ShowBrief();
     }
 
-    private void ShowBrief()
+    /// <summary>Tells again how the cell stands in the project's table and what it shares with the part's first version.</summary>
+    internal void ShowBrief()
     {
         var plan = Review?.Plan;
         var first = _page.Cells.FirstOrDefault(cell => cell.Key.Part == Key.Part);
-        var shared = first != this && first?.Review?.Plan is { } theirs && plan is not null ? PackageGroups.Shared(theirs, plan) : ((int, int)?)null;
+        // A comparison that stopped or failed leaves a plan of the files as they were, which says nothing of what is shared now.
+        var shared = first != this && first is { IsCompared: true, Review.Plan: var theirs } && plan is not null ? PackageGroups.Shared(theirs, plan) : ((int, int)?)null;
         Folded = GameWording.Join(
         [
             shared is (var files, _) ? Text.Format(Strings.Creator_SharedFiles, ("count", files), ("store", first!.StoreName)) : "",
