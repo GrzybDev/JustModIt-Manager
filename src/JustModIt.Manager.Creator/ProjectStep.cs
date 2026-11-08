@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.Games;
 
 namespace JustModIt.Manager.Creator;
 
@@ -11,7 +13,21 @@ namespace JustModIt.Manager.Creator;
 [JsonDerivedType(typeof(PatchFileStep), "patch")]
 [JsonDerivedType(typeof(RenameFileStep), "rename")]
 [JsonDerivedType(typeof(DeleteFileStep), "delete")]
-public abstract record ProjectStep;
+public abstract record ProjectStep
+{
+    /// <summary>The versions of the game the step runs on; empty means every version.</summary>
+    [JsonIgnore]
+    public ValueList<GameKey> Only { get; init; }
+
+    // The serializer cannot build a ValueList by itself, so a project file goes through this list.
+    [JsonInclude]
+    [JsonPropertyName("only")]
+    internal List<GameKey>? OnlyInFile
+    {
+        get => Only.Count > 0 ? [.. Only] : null;
+        init => Only = [.. value ?? []];
+    }
+}
 
 /// <summary>Puts the author's file at a path of the game.</summary>
 /// <param name="Source">The author's file, relative to the author's folder.</param>

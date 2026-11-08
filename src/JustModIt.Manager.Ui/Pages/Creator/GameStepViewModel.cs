@@ -159,14 +159,13 @@ public sealed partial class GameStepViewModel : ObservableObject, ICreatorStepVi
     /// <param name="entry">A detected game.</param>
     public void Choose(DetectedGameEntry entry)
     {
-        var project = _session.Project;
-        if (project.Game?.Key != entry.Key || project.GameFolder != entry.Game.InstallDirectory)
+        var version = _session.Version;
+        if (version?.Game.Key != entry.Key || version.GameFolder != entry.Game.InstallDirectory)
         {
             _ = _session.UseAsync(null);
-            _session.Change(current => current with
+            _session.Change(project => project with
             {
-                Game = new ProjectGame(entry.Key, entry.Name),
-                GameFolder = entry.Game.InstallDirectory,
+                Versions = [new ProjectVersion(new ProjectGame(entry.Key, entry.Name)) { GameFolder = entry.Game.InstallDirectory }],
             });
         }
 

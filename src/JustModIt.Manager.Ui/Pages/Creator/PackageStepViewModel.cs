@@ -13,7 +13,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     private readonly CreatorPageViewModel _page;
     private readonly CreatorSession _session;
 
-    private (GameKey? Key, string Folder) _game;
+    private (GameKey? Key, string? Folder) _game;
 
     /// <summary>Creates the step for a project.</summary>
     /// <param name="page">The creator.</param>
@@ -22,7 +22,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     {
         _page = page;
         _session = session;
-        _game = (session.Project.Game?.Key, session.Project.GameFolder);
+        _game = (session.Version?.Game.Key, session.Version?.GameFolder);
         Description = new PackageDescriptionViewModel(page, session);
         Test = new TestInstallViewModel(page);
         Build = new BuildViewModel(page, session, Description, Test);
@@ -46,7 +46,7 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
     public void OnShown()
     {
         if (_session.Review?.Plan is { Format.Kind: PackageKind.Manifest } && _session.Project.Metadata.Title.Length == 0
-            && _session.Project.Game is { } game)
+            && _session.Version?.Game is { } game)
         {
             _session.Describe(project => project with { Metadata = project.Metadata with { Title = game.Name } });
         }
@@ -73,10 +73,10 @@ public sealed partial class PackageStepViewModel : ObservableObject, ICreatorSte
 
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
     {
-        var project = _session.Project;
-        if (_game != (project.Game?.Key, project.GameFolder))
+        var version = _session.Version;
+        if (_game != (version?.Game.Key, version?.GameFolder))
         {
-            _game = (project.Game?.Key, project.GameFolder);
+            _game = (version?.Game.Key, version?.GameFolder);
             // A package and its test belong to the game it was built for: another copy of the game, e.g. from another store,
             // has other files, so its package is built anew, and a test install never takes the other copy's package.
             Test.Forget();

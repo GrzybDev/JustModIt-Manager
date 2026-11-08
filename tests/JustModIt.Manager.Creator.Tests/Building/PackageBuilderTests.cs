@@ -138,7 +138,7 @@ public sealed class PackageBuilderTests : IDisposable
         var list = Workspace.Bytes(3000, 21);
         _workspace.Game("data/list.idx", list);
         _workspace.Author("tools/streamer.exe", "a program that rewrites the list");
-        var plan = await PlanAsync(Project
+        var plan = await PlanAsync(new ProjectPart()
             .WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile)));
         var reports = new List<BuildProgress>();
@@ -157,36 +157,26 @@ public sealed class PackageBuilderTests : IDisposable
         reports[^1].BytesDone.Should().Be(reports[^1].BytesTotal);
     }
 
-    [Fact]
-    public async Task Refuses_before_writing_a_runtime_file_the_game_rewrote_since_the_comparison()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Refuses_a_runtime_file_the_game_changes_since_the_comparison_or_during_the_build(bool whileBuilding)
     {
         var list = _workspace.Game("data/list.idx", Workspace.Bytes(3000, 21));
         _workspace.Author("tools/streamer.exe", "a program that rewrites the list");
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile)));
-        var compared = File.GetLastWriteTimeUtc(list);
-        _workspace.Game("data/list.idx", Workspace.Bytes(3000, 22));
-        File.SetLastWriteTimeUtc(list, compared.AddMinutes(1));
+        var plan = await PlanAsync(new ProjectPart().WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile)));
         var stages = new List<BuildStage>();
-
-        var build = () => BuildAsync(plan, "example.examplemod", progress: new InlineProgress<BuildProgress>(report => stages.Add(report.Stage)));
-
-        var failure = (await build.Should().ThrowAsync<PackageBuildException>()).Which;
-        failure.Failure.Should().Be(BuildFailure.FilesChanged);
-        failure.Paths.Should().Equal(Path.GetFullPath(list));
-        stages.Should().Equal([BuildStage.Checking], "a file of the same size is caught by its time before anything is written");
-        Directory.GetFileSystemEntries(_workspace.OutputDirectory).Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task Refuses_a_runtime_file_the_game_changes_while_the_package_is_built()
-    {
-        var list = _workspace.Game("data/list.idx", Workspace.Bytes(3000, 21));
-        _workspace.Author("tools/streamer.exe", "a program that rewrites the list");
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile)));
+        if (!whileBuilding)
+        {
+            var compared = File.GetLastWriteTimeUtc(list);
+            _workspace.Game("data/list.idx", Workspace.Bytes(3000, 22));
+            File.SetLastWriteTimeUtc(list, compared.AddMinutes(1));
+        }
 
         var build = () => BuildAsync(plan, "example.examplemod", progress: new InlineProgress<BuildProgress>(report =>
         {
-            if (report.Stage == BuildStage.Copying)
+            stages.Add(report.Stage);
+            if (whileBuilding && report.Stage == BuildStage.Copying)
             {
                 File.WriteAllBytes(list, Workspace.Bytes(2500, 22));
             }
@@ -196,6 +186,10 @@ public sealed class PackageBuilderTests : IDisposable
         failure.Failure.Should().Be(BuildFailure.FilesChanged);
         failure.Paths.Should().Equal(Path.GetFullPath(list));
         Directory.GetFileSystemEntries(_workspace.OutputDirectory).Should().BeEmpty();
+        if (!whileBuilding)
+        {
+            stages.Should().Equal([BuildStage.Checking], "a file of the same size is caught by its time before anything is written");
+        }
     }
 
     [Fact]
@@ -440,7 +434,7 @@ public sealed class PackageBuilderTests : IDisposable
         _workspace.Author("data.bin", Workspace.Bytes(4000, 2));
         var limits = failure == BuildFailure.TooLarge ? new PackageLimits { MaxUncompressedBytes = 100 } : new PackageLimits { MaxManifestBytes = 100 };
         var options = Workspace.Options with { Limits = limits };
-        var plan = CreatorPlanner.Plan(await _workspace.CompareAsync(), Project, options).Plan;
+        var plan = (await _workspace.ReviewAsync(Project, options)).Plan;
 
         var build = () => new PackageBuilder(new XDelta3Patcher(), options).BuildAsync(plan.Confirm(),
             new BuildRequest { OutputPath = _workspace.Output("example.examplemod") }, progress: null, TestContext.Current.CancellationToken);
@@ -454,7 +448,7 @@ public sealed class PackageBuilderTests : IDisposable
     {
         _workspace.Author("first.txt", "first");
         _workspace.Author("second.txt", "second");
-        var project = Project with
+        var part = new ProjectPart
         {
             Mode = CreatorMode.Advanced,
             Steps =
@@ -465,7 +459,7 @@ public sealed class PackageBuilderTests : IDisposable
             ],
         };
 
-        var result = await BuildAsync(await PlanAsync(project), "example.examplemod");
+        var result = await BuildAsync(await PlanAsync(part), "example.examplemod");
 
         await using var package = await new PackageReader().OpenAsync(result.OutputPath, TestContext.Current.CancellationToken);
         package.Steps.OfType<CopyStep>().Select(step => step.Entry).Should().Equal("files/data/text.txt", "files/Data/TEXT.txt.2");
@@ -514,9 +508,11 @@ public sealed class PackageBuilderTests : IDisposable
         return entries;
     }
 
+    private Task<PackagePlan> PlanAsync(ProjectPart part) => PlanAsync(Project with { Parts = [part] });
+
     private async Task<PackagePlan> PlanAsync(CreatorProject project)
     {
-        var plan = CreatorPlanner.Plan(await _workspace.CompareAsync(), project, Workspace.Options).Plan;
+        var plan = (await _workspace.ReviewAsync(project)).Plan;
         plan.Findings.Where(finding => finding.BlocksBuild).Should().BeEmpty();
         return plan;
     }

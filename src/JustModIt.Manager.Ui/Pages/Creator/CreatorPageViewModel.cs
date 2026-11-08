@@ -261,7 +261,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         if (choose || path is null)
         {
             path = await Services.Pickers.PickSaveFileAsync(Strings.Creator_SaveTitle,
-                FileNames.Suggest(session.Project.Game?.Name, Strings.Creator_ProjectFallbackName, Options.ProjectExtension), ProjectKind,
+                FileNames.Suggest(session.Version?.Game.Name, Strings.Creator_ProjectFallbackName, Options.ProjectExtension), ProjectKind,
                 FolderOf(session)).ConfigureAwait(true);
             if (path is null)
             {
@@ -386,7 +386,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     private async Task ResumeAsync(CreatorSession session, GameStepViewModel game)
     {
         await game.LoadAsync().ConfigureAwait(true);
-        if (Session != session || session.Project.Game is not { } chosen)
+        if (Session != session || session.Version?.Game is not { } chosen)
         {
             return;
         }
@@ -470,7 +470,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         SaveState = session.Path is null ? Strings.Creator_StateNew
             : session.IsDirty ? Strings.Creator_StateChanged
             : Strings.Creator_StateSaved;
-        IsAdvanced = session.Project.Mode == CreatorMode.Advanced;
+        IsAdvanced = session.Part.Mode == CreatorMode.Advanced;
         Steps[(int)CreatorStep.Review].Title = IsAdvanced ? Strings.Creator_StepSteps : Strings.Creator_StepReview;
     }
 
@@ -508,7 +508,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     /// <summary>Whether the author's files only repeat the game's, so a simple project has nothing to package.</summary>
     /// <param name="session">The project with its comparison.</param>
     internal static bool HasNothingToPackage(CreatorSession session) =>
-        session.Project.Mode == CreatorMode.Simple && session.Project.ExtraSteps.Count == 0
+        session.Part.Mode == CreatorMode.Simple && session.Part.ExtraSteps.Count == 0
         && session.Comparison?.Files.All(file => file.Difference == FileDifference.Identical) == true;
 
     private void OnAgentChanged(object? sender, PropertyChangedEventArgs e)
@@ -584,7 +584,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
 
     private static string? FolderOf(CreatorSession session) =>
         session.Path is { } path ? Path.GetDirectoryName(path)
-        : session.Project.AuthorFolder.Length > 0 ? Path.GetDirectoryName(session.Project.AuthorFolder)
+        : session.Part.AuthorFolder.Length > 0 ? Path.GetDirectoryName(session.Part.AuthorFolder)
         : null;
 }
 

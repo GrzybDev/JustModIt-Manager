@@ -37,9 +37,9 @@ public sealed class ProjectLoadException : Exception
 /// </summary>
 public static class CreatorProjectStore
 {
-    public const int CurrentFormatVersion = 4;
+    public const int CurrentFormatVersion = 5;
 
-    // Format 3 lacks only what format 4 added, so it reads as format 4.
+    // Formats 3 and 4 hold one part at the top level, where format 5's document inherits a part's members, so all three read alike.
     private const int FirstDocumentVersion = 3;
 
     private const string FormatVersionProperty = "formatVersion";
@@ -89,23 +89,49 @@ public static class CreatorProjectStore
         var document = new ProjectDocument
         {
             FormatVersion = CurrentFormatVersion,
-            Mode = Word(project.Mode),
-            Game = project.Game is { } game ? new GameDocument(game.Key.Store.Value, game.Key.StoreGameId, game.Name) : null,
-            GameFolder = project.GameFolder,
-            AuthorFolder = RelativeWhenInside(projectDirectory, project.AuthorFolder),
-            Choices = project.Choices.Count > 0 ? project.Choices.ToDictionary(choice => choice.Key, choice => Word(choice.Value)) : null,
-            ExtraSteps = project.ExtraSteps.Count > 0 ? [.. project.ExtraSteps] : null,
-            Steps = project.Steps.Count > 0 ? [.. project.Steps] : null,
+            Id = project.Id,
+            Name = project.Name.Length > 0 ? project.Name : null,
+            CreatedAt = project.CreatedAt,
+            Versions = project.Versions.Count > 0
+                ? [.. project.Versions.Select(version => new VersionDocument(
+                    new GameDocument(version.Game.Key.Store.Value, version.Game.Key.StoreGameId, version.Game.Name),
+                    version.GameFolder,
+                    version.Folders.Count > 0 ? [.. version.Folders] : null))]
+                : null,
+            // Sorted, since an immutable dictionary enumerates by a string hash that differs per process, and one project must
+            // always give the same bytes.
+            Parts =
+            [
+                .. project.Parts.Select(part => new PartDocument
+                {
+                    Name = part.Name.Length > 0 ? part.Name : null,
+                    Mode = Word(part.Mode),
+                    AuthorFolder = RelativeWhenInside(projectDirectory, part.AuthorFolder),
+                    VersionFolders = part.VersionFolders.Count > 0
+                        ? part.VersionFolders.OrderBy(folder => folder.Key.ToString(), StringComparer.Ordinal)
+                            .ToDictionary(folder => folder.Key.ToString(), folder => RelativeWhenInside(projectDirectory, folder.Value))
+                        : null,
+                    Choices = part.Choices.Count > 0
+                        ? part.Choices.OrderBy(choice => choice.Key, StringComparer.Ordinal)
+                            .ToDictionary(choice => choice.Key, choice => Word(choice.Value))
+                        : null,
+                    ExtraSteps = part.ExtraSteps.Count > 0 ? [.. part.ExtraSteps] : null,
+                    Steps = part.Steps.Count > 0 ? [.. part.Steps] : null,
+                    RuntimeFiles = part.RuntimeFiles.Count > 0
+                        ? [.. part.RuntimeFiles.Select(file => new RuntimeFileDocument(file.Path, Word(file.Kind)))]
+                        : null,
+                }),
+            ],
             Metadata = new MetadataDocument(project.Metadata.Title, project.Metadata.Version, [.. project.Metadata.Authors]),
+            OutputFolder = project.OutputFolder.Length > 0 ? project.OutputFolder : null,
+            Site = project.Site,
+            DeclinedVersions = project.DeclinedVersions.Count > 0 ? [.. project.DeclinedVersions] : null,
             ThirdParty = project.ToolNotices.Count > 0 ? [.. project.ToolNotices] : null,
             Libraries = project.LibraryNotices.Count > 0 ? [.. project.LibraryNotices] : null,
             Acknowledged = project.Acknowledged.Count > 0 ? [.. project.Acknowledged] : null,
-            RuntimeFiles = project.RuntimeFiles.Count > 0
-                ? [.. project.RuntimeFiles.Select(file => new RuntimeFileDocument(file.Path, Word(file.Kind)))]
-                : null,
         };
         using var buffer = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(buffer, AtomicFile.ReadableJson))
+        using (var writer = new Utf8JsonWriter(buffer, AtomicFile.ReadableJson with { NewLine = "\n" }))
         {
             JsonSerializer.Serialize(writer, document, ProjectJsonContext.Default.ProjectDocument);
         }
@@ -153,29 +179,55 @@ public static class CreatorProjectStore
 
     private static CreatorProject ToProject(ProjectDocument document, string projectDirectory) => new()
     {
-        Mode = document.Mode is null ? CreatorMode.Simple : Member<CreatorMode>(document.Mode),
-        Game = document.Game is { } game ? new ProjectGame(new GameKey(new StoreId(game.Store), game.Id), game.Name ?? game.Id) : null,
-        GameFolder = document.GameFolder ?? string.Empty,
-        AuthorFolder = document.AuthorFolder switch
-        {
-            null or "" => string.Empty,
-            var folder when Path.IsPathFullyQualified(folder) => folder,
-            var folder => Path.GetFullPath(PackagePath.ToFullPath(projectDirectory, folder)),
-        },
-        Choices = new ValueDictionary<string, FileChoice>((document.Choices ?? [])
-            .ToImmutableDictionary(choice => choice.Key, choice => Member<FileChoice>(choice.Value), PackagePath.Comparer)),
-        ExtraSteps = Items(document.ExtraSteps),
-        Steps = Items(document.Steps),
+        Id = document.Id ?? default,
+        Name = document.Name ?? string.Empty,
+        CreatedAt = document.CreatedAt ?? default,
+        Versions =
+        [
+            .. Items(document.Versions ?? (document.Game is { } game ? [new VersionDocument(game, document.GameFolder)] : []))
+                .Select(version => new ProjectVersion(new ProjectGame(new GameKey(new StoreId(version.Game.Store), version.Game.Id),
+                    version.Game.Name ?? version.Game.Id))
+                {
+                    GameFolder = version.GameFolder ?? string.Empty,
+                    Folders = Items(version.Folders),
+                }),
+        ],
+        // Nothing could index the base of a project without parts.
+        Parts = document.Parts is { Count: 0 }
+            ? throw new JsonException("A project needs a part.")
+            : [.. Items(document.Parts ?? [document]).Select(part => new ProjectPart
+            {
+                Name = part.Name ?? string.Empty,
+                Mode = part.Mode is null ? CreatorMode.Simple : Member<CreatorMode>(part.Mode),
+                AuthorFolder = FullFolder(projectDirectory, part.AuthorFolder),
+                VersionFolders = new ValueDictionary<GameKey, string>((part.VersionFolders ?? []).ToImmutableDictionary(
+                    folder => GameKey.TryParse(folder.Key, out var key) ? key : throw new JsonException($"'{folder.Key}' is not a game."),
+                    folder => FullFolder(projectDirectory, folder.Value))),
+                Choices = new ValueDictionary<string, FileChoice>((part.Choices ?? [])
+                    .ToImmutableDictionary(choice => choice.Key, choice => Member<FileChoice>(choice.Value), PackagePath.Comparer)),
+                ExtraSteps = Items(part.ExtraSteps),
+                Steps = Items(part.Steps),
+                RuntimeFiles = [.. Items(part.RuntimeFiles).Select(file => new RuntimeFileChoice(file.Path, Member<RuntimeFileKind>(file.Kind)))],
+            })],
         Metadata = new PackageMetadata
         {
             Title = document.Metadata?.Title ?? string.Empty,
             Version = document.Metadata?.Version ?? string.Empty,
             Authors = Items(document.Metadata?.Authors),
         },
+        OutputFolder = document.OutputFolder ?? string.Empty,
+        Site = document.Site,
+        DeclinedVersions = [.. document.DeclinedVersions ?? []],
         ToolNotices = Items(document.ThirdParty),
         LibraryNotices = Items(document.Libraries),
         Acknowledged = [.. Items(document.Acknowledged).Distinct(StringComparer.Ordinal)],
-        RuntimeFiles = [.. Items(document.RuntimeFiles).Select(file => new RuntimeFileChoice(file.Path, Member<RuntimeFileKind>(file.Kind)))],
+    };
+
+    private static string FullFolder(string projectDirectory, string? folder) => folder switch
+    {
+        null or "" => string.Empty,
+        _ when Path.IsPathFullyQualified(folder) => folder,
+        _ => Path.GetFullPath(PackagePath.ToFullPath(projectDirectory, folder)),
     };
 
     private static TEnum Member<TEnum>(string text)

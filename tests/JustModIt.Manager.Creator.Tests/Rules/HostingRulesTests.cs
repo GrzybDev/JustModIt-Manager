@@ -7,10 +7,8 @@ namespace JustModIt.Manager.Creator.Tests.Rules;
 
 public sealed class HostingRulesTests : IDisposable
 {
-    private static readonly CreatorProject Project = new()
-    {
-        Metadata = new PackageMetadata { Title = "Example package", Version = "1.0" },
-    };
+    private static readonly CreatorProject Project = Workspace.Project();
+    private static readonly ProjectPart Part = new();
 
     private readonly Workspace _workspace = new();
 
@@ -34,15 +32,15 @@ public sealed class HostingRulesTests : IDisposable
             _workspace.Author(library, Workspace.Bytes(4000, 2));
         }
 
-        var project = kind switch
+        var part = kind switch
         {
-            OperationKind.Rename => Project.WithExtraStep(new RenameFileStep(library, library + ".bak")),
-            OperationKind.Delete => Project.WithExtraStep(new DeleteFileStep(library)),
-            OperationKind.Copy when inGame => Project.WithChoice((await ReviewAsync(Project)).Entries.Single(), FileChoice.Copy),
-            _ => Project,
+            OperationKind.Rename => Part.WithExtraStep(new RenameFileStep(library, library + ".bak")),
+            OperationKind.Delete => Part.WithExtraStep(new DeleteFileStep(library)),
+            OperationKind.Copy when inGame => Part.WithChoice((await ReviewAsync(Project)).Entries.Single(), FileChoice.Copy),
+            _ => Part,
         };
 
-        var plan = await PlanAsync(project);
+        var plan = await PlanAsync(Workspace.Project(part));
 
         plan.Operations.Should().ContainSingle().Which.Kind.Should().Be(kind);
         plan.Findings.Where(finding => finding.Kind == FindingKind.StoreLibrary).Should().ContainSingle()
@@ -103,8 +101,8 @@ public sealed class HostingRulesTests : IDisposable
         _workspace.Author("bin/engine_o.dll", original);
         var review = await ReviewAsync(Project);
 
-        var copied = await ReviewAsync(Project.WithChoice(
-            review.Entries.Single(entry => entry.File.Path == "bin/engine_o.dll"), FileChoice.Copy));
+        var copied = await ReviewAsync(Workspace.Project(Part.WithChoice(
+            review.Entries.Single(entry => entry.File.Path == "bin/engine_o.dll"), FileChoice.Copy)));
 
         review.Plan.Findings.Should().ContainSingle().Which.Kind.Should().Be(FindingKind.AddedLibrary,
             "the library put in place of the renamed one is the author's, unless the author says otherwise");
@@ -136,7 +134,7 @@ public sealed class HostingRulesTests : IDisposable
         _workspace.Author("tools/converter.exe", Workspace.Bytes(2048, 3));
         var review = await ReviewAsync(Project);
 
-        var copied = await ReviewAsync(Project.WithChoice(review.Entries.Single(entry => entry.File.Path == "Game.exe"), FileChoice.Copy));
+        var copied = await ReviewAsync(Workspace.Project(Part.WithChoice(review.Entries.Single(entry => entry.File.Path == "Game.exe"), FileChoice.Copy)));
 
         review.Plan.Findings.Should().BeEmpty();
         copied.Plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
@@ -152,13 +150,13 @@ public sealed class HostingRulesTests : IDisposable
         _workspace.Game(path, Workspace.Bytes(size, 1));
         _workspace.Author(path, Workspace.Bytes(size + 1, 2));
         var options = Workspace.Options with { Rules = HostingRuleSet.Default with { LargeFileBytes = 4096 } };
-        var review = CreatorPlanner.Plan(await _workspace.CompareAsync(), Project, options);
-        var project = Project.WithChoice(review.Entries.Single(), FileChoice.Copy);
+        var review = await _workspace.ReviewAsync(Project, options);
+        var project = Workspace.Project(Part.WithChoice(review.Entries.Single(), FileChoice.Copy));
 
-        var finding = CreatorPlanner.Plan(await _workspace.CompareAsync(), project, options).Plan.Findings.Should().ContainSingle().Subject;
-        var acknowledged = CreatorPlanner.Plan(await _workspace.CompareAsync(), project.Acknowledge(finding.AcknowledgementKey!), options);
+        var finding = (await _workspace.ReviewAsync(project, options)).Plan.Findings.Should().ContainSingle().Subject;
+        var acknowledged = await _workspace.ReviewAsync(project.Acknowledge(finding.AcknowledgementKey!), options);
         _workspace.Author(path, Workspace.Bytes(size + 2, 3));
-        var changed = CreatorPlanner.Plan(await _workspace.CompareAsync(), project.Acknowledge(finding.AcknowledgementKey!), options);
+        var changed = await _workspace.ReviewAsync(project.Acknowledge(finding.AcknowledgementKey!), options);
 
         finding.Should().Match<PlanFinding>(found => found.Kind == kind && found.Severity == FindingSeverity.Warning
             && found.Size == size + 1 && found.BlocksBuild);
@@ -267,7 +265,7 @@ public sealed class HostingRulesTests : IDisposable
     {
         _workspace.Author("tools/streamer.exe", "program");
 
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.CreatesFile)));
+        var plan = await PlanAsync(Workspace.Project(Part.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.CreatesFile))));
 
         plan.Findings.Should().Contain(finding => finding.Kind == kind && finding.Severity == FindingSeverity.Error
             && finding.RuntimeIndex == 0);
@@ -278,9 +276,9 @@ public sealed class HostingRulesTests : IDisposable
     {
         _workspace.Author("tools/streamer.exe", "program");
         _workspace.Game("config/settings.ini", "volume=5");
-        var project = Project
+        var project = Workspace.Project(Part
             .WithRuntimeFile(new RuntimeFileChoice("scripts/cache.asi", RuntimeFileKind.CreatesFile))
-            .WithRuntimeFile(new RuntimeFileChoice("config/settings.ini", RuntimeFileKind.ChangesGameFile));
+            .WithRuntimeFile(new RuntimeFileChoice("config/settings.ini", RuntimeFileKind.ChangesGameFile)));
 
         var asked = await PlanAsync(project);
         var acknowledged = asked.Findings.Aggregate(project, (accepted, finding) => accepted.Acknowledge(finding.AcknowledgementKey!));
@@ -304,15 +302,14 @@ public sealed class HostingRulesTests : IDisposable
         _workspace.Author("tools/streamer.ini", "the settings of the package");
         var review = await ReviewAsync(Project);
 
-        var plan = await PlanAsync(Project
+        var plan = await PlanAsync(Workspace.Project(Part
             .WithChoice(review.Entries.Single(entry => entry.File.Path == "tools/streamer.ini"), FileChoice.Copy)
-            .WithRuntimeFile(new RuntimeFileChoice("tools/streamer.ini", RuntimeFileKind.ChangesGameFile)));
+            .WithRuntimeFile(new RuntimeFileChoice("tools/streamer.ini", RuntimeFileKind.ChangesGameFile))));
 
         plan.Findings.Should().NotContain(finding => finding.Kind == FindingKind.RuntimeSettings);
     }
 
-    private async Task<CreatorReview> ReviewAsync(CreatorProject project) =>
-        CreatorPlanner.Plan(await _workspace.CompareAsync(), project, Workspace.Options);
+    private Task<CreatorReview> ReviewAsync(CreatorProject project) => _workspace.ReviewAsync(project);
 
     private async Task<PackagePlan> PlanAsync(CreatorProject project) => (await ReviewAsync(project)).Plan;
 }

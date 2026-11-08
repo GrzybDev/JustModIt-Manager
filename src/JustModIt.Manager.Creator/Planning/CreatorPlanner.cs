@@ -28,21 +28,23 @@ public sealed record CreatorReview(ValueList<ReviewEntry> Entries, PackagePlan P
 /// </summary>
 public static class CreatorPlanner
 {
-    /// <summary>Plans a project's package over a comparison.</summary>
+    /// <summary>Plans one package of a project for one version of the game over a comparison.</summary>
     /// <param name="comparison">The folders as last compared.</param>
-    /// <param name="project">The author's choices, steps and metadata.</param>
+    /// <param name="project">What the project's packages share: the metadata, notices and acknowledgements.</param>
+    /// <param name="part">The author's choices and steps for the package.</param>
+    /// <param name="version">The version of the game, which decides the steps limited to some versions.</param>
     /// <param name="options">The app's limits and hosting rules.</param>
     /// <param name="keptPaths">
     /// The game's paths that an undone test left as the package's software wrote them, by the app's records; null for none.
     /// </param>
-    public static CreatorReview Plan(FolderComparison comparison, CreatorProject project, CreatorOptions options,
-        IReadOnlySet<string>? keptPaths = null)
+    public static CreatorReview Plan(FolderComparison comparison, CreatorProject project, ProjectPart part, ProjectVersion version,
+        CreatorOptions options, IReadOnlySet<string>? keptPaths = null)
     {
-        var (entries, operations) = project.Mode == CreatorMode.Advanced
-            ? ([], [.. project.Steps.Select((step, index) => ToOperation(step, OperationReason.Step, index, comparison.Game))])
-            : Simple(comparison, project);
-        var (resolved, findings, runtime) = PlanReplay.Run(comparison, operations, Declarations(comparison, project, entries), keptPaths);
-        if (project.Mode == CreatorMode.Simple)
+        var (entries, operations) = part.Mode == CreatorMode.Advanced
+            ? ([], [.. Operations(part.Steps, version, OperationReason.Step, comparison.Game)])
+            : Simple(comparison, part, version);
+        var (resolved, findings, runtime) = PlanReplay.Run(comparison, operations, Declarations(comparison, part, entries), keptPaths);
+        if (part.Mode == CreatorMode.Simple)
         {
             findings.AddRange(RenamesNotReplaced(comparison, resolved));
         }
@@ -90,10 +92,10 @@ public static class CreatorPlanner
 
     // The author's list first, then the files of the comparison chosen as changed while the game runs, each path once; a
     // path the author's list holds twice stays twice, so the replay can say so.
-    private static List<RuntimeDeclaration> Declarations(FolderComparison comparison, CreatorProject project, List<ReviewEntry> entries)
+    private static List<RuntimeDeclaration> Declarations(FolderComparison comparison, ProjectPart part, List<ReviewEntry> entries)
     {
         List<RuntimeDeclaration> declarations =
-            [.. project.RuntimeFiles.Select(file => new RuntimeDeclaration(comparison.Game.Spell(file.Path), file.Kind, FromChoice: false))];
+            [.. part.RuntimeFiles.Select(file => new RuntimeDeclaration(comparison.Game.Spell(file.Path), file.Kind, FromChoice: false))];
         var listed = declarations.Select(declaration => declaration.Path).ToHashSet(PackagePath.Comparer);
         foreach (var entry in entries.Where(entry => entry.Choice == FileChoice.Runtime && listed.Add(entry.File.Path)))
         {
@@ -156,17 +158,16 @@ public static class CreatorPlanner
     // The author's extra steps run first, then renames and deletions, then the files in path order, so a game file can
     // be renamed away and replaced, as a proxy library needs.
     private static (List<ReviewEntry> Entries, List<PlannedOperation> Operations) Simple(FolderComparison comparison,
-        CreatorProject project)
+        ProjectPart part, ProjectVersion version)
     {
-        var extra = project.ExtraSteps.Select((step, index) => ToOperation(step, OperationReason.AddedStep, index, comparison.Game))
-            .ToList();
+        var extra = Operations(part.ExtraSteps, version, OperationReason.AddedStep, comparison.Game).ToList();
         var renamedAway = extra.Where(operation => operation.Kind == OperationKind.Rename).Select(operation => operation.From!)
             .ToHashSet(PackagePath.Comparer);
         var entries = new Dictionary<string, ReviewEntry>(PackagePath.Comparer);
         // Renames go first: whether a game file stays in place decides what may happen to its changed version.
         foreach (var file in comparison.Files.Where(file => file.RenameFrom is not null))
         {
-            var entry = Entry(file, project, renamed: false, FileChoice.Rename, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip);
+            var entry = Entry(file, part, renamed: false, FileChoice.Rename, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip);
             entries[file.Path] = entry;
             if (entry.Choice == FileChoice.Rename)
             {
@@ -179,13 +180,13 @@ public static class CreatorPlanner
             var renamed = renamedAway.Contains(file.Path);
             var entry = file.Difference switch
             {
-                FileDifference.New => Entry(file, project, renamed, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip),
+                FileDifference.New => Entry(file, part, renamed, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip),
                 // A patch needs its original in place, and the rename has moved it.
-                FileDifference.Changed when renamed => Entry(file, project, renamed, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip),
-                FileDifference.Changed => Entry(file, project, renamed, FileChoice.Patch, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip),
-                FileDifference.Identical => Entry(file, project, renamed, FileChoice.Skip),
+                FileDifference.Changed when renamed => Entry(file, part, renamed, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip),
+                FileDifference.Changed => Entry(file, part, renamed, FileChoice.Patch, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip),
+                FileDifference.Identical => Entry(file, part, renamed, FileChoice.Skip),
                 _ when renamed => null,
-                _ => Entry(file, project, renamed, FileChoice.Skip, FileChoice.Delete),
+                _ => Entry(file, part, renamed, FileChoice.Skip, FileChoice.Delete),
             };
             if (entry is not null)
             {
@@ -203,9 +204,9 @@ public static class CreatorPlanner
     }
 
     // renamed: the package renames the game's file at this path away.
-    private static ReviewEntry Entry(ComparedFile file, CreatorProject project, bool renamed, params ReadOnlySpan<FileChoice> choices)
+    private static ReviewEntry Entry(ComparedFile file, ProjectPart part, bool renamed, params ReadOnlySpan<FileChoice> choices)
     {
-        var choice = project.Choices.TryGetValue(file.Path, out var chosen) && choices.Contains(chosen) ? chosen : choices[0];
+        var choice = part.Choices.TryGetValue(file.Path, out var chosen) && choices.Contains(chosen) ? chosen : choices[0];
         return new ReviewEntry(file, choice, [.. choices], ReasonFor(file.Difference, choice, renamed));
     }
 
@@ -234,6 +235,14 @@ public static class CreatorPlanner
             Reason = entry.Reason!.Value,
         },
     };
+
+    // A step limited to other versions is left out, and the others keep their numbers, so a finding names the step the author
+    // sees.
+    private static IEnumerable<PlannedOperation> Operations(ValueList<ProjectStep> steps, ProjectVersion version, OperationReason reason,
+        GameIndex game) =>
+        steps.Select((step, index) => (Step: step, Index: index))
+            .Where(item => item.Step.Only.Count == 0 || item.Step.Only.Contains(version.Game.Key))
+            .Select(item => ToOperation(item.Step, reason, item.Index, game));
 
     private static PlannedOperation ToOperation(ProjectStep step, OperationReason reason, int index, GameIndex game) => step switch
     {

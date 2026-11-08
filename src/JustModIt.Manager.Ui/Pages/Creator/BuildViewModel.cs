@@ -225,7 +225,7 @@ public sealed partial class BuildViewModel : ObservableObject, IDisposable
             ? target.Path
             : await _page.Services.Pickers.PickSaveFileAsync(Strings.Creator_BuildTitle, name,
                 new FileKind(plan.Format.Kind == PackageKind.Zip ? Strings.Creator_ZipFiles : Strings.Creator_PackageFiles, extension),
-                Path.GetDirectoryName(_target?.Path ?? _session.Path ?? _session.Project.AuthorFolder)).ConfigureAwait(true);
+                Path.GetDirectoryName(_target?.Path ?? _session.Path ?? _session.Part.AuthorFolder)).ConfigureAwait(true);
         if (path is not null)
         {
             await (_build = BuildAsync(plan, game, path, name)).ConfigureAwait(true);

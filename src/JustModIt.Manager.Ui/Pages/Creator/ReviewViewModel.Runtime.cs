@@ -92,7 +92,7 @@ public sealed partial class ReviewViewModel
         _runtimeFoldsWhenSolved = false;
         if (await PickGameFileAsync().ConfigureAwait(true) is { } path)
         {
-            _session.Change(project => project.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.ChangesGameFile)));
+            _session.ChangePart(part => part.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.ChangesGameFile)));
         }
     }
 
@@ -110,7 +110,7 @@ public sealed partial class ReviewViewModel
     private void ConfirmRuntimePath()
     {
         var path = _session.Comparison?.Game.Spell(TypedRuntimePath) ?? TypedRuntimePath;
-        _session.Change(project => project.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.CreatesFile)));
+        _session.ChangePart(part => part.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.CreatesFile)));
         (IsTypingRuntime, RuntimePath) = (false, "");
     }
 
@@ -120,12 +120,12 @@ public sealed partial class ReviewViewModel
         _runtimeFoldsWhenSolved = false;
         if (row.Entry is { } entry)
         {
-            _session.Change(project => project.WithChoice(entry, entry.DefaultChoice));
+            _session.ChangePart(part => part.WithChoice(entry, entry.DefaultChoice));
             return;
         }
 
         var path = row.Path;
-        _session.Change(project => project.WithoutRuntimeFile(path));
+        _session.ChangePart(part => part.WithoutRuntimeFile(path));
     }
 
     [RelayCommand]
@@ -133,9 +133,9 @@ public sealed partial class ReviewViewModel
     {
         _runtimeFoldsWhenSolved = false;
         var (path, suggested) = (row.Path, row.Suggestion);
-        _session.Change(project => project.RuntimeFiles.FirstOrDefault(file => PackagePath.Comparer.Equals(file.Path, path)) is { } file
-            ? project with { RuntimeFiles = new(project.RuntimeFiles.Items.Replace(file, file with { Path = suggested })) }
-            : project);
+        _session.ChangePart(part => part.RuntimeFiles.FirstOrDefault(file => PackagePath.Comparer.Equals(file.Path, path)) is { } file
+            ? part with { RuntimeFiles = new(part.RuntimeFiles.Items.Replace(file, file with { Path = suggested })) }
+            : part);
     }
 
     [RelayCommand]

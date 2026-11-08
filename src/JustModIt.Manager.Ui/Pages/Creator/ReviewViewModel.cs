@@ -114,19 +114,20 @@ public sealed partial class ReviewViewModel : ObservableObject, ICreatorStepView
         }
 
         var plan = review.Plan;
-        var project = _session.Project;
+        var part = _session.Part;
+        var game = _session.Version?.Game.Name ?? "";
         var findings = plan.Findings.Where(finding => finding.OperationIndex is not null && !IsHosting(finding.Kind))
             .ToLookup(finding => finding.OperationIndex!.Value);
-        IsAdvanced = project.Mode == CreatorMode.Advanced;
+        IsAdvanced = part.Mode == CreatorMode.Advanced;
         var compared = comparison.Files.Count(file => file.AuthorPath is not null);
         Lead = IsAdvanced
             ? Strings.Creator_StepsLead
-            : Text.Format(Strings.Creator_ReviewLead, ("count", compared), ("game", project.Game?.Name ?? ""));
-        AddNote = Text.Format(Strings.Creator_AddNote, ("game", project.Game?.Name ?? ""));
+            : Text.Format(Strings.Creator_ReviewLead, ("count", compared), ("game", game));
+        AddNote = Text.Format(Strings.Creator_AddNote, ("game", game));
         if (IsAdvanced)
         {
             ShowOperations([]);
-            ShowSteps(plan, project);
+            ShowSteps(plan, part);
         }
         else
         {

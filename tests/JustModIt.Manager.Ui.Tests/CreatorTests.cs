@@ -51,12 +51,8 @@ public sealed class CreatorTests : IDisposable
         await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review);
         page.Session!.Comparison!.Files.Select(file => (file.Path, file.Difference)).Should().Equal(
             ("data/extra/credits.txt", FileDifference.New), ("data/strings.bin", FileDifference.Changed));
-        page.Session.Project.Should().BeEquivalentTo(new
-        {
-            Game = new ProjectGame(CreatorWorkspace.Lantern, "Lantern Isle"),
-            GameFolder = _work.GameFolder,
-            AuthorFolder = _work.AuthorFolder,
-        });
+        page.Session.Version.Should().Be(new ProjectVersion(new ProjectGame(CreatorWorkspace.Lantern, "Lantern Isle")) { GameFolder = _work.GameFolder });
+        page.Session.Part.AuthorFolder.Should().Be(_work.AuthorFolder);
         page.Steps.Select(step => step.State).Should().Equal(StepState.Done, StepState.Done, StepState.Current, StepState.Locked);
         ui.Agent.Requests.OfType<GetDetectedGames>().Should().ContainSingle();
     }
@@ -139,7 +135,7 @@ public sealed class CreatorTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_ToFiles));
         await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review);
         page.Session.Comparison!.GameDirectory.Should().Be(_work.GameFolder);
-        page.Session.Project.GameFolder.Should().Be(_work.GameFolder);
+        page.Session.Version!.GameFolder.Should().Be(_work.GameFolder);
     }
 
     [AvaloniaFact]
@@ -152,7 +148,7 @@ public sealed class CreatorTests : IDisposable
 
         step.ShowsDropZone.Should().BeTrue();
         step.ProblemTitle.Should().Be(Strings.Creator_GameFolderTitle);
-        Page(ui).Session!.Project.AuthorFolder.Should().BeEmpty();
+        Page(ui).Session!.Part.AuthorFolder.Should().BeEmpty();
         await RenderAsync(ui, "creator-game-folder");
     }
 

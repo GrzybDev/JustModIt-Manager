@@ -30,6 +30,12 @@ public sealed partial class CreatorSession : ObservableObject
     [ObservableProperty]
     public partial CreatorProject Project { get; private set; }
 
+    /// <summary>The part the window works on: the project's base.</summary>
+    public ProjectPart Part => Project.Parts[0];
+
+    /// <summary>The version of the game the window works on; null until a game is chosen.</summary>
+    public ProjectVersion? Version => Project.Versions.Count > 0 ? Project.Versions[0] : null;
+
     /// <summary>The project's file; null until it is saved.</summary>
     [ObservableProperty]
     public partial string? Path { get; private set; }
@@ -63,6 +69,11 @@ public sealed partial class CreatorSession : ObservableObject
         IsConfirmed = false;
         Describe(change);
     }
+
+    /// <summary>Changes what the package of the part the window works on does, which asks the author to check it again.</summary>
+    /// <param name="change">Turns the part into the changed one.</param>
+    public void ChangePart(Func<ProjectPart, ProjectPart> change) =>
+        Change(project => project with { Parts = new(project.Parts.Items.SetItem(0, change(project.Parts[0]))) });
 
     /// <summary>Changes what does not change the operations, such as the package's metadata or third-party notices.</summary>
     /// <param name="change">Turns the project into the changed one.</param>
@@ -125,15 +136,16 @@ public sealed partial class CreatorSession : ObservableObject
     private async Task PlanAsync()
     {
         var plan = ++_plans;
-        if (Comparison is not { } comparison)
+        if (Comparison is not { } comparison || Version is not { } version)
         {
             Review = null;
             return;
         }
 
         var project = Project;
+        var part = Part;
         var kept = KeptPaths;
-        var review = await Task.Run(() => CreatorPlanner.Plan(comparison, project, _options, kept)).ConfigureAwait(true);
+        var review = await Task.Run(() => CreatorPlanner.Plan(comparison, project, part, version, _options, kept)).ConfigureAwait(true);
         if (plan == _plans)
         {
             Review = review;

@@ -265,7 +265,7 @@ public sealed class CreatorPackageTests : IDisposable
         _work.Author("dx11/render.dll", Noise(6, 3500));
         _work.Game("data/movies.idx", movies);
         using var ui = await OpenAsync(width: width, height: height);
-        var package = await PackageAsync(ui, project => project
+        var package = await PackageAsync(ui, part => part
             .WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice("data/movies_original.idx", RuntimeFileKind.CreatesFile)));
 
@@ -678,7 +678,7 @@ public sealed class CreatorPackageTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_New));
         await UiHarness.WaitUntilAsync(() => page.Content is GameStepViewModel);
         ui.Shell.Dialogs.Current.Should().BeNull();
-        (page.Session!.Project.AuthorFolder, page.Game).Should().Be(("", null), "the new project starts without the earlier folders");
+        (page.Session!.Part.AuthorFolder, page.Game).Should().Be(("", null), "the new project starts without the earlier folders");
     }
 
     [AvaloniaFact]
@@ -866,7 +866,7 @@ public sealed class CreatorPackageTests : IDisposable
         return ui;
     }
 
-    private async Task<PackageStepViewModel> PackageAsync(UiHarness ui, Func<CreatorProject, CreatorProject>? change = null)
+    private async Task<PackageStepViewModel> PackageAsync(UiHarness ui, Func<ProjectPart, ProjectPart>? change = null)
     {
         var page = Page(ui);
         page.NewProjectCommand.Execute(null);
@@ -877,7 +877,7 @@ public sealed class CreatorPackageTests : IDisposable
         await UiHarness.WaitUntilAsync(() => page.Step == CreatorStep.Review && page.Session!.Review is not null);
         if (change is not null)
         {
-            page.Session!.Change(change);
+            page.Session!.ChangePart(change);
             await page.Session.SettledAsync();
         }
 

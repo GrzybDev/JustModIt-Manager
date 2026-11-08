@@ -35,16 +35,16 @@ public sealed partial class ReviewViewModel
         if (IsAdvanced)
         {
             var steps = rule.Findings.Select(finding => finding.StepIndex).OfType<int>().Distinct().OrderDescending().ToList();
-            _session.Change(project => project with
+            _session.ChangePart(part => part with
             {
-                Steps = new(steps.Aggregate(project.Steps.Items, (remaining, step) => remaining.RemoveAt(step))),
+                Steps = new(steps.Aggregate(part.Steps.Items, (remaining, step) => remaining.RemoveAt(step))),
             });
             return;
         }
 
         var entries = rule.Findings.Select(finding => RowOf(finding)?.Entry).OfType<ReviewEntry>()
             .Where(entry => entry.Choices.Contains(FileChoice.Skip)).ToList();
-        _session.Change(project => entries.Aggregate(project, (changed, entry) => changed.WithChoice(entry, FileChoice.Skip)));
+        _session.ChangePart(part => entries.Aggregate(part, (changed, entry) => changed.WithChoice(entry, FileChoice.Skip)));
     }
 
     [RelayCommand]

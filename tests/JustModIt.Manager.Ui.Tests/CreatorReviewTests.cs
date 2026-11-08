@@ -325,8 +325,26 @@ public sealed class CreatorReviewTests : IDisposable
         ui.Click(Button(ui, Strings.Creator_ToSimpleButton));
         await Answer(ui, Strings.Creator_ToSimpleConfirm);
         await UiHarness.WaitUntilAsync(() => !review.IsAdvanced && review.CanConfirm);
-        Page(ui).Session!.Project.Steps.Should().BeEmpty();
+        Page(ui).Session!.Part.Steps.Should().BeEmpty();
         Page(ui).Steps[(int)CreatorStep.Review].Title.Should().Be(Strings.Creator_StepReview);
+    }
+
+    [AvaloniaFact]
+    public async Task Editing_a_step_keeps_the_versions_it_is_limited_to()
+    {
+        using var ui = await OpenAsync();
+        var review = await ReviewAsync(ui);
+        ui.Click(Button(ui, Strings.Creator_ToAdvancedButton));
+        await Answer(ui, Strings.Creator_ToAdvancedConfirm);
+        await UiHarness.WaitUntilAsync(() => review.IsAdvanced);
+        var session = Page(ui).Session!;
+        session.ChangePart(part => part with { Steps = new(part.Steps.Items.SetItem(1, part.Steps[1] with { Only = [CreatorWorkspace.Lantern] })) });
+        var limited = session.Part.Steps[1];
+
+        review.Steps[1].Second = "data/edited.bin";
+
+        session.Part.Steps[1].Should().NotBe(limited);
+        session.Part.Steps[1].Only.Should().Equal(CreatorWorkspace.Lantern);
     }
 
     [AvaloniaTheory]
@@ -402,7 +420,7 @@ public sealed class CreatorReviewTests : IDisposable
         review.IsRuntimeOpen.Should().BeTrue();
         review.CanConfirm.Should().BeFalse();
         review.ConfirmBlocked.Should().Be("Najpierw trzeba poprawić problem na liście plików zmienianych podczas gry.");
-        Page(ui).Session!.Project.RuntimeFiles.Should().Equal(
+        Page(ui).Session!.Part.RuntimeFiles.Should().Equal(
             new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile),
             new RuntimeFileChoice("data/movies_original.idx", RuntimeFileKind.CreatesFile));
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
@@ -458,7 +476,7 @@ public sealed class CreatorReviewTests : IDisposable
         review.CanConfirmRuntimePath.Should().BeTrue();
         ui.Click(Button(ui, Strings.Creator_RuntimeCancel));
         review.IsTypingRuntime.Should().BeFalse();
-        Page(ui).Session!.Project.RuntimeFiles.Should().ContainSingle();
+        Page(ui).Session!.Part.RuntimeFiles.Should().ContainSingle();
     }
 
     [AvaloniaFact]
@@ -490,7 +508,7 @@ public sealed class CreatorReviewTests : IDisposable
         _work.Game("data/movies.idx", Movies);
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
-        Page(ui).Session!.Change(project => project
+        Page(ui).Session!.ChangePart(part => part
             .WithRuntimeFile(new RuntimeFileChoice("data/movie.idx", RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice("logs/streamer.log", RuntimeFileKind.CreatesFile)));
         await UiHarness.WaitUntilAsync(() => review.HasRuntimeProblems);
@@ -501,7 +519,7 @@ public sealed class CreatorReviewTests : IDisposable
         Tap(ui, Button(ui, mistyped.SuggestionText, mistyped));
 
         await UiHarness.WaitUntilAsync(() => !review.HasRuntimeProblems);
-        Page(ui).Session!.Project.RuntimeFiles.Select(file => file.Path).Should().Equal("data/movies.idx", "logs/streamer.log");
+        Page(ui).Session!.Part.RuntimeFiles.Select(file => file.Path).Should().Equal("data/movies.idx", "logs/streamer.log");
     }
 
     [AvaloniaFact]
@@ -517,7 +535,7 @@ public sealed class CreatorReviewTests : IDisposable
         using var ui = await OpenAsync(answer: request => request is GetLeftoverBackups ? new LeftoverBackups([.. leftovers]) : null);
         var review = await ReviewAsync(ui);
 
-        Page(ui).Session!.Change(project => project.WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile)));
+        Page(ui).Session!.ChangePart(part => part.WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile)));
         await UiHarness.WaitUntilAsync(() => review.HasRuntimeProblems);
 
         review.RuntimeRows.Single().Findings.Should().ContainSingle();
@@ -542,7 +560,7 @@ public sealed class CreatorReviewTests : IDisposable
         using var ui = await OpenAsync(answer: request => request is GetLeftoverBackups ? leftovers : null);
         var review = await ReviewAsync(ui);
 
-        Page(ui).Session!.Change(project => project
+        Page(ui).Session!.ChangePart(part => part
             .WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice("data/sounds.idx", RuntimeFileKind.ChangesGameFile)));
         await UiHarness.WaitUntilAsync(() => review.HasRuntimeProblems);
@@ -556,7 +574,7 @@ public sealed class CreatorReviewTests : IDisposable
         using var ui = await OpenAsync();
         var review = await ReviewAsync(ui);
         ui.Click(Button(ui, Strings.Creator_EditOperation, Row(review, "config.xml")));
-        Page(ui).Session!.Change(project => project.WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.CreatesFile)));
+        Page(ui).Session!.ChangePart(part => part.WithRuntimeFile(new RuntimeFileChoice("data/movies.idx", RuntimeFileKind.CreatesFile)));
         await UiHarness.WaitUntilAsync(() => review.RuntimeRows.Count == 1);
         ui.Click(ui.Find<Button>("AddRuntimeCreates"));
         await UiHarness.WaitUntilAsync(() => review.IsTypingRuntime);

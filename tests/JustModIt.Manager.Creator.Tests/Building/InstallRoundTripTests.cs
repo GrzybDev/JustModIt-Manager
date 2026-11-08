@@ -41,10 +41,10 @@ public sealed class InstallRoundTripTests : IDisposable
     {
         var project = new CreatorProject { Metadata = new PackageMetadata { Title = "Example package", Version = "1" } };
         var comparison = await _workspace.CompareAsync();
-        var plan = CreatorPlanner.Plan(comparison, project, Workspace.Options).Plan;
+        var plan = CreatorPlanner.Plan(comparison, project, project.Parts[0], Workspace.Version, Workspace.Options).Plan;
         if (mode == CreatorMode.Advanced)
         {
-            plan = CreatorPlanner.Plan(comparison, project.ToAdvanced(plan), Workspace.Options).Plan;
+            plan = CreatorPlanner.Plan(comparison, project, project.Parts[0].ToAdvanced(plan), Workspace.Version, Workspace.Options).Plan;
         }
 
         var game = Game(plan.GameDirectory);
@@ -76,10 +76,9 @@ public sealed class InstallRoundTripTests : IDisposable
         workspace.Game("ExampleGame.exe", "exe");
         workspace.Game("data/list.idx", Workspace.Bytes(3000, 21));
         workspace.Author("tools/streamer.exe", "a program that rewrites the list");
-        var project = new CreatorProject { Metadata = new PackageMetadata { Title = "Example package", Version = "1" } }
+        var plan = (await workspace.ReviewAsync(Workspace.Project(new ProjectPart()
             .WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile))
-            .WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile));
-        var plan = CreatorPlanner.Plan(await workspace.CompareAsync(), project, Workspace.Options).Plan;
+            .WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile))))).Plan;
         var game = Game(plan.GameDirectory);
         var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
             new BuildRequest { OutputPath = workspace.Output("example.examplemod"), Game = game }, progress: null,
@@ -104,7 +103,7 @@ public sealed class InstallRoundTripTests : IDisposable
         using var workspace = new Workspace();
         workspace.Game("ExampleGame.exe", "exe");
         workspace.Author("data/lang/xx.txt", "customized");
-        var plan = CreatorPlanner.Plan(await workspace.CompareAsync(), new CreatorProject(), Workspace.Options).Plan;
+        var plan = (await workspace.ReviewAsync(new CreatorProject())).Plan;
         var built = await new PackageBuilder(new XDelta3Patcher(), Workspace.Options).BuildAsync(plan.Confirm(),
             new BuildRequest { OutputPath = workspace.Output("example.zip") }, progress: null, TestContext.Current.CancellationToken);
         var game = Game(plan.GameDirectory);

@@ -35,7 +35,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     private readonly CreatorPageViewModel _page;
     private readonly CreatorSession _session;
     private CancellationTokenSource? _comparing;
-    private (GameKey? Key, string Folder)? _comparedWith;
+    private (GameKey? Key, string? Folder)? _comparedWith;
     private bool _comparesOnShow;
 
     /// <summary>Creates the step for a project, which compares the folder of a project opened from its file once shown.</summary>
@@ -45,7 +45,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     {
         _page = page;
         _session = session;
-        _comparesOnShow = session.Project.AuthorFolder.Length > 0;
+        _comparesOnShow = session.Part.AuthorFolder.Length > 0;
         _session.PropertyChanged += OnSessionChanged;
         ShowFolder();
     }
@@ -159,10 +159,10 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
             return;
         }
 
-        if (_session.Project.AuthorFolder.Length == 0 || !PathComparison.AreSame(folder, _session.Project.AuthorFolder))
+        if (_session.Part.AuthorFolder.Length == 0 || !PathComparison.AreSame(folder, _session.Part.AuthorFolder))
         {
             _ = _session.UseAsync(null);
-            _session.Change(project => project with { AuthorFolder = folder });
+            _session.ChangePart(part => part with { AuthorFolder = folder });
         }
 
         _ = CompareAsync();
@@ -176,14 +176,14 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     [RelayCommand]
     public async Task CompareAsync()
     {
-        if (_page.Game is not { } game || _session.Project.AuthorFolder is not { Length: > 0 } folder)
+        if (_page.Game is not { } game || _session.Part.AuthorFolder is not { Length: > 0 } folder)
         {
             return;
         }
 
         _comparing?.Cancel();
         using var comparing = _comparing = new CancellationTokenSource();
-        (_comparedWith, _comparesOnShow) = ((_session.Project.Game?.Key, _session.Project.GameFolder), false);
+        (_comparedWith, _comparesOnShow) = ((_session.Version?.Game.Key, _session.Version?.GameFolder), false);
         ShowFolder();
         (ProblemTitle, ProblemText) = ("", "");
         (Stage, Percent, FileLine, Progress, IsIndeterminate) = (Strings.Creator_CompareListing, "", "", 0, true);
@@ -240,7 +240,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     private async Task PickFolderAsync()
     {
         var folder = await _page.Services.Pickers.PickFolderAsync(Strings.Creator_PickFolderTitle,
-            _session.Project.AuthorFolder.Length > 0 ? _session.Project.AuthorFolder : null).ConfigureAwait(true);
+            _session.Part.AuthorFolder.Length > 0 ? _session.Part.AuthorFolder : null).ConfigureAwait(true);
         if (folder is not null)
         {
             UseFolder(folder);
@@ -270,7 +270,7 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
 
     private void ShowFolder()
     {
-        var folder = _session.Project.AuthorFolder;
+        var folder = _session.Part.AuthorFolder;
         FolderPath = folder;
         FolderName = Path.GetFileName(Path.TrimEndingDirectorySeparator(folder));
     }
@@ -337,15 +337,15 @@ public sealed partial class FilesStepViewModel : ObservableObject, ICreatorStepV
     // game it names now once the step is shown.
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
     {
-        var project = _session.Project;
+        var version = _session.Version;
         if (e.PropertyName != nameof(CreatorSession.Project) || _comparedWith is not { } compared
-            || (compared.Key == project.Game?.Key && compared.Folder == project.GameFolder))
+            || (compared.Key == version?.Game.Key && compared.Folder == version?.GameFolder))
         {
             return;
         }
 
         _comparing?.Cancel();
-        (_comparing, _comparedWith, _comparesOnShow) = (null, null, project.AuthorFolder.Length > 0);
+        (_comparing, _comparedWith, _comparesOnShow) = (null, null, _session.Part.AuthorFolder.Length > 0);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The comparison of the files failed unexpectedly")]

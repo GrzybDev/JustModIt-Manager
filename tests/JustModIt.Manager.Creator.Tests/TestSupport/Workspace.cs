@@ -1,6 +1,8 @@
 using System.Text;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Creator.Comparison;
+using JustModIt.Manager.Creator.Planning;
 
 namespace JustModIt.Manager.Creator.Tests.TestSupport;
 
@@ -22,6 +24,8 @@ internal sealed class Workspace : IDisposable
         ProjectExtension = ".exampleproj",
     };
 
+    public static readonly ProjectVersion Version = new(new ProjectGame(new GameKey(StoreId.Steam, "1000010"), "Lantern Isle"));
+
     public Workspace()
     {
         Root = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"));
@@ -37,6 +41,14 @@ internal sealed class Workspace : IDisposable
     public string AuthorDirectory => Path.Combine(Root, "author");
 
     public string OutputDirectory => Path.Combine(Root, "out");
+
+    /// <summary>A project of one part, with the title and version a manifest package needs.</summary>
+    /// <param name="part">The part; none gives an untouched one.</param>
+    public static CreatorProject Project(ProjectPart? part = null) => new()
+    {
+        Parts = [part ?? new()],
+        Metadata = new PackageMetadata { Title = "Example package", Version = "1.0" },
+    };
 
     public static byte[] Bytes(int size, int seed)
     {
@@ -65,6 +77,12 @@ internal sealed class Workspace : IDisposable
         IProgress<CompareProgress>? progress = null, CancellationToken? cancellationToken = null, CreatorOptions? options = null) =>
         new FolderComparer(options ?? Options).CompareAsync(new ComparisonRequest(GameDirectory, AuthorDirectory, installs ?? []),
             progress, cancellationToken ?? TestContext.Current.CancellationToken);
+
+    /// <summary>Plans a project's base on <see cref="Version"/> over the folders as they are now.</summary>
+    /// <param name="project">The project.</param>
+    /// <param name="options">The app's limits and rules; the workspace's when null.</param>
+    public async Task<CreatorReview> ReviewAsync(CreatorProject project, CreatorOptions? options = null) =>
+        CreatorPlanner.Plan(await CompareAsync(), project, project.Parts[0], Version, options ?? Options);
 
     /// <summary>Marks a folder in the game as an app's, as that app's owner file would.</summary>
     /// <param name="path">The folder, relative to the game.</param>

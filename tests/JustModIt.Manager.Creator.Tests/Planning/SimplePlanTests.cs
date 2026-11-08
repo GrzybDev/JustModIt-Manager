@@ -6,10 +6,7 @@ namespace JustModIt.Manager.Creator.Tests.Planning;
 
 public sealed class SimplePlanTests : IDisposable
 {
-    private static readonly CreatorProject Project = new()
-    {
-        Metadata = new PackageMetadata { Title = "Example package", Version = "1.0" },
-    };
+    private static readonly ProjectPart Part = new();
 
     private readonly Workspace _workspace = new();
 
@@ -24,7 +21,7 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Author("data/fonts/extra.ttf", "font");
         _workspace.Author("readme.txt", "same");
 
-        var review = await ReviewAsync(Project);
+        var review = await ReviewAsync(Part);
 
         review.Entries.Select(entry => (entry.File.Path, entry.Choice, entry.Reason)).Should().Equal(
             ("data/fonts/extra.ttf", FileChoice.Copy, OperationReason.NewFile),
@@ -49,7 +46,7 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Author("dx11/engine_x64_o.dll", original);
         _workspace.Author("data/strings_xx.txt", "customized");
 
-        var review = await ReviewAsync(Project);
+        var review = await ReviewAsync(Part);
 
         review.Plan.Operations.Select(operation => (operation.Kind, operation.From, operation.Path, operation.Reason)).Should().Equal(
             (OperationKind.Rename, "dx11/engine_x64.dll", "dx11/engine_x64_o.dll", OperationReason.RenamedGameFile),
@@ -68,9 +65,9 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Game("bin/engine.dll", original);
         _workspace.Author("bin/engine.dll", Workspace.Bytes(8000, 2));
         _workspace.Author("bin/engine_o.dll", original);
-        var review = await ReviewAsync(Project);
+        var review = await ReviewAsync(Part);
 
-        var edited = await ReviewAsync(Project.WithChoice(Entry(review, "bin/engine_o.dll"), FileChoice.Skip));
+        var edited = await ReviewAsync(Part.WithChoice(Entry(review, "bin/engine_o.dll"), FileChoice.Skip));
 
         edited.Plan.Operations.Should().ContainSingle().Which.Kind.Should().Be(OperationKind.Patch);
         Entry(edited, "bin/engine.dll").Choices.Should().Equal(FileChoice.Patch, FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip);
@@ -83,15 +80,15 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Game("data/strings.bin", "strings");
         _workspace.Author("data/fonts.bin", "customized font data");
         _workspace.Author("data/strings.bin", "customized strings");
-        var review = await ReviewAsync(Project);
-        var project = Project
+        var review = await ReviewAsync(Part);
+        var part = Part
             .WithChoice(Entry(review, "data/fonts.bin"), FileChoice.Copy)
             .WithChoice(Entry(review, "data/strings.bin"), FileChoice.Patch);
         File.Delete(_workspace.GamePath("data/fonts.bin"));
 
-        var again = await ReviewAsync(project);
+        var again = await ReviewAsync(part);
 
-        project.Choices.Should().ContainSingle().Which.Key.Should().Be("data/fonts.bin");
+        part.Choices.Should().ContainSingle().Which.Key.Should().Be("data/fonts.bin");
         Entry(again, "data/fonts.bin").Should().Match<ReviewEntry>(entry =>
             entry.Choice == FileChoice.Copy && entry.Reason == OperationReason.NewFile && !entry.IsChangedByAuthor);
         Entry(again, "data/strings.bin").Choice.Should().Be(FileChoice.Patch);
@@ -102,9 +99,9 @@ public sealed class SimplePlanTests : IDisposable
     {
         _workspace.Game("data/fonts.bin", "font data");
         _workspace.Author("data/fonts.bin", "customized font data");
-        var review = await ReviewAsync(Project);
+        var review = await ReviewAsync(Part);
 
-        var edited = await ReviewAsync(Project.WithChoice(Entry(review, "data/fonts.bin"), FileChoice.Copy));
+        var edited = await ReviewAsync(Part.WithChoice(Entry(review, "data/fonts.bin"), FileChoice.Copy));
 
         var copy = edited.Plan.Operations.Should().ContainSingle().Subject;
         copy.Reason.Should().Be(OperationReason.ReplacedFile);
@@ -123,10 +120,10 @@ public sealed class SimplePlanTests : IDisposable
 
         _workspace.Game("movies/intro_en.bik", "intro");
         _workspace.Author("movies/credits.txt", "credits");
-        var review = await ReviewAsync(Project);
+        var review = await ReviewAsync(Part);
         var removed = Entry(review, "movies/intro_en.bik");
 
-        var confirmed = await ReviewAsync(Project.WithChoice(removed, FileChoice.Delete));
+        var confirmed = await ReviewAsync(Part.WithChoice(removed, FileChoice.Delete));
 
         removed.Should().Match<ReviewEntry>(entry => entry.Choice == FileChoice.Skip && entry.Reason == null);
         removed.Choices.Should().Equal(FileChoice.Skip, FileChoice.Delete);
@@ -144,13 +141,13 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Game("movies/intro.bik", video);
         _workspace.Author("movies/intro_xx.bik", video);
 
-        var review = await ReviewAsync(Project);
+        var review = await ReviewAsync(Part);
 
         var finding = review.Plan.Findings.Should().ContainSingle().Subject;
         finding.Should().Match<PlanFinding>(found => found.Kind == FindingKind.RenamedFileNotReplaced
             && found.Severity == FindingSeverity.Warning && found.Path == "movies/intro_xx.bik"
             && found.RelatedPath == "movies/intro.bik" && found.BlocksBuild);
-        var acknowledged = await ReviewAsync(Project.Acknowledge(finding.AcknowledgementKey!));
+        var acknowledged = await _workspace.ReviewAsync(Workspace.Project().Acknowledge(finding.AcknowledgementKey!));
         acknowledged.Plan.Findings.Should().ContainSingle().Which.IsAcknowledged.Should().BeTrue();
         acknowledged.Plan.CanBuild.Should().BeTrue();
     }
@@ -168,7 +165,7 @@ public sealed class SimplePlanTests : IDisposable
 
         _workspace.Author("movies/intro_xx.bik", video);
 
-        var review = await ReviewAsync(Project);
+        var review = await ReviewAsync(Part);
 
         review.Plan.Operations.Should().ContainSingle().Which.Kind.Should().Be(OperationKind.Rename);
         review.Plan.Findings.Should().BeEmpty();
@@ -182,11 +179,11 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Game("data/strings.bin", "strings");
         _workspace.Author("bin/engine.dll", Workspace.Bytes(3000, 2));
         _workspace.Author("data/strings.bin", "customized");
-        var project = Project
+        var part = Part
             .WithExtraStep(new RenameFileStep("bin/engine.dll", "bin/engine_original.dll"))
             .WithExtraStep(new DeleteFileStep("data/strings.bin"));
 
-        var review = await ReviewAsync(project);
+        var review = await ReviewAsync(part);
 
         review.Plan.Operations.Select(operation => (operation.Kind, operation.Path, operation.StepIndex)).Should().Equal(
             (OperationKind.Rename, "bin/engine_original.dll", 0),
@@ -197,8 +194,8 @@ public sealed class SimplePlanTests : IDisposable
         review.Plan.Findings.Should().ContainSingle(finding => finding.BlocksBuild).Which.Should().Match<PlanFinding>(finding =>
             finding.Kind == FindingKind.FileRemovedEarlier && finding.OperationIndex == 3 && finding.Path == "data/strings.bin");
 
-        var fixedProject = project.WithoutExtraStep(1);
-        (await ReviewAsync(fixedProject)).Plan.CanBuild.Should().BeTrue();
+        var fixedPart = part.WithoutExtraStep(1);
+        (await ReviewAsync(fixedPart)).Plan.CanBuild.Should().BeTrue();
     }
 
     [Fact]
@@ -207,7 +204,7 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Game("game.exe", "exe");
         _workspace.Author("data/lang/xx.txt", "text");
 
-        var review = await ReviewAsync(new CreatorProject());
+        var review = await _workspace.ReviewAsync(new CreatorProject());
 
         review.Plan.Format.Should().Be(new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]));
         review.Plan.Findings.Should().BeEmpty("a plain zip carries no title or version");
@@ -223,9 +220,9 @@ public sealed class SimplePlanTests : IDisposable
             _workspace.Author(path, "text");
         }
 
-        var review = await ReviewAsync(Project);
+        var review = await ReviewAsync(Part);
         _workspace.Author("data/lang/xx.txt", "text");
-        var mixed = await ReviewAsync(Project);
+        var mixed = await ReviewAsync(Part);
 
         review.Plan.Format.Should().Be(new PackageFormatDecision(PackageKind.Manifest, [FormatReason.ReadsAsManifestPackage]));
         mixed.Plan.Format.Kind.Should().Be(paths.Contains(PackageLayout.ManifestEntry) ? PackageKind.Manifest : PackageKind.Zip);
@@ -236,11 +233,11 @@ public sealed class SimplePlanTests : IDisposable
     {
         _workspace.Game("readme.txt", "same");
         _workspace.Author("readme.txt", "same");
-        (await ReviewAsync(Project)).Plan.Findings.Should().ContainSingle().Which.Kind.Should().Be(FindingKind.EmptyPackage);
+        (await ReviewAsync(Part)).Plan.Findings.Should().ContainSingle().Which.Kind.Should().Be(FindingKind.EmptyPackage);
 
         _workspace.Game("data.bin", "original");
         _workspace.Author("data.bin", "changed");
-        var untitled = await ReviewAsync(new CreatorProject());
+        var untitled = await _workspace.ReviewAsync(new CreatorProject());
         untitled.Plan.Findings.Select(finding => finding.Kind).Should().Equal(FindingKind.MissingTitle, FindingKind.MissingVersion);
         var confirm = () => untitled.Plan.Confirm();
         confirm.Should().Throw<InvalidOperationException>();
@@ -253,7 +250,7 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Author("b.txt", "bb");
         var options = Workspace.Options with { Limits = new PackageLimits { MaxEntries = 1, MaxUncompressedBytes = 2 } };
 
-        var review = CreatorPlanner.Plan(await _workspace.CompareAsync(), Project, options);
+        var review = await _workspace.ReviewAsync(Workspace.Project(), options);
 
         review.Plan.Findings.Select(finding => finding.Kind).Should().Equal(FindingKind.TooManyFiles, FindingKind.PackageTooLarge);
     }
@@ -267,9 +264,9 @@ public sealed class SimplePlanTests : IDisposable
         _workspace.Author("bin/engine.dll", Workspace.Bytes(6000, 2));
         _workspace.Author("bin/engine_o.dll", original);
         _workspace.Author("data/strings.bin", "customized");
-        var simple = await ReviewAsync(Project);
+        var simple = await ReviewAsync(Part);
 
-        var advanced = await ReviewAsync(Project.ToAdvanced(simple.Plan));
+        var advanced = await ReviewAsync(Part.ToAdvanced(simple.Plan));
 
         advanced.Entries.Should().BeEmpty();
         advanced.Plan.Operations.Select(operation => (operation.Kind, operation.From, operation.Path, operation.Source)).Should()
@@ -281,6 +278,5 @@ public sealed class SimplePlanTests : IDisposable
 
     private static ReviewEntry Entry(CreatorReview review, string path) => review.Entries.Single(entry => entry.File.Path == path);
 
-    private async Task<CreatorReview> ReviewAsync(CreatorProject project) =>
-        CreatorPlanner.Plan(await _workspace.CompareAsync(), project, Workspace.Options);
+    private Task<CreatorReview> ReviewAsync(ProjectPart part) => _workspace.ReviewAsync(Workspace.Project(part));
 }

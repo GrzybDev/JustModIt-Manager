@@ -19,20 +19,27 @@ internal static class PrototypeProject
     /// <param name="root">The project file's root object.</param>
     public static CreatorProject Read(JsonElement root) => new()
     {
-        Mode = string.Equals(root.GetTextOrNull("mode"), "advanced", StringComparison.OrdinalIgnoreCase)
-            ? CreatorMode.Advanced
-            : CreatorMode.Simple,
-        Game = Game(root),
-        GameFolder = root.GetTextOrNull("gameFolder") ?? string.Empty,
-        AuthorFolder = root.GetTextOrNull("modFolder") ?? string.Empty,
-        Choices = new ValueDictionary<string, FileChoice>(Objects(root, "entries")
-            .Select(entry => (Path: entry.GetTextOrNull("path"),
-                Choice: ChoiceOf(entry.GetTextOrNull("difference"), entry.GetTextOrNull("action"))))
-            .Where(entry => entry.Path is not null && entry.Choice is not null)
-            .DistinctBy(entry => entry.Path, PackagePath.Comparer)
-            .ToImmutableDictionary(entry => entry.Path!, entry => entry.Choice!.Value, PackagePath.Comparer)),
-        ExtraSteps = [.. Objects(root, "extraOperations").Select(Step).OfType<ProjectStep>()],
-        Steps = [.. Objects(root, "steps").Select(Step).OfType<ProjectStep>()],
+        Versions = Game(root) is { } game
+            ? [new ProjectVersion(game) { GameFolder = root.GetTextOrNull("gameFolder") ?? string.Empty }]
+            : [],
+        Parts =
+        [
+            new ProjectPart
+            {
+                Mode = string.Equals(root.GetTextOrNull("mode"), "advanced", StringComparison.OrdinalIgnoreCase)
+                    ? CreatorMode.Advanced
+                    : CreatorMode.Simple,
+                AuthorFolder = root.GetTextOrNull("modFolder") ?? string.Empty,
+                Choices = new ValueDictionary<string, FileChoice>(Objects(root, "entries")
+                    .Select(entry => (Path: entry.GetTextOrNull("path"),
+                        Choice: ChoiceOf(entry.GetTextOrNull("difference"), entry.GetTextOrNull("action"))))
+                    .Where(entry => entry.Path is not null && entry.Choice is not null)
+                    .DistinctBy(entry => entry.Path, PackagePath.Comparer)
+                    .ToImmutableDictionary(entry => entry.Path!, entry => entry.Choice!.Value, PackagePath.Comparer)),
+                ExtraSteps = [.. Objects(root, "extraOperations").Select(Step).OfType<ProjectStep>()],
+                Steps = [.. Objects(root, "steps").Select(Step).OfType<ProjectStep>()],
+            },
+        ],
     };
 
     private static ProjectGame? Game(JsonElement root)

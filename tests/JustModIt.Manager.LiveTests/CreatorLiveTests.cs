@@ -44,15 +44,18 @@ public sealed class CreatorLiveTests : IDisposable
         baseFiles.Should().NotBeEmpty("the release has a base beside the add-on");
         var addOn = CopyFiles(author, addOnFiles, "add-on");
         var comparison = await CompareAsync(engine, game, addOn);
-        var project = new CreatorProject
-        {
-            Game = new ProjectGame(game.Key, game.Name),
-            Metadata = new PackageMetadata { Title = game.Name + " add-on", Version = "2" },
-        }
+        var version = new ProjectVersion(new ProjectGame(game.Key, game.Name));
+        var part = new ProjectPart()
             .WithRuntimeFile(new RuntimeFileChoice(rewritten, RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice(created, RuntimeFileKind.CreatesFile));
+        var project = new CreatorProject
+        {
+            Versions = [version],
+            Parts = [part],
+            Metadata = new PackageMetadata { Title = game.Name + " add-on", Version = "2" },
+        };
 
-        var plan = CreatorPlanner.Plan(comparison, project, Options).Plan;
+        var plan = CreatorPlanner.Plan(comparison, project, part, version, Options).Plan;
 
         AssertRenamesTheOriginalAway(plan, release, addOnFiles);
         plan.Format.Should().Be(new PackageFormatDecision(PackageKind.Manifest, [FormatReason.RenamesFiles, FormatReason.DeclaresRuntimeFiles]));
@@ -60,7 +63,7 @@ public sealed class CreatorLiveTests : IDisposable
             .Equal((rewritten, true, false), (created, false, false));
         plan.CarriesCode.Should().BeTrue();
         plan.Findings.Should().NotContain(finding => finding.Severity == FindingSeverity.Error);
-        var advanced = CreatorPlanner.Plan(comparison, project.ToAdvanced(plan), Options).Plan;
+        var advanced = CreatorPlanner.Plan(comparison, project, part.ToAdvanced(plan), version, Options).Plan;
         advanced.Operations.Select(Describe)
             .Should().Equal(plan.Operations.Select(Describe), "advanced mode builds the same package from the steps simple mode found");
         advanced.RuntimeFiles.Select(file => (file.Path, file.Kind)).Should().Equal(plan.RuntimeFiles.Select(file => (file.Path, file.Kind)));
@@ -84,7 +87,7 @@ public sealed class CreatorLiveTests : IDisposable
         }
 
         var basePlan = CreatorPlanner.Plan(await CompareAsync(engine, game, CopyFiles(author, baseFiles, "base")), new CreatorProject(),
-            Options).Plan;
+            new ProjectPart(), version, Options).Plan;
         basePlan.Format.Should().Be(new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]));
         var baseZip = await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(basePlan.Confirm(),
             new BuildRequest { OutputPath = Path.Combine(_workspace, "base.zip"), Game = game }, progress: null, Token);
@@ -122,7 +125,8 @@ public sealed class CreatorLiveTests : IDisposable
         added.Should().NotBeEmpty("the release brings files the game does not have");
         var copies = CopyFiles(author, added, "copies");
 
-        var copiesOnly = CreatorPlanner.Plan(await CompareAsync(engine, game, copies), new CreatorProject(), Options).Plan;
+        var copiesOnly = CreatorPlanner.Plan(await CompareAsync(engine, game, copies), new CreatorProject(), new ProjectPart(),
+            new ProjectVersion(new ProjectGame(game.Key, game.Name)), Options).Plan;
 
         copiesOnly.Format.Should().Be(new PackageFormatDecision(PackageKind.Zip, [FormatReason.CopiesOnly]));
         copiesOnly.Operations.Should().OnlyContain(operation => operation.Kind == OperationKind.Copy).And.HaveCount(added.Count);
@@ -172,7 +176,7 @@ public sealed class CreatorLiveTests : IDisposable
         var accepted = plan.Findings.Select(finding => finding.AcknowledgementKey).OfType<string>()
             .Aggregate(project, (acknowledged, key) => acknowledged.Acknowledge(key));
         return await new PackageBuilder(new XDelta3Patcher(), Options).BuildAsync(
-            CreatorPlanner.Plan(comparison, accepted, Options).Plan.Confirm(),
+            CreatorPlanner.Plan(comparison, accepted, accepted.Parts[0], accepted.Versions[0], Options).Plan.Confirm(),
             new BuildRequest
             {
                 OutputPath = Path.Combine(_workspace, name + Options.PackageExtension),

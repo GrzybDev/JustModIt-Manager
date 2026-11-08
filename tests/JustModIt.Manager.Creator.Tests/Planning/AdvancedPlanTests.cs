@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Creator.Tests.TestSupport;
@@ -146,14 +147,19 @@ public sealed class AdvancedPlanTests : IDisposable
             finding.Kind == FindingKind.InvalidPath && finding.Path == path && finding.StepIndex == 0);
     }
 
-    private async Task<PackagePlan> PlanAsync(params ProjectStep[] steps)
+    [Fact]
+    public async Task A_step_for_another_version_is_not_in_the_plan_and_keeps_its_number()
     {
-        var project = new CreatorProject
-        {
-            Mode = CreatorMode.Advanced,
-            Steps = [.. steps],
-            Metadata = new PackageMetadata { Title = "Example package", Version = "1.0" },
-        };
-        return CreatorPlanner.Plan(await _workspace.CompareAsync(), project, Workspace.Options).Plan;
+        var plan = await PlanAsync(
+            new CopyFileStep("readme.txt", "docs/other.txt") { Only = [new GameKey(StoreId.Gog, "1100000002000000001")] },
+            new CopyFileStep("readme.txt", "docs/readme.txt") { Only = [Workspace.Version.Game.Key] },
+            new CopyFileStep("missing.txt", "docs/missing.txt"));
+
+        plan.Operations.Select(operation => (operation.Path, operation.StepIndex)).Should().Equal(
+            ("docs/readme.txt", 1), ("docs/missing.txt", 2));
+        plan.Findings.Should().ContainSingle().Which.StepIndex.Should().Be(2);
     }
+
+    private async Task<PackagePlan> PlanAsync(params ProjectStep[] steps) =>
+        (await _workspace.ReviewAsync(Workspace.Project(new ProjectPart { Mode = CreatorMode.Advanced, Steps = [.. steps] }))).Plan;
 }

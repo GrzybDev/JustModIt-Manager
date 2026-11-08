@@ -110,22 +110,34 @@ public sealed record LibraryNotice(string Path, string License, string SourceUrl
     }
 }
 
-/// <summary>
-/// An author's work on a package, keeping only what the comparison cannot tell (the author's own choices, steps,
-/// acknowledgements and metadata), so comparing again after the files changed keeps every choice that still applies.
-/// </summary>
-public sealed record CreatorProject
+/// <summary>A version of the game a project is made for: its copy from one store.</summary>
+/// <param name="Game">The store, the game's id there and its name.</param>
+public sealed record ProjectVersion(ProjectGame Game)
 {
-    public CreatorMode Mode { get; init; }
-
-    /// <summary>The detected game the project is made for; null for a folder picked by hand.</summary>
-    public ProjectGame? Game { get; init; }
-
+    /// <summary>The game's folder as last reported; only shown, since the agent's report replaces it.</summary>
     public string GameFolder { get; init; } = string.Empty;
+
+    /// <summary>Where the project's folders lie on this version; empty while it has the project's layout.</summary>
+    public ValueList<FolderRename> Folders { get; init; }
+}
+
+/// <summary>
+/// An author's work on one package of a project, keeping only what the comparison cannot tell (the author's own choices
+/// and steps), so comparing again after the files changed keeps every choice that still applies.
+/// </summary>
+public sealed record ProjectPart
+{
+    /// <summary>The add-on's name; empty for the base.</summary>
+    public string Name { get; init; } = string.Empty;
+
+    public CreatorMode Mode { get; init; }
 
     public string AuthorFolder { get; init; } = string.Empty;
 
-    /// <summary>Simple mode: the author's choices that differ from the detected ones, by game path.</summary>
+    /// <summary>The author's folders of the versions that have one of their own.</summary>
+    public ValueDictionary<GameKey, string> VersionFolders { get; init; }
+
+    /// <summary>Simple mode: the author's choices that differ from the detected ones, by project path.</summary>
     public ValueDictionary<string, FileChoice> Choices { get; init; }
 
     /// <summary>Simple mode: steps the author added, which run before the detected ones.</summary>
@@ -134,7 +146,106 @@ public sealed record CreatorProject
     /// <summary>Advanced mode: every step of the package.</summary>
     public ValueList<ProjectStep> Steps { get; init; }
 
+    /// <summary>
+    /// The game files the author declared as ones the package's software writes while the game runs, in both modes; files
+    /// of the comparison declared with <see cref="FileChoice.Runtime"/> come on top in simple mode.
+    /// </summary>
+    public ValueList<RuntimeFileChoice> RuntimeFiles { get; init; }
+
+    /// <summary>A copy of the part with the author's choice for a reviewed file.</summary>
+    /// <param name="entry">The file as the review lists it.</param>
+    /// <param name="choice">One of the entry's choices; its detected one clears the author's choice.</param>
+    public ProjectPart WithChoice(ReviewEntry entry, FileChoice choice)
+    {
+        var choices = Choices.Count > 0 ? Choices : new ValueDictionary<string, FileChoice>(
+            ImmutableDictionary.Create<string, FileChoice>(PackagePath.Comparer));
+        return this with
+        {
+            Choices = choice == entry.DefaultChoice ? choices.Remove(entry.File.Path) : choices.SetItem(entry.File.Path, choice),
+        };
+    }
+
+    /// <summary>A copy of the part with a step added after its extra steps.</summary>
+    /// <param name="step">The step to add.</param>
+    public ProjectPart WithExtraStep(ProjectStep step)
+    {
+        return this with { ExtraSteps = ExtraSteps.Add(step) };
+    }
+
+    /// <summary>A copy of the part without one of its extra steps.</summary>
+    /// <param name="index">The step's position in <see cref="ExtraSteps"/>.</param>
+    public ProjectPart WithoutExtraStep(int index) => this with { ExtraSteps = new(ExtraSteps.Items.RemoveAt(index)) };
+
+    /// <summary>A copy of the part that declares a file its software writes, replacing a declaration of the same path.</summary>
+    /// <param name="file">The file and how it stands to the game.</param>
+    public ProjectPart WithRuntimeFile(RuntimeFileChoice file)
+    {
+        var without = WithoutRuntimeFile(file.Path);
+        return without with { RuntimeFiles = without.RuntimeFiles.Add(file) };
+    }
+
+    /// <summary>A copy of the part that no longer declares a file as one its software writes.</summary>
+    /// <param name="path">The file's game path.</param>
+    public ProjectPart WithoutRuntimeFile(string path) =>
+        this with { RuntimeFiles = RuntimeFiles.RemoveAll(file => PackagePath.Comparer.Equals(file.Path, path)) };
+
+    /// <summary>Turns a simple part into the steps its plan runs, so the package stays the same.</summary>
+    /// <param name="plan">The part's plan as it is now.</param>
+    public ProjectPart ToAdvanced(PackagePlan plan)
+    {
+        return this with
+        {
+            Mode = CreatorMode.Advanced,
+            Steps = [.. plan.Operations.Select(ToStep)],
+            Choices = default,
+            ExtraSteps = default,
+            RuntimeFiles = [.. plan.RuntimeFiles.Select(file => new RuntimeFileChoice(file.Path, file.Kind))],
+        };
+    }
+
+    private static ProjectStep ToStep(PlannedOperation operation) => operation.Kind switch
+    {
+        OperationKind.Copy => new CopyFileStep(operation.Source!, operation.Path),
+        OperationKind.Patch => new PatchFileStep(operation.Source!, operation.Path),
+        OperationKind.Rename => new RenameFileStep(operation.From!, operation.Path),
+        _ => new DeleteFileStep(operation.Path),
+    };
+}
+
+/// <summary>A project's place on the site, kept so its card needs no request and works offline.</summary>
+/// <param name="ProjectId">The project's id on the site.</param>
+/// <param name="GameSlug">The game's address on the site.</param>
+/// <param name="TeamSlug">The team's address on the site.</param>
+/// <param name="TeamName">The team's name.</param>
+/// <param name="Cover">The address of the project's cover.</param>
+public sealed record ProjectSite(Guid ProjectId, string GameSlug, string TeamSlug, string TeamName, string Cover);
+
+/// <summary>An author's project: the versions of the game it is made for, its packages and what they share.</summary>
+public sealed record CreatorProject
+{
+    public Guid Id { get; init; }
+
+    /// <summary>What the author calls the project; empty means the game's name.</summary>
+    public string Name { get; init; } = string.Empty;
+
+    public DateTimeOffset CreatedAt { get; init; }
+
+    /// <summary>The game's versions; the first one's layout is the project's, and a project read without a game has none.</summary>
+    public ValueList<ProjectVersion> Versions { get; init; }
+
+    /// <summary>The project's packages, the base first; never empty.</summary>
+    public ValueList<ProjectPart> Parts { get; init; } = [new()];
+
     public PackageMetadata Metadata { get; init; } = new();
+
+    /// <summary>Where builds go; empty means the default folder.</summary>
+    public string OutputFolder { get; init; } = string.Empty;
+
+    /// <summary>The project on the site this one publishes to; null while none is known.</summary>
+    public ProjectSite? Site { get; init; }
+
+    /// <summary>Other versions of the game the author declined to add.</summary>
+    public ValueList<GameKey> DeclinedVersions { get; init; }
 
     public ValueList<ToolNotice> ToolNotices { get; init; }
 
@@ -146,49 +257,6 @@ public sealed record CreatorProject
 
     /// <summary>Keys of warnings the author has read and accepted (<see cref="PlanFinding.AcknowledgementKey"/>).</summary>
     public ValueList<string> Acknowledged { get; init; }
-
-    /// <summary>
-    /// The game files the author declared as ones the package's software writes while the game runs, in both modes; files
-    /// of the comparison declared with <see cref="FileChoice.Runtime"/> come on top in simple mode.
-    /// </summary>
-    public ValueList<RuntimeFileChoice> RuntimeFiles { get; init; }
-
-    /// <summary>A copy of the project with the author's choice for a reviewed file.</summary>
-    /// <param name="entry">The file as the review lists it.</param>
-    /// <param name="choice">One of the entry's choices; its detected one clears the author's choice.</param>
-    public CreatorProject WithChoice(ReviewEntry entry, FileChoice choice)
-    {
-        var choices = Choices.Count > 0 ? Choices : new ValueDictionary<string, FileChoice>(
-            ImmutableDictionary.Create<string, FileChoice>(PackagePath.Comparer));
-        return this with
-        {
-            Choices = choice == entry.DefaultChoice ? choices.Remove(entry.File.Path) : choices.SetItem(entry.File.Path, choice),
-        };
-    }
-
-    /// <summary>A copy of the project with a step added after its extra steps.</summary>
-    /// <param name="step">The step to add.</param>
-    public CreatorProject WithExtraStep(ProjectStep step)
-    {
-        return this with { ExtraSteps = ExtraSteps.Add(step) };
-    }
-
-    /// <summary>A copy of the project without one of its extra steps.</summary>
-    /// <param name="index">The step's position in <see cref="ExtraSteps"/>.</param>
-    public CreatorProject WithoutExtraStep(int index) => this with { ExtraSteps = new(ExtraSteps.Items.RemoveAt(index)) };
-
-    /// <summary>A copy of the project that declares a file its software writes, replacing a declaration of the same path.</summary>
-    /// <param name="file">The file and how it stands to the game.</param>
-    public CreatorProject WithRuntimeFile(RuntimeFileChoice file)
-    {
-        var without = WithoutRuntimeFile(file.Path);
-        return without with { RuntimeFiles = without.RuntimeFiles.Add(file) };
-    }
-
-    /// <summary>A copy of the project that no longer declares a file as one its software writes.</summary>
-    /// <param name="path">The file's game path.</param>
-    public CreatorProject WithoutRuntimeFile(string path) =>
-        this with { RuntimeFiles = RuntimeFiles.RemoveAll(file => PackagePath.Comparer.Equals(file.Path, path)) };
 
     /// <summary>A copy of the project that records a warning as acknowledged.</summary>
     /// <param name="key">The warning's <see cref="PlanFinding.AcknowledgementKey"/>.</param>
@@ -225,26 +293,4 @@ public sealed record CreatorProject
     /// <param name="path">The library's game path.</param>
     public CreatorProject WithoutLibraryNotice(string path) =>
         this with { LibraryNotices = LibraryNotices.RemoveAll(notice => PackagePath.Comparer.Equals(notice.Path, path)) };
-
-    /// <summary>Turns a simple project into the steps its plan runs, so the package stays the same.</summary>
-    /// <param name="plan">The project's plan as it is now.</param>
-    public CreatorProject ToAdvanced(PackagePlan plan)
-    {
-        return this with
-        {
-            Mode = CreatorMode.Advanced,
-            Steps = [.. plan.Operations.Select(ToStep)],
-            Choices = default,
-            ExtraSteps = default,
-            RuntimeFiles = [.. plan.RuntimeFiles.Select(file => new RuntimeFileChoice(file.Path, file.Kind))],
-        };
-    }
-
-    private static ProjectStep ToStep(PlannedOperation operation) => operation.Kind switch
-    {
-        OperationKind.Copy => new CopyFileStep(operation.Source!, operation.Path),
-        OperationKind.Patch => new PatchFileStep(operation.Source!, operation.Path),
-        OperationKind.Rename => new RenameFileStep(operation.From!, operation.Path),
-        _ => new DeleteFileStep(operation.Path),
-    };
 }

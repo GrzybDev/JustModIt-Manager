@@ -8,10 +8,7 @@ public sealed class RuntimePlanTests : IDisposable
 {
     private static readonly byte[] List = Workspace.Bytes(2048, 2);
 
-    private static readonly CreatorProject Project = new()
-    {
-        Metadata = new PackageMetadata { Title = "Example package", Version = "1.0" },
-    };
+    private static readonly ProjectPart Part = new();
 
     private readonly Workspace _workspace = new();
 
@@ -28,7 +25,7 @@ public sealed class RuntimePlanTests : IDisposable
     [Fact]
     public async Task Declares_the_files_the_software_writes_without_an_operation_and_needs_a_manifest_package_for_them()
     {
-        var plan = await PlanAsync(Project
+        var plan = await PlanAsync(Part
             .WithRuntimeFile(new RuntimeFileChoice("DATA/LIST.IDX", RuntimeFileKind.ChangesGameFile))
             .WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile)));
 
@@ -47,7 +44,7 @@ public sealed class RuntimePlanTests : IDisposable
     [Fact]
     public async Task Names_the_runtime_files_after_the_reasons_of_the_operations()
     {
-        var plan = await PlanAsync(Project
+        var plan = await PlanAsync(Part
             .WithExtraStep(new RenameFileStep("data/strings.bin", "data/strings_o.bin"))
             .WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile)));
 
@@ -59,13 +56,13 @@ public sealed class RuntimePlanTests : IDisposable
     {
         _workspace.Author("data/list.idx", "the list as the program rewrote it");
         _workspace.Author("data/list_original.idx", List);
-        var review = await ReviewAsync(Project);
-        var project = Project
+        var review = await ReviewAsync(Part);
+        var part = Part
             .WithChoice(Entry(review, "data/list.idx"), FileChoice.Runtime)
             .WithChoice(Entry(review, "data/list_original.idx"), FileChoice.Runtime);
 
-        var simple = await ReviewAsync(project);
-        var advanced = await ReviewAsync(project.ToAdvanced(simple.Plan));
+        var simple = await ReviewAsync(part);
+        var advanced = await ReviewAsync(part.ToAdvanced(simple.Plan));
 
         Entry(review, "data/list.idx").Choices.Should().Equal(FileChoice.Copy, FileChoice.Runtime, FileChoice.Skip);
         Entry(review, "data/list_original.idx").Choices.Should()
@@ -84,9 +81,9 @@ public sealed class RuntimePlanTests : IDisposable
     public async Task Leaves_a_choice_out_that_the_list_already_declares()
     {
         _workspace.Author("data/list.idx", "the list as the program rewrote it");
-        var review = await ReviewAsync(Project);
+        var review = await ReviewAsync(Part);
 
-        var plan = await PlanAsync(Project
+        var plan = await PlanAsync(Part
             .WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile))
             .WithChoice(Entry(review, "data/list.idx"), FileChoice.Runtime));
 
@@ -99,7 +96,7 @@ public sealed class RuntimePlanTests : IDisposable
     {
         _workspace.Author("plugins/streamer.ini", "settings the program rewrites");
 
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("plugins/streamer.ini", RuntimeFileKind.ChangesGameFile)));
+        var plan = await PlanAsync(Part.WithRuntimeFile(new RuntimeFileChoice("plugins/streamer.ini", RuntimeFileKind.ChangesGameFile)));
 
         plan.RuntimeFiles.Should().ContainSingle().Which.Should().Match<PlannedRuntimeFile>(file =>
             file.WrittenByPackage && file.GameFile == null);
@@ -111,7 +108,7 @@ public sealed class RuntimePlanTests : IDisposable
     {
         _workspace.Game("data/list_original.idx", "a copy the program kept");
 
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile)));
+        var plan = await PlanAsync(Part.WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile)));
 
         plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
             finding.Kind == FindingKind.RuntimeFileInGame && finding.Path == "data/list_original.idx" && finding.RuntimeIndex == 0
@@ -122,7 +119,7 @@ public sealed class RuntimePlanTests : IDisposable
     [Fact]
     public async Task Takes_a_new_file_at_the_path_of_a_game_file_the_package_renames_away()
     {
-        var plan = await PlanAsync(Project
+        var plan = await PlanAsync(Part
             .WithExtraStep(new RenameFileStep("data/list.idx", "data/list_original.idx"))
             .WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.CreatesFile)));
 
@@ -136,9 +133,9 @@ public sealed class RuntimePlanTests : IDisposable
     public async Task Refuses_a_game_file_that_an_undone_test_left_as_the_software_changed_it()
     {
         var comparison = await _workspace.CompareAsync();
-        var project = Project.WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile));
+        var part = Part.WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile));
 
-        var plan = CreatorPlanner.Plan(comparison, project, Workspace.Options,
+        var plan = CreatorPlanner.Plan(comparison, Workspace.Project(part), part, Workspace.Version, Workspace.Options,
             new HashSet<string>(["DATA/List.idx"], PackagePath.Comparer)).Plan;
 
         plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
@@ -150,7 +147,7 @@ public sealed class RuntimePlanTests : IDisposable
     {
         _workspace.Author("data/strings.bin", "customized strings");
 
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("data/strings.bin", RuntimeFileKind.ChangesGameFile)));
+        var plan = await PlanAsync(Part.WithRuntimeFile(new RuntimeFileChoice("data/strings.bin", RuntimeFileKind.ChangesGameFile)));
 
         plan.Operations.Should().Contain(operation => operation.Kind == OperationKind.Patch);
         plan.Findings.Should().ContainSingle().Which.Kind.Should().Be(FindingKind.RuntimeFilePatched);
@@ -159,7 +156,7 @@ public sealed class RuntimePlanTests : IDisposable
     [Fact]
     public async Task Suggests_the_game_file_a_mistyped_path_most_likely_means()
     {
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("data/lst.idx", RuntimeFileKind.ChangesGameFile)));
+        var plan = await PlanAsync(Part.WithRuntimeFile(new RuntimeFileChoice("data/lst.idx", RuntimeFileKind.ChangesGameFile)));
 
         plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
             finding.Kind == FindingKind.GameFileMissing && finding.SuggestedPath == "data/list.idx" && finding.RuntimeIndex == 0);
@@ -172,7 +169,7 @@ public sealed class RuntimePlanTests : IDisposable
     [InlineData(".example-app/list.idx", FindingKind.ReservedPath)]
     public async Task Refuses_a_path_no_package_may_name(string path, FindingKind kind)
     {
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.CreatesFile)));
+        var plan = await PlanAsync(Part.WithRuntimeFile(new RuntimeFileChoice(path, RuntimeFileKind.CreatesFile)));
 
         plan.Findings.Should().ContainSingle().Which.Kind.Should().Be(kind);
         CreatorPlanner.RuntimePathProblem(path, Workspace.Options).Should().Be(kind);
@@ -181,7 +178,7 @@ public sealed class RuntimePlanTests : IDisposable
     [Fact]
     public async Task Refuses_a_path_declared_twice_or_under_a_file()
     {
-        var plan = await PlanAsync(Project with
+        var plan = await PlanAsync(Part with
         {
             RuntimeFiles =
             [
@@ -199,7 +196,7 @@ public sealed class RuntimePlanTests : IDisposable
     [Fact]
     public async Task Holds_a_list_of_at_most_sixty_four_files()
     {
-        var plan = await PlanAsync(Project with
+        var plan = await PlanAsync(Part with
         {
             RuntimeFiles = [.. Enumerable.Range(0, RuntimeFile.MaxPerPackage + 1)
                 .Select(i => new RuntimeFileChoice($"logs/run{i}.log", RuntimeFileKind.CreatesFile))],
@@ -215,7 +212,7 @@ public sealed class RuntimePlanTests : IDisposable
         File.Delete(_workspace.AuthorFile("tools/streamer.exe"));
         _workspace.Author("data/lang/xx.txt", "customized");
 
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile)));
+        var plan = await PlanAsync(Part.WithRuntimeFile(new RuntimeFileChoice("data/list_original.idx", RuntimeFileKind.CreatesFile)));
 
         plan.CarriesCode.Should().BeFalse();
         plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
@@ -228,7 +225,7 @@ public sealed class RuntimePlanTests : IDisposable
     {
         File.Delete(_workspace.AuthorFile("tools/streamer.exe"));
 
-        var plan = await PlanAsync(Project.WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile)));
+        var plan = await PlanAsync(Part.WithRuntimeFile(new RuntimeFileChoice("data/list.idx", RuntimeFileKind.ChangesGameFile)));
 
         plan.Findings.Should().Contain(finding => finding.Kind == FindingKind.EmptyPackage);
         plan.CanBuild.Should().BeFalse();
@@ -236,8 +233,7 @@ public sealed class RuntimePlanTests : IDisposable
 
     private static ReviewEntry Entry(CreatorReview review, string path) => review.Entries.Single(entry => entry.File.Path == path);
 
-    private async Task<CreatorReview> ReviewAsync(CreatorProject project) =>
-        CreatorPlanner.Plan(await _workspace.CompareAsync(), project, Workspace.Options);
+    private Task<CreatorReview> ReviewAsync(ProjectPart part) => _workspace.ReviewAsync(Workspace.Project(part));
 
-    private async Task<PackagePlan> PlanAsync(CreatorProject project) => (await ReviewAsync(project)).Plan;
+    private async Task<PackagePlan> PlanAsync(ProjectPart part) => (await ReviewAsync(part)).Plan;
 }

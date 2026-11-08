@@ -56,7 +56,7 @@ public sealed partial class ReviewViewModel
     {
         if (Operations.OfType<OperationRow>().FirstOrDefault(row => row.Choices.Contains(option)) is { Entry: { } entry })
         {
-            _session.Change(project => project.WithChoice(entry, option.Choice));
+            _session.ChangePart(part => part.WithChoice(entry, option.Choice));
         }
     }
 
@@ -65,7 +65,7 @@ public sealed partial class ReviewViewModel
     {
         if (row.Entry is { } entry && entry.Choices.Contains(FileChoice.Skip))
         {
-            _session.Change(project => project.WithChoice(entry, FileChoice.Skip));
+            _session.ChangePart(part => part.WithChoice(entry, FileChoice.Skip));
         }
     }
 
@@ -74,7 +74,7 @@ public sealed partial class ReviewViewModel
     {
         if (row.Entry is { } entry)
         {
-            _session.Change(project => project.WithChoice(entry, entry.DefaultChoice));
+            _session.ChangePart(part => part.WithChoice(entry, entry.DefaultChoice));
         }
     }
 
@@ -83,7 +83,7 @@ public sealed partial class ReviewViewModel
     {
         if (row.ExtraStep is { } index)
         {
-            _session.Change(project => project.WithoutExtraStep(index));
+            _session.ChangePart(part => part.WithoutExtraStep(index));
         }
     }
 
@@ -110,7 +110,7 @@ public sealed partial class ReviewViewModel
     {
         if (await PickGameFileAsync().ConfigureAwait(true) is { } path)
         {
-            _session.Change(project => project.WithExtraStep(new DeleteFileStep(path)));
+            _session.ChangePart(part => part.WithExtraStep(new DeleteFileStep(path)));
             IsAdding = false;
         }
     }
@@ -131,7 +131,7 @@ public sealed partial class ReviewViewModel
         if (RenameTo.Trim() is { Length: > 0 } to)
         {
             var from = RenameFrom;
-            _session.Change(project => project.WithExtraStep(new RenameFileStep(from, to)));
+            _session.ChangePart(part => part.WithExtraStep(new RenameFileStep(from, to)));
         }
 
         (RenameFrom, IsAdding) = ("", false);

@@ -36,7 +36,7 @@ public sealed partial class ReviewViewModel
             return;
         }
 
-        _session.Change(project => project.ToAdvanced(review.Plan));
+        _session.ChangePart(part => part.ToAdvanced(review.Plan));
     }
 
     [RelayCommand]
@@ -48,7 +48,7 @@ public sealed partial class ReviewViewModel
                 ConfirmIcon = Icons.Undo,
             }).ConfigureAwait(true))
         {
-            _session.Change(project => project with { Mode = CreatorMode.Simple, Steps = default });
+            _session.ChangePart(part => part with { Mode = CreatorMode.Simple, Steps = default });
         }
     }
 
@@ -62,7 +62,7 @@ public sealed partial class ReviewViewModel
             nameof(OperationKind.Rename) => new RenameFileStep("", ""),
             _ => new DeleteFileStep(""),
         };
-        _session.Change(project => project with { Steps = project.Steps.Add(step) });
+        _session.ChangePart(part => part with { Steps = part.Steps.Add(step) });
     }
 
     [RelayCommand]
@@ -82,7 +82,7 @@ public sealed partial class ReviewViewModel
 
     [RelayCommand]
     private void RemoveStep(StepRow row) =>
-        _session.Change(project => project with { Steps = new(project.Steps.Items.RemoveAt(row.Index)) });
+        _session.ChangePart(part => part with { Steps = new(part.Steps.Items.RemoveAt(row.Index)) });
 
     [RelayCommand]
     private async Task PickSourceAsync(StepRow row)
@@ -111,22 +111,22 @@ public sealed partial class ReviewViewModel
     /// <param name="to">Its new place.</param>
     internal void MoveStep(int from, int to)
     {
-        var steps = _session.Project.Steps.Items;
+        var steps = _session.Part.Steps.Items;
         if (from == to || from < 0 || to < 0 || from >= steps.Length || to >= steps.Length)
         {
             return;
         }
 
         var step = steps[from];
-        _session.Change(project => project with { Steps = new(steps.RemoveAt(from).Insert(to, step)) });
+        _session.ChangePart(part => part with { Steps = new(steps.RemoveAt(from).Insert(to, step)) });
     }
 
-    private void ShowSteps(PackagePlan plan, CreatorProject project)
+    private void ShowSteps(PackagePlan plan, ProjectPart part)
     {
         var findings = plan.Findings.Where(finding => finding.StepIndex is not null && !IsHosting(finding.Kind))
             .ToLookup(finding => finding.StepIndex!.Value);
-        var fresh = new List<StepRow>(project.Steps.Count);
-        for (var i = 0; i < project.Steps.Count; i++)
+        var fresh = new List<StepRow>(part.Steps.Count);
+        for (var i = 0; i < part.Steps.Count; i++)
         {
             fresh.Add(new StepRow("step:" + i.ToString(Text.Culture)));
         }
@@ -134,7 +134,7 @@ public sealed partial class ReviewViewModel
         var rows = ReviewRows.Reuse(_stepRows, fresh, null);
         for (var i = 0; i < rows.Count; i++)
         {
-            Fill(rows[i], i, project.Steps, plan, findings[i]);
+            Fill(rows[i], i, part.Steps, plan, findings[i]);
         }
 
         Controls.CardGrid.Sync(Steps, rows);
@@ -240,9 +240,16 @@ public sealed partial class ReviewViewModel
             _ => new DeleteFileStep(row.First.Trim()),
         };
         var index = row.Index;
-        if (index < _session.Project.Steps.Count && _session.Project.Steps[index] != step)
+        var steps = _session.Part.Steps;
+        if (index >= steps.Count)
         {
-            _session.Change(project => project with { Steps = new(project.Steps.Items.SetItem(index, step)) });
+            return;
+        }
+
+        var edited = step with { Only = steps[index].Only };
+        if (steps[index] != edited)
+        {
+            _session.ChangePart(part => part with { Steps = new(part.Steps.Items.SetItem(index, edited)) });
         }
     }
 }
