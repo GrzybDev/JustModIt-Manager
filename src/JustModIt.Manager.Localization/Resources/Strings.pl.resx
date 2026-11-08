@@ -3487,7 +3487,7 @@
     <value>Wszystkie operacje ({count})</value>
   </data>
   <data name="Creator_CellState" xml:space="preserve">
-    <value>{state, select, Compared {Porównano} Unchanged {Bez zmian od {hasVersion, select, true {{version}} other {ostatniej paczki}}} Ready {Gotowe} NoFolder {Brak folderu} FolderGone {Folder niedostępny} GameGone {Gry nie ma na tym komputerze} TestInstalled {Instalacja testowa w grze} Stopped {Porównanie przerwane} Installed {Na grze jest zainstalowana paczka} NotReady {{work}} other {Nie udało się porównać}}</value>
+    <value>{state, select, Compared {Porównano} Decisions {{count} do decyzji} SameAs {Jak w wersji {store}} Unchanged {Bez zmian od {hasVersion, select, true {{version}} other {ostatniej paczki}}} Ready {Gotowe} NoFolder {Brak folderu} FolderGone {Folder niedostępny} GameGone {Gry nie ma na tym komputerze} TestInstalled {Instalacja testowa w grze} Stopped {Porównanie przerwane} Installed {Na grze jest zainstalowana paczka} NotReady {{work}} other {Nie udało się porównać}}</value>
   </data>
   <data name="Creator_BeforeBuild" xml:space="preserve">
     <value>Przed zbudowaniem</value>
@@ -3552,14 +3552,29 @@
   <data name="Creator_DismissOffer" xml:space="preserve">
     <value>Nie pokazuj</value>
   </data>
+  <data name="Creator_Decisions" xml:space="preserve">
+    <value>Do decyzji</value>
+  </data>
+  <data name="Creator_Folded" xml:space="preserve">
+    <value>Zwinięte</value>
+  </data>
   <data name="Creator_PanelName" xml:space="preserve">
     <value>Szczegóły</value>
   </data>
   <data name="Creator_ClosePanel" xml:space="preserve">
     <value>Zamknij szczegóły</value>
   </data>
+  <data name="Creator_SharedFiles" xml:space="preserve">
+    <value>{count, plural, one {# plik wspólny} few {# pliki wspólne} many {# plików wspólnych} other {# pliku wspólnego}} z wersją {store}</value>
+  </data>
+  <data name="Creator_OwnPatches" xml:space="preserve">
+    <value>{count} z własnymi łatkami</value>
+  </data>
+  <data name="Creator_FolderMoved" xml:space="preserve">
+    <value>folder {from} jest tu jako {to}</value>
+  </data>
   <data name="Creator_CellDetail" xml:space="preserve">
-    <value>{detail, select, Changed {{count, plural, one {# plik zmienił się} few {# pliki zmieniły się} many {# plików zmieniło się} other {# pliku zmieniło się}} od {hasVersion, select, true {{version}} other {ostatniej paczki}}}}</value>
+    <value>{detail, select, Changed {{count, plural, one {# plik zmienił się} few {# pliki zmieniły się} many {# plików zmieniło się} other {# pliku zmieniło się}} od {hasVersion, select, true {{version}} other {ostatniej paczki}}} SameAs {wspólne pliki} other {{count} przyjęte}}</value>
   </data>
   <data name="Creator_Stop" xml:space="preserve">
     <value>Zatrzymaj</value>

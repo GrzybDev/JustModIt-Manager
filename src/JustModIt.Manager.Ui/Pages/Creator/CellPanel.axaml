@@ -124,6 +124,17 @@
           </ItemsControl>
         </StackPanel>
       </Panel>
+      <!-- What the cell shares with the first version, and where its folders lie, which no finding would tell. -->
+      <StackPanel x:Name="Folded" Spacing="4">
+        <StackPanel.IsVisible>
+          <MultiBinding Converter="{x:Static BoolConverters.And}">
+            <Binding Path="IsCompared" />
+            <Binding Path="Folded" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+          </MultiBinding>
+        </StackPanel.IsVisible>
+        <TextBlock Classes="rowTitle" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Text="{x:Static loc:Strings.Creator_Folded}" />
+        <TextBlock Classes="rowText" Text="{Binding Folded}" />
+      </StackPanel>
       <WrapPanel ItemSpacing="18" LineSpacing="8">
         <Button x:Name="AllOperations" Classes="link" FontSize="13" Content="{Binding Page.AllOperationsText}" Command="{Binding Page.ShowOperationsCommand}"
                 IsVisible="{Binding IsCompared}" />

@@ -3499,7 +3499,7 @@
     <value>All operations ({count})</value>
   </data>
   <data name="Creator_CellState" xml:space="preserve">
-    <value>{state, select, Compared {Compared} Unchanged {No changes since {hasVersion, select, true {{version}} other {the last package}}} Ready {Ready} NoFolder {No folder} FolderGone {Folder unavailable} GameGone {The game is not on this computer} TestInstalled {Test install in the game} Stopped {Comparison stopped} Installed {A package is installed on the game} NotReady {{work}} other {The comparison failed}}</value>
+    <value>{state, select, Compared {Compared} Decisions {{count} to decide} SameAs {As in the {store} version} Unchanged {No changes since {hasVersion, select, true {{version}} other {the last package}}} Ready {Ready} NoFolder {No folder} FolderGone {Folder unavailable} GameGone {The game is not on this computer} TestInstalled {Test install in the game} Stopped {Comparison stopped} Installed {A package is installed on the game} NotReady {{work}} other {The comparison failed}}</value>
   </data>
   <data name="Creator_BeforeBuild" xml:space="preserve">
     <value>Before building</value>
@@ -3564,14 +3564,29 @@
   <data name="Creator_DismissOffer" xml:space="preserve">
     <value>Do not show</value>
   </data>
+  <data name="Creator_Decisions" xml:space="preserve">
+    <value>To decide</value>
+  </data>
+  <data name="Creator_Folded" xml:space="preserve">
+    <value>In short</value>
+  </data>
   <data name="Creator_PanelName" xml:space="preserve">
     <value>Details</value>
   </data>
   <data name="Creator_ClosePanel" xml:space="preserve">
     <value>Close the details</value>
   </data>
+  <data name="Creator_SharedFiles" xml:space="preserve">
+    <value>{count, plural, one {# file} other {# files}} shared with the {store} version</value>
+  </data>
+  <data name="Creator_OwnPatches" xml:space="preserve">
+    <value>{count} with their own patches</value>
+  </data>
+  <data name="Creator_FolderMoved" xml:space="preserve">
+    <value>the folder {from} is {to} here</value>
+  </data>
   <data name="Creator_CellDetail" xml:space="preserve">
-    <value>{detail, select, Changed {{count, plural, one {# file changed} other {# files changed}} since {hasVersion, select, true {{version}} other {the last package}}}}</value>
+    <value>{detail, select, Changed {{count, plural, one {# file changed} other {# files changed}} since {hasVersion, select, true {{version}} other {the last package}}} SameAs {shared files} other {{count} accepted}}</value>
   </data>
   <data name="Creator_Stop" xml:space="preserve">
     <value>Stop</value>

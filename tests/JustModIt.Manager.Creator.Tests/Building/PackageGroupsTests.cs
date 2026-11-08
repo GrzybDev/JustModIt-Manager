@@ -116,6 +116,17 @@ public sealed class PackageGroupsTests : IDisposable
             new FileContent(second.Length, Convert.ToHexStringLower(SHA256.HashData(second))));
     }
 
+    [Fact]
+    public async Task Shared_counts_what_a_version_has_in_common_without_reading_a_file()
+    {
+        _second.Game("data/strings.bin", Workspace.Bytes(5000, 36));
+        var first = await VersionAsync(_first, Workspace.Steam);
+        var second = await VersionAsync(_second, Workspace.Gog);
+        File.Delete(_second.GamePath("data/strings.bin"));
+
+        PackageGroups.Shared(first.Plan, second.Plan).Should().Be((1, 1));
+    }
+
     private static async Task<IReadOnlyList<BuildVersion[]>> GroupAsync(Action<BuildProgress> report, params BuildVersion[] versions) =>
         await PackageGroups.GroupAsync(versions, new ContentHashes(PhysicalFileSystem.Instance), new InlineProgress<BuildProgress>(report), Token);
 

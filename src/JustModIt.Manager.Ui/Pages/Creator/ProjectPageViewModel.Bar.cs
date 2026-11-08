@@ -206,7 +206,7 @@ public sealed partial class ProjectPageViewModel
             return clauses.Count == 0 ? "" : Text.Format(Strings.Creator_ConfirmBlocked, ("what", CreatorWording.List(clauses)));
         }
 
-        var (errors, questions) = ReviewViewModel.Tally(plan);
+        var (errors, questions, _, _) = ReviewViewModel.Tally(plan);
         if (errors + questions > 0)
         {
             clauses.Add(Text.Format(Strings.Creator_BlockedRules, ("case", errors == 0 ? "questions" : questions == 0 ? "errors" : "both"),

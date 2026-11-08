@@ -329,6 +329,7 @@ public sealed class CreatorTests : IDisposable
         await UiHarness.WaitUntilAsync(() => page.HasOffer);
         ui.Click(Button(ui, page.OfferAction));
         await UiHarness.WaitUntilAsync(() => page.IsTable && page.CanBuild);
+        page.Cells[1].Brief.Label.Should().Be(Text.Format(Strings.Creator_CellState, ("state", "SameAs"), ("store", "Steam")), "the copy holds the same files");
 
         ui.Click(Button(ui, page.Cells[1].Name));
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));

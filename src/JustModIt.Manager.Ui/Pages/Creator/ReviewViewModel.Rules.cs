@@ -14,6 +14,21 @@ public sealed partial class ReviewViewModel
 
     public ObservableCollection<RuleRow> Rules { get; } = [];
 
+    /// <summary>
+    /// The rules that wait for the author: those to fix or to answer, and every added library, which counts as the authors'
+    /// code until the author says otherwise.
+    /// </summary>
+    public ObservableCollection<RuleRow> OpenRules { get; } = [];
+
+    /// <summary>The other rules, which the author accepted or answered.</summary>
+    public ObservableCollection<RuleRow> AcceptedRules { get; } = [];
+
+    [ObservableProperty]
+    public partial bool HasOpenRules { get; private set; }
+
+    [ObservableProperty]
+    public partial bool HasAcceptedRules { get; private set; }
+
     [ObservableProperty]
     public partial string RulesState { get; private set; } = "";
 
@@ -82,19 +97,24 @@ public sealed partial class ReviewViewModel
     [RelayCommand]
     private void RemoveLibraryNotice(RuleRow rule) => _session.Change(project => project.WithoutLibraryNotice(rule.Path));
 
-    /// <summary>How a plan's rules stand, as their rows count them: errors to fix and questions to answer.</summary>
+    /// <summary>
+    /// How a plan's rules stand, as their rows count them: errors to fix, questions to answer, the rows that wait for the author
+    /// (those and every added library) and the others, accepted or answered.
+    /// </summary>
     /// <param name="plan">The plan.</param>
-    internal static (int Errors, int Questions) Tally(PackagePlan plan)
+    internal static (int Errors, int Questions, int Open, int Accepted) Tally(PackagePlan plan)
     {
-        int errors = 0, questions = 0;
+        int errors = 0, questions = 0, open = 0, all = 0;
         foreach (var group in RuleGroups(plan))
         {
             var first = group.First();
             var isError = first.Severity == FindingSeverity.Error && first.Kind is not (FindingKind.ThirdPartyTool or FindingKind.AddedLibrary);
-            (errors, questions) = (errors + (isError ? 1 : 0), questions + (!isError && group.Any(finding => finding.BlocksBuild) ? 1 : 0));
+            var blocks = group.Any(finding => finding.BlocksBuild);
+            (errors, questions, all) = (errors + (isError ? 1 : 0), questions + (!isError && blocks ? 1 : 0), all + 1);
+            open += blocks || first.Kind == FindingKind.AddedLibrary ? 1 : 0;
         }
 
-        return (errors, questions);
+        return (errors, questions, open, all - open);
     }
 
     // The author decides about a file, not about each operation the rules find it in, e.g. a store library renamed away
@@ -107,6 +127,9 @@ public sealed partial class ReviewViewModel
         var fresh = RuleGroups(plan).Select(found => RuleOf(found.Key, [.. found])).ToList();
         var rows = ReviewRows.Reuse(_ruleRows, fresh, Update);
         Controls.CardGrid.Sync(Rules, rows);
+        Controls.CardGrid.Sync(OpenRules, [.. rows.Where(row => !row.IsAccepted || row.IsLibrary)]);
+        Controls.CardGrid.Sync(AcceptedRules, [.. rows.Where(row => row.IsAccepted && !row.IsLibrary)]);
+        (HasOpenRules, HasAcceptedRules) = (OpenRules.Count > 0, AcceptedRules.Count > 0);
         foreach (var row in rows)
         {
             ShowNotice(row);

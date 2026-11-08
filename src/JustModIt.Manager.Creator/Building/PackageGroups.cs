@@ -11,14 +11,25 @@ namespace JustModIt.Manager.Creator.Building;
 /// Tells which versions of a part take one package: those whose package would hold the same bytes, proven before anything is
 /// encoded. A plain archive names no versions, so its versions simply share the file.
 /// </summary>
-internal static class PackageGroups
+public static class PackageGroups
 {
+    /// <summary>What one version of a part has in common with another by their plans alone, reading no file.</summary>
+    /// <param name="first">The plan of the version compared with.</param>
+    /// <param name="other">The plan of the version the counts are about.</param>
+    /// <returns>Its operations the other version shares, patches going by the sizes of their originals, and its patches it does not share.</returns>
+    public static (int Files, int OwnPatches) Shared(PackagePlan first, PackagePlan other)
+    {
+        var theirs = first.Operations.Select(OperationKey.Of).ToHashSet();
+        return (other.Operations.Count(operation => theirs.Contains(OperationKey.Of(operation))),
+            other.Operations.Count(operation => operation.Kind == OperationKind.Patch && !theirs.Contains(OperationKey.Of(operation))));
+    }
+
     /// <summary>Groups a part's versions, each group becoming one package built from its first version's plan.</summary>
     /// <param name="versions">The part's versions, in the project's order.</param>
     /// <param name="hashes">Hashes the originals of patches.</param>
     /// <param name="progress">Receives how far the hashing got.</param>
     /// <param name="cancellationToken">Stops the hashing.</param>
-    public static async Task<IReadOnlyList<BuildVersion[]>> GroupAsync(IReadOnlyList<BuildVersion> versions, ContentHashes hashes,
+    internal static async Task<IReadOnlyList<BuildVersion[]>> GroupAsync(IReadOnlyList<BuildVersion> versions, ContentHashes hashes,
         IProgress<BuildProgress> progress, CancellationToken cancellationToken)
     {
         var alike = versions.GroupBy(version => Signature.Of(version.Plan)).ToList();

@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Creator.Building;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
@@ -10,8 +11,8 @@ using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Creator;
 
-// What changed since the comparison, which starts it again, and since the part's last build, which the cell lists and the
-// table tells.
+// What changed since the comparison, which starts it again, and since the part's last build, which the cell lists, and what the
+// cell's plan shares with the first version's, which the table and the panel tell.
 public sealed partial class CellViewModel
 {
     private CancellationTokenSource? _checking;
@@ -139,6 +140,10 @@ public sealed partial class CellViewModel
     [ObservableProperty]
     public partial string Name { get; private set; } = "";
 
+    /// <summary>What the cell's plan has in common with the first version's and which folders lie elsewhere; empty when nothing.</summary>
+    [ObservableProperty]
+    public partial string Folded { get; private set; } = "";
+
     // The rows follow the plan, which changes with every edit, and so do the table's words.
     private void ShowChanges()
     {
@@ -158,8 +163,21 @@ public sealed partial class CellViewModel
     private void ShowBrief()
     {
         var plan = Review?.Plan;
+        var first = _page.Cells.FirstOrDefault(cell => cell.Key.Part == Key.Part);
+        var shared = first != this && first?.Review?.Plan is { } theirs && plan is not null ? PackageGroups.Shared(theirs, plan) : ((int, int)?)null;
+        Folded = GameWording.Join(
+        [
+            shared is (var files, _) ? Text.Format(Strings.Creator_SharedFiles, ("count", files), ("store", first!.StoreName)) : "",
+            shared is (_, > 0 and var own) ? Text.Format(Strings.Creator_OwnPatches, ("count", own)) : "",
+            .. (Version?.Folders ?? default).Select(rename => Text.Format(Strings.Creator_FolderMoved, ("from", rename.Package), ("to", rename.Game))),
+        ]);
         Brief = State == CellState.NothingToPackage ? new LineContent(Icons.TriangleAlert, Tone.Warning, NothingTitle)
             : State != CellState.Compared || plan is null ? Line with { Detail = null }
+            : ReviewViewModel.Tally(plan) is { Open: > 0 } tally ? new LineContent(Icons.TriangleAlert, Tone.Warning, Text.Format(Strings.Creator_CellState,
+                ("state", "Decisions"), ("count", tally.Open)), tally.Accepted > 0 ? Text.Format(Strings.Creator_CellDetail, ("detail", "Accepted"), ("count", tally.Accepted)) : null)
+            : shared is (var all, 0) && all == plan.Operations.Count && all == first!.Review!.Plan.Operations.Count
+                ? new LineContent(Icons.CircleCheck, Tone.Success, Text.Format(Strings.Creator_CellState, ("state", "SameAs"), ("store", first.StoreName)),
+                    Text.Format(Strings.Creator_CellDetail, ("detail", "SameAs")))
             : _changedDetail.Length > 0 ? new LineContent(Icons.CircleCheck, Tone.Success, Text.Format(Strings.Creator_CellState, ("state", "Compared")), _changedDetail)
             : new LineContent(Icons.CircleCheck, Tone.Success, Detail.Length > 0 ? Detail : Text.Format(Strings.Creator_CellState, ("state", "Compared")),
                 GameWording.Join([Text.Format(Strings.Creator_CountOperations, ("count", plan.Operations.Count)),

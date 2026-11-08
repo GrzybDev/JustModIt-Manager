@@ -136,6 +136,8 @@ public sealed class CreatorReviewTests : IDisposable
         library.Title.Should().Be(CreatorWording.RuleTitle(new PlanFinding(FindingKind.AddedLibrary, "dx11/lantern_loc.dll")));
         review.RulesMet.Should().BeTrue();
         Page(ui).HasBlockedText.Should().BeFalse();
+        (review.OpenRules.Single(), Page(ui).Cell!.Brief.Label).Should().Be((library, Text.Format(Strings.Creator_CellState, ("state", "Decisions"), ("count", 1))),
+            "a library waits for the author's word though it holds nothing back");
         ui.Click(Pill(ui, Strings.Creator_LibraryThirdParty));
         await UiHarness.WaitUntilAsync(() => library.NeedsNotice);
         ui.Find<TextBlock>().Where(text => text.IsEffectivelyVisible).Select(text => text.Text).Should()

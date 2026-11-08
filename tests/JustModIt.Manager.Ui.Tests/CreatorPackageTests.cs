@@ -459,6 +459,7 @@ public sealed class CreatorPackageTests : IDisposable
             () => page.BlockedText);
 
         page.Session!.Project.Versions[1].Folders.Should().Equal(new FolderRename("data", "content"));
+        page.Cells[1].Folded.Should().Contain(Text.Format(Strings.Creator_FolderMoved, ("from", "data"), ("to", "content")), "a wrong rule would put copies where the game does not read");
         page.Cells.Select(cell => cell.Review!.Plan.Operations.Select(operation => (operation.Kind, operation.Path))).Should().AllSatisfy(operations =>
             operations.Should().BeEquivalentTo([(OperationKind.Patch, "data/strings.bin"), (OperationKind.Copy, "data/extra/credits.txt")]), "both versions plan in the project's layout");
         await BuildAsync(ui);
@@ -524,6 +525,8 @@ public sealed class CreatorPackageTests : IDisposable
             () => string.Join(", ", page.Cells.Select(cell => cell.Brief.Label)) + " " + page.BlockedText);
         (page.HasOffer, page.BuildText).Should().Be((false, Strings.Creator_BuildAll));
         page.Session!.Project.Versions.Select(version => version.Game.Key).Should().Equal(CreatorWorkspace.Lantern, gog.Key);
+        page.Cells[1].Folded.Should().Be(GameWording.Join([Text.Format(Strings.Creator_SharedFiles, ("count", 1), ("store", "Steam")),
+            Text.Format(Strings.Creator_OwnPatches, ("count", 1))]), "the copy patches its own original and shares the new file");
         await ui.RenderBothAsync("creator-table");
         ui.Click(Button(ui, page.Cells[1].Name));
         (page.IsPanelOpen, page.Cell).Should().Be((true, page.Cells[1]));
