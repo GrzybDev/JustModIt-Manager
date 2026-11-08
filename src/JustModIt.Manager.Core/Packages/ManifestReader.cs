@@ -16,6 +16,7 @@ internal static class ManifestReader
     private const string RuntimeFoldersProperty = "runtimeFolders";
     private const string TargetsProperty = "targets";
     private const string FoldersProperty = "folders";
+    private const string OnlyProperty = "only";
 
     /// <summary>Reads a package's manifest, refusing one made for a newer app before anything else.</summary>
     /// <param name="json">The bytes of <c>manifest.json</c>, with or without a byte order mark.</param>
@@ -126,11 +127,13 @@ internal static class ManifestReader
             }
 
             RequireSupported(PackageCapabilities.ForOperation(name), TypeProperty);
+            CheckDeclarations(operation, OnlyProperty, PackageCapabilities.TargetsOnly, required);
         }
     }
 
-    // An app that ignored such a list would install the package wrongly, say without ever undoing what its software changes
-    // or in folders the game does not have, which is why the list needs its capability while notices do not.
+    // An app that ignored such a list would install the package wrongly, say without ever undoing what its software changes,
+    // in folders the game does not have or with another store's steps, which is why the list needs its capability while
+    // notices do not.
     private static void CheckDeclarations(JsonElement owner, string property, string capability, HashSet<string> required)
     {
         if (!owner.TryGetProperty(property, out var list) || list.ValueKind == JsonValueKind.Null)

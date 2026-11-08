@@ -23,11 +23,14 @@ public static class PackageCapabilities
     /// <summary>The package's targets name where its folders lie on each game (<see cref="PackageTarget.Folders"/>).</summary>
     public const string TargetFolders = "targets:folders@1";
 
+    /// <summary>The package's operations name the stores they run on (<see cref="PackageOperation.Only"/>).</summary>
+    public const string TargetsOnly = "targets:only@1";
+
     private const string OperationPrefix = "op:";
 
     /// <summary>Everything this version of the app can install.</summary>
-    public static FrozenSet<string> Supported { get; } =
-        FrozenSet.Create(StringComparer.Ordinal, [.. new[] { Copy, Patch, Rename, Delete }.Select(ForOperation), RuntimeFiles, TargetFolders]);
+    public static FrozenSet<string> Supported { get; } = FrozenSet.Create(StringComparer.Ordinal,
+        [.. new[] { Copy, Patch, Rename, Delete }.Select(ForOperation), RuntimeFiles, TargetFolders, TargetsOnly]);
 
     /// <summary>The capability an operation needs.</summary>
     /// <param name="type">The operation's type as the manifest names it, e.g. <c>patch</c>.</param>

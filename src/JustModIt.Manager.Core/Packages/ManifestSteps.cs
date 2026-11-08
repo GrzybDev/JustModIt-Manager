@@ -14,25 +14,32 @@ internal static class ManifestSteps
     /// <summary>The steps of a manifest, checked against the archive.</summary>
     /// <param name="manifest">The manifest as read.</param>
     /// <param name="files">The archive's file entries by normalised name.</param>
-    /// <param name="game">The game it opens for, whose target's rules the game paths follow; null for the manifest as written.</param>
-    /// <exception cref="InvalidPackageException">An operation is unsafe or does not match the archive.</exception>
+    /// <param name="game">
+    /// The game it opens for, whose target's rules the game paths follow and whose store limits the operations; null for the
+    /// manifest as written.
+    /// </param>
+    /// <exception cref="InvalidPackageException">An operation is unsafe or does not match the archive, or none runs on the game.</exception>
     public static IReadOnlyList<PackageStep> From(PackageManifest manifest, IReadOnlyDictionary<string, ZipArchiveEntry> files, GameKey? game)
     {
         // The serializer checks the nullability of properties but not of list items.
         if (manifest.Targets.Any(target => target is null || string.IsNullOrWhiteSpace(target.Id)
             || target.Folders?.All(folder => folder is not null && PackagePath.IsValid(folder.Package) && PackagePath.IsValid(folder.Game)
-                && !PackagePath.HasShortName(folder.Game)) == false))
+                && !PackagePath.HasShortName(folder.Game)) == false)
+            || manifest.Operations.Any(operation => operation.Only is { Count: 0 }))
         {
             throw new InvalidPackageException(PackageError.InvalidManifest, "targets");
         }
 
-        if (manifest.Operations.Count == 0)
-        {
-            throw new InvalidPackageException(PackageError.Empty);
-        }
-
         var folders = manifest.FoldersOn(game);
-        return [.. manifest.Operations.Select(operation => ToStep(operation, files, folders))];
+        // An operation for another store is made into a step as well, so a package is as valid on every store.
+        List<PackageStep> steps =
+        [
+            .. manifest.Operations.Select(operation => (operation.Only, Step: ToStep(operation, files, folders)))
+                .Where(item => item.Only is null || game is null || item.Only.Contains(game.Value.Store))
+                .Select(item => item.Step),
+        ];
+        // An install without a file would never follow its game to a folder the store moves it to.
+        return steps.Count > 0 ? steps : throw new InvalidPackageException(PackageError.Empty);
     }
 
     private static PackageStep ToStep(PackageOperation? operation, IReadOnlyDictionary<string, ZipArchiveEntry> files,

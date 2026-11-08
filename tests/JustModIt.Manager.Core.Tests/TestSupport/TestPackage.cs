@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Packages;
 
 namespace JustModIt.Manager.Core.Tests.TestSupport;
@@ -56,6 +57,14 @@ internal sealed partial class TestPackage
     public TestPackage Operation(PackageOperation operation)
     {
         _operations.Add(operation);
+        return this;
+    }
+
+    /// <summary>Limits the last operation to the games of some stores.</summary>
+    /// <param name="stores">The stores it runs on.</param>
+    public TestPackage Only(params StoreId[] stores)
+    {
+        _operations[^1] = _operations[^1] with { Only = stores };
         return this;
     }
 
@@ -124,9 +133,13 @@ internal sealed partial class TestPackage
     // A manifest may leave out what its operations need, but not what its other fields need.
     private List<string>? Capabilities()
     {
-        var folders = _targets.Any(target => target.Folders is not null);
-        return _runtimeFiles.Count > 0 || folders
-            ? [.. PackageCapabilities.Of(_operations, declaresFiles: _runtimeFiles.Count > 0).Concat(folders ? [PackageCapabilities.TargetFolders] : [])]
+        var fields = new[]
+        {
+            (PackageCapabilities.TargetFolders, _targets.Any(target => target.Folders is not null)),
+            (PackageCapabilities.TargetsOnly, _operations.Exists(operation => operation.Only is not null)),
+        }.Where(field => field.Item2).Select(field => field.Item1).ToList();
+        return _runtimeFiles.Count > 0 || fields.Count > 0
+            ? [.. PackageCapabilities.Of(_operations, declaresFiles: _runtimeFiles.Count > 0), .. fields]
             : null;
     }
 

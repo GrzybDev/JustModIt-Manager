@@ -72,7 +72,14 @@ public sealed record PackageTarget(StoreId Store, string Id, string? BuildId = n
 [JsonDerivedType(typeof(PatchOperation), PackageCapabilities.Patch)]
 [JsonDerivedType(typeof(RenameOperation), PackageCapabilities.Rename)]
 [JsonDerivedType(typeof(DeleteOperation), PackageCapabilities.Delete)]
-public abstract record PackageOperation;
+public abstract record PackageOperation
+{
+    /// <summary>
+    /// The stores whose games the operation runs on, which an app that ignored them would run it on everywhere, so a list
+    /// needs <see cref="PackageCapabilities.TargetsOnly"/>; null for every store.
+    /// </summary>
+    public IReadOnlyList<StoreId>? Only { get; init; }
+}
 
 /// <summary>Copies a payload file into the game.</summary>
 /// <param name="Path">Game-relative destination.</param>

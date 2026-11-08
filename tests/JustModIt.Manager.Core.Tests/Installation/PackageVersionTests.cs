@@ -26,6 +26,8 @@ public sealed class PackageVersionTests : IAsyncDisposable
             .Patch("assets/strings.pak", patch)
             .Delete("video/intro.bik")
             .Copy("extras/lang/text.txt", "text")
+            .Copy("extras/lang/steam.txt", "for this store").Only(StoreId.Steam, StoreId.Epic)
+            .Copy("extras/lang/gog.txt", "for another store").Only(StoreId.Gog)
             .Copy("kit/loader.dll", "loader")
             .Declare("kit/list.dat")
             .Declare("kit/list_original.dat")
@@ -40,12 +42,14 @@ public sealed class PackageVersionTests : IAsyncDisposable
         (await File.ReadAllBytesAsync(_harness.GameFile("data/strings.pak"), InstallHarness.Token)).Should().Equal(InstallHarness.ChangedPak);
         File.Exists(_harness.GameFile("movies/intro.bik")).Should().BeFalse();
         _harness.ReadGameFile("mods/extras/lang/text.txt").Should().Be("text");
+        _harness.ReadGameFile("mods/extras/lang/steam.txt").Should().Be("for this store");
+        File.Exists(_harness.GameFile("mods/extras/lang/gog.txt")).Should().BeFalse();
         _harness.ReadGameFile("tool/loader.dll").Should().Be("loader");
         Directory.EnumerateDirectories(_harness.GameRoot).Select(folder => Path.GetFileName(folder)).Should()
             .NotContain(["assets", "binaries", "video", "extras", "kit"], "no folder of the package's layout appears");
         var files = await _harness.FilesOnDiskAsync(result.Record.Id);
         files.Files.Select(file => file.Path).Should().BeEquivalentTo("bin/library.dll", "bin/library_original.dll", "data/strings.pak",
-            "movies/intro.bik", "mods/extras/lang/text.txt", "tool/loader.dll", List, "tool/list_original.dat");
+            "movies/intro.bik", "mods/extras/lang/text.txt", "mods/extras/lang/steam.txt", "tool/loader.dll", List, "tool/list_original.dat");
         files.CreatedDirectories.Should().Equal("mods", "mods/extras", "mods/extras/lang");
         result.Record.Package.RuntimeFiles.Should().Equal(List, "tool/list_original.dat");
 

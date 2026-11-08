@@ -586,6 +586,7 @@ public sealed class PackageReaderTests : IDisposable
 
     [Theory]
     [InlineData(""" "targets": [ { "store": "steam", "id": "1000", "folders": [ { "package": "Data", "game": "Content" } ] } ], "operations": [ { "type": "delete", "path": "old.txt" } ] """)]
+    [InlineData(""" "operations": [ { "type": "delete", "path": "old.txt", "only": [ "steam" ] } ] """)]
     public async Task A_manifest_that_uses_a_new_field_without_its_capability_is_damaged(string fields)
     {
         new TestPackage().RawManifest($$"""
@@ -607,11 +608,16 @@ public sealed class PackageReaderTests : IDisposable
     [InlineData("""[ { "store": "steam", "id": "1000", "folders": [ { "package": "../a", "game": "b" } ] } ]""")]
     [InlineData("""[ { "store": "steam", "id": "1000", "folders": [ { "package": "Data", "game": "../b" } ] } ]""")]
     [InlineData("""[ { "store": "steam", "id": "1000", "folders": [ { "package": "Data", "game": "PROGRA~1" } ] } ]""")]
-    public async Task Rejects_malformed_targets_and_stores(string targets)
+    [InlineData("[]", "[]")]
+    [InlineData("[]", """[ "" ]""")]
+    [InlineData("[]", "[ null ]")]
+    [InlineData("[]", "[ 1 ]")]
+    [InlineData("[]", """ "steam" """)]
+    public async Task Rejects_malformed_targets_and_stores(string targets, string only = "null")
     {
         new TestPackage().RawManifest($$"""
-            { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": [ "op:delete", "targets:folders@1" ],
-              "targets": {{targets}}, "operations": [ { "type": "delete", "path": "old.txt" } ] }
+            { "formatVersion": 1, "id": "{{TestPackage.Id}}", "title": "T", "version": "1", "requires": [ "op:delete", "targets:folders@1", "targets:only@1" ],
+              "targets": {{targets}}, "operations": [ { "type": "delete", "path": "old.txt", "only": {{only}} } ] }
             """).WriteManifestPackage(ManifestPackage);
 
         (await ErrorAsync(ManifestPackage)).Should().Be(PackageError.InvalidManifest);
@@ -668,6 +674,48 @@ public sealed class PackageReaderTests : IDisposable
 
             (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.InvalidManifest);
         }
+    }
+
+    [Fact]
+    public async Task An_operation_for_another_store_is_checked_but_does_not_run()
+    {
+        var token = TestContext.Current.CancellationToken;
+        new TestPackage().Copy("text.txt", "text").Copy("steam.txt", "steam").Only(StoreId.Steam).Delete("old.txt").Only(StoreId.Gog, StoreId.Epic)
+            .WriteManifestPackage(ManifestPackage);
+        var broken = _temp.Combine("broken.examplemod");
+        new TestPackage().Copy("text.txt", "text").Operation(new CopyOperation("gog.txt", "files/gog.txt", 1, Hash) { Only = [StoreId.Gog] })
+            .WriteManifestPackage(broken);
+        var steam = new GameKey(StoreId.Steam, "1000");
+        var gog = new GameKey(StoreId.Gog, "2000");
+
+        await using var onSteam = await _reader.OpenAsync(ManifestPackage, steam, token);
+        await using var onGog = await _reader.OpenAsync(ManifestPackage, gog, token);
+        await using var asWritten = await _reader.OpenAsync(ManifestPackage, token);
+
+        onSteam.Steps.OfType<CopyStep>().Select(step => step.Path).Should().Equal("text.txt", "steam.txt");
+        onSteam.Steps.Should().HaveCount(2);
+        onGog.Steps.Should().HaveCount(2).And.ContainSingle(step => step is CopyStep).And.ContainSingle(step => step is DeleteStep);
+        asWritten.Steps.Should().HaveCount(3);
+        foreach (var game in new GameKey?[] { steam, gog, null })
+        {
+            var open = () => _reader.OpenAsync(broken, game, token);
+
+            (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.MissingPayload);
+        }
+    }
+
+    [Fact]
+    public async Task A_package_with_nothing_for_the_game_s_store_is_empty()
+    {
+        var token = TestContext.Current.CancellationToken;
+        new TestPackage().Delete("old.txt").Only(StoreId.Gog).WriteManifestPackage(ManifestPackage);
+
+        var open = () => _reader.OpenAsync(ManifestPackage, new GameKey(StoreId.Steam, "1000"), token);
+
+        (await open.Should().ThrowAsync<InvalidPackageException>()).Which.Error.Should().Be(PackageError.Empty,
+            "such a package would commit a record with no files");
+        await using var asWritten = await _reader.OpenAsync(ManifestPackage, token);
+        asWritten.Steps.Should().ContainSingle();
     }
 
     private static string Declaring(string runtimeFiles) => $$"""
