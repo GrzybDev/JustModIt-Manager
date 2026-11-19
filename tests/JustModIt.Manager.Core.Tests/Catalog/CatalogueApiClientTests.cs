@@ -454,6 +454,7 @@ public sealed class CatalogueApiClientTests
         page.Achievements.Should().ContainSingle("an entry of a shape this version cannot read is left out")
             .Which.Should().BeEquivalentTo(new { Game = new GameKey(StoreId.Steam, "1000010"), Language = "polish", Revision = 4 });
         sparse.Achievements.Should().BeEmpty();
+        page.StorefrontLinks.Select(link => link.LaunchOptions).Should().Equal("-examplelog", "", "");
         document.Json.ToArray().Should().Equal(System.Text.Encoding.UTF8.GetBytes(CatalogueFixtures.Read("project-starlight-harbor.json")));
     }
 

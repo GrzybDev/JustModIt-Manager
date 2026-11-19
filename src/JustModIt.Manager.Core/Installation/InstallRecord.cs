@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Packages;
@@ -53,6 +54,9 @@ public sealed record InstallRecord
     public IReadOnlyList<LeftOutFeature>? LeftOutFeatures { get; init; }
 
     public InstallSource? Source { get; init; }
+
+    /// <summary>The launch options the install's project needs on the game; null when it needs none.</summary>
+    public InstalledLaunchOptions? LaunchOptions { get; init; }
 
     /// <summary>Where this install keeps the originals it replaced; a later change of the setting does not move them.</summary>
     public required BackupFolder Backup { get; init; }
@@ -115,6 +119,29 @@ public sealed record InstalledPart(InstalledPackage Package, string? FeatureKey 
     /// <summary>The download that stays kept for the package; null for a package that came from none.</summary>
     [JsonIgnore]
     public Guid? KeptDownload => Guid.TryParse(CachedFileId ?? ReleaseFileId, out var file) ? file : null;
+}
+
+/// <summary>
+/// The launch options an install's project needs, kept so that the app adds them to the player's own options and takes back
+/// only those it added.
+/// </summary>
+/// <param name="Required">The options the project needs, in the site's order; empty when they were refused.</param>
+public sealed record InstalledLaunchOptions(ValueList<string> Required)
+{
+    /// <summary>The options the app added to the player's own, which it removes again with the install.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public ValueList<string> Added { get; init; }
+
+    /// <summary>Why the app refused the options the site gave, so it sets none; null when it accepted them.</summary>
+    public LaunchOptionsRefusal? Refusal { get; init; }
+
+    /// <summary>What an install keeps of the options its project needs; null when there is nothing to keep.</summary>
+    /// <param name="needed">The options the project needs, as the app checked them.</param>
+    /// <param name="added">The options the app added for the install this one takes the place of; none for a new install.</param>
+    public static InstalledLaunchOptions? From(CheckedLaunchOptions needed, ValueList<string> added) =>
+        needed.Options.Count == 0 && needed.Refusal is null && added.Count == 0
+            ? null
+            : new InstalledLaunchOptions(needed.Options) { Added = added, Refusal = needed.Refusal };
 }
 
 /// <summary>An add-on an install went without, since its own check failed on the game.</summary>

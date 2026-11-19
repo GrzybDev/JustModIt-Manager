@@ -44,6 +44,9 @@ public sealed record InstallRequest(InstalledGame Game, IReadOnlyList<InstallPar
     /// other install.
     /// </summary>
     public Guid? Restores { get; init; }
+
+    /// <summary>The launch options the project needs on the game, kept in the record; null when it needs none.</summary>
+    public InstalledLaunchOptions? LaunchOptions { get; init; }
 }
 
 /// <summary>One package of an install, with what the site says about it for the install's record.</summary>

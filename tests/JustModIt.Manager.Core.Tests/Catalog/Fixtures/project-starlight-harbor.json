@@ -37,6 +37,7 @@
       "url": "https://store.example.com/app/1000010/",
       "operating_systems": [],
       "additional_data": {"appid": 1000010, "buildid": "7770001", "languages": [0, 2, 3, 10]},
+      "launch_options": "-examplelog",
       "position": 0
     },
     {

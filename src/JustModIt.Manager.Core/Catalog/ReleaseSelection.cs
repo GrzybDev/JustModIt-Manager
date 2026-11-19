@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using JustModIt.Manager.Core.Games;
 
 namespace JustModIt.Manager.Core.Catalog;
 
@@ -125,6 +126,9 @@ public sealed record ReleaseSelection
     public SelectionUnavailability? Unavailable { get; init; }
 
     public bool IsInstallable => Unavailable is null;
+
+    /// <summary>The launch options the project needs on the game, from its links to it, which only Steam's carry.</summary>
+    public CheckedLaunchOptions LaunchOptions => CheckedLaunchOptions.Check(string.Join(' ', Links.Select(link => link.LaunchOptions)));
 
     /// <summary>
     /// What an install takes: the base; each add-on on its own as the player turned it, else as its author says; one member

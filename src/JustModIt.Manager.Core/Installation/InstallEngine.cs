@@ -186,6 +186,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
                 Parts = [.. package.Parts.Select(part => InstalledPartOf(part, request.Parts[part.Index]))],
                 LeftOutFeatures = LeftOutFeaturesOf(leftOut),
                 Source = request.Source,
+                LaunchOptions = request.LaunchOptions,
                 Backup = backup,
                 FileCount = files.Files.Count(file => file.Change != FileChange.Unchanged),
                 IsTest = request.IsTest,

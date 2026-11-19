@@ -15,7 +15,9 @@ namespace JustModIt.Manager.Core.Jobs;
 /// <param name="Parts">The packages in the order they install, each with its release file.</param>
 /// <param name="ReleaseId">The release the files belong to.</param>
 /// <param name="Source">What the install's record keeps of where it came from.</param>
-internal sealed record PreparedPackage(IReadOnlyList<InstallPart> Parts, Guid ReleaseId, InstallSource Source);
+/// <param name="LaunchOptions">The launch options the project needs on the game; null when it needs none.</param>
+internal sealed record PreparedPackage(IReadOnlyList<InstallPart> Parts, Guid ReleaseId, InstallSource Source,
+    InstalledLaunchOptions? LaunchOptions);
 
 /// <summary>The steps of every kind of job, none of which changes a game before its package is downloaded and checked.</summary>
 /// <param name="engine">Changes game files and reads install records.</param>
@@ -80,7 +82,7 @@ internal sealed partial class JobPipeline(
         }
 
         var package = await PrepareAsync(job, game, request.Project, record: null).ConfigureAwait(false);
-        var installed = await InstallPackageAsync(job, package.Parts, package.Source, isTest: false, canDefer: false, job.Token)
+        var installed = await InstallPackageAsync(job, package.Parts, package.Source, package.LaunchOptions, isTest: false, job.Token)
             .ConfigureAwait(false);
         return job.Succeeded() with { Installed = installed.Record, Warnings = installed.Warnings };
     }
@@ -96,7 +98,7 @@ internal sealed partial class JobPipeline(
 
         // Every package on trial is needed, so a clash between them shows before anything changes.
         var installed = await InstallPackageAsync(job, [.. request.PackagePaths.Select(path => new InstallPart(path))], request.Source,
-            isTest: true, canDefer: false, job.Token).ConfigureAwait(false);
+            launchOptions: null, isTest: true, job.Token).ConfigureAwait(false);
         return job.Succeeded() with { Installed = installed.Record, Warnings = installed.Warnings };
     }
 
@@ -167,8 +169,8 @@ internal sealed partial class JobPipeline(
             }, job.Token).ConfigureAwait(false);
             try
             {
-                var installed = await InstallPackageAsync(job, package.Parts, package.Source, isTest: false, canDefer: false, job.Token)
-                    .ConfigureAwait(false);
+                var installed = await InstallPackageAsync(job, package.Parts, package.Source, package.LaunchOptions, isTest: false,
+                    job.Token).ConfigureAwait(false);
                 return job.Succeeded() with
                 {
                     Installed = installed.Record,
@@ -387,6 +389,8 @@ internal sealed partial class JobPipeline(
                 HadVariantChoice = selection.IsLegacy && selection.Features.Count > 1,
                 CoverUrl = CoverOf(detail),
             };
+            // The options the project's own install added stay the app's to take back.
+            var launchOptions = InstalledLaunchOptions.From(selection.LaunchOptions, record?.LaunchOptions?.Added ?? []);
             return new PreparedPackage([.. plan.Parts.Select((part, index) => new InstallPart(downloaded[index].Path)
             {
                 IsOptional = part.IsOptional,
@@ -396,7 +400,7 @@ internal sealed partial class JobPipeline(
                 CachedFileId = downloaded[index].CopyOf?.ToString("D"),
                 // A kept download keeps its own layout; old bytes never take the new file's rule.
                 Folders = held[index] is { } kept && kept.KeptDownload == downloaded[index].CopyOf ? kept.Folders : part.File.Layout?.Folders,
-            })], release.Uuid, source);
+            })], release.Uuid, source, launchOptions);
         }
     }
 
@@ -479,14 +483,15 @@ internal sealed partial class JobPipeline(
         }
     }
 
-    private Task<InstallResult> InstallPackageAsync(JobContext job, IReadOnlyList<InstallPart> parts, InstallSource? source, bool isTest,
-        bool canDefer, CancellationToken cancellationToken, Guid? restores = null)
+    private Task<InstallResult> InstallPackageAsync(JobContext job, IReadOnlyList<InstallPart> parts, InstallSource? source,
+        InstalledLaunchOptions? launchOptions, bool isTest, CancellationToken cancellationToken, Guid? restores = null)
     {
         job.Enter(JobStage.Checking);
-        return WhenSafeAsync(job, detected: true, canDefer,
+        return WhenSafeAsync(job, detected: true, canDefer: false,
             game => engine.InstallAsync(new InstallRequest(game!, parts, BackupChoice.From(settings.Current), source, isTest)
             {
                 Restores = restores,
+                LaunchOptions = launchOptions,
             }, job.InstallProgress, cancellationToken),
             cancellationToken);
     }
@@ -560,7 +565,7 @@ internal sealed partial class JobPipeline(
                 });
             }
 
-            var restored = await InstallPackageAsync(job, restoring, source, isTest: false, canDefer: false, halting, restores: record.Id)
+            var restored = await InstallPackageAsync(job, restoring, source, record.LaunchOptions, isTest: false, halting, restores: record.Id)
                 .ConfigureAwait(false);
             LogRestored(record.Game);
             return (restored.Record, false);

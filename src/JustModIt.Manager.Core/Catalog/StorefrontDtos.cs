@@ -85,6 +85,12 @@ public sealed record StorefrontLink
     /// <summary>The store's newest build known, confirmed or not; empty when unknown.</summary>
     public string LatestBuild { get; init => field = value ?? ""; } = "";
 
+    /// <summary>
+    /// The launch options the project needs on the store's copy of the game, space-separated as the team gave them and not
+    /// checked yet (<see cref="CheckedLaunchOptions.Check"/>); empty for none.
+    /// </summary>
+    public string LaunchOptions { get; init => field = value ?? ""; } = "";
+
     [JsonIgnore]
     public StoreId? Store => Platform?.Store;
 

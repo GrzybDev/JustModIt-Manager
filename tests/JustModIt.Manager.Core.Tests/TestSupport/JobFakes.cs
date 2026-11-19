@@ -396,6 +396,7 @@ internal sealed class FakeInstallEngine : IInstallEngine
             Parts = [.. request.Parts.Select(part => new InstalledPart(new InstalledPackage(PackageKind.Zip, Path.GetFileName(part.PackagePath)),
                 part.FeatureKey, part.FeatureName, part.ReleaseFileId, part.CachedFileId, part.Folders))],
             Source = request.Source,
+            LaunchOptions = request.LaunchOptions,
             Backup = new BackupFolder(request.Backup.Location, Path.Join(request.Game.InstallDirectory, ".example-app", "backups")),
             FileCount = 2,
             IsTest = request.IsTest,
