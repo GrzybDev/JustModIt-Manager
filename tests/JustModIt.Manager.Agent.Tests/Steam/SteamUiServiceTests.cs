@@ -9,6 +9,7 @@ using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Agent.Tests.Steam;
 
@@ -41,7 +42,8 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
         File.WriteAllText(Path.Combine(_root, "millennium", "config", "config.json"),
             """{"general": {"accentColor": "#123456"}, "plugins": {"enabledPlugins": ["another-plugin"]}}""");
         _steam.Root = _root;
-        _service = new SteamUiService(_steam, _folders, _settings, Options, TimeProvider.System, NullLogger<SteamUiService>.Instance);
+        _service = new SteamUiService(_steam, new FakeDevTools(), _folders, _settings, Options, TimeProvider.System,
+            NullLogger<SteamUiService>.Instance);
     }
 
     private static AgentOptions Options { get; } = new()
@@ -58,6 +60,8 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
     };
 
     private string PluginFolder => Path.Combine(_root, "millennium", "plugins", Slug);
+
+    private string ConfigFile => Path.Combine(_root, "millennium", "config", "config.json");
 
     [Fact]
     public async Task The_plugin_goes_in_while_steam_is_closed_once_the_setup_is_done_and_gets_the_texts_to_show()
@@ -123,18 +127,76 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task The_plugin_s_reports_tell_what_it_hooked_and_the_launch_options_of_the_games_asked_about()
+    public async Task Only_a_report_of_this_run_of_steam_tells_what_the_plugin_hooked_and_a_game_it_never_reported_stays_unknown()
     {
         Start(SteamUiDemand.From([], [Game]));
         await Eventually.HoldsAsync(() => _service.Status.PluginVersion == "1.4.0");
-        _service.Status.LaunchOptions.Should().BeEmpty("nothing is known of the game while Steam is closed");
+        Report("""{"hooks": {"achievements": true, "notifications": true}, "applied": 0, "launchOptions": {}, "millennium": "3.6.2"}""");
+        File.SetLastWriteTimeUtc(Path.Combine(PluginFolder, "status.json"), DateTime.UtcNow.AddHours(-1));
 
         _steam.Start(7);
-        await Eventually.HoldsAsync(() => _service.Status.Reachable);
-        _service.Status.LaunchOptions[Game].Should().Be("", "a game the plugin never reported is taken as having none");
+        await Eventually.HoldsAsync(() => _service.Status.InterfaceLanguage == "polish");
+        _service.Status.Should().Match<SteamUiStatus>(status => !status.Reachable && status.Hooks == null && status.LaunchOptions.Count == 0,
+            "Millennium has not loaded the plugin in this run yet, and the player's options of the game were never read");
+
         Report("""{"hooks": {"achievements": true, "notifications": false}, "applied": 0, "launchOptions": {"400": "-novid"}, "millennium": "3.6.3"}""");
-        await Eventually.HoldsAsync(() => _service.Status.LaunchOptions[Game] == "-novid");
-        _service.Status.Should().Match<SteamUiStatus>(status => status.Hooks == new SteamUiHooks(true, false) && status.MillenniumVersion == "3.6.3");
+        await Eventually.HoldsAsync(() => _service.Status.Reachable);
+        _service.Status.Should().Match<SteamUiStatus>(status => status.LaunchOptions[Game] == "-novid"
+            && status.Hooks == new SteamUiHooks(true, false) && status.MillenniumVersion == "3.6.3");
+    }
+
+    [Fact]
+    public async Task A_plugin_millennium_did_not_load_is_told_as_blocked_once_it_had_its_time()
+    {
+        var time = new FakeTimeProvider(DateTimeOffset.UtcNow);
+        using var service = new SteamUiService(_steam, new FakeDevTools(), _folders, _settings, Options, time, NullLogger<SteamUiService>.Instance);
+        service.Demand(SteamUiDemand.From([Texts], []));
+        _run = service.RunAsync(new LaunchArguments(ProcessRole.Agent, Background: false, Target: null), _stop.Token);
+        await Eventually.HoldsAsync(() => service.Status.PluginVersion == "1.4.0");
+
+        _steam.Start(7);
+        await Eventually.HoldsAsync(() => service.Status.InterfaceLanguage == "polish");
+        service.Status.Hooks.Should().BeNull("the plugin may still load");
+        time.Advance(TimeSpan.FromMinutes(2));
+
+        await Eventually.HoldsAsync(() => service.Status.Hooks == new SteamUiHooks(false, false));
+        service.Status.Reachable.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_plugin_the_player_turned_off_in_millennium_stays_off_and_needs_no_restart()
+    {
+        Start(SteamUiDemand.From([Texts], []));
+        await Eventually.HoldsAsync(() => _service.Status.PluginVersion == "1.4.0");
+        await File.WriteAllTextAsync(ConfigFile, """{"plugins": {"enabledPlugins": ["another-plugin"]}}""", AgentHarness.Token);
+
+        _steam.Start(7);
+        await Eventually.HoldsAsync(() => _service.Status.PluginDisabled);
+        _service.Status.RestartNeeded.Should().BeFalse("a new start of Steam would not load it either");
+        _steam.Exit(7);
+        _service.Demand(SteamUiDemand.From([Texts], [Game]));
+        await Eventually.HoldsAsync(() =>
+        {
+            using var texts = TextsFile();
+            return texts.RootElement.GetProperty("launchOptions").GetProperty("games").GetArrayLength() == 1;
+        });
+
+        _service.Status.PluginDisabled.Should().BeTrue();
+        File.ReadAllText(ConfigFile).Should().NotContain(Slug);
+    }
+
+    [Fact]
+    public async Task The_plugin_goes_away_while_steam_is_closed_once_nothing_can_need_it()
+    {
+        Start(SteamUiDemand.From([Texts], []));
+        await Eventually.HoldsAsync(() => _service.Status.PluginVersion == "1.4.0");
+
+        _settings.Update(settings => settings with { AchievementTexts = false });
+        _service.Demand(SteamUiDemand.From([], []));
+
+        // The folder goes first, then the plugin's name in Millennium's settings.
+        await Eventually.HoldsAsync(() => !Directory.Exists(PluginFolder) && !File.ReadAllText(ConfigFile).Contains(Slug, StringComparison.Ordinal));
+        await Eventually.HoldsAsync(() => _service.Status is { PluginVersion: "", IsNeeded: false, RestartNeeded: false });
     }
 
     [Fact]

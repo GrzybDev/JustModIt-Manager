@@ -36,7 +36,8 @@ public sealed record InstanceNames(string AgentLock, string UiLock, string PipeN
             string.Create(CultureInfo.InvariantCulture, $"{instanceName}.{userId}.{sessionId}"));
     }
 
-    private static string CurrentUserId()
+    /// <summary>The account this process runs for: the user's SID on Windows, the user name elsewhere.</summary>
+    public static string CurrentUserId()
     {
         if (!OperatingSystem.IsWindows())
         {
