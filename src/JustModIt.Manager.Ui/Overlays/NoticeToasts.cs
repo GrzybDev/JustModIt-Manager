@@ -19,8 +19,16 @@ public static class NoticeToasts
     /// <param name="notice">A typed notice of the automation.</param>
     /// <param name="showGame">Opens the game a notice is about.</param>
     /// <param name="showSettings">Opens the settings, where kept copies are listed.</param>
-    public static ToastViewModel Create(NoticeView notice, Action<NoticeView> showGame, Action showSettings)
+    /// <param name="restartSteam">
+    /// Starts Steam again, which shows achievement texts that wait for it; null while a Steam game runs, which a restart would close.
+    /// </param>
+    public static ToastViewModel Create(NoticeView notice, Action<NoticeView> showGame, Action showSettings, Action? restartSteam)
     {
+        if (notice.Kind == NoticeKind.AchievementTexts)
+        {
+            return AchievementTexts(notice, restartSteam);
+        }
+
         var subject = notice.ProjectName is { } project
             ? Text.Format(Strings.Toast_ProjectOfGame, ("project", project), ("game", notice.GameName ?? ""))
             : notice.GameName ?? "";
@@ -68,6 +76,17 @@ public static class NoticeToasts
         {
             ActionText = offersGame && notice.Game is not null ? Strings.Toast_ShowGame : null,
             Action = offersGame && notice.Game is not null ? () => showGame(notice) : null,
+        };
+    }
+
+    private static ToastViewModel AchievementTexts(NoticeView notice, Action? restartSteam)
+    {
+        var (title, message) = NoticeSummary.AchievementTexts(notice.GameNames, notice.SteamRestartNeeded);
+        var restart = notice.SteamRestartNeeded ? restartSteam : null;
+        return new ToastViewModel(ToastTone.Success, Icons.Trophy, title, message)
+        {
+            ActionText = restart is null ? null : Strings.GamePage_RestartSteam,
+            Action = restart,
         };
     }
 }

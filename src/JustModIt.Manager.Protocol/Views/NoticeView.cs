@@ -35,8 +35,14 @@ public sealed record NoticeView(NoticeKind Kind)
     /// <inheritdoc cref="AutomationNotice.Kept"/>
     public KeptReason? Kept { get; init; }
 
+    /// <inheritdoc cref="AutomationNotice.SteamRestartNeeded"/>
+    public bool SteamRestartNeeded { get; init; }
+
     /// <summary>The games a summary is about.</summary>
     public IReadOnlyList<GameKey> Games { get; init; } = [];
+
+    /// <inheritdoc cref="AutomationNotice.GameNames"/>
+    public IReadOnlyList<string> GameNames { get; init; } = [];
 
     /// <summary>Those of <see cref="Games"/> with an update.</summary>
     public IReadOnlyList<GameKey> Updates { get; init; } = [];
@@ -61,7 +67,9 @@ public sealed record NoticeView(NoticeKind Kind)
             OffersTargetLanguage = notice.OffersTargetLanguage,
             KeptBackups = notice.KeptBackups,
             Kept = notice.Kept,
+            SteamRestartNeeded = notice.SteamRestartNeeded,
             Games = [.. notice.Games],
+            GameNames = [.. notice.GameNames],
             Updates = [.. notice.Updates],
             Repairs = [.. notice.Repairs],
         };

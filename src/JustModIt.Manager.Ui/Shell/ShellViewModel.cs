@@ -227,7 +227,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Toasts.Show(NoticeToasts.Create(notice,
             about => Navigator.Open(AgentLinks.RoutesFor(new GameTarget(about.Game!.Value.Store.Value, about.Game.Value.StoreGameId),
                 Agent.State)),
-            () => Navigator.Navigate(new SettingsRoute())));
+            () => Navigator.Navigate(new SettingsRoute()),
+            Agent.State.SteamUi.RunningGame is null
+                ? () => _ = AgentRequests.SendAsync(_services, new RestartSteam(), Strings.GamePage_RestartSteamFailed)
+                : null));
     }
 
     private void ApplyLink()

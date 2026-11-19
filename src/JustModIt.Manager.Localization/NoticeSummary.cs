@@ -1,8 +1,8 @@
 namespace JustModIt.Manager.Localization;
 
 /// <summary>
-/// The automation's summary of one look at the player's games, worded the same in the tray and in the window: how many
-/// have a project to install, an update or a repair, each in a sentence of its own.
+/// The automation's summaries of one look at the player's games, worded the same in the tray and in the window: how many
+/// have a project to install, an update or a repair, each in a sentence of its own, and which took achievement texts.
 /// </summary>
 public static class NoticeSummary
 {
@@ -21,5 +21,25 @@ public static class NoticeSummary
             (Strings.NoticeRepairsSummary, repairs.Count),
         ];
         return string.Join(" ", parts.Where(part => part.Count > 0).Select(part => Text.Format(part.Pattern, ("count", part.Count))));
+    }
+
+    /// <summary>
+    /// Words the notice of achievement texts that came on by themselves: one game by its name, several by their count and the
+    /// first two names.
+    /// </summary>
+    /// <param name="names">The games' names, in the notice's order.</param>
+    /// <param name="restartNeeded">Steam shows the texts only once it starts again.</param>
+    /// <returns>The title, and the message; null for one game that needs nothing more said.</returns>
+    public static (string Title, string? Message) AchievementTexts(IReadOnlyList<string> names, bool restartNeeded)
+    {
+        var several = names.Count > 1;
+        var restart = restartNeeded ? Text.Format(Strings.NoticeAchievementTextsRestart, ("several", several ? "true" : "false")) : null;
+        if (!several)
+        {
+            return (Text.Format(Strings.NoticeAchievementTextsTitle, ("game", names.Count > 0 ? names[0] : "")), restart);
+        }
+
+        var games = Text.Format(Strings.NoticeAchievementTextsGames, ("first", names[0]), ("second", names[1]), ("rest", names.Count - 2));
+        return (Text.Format(Strings.NoticeAchievementTextsSummaryTitle, ("count", names.Count)), restart is null ? games : $"{games} {restart}");
     }
 }

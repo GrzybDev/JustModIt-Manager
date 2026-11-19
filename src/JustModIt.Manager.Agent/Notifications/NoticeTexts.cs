@@ -44,8 +44,16 @@ public static class NoticeTexts
                 notice.KeptBackups ? Strings.NoticeForgottenKeepingBackups : Strings.NoticeForgotten),
             NoticeKind.StoreCheckAdvised => (InstallTitle(Strings.NoticeStoreCheckAdvisedTitle, Strings.NoticeStoreCheckAdvisedProjectTitle),
                 Text.Format(Strings.NoticeStoreCheckAdvised, ("reason", KeptReasons.CaseOf(notice.Kept)))),
+            NoticeKind.AchievementTexts => AchievementTexts(notice),
             _ => (InstallTitle(Strings.NoticeFailedTitle, Strings.NoticeFailedProjectTitle),
                 notice.Failure?.Reason == JobFailureReason.ReleaseUnavailable ? Strings.NoticeReleaseUnavailable : Strings.NoticeFailed),
         };
+    }
+
+    // A notification needs a message, so one game whose texts show at once says where they can be turned off.
+    private static (string Title, string Message) AchievementTexts(AutomationNotice notice)
+    {
+        var (title, message) = NoticeSummary.AchievementTexts(notice.GameNames, notice.SteamRestartNeeded);
+        return (title, message ?? Strings.NoticeAchievementTextsOn);
     }
 }

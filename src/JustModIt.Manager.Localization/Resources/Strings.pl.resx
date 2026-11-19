@@ -3939,4 +3939,19 @@
   <data name="Settings_PortTaken" xml:space="preserve">
     <value>Port 8080 jest zajęty przez inny program, więc Steam nie otworzył portu debugowania. Tłumaczenie osiągnięć wróci, gdy port będzie wolny przy starcie Steama.</value>
   </data>
+  <data name="NoticeAchievementTextsTitle" xml:space="preserve">
+    <value>Tłumaczenie osiągnięć: {game}</value>
+  </data>
+  <data name="NoticeAchievementTextsSummaryTitle" xml:space="preserve">
+    <value>{count, plural, one {Tłumaczenie osiągnięć dla # gry} other {Tłumaczenie osiągnięć dla # gier}}</value>
+  </data>
+  <data name="NoticeAchievementTextsGames" xml:space="preserve">
+    <value>{rest, plural, =0 {{first} i {second}.} one {{first}, {second} i # inna gra.} few {{first}, {second} i # inne gry.} many {{first}, {second} i # innych gier.} other {{first}, {second} i # innej gry.}}</value>
+  </data>
+  <data name="NoticeAchievementTextsRestart" xml:space="preserve">
+    <value>{several, select, true {Widoczne po ponownym uruchomieniu Steama.} other {Pojawią się w Steamie po jego ponownym uruchomieniu.}}</value>
+  </data>
+  <data name="NoticeAchievementTextsOn" xml:space="preserve">
+    <value>Włączone automatycznie; można je wyłączyć na stronie gry.</value>
+  </data>
 </root>

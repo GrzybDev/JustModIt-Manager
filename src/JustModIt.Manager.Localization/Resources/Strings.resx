@@ -3951,4 +3951,19 @@
   <data name="Settings_PortTaken" xml:space="preserve">
     <value>Another program holds port 8080, so Steam did not open its debugging port. Achievement translation returns once the port is free when Steam starts.</value>
   </data>
+  <data name="NoticeAchievementTextsTitle" xml:space="preserve">
+    <value>Achievement translation: {game}</value>
+  </data>
+  <data name="NoticeAchievementTextsSummaryTitle" xml:space="preserve">
+    <value>{count, plural, one {Achievement translation for # game} other {Achievement translation for # games}}</value>
+  </data>
+  <data name="NoticeAchievementTextsGames" xml:space="preserve">
+    <value>{rest, plural, =0 {{first} and {second}.} one {{first}, {second} and # other game.} other {{first}, {second} and # other games.}}</value>
+  </data>
+  <data name="NoticeAchievementTextsRestart" xml:space="preserve">
+    <value>{several, select, true {They show once Steam restarts.} other {It shows in Steam once Steam restarts.}}</value>
+  </data>
+  <data name="NoticeAchievementTextsOn" xml:space="preserve">
+    <value>Turned on automatically; the game's page can turn it off.</value>
+  </data>
 </root>

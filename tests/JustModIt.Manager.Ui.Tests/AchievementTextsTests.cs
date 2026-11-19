@@ -1,6 +1,7 @@
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Core.Steam;
@@ -172,6 +173,42 @@ public sealed class AchievementTextsTests
         var page = Page(ui);
         (page.IsNotInstalled, page.Step, page.Achievements.IsShown).Should().Be((false, (NextStep?)null, true));
         await RenderAsync(ui, "achievements-only");
+    }
+
+    [AvaloniaFact]
+    public async Task Texts_that_came_on_by_themselves_show_in_the_corner_with_Steam_s_restart_where_it_waits()
+    {
+        var ember = Installed("Ember Hollow", "4100", offer: Ember);
+        var harbor = Available("Quiet Harbor", "4300");
+        var bay = Available("Lantern Bay", "4400");
+        using var ui = new UiHarness(State(ember, harbor, bay));
+
+        var one = new NoticeView(NoticeKind.AchievementTexts) { Game = ember.Key, GameName = ember.Name, Games = [ember.Key], GameNames = [ember.Name] };
+        ui.Agent.Notice(one);
+        ui.Agent.Notice(one with { SteamRestartNeeded = true });
+        // Names come with the notice, since the state that lists the games may come after it.
+        ui.Agent.Notice(new NoticeView(NoticeKind.AchievementTexts)
+        {
+            Games = [harbor.Key, bay.Key, ember.Key],
+            GameNames = ["Quiet Harbor", "Lantern Bay", "Ember Hollow"],
+            SteamRestartNeeded = true,
+        });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
+
+        var toasts = ui.Shell.Toasts.Items;
+        (toasts[0].Title, toasts[0].Message, toasts[0].HasAction).Should().Be(("Tłumaczenie osiągnięć: Ember Hollow", (string?)null, false));
+        (toasts[1].Message, toasts[1].ActionText).Should().Be(("Pojawią się w Steamie po jego ponownym uruchomieniu.", "Uruchom Steam ponownie"));
+        (toasts[2].Title, toasts[2].Message).Should().Be(("Tłumaczenie osiągnięć dla 3 gier",
+            "Quiet Harbor, Lantern Bay i 1 inna gra. Widoczne po ponownym uruchomieniu Steama."));
+        ui.Render("achievements-notices");
+
+        ui.Click(ui.Find<Button>().Last(button => button.IsEffectivelyVisible && button.Content is "Uruchom Steam ponownie"));
+        ui.Agent.Requests.OfType<RestartSteam>().Should().ContainSingle();
+
+        ui.Push(State(ember, harbor, bay) with { Version = 2, SteamUi = Classic with { RunningGame = harbor.Key, RunningGameName = harbor.Name } });
+        ui.Agent.Notice(one with { SteamRestartNeeded = true });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
+        ui.Shell.Toasts.Items[^1].HasAction.Should().BeFalse("closing Steam would close the game that runs");
     }
 
     private static readonly SteamUiView Millennium = new() { Delivery = SteamUiDelivery.Millennium, Reachable = true };

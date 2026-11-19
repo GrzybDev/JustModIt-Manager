@@ -140,6 +140,25 @@ public sealed class TrayContentTests
     }
 
     [Fact]
+    public void Achievement_texts_that_came_on_by_themselves_name_their_games_and_whether_Steam_has_to_restart()
+    {
+        GameKey second = new(StoreId.Steam, "2000"), third = new(StoreId.Steam, "3000");
+        var one = new AutomationNotice(NoticeKind.AchievementTexts) { Game = Game, GameName = "Example Game", Games = [Game], GameNames = ["Example Game"] };
+
+        NoticeTexts.For(one).Should().Be(("Achievement translation: Example Game", "Turned on automatically; the game's page can turn it off."));
+        NoticeTexts.For(one with { SteamRestartNeeded = true }).Message.Should().Be("It shows in Steam once Steam restarts.");
+        NoticeTexts.For(new AutomationNotice(NoticeKind.AchievementTexts)
+            {
+                Games = [Game, second, third],
+                GameNames = ["Example Game", "Second Game", "Third Game"],
+                SteamRestartNeeded = true,
+            })
+            .Should().Be(("Achievement translation for 3 games", "Example Game, Second Game and 1 other game. They show once Steam restarts."));
+        NoticeTexts.For(new AutomationNotice(NoticeKind.AchievementTexts) { Games = [Game, second], GameNames = ["Example Game", "Second Game"] })
+            .Message.Should().Be("Example Game and Second Game.");
+    }
+
+    [Fact]
     public void A_summary_tells_projects_updates_and_repairs_apart()
     {
         GameKey updated = new(StoreId.Steam, "2000"), broken = new(StoreId.Gog, "3000");

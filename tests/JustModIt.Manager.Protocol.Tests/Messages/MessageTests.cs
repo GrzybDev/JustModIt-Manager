@@ -49,6 +49,12 @@ public sealed class MessageTests
             Failure = new JobFailure(JobFailureReason.NotEnoughSpace) { RequiredBytes = 2048, AvailableBytes = 1024 },
         })),
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.AvailableSummary) { Games = [Game, FailedGame], Updates = [FailedGame] })),
+        new Notify(NoticeView.From(new AutomationNotice(NoticeKind.AchievementTexts)
+        {
+            Games = [Game, FailedGame],
+            GameNames = ["Example Game", "Failed Game"],
+            SteamRestartNeeded = true,
+        })),
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.StoreCheckAdvised)
         {
             Game = Game,
