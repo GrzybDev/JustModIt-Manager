@@ -170,6 +170,7 @@ public static class AgentServices
         services.AddSingleton<IAgentService, MemoryTrimmer>();
         services.AddSingleton<IAgentService, ApiKeyCheck>();
         services.AddSingleton<ISteamClient, SteamClient>();
+        services.AddSingleton<ISteamDevTools, SteamDevTools>();
         services.AddSingleton<SteamUiService>();
         services.AddSingleton<ISteamUi>(provider => provider.GetRequiredService<SteamUiService>());
         services.AddSingleton<IAgentService>(provider => provider.GetRequiredService<SteamUiService>());
