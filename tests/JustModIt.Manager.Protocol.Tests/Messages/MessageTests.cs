@@ -72,6 +72,8 @@ public sealed class MessageTests
         new CheckNow(),
         new ChangeSettings(SettingsView.From(Settings)),
         new SetGameAutomation(Game, AutoInstall: true),
+        new SetAchievementTexts(Game, IsOn: false),
+        new RestartSteam(),
         new ChooseProject(Game, Project),
         new ChooseFeatures(Game, Project, new Dictionary<string, bool?> { ["voice-over"] = false, ["signs"] = null }),
         new ApplyFeatures(RecordId, new Dictionary<string, bool?> { ["full-subtitles"] = true }),
@@ -138,6 +140,18 @@ public sealed class MessageTests
         }), [new StorefrontPlatform { Uuid = Guid.Empty, Name = "Steam", Provider = "steam", InstallHint = "Open **Properties**." }])),
         new GetAppDataUsage(),
         new AppDataUsage(@"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp", 317_718_528, 224_395_264, 90_177_536, 3_355_443),
+        new GetAchievementTexts(Game),
+        new AchievementTextsResult(new AchievementTexts
+        {
+            SteamAppId = 1000,
+            Language = "polish",
+            Translated = 1,
+            Total = 2,
+            Revision = 3,
+            UpdatedAt = Now,
+            Achievements = [new AchievementText { ApiName = "ACH_FIRST", Name = "First step", Description = "Finish the prologue.", Hidden = true }],
+        }),
+        new AchievementTextsResult(),
         new GetDetectedGames(),
         new DetectedGames(
         [

@@ -83,6 +83,12 @@
       <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+    <Style Selector="TextBlock.rowText.success">
+      <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.rowText.warning">
+      <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+    </Style>
     <Style Selector="Button.rowAction">
       <Setter Property="Height" Value="36" />
       <Setter Property="Padding" Value="12,0" />
@@ -331,6 +337,10 @@
       <Setter Property="HorizontalAlignment" Value="Left" />
       <Setter Property="Margin" Value="-12,4,0,0" />
     </Style>
+    <!-- An outlined button keeps its frame in line with the facts above it. -->
+    <Style Selector="Border.machine.compact StackPanel.rowActions.outlined">
+      <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
   </UserControl.Styles>
 
   <UserControl.Resources>
@@ -419,6 +429,74 @@
           </StackPanel>
         </StackPanel>
       </StackPanel>
+    </DataTemplate>
+
+    <!-- A Steam game's achievement texts: whether Steam shows them, the list on request, and what keeps them from Steam. -->
+    <DataTemplate x:Key="AchievementsTemplate" x:DataType="game:AchievementTextsRow">
+      <Border x:Name="AchievementsRow" Classes="row">
+        <Grid ColumnDefinitions="32,100,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16">
+          <Grid Grid.RowSpan="3" RowDefinitions="14,Auto,*" Margin="0,-14">
+            <Border Classes="line" />
+            <Border Grid.Row="1" Classes="node">
+              <ui:Icon Data="{x:Static theme:Icons.Trophy}" />
+            </Border>
+            <Border Grid.Row="2" Classes="line" />
+          </Grid>
+          <TextBlock Grid.Column="1" Classes="rowLabel" VerticalAlignment="Top" Margin="0,6,0,0"
+                     Text="{x:Static loc:Strings.GamePage_RowAchievements}" />
+          <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Top" Margin="0,5,0,0">
+            <TextBlock x:Name="AchievementsTitle" Classes="h4" Text="{Binding Title}" TextWrapping="Wrap" />
+            <TextBlock x:Name="AchievementsDetail" Classes="rowText" Classes.success="{Binding IsDetailSuccess}"
+                       Classes.warning="{Binding IsDetailWarning}" Text="{Binding Detail}" />
+            <Button x:Name="AchievementsListToggle" Classes="link filesToggle" HorizontalAlignment="Left" Margin="0,2,0,0"
+                    Content="{Binding ListToggle}" ui:ButtonAssist.Icon="{Binding ListToggleIcon}" AutomationProperties.Name="{Binding ListToggle}"
+                    Command="{Binding ToggleListCommand}" IsVisible="{Binding ReachesSteam}" />
+            <Border Classes="licenses" theme:Motion.Enter="True" IsVisible="{Binding IsListShown}">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_AchievementsLoading}" IsVisible="{Binding IsLoading}" />
+                <TextBlock Classes="rowText" Text="{x:Static loc:Strings.GamePage_AchievementsListFailed}" IsVisible="{Binding ListFailed}" />
+                <ItemsControl x:Name="AchievementsList" ItemsSource="{Binding Items}"
+                              AutomationProperties.Name="{x:Static loc:Strings.GamePage_AchievementsList}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="10" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="game:AchievementTextItem">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding Name}" FontSize="13" LineHeight="18" FontWeight="SemiBold" TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextBrush}" />
+                        <TextBlock Classes="rowText" Text="{Binding Description}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+          <StackPanel Classes="rowActions top outlined" Orientation="Horizontal">
+            <Button x:Name="AchievementsSwitch" Classes="outline rowAction" Content="{Binding SwitchText}"
+                    AutomationProperties.Name="{Binding SwitchName}" IsVisible="{Binding CanSwitch}" Command="{Binding SwitchCommand}" />
+          </StackPanel>
+          <ui:Callout x:Name="AchievementsNotice" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,12,0,0" MaxWidth="Infinity"
+                      HorizontalAlignment="Stretch" Classes.warning="{Binding Notice.IsWarning, FallbackValue=False}"
+                      Icon="{Binding Notice.Icon}" Title="{Binding Notice.Title}" Message="{Binding Notice.Text}"
+                      IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}" theme:Motion.Enter="True">
+            <WrapPanel ItemSpacing="12" LineSpacing="8">
+              <Button x:Name="RestartSteam" Classes="outline rowAction" Content="{x:Static loc:Strings.GamePage_RestartSteam}"
+                      ui:ButtonAssist.Icon="{x:Static theme:Icons.RotateCcw}" Command="{Binding RestartSteamCommand}"
+                      IsEnabled="{Binding Notice.CanRestart, FallbackValue=False}"
+                      IsVisible="{Binding Notice.OffersRestart, FallbackValue=False}" />
+              <TextBlock Classes="rowText" VerticalAlignment="Center" Text="{Binding Notice.Running}"
+                         IsVisible="{Binding Notice.HasRunning, FallbackValue=False}" />
+              <Button x:Name="AchievementsSettings" Classes="outline rowAction" Content="{x:Static loc:Strings.GamePage_OpenSettings}"
+                      ui:ButtonAssist.Icon="{x:Static theme:Icons.Settings}" Command="{Binding OpenSettingsCommand}"
+                      IsVisible="{Binding Notice.OffersSettings, FallbackValue=False}" />
+            </WrapPanel>
+          </ui:Callout>
+        </Grid>
+      </Border>
     </DataTemplate>
 
     <!-- The next step, used at the panel's foot or, in a short window, at its head. -->
@@ -847,6 +925,10 @@
                   </StackPanel>
                 </Grid>
               </Border>
+
+              <!-- Whether Steam shows the game's achievements translated, and what keeps them from it. -->
+              <ContentControl Content="{Binding Achievements}" ContentTemplate="{StaticResource AchievementsTemplate}"
+                              IsVisible="{Binding Achievements.IsShown}" />
 
               <ContentControl x:Name="StepHost" Content="{Binding Step}" ContentTemplate="{StaticResource StepTemplate}" IsVisible="{Binding !IsCompact}" />
             </StackPanel>

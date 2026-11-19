@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
@@ -6,6 +7,7 @@ using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Steam;
 
 namespace JustModIt.Manager.Protocol.Tests.Views;
 
@@ -204,6 +206,14 @@ internal static class TestStates
                 Preferences = Settings.GetGame(Game),
                 Job = RunningJob,
                 RunningProcesses = ["example.exe"],
+                AchievementTexts = new MyAchievementTexts
+                {
+                    Project = Project,
+                    TeamName = "Lantern Team",
+                    Texts = new ProjectAchievements { SteamAppId = 1000, Language = "polish", Translated = 11, Total = 13, Revision = 3 },
+                    IsOn = true,
+                    State = AchievementTextsState.RestartBlocked,
+                },
             },
             new MyGame
             {
@@ -232,5 +242,13 @@ internal static class TestStates
         CatalogueFetchedAt = Now.AddHours(-7),
         CatalogueFailure = CatalogueErrorReason.Offline,
         PendingRecoveries = [new RecoveredOperation(RecordId, RecoveryOutcome.Unavailable, @"D:\Games\Moved")],
+        SteamUi = new SteamUiStatus
+        {
+            Delivery = SteamUiDelivery.Classic,
+            RestartNeeded = true,
+            Hooks = new SteamUiHooks(Achievements: true, Notifications: false),
+            LaunchOptions = new ValueDictionary<GameKey, string>().SetItem(Game, "-fileopenlog"),
+            RunningGame = Game,
+        },
     };
 }

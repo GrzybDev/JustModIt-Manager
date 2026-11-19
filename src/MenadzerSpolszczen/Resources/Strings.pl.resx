@@ -722,4 +722,22 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Creator_PackageFilesTitle" xml:space="preserve">
     <value>Pliki spolszczenia</value>
   </data>
+  <data name="GamePage_AchievementsWithInstall" xml:space="preserve">
+    <value>{translated} z {total} · razem ze spolszczeniem {team}, zamiast oficjalnych polskich tekstów</value>
+  </data>
+  <data name="GamePage_AchievementsRestart" xml:space="preserve">
+    <value>Steam musi wystartować ponownie, żeby {delivery, select, Millennium {wczytać wtyczkę} other {otworzyć port trybu klasycznego}}. Potem polskie teksty pojawią się same.</value>
+  </data>
+  <data name="GamePage_AchievementsHookBlocked" xml:space="preserve">
+    <value>Aktualizacja Steama zmieniła jego interfejs, więc Steam pokazuje teraz oryginalne teksty. Podmiana wróci z aktualizacją {delivery, select, Millennium {Millennium albo menadżera} other {menadżera}}.</value>
+  </data>
+  <data name="GamePage_AchievementsPluginOff" xml:space="preserve">
+    <value>Polskie teksty osiągnięć trafiają do Steama przez wtyczkę menadżera, wyłączoną na liście wtyczek Millennium. Po jej włączeniu pojawią się przy następnym uruchomieniu Steama.</value>
+  </data>
+  <data name="GamePage_AchievementsOtherLanguage" xml:space="preserve">
+    <value>Steam pokazuje osiągnięcia w języku swojego interfejsu. Polskie teksty pojawią się po przełączeniu Steama na język polski (Steam › Ustawienia › Interfejs).</value>
+  </data>
+  <data name="Library_AchievementsChip" xml:space="preserve">
+    <value>Osiągnięcia PL</value>
+  </data>
 </root>

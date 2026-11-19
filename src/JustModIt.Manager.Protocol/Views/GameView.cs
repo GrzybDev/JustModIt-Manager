@@ -59,6 +59,9 @@ public sealed record GameView
     /// <inheritdoc cref="MyGame.NeedsAttention"/>
     public bool NeedsAttention { get; init; }
 
+    /// <inheritdoc cref="MyGame.AchievementTexts"/>
+    public MyAchievementTexts? AchievementTexts { get; init; }
+
     /// <summary>Maps a game of the player's list.</summary>
     /// <param name="game">The game as the engine's state holds it.</param>
     public static GameView From(MyGame game)
@@ -83,6 +86,7 @@ public sealed record GameView
             IsAdult = game.IsAdult,
             SiteIds = [.. game.SiteIds],
             NeedsAttention = game.NeedsAttention,
+            AchievementTexts = game.AchievementTexts,
         };
     }
 }

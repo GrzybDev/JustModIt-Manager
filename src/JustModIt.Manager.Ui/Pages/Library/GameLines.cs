@@ -87,6 +87,10 @@ internal static class GameLines
             MyGameState.Busy => new LineContent(Icons.Clock, Tone.Accent, Strings.Library_JobQueued),
             _ when game.Project is null && game.Projects.Count > 1 => new LineContent(Icons.Users, Tone.Neutral,
                 Text.Format(Strings.Library_StateChoice, ("count", game.Projects.Count))),
+            // A game listed only for its achievement texts has nothing to install.
+            _ when game.Projects.Count == 0 && install is null && game.AchievementTexts is { } texts => new LineContent(Icons.Trophy,
+                texts.ReachesSteam ? Tone.Success : Tone.Neutral,
+                Text.Format(Strings.GamePage_AchievementsTitle, ("on", texts.ReachesSteam ? "true" : "false"))),
             _ => new LineContent(Icons.Download, Tone.Neutral, Strings.Library_CardReady),
         };
     }

@@ -5,6 +5,7 @@ using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Protocol.Views;
 using static JustModIt.Manager.Protocol.Tests.Views.TestStates;
 
@@ -114,6 +115,24 @@ public sealed class AppStateViewTests
         game.Job.RunningProcesses.Should().Equal("example.exe");
         game.RunningProcesses.Should().Equal("example.exe");
         game.SiteIds.Should().Equal([Guid.Parse("66666666-0000-4000-8000-000000000001")], "the window unveils an adult game by its id on the site");
+    }
+
+    [Fact]
+    public void A_game_carries_its_achievement_texts_and_the_state_the_way_into_Steam_without_the_launch_options_it_read()
+    {
+        var view = View;
+
+        view.Games[0].AchievementTexts.Should().Be(State.Games[0].AchievementTexts);
+        view.SteamUi.Should().Be(new SteamUiView
+        {
+            Delivery = SteamUiDelivery.Classic,
+            RestartNeeded = true,
+            Hooks = new SteamUiHooks(Achievements: true, Notifications: false),
+            RunningGame = Game,
+            RunningGameName = "Example Game",
+        });
+        SteamUiView.From(State with { SteamUi = State.SteamUi with { RunningGame = new GameKey(StoreId.Steam, "2000") } })
+            .RunningGameName.Should().BeNull("a game outside the player's list has no name in the state");
     }
 
     [Theory]

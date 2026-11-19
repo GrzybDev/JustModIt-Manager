@@ -64,6 +64,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         _key = game;
         _choice = choice;
         Story = new ProjectStory(services);
+        Achievements = new AchievementTextsRow(services, game);
         _services.Agent.PropertyChanged += OnAgentChanged;
         _services.Agent.JobsProgressed += OnJobsProgressed;
         _services.Agent.JobEnded += OnJobEnded;
@@ -285,6 +286,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
     /// <summary>The gallery, the game's story and the people behind the project, from the project's page.</summary>
     public ProjectStory Story { get; }
+
+    /// <summary>The game's achievement texts in Steam's interface.</summary>
+    public AchievementTextsRow Achievements { get; }
 
     [ObservableProperty]
     public partial bool IsLoadingDetails { get; private set; }
@@ -697,6 +701,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         ShowGame(game, store, install);
         ShowInstalls(game, install);
         ShowAutomation(game);
+        Achievements.Show(game, state);
         ShowChoices(game);
         ShowSaved(install);
         var step = NextStep(game, state, install, project, store);
@@ -753,7 +758,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         }
 
         var rows = game.Installs.Select(install => Row(game, install, several, install == subject)).ToList();
-        IsNotInstalled = rows.Count == 0;
+        // A game listed only for its achievement texts has no project to install.
+        IsNotInstalled = rows.Count == 0 && game.Projects.Count > 0;
         NewFeatures = IsNotInstalled ? FeaturesOf(null, Chosen(game)) : null;
         var shown = rows.Select(row => row.Features).Append(NewFeatures).OfType<FeaturePanel>().ToHashSet();
         foreach (var gone in _features.Where(entry => !shown.Contains(entry.Value)).ToList())

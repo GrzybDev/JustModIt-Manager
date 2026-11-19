@@ -112,6 +112,7 @@ public abstract partial class GameCardBaseViewModel : GameItemViewModel
 public sealed partial class GameCardViewModel(GameKey key) : GameCardBaseViewModel
 {
     private JobView? _job;
+    private string? _achievementsName;
 
     public GameKey Key { get; } = key;
 
@@ -128,6 +129,10 @@ public sealed partial class GameCardViewModel(GameKey key) : GameCardBaseViewMod
     /// <summary>The job cannot tell how far it is, so its bar moves without a share.</summary>
     public bool IsIndeterminate => Line.Fraction is null;
 
+    /// <summary>Steam shows the game's achievements translated, which a chip on the cover says.</summary>
+    [ObservableProperty]
+    public partial bool HasAchievementTexts { get; private set; }
+
     /// <summary>When the newest release of the game's project came out, which orders the grid by the newest.</summary>
     public DateTimeOffset? ReleasedAt { get; private set; }
 
@@ -140,16 +145,21 @@ public sealed partial class GameCardViewModel(GameKey key) : GameCardBaseViewMod
     public void Update(GameView game, AppStateView state)
     {
         var offer = ShowGame(game, state);
-        var teamName = offer?.Team.Name ?? game.Installs.Select(install => install.TeamName).FirstOrDefault(name => name is not null) ?? "";
+        var teamName = offer?.Team.Name ?? game.Installs.Select(install => install.TeamName).FirstOrDefault(name => name is not null)
+            ?? game.AchievementTexts?.TeamName ?? "";
         var otherTeam = game.Project is null && game.Installs.Count == 0 && game.Projects.Count > 1 ? game.Projects[1].Team : null;
         IsAdult = game.IsAdult;
         ShowTeams(offer?.Status, teamName, offer?.Team.Avatar ?? "", otherTeam,
             Text.Format(Strings.Library_CardTeams, ("count", game.Projects.Count)));
         IEnumerable<ProjectOfferView?> offers = [game.Project, .. game.Projects, .. game.Installs.Select(install => install.Project)];
         ReleasedAt = offers.Max(project => project?.Release?.Date);
-        string[] words = [game.Name, .. game.Projects.Select(project => project.Team.Name), .. game.Installs.Select(install => install.TeamName ?? "")];
+        string[] words = [game.Name, .. game.Projects.Select(project => project.Team.Name), .. game.Installs.Select(install => install.TeamName ?? ""),
+            game.AchievementTexts?.TeamName ?? ""];
         SearchText = string.Join(' ', words);
         _job = game.Job;
+        HasAchievementTexts = game.AchievementTexts is { ReachesSteam: true };
+        // The line of a game listed only for its texts says so already.
+        _achievementsName = HasAchievementTexts && (game.Installs.Count > 0 || game.Projects.Count > 0) ? Strings.Library_AchievementsChipName : null;
         Show(GameLines.Card(game));
     }
 
@@ -173,7 +183,7 @@ public sealed partial class GameCardViewModel(GameKey key) : GameCardBaseViewMod
         Line = line;
         Progress = Math.Clamp(line.Fraction ?? 0, 0, 1) * 100;
         AccessibleName = Text.Format(Strings.Library_CardName, ("game", Name), ("state",
-            string.Join(", ", new[] { line.Label, line.LabelExtra, line.Detail }.Where(part => !string.IsNullOrEmpty(part)))));
+            string.Join(", ", new[] { line.Label, line.LabelExtra, line.Detail, _achievementsName }.Where(part => !string.IsNullOrEmpty(part)))));
     }
 }
 

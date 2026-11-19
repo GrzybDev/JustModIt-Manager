@@ -3756,4 +3756,112 @@
   <data name="Creator_TestFeatures" xml:space="preserve">
     <value>Add-ons in the test</value>
   </data>
+  <data name="GamePage_RowAchievements" xml:space="preserve">
+    <value>Achievements</value>
+  </data>
+  <data name="GamePage_AchievementsTitle" xml:space="preserve">
+    <value>{on, select, true {Achievement translation on} other {Achievement translation}}</value>
+  </data>
+  <data name="GamePage_AchievementsOffered" xml:space="preserve">
+    <value>{team} · {translated} of {total} translated{delivers, select, true {. Steam shows them in its library, the in-game overlay and notifications.} other {}}</value>
+  </data>
+  <data name="GamePage_AchievementsChosen" xml:space="preserve">
+    <value>Translation from the project chosen for the game: {team} · {translated} of {total}</value>
+  </data>
+  <data name="GamePage_AchievementsVia" xml:space="preserve">
+    <value>{translated} of {total} · {delivery, select, Millennium {through the Millennium plugin} other {through the classic mode}}</value>
+  </data>
+  <data name="GamePage_AchievementsMissing" xml:space="preserve">
+    <value>{translated} of {total} · {missing, plural, one {# achievement keeps its original text until the team translates it} other {# achievements keep their original texts until the team translates them}}</value>
+  </data>
+  <data name="GamePage_AchievementsWithInstall" xml:space="preserve">
+    <value>{translated} of {total} · together with the project of {team}, in place of Steam's official texts</value>
+  </data>
+  <data name="GamePage_AchievementsSwitch" xml:space="preserve">
+    <value>{on, select, true {Turn off} other {Turn on}}</value>
+  </data>
+  <data name="GamePage_AchievementsSwitchName" xml:space="preserve">
+    <value>{on, select, true {Turn off the achievement translation} other {Turn on the achievement translation}}</value>
+  </data>
+  <data name="GamePage_AchievementsShow" xml:space="preserve">
+    <value>Show the list</value>
+  </data>
+  <data name="GamePage_AchievementsHide" xml:space="preserve">
+    <value>Hide the list</value>
+  </data>
+  <data name="GamePage_AchievementsList" xml:space="preserve">
+    <value>Translated achievements</value>
+  </data>
+  <data name="GamePage_AchievementsLoading" xml:space="preserve">
+    <value>Reading the list…</value>
+  </data>
+  <data name="GamePage_AchievementsListFailed" xml:space="preserve">
+    <value>The list could not be read.</value>
+  </data>
+  <data name="GamePage_AchievementHidden" xml:space="preserve">
+    <value>Steam shows the description once the achievement is unlocked.</value>
+  </data>
+  <data name="GamePage_AchievementsAllOffTitle" xml:space="preserve">
+    <value>Achievement translation is off</value>
+  </data>
+  <data name="GamePage_AchievementsAllOff" xml:space="preserve">
+    <value>The settings turn it off for every game.</value>
+  </data>
+  <data name="GamePage_AchievementsClassicOffTitle" xml:space="preserve">
+    <value>The classic mode is off</value>
+  </data>
+  <data name="GamePage_AchievementsClassicOff" xml:space="preserve">
+    <value>Without Millennium, achievement translation needs the classic mode, which is off in the settings.</value>
+  </data>
+  <data name="GamePage_AchievementsNoWayTitle" xml:space="preserve">
+    <value>No way to replace the texts</value>
+  </data>
+  <data name="GamePage_AchievementsNoWay" xml:space="preserve">
+    <value>Neither Millennium nor the classic mode can reach Steam's interface on this computer now.</value>
+  </data>
+  <data name="GamePage_AchievementsPluginOffTitle" xml:space="preserve">
+    <value>The plugin is off in Millennium</value>
+  </data>
+  <data name="GamePage_AchievementsPluginOff" xml:space="preserve">
+    <value>Achievement translation reaches Steam through the app's plugin, which is turned off in Millennium's list of plugins. Once it is on there, the translation shows after Steam starts again.</value>
+  </data>
+  <data name="GamePage_AchievementsRestartTitle" xml:space="preserve">
+    <value>Shows once Steam restarts</value>
+  </data>
+  <data name="GamePage_AchievementsRestart" xml:space="preserve">
+    <value>Steam has to start again to {delivery, select, Millennium {load the plugin} other {open the classic mode's port}}. Then the translation shows by itself.</value>
+  </data>
+  <data name="GamePage_AchievementsRestartBlocked" xml:space="preserve">
+    <value>A Steam game is running, and restarting Steam would close it. The button works once no Steam game runs.</value>
+  </data>
+  <data name="GamePage_AchievementsRunning" xml:space="preserve">
+    <value>Running: {game}</value>
+  </data>
+  <data name="GamePage_RestartSteam" xml:space="preserve">
+    <value>Restart Steam</value>
+  </data>
+  <data name="GamePage_RestartSteamFailed" xml:space="preserve">
+    <value>Steam was not restarted. Closing and starting it by hand works too.</value>
+  </data>
+  <data name="GamePage_OpenSettings" xml:space="preserve">
+    <value>Open the settings</value>
+  </data>
+  <data name="GamePage_AchievementsHookBlockedTitle" xml:space="preserve">
+    <value>This version of Steam blocks the texts</value>
+  </data>
+  <data name="GamePage_AchievementsHookBlocked" xml:space="preserve">
+    <value>A Steam update changed its interface, so Steam shows its original texts now. The translation returns with an update of {delivery, select, Millennium {Millennium or the app} other {the app}}.</value>
+  </data>
+  <data name="GamePage_AchievementsOtherLanguageTitle" xml:space="preserve">
+    <value>Steam's interface is in another language</value>
+  </data>
+  <data name="GamePage_AchievementsOtherLanguage" xml:space="preserve">
+    <value>Steam shows achievements in the language of its interface. The translation shows once Steam uses the translation's language (Steam › Settings › Interface).</value>
+  </data>
+  <data name="Library_AchievementsChip" xml:space="preserve">
+    <value>Achievements</value>
+  </data>
+  <data name="Library_AchievementsChipName" xml:space="preserve">
+    <value>achievement translation on</value>
+  </data>
 </root>

@@ -94,6 +94,21 @@ public sealed record ChangeSettings(SettingsView Settings) : Message;
 /// <param name="AutoUpdate">Whether installs update on their own; null leaves the choice as it is.</param>
 public sealed record SetGameAutomation(GameKey Game, bool? AutoInstall = null, bool? AutoUpdate = null) : Message;
 
+/// <summary>
+/// Turns a Steam game's achievement texts on or off as the player chose; a choice that matches what the settings bring on
+/// their own is forgotten, so the game follows them again.
+/// </summary>
+/// <param name="Game">The game the choice is for.</param>
+/// <param name="IsOn">Whether Steam is to show the texts.</param>
+public sealed record SetAchievementTexts(GameKey Game, bool IsOn) : Message;
+
+/// <summary>
+/// Closes Steam and starts it again, so it loads what shows achievement texts; refused as unsupported where the app has no
+/// way into Steam's interface, and with <see cref="Transport.ErrorCode.Failed"/> while a Steam game runs, which closing
+/// Steam would close.
+/// </summary>
+public sealed record RestartSteam : Message;
+
 /// <summary>Remembers which project the player chose for a game that offers several.</summary>
 /// <param name="Game">The game the choice is for.</param>
 /// <param name="ProjectId">Null forgets the choice.</param>

@@ -12,6 +12,7 @@ using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
@@ -36,6 +37,7 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="options">The app's folders, the logs among them, the folder it is installed in and its last unclean exit.</param>
 /// <param name="storage">Clears the app's cache.</param>
 /// <param name="time">Dates the player's confirmation of being an adult.</param>
+/// <param name="steamUi">Starts Steam again; null where the app has no way into Steam's interface.</param>
 public sealed class AgentCommands(
     StateCoordinator coordinator,
     JobRunner jobs,
@@ -51,7 +53,8 @@ public sealed class AgentCommands(
     IDesktopShell shell,
     AgentOptions options,
     AppStorage storage,
-    TimeProvider time)
+    TimeProvider time,
+    ISteamUi? steamUi = null)
 {
     /// <summary>Carries out one of the window's commands.</summary>
     /// <param name="request">A command, as opposed to a query.</param>
@@ -75,6 +78,10 @@ public sealed class AgentCommands(
         CheckNow => Done(() => _ = checks.CheckNowAsync()),
         ChangeSettings change => ChangeSettings(change.Settings),
         SetGameAutomation automation => Done(() => settings.Update(current => ChooseAutomation(current, automation))),
+        // The player's choice stays even when it is what the texts do by themselves now, which a change of the settings may undo.
+        SetAchievementTexts texts => Done(() => settings.Update(current => current.WithGame(texts.Game, preferences =>
+            preferences with { AchievementTexts = texts.IsOn }))),
+        RestartSteam => RestartSteamClient(),
         ChooseProject choose => Done(() => settings.Update(current =>
             current.WithGame(choose.Game, preferences => preferences with { ProjectId = choose.ProjectId }))),
         ChooseFeatures choose => Done(() => ChooseFeatures(choose)),
@@ -324,6 +331,17 @@ public sealed class AgentCommands(
         {
             throw new RequestFailedException(ErrorCode.Failed, "The report could not be written.");
         }
+    }
+
+    private Message? RestartSteamClient()
+    {
+        if (steamUi is null)
+        {
+            throw new RequestFailedException(ErrorCode.Unsupported);
+        }
+
+        var result = steamUi.RestartSteam();
+        return result == SteamRestartResult.Restarting ? null : throw new RequestFailedException(ErrorCode.Failed, $"Steam was not restarted: {result}.");
     }
 
     // Answered before the window is asked to close, since closing ends the connection the answer would take.

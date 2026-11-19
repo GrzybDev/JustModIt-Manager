@@ -1,5 +1,6 @@
 using System.Text.Json;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Protocol.Views;
 
@@ -34,6 +35,14 @@ public sealed record ProjectPageResult : Message
     /// <summary>Why the site could not be read; with no page, why there is none.</summary>
     public CatalogueErrorReason? Error { get; init; }
 }
+
+/// <summary>Asks for the achievement texts a Steam game takes, to list them; answered with <see cref="AchievementTextsResult"/>.</summary>
+/// <param name="Game">A game with <see cref="Views.GameView.AchievementTexts"/>.</param>
+public sealed record GetAchievementTexts(GameKey Game) : Query;
+
+/// <summary>The answer to <see cref="GetAchievementTexts"/>.</summary>
+/// <param name="Texts">The texts; null when the game takes none, or they could not be read.</param>
+public sealed record AchievementTextsResult(AchievementTexts? Texts = null) : Message;
 
 /// <summary>Asks for a slice of the catalogue; answered with <see cref="CataloguePageResult"/>.</summary>
 /// <param name="Query">The search, filters and order the games must match.</param>

@@ -3744,4 +3744,112 @@
   <data name="Creator_TestFeatures" xml:space="preserve">
     <value>Składniki w teście</value>
   </data>
+  <data name="GamePage_RowAchievements" xml:space="preserve">
+    <value>Osiągnięcia</value>
+  </data>
+  <data name="GamePage_AchievementsTitle" xml:space="preserve">
+    <value>{on, select, true {Tłumaczenie osiągnięć włączone} other {Tłumaczenie osiągnięć}}</value>
+  </data>
+  <data name="GamePage_AchievementsOffered" xml:space="preserve">
+    <value>{team} · {translated} z {total, plural, one {# przetłumaczonego} other {# przetłumaczonych}}{delivers, select, true {. Steam pokaże je w bibliotece, nakładce w grze i powiadomieniach.} other {}}</value>
+  </data>
+  <data name="GamePage_AchievementsChosen" xml:space="preserve">
+    <value>Tłumaczenie z projektu wybranego dla gry: {team} · {translated} z {total}</value>
+  </data>
+  <data name="GamePage_AchievementsVia" xml:space="preserve">
+    <value>{translated} z {total} · {delivery, select, Millennium {przez wtyczkę Millennium} other {przez tryb klasyczny}}</value>
+  </data>
+  <data name="GamePage_AchievementsMissing" xml:space="preserve">
+    <value>{translated} z {total} · {missing, plural, one {# osiągnięcie zostaje z oryginalnym tekstem, dopóki grupa go nie przetłumaczy} few {# osiągnięcia zostają z oryginalnymi tekstami, dopóki grupa ich nie przetłumaczy} many {# osiągnięć zostaje z oryginalnymi tekstami, dopóki grupa ich nie przetłumaczy} other {# osiągnięcia zostaje z oryginalnymi tekstami, dopóki grupa ich nie przetłumaczy}}</value>
+  </data>
+  <data name="GamePage_AchievementsWithInstall" xml:space="preserve">
+    <value>{translated} z {total} · razem z projektem grupy {team}, zamiast oficjalnych tekstów Steama</value>
+  </data>
+  <data name="GamePage_AchievementsSwitch" xml:space="preserve">
+    <value>{on, select, true {Wyłącz} other {Włącz}}</value>
+  </data>
+  <data name="GamePage_AchievementsSwitchName" xml:space="preserve">
+    <value>{on, select, true {Wyłącz tłumaczenie osiągnięć} other {Włącz tłumaczenie osiągnięć}}</value>
+  </data>
+  <data name="GamePage_AchievementsShow" xml:space="preserve">
+    <value>Pokaż listę</value>
+  </data>
+  <data name="GamePage_AchievementsHide" xml:space="preserve">
+    <value>Ukryj listę</value>
+  </data>
+  <data name="GamePage_AchievementsList" xml:space="preserve">
+    <value>Przetłumaczone osiągnięcia</value>
+  </data>
+  <data name="GamePage_AchievementsLoading" xml:space="preserve">
+    <value>Wczytywanie listy…</value>
+  </data>
+  <data name="GamePage_AchievementsListFailed" xml:space="preserve">
+    <value>Nie udało się wczytać listy.</value>
+  </data>
+  <data name="GamePage_AchievementHidden" xml:space="preserve">
+    <value>Steam pokaże opis po odblokowaniu osiągnięcia.</value>
+  </data>
+  <data name="GamePage_AchievementsAllOffTitle" xml:space="preserve">
+    <value>Tłumaczenie osiągnięć jest wyłączone</value>
+  </data>
+  <data name="GamePage_AchievementsAllOff" xml:space="preserve">
+    <value>Ustawienia wyłączają je dla wszystkich gier.</value>
+  </data>
+  <data name="GamePage_AchievementsClassicOffTitle" xml:space="preserve">
+    <value>Tryb klasyczny jest wyłączony</value>
+  </data>
+  <data name="GamePage_AchievementsClassicOff" xml:space="preserve">
+    <value>Bez Millennium tłumaczenie osiągnięć wymaga trybu klasycznego, wyłączonego w ustawieniach.</value>
+  </data>
+  <data name="GamePage_AchievementsNoWayTitle" xml:space="preserve">
+    <value>Brak sposobu podmiany</value>
+  </data>
+  <data name="GamePage_AchievementsNoWay" xml:space="preserve">
+    <value>Ani Millennium, ani tryb klasyczny nie mają teraz dostępu do interfejsu Steama na tym komputerze.</value>
+  </data>
+  <data name="GamePage_AchievementsPluginOffTitle" xml:space="preserve">
+    <value>Wtyczka jest wyłączona w Millennium</value>
+  </data>
+  <data name="GamePage_AchievementsPluginOff" xml:space="preserve">
+    <value>Tłumaczenie osiągnięć trafia do Steama przez wtyczkę aplikacji, wyłączoną na liście wtyczek Millennium. Po jej włączeniu tłumaczenie pojawi się przy następnym uruchomieniu Steama.</value>
+  </data>
+  <data name="GamePage_AchievementsRestartTitle" xml:space="preserve">
+    <value>Widoczne po ponownym uruchomieniu Steama</value>
+  </data>
+  <data name="GamePage_AchievementsRestart" xml:space="preserve">
+    <value>Steam musi wystartować ponownie, żeby {delivery, select, Millennium {wczytać wtyczkę} other {otworzyć port trybu klasycznego}}. Potem tłumaczenie pojawi się samo.</value>
+  </data>
+  <data name="GamePage_AchievementsRestartBlocked" xml:space="preserve">
+    <value>Gra ze Steama jest uruchomiona, a restart Steama by ją zamknął. Przycisk działa, gdy żadna gra ze Steama nie jest uruchomiona.</value>
+  </data>
+  <data name="GamePage_AchievementsRunning" xml:space="preserve">
+    <value>Uruchomiona: {game}</value>
+  </data>
+  <data name="GamePage_RestartSteam" xml:space="preserve">
+    <value>Uruchom Steam ponownie</value>
+  </data>
+  <data name="GamePage_RestartSteamFailed" xml:space="preserve">
+    <value>Nie udało się uruchomić Steama ponownie. Można go też zamknąć i uruchomić samodzielnie.</value>
+  </data>
+  <data name="GamePage_OpenSettings" xml:space="preserve">
+    <value>Otwórz ustawienia</value>
+  </data>
+  <data name="GamePage_AchievementsHookBlockedTitle" xml:space="preserve">
+    <value>Ta wersja Steama blokuje podmianę</value>
+  </data>
+  <data name="GamePage_AchievementsHookBlocked" xml:space="preserve">
+    <value>Aktualizacja Steama zmieniła jego interfejs, więc Steam pokazuje teraz oryginalne teksty. Podmiana wróci z aktualizacją {delivery, select, Millennium {Millennium albo aplikacji} other {aplikacji}}.</value>
+  </data>
+  <data name="GamePage_AchievementsOtherLanguageTitle" xml:space="preserve">
+    <value>Steam ma interfejs w innym języku</value>
+  </data>
+  <data name="GamePage_AchievementsOtherLanguage" xml:space="preserve">
+    <value>Steam pokazuje osiągnięcia w języku swojego interfejsu. Tłumaczenie pojawi się po przełączeniu Steama na język tłumaczenia (Steam › Ustawienia › Interfejs).</value>
+  </data>
+  <data name="Library_AchievementsChip" xml:space="preserve">
+    <value>Osiągnięcia</value>
+  </data>
+  <data name="Library_AchievementsChipName" xml:space="preserve">
+    <value>tłumaczenie osiągnięć włączone</value>
+  </data>
 </root>

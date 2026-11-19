@@ -5,6 +5,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
@@ -19,8 +20,10 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="settings">Tells whether the player confirmed being an adult.</param>
 /// <param name="storage">Measures the app's own folders.</param>
 /// <param name="time">Tells whether that confirmation still holds.</param>
+/// <param name="coordinator">Tells which project's achievement texts a game takes.</param>
+/// <param name="achievementTexts">Reads achievement texts.</param>
 public sealed class AgentQueries(CatalogueService catalogue, ILibraryService library, IInstallEngine engine,
-    ISettingsService settings, AppStorage storage, TimeProvider time)
+    ISettingsService settings, AppStorage storage, TimeProvider time, StateCoordinator coordinator, AchievementTextsCache achievementTexts)
 {
     /// <summary>A slice larger than this is cut, so no answer comes near the frame limit.</summary>
     public const int MaxCataloguePage = 200;
@@ -46,8 +49,27 @@ public sealed class AgentQueries(CatalogueService catalogue, ILibraryService lib
         ]),
         GetLeftoverBackups => new LeftoverBackups(await engine.FindLeftoverBackupsAsync(cancellationToken).ConfigureAwait(false)),
         GetAppDataUsage => storage.Measure(),
+        GetAchievementTexts texts => new AchievementTextsResult(await GetAchievementTextsAsync(texts.Game, cancellationToken).ConfigureAwait(false)),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),
     };
+
+    // A site out of reach with nothing saved only means there is nothing to list.
+    private async Task<AchievementTexts?> GetAchievementTextsAsync(GameKey game, CancellationToken cancellationToken)
+    {
+        if (coordinator.Current.Find(game)?.AchievementTexts is not { } texts)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await achievementTexts.GetAsync(texts.Project, game, cancellationToken).ConfigureAwait(false);
+        }
+        catch (CatalogueException)
+        {
+            return null;
+        }
+    }
 
     private async Task<Message> GetProjectPageAsync(GetProjectPage request, CancellationToken cancellationToken)
     {

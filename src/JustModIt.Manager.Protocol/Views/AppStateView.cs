@@ -52,6 +52,9 @@ public sealed record AppStateView
     /// <summary>How the agent's previous run ended when it did not exit cleanly; null once the window told the player.</summary>
     public UncleanExitView? UncleanExit { get; init; }
 
+    /// <inheritdoc cref="AppState.SteamUi"/>
+    public SteamUiView SteamUi { get; init; } = new();
+
     /// <summary>Makes the snapshot of the engine's state and the agent's own status.</summary>
     /// <param name="version">The snapshot's number among those the agent sent.</param>
     /// <param name="state">The engine's newest state.</param>
@@ -86,6 +89,7 @@ public sealed record AppStateView
             PendingRecoveries = state.PendingRecoveries,
             PendingBackupMoves = state.PendingBackupMoves,
             PendingUninstalls = state.PendingUninstalls,
+            SteamUi = SteamUiView.From(state),
         };
     }
 }

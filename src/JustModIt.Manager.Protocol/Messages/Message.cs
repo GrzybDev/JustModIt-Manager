@@ -32,6 +32,8 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(CheckNow), "checkNow")]
 [JsonDerivedType(typeof(ChangeSettings), "changeSettings")]
 [JsonDerivedType(typeof(SetGameAutomation), "setGameAutomation")]
+[JsonDerivedType(typeof(SetAchievementTexts), "setAchievementTexts")]
+[JsonDerivedType(typeof(RestartSteam), "restartSteam")]
 [JsonDerivedType(typeof(ChooseProject), "chooseProject")]
 [JsonDerivedType(typeof(ChooseFeatures), "chooseFeatures")]
 [JsonDerivedType(typeof(ApplyFeatures), "applyFeatures")]
@@ -64,6 +66,8 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(DetectionReportResult), "detectionReportResult")]
 [JsonDerivedType(typeof(GetDetectedGames), "getDetectedGames")]
 [JsonDerivedType(typeof(DetectedGames), "detectedGames")]
+[JsonDerivedType(typeof(GetAchievementTexts), "getAchievementTexts")]
+[JsonDerivedType(typeof(AchievementTextsResult), "achievementTextsResult")]
 [JsonDerivedType(typeof(GetLeftoverBackups), "getLeftoverBackups")]
 [JsonDerivedType(typeof(LeftoverBackups), "leftoverBackups")]
 [JsonDerivedType(typeof(GetAppDataUsage), "getAppDataUsage")]
@@ -77,7 +81,7 @@ public abstract record Message;
 /// <param name="ProcessId">The sender's process, to hand it the foreground or wait for it to exit.</param>
 public sealed record Hello(int ProtocolVersion, string AppVersion, ProcessRole Role, int ProcessId) : Message
 {
-    public const int CurrentProtocolVersion = 3;
+    public const int CurrentProtocolVersion = 4;
 
     /// <summary>The hello this process sends.</summary>
     /// <param name="role">The role this process runs.</param>
