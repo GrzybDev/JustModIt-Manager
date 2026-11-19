@@ -66,6 +66,11 @@ public sealed class CatalogueApiClient : ICatalogueApi, IDisposable
         return Parse(path, () => ProjectPageDocument.Parse(json));
     }
 
+    public Task<IReadOnlyList<AchievementTexts>> GetAchievementTextsAsync(string teamSlug, string projectSlug,
+        CancellationToken cancellationToken) =>
+        GetAsync($"projects/v1/teams/{Segment(teamSlug)}/{Segment(projectSlug)}/achievements/", Json.IReadOnlyListAchievementTexts,
+            cancellationToken);
+
     // Without the previews of each team's projects, which the app does not read.
     public Task<ApiPage<Team>> GetTeamsAsync(int page, CancellationToken cancellationToken) =>
         GetAsync("teams/v1/" + PageQuery(page) + "&previews=0", Json.ApiPageTeam, cancellationToken);

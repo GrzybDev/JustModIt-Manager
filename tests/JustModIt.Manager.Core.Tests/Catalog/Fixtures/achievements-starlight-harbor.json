@@ -1,0 +1,15 @@
+[
+  {
+    "steam_app_id": 1000010,
+    "language": "polish",
+    "translated": 2,
+    "total": 3,
+    "revision": 4,
+    "updated_at": "2026-08-20T10:00:00.000000+02:00",
+    "has_official": false,
+    "achievements": [
+      {"api_name": "LANTERN_LIT", "name": "Lantern Lit (translated)", "description": "Light the first lantern (translated).", "hidden": false, "icon": "https://cdn.example.com/icons/lantern.jpg", "icon_gray": "https://cdn.example.com/icons/lantern-gray.jpg", "has_official": false},
+      {"api_name": "HARBOUR_DAWN", "name": "Harbour Dawn (translated)", "description": "", "hidden": true, "icon": "https://cdn.example.com/icons/dawn.jpg", "icon_gray": "https://cdn.example.com/icons/dawn-gray.jpg", "has_official": false}
+    ]
+  }
+]

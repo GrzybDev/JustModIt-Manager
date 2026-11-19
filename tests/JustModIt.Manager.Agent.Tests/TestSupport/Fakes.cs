@@ -249,6 +249,9 @@ internal sealed class OfflineCatalogueApi : ICatalogueApi
     public Task<ProjectPageDocument> GetProjectPageAsync(string gameSlug, string teamSlug, CancellationToken cancellationToken) =>
         throw Offline;
 
+    public Task<IReadOnlyList<AchievementTexts>> GetAchievementTextsAsync(string teamSlug, string projectSlug,
+        CancellationToken cancellationToken) => throw Offline;
+
     public Task<ApiPage<Team>> GetTeamsAsync(int page, CancellationToken cancellationToken) => throw Offline;
 
     public Task<IReadOnlyList<ProjectStatus>> GetStatusesAsync(CancellationToken cancellationToken) => throw Offline;

@@ -63,6 +63,9 @@ internal sealed class CountingApi(Func<ReleaseFileLocator, Uri> resolve) : ICata
     public Task<ProjectPageDocument> GetProjectPageAsync(string gameSlug, string teamSlug, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
+    public Task<IReadOnlyList<AchievementTexts>> GetAchievementTextsAsync(string teamSlug, string projectSlug,
+        CancellationToken cancellationToken) => throw new NotSupportedException();
+
     public Task<ApiPage<Team>> GetTeamsAsync(int page, CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<ProjectStatus>> GetStatusesAsync(CancellationToken cancellationToken) => throw new NotSupportedException();

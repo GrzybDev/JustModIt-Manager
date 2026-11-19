@@ -37,6 +37,7 @@ internal static class CatalogueFixtures
         ["/games/v1/clockwork-tides/projects/lantern-works/"] = () => FakeHttpHandler.Json(Read("project-clockwork-tides-lantern-works.json")),
         ["/games/v1/silent-orchard/projects/lantern-works/"] = () => FakeHttpHandler.Json(Read("project-silent-orchard.json")),
         ["/games/v1/hidden-grove/projects/lantern-works/"] = () => FakeHttpHandler.Json(Read("project-hidden-grove.json")),
+        ["/projects/v1/teams/lantern-works/starlight-harbor/achievements/"] = () => FakeHttpHandler.Json(Read("achievements-starlight-harbor.json")),
         ["/teams/v1/?page=1&previews=0"] = () => FakeHttpHandler.Json(Reference("teams")),
         ["/projects/v1/statuses/"] = () => FakeHttpHandler.Json(Reference("statuses")),
         ["/projects/v1/types/"] = () => FakeHttpHandler.Json(Reference("types")),

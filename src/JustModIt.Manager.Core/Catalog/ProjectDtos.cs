@@ -177,6 +177,10 @@ public sealed record ProjectPage
     /// <summary>What an anonymous visitor may download: at most the public release.</summary>
     public IReadOnlyList<Release> Releases { get; init => field = value ?? []; } = [];
 
+    /// <summary>The achievement texts the project published, one entry per Steam app.</summary>
+    [JsonConverter(typeof(LenientAchievementsConverter))]
+    public IReadOnlyList<ProjectAchievements> Achievements { get; init => field = value ?? []; } = [];
+
     /// <summary>
     /// Some store has a build the team has not confirmed the project with, so it may not fit that version of the game; see
     /// <see cref="ProjectOffer.IsOutdated"/> for the player's own.

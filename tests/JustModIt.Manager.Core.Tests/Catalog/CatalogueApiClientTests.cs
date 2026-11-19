@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text.Json.Nodes;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Tests.Catalog.TestSupport;
@@ -450,7 +451,43 @@ public sealed class CatalogueApiClientTests
         sparse.PublicRelease.Changelog.Should().BeEmpty();
         page.PublicRelease!.Files[3].Size.Should().BeNull();
         page.PublicRelease.Files[4].OperatingSystems.Should().Equal(OperatingSystemKind.Unknown);
+        page.Achievements.Should().ContainSingle("an entry of a shape this version cannot read is left out")
+            .Which.Should().BeEquivalentTo(new { Game = new GameKey(StoreId.Steam, "1000010"), Language = "polish", Revision = 4 });
+        sparse.Achievements.Should().BeEmpty();
         document.Json.ToArray().Should().Equal(System.Text.Encoding.UTF8.GetBytes(CatalogueFixtures.Read("project-starlight-harbor.json")));
+    }
+
+    [Theory]
+    [InlineData("""{"steam_app_id": 1000010, "revision": 4}""")]
+    [InlineData("\"none\"")]
+    [InlineData("null")]
+    [InlineData("""[5, "text", {"revision": 4}]""")]
+    public async Task Reads_a_page_whose_achievement_texts_come_in_another_shape_as_one_without_them(string achievements)
+    {
+        var page = JsonNode.Parse(CatalogueFixtures.Read("project-starlight-harbor.json"))!;
+        page["achievements"] = JsonNode.Parse(achievements);
+        var handler = FakeHttpHandler.Sequence(() => FakeHttpHandler.Json(page.ToJsonString()));
+        using var client = Client(handler);
+
+        var read = await client.GetProjectPageAsync("starlight-harbor", "lantern-works", Token);
+
+        read.Page.Achievements.Should().BeEmpty();
+        read.Page.Name.Should().Be("Starlight Harbor");
+    }
+
+    [Fact]
+    public async Task Reads_a_projects_achievement_texts_from_the_exact_path()
+    {
+        var handler = FakeHttpHandler.Routes(CatalogueFixtures.Routes());
+        using var client = Client(handler);
+
+        var texts = await client.GetAchievementTextsAsync("lantern-works", "starlight-harbor", Token);
+
+        handler.Paths.Should().Equal("/projects/v1/teams/lantern-works/starlight-harbor/achievements/");
+        var app = texts.Should().ContainSingle().Subject;
+        app.Should().BeEquivalentTo(new { Game = new GameKey(StoreId.Steam, "1000010"), Language = "polish", Revision = 4 });
+        app.Achievements.Select(achievement => (achievement.ApiName, achievement.Name, achievement.Hidden)).Should().Equal(
+            ("LANTERN_LIT", "Lantern Lit (translated)", false), ("HARBOUR_DAWN", "Harbour Dawn (translated)", true));
     }
 
     private CatalogueApiClient Client(HttpMessageHandler handler) => new(CatalogueFixtures.Options(), _time, handler);

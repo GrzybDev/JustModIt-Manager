@@ -30,6 +30,15 @@ public interface ICatalogueApi
     /// <param name="cancellationToken">Cancels the request.</param>
     Task<ProjectPageDocument> GetProjectPageAsync(string gameSlug, string teamSlug, CancellationToken cancellationToken);
 
+    /// <summary>The achievement texts a project published, one entry per Steam app.</summary>
+    /// <param name="teamSlug">The slug of the team that made the project.</param>
+    /// <param name="projectSlug">The project's slug.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <exception cref="CatalogueException">
+    /// With <see cref="CatalogueErrorReason.NotFound"/> when the project has none published, or staff hid them.
+    /// </exception>
+    Task<IReadOnlyList<AchievementTexts>> GetAchievementTextsAsync(string teamSlug, string projectSlug, CancellationToken cancellationToken);
+
     /// <summary>One page of the listed teams.</summary>
     /// <param name="page">The page number, counted from 1.</param>
     /// <param name="cancellationToken">Cancels the request.</param>

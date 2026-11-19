@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using JustModIt.Manager.Core.Games;
 
 namespace JustModIt.Manager.Core.Catalog;
@@ -25,7 +26,49 @@ namespace JustModIt.Manager.Core.Catalog;
 [JsonSerializable(typeof(JsonElement))]
 [JsonSerializable(typeof(ListingData))]
 [JsonSerializable(typeof(IndexData))]
+[JsonSerializable(typeof(IReadOnlyList<AchievementTexts>))]
 internal sealed partial class CatalogueJsonContext : JsonSerializerContext;
+
+/// <summary>
+/// Reads a project's achievement texts leaving out the entries it cannot read, and anything but an array as none, so texts
+/// the site starts sending in another shape never make the project's page unreadable.
+/// </summary>
+internal sealed class LenientAchievementsConverter : JsonConverter<IReadOnlyList<ProjectAchievements>>
+{
+    public override bool HandleNull => true;
+
+    public override IReadOnlyList<ProjectAchievements> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var list = JsonElement.ParseValue(ref reader);
+        if (list.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var type = (JsonTypeInfo<ProjectAchievements>)options.GetTypeInfo(typeof(ProjectAchievements));
+        var items = new List<ProjectAchievements>();
+        foreach (var item in list.EnumerateArray())
+        {
+            try
+            {
+                if (item.Deserialize(type) is { } value)
+                {
+                    items.Add(value);
+                }
+            }
+            catch (JsonException)
+            {
+                // The entry is left out.
+            }
+        }
+
+        return items;
+    }
+
+    // Pages are kept as the site sent them, so the app never writes one.
+    public override void Write(Utf8JsonWriter writer, IReadOnlyList<ProjectAchievements> value, JsonSerializerOptions options) =>
+        throw new NotSupportedException();
+}
 
 /// <summary>
 /// Reads a JSON null as empty text, which already means "not given" everywhere in the catalogue, so a field the backend

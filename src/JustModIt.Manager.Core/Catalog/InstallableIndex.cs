@@ -35,8 +35,15 @@ public sealed record IndexEntry
     /// <inheritdoc cref="ProjectSummary.UpdatedAt"/>
     public DateTimeOffset? UpdatedAt { get; init; }
 
+    /// <inheritdoc cref="ProjectPage.Achievements"/>
+    public IReadOnlyList<ProjectAchievements> Achievements { get; init => field = value ?? []; } = [];
+
     [JsonIgnore]
     public ProjectLocator Locator => new(Game.Slug, Team.Slug, ProjectUuid);
+
+    /// <summary>The achievement texts the project published for a Steam copy of a game; null when it has none.</summary>
+    /// <param name="game">The game's store and store id.</param>
+    public ProjectAchievements? AchievementsFor(GameKey game) => Achievements.FirstOrDefault(texts => texts.Game == game);
 
     /// <summary>The entry for a project page.</summary>
     /// <param name="page">The page as the site sent it.</param>
@@ -55,6 +62,7 @@ public sealed record IndexEntry
             PublicRelease = page.PublicRelease,
             IsOutdated = page.IsOutdated,
             UpdatedAt = page.UpdatedAt,
+            Achievements = page.Achievements,
         };
     }
 }

@@ -26,6 +26,7 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
     private const int IndexVersion = 1;
     private const int SiteVersion = 1;
     private const int PageVersion = 1;
+    private const int AchievementsVersion = 1;
 
     private const string VersionProperty = "version";
     private const string FetchedAtProperty = "fetched_at";
@@ -128,7 +129,28 @@ public sealed partial class CatalogueCache(string directory, TimeProvider time, 
             cancellationToken);
     }
 
+    /// <summary>The achievement texts saved for a project and when they were read; null when there are none to read.</summary>
+    /// <param name="projectUuid">The project's id, which names the file.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    public Task<(DateTimeOffset FetchedAt, IReadOnlyList<AchievementTexts> Texts)?> LoadAchievementsAsync(Guid projectUuid,
+        CancellationToken cancellationToken) =>
+        ReadAsync(AchievementsFile(projectUuid), AchievementsVersion, Json.IReadOnlyListAchievementTexts, cancellationToken);
+
+    /// <summary>Saves a project's achievement texts in place of the last ones.</summary>
+    /// <param name="projectUuid">The project's id, which names the file.</param>
+    /// <param name="texts">The texts just read from the site; none when the site has none.</param>
+    /// <param name="fetchedAt">When they were read.</param>
+    /// <param name="cancellationToken">Cancels the write, leaving the texts saved earlier.</param>
+    public Task SaveAchievementsAsync(Guid projectUuid, IReadOnlyList<AchievementTexts> texts, DateTimeOffset fetchedAt,
+        CancellationToken cancellationToken)
+    {
+        return WriteAsync(AchievementsFile(projectUuid), AchievementsVersion, fetchedAt,
+            writer => JsonSerializer.Serialize(writer, texts, Json.IReadOnlyListAchievementTexts), cancellationToken);
+    }
+
     private string PageFile(Guid projectUuid) => Path.Combine(PagesDirectory, $"{projectUuid:D}.json");
+
+    private string AchievementsFile(Guid projectUuid) => Path.Combine(directory, "achievements", $"{projectUuid:D}.json");
 
     private async Task WriteAsync(string path, int version, DateTimeOffset fetchedAt, Action<Utf8JsonWriter> writeData,
         CancellationToken cancellationToken)

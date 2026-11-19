@@ -134,6 +134,9 @@ internal sealed class FakeCatalogue : ICatalogue
 
     public CatalogueSnapshot? Cached { get; set; }
 
+    /// <summary>When the published catalogue says it was read from the site.</summary>
+    public DateTimeOffset FetchedAt { get; set; } = TestProjects.Now;
+
     public void Add(ProjectPage page) => Pages[page.Uuid] = page;
 
     /// <summary>Publishes an index of the given projects, as a refresh does.</summary>
@@ -145,7 +148,7 @@ internal sealed class FakeCatalogue : ICatalogue
         {
             State = state,
             Index = new InstallableIndex(TestProjects.Now, entries),
-            FetchedAt = TestProjects.Now,
+            FetchedAt = FetchedAt,
         };
         Volatile.Write(ref _current, snapshot);
         Changed?.Invoke(this, snapshot);

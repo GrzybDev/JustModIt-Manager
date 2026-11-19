@@ -111,6 +111,7 @@ public static class AgentServices
         services.AddSingleton(provider => new CatalogueCache(locations.CatalogueCacheDirectory, provider.GetRequiredService<TimeProvider>(),
             provider.GetRequiredService<ILogger<CatalogueCache>>()));
         services.AddSingleton<ProjectPageCache>();
+        services.AddSingleton<AchievementTextsCache>();
         services.AddSingleton<CatalogueCrawler>();
         services.AddSingleton(provider =>
             new CrawlIndexSource(provider.GetRequiredService<ProjectPageCache>(), provider.GetRequiredService<TimeProvider>()));
