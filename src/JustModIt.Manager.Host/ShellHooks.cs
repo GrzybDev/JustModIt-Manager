@@ -1,8 +1,12 @@
 using System.Runtime.Versioning;
 using System.Security;
 using JustModIt.Manager.Agent.Shell;
+using JustModIt.Manager.Agent.Steam;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Steam;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Platform.Windows;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -32,16 +36,26 @@ internal static class ShellHooks
         Apply(product, environment => Roles.EndStoppedRuns(environment.Locations.StateDirectory));
 
     /// <summary>
-    /// Removes the link scheme and autostart before the app is uninstalled, and forgets the installation's id, so an install
-    /// later is another installation for the site.
+    /// Removes the link scheme and autostart before the app is uninstalled, forgets the installation's id, so an install
+    /// later is another installation for the site, and takes out of Steam's folder what the app put there.
     /// </summary>
     /// <param name="product">The app's build settings.</param>
-    public static void Unregister(ProductSettings product) => Apply(product, environment =>
+    public static void Unregister(ProductSettings product)
     {
-        ShellRegistration.Unregister(WindowsLinkRegistration.Instance, new WindowsAutostart(environment.Identity.InstanceName),
-            environment.Identity.Slug);
-        ForgetInstallation(environment.Locations);
-    });
+        Apply(product, environment =>
+        {
+            ShellRegistration.Unregister(WindowsLinkRegistration.Instance, new WindowsAutostart(environment.Identity.InstanceName),
+                environment.Identity.Slug);
+            ForgetInstallation(environment.Locations);
+        });
+        Apply(product, environment =>
+        {
+            if (SteamInstallation.FindRoot(PhysicalFileSystem.Instance, WindowsRegistry.Instance, LibraryEnvironment.ForCurrentUser()) is { } steam)
+            {
+                SteamCleanup.Remove(steam, environment.Identity);
+            }
+        });
+    }
 
     /// <summary>Drops the installation's id from the settings, which outlive the app's files.</summary>
     /// <param name="locations">The app's data folders.</param>

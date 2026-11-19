@@ -221,6 +221,24 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
         _service.Status.LaunchOptions[Game].Should().Be("-examplelog");
     }
 
+    [Fact]
+    public async Task Uninstalling_the_app_takes_its_plugin_and_its_share_of_the_switch_out_of_steam_s_folder()
+    {
+        Start(SteamUiDemand.From([Texts], []));
+        await Eventually.HoldsAsync(() => _service.Status.PluginVersion == "1.4.0");
+        await _stop.CancelAsync();
+        await _run.ContinueWith(_ => { }, TaskScheduler.Default);
+        File.WriteAllLines(Path.Combine(_root, ".cef-enable-remote-debugging"), [ClassicSwitch.OwnerOf(Options.Identity), "AnotherApp"]);
+
+        SteamCleanup.Remove(_root, Options.Identity);
+
+        Directory.Exists(PluginFolder).Should().BeFalse();
+        using var config = JsonDocument.Parse(File.ReadAllText(Path.Combine(_root, "millennium", "config", "config.json")));
+        config.RootElement.GetProperty("plugins").GetProperty("enabledPlugins").EnumerateArray().Select(name => name.GetString())
+            .Should().Equal("another-plugin");
+        File.ReadAllLines(Path.Combine(_root, ".cef-enable-remote-debugging")).Should().Equal("AnotherApp");
+    }
+
     [Theory]
     [InlineData("", "-examplelog", "", "-examplelog")]
     [InlineData("-novid", "-examplelog -novid", "", "-novid -examplelog")]
