@@ -3897,4 +3897,58 @@
   <data name="GamePage_LaunchOptionsRemoved" xml:space="preserve">
     <value>{way, select, reachable {{count, plural, one {The launch option {options} added at the install was taken out of Steam} other {The launch options {options} added at the install were taken out of Steam}}} waiting {{count, plural, one {The launch option {options} added at the install leaves Steam at the next chance, at the latest when Steam next starts} other {The launch options {options} added at the install leave Steam at the next chance, at the latest when Steam next starts}}} other {{count, plural, one {The launch option {options} added at the install stays in Steam, where it can be taken out in the library: right-click the game › Properties › Launch options} other {The launch options {options} added at the install stay in Steam, where they can be taken out in the library: right-click the game › Properties › Launch options}}}}; the other launch options stay as they were.</value>
   </data>
+  <data name="Settings_Achievements" xml:space="preserve">
+    <value>Steam achievements</value>
+  </data>
+  <data name="Settings_AchievementTexts" xml:space="preserve">
+    <value>Achievement translation in Steam</value>
+  </data>
+  <data name="Settings_AchievementTextsDescription" xml:space="preserve">
+    <value>Steam on this computer shows translated achievements in its library, the in-game overlay and notifications. Games that show achievements in their own menus, and Steam's pages in a browser, stay as they are.</value>
+  </data>
+  <data name="Settings_AutoAchievementTexts" xml:space="preserve">
+    <value>Turn on automatically</value>
+  </data>
+  <data name="Settings_AutoAchievementTextsDescription" xml:space="preserve">
+    <value>New achievement translations for Steam games come on by themselves.</value>
+  </data>
+  <data name="Settings_ClassicMode" xml:space="preserve">
+    <value>Classic mode without Millennium</value>
+  </data>
+  <data name="Settings_ClassicModeDescription" xml:space="preserve">
+    <value>{millennium, select, true {Not used while Millennium is installed.} other {While Steam runs, it opens Steam's local debugging port, whichever Windows account starts Steam. Through that port, other programs on this computer, also from other Windows accounts, can control the signed-in Steam account. Turning it off closes the port at Steam's next start, unless the classic mode is on in another Windows account.}}</value>
+  </data>
+  <data name="Settings_SteamMillennium" xml:space="preserve">
+    <value>Millennium plugin</value>
+  </data>
+  <data name="Settings_SteamClassic" xml:space="preserve">
+    <value>Classic mode</value>
+  </data>
+  <data name="Settings_SteamNone" xml:space="preserve">
+    <value>{classic, select, true {Steam not found} other {Classic mode off}}</value>
+  </data>
+  <data name="Settings_SteamStatus" xml:space="preserve">
+    <value>{status, select, Working {Installed and on} Restart {Works once Steam restarts} Install {Installs while Steam is closed} Blocked {This version of Steam blocks the texts} Active {Active} Waiting {Waits for Steam to start} PortTaken {Port taken} Disabled {Turned off in Millennium's list of plugins} Unused {Not used until a game needs it} Idle {Not used until a game needs it} other {Steam shows no achievement translation}}</value>
+  </data>
+  <data name="Settings_SteamVersions" xml:space="preserve">
+    <value>{hasPlugin, select, true {{hasMillennium, select, true {Millennium {millennium} · plugin {plugin}} other {Millennium · plugin {plugin}}}} other {{hasMillennium, select, true {Millennium {millennium}} other {Millennium}}}}</value>
+  </data>
+  <data name="Settings_SteamPort" xml:space="preserve">
+    <value>Steam's debugging port 127.0.0.1:8080</value>
+  </data>
+  <data name="Settings_SteamMillenniumDescription" xml:space="preserve">
+    <value>The plugin connects to Steam without opening ports. {count, plural, =0 {No game takes a translation now.} one {The app supplies translations for # game.} other {The app supplies translations for # games.}}</value>
+  </data>
+  <data name="Settings_SteamClassicDescription" xml:space="preserve">
+    <value>Works without extra programs. Millennium does the same without opening a port.</value>
+  </data>
+  <data name="Settings_SteamNoneDescription" xml:space="preserve">
+    <value>{classic, select, true {Achievement translation works with Steam installed on this computer.} other {Without Millennium, achievement translation needs the classic mode.}}</value>
+  </data>
+  <data name="Settings_WhatIsMillennium" xml:space="preserve">
+    <value>What Millennium is</value>
+  </data>
+  <data name="Settings_PortTaken" xml:space="preserve">
+    <value>Another program holds port 8080, so Steam did not open its debugging port. Achievement translation returns once the port is free when Steam starts.</value>
+  </data>
 </root>

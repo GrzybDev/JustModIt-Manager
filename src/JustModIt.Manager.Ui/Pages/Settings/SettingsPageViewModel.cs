@@ -36,6 +36,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         Teams = new PreferredTeamsViewModel(services, _editor);
         Folders = new AddedFoldersViewModel(services);
         Data = new AppDataViewModel(services);
+        Steam = new SteamDeliveryViewModel(services);
         Sync();
         _services.Agent.PropertyChanged += OnAgentChanged;
         _services.Agent.JobsProgressed += OnJobsProgressed;
@@ -51,9 +52,14 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     public AppDataViewModel Data { get; }
 
+    /// <summary>How achievement texts reach Steam's interface.</summary>
+    public SteamDeliveryViewModel Steam { get; }
+
     public string GeneralHeading { get; } = Overline(Strings.Settings_General);
 
     public string ProjectsHeading { get; } = Overline(Strings.Settings_Projects);
+
+    public string AchievementsHeading { get; } = Overline(Strings.Settings_Achievements);
 
     public string BackupsHeading { get; } = Overline(Strings.Settings_Backups);
 
@@ -96,6 +102,18 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     [ObservableProperty]
     public partial bool ShowNotifications { get; set; }
+
+    /// <inheritdoc cref="AppSettings.AchievementTexts"/>
+    [ObservableProperty]
+    public partial bool AchievementTexts { get; set; }
+
+    /// <inheritdoc cref="AppSettings.AutoAchievementTexts"/>
+    [ObservableProperty]
+    public partial bool AutoAchievementTexts { get; set; }
+
+    /// <inheritdoc cref="AppSettings.AchievementClassicMode"/>
+    [ObservableProperty]
+    public partial bool AchievementClassicMode { get; set; }
 
     [ObservableProperty]
     public partial bool CreatorMode { get; set; }
@@ -205,6 +223,12 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     partial void OnShowNotificationsChanged(bool value) => Change(settings => settings with { ShowNotifications = value });
 
+    partial void OnAchievementTextsChanged(bool value) => Change(settings => settings with { AchievementTexts = value });
+
+    partial void OnAutoAchievementTextsChanged(bool value) => Change(settings => settings with { AutoAchievementTexts = value });
+
+    partial void OnAchievementClassicModeChanged(bool value) => Change(settings => settings with { AchievementClassicMode = value });
+
     partial void OnCreatorModeChanged(bool value) => Change(settings => settings with { CreatorMode = value });
 
     partial void OnAutoUpdateAppChanged(bool value) => Change(settings => settings with { AutoUpdateApp = value });
@@ -275,6 +299,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         AutoUpdateProjects = settings.AutoUpdateProjects;
         ReapplyAfterGameUpdate = settings.ReapplyAfterGameUpdate;
         ShowNotifications = settings.ShowNotifications;
+        AchievementTexts = settings.AchievementTexts;
+        AutoAchievementTexts = settings.AutoAchievementTexts;
+        AchievementClassicMode = settings.AchievementClassicMode;
         CreatorMode = settings.CreatorMode;
         AutoUpdateApp = settings.AutoUpdateApp;
         UpdatePrereleases = settings.UpdatePrereleases;
@@ -283,6 +310,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         Backups.Refresh();
         Teams.Refresh();
         Data.Refresh();
+        Steam.Refresh();
         ShowUpdate();
         var state = _services.Agent.State;
         SiteName = state.Catalogue.SiteName is { Length: > 0 } name ? name : _services.Context.Site.SiteAddress?.Host ?? "";
@@ -331,6 +359,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         {
             Backups.Refresh();
             Data.Refresh();
+            Steam.Refresh();
             ShowUpdate();
             Folders.Refresh();
         }

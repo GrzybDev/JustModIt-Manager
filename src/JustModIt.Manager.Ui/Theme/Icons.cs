@@ -144,6 +144,8 @@ public static class Icons
 
     public static Geometry Play => field ??= Parse("M6 3 20 12 6 21 6 3z");
 
+    public static Geometry Plug => field ??= Parse("M12 22v-5 M9 8V2 M15 8V2 M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z");
+
     public static Geometry Plus => field ??= Parse("M5 12h14 M12 5v14");
 
     public static Geometry Power => field ??= Parse("M12 2v10 M18.4 6.6a9 9 0 1 1-12.77.04");

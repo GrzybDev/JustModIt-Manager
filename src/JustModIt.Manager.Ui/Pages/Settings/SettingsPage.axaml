@@ -51,6 +51,21 @@
     <Style Selector="Grid.size">
       <Setter Property="ColumnSpacing" Value="10" />
     </Style>
+    <!-- How achievement texts reach Steam: a framed box between the switches, its icon in the accent. -->
+    <Style Selector="Border.method">
+      <Setter Property="Margin" Value="20,4,20,16" />
+      <Setter Property="Padding" Value="14,16" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="#80030712" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.methodIcon">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    </Style>
+    <Style Selector="Border.methodIcon > ui|Icon">
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    </Style>
     <Style Selector="Border.footer">
       <Setter Property="Background" Value="#05FFFFFF" />
       <Setter Property="Padding" Value="20,14,20,16" />
@@ -137,6 +152,53 @@
           </StackPanel>
         </Border>
         <TextBlock Classes="caption" LineHeight="20" Text="{x:Static loc:Strings.Settings_AutomationNote}" />
+      </StackPanel>
+
+      <StackPanel Classes="section">
+        <TextBlock Classes="overline" Text="{Binding AchievementsHeading}" />
+        <Border Classes="settingsCard">
+          <StackPanel>
+            <ui:SettingRow Icon="{x:Static theme:Icons.Trophy}" Title="{x:Static loc:Strings.Settings_AchievementTexts}"
+                           Message="{x:Static loc:Strings.Settings_AchievementTextsDescription}">
+              <ToggleSwitch x:Name="AchievementTextsSwitch" IsChecked="{Binding AchievementTexts}"
+                            AutomationProperties.Name="{x:Static loc:Strings.Settings_AchievementTexts}"
+                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_AchievementTextsDescription}" />
+            </ui:SettingRow>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.RefreshCw}" Title="{x:Static loc:Strings.Settings_AutoAchievementTexts}"
+                           Message="{x:Static loc:Strings.Settings_AutoAchievementTextsDescription}">
+              <ToggleSwitch x:Name="AutoAchievementTextsSwitch" IsChecked="{Binding AutoAchievementTexts}" IsEnabled="{Binding AchievementTexts}"
+                            AutomationProperties.Name="{x:Static loc:Strings.Settings_AutoAchievementTexts}"
+                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_AutoAchievementTextsDescription}" />
+            </ui:SettingRow>
+            <Border x:Name="SteamDelivery" Classes="method">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <Border Classes="iconChip methodIcon" VerticalAlignment="Top">
+                  <ui:Icon Data="{Binding Steam.Icon}" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <TextBlock Text="{Binding Steam.Title}" FontSize="14" LineHeight="20" FontWeight="SemiBold" TextWrapping="Wrap"
+                             Foreground="{StaticResource TextBrush}" />
+                  <ui:StatusLine x:Name="SteamDeliveryStatus" FontSize="13" LineHeight="18" Icon="{Binding Steam.StatusIcon}"
+                                 Tone="{Binding Steam.StatusTone}" Label="{Binding Steam.Status}" Detail="{Binding Steam.Details}"
+                                 Foreground="{StaticResource TextSecondaryBrush}" />
+                  <TextBlock Classes="caption" Text="{Binding Steam.Description}" />
+                  <Button x:Name="WhatIsMillennium" Classes="link" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Left" Margin="0,4,0,0"
+                          Content="{x:Static loc:Strings.Settings_WhatIsMillennium}" ui:ButtonAssist.Icon="{x:Static theme:Icons.ArrowUpRight}"
+                          ui:ButtonAssist.IconAfter="True" Command="{Binding Steam.OpenMillenniumCommand}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Terminal}" Title="{x:Static loc:Strings.Settings_ClassicMode}"
+                           Message="{Binding Steam.ClassicModeDescription}">
+              <ToggleSwitch x:Name="ClassicModeSwitch" IsChecked="{Binding AchievementClassicMode}"
+                            AutomationProperties.Name="{x:Static loc:Strings.Settings_ClassicMode}"
+                            AutomationProperties.HelpText="{Binding Steam.ClassicModeDescription}" />
+            </ui:SettingRow>
+            <ui:Callout x:Name="PortTaken" Classes="warning" Margin="20,0,20,16" MaxWidth="Infinity" HorizontalAlignment="Stretch"
+                        Icon="{x:Static theme:Icons.TriangleAlert}" Message="{x:Static loc:Strings.Settings_PortTaken}"
+                        IsVisible="{Binding Steam.IsPortTaken}" />
+          </StackPanel>
+        </Border>
       </StackPanel>
 
       <StackPanel Classes="section">

@@ -3885,4 +3885,58 @@
   <data name="GamePage_LaunchOptionsRemoved" xml:space="preserve">
     <value>{way, select, reachable {{count, plural, one {Usunięto parametr uruchamiania {options} dodany przy instalacji} other {Usunięto parametry uruchamiania {options} dodane przy instalacji}}} waiting {{count, plural, one {Parametr uruchamiania {options} dodany przy instalacji zniknie ze Steama przy najbliższej okazji, najpóźniej przy jego następnym uruchomieniu} other {Parametry uruchamiania {options} dodane przy instalacji znikną ze Steama przy najbliższej okazji, najpóźniej przy jego następnym uruchomieniu}}} other {{count, plural, one {Parametr uruchamiania {options} dodany przy instalacji został w Steamie; można go usunąć w bibliotece: prawy przycisk na grze › Właściwości › Opcje uruchamiania} other {Parametry uruchamiania {options} dodane przy instalacji zostały w Steamie; można je usunąć w bibliotece: prawy przycisk na grze › Właściwości › Opcje uruchamiania}}}}; pozostałe opcje uruchamiania zostały bez zmian.</value>
   </data>
+  <data name="Settings_Achievements" xml:space="preserve">
+    <value>Osiągnięcia Steam</value>
+  </data>
+  <data name="Settings_AchievementTexts" xml:space="preserve">
+    <value>Tłumaczenie osiągnięć w Steamie</value>
+  </data>
+  <data name="Settings_AchievementTextsDescription" xml:space="preserve">
+    <value>Steam na tym komputerze pokazuje przetłumaczone osiągnięcia w bibliotece, nakładce w grze i powiadomieniach. Gry, które wyświetlają osiągnięcia we własnych menu, i strony Steama w przeglądarce zostają bez zmian.</value>
+  </data>
+  <data name="Settings_AutoAchievementTexts" xml:space="preserve">
+    <value>Włączaj automatycznie</value>
+  </data>
+  <data name="Settings_AutoAchievementTextsDescription" xml:space="preserve">
+    <value>Nowe tłumaczenia osiągnięć dla gier ze Steama włączają się same.</value>
+  </data>
+  <data name="Settings_ClassicMode" xml:space="preserve">
+    <value>Tryb klasyczny bez Millennium</value>
+  </data>
+  <data name="Settings_ClassicModeDescription" xml:space="preserve">
+    <value>{millennium, select, true {Nieużywany, dopóki Millennium jest zainstalowane.} other {Na czas działania Steama otwiera jego lokalny port debugowania, niezależnie od tego, które konto Windows uruchomi Steama. Przez ten port inne programy na tym komputerze, także z innych kont Windows, mogą sterować Steamem zalogowanego konta. Wyłączenie zamyka port przy następnym uruchomieniu Steama, o ile tryb klasyczny nie jest włączony na innym koncie Windows.}}</value>
+  </data>
+  <data name="Settings_SteamMillennium" xml:space="preserve">
+    <value>Wtyczka Millennium</value>
+  </data>
+  <data name="Settings_SteamClassic" xml:space="preserve">
+    <value>Tryb klasyczny</value>
+  </data>
+  <data name="Settings_SteamNone" xml:space="preserve">
+    <value>{classic, select, true {Nie znaleziono Steama} other {Tryb klasyczny wyłączony}}</value>
+  </data>
+  <data name="Settings_SteamStatus" xml:space="preserve">
+    <value>{status, select, Working {Zainstalowana i włączona} Restart {Zadziała po ponownym uruchomieniu Steama} Install {Zainstaluje się, gdy Steam będzie zamknięty} Blocked {Ta wersja Steama blokuje podmianę} Active {Aktywny} Waiting {Czeka na uruchomienie Steama} PortTaken {Port debugowania zajęty} Disabled {Wyłączona na liście wtyczek Millennium} Unused {Nieużywana, dopóki żadna gra jej nie potrzebuje} Idle {Nieużywany, dopóki żadna gra go nie potrzebuje} other {Steam nie pokazuje tłumaczeń osiągnięć}}</value>
+  </data>
+  <data name="Settings_SteamVersions" xml:space="preserve">
+    <value>{hasPlugin, select, true {{hasMillennium, select, true {Millennium {millennium} · wtyczka {plugin}} other {Millennium · wtyczka {plugin}}}} other {{hasMillennium, select, true {Millennium {millennium}} other {Millennium}}}}</value>
+  </data>
+  <data name="Settings_SteamPort" xml:space="preserve">
+    <value>port debugowania Steama 127.0.0.1:8080</value>
+  </data>
+  <data name="Settings_SteamMillenniumDescription" xml:space="preserve">
+    <value>Wtyczka łączy się ze Steamem bez otwierania portów. {count, plural, =0 {Żadna gra nie ma teraz włączonego tłumaczenia.} one {Tłumaczenia dostarcza aplikacja: # gra.} few {Tłumaczenia dostarcza aplikacja: # gry.} many {Tłumaczenia dostarcza aplikacja: # gier.} other {Tłumaczenia dostarcza aplikacja: # gry.}}</value>
+  </data>
+  <data name="Settings_SteamClassicDescription" xml:space="preserve">
+    <value>Działa bez dodatkowych programów. Millennium robi to samo bez otwierania portu.</value>
+  </data>
+  <data name="Settings_SteamNoneDescription" xml:space="preserve">
+    <value>{classic, select, true {Tłumaczenie osiągnięć działa ze Steamem zainstalowanym na tym komputerze.} other {Bez Millennium tłumaczenie osiągnięć wymaga trybu klasycznego.}}</value>
+  </data>
+  <data name="Settings_WhatIsMillennium" xml:space="preserve">
+    <value>Czym jest Millennium</value>
+  </data>
+  <data name="Settings_PortTaken" xml:space="preserve">
+    <value>Port 8080 jest zajęty przez inny program, więc Steam nie otworzył portu debugowania. Tłumaczenie osiągnięć wróci, gdy port będzie wolny przy starcie Steama.</value>
+  </data>
 </root>

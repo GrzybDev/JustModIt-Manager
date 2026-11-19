@@ -749,4 +749,7 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="GamePage_LaunchOptionsManualTitle" xml:space="preserve">
     <value>{count, plural, one {Spolszczenie wymaga parametru uruchamiania} other {Spolszczenie wymaga parametrów uruchamiania}}</value>
   </data>
+  <data name="Settings_SteamMillenniumDescription" xml:space="preserve">
+    <value>Wtyczka łączy się ze Steamem bez otwierania portów. {count, plural, =0 {Żadna gra nie ma teraz włączonego tłumaczenia.} one {Tłumaczenia dostarcza menadżer: # gra.} few {Tłumaczenia dostarcza menadżer: # gry.} many {Tłumaczenia dostarcza menadżer: # gier.} other {Tłumaczenia dostarcza menadżer: # gry.}}</value>
+  </data>
 </root>

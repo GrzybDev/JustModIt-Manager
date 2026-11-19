@@ -104,11 +104,14 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
     private static partial void LogFailed(ILogger logger, string target, Exception exception);
 }
 
-/// <summary>The site's pages and the stores' pages that the window links to.</summary>
+/// <summary>The site's pages, the stores' pages and the pages of tools the app works with that the window links to.</summary>
 public static class PageLinks
 {
     /// <summary>The scheme of the Steam client's links.</summary>
     public const string SteamScheme = "steam";
+
+    /// <summary>Millennium's own site, which says what it is and how to install it.</summary>
+    public static Uri Millennium { get; } = new("https://steambrew.app/");
 
     /// <summary>The game's page in its store's client; null for a store the window has no link for.</summary>
     /// <param name="game">The game.</param>
