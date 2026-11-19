@@ -132,16 +132,46 @@ public sealed record InstalledLaunchOptions(ValueList<string> Required)
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public ValueList<string> Added { get; init; }
 
+    /// <summary>
+    /// The options the player had already when the app first looked, which stay the player's: the app neither adds one the
+    /// player took out nor takes one back with the install.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public ValueList<string> Present { get; init; }
+
     /// <summary>Why the app refused the options the site gave, so it sets none; null when it accepted them.</summary>
     public LaunchOptionsRefusal? Refusal { get; init; }
 
-    /// <summary>What an install keeps of the options its project needs; null when there is nothing to keep.</summary>
+    /// <summary>What an install keeps of the options its project needs; null when it needs none.</summary>
     /// <param name="needed">The options the project needs, as the app checked them.</param>
-    /// <param name="added">The options the app added for the install this one takes the place of; none for a new install.</param>
-    public static InstalledLaunchOptions? From(CheckedLaunchOptions needed, ValueList<string> added) =>
-        needed.Options.Count == 0 && needed.Refusal is null && added.Count == 0
+    public static InstalledLaunchOptions? From(CheckedLaunchOptions needed) =>
+        needed.Options.Count == 0 && needed.Refusal is null
             ? null
-            : new InstalledLaunchOptions(needed.Options) { Added = added, Refusal = needed.Refusal };
+            : new InstalledLaunchOptions(needed.Options) { Refusal = needed.Refusal };
+
+    /// <summary>
+    /// The options with what the install this one takes the place of kept of them, as far as the project still needs them:
+    /// those the app added stay its to take back, and those the player had stay the player's.
+    /// </summary>
+    /// <param name="previous">What the install this one takes the place of kept; null when it kept nothing.</param>
+    public InstalledLaunchOptions Keeping(InstalledLaunchOptions? previous) => this with
+    {
+        Added = [.. (previous?.Added ?? []).Where(Required.Contains)],
+        Present = [.. (previous?.Present ?? []).Where(Required.Contains)],
+    };
+
+    /// <summary>Whether the app has seen the option among the player's own, as one it added or one the player had.</summary>
+    /// <param name="option">One of the options the project needs.</param>
+    public bool WasSeen(string option) => Added.Contains(option) || Present.Contains(option);
+
+    /// <summary>
+    /// The options the app added for an install that is gone and the install in its place does not keep, which the app takes
+    /// out of the player's own.
+    /// </summary>
+    /// <param name="removed">What the gone install kept; null when it kept nothing.</param>
+    /// <param name="kept">What the install in its place keeps; null when it keeps nothing or none takes its place.</param>
+    public static ValueList<string> TakenBack(InstalledLaunchOptions? removed, InstalledLaunchOptions? kept) =>
+        [.. (removed?.Added ?? []).Except(kept?.Added ?? [])];
 }
 
 /// <summary>An add-on an install went without, since its own check failed on the game.</summary>

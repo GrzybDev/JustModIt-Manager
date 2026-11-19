@@ -43,6 +43,12 @@ public sealed record JobResult(JobSnapshot Job, JobOutcome Outcome)
     /// <summary>The game folder was gone for good, so only the record and its backups were dropped.</summary>
     public bool Forgotten { get; init; }
 
+    /// <summary>
+    /// The launch options the app added for the removed install that the install in its place does not keep; the app takes
+    /// them out of the player's options in Steam, at once or once Steam's interface can be reached.
+    /// </summary>
+    public ValueList<string> RemovedLaunchOptions { get; init; }
+
     /// <summary>A job replacing an install, such as an update or repair, had already uninstalled it when it failed.</summary>
     public bool RemovedPrevious { get; init; }
 

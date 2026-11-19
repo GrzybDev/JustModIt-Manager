@@ -119,6 +119,14 @@ public interface IInstallEngine
     Task<InstallRecord?> AdoptMovedAsync(Guid recordId, InstalledGame game, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken);
 
+    /// <summary>Replaces what an install's record keeps of the launch options its project needs, changing nothing in the game.</summary>
+    /// <param name="recordId">The install's record id.</param>
+    /// <param name="launchOptions">The launch options the record keeps from now on.</param>
+    /// <param name="cancellationToken">Stops the change before it is written.</param>
+    /// <returns>The install's record as written; null when the install is gone.</returns>
+    /// <exception cref="InstallBlockedException">An interrupted operation on it has to be recovered first.</exception>
+    Task<InstallRecord?> SetLaunchOptionsAsync(Guid recordId, InstalledLaunchOptions launchOptions, CancellationToken cancellationToken);
+
     /// <summary>
     /// Forgets, without changing the game, an install whose folder is gone from its attached drive, but never one on a
     /// drive that is unplugged or does not answer in <see cref="LibraryAccess.TimeLimit"/>, which would strand its files.

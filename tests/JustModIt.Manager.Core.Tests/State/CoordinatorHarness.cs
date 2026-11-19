@@ -32,7 +32,7 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
         History = history ?? new InMemoryDocumentStore<AutomationHistory>(afterFirstLook ? AutomationHistory.Empty.WithBaseline(Now.AddDays(-1)) : null);
         Jobs = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings,
             new ReplacementMarkers(_markers.Path, Time, NullLogger<ReplacementMarkers>.Instance), Time, NullLogger<JobRunner>.Instance, policy);
-        Coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, RunningGames, Failures, History,
+        Coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, RunningGames, Failures, History, LaunchOptions,
             new StateCoordinatorOptions { TargetLanguage = language ?? TargetLanguage.None }, Time, NullLogger<StateCoordinator>.Instance,
             SteamUi);
     }
@@ -56,6 +56,8 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
     public InMemoryDocumentStore<FailedAttempts> Failures { get; } = new();
 
     public InMemoryDocumentStore<AutomationHistory> History { get; }
+
+    public InMemoryDocumentStore<LaunchOptionsRemovals> LaunchOptions { get; } = new();
 
     public JobRunner Jobs { get; }
 

@@ -27,6 +27,25 @@ public sealed class LaunchOptionsRecordTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task The_record_keeps_options_the_app_added_later_unless_the_install_is_gone_or_waits_for_recovery()
+    {
+        var package = _harness.Zip(new TestPackage().Entry("readme.txt", "Translated read me"));
+        var needed = new InstalledLaunchOptions(Options.Required);
+        var installed = (await _harness.Engine.InstallAsync(_harness.Request(package) with { LaunchOptions = needed }, null, Token)).Record;
+
+        (await _harness.Engine.SetLaunchOptionsAsync(installed.Id, Options, Token))!.LaunchOptions.Should().Be(Options);
+
+        (await _harness.Engine.LoadRecordsAsync(Token)).Should().ContainSingle().Which.LaunchOptions.Should().Be(Options);
+        var journal = Path.Join(_harness.InstallsDirectory, installed.Id.ToString("N"), "journal.jsonl");
+        await File.WriteAllTextAsync(journal, "", Token);
+        await _harness.Engine.Invoking(engine => engine.SetLaunchOptionsAsync(installed.Id, needed, Token)).Should()
+            .ThrowAsync<InstallBlockedException>();
+        File.Delete(journal);
+        await _harness.UninstallAsync(installed.Id);
+        (await _harness.Engine.SetLaunchOptionsAsync(installed.Id, Options, Token)).Should().BeNull();
+    }
+
+    [Fact]
     public async Task Launch_options_round_trip_and_a_record_without_them_stays_as_it_was()
     {
         var saved = await File.ReadAllBytesAsync(Path.Join(AppContext.BaseDirectory, "Installation", "Fixtures", "v1", "AppData", "installs",

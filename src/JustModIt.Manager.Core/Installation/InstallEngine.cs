@@ -113,6 +113,28 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         return EnqueueAsync(() => MoveBackupsCoreAsync(recordId, destination, progress, cancellationToken), cancellationToken);
     }
 
+    public Task<InstallRecord?> SetLaunchOptionsAsync(Guid recordId, InstalledLaunchOptions launchOptions, CancellationToken cancellationToken)
+    {
+        return EnqueueAsync<InstallRecord?>(async () =>
+        {
+            var folder = _store.FolderOf(recordId);
+            if (folder.HasJournal)
+            {
+                throw new InstallBlockedException([new RecoveryPendingIssue(recordId)]);
+            }
+
+            if ((await InstallRecordStore.LoadAsync(folder, cancellationToken).ConfigureAwait(false)).Record is not { } record)
+            {
+                return null;
+            }
+
+            var changed = record with { LaunchOptions = launchOptions };
+            _hook.Before(ChangeKind.Record);
+            await _store.SaveRecordAsync(changed, cancellationToken).ConfigureAwait(false);
+            return changed;
+        }, cancellationToken);
+    }
+
     // Only reads, so it need not wait for the operations queued before it, such as a long install of another game.
     public Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken) =>
         Task.Run<IReadOnlyList<InstallRecord>>(async () =>

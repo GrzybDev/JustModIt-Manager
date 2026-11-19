@@ -44,7 +44,10 @@ public sealed record SteamUiStatus
     /// <summary>What the hook could wrap; null while unknown.</summary>
     public SteamUiHooks? Hooks { get; init; }
 
-    /// <summary>The player's launch options as Steam has them, read for the games the app manages them for, by game.</summary>
+    /// <summary>
+    /// The player's launch options as Steam has them, by game, read for the games the app manages them for
+    /// (<see cref="State.AppState.LaunchOptionsGames"/>).
+    /// </summary>
     public ValueDictionary<GameKey, string> LaunchOptions { get; init; }
 
     /// <summary>The Steam game running now, which a new start of Steam would close; null when none runs.</summary>

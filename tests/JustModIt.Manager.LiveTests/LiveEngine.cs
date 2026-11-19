@@ -128,7 +128,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
     {
         _coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, _runningGames,
             Store("failures.json", FailedAttemptsFormat.Instance), Store("automation.json", AutomationHistoryFormat.Instance),
-            new StateCoordinatorOptions { TargetLanguage = LiveApp.Language }, _time, _loggers.CreateLogger<StateCoordinator>());
+            Store("launch-options.json", LaunchOptionsRemovalsFormat.Instance), new StateCoordinatorOptions { TargetLanguage = LiveApp.Language }, _time, _loggers.CreateLogger<StateCoordinator>());
         var refresh = new CatalogueRefreshLoop(Catalogue, _coordinator.IndexRequestForRefresh, _time,
             _loggers.CreateLogger<CatalogueRefreshLoop>());
         _loops.Add(_coordinator.RunAsync(_stop.Token));

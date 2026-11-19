@@ -148,6 +148,7 @@ public static class MyGamesComposer
             MissingOriginals = missingOriginals,
             Project = project,
             LastFailure = input.Failures.GetValueOrDefault(new FailureKey(key, record.Id)),
+            LaunchOptions = MyLaunchOptions.For(record, input.SteamUi),
         };
     }
 

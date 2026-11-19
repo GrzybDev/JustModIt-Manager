@@ -34,17 +34,19 @@ public sealed record StateCoordinatorOptions
 /// <param name="runningGames">Tells when a game that held a job back exits.</param>
 /// <param name="failureStore">Where failed jobs are kept across restarts.</param>
 /// <param name="historyStore">Where the automation's history is kept.</param>
+/// <param name="launchOptionsStore">Where the launch options the app still has to take out of Steam are kept.</param>
 /// <param name="options">The app's target language.</param>
 /// <param name="time">The clock for checks and retries.</param>
 /// <param name="logger">Logs background work that failed.</param>
 /// <param name="steamUi">The app's way into Steam's interface; null where the app has none.</param>
 public sealed partial class StateCoordinator(ILibraryService library, ICatalogue catalogue, ISettingsService settings,
     IInstallEngine engine, JobRunner jobs, IRunningGameDetector runningGames, IDocumentStore<FailedAttempts> failureStore,
-    IDocumentStore<AutomationHistory> historyStore, StateCoordinatorOptions options, TimeProvider time,
-    ILogger<StateCoordinator> logger, ISteamUi? steamUi = null) : IAsyncDisposable
+    IDocumentStore<AutomationHistory> historyStore, IDocumentStore<LaunchOptionsRemovals> launchOptionsStore,
+    StateCoordinatorOptions options, TimeProvider time, ILogger<StateCoordinator> logger, ISteamUi? steamUi = null) : IAsyncDisposable
 {
     private readonly LatestDocumentWriter<FailedAttempts> _failureWriter = new(failureStore, "list of failed jobs", logger);
     private readonly AutomationDriver _automation = new(jobs, settings, historyStore, time, logger);
+    private readonly LaunchOptionsReconciler _launchOptions = new(launchOptionsStore, logger);
     private readonly Channel<AutomationNotice> _notices = Channel.CreateUnbounded<AutomationNotice>(new UnboundedChannelOptions
     {
         SingleWriter = true,
@@ -151,6 +153,10 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     /// </summary>
     public void UninstallEverything() => Post(new UninstallsRequested());
 
+    /// <summary>Adds again the launch options an install's project needs that the player took out of Steam.</summary>
+    /// <param name="install">The install's record id.</param>
+    public void ReapplyLaunchOptions(Guid install) => Post(new LaunchOptionsReapplyRequested(install));
+
     /// <summary>Reads the local data, publishes the first state from it, then keeps the state up to date until cancelled.</summary>
     /// <param name="cancellationToken">Stops the loop.</param>
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -188,6 +194,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         _notices.Writer.TryComplete();
         await _failureWriter.DisposeAsync().ConfigureAwait(false);
         await _automation.DisposeAsync().ConfigureAwait(false);
+        await _launchOptions.DisposeAsync().ConfigureAwait(false);
     }
 
     private static TaskCompletionSource<AppState> NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -213,6 +220,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         _failures = (await failureStore.LoadAsync(cancellationToken).ConfigureAwait(false))?.Failures.ToImmutableDictionary()
             ?? ImmutableDictionary<FailureKey, FailedAttempt>.Empty;
         _automation.Load(await historyStore.LoadAsync(cancellationToken).ConfigureAwait(false));
+        _launchOptions.Load(await launchOptionsStore.LoadAsync(cancellationToken).ConfigureAwait(false));
     }
 
     private async Task<List<Trigger>> NextBatchAsync(CancellationToken cancellationToken)
@@ -258,6 +266,13 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                 break;
             case SteamUiChanged:
                 _steamUi = steamUi?.Status ?? SteamUiStatus.None;
+                _launchOptions.OnStatusChanged();
+                break;
+            case LaunchOptionsChanged changed:
+                ApplyLaunchOptions(changed);
+                break;
+            case LaunchOptionsReapplyRequested reapply:
+                _launchOptions.Reapply(reapply.Install);
                 break;
             case JobChanged changed:
                 if (!_activeJobs.TryGetValue(changed.Job.Game, out var known) || known.Id != changed.Job.Id
@@ -347,6 +362,9 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         if (result.RemovedRecord is { } removed)
         {
             AdviseStoreCheck(result, removed);
+            // The app may have added options since the job read the install's record.
+            _launchOptions.TakeBack(game, [.. result.RemovedLaunchOptions,
+                .. InstalledLaunchOptions.TakenBack(_records.GetValueOrDefault(removed)?.LaunchOptions, result.Installed?.LaunchOptions)]);
             _records.Remove(removed);
             _verifications.Forget(removed);
         }
@@ -419,13 +437,15 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         var game = Current.Find(gone.Game);
         foreach (var (record, outcome) in gone.Outcomes)
         {
-            if (outcome == ForgetOutcome.Kept || !_records.Remove(record.Id))
+            // The record as it is now, since the app may have added options for it while its folder was looked for.
+            if (outcome == ForgetOutcome.Kept || !_records.Remove(record.Id, out var current))
             {
                 continue;
             }
 
             _verifications.Forget(record.Id);
             _hasBackups.Remove(record.Id);
+            _launchOptions.TakeBack(gone.Game, InstalledLaunchOptions.TakenBack(current.LaunchOptions, null));
             // A hidden game is left alone; its leftover backups still show in the settings.
             if (!_current.GetGame(gone.Game).IsHidden)
             {
@@ -505,6 +525,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                 PendingBackupMoves = WaitingGames(_backupMoves.Keys, JobKind.MoveBackups),
                 PendingUninstalls = WaitingGames(_uninstalls, JobKind.Uninstall),
                 SteamUi = _steamUi,
+                LaunchOptionsGames = [.. _records.Values.Where(record => record.LaunchOptions is { Required.Count: > 0 } or { Added.Count: > 0 })
+                    .Select(record => record.Game).Concat(_launchOptions.Removals.Keys).Distinct()],
             };
             _state = state;
             next = _next;
@@ -523,6 +545,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
             _backupMoves.Remove);
         changed |= Automate();
         StartVerification();
+        ChangeLaunchOptions();
         CheckBackups();
         ForgetGoneInstalls();
         IndexNewGames();

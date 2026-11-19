@@ -58,6 +58,12 @@ public sealed record AppState
     /// <summary>What the app knows of its way into Steam's interface, for achievement texts and launch options.</summary>
     public SteamUiStatus SteamUi { get; init; } = SteamUiStatus.None;
 
+    /// <summary>
+    /// The games whose launch options the app manages: those with an install whose project needs some, and those where it
+    /// still has to take out what it added for an install that is gone; Steam's interface reports the player's options of these.
+    /// </summary>
+    public ValueList<GameKey> LaunchOptionsGames { get; init; }
+
     /// <summary>The game in the player's list; null when it is not there.</summary>
     /// <param name="game">The game's store and id.</param>
     public MyGame? Find(GameKey game) => Games.FirstOrDefault(candidate => candidate.Key == game);

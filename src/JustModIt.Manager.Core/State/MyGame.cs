@@ -104,6 +104,9 @@ public sealed record MyInstall
     /// <summary>The last job on the install failed; it stays until a job on it succeeds.</summary>
     public FailedAttempt? LastFailure { get; init; }
 
+    /// <summary>The launch options the installed project needs and whether Steam has them; null when it needs none.</summary>
+    public MyLaunchOptions? LaunchOptions { get; init; }
+
     /// <summary>The project's name as the catalogue has it now, else as the install's record keeps it.</summary>
     public string? ProjectName => Project?.Project.ProjectName ?? Record.Source?.ProjectName;
 

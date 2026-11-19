@@ -50,6 +50,9 @@ public sealed class AppDataLocations
     /// <summary>What the automation did and announced, which holds back its repeats.</summary>
     public string AutomationHistoryFile => Path.Combine(StateDirectory, "automation.json");
 
+    /// <summary>The launch options the app added for installs that are gone and still has to take out of Steam.</summary>
+    public string LaunchOptionsFile => Path.Combine(StateDirectory, "launch-options.json");
+
     /// <summary>The installs that replacements under way removed, which a start after a stop puts back.</summary>
     public string ReplacingDirectory => Path.Combine(StateDirectory, "replacing");
 

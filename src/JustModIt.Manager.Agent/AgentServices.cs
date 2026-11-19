@@ -101,6 +101,7 @@ public static class AgentServices
         AddStore(services, locations.LibrarySnapshotFile, LibrarySnapshotFormat.Instance);
         AddStore(services, locations.FailuresFile, FailedAttemptsFormat.Instance);
         AddStore(services, locations.AutomationHistoryFile, AutomationHistoryFormat.Instance);
+        AddStore(services, locations.LaunchOptionsFile, LaunchOptionsRemovalsFormat.Instance);
         services.AddSingleton<LibraryService>();
         services.AddSingleton<ILibraryService>(provider => provider.GetRequiredService<LibraryService>());
         services.AddSingleton<IGameProbe>(provider => provider.GetRequiredService<LibraryService>());

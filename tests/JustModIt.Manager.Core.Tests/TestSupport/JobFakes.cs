@@ -345,6 +345,12 @@ internal sealed class FakeInstallEngine : IInstallEngine
     /// <summary>Holds every move of backups until it completes.</summary>
     public TaskCompletionSource? MoveGate { get; set; }
 
+    /// <summary>Holds every look for a gone install's folder until it completes.</summary>
+    public TaskCompletionSource? ForgetGate { get; set; }
+
+    /// <summary>What writing the launch options into a record throws; null lets it through.</summary>
+    public Exception? LaunchOptionsFailure { get; set; }
+
     public int Verifications => Volatile.Read(ref _verifications);
 
     public InstallRecord Add(InstallRecord record)
@@ -469,15 +475,38 @@ internal sealed class FakeInstallEngine : IInstallEngine
         return Task.FromResult(adopted);
     }
 
-    public Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken)
+    public Task<InstallRecord?> SetLaunchOptionsAsync(Guid recordId, InstalledLaunchOptions launchOptions, CancellationToken cancellationToken)
+    {
+        Log("set launch options");
+        if (LaunchOptionsFailure is { } failure)
+        {
+            return Task.FromException<InstallRecord?>(failure);
+        }
+
+        if (!Records.TryGetValue(recordId, out var record))
+        {
+            return Task.FromResult<InstallRecord?>(null);
+        }
+
+        var changed = record with { LaunchOptions = launchOptions };
+        Records[recordId] = changed;
+        return Task.FromResult<InstallRecord?>(changed);
+    }
+
+    public async Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken)
     {
         Log("forget if gone");
+        if (ForgetGate is { } gate)
+        {
+            await gate.Task.WaitAsync(cancellationToken);
+        }
+
         if (Forgetting != ForgetOutcome.Kept)
         {
             Records.TryRemove(recordId, out _);
         }
 
-        return Task.FromResult(Forgetting);
+        return Forgetting;
     }
 
     public Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken)

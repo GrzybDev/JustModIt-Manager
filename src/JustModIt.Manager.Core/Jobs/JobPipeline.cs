@@ -112,7 +112,7 @@ internal sealed partial class JobPipeline(
         {
             var result = await WhenSafeAsync(job, detected, canDefer: false,
                 _ => engine.UninstallAsync(record.Id, replacedBy: null, job.InstallProgress, job.Token), job.Token).ConfigureAwait(false);
-            return job.Succeeded() with { KeptFiles = result.KeptFiles, RemovedRecord = record.Id };
+            return Removing(job.Succeeded() with { KeptFiles = result.KeptFiles }, record);
         }
         catch (InstallBlockedException blocked) when (blocked.Issues.All(issue => issue is GameFolderMissingIssue))
         {
@@ -122,7 +122,7 @@ internal sealed partial class JobPipeline(
             }
 
             LogForgotten(record.Game);
-            return job.Succeeded() with { Forgotten = true, RemovedRecord = record.Id };
+            return Removing(job.Succeeded() with { Forgotten = true }, record);
         }
     }
 
@@ -152,6 +152,8 @@ internal sealed partial class JobPipeline(
         // The add-ons of the project's own install count; another project's say nothing about this one's.
         var same = record.Source?.ProjectUuid == project.ProjectUuid;
         var package = await PrepareAsync(job, game, project, same ? record : null).ConfigureAwait(false);
+        // What the app added for the install and its replacement needs too stays the app's to take back, whichever project it is.
+        package = package with { LaunchOptions = package.LaunchOptions?.Keeping(record.LaunchOptions) };
         job.Enter(JobStage.Checking);
         var marker = new ReplacementMarker(record, job.Kind, job.Origin, project.ProjectUuid);
         var halted = false;
@@ -171,13 +173,12 @@ internal sealed partial class JobPipeline(
             {
                 var installed = await InstallPackageAsync(job, package.Parts, package.Source, package.LaunchOptions, isTest: false,
                     job.Token).ConfigureAwait(false);
-                return job.Succeeded() with
+                return Removing(job.Succeeded() with
                 {
                     Installed = installed.Record,
                     Warnings = installed.Warnings,
                     KeptFiles = removed.KeptFiles,
-                    RemovedRecord = record.Id,
-                };
+                }, record);
             }
             catch (Exception exception)
             {
@@ -186,15 +187,15 @@ internal sealed partial class JobPipeline(
                 LogReplacementFailed(record.Game, exception.GetType().Name);
                 (var restored, halted) = await TryRestoreAsync(job, record).ConfigureAwait(false);
                 var cancelled = exception is OperationCanceledException && job.Token.IsCancellationRequested;
-                return (cancelled ? job.Result(JobOutcome.Cancelled) : job.Result(JobOutcome.Failed, JobFailures.From(exception))) with
+                var ended = cancelled ? job.Result(JobOutcome.Cancelled) : job.Result(JobOutcome.Failed, JobFailures.From(exception));
+                return Removing(ended with
                 {
                     RemovedPrevious = true,
                     RestoredPrevious = restored is not null,
                     Installed = restored,
                     // The release put back takes over what the uninstall left, so only a lost one leaves files for the player.
                     KeptFiles = restored is null ? removed.KeptFiles : [],
-                    RemovedRecord = record.Id,
-                };
+                }, record);
             }
         }
         finally
@@ -217,13 +218,12 @@ internal sealed partial class JobPipeline(
             markers.Remove(marker.Previous.Id);
         }
 
-        return (restored is null ? job.Result(JobOutcome.Cancelled) : job.Succeeded()) with
+        return Removing((restored is null ? job.Result(JobOutcome.Cancelled) : job.Succeeded()) with
         {
             RemovedPrevious = true,
             RestoredPrevious = restored is not null,
             Installed = restored,
-            RemovedRecord = marker.Previous.Id,
-        };
+        }, marker.Previous);
     }
 
     private async Task<JobResult> MoveBackupsAsync(JobContext job, MoveBackupsJobRequest request)
@@ -389,8 +389,7 @@ internal sealed partial class JobPipeline(
                 HadVariantChoice = selection.IsLegacy && selection.Features.Count > 1,
                 CoverUrl = CoverOf(detail),
             };
-            // The options the project's own install added stay the app's to take back.
-            var launchOptions = InstalledLaunchOptions.From(selection.LaunchOptions, record?.LaunchOptions?.Added ?? []);
+            var launchOptions = InstalledLaunchOptions.From(selection.LaunchOptions);
             return new PreparedPackage([.. plan.Parts.Select((part, index) => new InstallPart(downloaded[index].Path)
             {
                 IsOptional = part.IsOptional,
@@ -580,6 +579,13 @@ internal sealed partial class JobPipeline(
             return (null, true);
         }
     }
+
+    // The install is gone, and the launch options the app added for it that the install in its place does not keep go too.
+    private static JobResult Removing(JobResult result, InstallRecord removed) => result with
+    {
+        RemovedRecord = removed.Id,
+        RemovedLaunchOptions = InstalledLaunchOptions.TakenBack(removed.LaunchOptions, result.Installed?.LaunchOptions),
+    };
 
     // A record from before installs had parts names its one package by the source's file.
     private static IReadOnlyList<InstalledPart> PartsOf(InstallRecord record) =>

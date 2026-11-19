@@ -47,6 +47,9 @@ internal class StubEngine : IInstallEngine
     public Task<InstallRecord?> AdoptMovedAsync(Guid recordId, InstalledGame game, IProgress<InstallProgress>? progress,
         CancellationToken cancellationToken) => throw new NotSupportedException();
 
+    public Task<InstallRecord?> SetLaunchOptionsAsync(Guid recordId, InstalledLaunchOptions launchOptions,
+        CancellationToken cancellationToken) => throw new NotSupportedException();
+
     public virtual Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 

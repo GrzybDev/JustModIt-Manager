@@ -26,15 +26,28 @@ public sealed class LaunchOptionsJobTests
     }
 
     [Fact]
-    public async Task An_update_needs_what_the_new_release_needs_and_keeps_what_the_app_added_for_the_project()
+    public async Task An_update_keeps_what_the_app_added_that_the_new_release_still_needs_and_takes_back_the_rest()
     {
         await using var jobs = await JobsHarness.CreateAsync();
-        var record = jobs.Engine.Add(jobs.Installed() with { LaunchOptions = AddedByTheApp });
-        jobs.Catalogue.Add(WithLaunchOptions(Page(release: Release(ReleaseTwo, 2, File(FileTwo))), "-windowed"));
+        var record = jobs.Engine.Add(jobs.Installed() with
+        {
+            LaunchOptions = new InstalledLaunchOptions(["-examplelog", "-oldflag"]) { Added = ["-examplelog", "-oldflag"] },
+        });
+        jobs.Catalogue.Add(WithLaunchOptions(Page(release: Release(ReleaseTwo, 2, File(FileTwo))), "-examplelog -windowed"));
 
         var result = await jobs.RunAsync(new UpdateJobRequest(record));
 
-        result.Installed!.LaunchOptions.Should().Be(new InstalledLaunchOptions(["-windowed"]) { Added = ["-examplelog"] });
+        result.Installed!.LaunchOptions.Should().Be(new InstalledLaunchOptions(["-examplelog", "-windowed"]) { Added = ["-examplelog"] });
+        result.RemovedLaunchOptions.Should().Equal("-oldflag");
+    }
+
+    [Fact]
+    public async Task An_uninstall_takes_back_what_the_app_added()
+    {
+        await using var jobs = await JobsHarness.CreateAsync();
+        var record = jobs.Engine.Add(jobs.Installed() with { LaunchOptions = AddedByTheApp });
+
+        (await jobs.RunAsync(new UninstallJobRequest(record))).RemovedLaunchOptions.Should().Equal("-examplelog");
     }
 
     [Fact]
@@ -49,19 +62,21 @@ public sealed class LaunchOptionsJobTests
 
         result.RestoredPrevious.Should().BeTrue();
         result.Installed!.LaunchOptions.Should().Be(AddedByTheApp);
+        result.RemovedLaunchOptions.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task Another_project_in_the_installs_place_takes_over_none_of_the_launch_options_the_app_added()
+    public async Task Another_project_in_the_installs_place_takes_over_the_launch_options_the_app_added_that_it_needs_too()
     {
         await using var jobs = await JobsHarness.CreateAsync(policy: new OneProjectPolicy());
         jobs.Engine.Add(jobs.Installed() with { LaunchOptions = AddedByTheApp });
-        jobs.Catalogue.Add(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"));
+        jobs.Catalogue.Add(WithLaunchOptions(Page(OtherProject, Release(ReleaseTwo, 1, File(FileTwo)), teamSlug: "paper-team"), "-examplelog"));
 
         var result = await jobs.RunAsync(new InstallJobRequest(Game, "Example Game", Locator(OtherProject, "paper-team")));
 
         result.RemovedRecord.Should().NotBeNull();
-        result.Installed!.LaunchOptions.Should().BeNull();
+        result.Installed!.LaunchOptions.Should().Be(AddedByTheApp);
+        result.RemovedLaunchOptions.Should().BeEmpty();
     }
 
     private static ProjectPage WithLaunchOptions(ProjectPage page, string options) =>
