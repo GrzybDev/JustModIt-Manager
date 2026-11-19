@@ -22,6 +22,11 @@ public readonly record struct Announcement(GameKey Game, Guid Release);
 /// <param name="Build">The game's build that broke the install; null when its store names none.</param>
 public readonly record struct RepairAnnouncement(Guid Install, string? Build);
 
+/// <summary>Achievement texts that came on for a game and that the player was told of.</summary>
+/// <param name="Game">The game.</param>
+/// <param name="Project">The project whose texts came on; another project's are news again.</param>
+public readonly record struct AchievementTextsAnnouncement(GameKey Game, Guid Project);
+
 /// <summary>
 /// What the automation already did, so it never loops and tells each failure, release and needed repair once.
 /// </summary>
@@ -38,37 +43,42 @@ public sealed class AutomationHistory
     private readonly ImmutableDictionary<AttemptKey, AttemptEntry> _attempts;
     private readonly ImmutableHashSet<Announcement> _announcements;
     private readonly ImmutableHashSet<RepairAnnouncement> _repairAnnouncements;
+    private readonly ImmutableHashSet<AchievementTextsAnnouncement> _achievementTexts;
 
     /// <summary>Creates a history as it was saved; every change then returns a new one.</summary>
     /// <param name="attempts">The last try of each action on a release.</param>
     /// <param name="announcements">The releases announced for each game.</param>
     /// <param name="repairAnnouncements">The repairs the player was told of.</param>
+    /// <param name="achievementTexts">The achievement texts the player was told came on.</param>
     /// <param name="baselineAt">When the automation first looked after the first-run setup; null before it did.</param>
     public AutomationHistory(IEnumerable<KeyValuePair<AttemptKey, AttemptEntry>> attempts, IEnumerable<Announcement> announcements,
-        IEnumerable<RepairAnnouncement> repairAnnouncements, DateTimeOffset? baselineAt)
+        IEnumerable<RepairAnnouncement> repairAnnouncements, IEnumerable<AchievementTextsAnnouncement> achievementTexts,
+        DateTimeOffset? baselineAt)
+        : this(attempts.ToImmutableDictionary(), announcements.ToImmutableHashSet(), repairAnnouncements.ToImmutableHashSet(),
+            achievementTexts.ToImmutableHashSet(), baselineAt)
     {
-        _attempts = attempts.ToImmutableDictionary();
-        _announcements = [.. announcements];
-        _repairAnnouncements = [.. repairAnnouncements];
-        BaselineAt = baselineAt;
     }
 
     private AutomationHistory(ImmutableDictionary<AttemptKey, AttemptEntry> attempts, ImmutableHashSet<Announcement> announcements,
-        ImmutableHashSet<RepairAnnouncement> repairAnnouncements, DateTimeOffset? baselineAt)
+        ImmutableHashSet<RepairAnnouncement> repairAnnouncements, ImmutableHashSet<AchievementTextsAnnouncement> achievementTexts,
+        DateTimeOffset? baselineAt)
     {
         _attempts = attempts;
         _announcements = announcements;
         _repairAnnouncements = repairAnnouncements;
+        _achievementTexts = achievementTexts;
         BaselineAt = baselineAt;
     }
 
-    public static AutomationHistory Empty { get; } = new([], [], [], null);
+    public static AutomationHistory Empty { get; } = new([], [], [], [], null);
 
     public IReadOnlyDictionary<AttemptKey, AttemptEntry> Attempts => _attempts;
 
     public IReadOnlySet<Announcement> Announcements => _announcements;
 
     public IReadOnlySet<RepairAnnouncement> RepairAnnouncements => _repairAnnouncements;
+
+    public IReadOnlySet<AchievementTextsAnnouncement> AchievementTexts => _achievementTexts;
 
     /// <summary>
     /// When the automation first looked at the player's games after the first-run setup, announcing everything on offer
@@ -158,7 +168,9 @@ public sealed class AutomationHistory
     public AutomationHistory RecordAnnouncement(GameKey game, Guid release)
     {
         var announcements = _announcements.Add(new Announcement(game, release));
-        return announcements == _announcements ? this : new AutomationHistory(_attempts, announcements, _repairAnnouncements, BaselineAt);
+        return announcements == _announcements
+            ? this
+            : new AutomationHistory(_attempts, announcements, _repairAnnouncements, _achievementTexts, BaselineAt);
     }
 
     /// <summary>Whether the player was told that the install needs a repair on this build.</summary>
@@ -172,6 +184,23 @@ public sealed class AutomationHistory
     public AutomationHistory RecordRepairAnnouncement(Guid install, string? build) =>
         WithRepairs(_repairAnnouncements.Add(new RepairAnnouncement(install, build)));
 
+    /// <summary>Whether the player was told that the project's achievement texts came on for the game.</summary>
+    /// <param name="game">The game.</param>
+    /// <param name="project">The project whose texts they are.</param>
+    public bool WasAchievementTextsAnnounced(GameKey game, Guid project) =>
+        _achievementTexts.Contains(new AchievementTextsAnnouncement(game, project));
+
+    /// <summary>Records that the player was told, or needs no telling, that the project's achievement texts came on for the game.</summary>
+    /// <param name="game">The game.</param>
+    /// <param name="project">The project whose texts they are.</param>
+    public AutomationHistory RecordAchievementTexts(GameKey game, Guid project)
+    {
+        var achievementTexts = _achievementTexts.Add(new AchievementTextsAnnouncement(game, project));
+        return achievementTexts == _achievementTexts
+            ? this
+            : new AutomationHistory(_attempts, _announcements, _repairAnnouncements, achievementTexts, BaselineAt);
+    }
+
     /// <summary>Drops what was announced of installs that are gone, which nothing can ask about again.</summary>
     /// <param name="installs">The record ids of the installs that exist.</param>
     public AutomationHistory KeepRepairAnnouncementsOf(IReadOnlySet<Guid> installs)
@@ -182,7 +211,7 @@ public sealed class AutomationHistory
 
     /// <summary>The history with the time of the first look after the first-run setup.</summary>
     /// <param name="at">When that look ran.</param>
-    public AutomationHistory WithBaseline(DateTimeOffset at) => new(_attempts, _announcements, _repairAnnouncements, at);
+    public AutomationHistory WithBaseline(DateTimeOffset at) => new(_attempts, _announcements, _repairAnnouncements, _achievementTexts, at);
 
     /// <summary>
     /// Drops attempts too old to hold anything back, and restarts the wait of attempts dated ahead by a wrong clock.
@@ -194,8 +223,10 @@ public sealed class AutomationHistory
             .ToImmutableDictionary(pair => pair.Key, pair => pair.Value.At - now > ClockSkewTolerance ? pair.Value with { At = now } : pair.Value));
 
     private AutomationHistory With(ImmutableDictionary<AttemptKey, AttemptEntry> attempts) =>
-        attempts == _attempts ? this : new AutomationHistory(attempts, _announcements, _repairAnnouncements, BaselineAt);
+        attempts == _attempts ? this : new AutomationHistory(attempts, _announcements, _repairAnnouncements, _achievementTexts, BaselineAt);
 
     private AutomationHistory WithRepairs(ImmutableHashSet<RepairAnnouncement> repairAnnouncements) =>
-        repairAnnouncements == _repairAnnouncements ? this : new AutomationHistory(_attempts, _announcements, repairAnnouncements, BaselineAt);
+        repairAnnouncements == _repairAnnouncements
+            ? this
+            : new AutomationHistory(_attempts, _announcements, repairAnnouncements, _achievementTexts, BaselineAt);
 }

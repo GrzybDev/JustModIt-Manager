@@ -85,6 +85,7 @@ public sealed class AutomationHistoryTests : IDisposable
             .RecordAnnouncement(OtherGame, ReleaseOne)
             .RecordRepairAnnouncement(Guid.NewGuid(), "100")
             .RecordRepairAnnouncement(Guid.NewGuid(), null)
+            .RecordAchievementTexts(Game, Project)
             .WithBaseline(Now.AddDays(-3));
 
         await Store().SaveAsync(history, TestContext.Current.CancellationToken);
@@ -93,6 +94,7 @@ public sealed class AutomationHistoryTests : IDisposable
         loaded.Attempts.Should().BeEquivalentTo(history.Attempts);
         loaded.Announcements.Should().BeEquivalentTo(history.Announcements);
         loaded.RepairAnnouncements.Should().BeEquivalentTo(history.RepairAnnouncements);
+        loaded.AchievementTexts.Should().Equal(new AchievementTextsAnnouncement(Game, Project));
         loaded.BaselineAt.Should().Be(Now.AddDays(-3));
     }
 

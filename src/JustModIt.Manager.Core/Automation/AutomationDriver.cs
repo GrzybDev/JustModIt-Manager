@@ -9,7 +9,7 @@ namespace JustModIt.Manager.Core.Automation;
 
 /// <summary>The jobs an evaluation started and what it has to tell the player.</summary>
 /// <param name="Started">The automatic jobs now running.</param>
-/// <param name="Notices">What to tell the player, at most one notice per evaluation.</param>
+/// <param name="Notices">What to tell the player: at most one notice about projects and one about achievement texts.</param>
 internal sealed record AutomationStep(IReadOnlyList<JobHandle> Started, IReadOnlyList<AutomationNotice> Notices);
 
 /// <summary>
@@ -118,6 +118,11 @@ internal sealed class AutomationDriver : IAsyncDisposable
         else if (announced.Count > 1)
         {
             notices.Add(Summary(announced));
+        }
+
+        if (AnnounceAchievementTexts(games) is { } texts)
+        {
+            notices.Add(texts);
         }
 
         SaveIfChanged(before);
@@ -277,6 +282,26 @@ internal sealed class AutomationDriver : IAsyncDisposable
         {
             _settings.Update(settings => settings.WithGame(key, preferences => preferences with { ProjectId = source.ProjectUuid }));
         }
+    }
+
+    // The texts change no game file, so they come on without a job; the player hears once of those that came on by themselves,
+    // and not of those the player switched on.
+    private AutomationNotice? AnnounceAchievementTexts(IReadOnlyList<MyGame> games)
+    {
+        List<MyGame> on = [.. games.Where(game => !game.IsHidden
+            && game.AchievementTexts is { ReachesSteam: true } texts
+            && !History.WasAchievementTextsAnnounced(game.Key, texts.Project))];
+        History = on.Aggregate(History, (history, game) => history.RecordAchievementTexts(game.Key, game.AchievementTexts!.Project));
+        List<MyGame> news = [.. on.Where(game => game.Preferences.AchievementTexts is null)];
+        return news.Count == 0 ? null : new AutomationNotice(NoticeKind.AchievementTexts)
+        {
+            Game = news.Count == 1 ? news[0].Key : null,
+            GameName = news.Count == 1 ? news[0].Name : null,
+            Games = [.. news.Select(game => game.Key)],
+            GameNames = [.. news.Select(game => game.Name)],
+            SteamRestartNeeded = news.Exists(game =>
+                game.AchievementTexts!.State is AchievementTextsState.WaitingForSteamRestart or AchievementTextsState.RestartBlocked),
+        };
     }
 
     private static AutomationNotice Notice(NoticeKind kind, Attempt attempt) =>

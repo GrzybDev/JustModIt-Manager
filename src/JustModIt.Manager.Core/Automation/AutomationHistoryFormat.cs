@@ -12,6 +12,7 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
     private const string AttemptsProperty = "attempts";
     private const string AnnouncementsProperty = "announcements";
     private const string RepairAnnouncementsProperty = "repairAnnouncements";
+    private const string AchievementTextsProperty = "achievementTexts";
     private const string BaselineProperty = "baselineAt";
 
     public static AutomationHistoryFormat Instance { get; } = new();
@@ -19,13 +20,15 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
     public int CurrentVersion => 1;
 
     public IReadOnlySet<string> KnownProperties { get; } =
-        FrozenSet.Create(StringComparer.Ordinal, AttemptsProperty, AnnouncementsProperty, RepairAnnouncementsProperty, BaselineProperty);
+        FrozenSet.Create(StringComparer.Ordinal, AttemptsProperty, AnnouncementsProperty, RepairAnnouncementsProperty, AchievementTextsProperty,
+            BaselineProperty);
 
     public AutomationHistory Read(JsonElement root, int version) => new(
         [.. root.GetItems(AttemptsProperty).Select(ReadAttempt).OfType<KeyValuePair<AttemptKey, AttemptEntry>>()
             .DistinctBy(attempt => attempt.Key)],
         root.GetItems(AnnouncementsProperty).Select(ReadAnnouncement).OfType<Announcement>(),
         root.GetItems(RepairAnnouncementsProperty).Select(ReadRepairAnnouncement).OfType<RepairAnnouncement>(),
+        root.GetItems(AchievementTextsProperty).Select(ReadAchievementTexts).OfType<AchievementTextsAnnouncement>(),
         root.GetDateTimeOffsetOrNull(BaselineProperty));
 
     public void Write(Utf8JsonWriter writer, AutomationHistory document)
@@ -69,6 +72,17 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
         }
 
         writer.WriteEndArray();
+        writer.WriteStartArray(AchievementTextsProperty);
+        foreach (var announcement in document.AchievementTexts.OrderBy(item => item.Game.ToString(), StringComparer.Ordinal)
+            .ThenBy(item => item.Project))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("game", announcement.Game.ToString());
+            writer.WriteString("project", announcement.Project.ToString("D"));
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
     }
 
     private static KeyValuePair<AttemptKey, AttemptEntry>? ReadAttempt(JsonElement attempt) =>
@@ -85,6 +99,11 @@ public sealed class AutomationHistoryFormat : IJsonDocumentFormat<AutomationHist
     private static Announcement? ReadAnnouncement(JsonElement announcement) =>
         GameKey.TryParse(announcement.GetTextOrNull("game"), out var game) && announcement.GetGuidOrNull("release") is { } release
             ? new Announcement(game, release)
+            : null;
+
+    private static AchievementTextsAnnouncement? ReadAchievementTexts(JsonElement announcement) =>
+        GameKey.TryParse(announcement.GetTextOrNull("game"), out var game) && announcement.GetGuidOrNull("project") is { } project
+            ? new AchievementTextsAnnouncement(game, project)
             : null;
 
     private static RepairAnnouncement? ReadRepairAnnouncement(JsonElement announcement) =>

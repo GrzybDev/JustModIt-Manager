@@ -1,3 +1,4 @@
+using System.Globalization;
 using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
@@ -5,6 +6,7 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Core.Tests.Jobs;
 using JustModIt.Manager.Core.Tests.State;
 using JustModIt.Manager.Core.Tests.TestSupport;
@@ -110,6 +112,36 @@ public sealed class AutomationScenarioTests
         }
 
         await using var second = new CoordinatorHarness(AnnounceOnly, history: history).WithGameAndProject();
+        await second.StartAsync();
+        await Eventually.SettleAsync();
+
+        second.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Tells_once_and_in_one_notice_of_the_achievement_texts_that_came_on_by_themselves()
+    {
+        var hidden = new GameKey(StoreId.Steam, "3000");
+        var chosen = new GameKey(StoreId.Steam, "4000");
+        var settings = AnnounceOnly.WithGame(hidden, preferences => preferences with { IsHidden = true })
+            .WithGame(chosen, preferences => preferences with { AchievementTexts = true });
+        InMemoryDocumentStore<AutomationHistory> history;
+        await using (var first = WithAchievementTexts(new CoordinatorHarness(settings, afterFirstLook: true), Game, OtherGame, hidden, chosen))
+        {
+            history = first.History;
+            await first.StartAsync();
+
+            (await first.NoticeAsync()).Should().BeEquivalentTo(new
+            {
+                Kind = NoticeKind.AchievementTexts,
+                Game = (GameKey?)null,
+                Games = new[] { Game, OtherGame },
+                GameNames = new[] { "Example Game " + Game.StoreGameId, "Example Game " + OtherGame.StoreGameId },
+                SteamRestartNeeded = true,
+            });
+        }
+
+        await using var second = WithAchievementTexts(new CoordinatorHarness(settings, history: history), Game, OtherGame, hidden, chosen);
         await second.StartAsync();
         await Eventually.SettleAsync();
 
@@ -526,5 +558,17 @@ public sealed class AutomationScenarioTests
         await Eventually.SettleAsync();
         app.Engine.Installs.Should().HaveCount(2, "the lost release is not installed again at once");
         app.Coordinator.Notices.TryRead(out _).Should().BeFalse();
+    }
+
+    // A project per game, since the index keeps one entry per project.
+    private static CoordinatorHarness WithAchievementTexts(CoordinatorHarness app, params GameKey[] games)
+    {
+        app.Library.Publish([.. games.Select(game => Installed(game))]);
+        app.Catalogue.Publish(CatalogueState.Fresh, [.. games.Select(game => Entry(LinkOf(game), game: game) with
+        {
+            Achievements = [new ProjectAchievements { SteamAppId = long.Parse(game.StoreGameId, CultureInfo.InvariantCulture), Total = 5 }],
+        })]);
+        app.SteamUi.Publish(new SteamUiStatus { Delivery = SteamUiDelivery.Classic, RestartNeeded = true });
+        return app;
     }
 }

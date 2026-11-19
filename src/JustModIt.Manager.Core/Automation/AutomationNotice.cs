@@ -51,6 +51,12 @@ public enum NoticeKind
     /// so the store's check of the game's files is advised; see <see cref="AutomationNotice.Kept"/>.
     /// </summary>
     StoreCheckAdvised,
+
+    /// <summary>
+    /// Achievement texts came on by themselves for the <see cref="AutomationNotice.Games"/>; see
+    /// <see cref="AutomationNotice.SteamRestartNeeded"/>.
+    /// </summary>
+    AchievementTexts,
 }
 
 /// <summary>Something the automation did or found, for the app to tell the player in its own words.</summary>
@@ -88,8 +94,14 @@ public sealed record AutomationNotice(NoticeKind Kind)
     /// <summary>Why the uninstall left files as they were, the most pressing reason when there are several.</summary>
     public KeptReason? Kept { get; init; }
 
+    /// <summary>Steam shows the achievement texts only once it starts again.</summary>
+    public bool SteamRestartNeeded { get; init; }
+
     /// <summary>The games a summary is about.</summary>
     public ValueList<GameKey> Games { get; init; }
+
+    /// <summary>The names of <see cref="Games"/> in their order, for a notice that names them; empty for any other.</summary>
+    public ValueList<string> GameNames { get; init; }
 
     /// <summary>Those of <see cref="Games"/> with an update.</summary>
     public ValueList<GameKey> Updates { get; init; }
