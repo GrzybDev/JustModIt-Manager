@@ -19,4 +19,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\JustModIt.Manager.Host\JustModIt.Manager.Host.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\RepositoryFiles.cs" Link="Shared\RepositoryFiles.cs" />
+  </ItemGroup>
 </Project>

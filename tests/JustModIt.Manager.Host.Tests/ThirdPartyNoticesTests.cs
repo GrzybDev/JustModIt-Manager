@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using JustModIt.Manager.Host.Tests.TestSupport;
+using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.Host.Tests;
 

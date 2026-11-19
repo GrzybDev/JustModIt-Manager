@@ -1,4 +1,4 @@
-namespace JustModIt.Manager.Host.Tests.TestSupport;
+namespace JustModIt.Manager.Tests;
 
 internal static class RepositoryFiles
 {

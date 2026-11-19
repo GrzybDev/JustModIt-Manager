@@ -15,4 +15,17 @@
     <ProjectReference Include="..\JustModIt.Manager.Protocol\JustModIt.Manager.Protocol.csproj" />
     <ProjectReference Include="..\JustModIt.Manager.Localization\JustModIt.Manager.Localization.csproj" />
   </ItemGroup>
+
+  <!-- The scripts the agent runs in Steam's interface and the Millennium plugin it installs, which the agent fills in with
+       the app's names; embedded, so they ship inside the signed executable. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\steam\achievement-texts.js" LogicalName="JustModIt.Manager.Agent.Steam.achievement-texts.js"
+                      WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="..\..\steam\launch-options.js" LogicalName="JustModIt.Manager.Agent.Steam.launch-options.js"
+                      WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="..\..\steam\millennium\frontend.js" LogicalName="JustModIt.Manager.Agent.Steam.millennium.frontend.js"
+                      WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="..\..\steam\millennium\backend\main.lua"
+                      LogicalName="JustModIt.Manager.Agent.Steam.millennium.backend.main.lua" WithCulture="false" Visible="false" />
+  </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-using JustModIt.Manager.Host.Tests.TestSupport;
+using JustModIt.Manager.Tests;
 using JustModIt.Manager.Ui;
 
 namespace JustModIt.Manager.Host.Tests;

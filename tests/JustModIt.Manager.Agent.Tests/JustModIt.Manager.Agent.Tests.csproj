@@ -6,4 +6,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\JustModIt.Manager.Agent\JustModIt.Manager.Agent.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\RepositoryFiles.cs" Link="Shared\RepositoryFiles.cs" />
+  </ItemGroup>
 </Project>
