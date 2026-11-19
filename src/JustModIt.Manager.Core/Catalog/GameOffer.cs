@@ -42,12 +42,26 @@ public sealed record GameOffer(GameKey Game, IReadOnlyList<ProjectOffer> Project
     /// <param name="preferredProject">The project the player chose for the game; null when none.</param>
     /// <param name="preferredTeams">The teams the player prefers, the most preferred first.</param>
     /// <returns>Null while several teams offer one and none is chosen or preferred, which the automation must not decide.</returns>
-    public ProjectOffer? Choose(Guid? preferredProject, IReadOnlyList<Guid> preferredTeams)
+    public ProjectOffer? Choose(Guid? preferredProject, IReadOnlyList<Guid> preferredTeams) =>
+        Choose(Projects, offer => offer.Project, preferredProject, preferredTeams);
+
+    /// <summary>
+    /// The project a game takes among several: the chosen one, otherwise the only one, otherwise the one of the most
+    /// preferred team.
+    /// </summary>
+    /// <param name="projects">The projects to choose from.</param>
+    /// <param name="entryOf">The index's entry of each.</param>
+    /// <param name="preferredProject">The project the player chose for the game; null when none.</param>
+    /// <param name="preferredTeams">The teams the player prefers, the most preferred first.</param>
+    /// <returns>Null while several teams have one and none is chosen or preferred.</returns>
+    internal static T? Choose<T>(IReadOnlyList<T> projects, Func<T, IndexEntry> entryOf, Guid? preferredProject,
+        IReadOnlyList<Guid> preferredTeams)
+        where T : class
     {
-        return Projects.FirstOrDefault(offer => offer.Project.ProjectUuid == preferredProject)
-            ?? (Projects.Count == 1 ? Projects[0] : null)
-            ?? preferredTeams.Select(team => Projects.FirstOrDefault(offer => offer.Project.Team.Uuid == team))
-                .FirstOrDefault(offer => offer is not null);
+        return projects.FirstOrDefault(project => entryOf(project).ProjectUuid == preferredProject)
+            ?? (projects.Count == 1 ? projects[0] : null)
+            ?? preferredTeams.Select(team => projects.FirstOrDefault(project => entryOf(project).Team.Uuid == team))
+                .FirstOrDefault(project => project is not null);
     }
 
     /// <summary>What the index offers the game.</summary>

@@ -10,6 +10,7 @@ using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.Steam;
 using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Core.State;
@@ -36,10 +37,11 @@ public sealed record StateCoordinatorOptions
 /// <param name="options">The app's target language.</param>
 /// <param name="time">The clock for checks and retries.</param>
 /// <param name="logger">Logs background work that failed.</param>
+/// <param name="steamUi">The app's way into Steam's interface; null where the app has none.</param>
 public sealed partial class StateCoordinator(ILibraryService library, ICatalogue catalogue, ISettingsService settings,
     IInstallEngine engine, JobRunner jobs, IRunningGameDetector runningGames, IDocumentStore<FailedAttempts> failureStore,
     IDocumentStore<AutomationHistory> historyStore, StateCoordinatorOptions options, TimeProvider time,
-    ILogger<StateCoordinator> logger) : IAsyncDisposable
+    ILogger<StateCoordinator> logger, ISteamUi? steamUi = null) : IAsyncDisposable
 {
     private readonly LatestDocumentWriter<FailedAttempts> _failureWriter = new(failureStore, "list of failed jobs", logger);
     private readonly AutomationDriver _automation = new(jobs, settings, historyStore, time, logger);
@@ -64,6 +66,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     private LibrarySnapshot _snapshot = LibrarySnapshot.Empty;
     private CatalogueSnapshot _catalogueSnapshot = CatalogueSnapshot.Empty;
     private AppSettings _current = AppSettings.Default;
+    private SteamUiStatus _steamUi = SteamUiStatus.None;
     private ImmutableHashSet<Guid> _unavailableBackups = [];
     private ImmutableHashSet<Guid> _deletedBackups = [];
     private ImmutableDictionary<FailureKey, FailedAttempt> _failures = ImmutableDictionary<FailureKey, FailedAttempt>.Empty;
@@ -198,6 +201,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     {
         _current = settings.Current;
         _snapshot = library.Snapshot;
+        _steamUi = steamUi?.Status ?? SteamUiStatus.None;
         _catalogueSnapshot = await catalogue.LoadCachedAsync(cancellationToken).ConfigureAwait(false);
         // The records are trusted only once what a crash interrupted has been finished or undone.
         _recoveries = await jobs.RecoverAsync(cancellationToken).ConfigureAwait(false);
@@ -251,6 +255,9 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
             // be newer than a report still queued.
             case SettingsChanged:
                 _current = settings.Current;
+                break;
+            case SteamUiChanged:
+                _steamUi = steamUi?.Status ?? SteamUiStatus.None;
                 break;
             case JobChanged changed:
                 if (!_activeJobs.TryGetValue(changed.Job.Game, out var known) || known.Id != changed.Job.Id
@@ -459,6 +466,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
             MissingOriginals = _verifications.MissingOriginals(),
             Failures = _failures,
             Running = _running.ToImmutableDictionary(),
+            SteamUi = _steamUi,
         });
 
         // A failure of an install that is gone, or of a game that left the list, has no card left to show it on. Until a
@@ -496,6 +504,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
                 PendingRecoveries = [.. _recoveries.Where(operation => operation.Outcome is RecoveryOutcome.Failed or RecoveryOutcome.Unavailable)],
                 PendingBackupMoves = WaitingGames(_backupMoves.Keys, JobKind.MoveBackups),
                 PendingUninstalls = WaitingGames(_uninstalls, JobKind.Uninstall),
+                SteamUi = _steamUi,
             };
             _state = state;
             next = _next;
@@ -857,6 +866,10 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         settings.Changed += OnSettingsChanged;
         jobs.Changed += OnJobChanged;
         jobs.Finished += OnJobFinished;
+        if (steamUi is not null)
+        {
+            steamUi.Changed += OnSteamUiChanged;
+        }
     }
 
     private void Unsubscribe()
@@ -866,6 +879,10 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
         settings.Changed -= OnSettingsChanged;
         jobs.Changed -= OnJobChanged;
         jobs.Finished -= OnJobFinished;
+        if (steamUi is not null)
+        {
+            steamUi.Changed -= OnSteamUiChanged;
+        }
     }
 
     private void OnLibraryChanged(object? sender, LibrarySnapshot snapshot) => Post(new LibraryChanged(snapshot));
@@ -877,6 +894,9 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     private void OnJobChanged(object? sender, JobSnapshot job) => Post(new JobChanged(job));
 
     private void OnJobFinished(object? sender, JobResult result) => Post(new JobFinished(result));
+
+    // The newest status is read when the change is applied, so changes reported out of order still end with the newest.
+    private void OnSteamUiChanged(object? sender, SteamUiStatus status) => Post(new SteamUiChanged());
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Install {RecordId} could not be checked: {Error}")]
     private partial void LogVerificationFailed(Guid recordId, string error);
@@ -900,6 +920,8 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
     private sealed record CatalogueChanged(CatalogueSnapshot Snapshot) : Trigger;
 
     private sealed record SettingsChanged : Trigger;
+
+    private sealed record SteamUiChanged : Trigger;
 
     private sealed record JobChanged(JobSnapshot Job) : Trigger;
 

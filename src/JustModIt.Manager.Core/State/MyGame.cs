@@ -54,6 +54,9 @@ public sealed record MyGame
     /// <summary>What runs from the game's folder, when the app happens to know; empty otherwise.</summary>
     public ValueList<string> RunningProcesses { get; init; }
 
+    /// <summary>The achievement texts Steam takes for the game; null when it is no Steam game or no project's texts apply.</summary>
+    public MyAchievementTexts? AchievementTexts { get; init; }
+
     public bool IsHidden => Preferences.IsHidden;
 
     public bool IsAdult => Offers.Any(offer => offer.Project.Game.IsAdult);

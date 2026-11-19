@@ -8,6 +8,7 @@ using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.Steam;
 
 namespace JustModIt.Manager.Core.State;
 
@@ -43,11 +44,15 @@ public sealed record MyGamesInput
     /// <summary>Games known to run right now, with what runs from their folders.</summary>
     public IReadOnlyDictionary<GameKey, ValueList<RunningProcess>> Running { get; init; } =
         ImmutableDictionary<GameKey, ValueList<RunningProcess>>.Empty;
+
+    /// <summary>What the app knows of its way into Steam's interface.</summary>
+    public SteamUiStatus SteamUi { get; init; } = SteamUiStatus.None;
 }
 
 /// <summary>
-/// Makes the player's list: the detected games with a project on offer plus every game with an install, so an install
-/// keeps its updates and can be removed even offline or after its game is gone; the rest of the catalogue is only browsed.
+/// Makes the player's list: the detected games with a project on offer or achievement texts, plus every game with an
+/// install, so an install keeps its updates and can be removed even offline or after its game is gone; the rest of the
+/// catalogue is only browsed.
 /// </summary>
 public static class MyGamesComposer
 {
@@ -62,19 +67,21 @@ public static class MyGamesComposer
             var game = input.Library.Find(key);
             var offer = Planned(GameOffer.For(input.Index, key, game?.Platform ?? OperatingSystemKind.Unknown, input.Language),
                 input.Settings.GetGame(key), game);
-            var records = recordsByGame.GetValueOrDefault(key) ?? [];
-            if (records.Count == 0 && offer.Projects.Count == 0)
+            var records = InOrder(recordsByGame.GetValueOrDefault(key) ?? [], game);
+            var texts = AchievementTextsRules.For(input, key, records);
+            if (records.Count == 0 && offer.Projects.Count == 0 && texts is null)
             {
                 continue;
             }
 
-            games.Add(Compose(input, key, game, offer, records));
+            games.Add(Compose(input, key, game, offer, records, texts));
         }
 
         return [.. games.OrderBy(game => game.Name, StringComparer.OrdinalIgnoreCase).ThenBy(game => game.Key.ToString(), StringComparer.Ordinal)];
     }
 
-    private static MyGame Compose(MyGamesInput input, GameKey key, InstalledGame? game, GameOffer offer, List<InstallRecord> records)
+    private static MyGame Compose(MyGamesInput input, GameKey key, InstalledGame? game, GameOffer offer, List<InstallRecord> records,
+        MyAchievementTexts? texts)
     {
         var preferences = input.Settings.GetGame(key);
         var running = input.Running.TryGetValue(key, out var processes) && processes.Count > 0 ? processes : [];
@@ -82,10 +89,7 @@ public static class MyGamesComposer
             ? game with { State = GameInstallState.Running, Reason = GameStateReason.GameRunning }
             : game;
         var job = input.Jobs.GetValueOrDefault(key);
-        List<MyInstall> installs = [.. records
-            .OrderByDescending(record => game is not null && PathComparison.AreSame(record.InstallDirectory, game.InstallDirectory))
-            .ThenByDescending(record => record.InstalledAt)
-            .Select(record => Install(input, record, key, game, current, offer, job is not null))];
+        List<MyInstall> installs = [.. records.Select(record => Install(input, record, key, game, current, offer, job is not null))];
         var project = offer.Choose(preferences.ProjectId, input.Settings.PreferredTeams);
         var first = installs.FirstOrDefault();
         return new MyGame
@@ -104,8 +108,14 @@ public static class MyGamesComposer
             OffersTargetLanguage = offer.OffersTargetLanguage || game?.Languages.Any(input.Language.IsNamedBy) == true,
             LastFailure = input.Failures.GetValueOrDefault(new FailureKey(key, null)),
             RunningProcesses = [.. running.Select(process => process.Name).Distinct(StringComparer.OrdinalIgnoreCase)],
+            AchievementTexts = texts,
         };
     }
+
+    // Those in the game's current folder first, then those its store moved it away from, the newest first.
+    private static List<InstallRecord> InOrder(List<InstallRecord> records, InstalledGame? game) => [.. records
+        .OrderByDescending(record => game is not null && PathComparison.AreSame(record.InstallDirectory, game.InstallDirectory))
+        .ThenByDescending(record => record.InstalledAt)];
 
     // Each project on offer as a new install would take it, with the player's choices.
     private static GameOffer Planned(GameOffer offer, GamePreferences preferences, InstalledGame? game) => offer with

@@ -4,6 +4,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Steam;
 
 namespace JustModIt.Manager.Core.State;
 
@@ -53,6 +54,9 @@ public sealed record AppState
     /// other job; a game whose uninstall runs is not counted, since that uninstall is one of the jobs.
     /// </summary>
     public int PendingUninstalls { get; init; }
+
+    /// <summary>What the app knows of its way into Steam's interface, for achievement texts and launch options.</summary>
+    public SteamUiStatus SteamUi { get; init; } = SteamUiStatus.None;
 
     /// <summary>The game in the player's list; null when it is not there.</summary>
     /// <param name="game">The game's store and id.</param>

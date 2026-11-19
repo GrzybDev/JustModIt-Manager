@@ -33,7 +33,8 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
         Jobs = new JobRunner(Engine, Catalogue, Downloader, Library, RunningGames, Settings,
             new ReplacementMarkers(_markers.Path, Time, NullLogger<ReplacementMarkers>.Instance), Time, NullLogger<JobRunner>.Instance, policy);
         Coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, RunningGames, Failures, History,
-            new StateCoordinatorOptions { TargetLanguage = language ?? TargetLanguage.None }, Time, NullLogger<StateCoordinator>.Instance);
+            new StateCoordinatorOptions { TargetLanguage = language ?? TargetLanguage.None }, Time, NullLogger<StateCoordinator>.Instance,
+            SteamUi);
     }
 
     public CountingTimeProvider Time { get; } = new(Now);
@@ -49,6 +50,8 @@ internal sealed class CoordinatorHarness : IAsyncDisposable
     public FakeInstallEngine Engine { get; } = new();
 
     public FakeSettings Settings { get; }
+
+    public FakeSteamUi SteamUi { get; } = new();
 
     public InMemoryDocumentStore<FailedAttempts> Failures { get; } = new();
 
