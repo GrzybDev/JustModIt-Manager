@@ -470,6 +470,19 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private Task ActAsync(InstallRow row) => row.ActionRequest is { } request ? SendJobAsync(request) : Task.CompletedTask;
 
     [RelayCommand]
+    private async Task ReapplyLaunchOptionsAsync(Guid install) =>
+        await AgentRequests.SendAsync(_services, new ReapplyLaunchOptions(install)).ConfigureAwait(true);
+
+    [RelayCommand]
+    private async Task CopyAsync(string text)
+    {
+        if (await _services.Clipboard.SetTextAsync(text).ConfigureAwait(true))
+        {
+            _services.Toasts.Show(new ToastViewModel(ToastTone.Success, Icons.Copy, Strings.GamePage_Copied, null));
+        }
+    }
+
+    [RelayCommand]
     private Task ApplyAsync(FeaturePanel panel) =>
         panel.Install is { } install ? SendJobAsync(new ApplyFeatures(install, panel.Changes())) : Task.CompletedTask;
 
@@ -562,8 +575,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
 
         _ended = ended;
         // The state that ends a job may come first, before the agent tells which files an uninstall left as they were, that
-        // the install's folder was gone, or what an install warns of.
-        if (_result is { Kind: StepKind.Removed } && _finished == ended.Job.Id && (ended.KeptFiles is { Count: > 0 } || ended.Forgotten))
+        // the install's folder was gone, which launch options it takes out of Steam, or what an install warns of.
+        if (_result is { Kind: StepKind.Removed } && _finished == ended.Job.Id
+            && (ended.KeptFiles is { Count: > 0 } || ended.Forgotten || ended.RemovedLaunchOptions is { Count: > 0 }))
         {
             _result = Removed(_services.Agent.State.Games.Any(game => game.Key == _key), ended);
             Compose();
@@ -812,6 +826,8 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                 Strings.GamePage_RuntimeHide),
             Licenses = LicensesOf(install),
             Features = FeaturesOf(install, install.Project),
+            LaunchOptions = LaunchOptionsLines.Line(install.LaunchOptions),
+            ManualLaunchOptions = LaunchOptionsLines.Manual(install.LaunchOptions),
         };
     }
 
@@ -1292,6 +1308,11 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             : reason is null ? Strings.GamePage_RemovedText
             : Text.Format(Strings.GamePage_RemovedKept, ("reason", told), ("store", GameWording.StoreName(_key.Store)),
                 ("count", kept.Where(files => KeptReasons.CaseOf(files.Reason) == told).Sum(files => files.Count)));
+        if (ended?.RemovedLaunchOptions is { Count: > 0 } options)
+        {
+            text += " " + LaunchOptionsLines.Removed(options, _services.Agent.State.SteamUi);
+        }
+
         if (!listed)
         {
             text += " " + Text.Format(Strings.GamePage_RemovedGone, ("library", Strings.Shell_Library));

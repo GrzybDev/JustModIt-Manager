@@ -3864,4 +3864,37 @@
   <data name="Library_AchievementsChipName" xml:space="preserve">
     <value>achievement translation on</value>
   </data>
+  <data name="GamePage_LaunchOptionsApplied" xml:space="preserve">
+    <value>{count, plural, one {Launch option {options} set in Steam} other {Launch options {options} set in Steam}}</value>
+  </data>
+  <data name="GamePage_LaunchOptionsWaiting" xml:space="preserve">
+    <value>{count, plural, one {Launch option {options} is set at the next chance, at the latest when Steam next starts} other {Launch options {options} are set at the next chance, at the latest when Steam next starts}}</value>
+  </data>
+  <data name="GamePage_LaunchOptionsMissing" xml:space="preserve">
+    <value>{count, plural, one {Launch option {options} is missing, and the project does not work without it} other {Launch options {options} are missing, and the project does not work without them}}</value>
+  </data>
+  <data name="GamePage_LaunchOptionsReapply" xml:space="preserve">
+    <value>Set again</value>
+  </data>
+  <data name="GamePage_LaunchOptionsRefused" xml:space="preserve">
+    <value>The launch options of this project could run commands, so the app does not set them</value>
+  </data>
+  <data name="GamePage_LaunchOptionsManualTitle" xml:space="preserve">
+    <value>{count, plural, one {The project needs a launch option} other {The project needs launch options}}</value>
+  </data>
+  <data name="GamePage_LaunchOptionsManual" xml:space="preserve">
+    <value>In Steam's library: right-click the game › Properties › Launch options. {count, plural, one {The option goes at the end of the field.} other {The options go at the end of the field.}}</value>
+  </data>
+  <data name="GamePage_Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="GamePage_CopyName" xml:space="preserve">
+    <value>Copy {options}</value>
+  </data>
+  <data name="GamePage_Copied" xml:space="preserve">
+    <value>Copied to the clipboard</value>
+  </data>
+  <data name="GamePage_LaunchOptionsRemoved" xml:space="preserve">
+    <value>{way, select, reachable {{count, plural, one {The launch option {options} added at the install was taken out of Steam} other {The launch options {options} added at the install were taken out of Steam}}} waiting {{count, plural, one {The launch option {options} added at the install leaves Steam at the next chance, at the latest when Steam next starts} other {The launch options {options} added at the install leave Steam at the next chance, at the latest when Steam next starts}}} other {{count, plural, one {The launch option {options} added at the install stays in Steam, where it can be taken out in the library: right-click the game › Properties › Launch options} other {The launch options {options} added at the install stay in Steam, where they can be taken out in the library: right-click the game › Properties › Launch options}}}}; the other launch options stay as they were.</value>
+  </data>
 </root>

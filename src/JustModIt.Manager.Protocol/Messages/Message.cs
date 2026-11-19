@@ -20,6 +20,7 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(UpdateProject), "updateProject")]
 [JsonDerivedType(typeof(RepairProject), "repairProject")]
 [JsonDerivedType(typeof(UninstallProject), "uninstallProject")]
+[JsonDerivedType(typeof(ReapplyLaunchOptions), "reapplyLaunchOptions")]
 [JsonDerivedType(typeof(TestInstallPackage), "testInstallPackage")]
 [JsonDerivedType(typeof(MoveBackups), "moveBackups")]
 [JsonDerivedType(typeof(StopMovingBackups), "stopMovingBackups")]

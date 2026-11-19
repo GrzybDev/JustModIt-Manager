@@ -66,6 +66,7 @@ public sealed class AgentCommands(
         UpdateProject update => Start(new UpdateJobRequest(FindInstall(update.Install).Record)),
         RepairProject repair => Start(new RepairJobRequest(FindInstall(repair.Install).Record)),
         UninstallProject uninstall => Start(new UninstallJobRequest(FindInstall(uninstall.Install).Record)),
+        ReapplyLaunchOptions reapply => Done(() => coordinator.ReapplyLaunchOptions(FindInstall(reapply.Install).Record.Id)),
         TestInstallPackage test => Start(TestInstall(test)),
         MoveBackups => Done(() => coordinator.MoveBackups(BackupChoice.From(settings.Current))),
         StopMovingBackups => Done(coordinator.StopMovingBackups),

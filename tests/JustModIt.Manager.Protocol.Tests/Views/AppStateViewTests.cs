@@ -103,6 +103,8 @@ public sealed class AppStateViewTests
         install.Project!.Release!.Id.Should().Be(ReleaseTwo);
         install.LastFailure!.Failure!.Reason.Should().Be(JobFailureReason.Offline);
         install.ThirdPartyNotices.Should().Equal(new ThirdPartyNoticeView("Example Loader", "MIT", "https://example.com/loader/source"));
+        install.LaunchOptions.Should().BeEquivalentTo(
+            new LaunchOptionsView(LaunchOptionsState.RemovedByPlayer, ["-fileopenlog", "-windowed"], ["-fileopenlog"]));
         game.Preferences.AutoUpdate.Should().BeFalse();
         game.Job!.Should().BeEquivalentTo(new
         {

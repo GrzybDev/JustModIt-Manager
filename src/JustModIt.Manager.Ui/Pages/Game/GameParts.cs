@@ -202,6 +202,12 @@ public sealed record InstallRow(Guid Id, string Title, string When, string Detai
     /// <summary>The install's add-ons, its line and its pills; null when its project offers none to choose.</summary>
     public FeaturePanel? Features { get; init; }
 
+    /// <summary>What the launch options the install's project needs are like in Steam; null when it needs none or they are set by hand.</summary>
+    public LaunchOptionsLine? LaunchOptions { get; init; }
+
+    /// <summary>The launch options for the player to add in Steam by hand; null unless nothing can set them.</summary>
+    public ManualLaunchOptions? ManualLaunchOptions { get; init; }
+
     public bool HasProject => Project.Length > 0;
 
     public bool HasAction => Action is not null;

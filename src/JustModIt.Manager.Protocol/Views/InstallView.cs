@@ -87,6 +87,9 @@ public sealed record InstallView
     /// <summary>The game files the software of the install's packages changes while the game runs, as their manifests name them.</summary>
     public IReadOnlyList<string> RuntimeFiles { get; init; } = [];
 
+    /// <inheritdoc cref="MyInstall.LaunchOptions"/>
+    public LaunchOptionsView? LaunchOptions { get; init; }
+
     /// <summary>Maps an install with its status and record.</summary>
     /// <param name="install">The install as the engine's state holds it.</param>
     public static InstallView From(MyInstall install)
@@ -126,6 +129,7 @@ public sealed record InstallView
             ThirdPartyNotices = [.. Packages(record).SelectMany(package => package.ThirdPartyNotices ?? []).Select(ThirdPartyNoticeView.From)
                 .Distinct()],
             RuntimeFiles = [.. Packages(record).SelectMany(package => package.RuntimeFiles ?? []).Distinct(PackagePath.Comparer)],
+            LaunchOptions = install.LaunchOptions is { } options ? LaunchOptionsView.From(options) : null,
         };
     }
 
@@ -149,4 +153,15 @@ public sealed record ThirdPartyNoticeView(string Name, string License, string So
     {
         return new ThirdPartyNoticeView(notice.Name, notice.License, notice.SourceUrl);
     }
+}
+
+/// <summary>The launch options an install's project needs, and whether Steam has them.</summary>
+/// <param name="State">Whether Steam has them.</param>
+/// <param name="Options">The options the project needs; empty when they were refused.</param>
+/// <param name="Missing">Those of them the player's options in Steam lack, as last read; empty while unknown.</param>
+public sealed record LaunchOptionsView(LaunchOptionsState State, IReadOnlyList<string> Options, IReadOnlyList<string> Missing)
+{
+    /// <summary>Maps what the install's project needs of the launch options.</summary>
+    /// <param name="options">The launch options as the engine's state holds them.</param>
+    public static LaunchOptionsView From(MyLaunchOptions options) => new(options.State, [.. options.Options], [.. options.Missing]);
 }

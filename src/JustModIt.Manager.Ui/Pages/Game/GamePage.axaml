@@ -83,6 +83,39 @@
       <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+    <!-- A launch options line: its icon in the line's tone, the options drawn as code. -->
+    <Style Selector="Grid.launchOptions ui|Icon">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+    <Style Selector="Grid.launchOptions.success ui|Icon">
+      <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+    </Style>
+    <Style Selector="Grid.launchOptions.info ui|Icon">
+      <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}" />
+    </Style>
+    <Style Selector="Grid.launchOptions.warning ui|Icon">
+      <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+    </Style>
+    <Style Selector="Grid.launchOptions.warning TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+    </Style>
+    <Style Selector="Run.code">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    </Style>
+    <Style Selector="Border.code">
+      <Setter Property="Padding" Value="12,6,6,6" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="Background" Value="#80030712" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="SelectableTextBlock.code">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    </Style>
     <Style Selector="TextBlock.rowText.success">
       <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
     </Style>
@@ -778,8 +811,8 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="game:InstallRow">
                     <Border Classes="row">
-                      <Grid ColumnDefinitions="32,100,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16">
-                        <Grid Grid.RowSpan="2" RowDefinitions="14,Auto,*" Margin="0,-14">
+                      <Grid ColumnDefinitions="32,100,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16">
+                        <Grid Grid.RowSpan="3" RowDefinitions="14,Auto,*" Margin="0,-14">
                           <Border Classes="line" />
                           <Border Grid.Row="1" Classes="node">
                             <ui:Icon Data="{x:Static theme:Icons.Languages}" />
@@ -799,6 +832,16 @@
                           <ui:StatusLine FontSize="13" LineHeight="18" Icon="{x:Static theme:Icons.TriangleAlert}" Tone="Warning" Label="{Binding Detail}"
                                          IsVisible="{Binding IsWarning}" />
                           <TextBlock Classes="rowText" Text="{Binding Detail}" IsVisible="{Binding !IsWarning}" />
+                          <Grid x:Name="LaunchOptionsLine" Classes="launchOptions" ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,2,0,0"
+                                Classes.success="{Binding LaunchOptions.IsSuccess, FallbackValue=False}"
+                                Classes.info="{Binding LaunchOptions.IsInfo, FallbackValue=False}"
+                                Classes.warning="{Binding LaunchOptions.IsWarning, FallbackValue=False}"
+                                IsVisible="{Binding LaunchOptions, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <ui:Icon Data="{Binding LaunchOptions.Icon}" Width="14" Height="14" Margin="0,2,0,0" VerticalAlignment="Top" />
+                            <TextBlock Grid.Column="1" Classes="rowText">
+                              <Run Text="{Binding LaunchOptions.Lead}" /><Run Classes="code" Text="{Binding LaunchOptions.Options}" /><Run Text="{Binding LaunchOptions.Tail}" />
+                            </TextBlock>
+                          </Grid>
                           <ContentControl Content="{Binding Features}" ContentTemplate="{StaticResource FeaturesTemplate}"
                                           IsVisible="{Binding Features, Converter={x:Static ObjectConverters.IsNotNull}}" />
                           <ui:TrailingAction x:Name="RuntimeLine" Text="{x:Static loc:Strings.GamePage_RuntimeLine}" LineHeight="18"
@@ -856,12 +899,30 @@
                           <Button Classes="outline rowAction" Content="{Binding Action}" ui:ButtonAssist.Icon="{Binding ActionIcon}"
                                   IsVisible="{Binding HasAction}" Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).ActCommand}"
                                   CommandParameter="{Binding}" />
+                          <Button x:Name="ReapplyLaunchOptions" Classes="outline rowAction" Content="{x:Static loc:Strings.GamePage_LaunchOptionsReapply}"
+                                  ui:ButtonAssist.Icon="{x:Static theme:Icons.RotateCcw}" IsVisible="{Binding LaunchOptions.CanReapply, FallbackValue=False}"
+                                  Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).ReapplyLaunchOptionsCommand}"
+                                  CommandParameter="{Binding Id}" />
                           <Button Classes="danger rowAction" Content="{x:Static loc:Strings.GamePage_Uninstall}"
                                   ui:ButtonAssist.Icon="{x:Static theme:Icons.Trash}" IsVisible="{Binding CanUninstall}"
                                   AutomationProperties.Name="{Binding UninstallName}"
                                   Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).UninstallCommand}"
                                   CommandParameter="{Binding Id}" />
                         </StackPanel>
+                        <ui:Callout x:Name="ManualLaunchOptions" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Classes="warning" Margin="0,12,0,0"
+                                    MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.TriangleAlert}"
+                                    Title="{Binding ManualLaunchOptions.Title}" Message="{Binding ManualLaunchOptions.Steps}"
+                                    IsVisible="{Binding ManualLaunchOptions, Converter={x:Static ObjectConverters.IsNotNull}}">
+                          <Border Classes="code">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                              <SelectableTextBlock Classes="code" Text="{Binding ManualLaunchOptions.Options}" VerticalAlignment="Center" />
+                              <Button x:Name="CopyLaunchOptions" Classes="outline small" Content="{x:Static loc:Strings.GamePage_Copy}"
+                                      ui:ButtonAssist.Icon="{x:Static theme:Icons.Copy}" AutomationProperties.Name="{Binding ManualLaunchOptions.CopyName}"
+                                      Command="{Binding $parent[UserControl].((game:GamePageViewModel)DataContext).CopyCommand}"
+                                      CommandParameter="{Binding ManualLaunchOptions.Options}" />
+                            </StackPanel>
+                          </Border>
+                        </ui:Callout>
                       </Grid>
                     </Border>
                   </DataTemplate>

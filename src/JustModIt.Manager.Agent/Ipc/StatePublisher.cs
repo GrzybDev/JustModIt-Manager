@@ -131,8 +131,18 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
         _progressed.Writer.TryWrite(true);
     }
 
-    private void OnFinished(object? sender, JobResult result) =>
-        EventRaising.RaiseEach(JobEnded, this, Protocol.Messages.JobEnded.From(result), LogListenerFailed);
+    private void OnFinished(object? sender, JobResult result)
+    {
+        var ended = Protocol.Messages.JobEnded.From(result);
+        // The player may have taken out some of the options the app added, which the window then does not name.
+        if (ended.RemovedLaunchOptions is { } removed && coordinator.Current.SteamUi.LaunchOptionsOf(result.Job.Game) is { } current)
+        {
+            List<string> present = [.. removed.Where(current.Contains)];
+            ended = ended with { RemovedLaunchOptions = present.Count == 0 ? null : present };
+        }
+
+        EventRaising.RaiseEach(JobEnded, this, ended, LogListenerFailed);
+    }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "A listener of the app state failed")]
     private partial void LogListenerFailed(Exception exception);

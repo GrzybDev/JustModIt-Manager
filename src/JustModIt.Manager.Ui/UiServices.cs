@@ -34,6 +34,9 @@ public sealed class UiServices
     /// <summary>The system's pickers of folders and files.</summary>
     public required IFilePickers Pickers { get; init; }
 
+    /// <summary>The system's clipboard, for text the player pastes elsewhere.</summary>
+    public required ITextClipboard Clipboard { get; init; }
+
     /// <summary>Sends a crash's report when the player agrees.</summary>
     public required IErrorReports ErrorReports { get; init; }
 

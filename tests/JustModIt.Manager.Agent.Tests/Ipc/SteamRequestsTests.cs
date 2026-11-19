@@ -51,6 +51,17 @@ public sealed class SteamRequestsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Setting_launch_options_again_names_an_install_of_the_player_s_games()
+    {
+        _agent.Start();
+        var window = await _agent.ConnectWindowAsync();
+
+        var refused = () => window.RequestAsync(new ReapplyLaunchOptions(Guid.NewGuid()));
+
+        (await refused.Should().ThrowAsync<RequestFailedException>()).Which.Code.Should().Be(ErrorCode.InvalidRequest);
+    }
+
+    [Fact]
     public async Task Without_a_way_into_Steam_a_restart_is_unsupported()
     {
         await using var agent = new AgentHarness { Configure = services => services.RemoveAll<ISteamUi>() };

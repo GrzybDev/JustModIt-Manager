@@ -3852,4 +3852,37 @@
   <data name="Library_AchievementsChipName" xml:space="preserve">
     <value>tłumaczenie osiągnięć włączone</value>
   </data>
+  <data name="GamePage_LaunchOptionsApplied" xml:space="preserve">
+    <value>{count, plural, one {Parametr uruchamiania {options} ustawiony w Steamie} few {Parametry uruchamiania {options} ustawione w Steamie} many {Parametry uruchamiania {options} ustawione w Steamie} other {Parametry uruchamiania {options} ustawione w Steamie}}</value>
+  </data>
+  <data name="GamePage_LaunchOptionsWaiting" xml:space="preserve">
+    <value>{count, plural, one {Parametr {options} zostanie ustawiony przy najbliższej okazji, najpóźniej przy następnym uruchomieniu Steama} few {Parametry {options} zostaną ustawione przy najbliższej okazji, najpóźniej przy następnym uruchomieniu Steama} many {Parametry {options} zostaną ustawione przy najbliższej okazji, najpóźniej przy następnym uruchomieniu Steama} other {Parametry {options} zostaną ustawione przy najbliższej okazji, najpóźniej przy następnym uruchomieniu Steama}}</value>
+  </data>
+  <data name="GamePage_LaunchOptionsMissing" xml:space="preserve">
+    <value>{count, plural, one {Brak parametru {options}, bez którego projekt nie działa} few {Brak parametrów {options}, bez których projekt nie działa} many {Brak parametrów {options}, bez których projekt nie działa} other {Brak parametrów {options}, bez których projekt nie działa}}</value>
+  </data>
+  <data name="GamePage_LaunchOptionsReapply" xml:space="preserve">
+    <value>Ustaw ponownie</value>
+  </data>
+  <data name="GamePage_LaunchOptionsRefused" xml:space="preserve">
+    <value>Parametry uruchamiania z tego projektu mogą uruchamiać polecenia, więc aplikacja ich nie ustawia</value>
+  </data>
+  <data name="GamePage_LaunchOptionsManualTitle" xml:space="preserve">
+    <value>{count, plural, one {Projekt wymaga parametru uruchamiania} other {Projekt wymaga parametrów uruchamiania}}</value>
+  </data>
+  <data name="GamePage_LaunchOptionsManual" xml:space="preserve">
+    <value>W bibliotece Steama: prawy przycisk na grze › Właściwości › Opcje uruchamiania. {count, plural, one {Parametr dopisuje się na końcu pola.} other {Parametry dopisuje się na końcu pola.}}</value>
+  </data>
+  <data name="GamePage_Copy" xml:space="preserve">
+    <value>Kopiuj</value>
+  </data>
+  <data name="GamePage_CopyName" xml:space="preserve">
+    <value>Kopiuj {options}</value>
+  </data>
+  <data name="GamePage_Copied" xml:space="preserve">
+    <value>Skopiowano do schowka</value>
+  </data>
+  <data name="GamePage_LaunchOptionsRemoved" xml:space="preserve">
+    <value>{way, select, reachable {{count, plural, one {Usunięto parametr uruchamiania {options} dodany przy instalacji} other {Usunięto parametry uruchamiania {options} dodane przy instalacji}}} waiting {{count, plural, one {Parametr uruchamiania {options} dodany przy instalacji zniknie ze Steama przy najbliższej okazji, najpóźniej przy jego następnym uruchomieniu} other {Parametry uruchamiania {options} dodane przy instalacji znikną ze Steama przy najbliższej okazji, najpóźniej przy jego następnym uruchomieniu}}} other {{count, plural, one {Parametr uruchamiania {options} dodany przy instalacji został w Steamie; można go usunąć w bibliotece: prawy przycisk na grze › Właściwości › Opcje uruchamiania} other {Parametry uruchamiania {options} dodane przy instalacji zostały w Steamie; można je usunąć w bibliotece: prawy przycisk na grze › Właściwości › Opcje uruchamiania}}}}; pozostałe opcje uruchamiania zostały bez zmian.</value>
+  </data>
 </root>

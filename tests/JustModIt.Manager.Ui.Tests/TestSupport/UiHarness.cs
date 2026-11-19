@@ -51,7 +51,7 @@ public sealed class UiHarness : IDisposable
         _ownCreatorDirectory = built.CreatorDirectory;
         var used = context is null ? built : context(built);
         CreatorDirectory = used.CreatorDirectory;
-        Session = UiSession.Create(Application.Current!, used, Agent, Images, Links, Clock, Pickers, Reports);
+        Session = UiSession.Create(Application.Current!, used, Agent, Images, Links, Clock, Pickers, Reports, Clipboard);
         Window = Session.CreateWindow();
         // A click here moves, presses and releases, each after running the dispatcher and a frame; under load that takes
         // longer than a tooltip's delay, and the tooltip, which opens inside the window here, can slide over the pointer
@@ -80,6 +80,9 @@ public sealed class UiHarness : IDisposable
 
     /// <summary>Takes the crash reports the window sends.</summary>
     public FakeErrorReports Reports { get; } = new();
+
+    /// <summary>Keeps the texts the window copied.</summary>
+    public FakeClipboard Clipboard { get; } = new();
 
     /// <summary>A clock standing at <see cref="TestStates.Now"/>, in UTC.</summary>
     public FakeTimeProvider Clock { get; } = new(TestStates.Now);
@@ -406,5 +409,17 @@ public sealed class FakePickers : IFilePickers
         Asked.Add(title);
         Suggested.Add(suggestedName);
         return Task.FromResult(SaveFile);
+    }
+}
+
+/// <summary>Keeps the texts the window puts on the clipboard, newest last.</summary>
+public sealed class FakeClipboard : ITextClipboard
+{
+    public List<string> Copied { get; } = [];
+
+    public Task<bool> SetTextAsync(string text)
+    {
+        Copied.Add(text);
+        return Task.FromResult(true);
     }
 }

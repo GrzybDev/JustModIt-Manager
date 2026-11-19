@@ -28,6 +28,13 @@ public sealed record UpdateProject(Guid Install) : Message;
 /// <param name="Install">The install's record id.</param>
 public sealed record RepairProject(Guid Install) : Message;
 
+/// <summary>
+/// Sets the launch options an install's project needs in Steam again, after the player took one out, which the app otherwise
+/// leaves as the player had it.
+/// </summary>
+/// <param name="Install">The install's record id.</param>
+public sealed record ReapplyLaunchOptions(Guid Install) : Message;
+
 /// <summary>Uninstalls an install, putting the game's originals back.</summary>
 /// <param name="Install">The install's record id.</param>
 public sealed record UninstallProject(Guid Install) : Message;

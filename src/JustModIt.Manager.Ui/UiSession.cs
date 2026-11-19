@@ -40,8 +40,10 @@ public sealed class UiSession : IDisposable
     /// <param name="clock">The time the pages tell dates against; null for the system's clock.</param>
     /// <param name="pickers">The pickers of folders and files; null for the window's own.</param>
     /// <param name="errorReports">Sends crash reports; null for the DSN the app was built with.</param>
+    /// <param name="clipboard">Takes text the player pastes elsewhere; null for the window's own clipboard.</param>
     public static UiSession Create(Application application, UiContext context, IAgent agent, IImageLoader? images = null,
-        IExternalLinks? links = null, TimeProvider? clock = null, IFilePickers? pickers = null, IErrorReports? errorReports = null)
+        IExternalLinks? links = null, TimeProvider? clock = null, IFilePickers? pickers = null, IErrorReports? errorReports = null,
+        ITextClipboard? clipboard = null)
     {
         AccentPalette.From(context.AccentColor).Apply(application.Resources);
         var composition = new UiComposition(application.Resources, application.Styles);
@@ -67,6 +69,7 @@ public sealed class UiSession : IDisposable
             Links = links ?? new ShellLinks(context.Loggers.CreateLogger<ShellLinks>()),
             Clock = clock ?? TimeProvider.System,
             Pickers = pickers ?? new StorageProviderPickers(() => session?._window),
+            Clipboard = clipboard ?? new WindowClipboard(() => session?._window),
             ErrorReports = errorReports
                 ?? new ErrorReports(ErrorReportTarget.Parse(context.ErrorReportsDsn), $"{context.Site.ProductName}/{context.Version}"),
         };

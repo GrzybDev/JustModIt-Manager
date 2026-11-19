@@ -740,4 +740,13 @@ Logo to zmieniona ikona „gamepad” z Font Awesome Free (© Fonticons, Inc.), 
   <data name="Library_AchievementsChip" xml:space="preserve">
     <value>Osiągnięcia PL</value>
   </data>
+  <data name="GamePage_LaunchOptionsMissing" xml:space="preserve">
+    <value>{count, plural, one {Brak parametru {options}, bez którego spolszczenie nie działa} few {Brak parametrów {options}, bez których spolszczenie nie działa} many {Brak parametrów {options}, bez których spolszczenie nie działa} other {Brak parametrów {options}, bez których spolszczenie nie działa}}</value>
+  </data>
+  <data name="GamePage_LaunchOptionsRefused" xml:space="preserve">
+    <value>Parametry uruchamiania z tego spolszczenia mogą uruchamiać polecenia, więc menadżer ich nie ustawia</value>
+  </data>
+  <data name="GamePage_LaunchOptionsManualTitle" xml:space="preserve">
+    <value>{count, plural, one {Spolszczenie wymaga parametru uruchamiania} other {Spolszczenie wymaga parametrów uruchamiania}}</value>
+  </data>
 </root>

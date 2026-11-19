@@ -38,6 +38,7 @@ public sealed class MessageTests
             KeptFiles = [new KeptFilesView(KeptReason.GameUpdatedSinceInstall, 1), new KeptFilesView(KeptReason.OriginalUnknown, 1)],
         },
         new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded) { Forgotten = true },
+        new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded) { RemovedLaunchOptions = ["-fileopenlog"] },
         new JobEnded(JobView.From(RunningJob), JobOutcome.Succeeded) { Warnings = [InstallWarningKind.OtherStore, InstallWarningKind.UnfinishedStoreDownload] },
         new Notify(NoticeView.From(new AutomationNotice(NoticeKind.Failed)
         {
@@ -72,6 +73,7 @@ public sealed class MessageTests
         new CheckNow(),
         new ChangeSettings(SettingsView.From(Settings)),
         new SetGameAutomation(Game, AutoInstall: true),
+        new ReapplyLaunchOptions(RecordId),
         new SetAchievementTexts(Game, IsOn: false),
         new RestartSteam(),
         new ChooseProject(Game, Project),
@@ -238,6 +240,15 @@ public sealed class MessageTests
         ended.KeptFiles.Should().Equal(new KeptFilesView(KeptReason.ChangedSinceInstall, 2), new KeptFilesView(KeptReason.BackupMissing, 1));
         plain.Should().NotContain("keptFiles", "an end without kept files reads as one from an agent that never sent them");
         ((JobEnded)((EventFrame)FrameCodec.Deserialize(Encoding.UTF8.GetBytes(plain))).Payload).KeptFiles.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_job_s_end_names_the_launch_options_it_takes_out_of_Steam_and_leaves_the_field_out_when_none()
+    {
+        var uninstalled = new JobResult(RunningJob, JobOutcome.Succeeded) { RemovedLaunchOptions = ["-fileopenlog", "-windowed"] };
+
+        JobEnded.From(uninstalled).RemovedLaunchOptions.Should().Equal("-fileopenlog", "-windowed");
+        Json(JobEnded.From(uninstalled with { RemovedLaunchOptions = [] })).Should().NotContain("removedLaunchOptions");
     }
 
     [Fact]

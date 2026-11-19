@@ -32,6 +32,12 @@ public sealed record JobEnded(JobView Job, JobOutcome Outcome, JobFailureView? F
     /// <summary>What the player hears of what the job installed, each once; null when nothing.</summary>
     public IReadOnlyList<InstallWarningKind>? Warnings { get; init; }
 
+    /// <summary>
+    /// The launch options the app added for the removed install, which it takes out of the player's options in Steam; null when
+    /// there are none.
+    /// </summary>
+    public IReadOnlyList<string>? RemovedLaunchOptions { get; init; }
+
     /// <summary>Maps how a job ended.</summary>
     /// <param name="result">The job's result.</param>
     public static JobEnded From(JobResult result)
@@ -51,6 +57,7 @@ public sealed record JobEnded(JobView Job, JobOutcome Outcome, JobFailureView? F
             KeptFiles = result.KeptFiles.Count == 0 ? null : [.. kept],
             Forgotten = result.Forgotten,
             Warnings = warnings.Count == 0 ? null : warnings,
+            RemovedLaunchOptions = result.RemovedLaunchOptions.Count == 0 ? null : [.. result.RemovedLaunchOptions],
         };
     }
 }

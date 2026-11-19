@@ -201,6 +201,7 @@ internal static class TestStates
                         Project = Offer,
                         LastFailure = new FailedAttempt(JobKind.Repair, JobOrigin.Automatic, Now.AddDays(-1),
                             new JobFailure(JobFailureReason.Offline)),
+                        LaunchOptions = new MyLaunchOptions(LaunchOptionsState.RemovedByPlayer, ["-fileopenlog", "-windowed"], ["-fileopenlog"]),
                     },
                 ],
                 Preferences = Settings.GetGame(Game),

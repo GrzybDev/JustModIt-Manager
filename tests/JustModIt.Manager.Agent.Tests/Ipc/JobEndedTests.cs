@@ -1,9 +1,12 @@
+using System.Collections.Immutable;
 using JustModIt.Manager.Agent.Tests.TestSupport;
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,6 +63,23 @@ public sealed class JobEndedTests : IAsyncDisposable
         ended.KeptFiles.Should().BeNull();
     }
 
+    [Fact]
+    public async Task An_uninstall_names_only_the_launch_options_steam_still_had()
+    {
+        var record = Record with { LaunchOptions = new InstalledLaunchOptions(["-examplelog", "-windowed"]) { Added = ["-examplelog", "-windowed"] } };
+        var steam = new ReadSteam(new SteamUiStatus
+        {
+            Delivery = SteamUiDelivery.Millennium,
+            Reachable = true,
+            LaunchOptions = new ValueDictionary<GameKey, string>(ImmutableDictionary<GameKey, string>.Empty.Add(record.Game, "-windowed -novid")),
+        });
+        var window = await StartAsync(new UninstallingEngine(() => Task.FromResult(new UninstallResult([])), record), steam);
+
+        var ended = await UninstallAsync(window);
+
+        ended.RemovedLaunchOptions.Should().Equal(["-windowed"], "the player took the other one out already");
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_agent is not null)
@@ -68,9 +88,19 @@ public sealed class JobEndedTests : IAsyncDisposable
         }
     }
 
-    private async Task<FakeWindow> StartAsync(UninstallingEngine engine)
+    private async Task<FakeWindow> StartAsync(UninstallingEngine engine, ISteamUi? steam = null)
     {
-        _agent = new AgentHarness { Configure = services => services.AddSingleton<IInstallEngine>(engine) };
+        _agent = new AgentHarness
+        {
+            Configure = services =>
+            {
+                services.AddSingleton<IInstallEngine>(engine);
+                if (steam is not null)
+                {
+                    services.AddSingleton(steam);
+                }
+            },
+        };
         _agent.Start();
         var window = await _agent.ConnectWindowAsync();
         await window.StateAsync(state => state.Games.Any(game => game.Installs.Any(install => install.Id == Record.Id)));
@@ -83,15 +113,31 @@ public sealed class JobEndedTests : IAsyncDisposable
         return await window.NextAsync<JobEnded>(ended => ended.Job.Id == started.JobId);
     }
 
-    private sealed class UninstallingEngine(Func<Task<UninstallResult>> uninstall) : StubEngine
+    private sealed class UninstallingEngine(Func<Task<UninstallResult>> uninstall, InstallRecord? record = null) : StubEngine
     {
         public override Task<IReadOnlyList<InstallRecord>> LoadRecordsAsync(CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<InstallRecord>>([Record]);
+            Task.FromResult<IReadOnlyList<InstallRecord>>([record ?? Record]);
 
         public override Task<UninstallResult> UninstallAsync(Guid recordId, IReadOnlyList<string>? replacedBy, IProgress<InstallProgress>? progress,
             CancellationToken cancellationToken) => uninstall();
 
         public override Task<ForgetOutcome> ForgetIfGoneAsync(Guid recordId, bool keepBackups, CancellationToken cancellationToken) =>
             Task.FromResult(ForgetOutcome.Forgotten);
+    }
+
+    private sealed class ReadSteam(SteamUiStatus status) : ISteamUi
+    {
+        public event EventHandler<SteamUiStatus>? Changed
+        {
+            add { }
+            remove { }
+        }
+
+        public SteamUiStatus Status => status;
+
+        public SteamRestartResult RestartSteam() => SteamRestartResult.Failed;
+
+        public Task<LaunchOptionsResult> ChangeLaunchOptionsAsync(GameKey game, IReadOnlyList<string> add, IReadOnlyList<string> remove,
+            CancellationToken cancellationToken) => Task.FromResult(new LaunchOptionsResult(null, LaunchOptionsFailure.Failed));
     }
 }
