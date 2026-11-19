@@ -4,6 +4,7 @@ using JustModIt.Manager.Agent.Ipc;
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Notifications;
 using JustModIt.Manager.Agent.Shell;
+using JustModIt.Manager.Agent.Steam;
 using JustModIt.Manager.Agent.Storage;
 using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Agent.Ui;
@@ -24,6 +25,7 @@ using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -167,6 +169,11 @@ public static class AgentServices
         services.AddSingleton(MemoryTrimSchedule.Default);
         services.AddSingleton<IAgentService, MemoryTrimmer>();
         services.AddSingleton<IAgentService, ApiKeyCheck>();
+        services.AddSingleton<ISteamClient, SteamClient>();
+        services.AddSingleton<SteamUiService>();
+        services.AddSingleton<ISteamUi>(provider => provider.GetRequiredService<SteamUiService>());
+        services.AddSingleton<IAgentService>(provider => provider.GetRequiredService<SteamUiService>());
+        services.AddSingleton<IAgentService, SteamTextsFeed>();
         services.AddSingleton<IAgentService, SessionEnd>();
         services.AddSingleton<AgentRuntime>();
     }

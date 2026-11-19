@@ -12,6 +12,18 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="SteamPlugin_LanguageMatches" xml:space="preserve">
+    <value>polski: teksty widać w bibliotece, nakładce i powiadomieniach</value>
+  </data>
+  <data name="SteamPlugin_LanguageOther" xml:space="preserve">
+    <value>Inny niż polski: polskie teksty pojawią się po przełączeniu Steama na język polski</value>
+  </data>
+  <data name="SteamPlugin_ManageValue" xml:space="preserve">
+    <value>Gry, włączanie i wyłączanie tłumaczeń są w Menadżerze Spolszczeń.</value>
+  </data>
+  <data name="SteamPlugin_Open" xml:space="preserve">
+    <value>Otwórz menadżer</value>
+  </data>
   <data name="StatusChecking" xml:space="preserve">
     <value>Sprawdzanie gier i spolszczeń…</value>
   </data>

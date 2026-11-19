@@ -12,6 +12,54 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="SteamPlugin_Name" xml:space="preserve">
+    <value>Tłumaczenie osiągnięć: {product}</value>
+  </data>
+  <data name="SteamPlugin_Description" xml:space="preserve">
+    <value>Pokazuje tłumaczenia osiągnięć dostarczane przez {product} w bibliotece Steama, nakładce w grze i powiadomieniach.</value>
+  </data>
+  <data name="SteamPlugin_InstalledBy" xml:space="preserve">
+    <value>Wtyczka zainstalowana przez {product} · {version}</value>
+  </data>
+  <data name="SteamPlugin_TextsLabel" xml:space="preserve">
+    <value>Tłumaczenia</value>
+  </data>
+  <data name="SteamPlugin_TextsValue" xml:space="preserve">
+    <value>{games} · zaktualizowane {date}</value>
+  </data>
+  <data name="SteamPlugin_TextsNone" xml:space="preserve">
+    <value>Żadne tłumaczenie nie jest włączone</value>
+  </data>
+  <data name="SteamPlugin_Working" xml:space="preserve">
+    <value>Działa</value>
+  </data>
+  <data name="SteamPlugin_Blocked" xml:space="preserve">
+    <value>Ta wersja Steama blokuje podmianę</value>
+  </data>
+  <data name="SteamPlugin_LanguageLabel" xml:space="preserve">
+    <value>Język Steama</value>
+  </data>
+  <data name="SteamPlugin_LanguageMatches" xml:space="preserve">
+    <value>Język tłumaczeń: teksty widać w bibliotece, nakładce i powiadomieniach</value>
+  </data>
+  <data name="SteamPlugin_LanguageMatchesStatus" xml:space="preserve">
+    <value>Zgodny</value>
+  </data>
+  <data name="SteamPlugin_LanguageOther" xml:space="preserve">
+    <value>Inny niż język tłumaczeń: teksty pojawią się po przełączeniu Steama na język tłumaczeń</value>
+  </data>
+  <data name="SteamPlugin_LanguageOtherStatus" xml:space="preserve">
+    <value>Niezgodny</value>
+  </data>
+  <data name="SteamPlugin_ManageLabel" xml:space="preserve">
+    <value>Zarządzanie</value>
+  </data>
+  <data name="SteamPlugin_ManageValue" xml:space="preserve">
+    <value>Gry oraz włączanie i wyłączanie tłumaczeń są w aplikacji {product}.</value>
+  </data>
+  <data name="SteamPlugin_Open" xml:space="preserve">
+    <value>Otwórz {product}</value>
+  </data>
   <data name="GameCount" xml:space="preserve">
     <value>{count, plural, one {# gra} few {# gry} many {# gier} other {# gry}}</value>
   </data>

@@ -1,4 +1,5 @@
 using JustModIt.Manager.Agent.Shell;
+using JustModIt.Manager.Agent.Steam;
 using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
@@ -61,6 +62,9 @@ internal sealed class AgentHarness : IAsyncDisposable
 
     public FakeShellRegistration Registration { get; } = new();
 
+    /// <summary>No Steam until a test installs one, so no test reaches the developer's own.</summary>
+    public FakeSteamClient Steam { get; } = new();
+
     public Task Run => _run;
 
     public static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -88,6 +92,7 @@ internal sealed class AgentHarness : IAsyncDisposable
                 services.AddSingleton<IDesktopShell>(Shell);
                 services.AddSingleton<IAutostart>(Registration);
                 services.AddSingleton<ILinkRegistration>(Registration);
+                services.AddSingleton<ISteamClient>(Steam);
                 services.AddSingleton<IAgentService>(provider =>
                 {
                     _services.TrySetResult(provider);

@@ -1,0 +1,144 @@
+using System.Collections.Concurrent;
+using JustModIt.Manager.Agent.Steam;
+using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Watching;
+using JustModIt.Manager.Core.Settings;
+
+namespace JustModIt.Manager.Agent.Tests.TestSupport;
+
+/// <summary>A Steam client whose folder, records and process the test sets; none is installed until the test says so.</summary>
+internal sealed class FakeSteamClient : ISteamClient
+{
+    private readonly ConcurrentDictionary<int, TaskCompletionSource> _processes = new();
+    private readonly ConcurrentDictionary<int, DateTimeOffset> _started = new();
+    private Action? _changed;
+
+    public string? Root { get; set; }
+
+    public SteamSession Session { get; private set; } = new(null, null, "");
+
+    public ConcurrentQueue<string> Opened { get; } = new();
+
+    public string? FindRoot() => Root;
+
+    public SteamSession Read() => Session;
+
+    public bool IsRunning(int processId) => _processes.ContainsKey(processId);
+
+    public DateTimeOffset? StartedAt(int processId) => _started.TryGetValue(processId, out var started) ? started : null;
+
+    public async Task<bool> WaitForExitAsync(int processId, CancellationToken cancellationToken)
+    {
+        if (_processes.TryGetValue(processId, out var process))
+        {
+            await process.Task.WaitAsync(cancellationToken);
+        }
+
+        return true;
+    }
+
+    public IDisposable Watch(Action changed)
+    {
+        _changed = changed;
+        return new Unwatch(this);
+    }
+
+    public bool Open(string link)
+    {
+        Opened.Enqueue(link);
+        return true;
+    }
+
+    public void Start(int processId, string language = "polish")
+    {
+        // A process starts before what it records, and file times are coarser than the clock.
+        _started[processId] = DateTimeOffset.UtcNow.AddSeconds(-1);
+        _processes[processId] = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Change(Session with { ProcessId = processId, Language = language });
+    }
+
+    /// <summary>Steam exits cleanly, forgetting its process.</summary>
+    public void Exit(int processId)
+    {
+        if (_processes.TryRemove(processId, out var process))
+        {
+            process.SetResult();
+        }
+
+        Change(Session with { ProcessId = null, RunningGame = null });
+    }
+
+    public void Change(SteamSession session)
+    {
+        Session = session;
+        _changed?.Invoke();
+    }
+
+    private sealed class Unwatch(FakeSteamClient steam) : IDisposable
+    {
+        public void Dispose() => steam._changed = null;
+    }
+}
+
+/// <summary>Settings held in memory.</summary>
+internal sealed class FakeSettings(AppSettings settings) : ISettingsService
+{
+    private readonly Lock _gate = new();
+
+    public event EventHandler<SettingsChangedEventArgs>? Changed;
+
+    public AppSettings Current
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return settings;
+            }
+        }
+    }
+
+    public AppSettings Update(Func<AppSettings, AppSettings> change)
+    {
+        AppSettings previous, current;
+        lock (_gate)
+        {
+            previous = settings;
+            current = settings = change(settings);
+        }
+
+        if (current != previous)
+        {
+            Changed?.Invoke(this, new SettingsChangedEventArgs(previous, current));
+        }
+
+        return current;
+    }
+}
+
+/// <summary>A folder watcher that reports when the test says something changed.</summary>
+internal sealed class FakeFolderWatcher : IFolderWatcher
+{
+    private readonly ConcurrentDictionary<string, Action<WatchSignal>> _watches = new(StringComparer.OrdinalIgnoreCase);
+
+    public IDisposable Watch(WatchedFolder folder, Action<WatchSignal> onSignal)
+    {
+        _watches[folder.Directory] = onSignal;
+        return new Unwatch(() => _watches.TryRemove(folder.Directory, out _));
+    }
+
+    public bool IsWatching(string directory) => _watches.ContainsKey(Path.GetFullPath(directory));
+
+    public void Report(string directory)
+    {
+        if (_watches.TryGetValue(Path.GetFullPath(directory), out var watch))
+        {
+            watch(WatchSignal.Changed);
+        }
+    }
+
+    private sealed class Unwatch(Action dispose) : IDisposable
+    {
+        public void Dispose() => dispose();
+    }
+}
