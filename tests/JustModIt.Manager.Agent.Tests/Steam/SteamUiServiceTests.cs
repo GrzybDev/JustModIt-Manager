@@ -137,6 +137,38 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
         _service.Status.Should().Match<SteamUiStatus>(status => status.Hooks == new SteamUiHooks(true, false) && status.MillenniumVersion == "3.6.3");
     }
 
+    [Fact]
+    public async Task Changes_of_launch_options_wait_in_the_texts_file_until_the_plugin_reports_them_made()
+    {
+        Start(SteamUiDemand.From([], [Game]));
+        await Eventually.HoldsAsync(() => _service.Status.PluginVersion == "1.4.0");
+        (await _service.ChangeLaunchOptionsAsync(Game, ["-examplelog"], [], AgentHarness.Token)).Failure
+            .Should().Be(LaunchOptionsFailure.Unreachable, "nothing reaches Steam while it is closed");
+        _steam.Start(7);
+        Report("""{"applied": 4, "launchOptions": {"400": "-novid"}}""");
+        await Eventually.HoldsAsync(() => _service.Status.Reachable && _service.Status.LaunchOptions[Game] == "-novid");
+
+        var result = await _service.ChangeLaunchOptionsAsync(Game, ["-examplelog"], ["-novid"], AgentHarness.Token);
+
+        result.Should().Be(new LaunchOptionsResult("-examplelog"));
+        _service.Status.LaunchOptions[Game].Should().Be("-examplelog", "the options hold the change before it returns");
+        Changes().Should().Equal((5L, "400", "-examplelog", "-novid"));
+
+        Report("""{"applied": 5, "launchOptions": {"400": "-examplelog"}}""");
+        await Eventually.HoldsAsync(() => Changes().Count == 0);
+        _service.Status.LaunchOptions[Game].Should().Be("-examplelog");
+    }
+
+    [Theory]
+    [InlineData("", "-examplelog", "", "-examplelog")]
+    [InlineData("-novid", "-examplelog -novid", "", "-novid -examplelog")]
+    [InlineData("\"C:\\My  Tools\\x.exe\" %command% -examplelog", "", "-examplelog", "\"C:\\My  Tools\\x.exe\" %command%")]
+    [InlineData("-examplelog  -novid", "", "-examplelog", "-novid")]
+    [InlineData("-novid -examplelogs", "", "-examplelog", "-novid -examplelogs")]
+    public void Options_change_as_the_script_in_steam_changes_them(string before, string add, string remove, string after) =>
+        LaunchOptionsText.Changed(before, add.Split(' ', StringSplitOptions.RemoveEmptyEntries), remove.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            .Should().Be(after);
+
     public async ValueTask DisposeAsync()
     {
         await _stop.CancelAsync();
@@ -152,6 +184,15 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
     }
 
     private JsonDocument TextsFile() => JsonDocument.Parse(File.ReadAllBytes(Path.Combine(PluginFolder, "texts.json")));
+
+    private List<(long Id, string App, string Add, string Remove)> Changes()
+    {
+        using var texts = TextsFile();
+        return [.. texts.RootElement.GetProperty("launchOptions").GetProperty("changes").EnumerateArray().Select(change => (
+            change.GetProperty("id").GetInt64(), change.GetProperty("app").GetString()!,
+            string.Join(' ', change.GetProperty("add").EnumerateArray().Select(option => option.GetString())),
+            string.Join(' ', change.GetProperty("remove").EnumerateArray().Select(option => option.GetString()))))];
+    }
 
     private void Report(string status)
     {

@@ -17,8 +17,8 @@ namespace JustModIt.Manager.Agent.Steam;
 
 /// <summary>
 /// The app's way into Steam's interface. It follows Steam's starts and exits, installs the app's Millennium plugin while
-/// Steam is closed, writes the plugin the achievement texts to show and the games whose launch options to report, and reads
-/// back what the plugin reports.
+/// Steam is closed, writes the plugin the achievement texts to show and the launch options to change, and reads back what
+/// the plugin reports.
 /// </summary>
 /// <param name="steam">The Steam client on this computer.</param>
 /// <param name="folders">Reports the plugin's reports.</param>
@@ -54,6 +54,8 @@ internal sealed partial class SteamUiService(ISteamClient steam, IFolderWatcher 
     private IReadOnlyDictionary<string, byte[]>? _pluginFiles;
     private MillenniumPlugin? _plugin;
     private PluginReport _report = PluginReport.None;
+    private List<PendingLaunchOptions>? _pending;
+    private long _lastChange;
     private byte[]? _writtenTexts;
     private string? _watchedFolder;
     private IDisposable? _statusWatch;
@@ -127,9 +129,35 @@ internal sealed partial class SteamUiService(ISteamClient steam, IFolderWatcher 
         return SteamRestartResult.Restarting;
     }
 
-    public Task<LaunchOptionsResult> ChangeLaunchOptionsAsync(GameKey game, IReadOnlyList<string> add, IReadOnlyList<string> remove,
-        CancellationToken cancellationToken) =>
-        Task.FromResult(new LaunchOptionsResult(null, LaunchOptionsFailure.Unreachable));
+    public async Task<LaunchOptionsResult> ChangeLaunchOptionsAsync(GameKey game, IReadOnlyList<string> add, IReadOnlyList<string> remove,
+        CancellationToken cancellationToken)
+    {
+        await _work.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var status = Status;
+            if (!status.Reachable || _plugin is not { } plugin || _pending is not { } pending)
+            {
+                return new LaunchOptionsResult(null, LaunchOptionsFailure.Unreachable);
+            }
+
+            // The plugin makes the change the next time it reads its texts file, at the latest before a game starts.
+            pending.Add(new PendingLaunchOptions(++_lastChange, game, [.. add], [.. remove]));
+            if (!await WriteTextsAsync(plugin, Volatile.Read(ref _demand), cancellationToken).ConfigureAwait(false))
+            {
+                pending.RemoveAt(pending.Count - 1);
+                return new LaunchOptionsResult(null, LaunchOptionsFailure.Failed);
+            }
+
+            var changed = LaunchOptionsText.Changed(status.LaunchOptions.GetValueOrDefault(game, ""), add, remove);
+            Publish(status with { LaunchOptions = status.LaunchOptions.SetItem(game, changed) });
+            return new LaunchOptionsResult(changed);
+        }
+        finally
+        {
+            _work.Release();
+        }
+    }
 
     public void Dispose()
     {
@@ -262,6 +290,7 @@ internal sealed partial class SteamUiService(ISteamClient steam, IFolderWatcher 
         {
             _plugin = plugin;
             _report = PluginReport.None;
+            _pending = null;
             _writtenTexts = null;
         }
 
@@ -321,29 +350,35 @@ internal sealed partial class SteamUiService(ISteamClient steam, IFolderWatcher 
         {
             _report = PluginReport.None;
         }
+
+        _pending ??= plugin.ReadTexts() is { } written ? [.. PluginTexts.ReadChanges(written)] : [];
+        _pending.RemoveAll(change => change.Id <= _report.Applied);
+        _lastChange = Math.Max(_report.Applied, _pending.Select(change => change.Id).DefaultIfEmpty(_lastChange).Max());
     }
 
-    private async Task WriteTextsAsync(MillenniumPlugin plugin, SteamUiDemand demand, CancellationToken cancellationToken)
+    private async Task<bool> WriteTextsAsync(MillenniumPlugin plugin, SteamUiDemand demand, CancellationToken cancellationToken)
     {
-        var content = PluginTexts.Write(demand, options, time.LocalTimeZone);
+        var content = PluginTexts.Write(demand, _pending ?? [], options, time.LocalTimeZone);
         _writtenTexts ??= plugin.ReadTexts();
         if (_writtenTexts is not null && _writtenTexts.AsSpan().SequenceEqual(content))
         {
-            return;
+            return true;
         }
 
         try
         {
             await plugin.WriteTextsAsync(content, cancellationToken).ConfigureAwait(false);
             _writtenTexts = content;
+            return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             LogTextsNotWritten(exception.GetType().Name);
+            return false;
         }
     }
 
-    // The player's options as the plugin reported them.
+    // The player's options as the plugin reported them, with the changes it has not made yet.
     private ValueDictionary<GameKey, string> LaunchOptionsOf(ValueList<GameKey> games, bool reachable)
     {
         var result = ImmutableDictionary<GameKey, string>.Empty;
@@ -355,7 +390,8 @@ internal sealed partial class SteamUiService(ISteamClient steam, IFolderWatcher 
                 continue;
             }
 
-            result = result.Add(game, reported);
+            result = result.Add(game, (_pending ?? []).Where(change => change.Game == game)
+                .Aggregate(reported, (current, change) => LaunchOptionsText.Changed(current, change.Add, change.Remove)));
         }
 
         return new ValueDictionary<GameKey, string>(result);
