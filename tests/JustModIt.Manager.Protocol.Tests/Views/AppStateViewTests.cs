@@ -208,11 +208,16 @@ public sealed class AppStateViewTests
     [Fact]
     public void Changed_settings_keep_the_per_game_choices_and_added_folders()
     {
-        var view = SettingsView.From(Settings) with { AutoInstallProjects = true, BackupLocation = BackupLocation.AppData };
+        var view = SettingsView.From(Settings) with
+        {
+            AutoInstallProjects = true,
+            BackupLocation = BackupLocation.AppData,
+            AchievementClassicMode = false,
+        };
 
         var applied = view.ApplyTo(Settings);
 
-        applied.Should().Be(Settings with { AutoInstallProjects = true, BackupLocation = BackupLocation.AppData });
+        applied.Should().Be(Settings with { AutoInstallProjects = true, BackupLocation = BackupLocation.AppData, AchievementClassicMode = false });
         SettingsView.From(applied).CustomBackupFolder.Should().Be(@"E:\Backups");
     }
 

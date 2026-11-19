@@ -23,6 +23,9 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string SendErrorReports = "sendErrorReports";
     private const string ShowNotifications = "showNotifications";
     private const string BlurAdultContent = "blurAdultContent";
+    private const string AchievementTexts = "achievementTexts";
+    private const string AutoAchievementTexts = "autoAchievementTexts";
+    private const string AchievementClassicMode = "achievementClassicMode";
     private const string CreatorMode = "creatorMode";
     private const string OnboardingCompleted = "onboardingCompleted";
     private const string OnboardingStep = "onboardingStep";
@@ -57,8 +60,8 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
 
     public IReadOnlySet<string> KnownProperties { get; } = FrozenSet.Create(StringComparer.Ordinal,
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
-        AutoUpdateApp, UpdatePrereleases, SendErrorReports, ShowNotifications, BlurAdultContent, CreatorMode,
-        OnboardingCompleted, OnboardingStep,
+        AutoUpdateApp, UpdatePrereleases, SendErrorReports, ShowNotifications, BlurAdultContent, AchievementTexts,
+        AutoAchievementTexts, AchievementClassicMode, CreatorMode, OnboardingCompleted, OnboardingStep,
         TrayNoticeShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
         AdultContentConfirmedUntil, RevealedAdultGames, RecentCreatorProjects, InstallationId, LegacyShowAdultContent,
         LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
@@ -89,6 +92,9 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             SendErrorReports = root.GetBooleanOrNull(SendErrorReports) ?? defaults.SendErrorReports,
             ShowNotifications = root.GetBooleanOrNull(ShowNotifications) ?? defaults.ShowNotifications,
             BlurAdultContent = blurAdultContent,
+            AchievementTexts = root.GetBooleanOrNull(AchievementTexts) ?? defaults.AchievementTexts,
+            AutoAchievementTexts = root.GetBooleanOrNull(AutoAchievementTexts) ?? defaults.AutoAchievementTexts,
+            AchievementClassicMode = root.GetBooleanOrNull(AchievementClassicMode) ?? defaults.AchievementClassicMode,
             CreatorMode = root.GetBooleanOrNull(CreatorMode) ?? defaults.CreatorMode,
             OnboardingCompleted = root.GetBooleanOrNull(OnboardingCompleted) ?? defaults.OnboardingCompleted,
             OnboardingStep = root.GetInt32OrNull(OnboardingStep) is >= 0 and var step ? step : defaults.OnboardingStep,
@@ -117,6 +123,9 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteBoolean(SendErrorReports, document.SendErrorReports);
         writer.WriteBoolean(ShowNotifications, document.ShowNotifications);
         writer.WriteBoolean(BlurAdultContent, document.BlurAdultContent);
+        writer.WriteBoolean(AchievementTexts, document.AchievementTexts);
+        writer.WriteBoolean(AutoAchievementTexts, document.AutoAchievementTexts);
+        writer.WriteBoolean(AchievementClassicMode, document.AchievementClassicMode);
         writer.WriteBoolean(CreatorMode, document.CreatorMode);
         writer.WriteBoolean(OnboardingCompleted, document.OnboardingCompleted);
         writer.WriteNumber(OnboardingStep, document.OnboardingStep);
@@ -139,6 +148,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
                 writer.WriteBoolean(IsHidden, true);
             }
 
+            writer.WriteIfSet(AchievementTexts, preferences.AchievementTexts);
             writer.WriteEndObject();
         }
 
@@ -205,6 +215,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
                 VariantName = game.Value.GetTextOrNull(VariantName),
                 Features = ReadFeatures(game.Value.GetOrNull(FeaturesName, JsonValueKind.Object)),
                 IsHidden = game.Value.GetBooleanOrNull(IsHidden) ?? false,
+                AchievementTexts = game.Value.GetBooleanOrNull(AchievementTexts),
             };
             if (preferences != GamePreferences.Default)
             {

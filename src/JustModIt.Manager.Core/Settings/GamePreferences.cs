@@ -35,6 +35,12 @@ public sealed record GamePreferences
     /// <summary>Hidden from the player's list of games and left alone by the automation.</summary>
     public bool IsHidden { get; init; }
 
+    /// <summary>
+    /// Whether the player turned the game's achievement texts on or off; null follows <see cref="AppSettings.AutoAchievementTexts"/>
+    /// and which project's texts apply.
+    /// </summary>
+    public bool? AchievementTexts { get; init; }
+
     /// <summary>The player's add-on choices for one project.</summary>
     /// <param name="project">The project's id.</param>
     public IReadOnlyDictionary<string, bool> FeaturesOf(Guid project) =>

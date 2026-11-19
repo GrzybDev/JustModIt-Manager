@@ -33,6 +33,9 @@ public sealed class SettingsFormatTests : IDisposable
             SendErrorReports = true,
             ShowNotifications = false,
             BlurAdultContent = false,
+            AchievementTexts = false,
+            AutoAchievementTexts = false,
+            AchievementClassicMode = false,
             CreatorMode = true,
             OnboardingCompleted = true,
             OnboardingStep = 3,
@@ -51,9 +54,10 @@ public sealed class SettingsFormatTests : IDisposable
                 AutoUpdate = true,
                 ProjectId = Project,
                 IsHidden = true,
+                AchievementTexts = false,
             }).WithFeatures(Project, new Dictionary<string, bool> { ["voice-over"] = false, ["signs"] = true }))
-            .WithGame(SteamGame, preferences => preferences.WithFeatures(Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e921"),
-                new Dictionary<string, bool> { ["Text only"] = true }))
+            .WithGame(SteamGame, preferences => (preferences with { AchievementTexts = true }).WithFeatures(
+                Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e921"), new Dictionary<string, bool> { ["Text only"] = true }))
             .WithLibraryFolder(new LibraryFolder(StoreId.Steam, Rooted("SteamLibrary")))
             .WithLibraryFolder(new LibraryFolder(StoreId.Gog, Rooted("GOG Games")));
 
@@ -177,11 +181,12 @@ public sealed class SettingsFormatTests : IDisposable
               "version": 1,
               "closeBehavior": "Explode",
               "autoUpdateProjects": "yes",
+              "achievementClassicMode": "off",
               "creatorMode": true,
               "startWithSystem": null,
               "preferredTeams": [ "not a team", 7, "5a6b7c8d-0000-4000-8000-000000000001", "5A6B7C8D-0000-4000-8000-000000000001" ],
               "games": {
-                "steam:1000": { "autoInstall": "maybe", "isHidden": true, "projectId": 12 },
+                "steam:1000": { "autoInstall": "maybe", "isHidden": true, "projectId": 12, "achievementTexts": "on" },
                 "not a key": { "isHidden": true },
                 "gog:1": "hidden",
                 "gog:2": { "isHidden": false }
@@ -199,6 +204,7 @@ public sealed class SettingsFormatTests : IDisposable
 
         settings!.CloseBehavior.Should().Be(CloseBehavior.Ask);
         settings.AutoUpdateProjects.Should().BeTrue();
+        settings.AchievementClassicMode.Should().BeTrue();
         settings.StartWithSystem.Should().BeTrue();
         settings.CreatorMode.Should().BeTrue();
         settings.PreferredTeams.Should().Equal(Guid.Parse("5a6b7c8d-0000-4000-8000-000000000001"));

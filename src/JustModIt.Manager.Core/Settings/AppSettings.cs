@@ -56,6 +56,15 @@ public sealed record AppSettings
     /// <summary>Blur the images of games marked as adult content until the player reveals them.</summary>
     public bool BlurAdultContent { get; init; } = true;
 
+    /// <summary>Show the achievement texts projects publish in Steam's interface; off, no game shows them.</summary>
+    public bool AchievementTexts { get; init; } = true;
+
+    /// <summary>Show a game's achievement texts once a project publishes them, unless the player chose otherwise for the game.</summary>
+    public bool AutoAchievementTexts { get; init; } = true;
+
+    /// <summary>Without Millennium, bring the texts to Steam's interface through its developer tools port.</summary>
+    public bool AchievementClassicMode { get; init; } = true;
+
     public bool CreatorMode { get; init; }
 
     /// <summary>The automation does nothing until the first-run setup is finished.</summary>

@@ -30,6 +30,15 @@ public sealed record SettingsView
 
     public bool BlurAdultContent { get; init; }
 
+    /// <inheritdoc cref="AppSettings.AchievementTexts"/>
+    public bool AchievementTexts { get; init; }
+
+    /// <inheritdoc cref="AppSettings.AutoAchievementTexts"/>
+    public bool AutoAchievementTexts { get; init; }
+
+    /// <inheritdoc cref="AppSettings.AchievementClassicMode"/>
+    public bool AchievementClassicMode { get; init; }
+
     public bool CreatorMode { get; init; }
 
     public bool OnboardingCompleted { get; init; }
@@ -67,6 +76,9 @@ public sealed record SettingsView
             SendErrorReports = settings.SendErrorReports,
             ShowNotifications = settings.ShowNotifications,
             BlurAdultContent = settings.BlurAdultContent,
+            AchievementTexts = settings.AchievementTexts,
+            AutoAchievementTexts = settings.AutoAchievementTexts,
+            AchievementClassicMode = settings.AchievementClassicMode,
             CreatorMode = settings.CreatorMode,
             OnboardingCompleted = settings.OnboardingCompleted,
             OnboardingStep = settings.OnboardingStep,
@@ -93,6 +105,9 @@ public sealed record SettingsView
             SendErrorReports = SendErrorReports,
             ShowNotifications = ShowNotifications,
             BlurAdultContent = BlurAdultContent,
+            AchievementTexts = AchievementTexts,
+            AutoAchievementTexts = AutoAchievementTexts,
+            AchievementClassicMode = AchievementClassicMode,
             CreatorMode = CreatorMode,
             OnboardingCompleted = OnboardingCompleted,
             OnboardingStep = OnboardingStep,
