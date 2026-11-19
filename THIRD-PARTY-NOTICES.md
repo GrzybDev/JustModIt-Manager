@@ -44,7 +44,7 @@ THIRD-PARTY-NOTICES.TXT".
 - Website: https://github.com/microsoft/CsWin32
 - Licence: MIT (see "MIT License")
 - Copyright: Copyright (c) Microsoft Corporation
-- NuGet package: Microsoft.Windows.CsWin32 0.3.335
+- NuGet package: Microsoft.Windows.CsWin32 0.3.371
 - Use: generates the app's bindings to Windows from the Win32 metadata (https://github.com/microsoft/win32metadata,
   MIT, Copyright (c) Microsoft Corporation) while the app is built; the generated code, with CsWin32's own helper
   code, is compiled into the app's executable, and the generator itself does not ship.
@@ -70,7 +70,7 @@ THIRD-PARTY-NOTICES.TXT".
 - Website: https://github.com/velopack/velopack
 - Licence: MIT (see "MIT License")
 - Copyright: Copyright © 2021 Caelan Sayler, Copyright © 2024 Velopack Ltd.
-- NuGet package: Velopack 1.2.158
+- NuGet package: Velopack 1.2.161
 - Use: checking for, downloading and applying updates of the app, compiled into the app's executable.
 
 Velopack's file `Util/EnumerableExtensions.cs` contains code from Interactive Extensions (Ix,
@@ -79,7 +79,7 @@ https://github.com/dotnet/reactive), Copyright (c) Microsoft Open Technologies, 
 
 ### Velopack installer and updater
 
-- Version: 1.2.158
+- Version: 1.2.161
 - Website: https://github.com/velopack/velopack
 - Licence: MIT (see "MIT License")
 - Copyright: Copyright © 2021 Caelan Sayler, Copyright © 2024 Velopack Ltd.
@@ -89,7 +89,7 @@ https://github.com/dotnet/reactive), Copyright (c) Microsoft Open Technologies, 
 Both programs are written in Rust and statically include libraries (crates) under the licences that Velopack allows in
 its `deny.toml`: MIT, Apache-2.0, Apache-2.0 WITH LLVM-exception, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-3.0, Zlib,
 MPL-2.0, 0BSD, Unlicense and CDLA-Permissive-2.0. The libraries and their versions are listed in
-https://github.com/velopack/velopack/blob/1.2.158/Cargo.lock, and their source code is available from
+https://github.com/velopack/velopack/blob/1.2.161/Cargo.lock, and their source code is available from
 https://crates.io. Among them is Zstandard (zstd), Copyright (c) Meta Platforms, Inc. and affiliates. All rights
 reserved., licensed under the BSD 3-Clause licence (see "BSD 3-Clause License").
 
@@ -98,7 +98,7 @@ reserved., licensed under the BSD 3-Clause licence (see "BSD 3-Clause License").
 - Website: https://avaloniaui.net (https://github.com/AvaloniaUI/Avalonia)
 - Licence: MIT (see "MIT License")
 - Copyright: Copyright (c) AvaloniaUI OÜ All Rights Reserved, Copyright 2013-2026 © The AvaloniaUI Project
-- NuGet packages: Avalonia 12.1.3, Avalonia.Desktop 12.1.3, Avalonia.Fonts.Inter 12.1.3, Avalonia.FreeDesktop 12.1.3, Avalonia.FreeDesktop.AtSpi 12.1.3, Avalonia.HarfBuzz 12.1.3, Avalonia.Native 12.1.3, Avalonia.Remote.Protocol 12.1.3, Avalonia.Skia 12.1.3, Avalonia.Themes.Fluent 12.1.3, Avalonia.Win32 12.1.3, Avalonia.X11 12.1.3
+- NuGet packages: Avalonia 12.1.6, Avalonia.Desktop 12.1.6, Avalonia.Fonts.Inter 12.1.6, Avalonia.FreeDesktop 12.1.6, Avalonia.FreeDesktop.AtSpi 12.1.6, Avalonia.HarfBuzz 12.1.6, Avalonia.Native 12.1.6, Avalonia.Remote.Protocol 12.1.6, Avalonia.Skia 12.1.6, Avalonia.Themes.Fluent 12.1.6, Avalonia.Win32 12.1.6, Avalonia.X11 12.1.6
 - Use: the user interface framework, compiled into the app's executable as far as the app uses it.
 
 Avalonia contains code of other projects (WPF, Silverlight Toolkit, wayland-protocols, Metsys.Bson, RichTextKit, Mono,
@@ -256,7 +256,7 @@ licences; it is reproduced in "CommunityToolkit.Mvvm – ThirdPartyNotices.txt".
 - Website: https://github.com/xoofx/markdig
 - Licence: BSD-2-Clause (see "BSD 2-Clause License")
 - Copyright: Copyright (c) 2016-2026, Alexandre Mutel
-- NuGet package: Markdig 1.4.0
+- NuGet package: Markdig 1.6.0
 - Use: reading project descriptions written in Markdown, compiled into the app's executable.
 
 Markdig contains code of CommonMark.NET (https://github.com/Knagis/CommonMark.NET): the file
@@ -267,7 +267,7 @@ Kārlis Gaņģis, licensed under the BSD 3-Clause licence (see "BSD 3-Clause Lic
 
 ### xdelta3
 
-- Version: 3.2.0 (git submodule `native/xdelta`, tag v3.2.0, commit ff322e592383227b0d65ddfde7e0e5bbc504dc15,
+- Version: 3.2.2 (git submodule `native/xdelta`, tag v3.2.2, commit 5f8f5a553181c139d91b0289c009e5c276c5318c,
   unmodified)
 - Website: https://github.com/jmacd/xdelta
 - Licence: Apache-2.0 (see "Apache License 2.0")
@@ -301,7 +301,7 @@ Kārlis Gaņģis, licensed under the BSD 3-Clause licence (see "BSD 3-Clause Lic
 
 ### Inter
 
-- Version: 3.19, as Avalonia.Fonts.Inter 12.1.3 embeds it
+- Version: 3.19, as Avalonia.Fonts.Inter 12.1.6 embeds it
 - Website: https://rsms.me/inter/ (https://github.com/rsms/inter)
 - Licence: OFL-1.1 (see "Inter – OFL.txt")
 - Copyright: Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
@@ -541,7 +541,7 @@ END OF TERMS AND CONDITIONS
 
 ### BSD 2-Clause License
 
-Markdig 1.4.0 (`license.txt`):
+Markdig 1.6.0 (`license.txt`):
 
 ```text
 Copyright (c) 2016-2026, Alexandre Mutel
@@ -5144,7 +5144,7 @@ mozzconf.h is distributed under the MPL 1.1/GPL 2.0/LGPL 2.1 tri-license.
 
 ### Avalonia – NOTICE.md
 
-`NOTICE.md` of Avalonia 12.1.3 (https://github.com/AvaloniaUI/Avalonia/blob/12.1.3/NOTICE.md):
+`NOTICE.md` of Avalonia 12.1.6 (https://github.com/AvaloniaUI/Avalonia/blob/12.1.6/NOTICE.md):
 
 ```text
 # WPF

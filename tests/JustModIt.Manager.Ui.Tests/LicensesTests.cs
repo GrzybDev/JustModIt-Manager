@@ -21,7 +21,7 @@ public sealed partial class LicensesTests
 
         components.Select(component => (component.Name, component.Version, component.License)).Should().Contain(
         [
-            ("Avalonia", "12.1.3", "MIT"),
+            ("Avalonia", "12.1.6", "MIT"),
             ("SkiaSharp and HarfBuzzSharp", "8.3.1.3 · 3.119.4", "MIT"),
             ("Skia (libSkiaSharp.dll)", "119", "BSD-3-Clause"),
             ("Wuffs (in libSkiaSharp.dll)", "commit e3f919c of wuffs-mirror-release-c", "Apache-2.0"),

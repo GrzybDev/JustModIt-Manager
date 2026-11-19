@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.20)
 project(xd3shim C)
 
 set(XDELTA3_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../xdelta/xdelta3" CACHE PATH "xdelta3 sources (git submodule)")
-set(XDELTA3_VERSION "3.2.0" CACHE STRING "xdelta3 version of XDELTA3_SOURCE_DIR")
+# Not cached, so a build folder configured before the submodule moved reports the version it now builds.
+set(XDELTA3_VERSION "3.2.2")
 # Build liblzma from the pinned submodule instead of letting FetchContent clone it.
 set(FETCHCONTENT_SOURCE_DIR_LIBLZMA "${CMAKE_CURRENT_SOURCE_DIR}/../xz" CACHE PATH "xz sources (git submodule)")
 
