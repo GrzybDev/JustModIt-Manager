@@ -1,4 +1,5 @@
 using JustModIt.Manager.Agent.Ipc;
+using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Tests.TestSupport;
 using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Core.Installation;
@@ -74,6 +75,20 @@ public sealed class ExitTests : IAsyncDisposable
 
         (await job.Completion.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token)).Outcome.Should().Be(JobOutcome.Cancelled);
         await _agent.Run.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token);
+    }
+
+    [Fact]
+    public async Task Exiting_at_once_cancels_the_jobs_and_does_not_ask_the_window()
+    {
+        _agent.Start();
+        var window = await _agent.ConnectWindowAsync(acceptsShutdown: false);
+        var job = await HeldRecoveryEngine.StartJobAsync(_agent);
+
+        (await _agent.ServiceAsync<AgentLifetime>()).ExitAtOnce();
+
+        (await job.Completion.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token)).Outcome.Should().Be(JobOutcome.Cancelled);
+        await _agent.Run.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token);
+        window.ShutdownRequests.Reader.TryRead(out _).Should().BeFalse("a window that keeps unsaved work cannot hold up the system");
     }
 
     public async ValueTask DisposeAsync() => await _agent.DisposeAsync();

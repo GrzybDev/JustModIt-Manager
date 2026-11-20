@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using JustModIt.Manager.Agent;
+using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
@@ -26,6 +27,10 @@ internal static class AgentPlatform
         {
             AddWindows(services, options);
         }
+        else if (OperatingSystem.IsLinux())
+        {
+            AddLinux(services);
+        }
 
         app?.Invoke(services);
     }
@@ -44,5 +49,12 @@ internal static class AgentPlatform
         services.AddSingleton<IForegroundHandoff>(WindowsForegroundHandoff.Instance);
         services.AddSingleton<ITrayHost>(provider =>
             new WindowsTrayHost(options.ExecutablePath, provider.GetRequiredService<ILogger<WindowsTrayHost>>()));
+    }
+
+    [SupportedOSPlatform("linux")]
+    private static void AddLinux(IServiceCollection services)
+    {
+        // Windows tells the agent of a logout or a shutdown through the tray's window instead.
+        services.AddSingleton<IAgentService, StopSignal>();
     }
 }

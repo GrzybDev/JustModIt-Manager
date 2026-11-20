@@ -293,7 +293,8 @@ public sealed partial class UpdateService(
             return false;
         }
 
-        lifetime.ExitForUpdate();
+        LogExitingToApply();
+        lifetime.ExitAtOnce();
         return true;
     }
 
@@ -314,4 +315,7 @@ public sealed partial class UpdateService(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The update could not be applied")]
     private partial void LogApplyFailed(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Exiting to apply an update")]
+    private partial void LogExitingToApply();
 }

@@ -77,12 +77,15 @@ public sealed partial class AgentLifetime(UiLauncher ui, JobRunner jobs, AgentSt
         return true;
     }
 
-    /// <summary>Exits so that an update can replace the app; whoever calls it has already dealt with the window.</summary>
-    public void ExitForUpdate()
+    /// <summary>
+    /// Exits without asking the window, cancelling running jobs, which undoes what they changed: for an update that
+    /// replaces the app, whose caller has dealt with the window, or when the system stops the agent.
+    /// </summary>
+    public void ExitAtOnce()
     {
         Interlocked.Exchange(ref _exiting, 1);
         Volatile.Write(ref _leaving, 1);
-        LogExitingForUpdate();
+        LogExitingAtOnce(jobs.Active.Count);
         jobs.Shutdown(cancelPlayerJobs: true);
         _exited.TrySetResult();
     }
@@ -99,6 +102,6 @@ public sealed partial class AgentLifetime(UiLauncher ui, JobRunner jobs, AgentSt
     [LoggerMessage(Level = LogLevel.Information, Message = "Exiting ({Mode}) with {Jobs} jobs running")]
     private partial void LogExiting(ExitMode mode, int jobs);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Exiting to apply an update")]
-    private partial void LogExitingForUpdate();
+    [LoggerMessage(Level = LogLevel.Information, Message = "Exiting at once with {Jobs} jobs running")]
+    private partial void LogExitingAtOnce(int jobs);
 }
