@@ -311,7 +311,6 @@ public sealed class PreflightTests : IAsyncDisposable
     [Fact]
     public async Task Refuses_while_another_copy_of_the_app_works_on_the_game()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows locks files.");
         Directory.CreateDirectory(_harness.HiddenDirectory);
         await using (new FileStream(Path.Join(_harness.HiddenDirectory, "lock"), FileMode.Create, FileAccess.ReadWrite,
                          FileShare.None, 1, FileOptions.DeleteOnClose))

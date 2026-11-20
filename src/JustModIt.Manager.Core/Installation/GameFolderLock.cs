@@ -26,18 +26,44 @@ internal sealed class GameFolderLock : IDisposable
         FileOperations.CreateHiddenDirectory(game.HiddenDirectory);
         try
         {
-            return new GameFolderLock(new FileStream(Path.Join(game.HiddenDirectory, FileName), FileMode.OpenOrCreate,
-                FileAccess.ReadWrite, FileShare.None, bufferSize: 0, FileOptions.DeleteOnClose), game);
+            // Elsewhere than on Windows a lock outlives its file's name: a copy may open the file just before its holder
+            // deletes it and lock it just after, while another locks a new file at the path. Such a lock counts for nothing,
+            // and closing it must not delete the new file, so the lock is taken once more.
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                var stream = new FileStream(Path.Join(game.HiddenDirectory, FileName), FileMode.OpenOrCreate, FileAccess.ReadWrite,
+                    FileShare.None, bufferSize: 0, OperatingSystem.IsWindows() ? FileOptions.DeleteOnClose : FileOptions.None);
+                if (!IsDeleted(stream))
+                {
+                    return new GameFolderLock(stream, game);
+                }
+
+                stream.Dispose();
+            }
         }
         catch (IOException)
         {
-            FileOperations.DeleteDirectoryIfEmpty(game.HiddenDirectory);
-            return null;
         }
+
+        FileOperations.DeleteDirectoryIfEmpty(game.HiddenDirectory);
+        return null;
     }
+
+    /// <summary>Whether the file a stream holds is no longer at its path, which only Linux tells.</summary>
+    /// <param name="stream">The open file.</param>
+    internal static bool IsDeleted(FileStream stream) =>
+        OperatingSystem.IsLinux()
+        && new FileInfo($"/proc/self/fd/{stream.SafeFileHandle.DangerousGetHandle()}").LinkTarget?.EndsWith(" (deleted)", StringComparison.Ordinal) == true;
 
     public void Dispose()
     {
+        // Deleted while still locked, so a copy that opened it meanwhile finds it deleted once it gets the lock; Windows
+        // deletes it as the lock goes.
+        if (!OperatingSystem.IsWindows())
+        {
+            FileOperations.TryDeleteFile(_stream.Name);
+        }
+
         _stream.Dispose();
         FileOperations.DeleteDirectoryIfEmpty(_game.HiddenDirectory);
     }
