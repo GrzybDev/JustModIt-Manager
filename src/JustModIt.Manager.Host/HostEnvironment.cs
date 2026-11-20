@@ -17,17 +17,29 @@ namespace JustModIt.Manager.Host;
 
 /// <summary>Where this copy of the app lives: the updater's stable copy once installed, otherwise the build it runs from.</summary>
 /// <param name="ExecutablePath">The executable that autostart and links start.</param>
-/// <param name="Directory">The folder that updates replace and uninstalling removes.</param>
+/// <param name="Directory">
+/// The folder that updates replace and uninstalling removes; null for an AppImage, a single file that updates replace.
+/// </param>
 /// <param name="IsInstalled">Whether the updater installed this copy.</param>
-internal sealed record InstallLocation(string ExecutablePath, string Directory, bool IsInstalled)
+internal sealed record InstallLocation(string ExecutablePath, string? Directory, bool IsInstalled)
 {
     /// <summary>Finds where the copy of the app running this process lives.</summary>
-    public static InstallLocation Current()
+    public static InstallLocation Current() => Of(VelopackLocator.IsCurrentSet ? VelopackLocator.Current : null,
+        Environment.ProcessPath ?? throw new InvalidOperationException("The app's executable is unknown."));
+
+    /// <summary>Finds where a copy of the app lives, as the updater tells it.</summary>
+    /// <param name="locator">What the updater knows of the copy; null before the updater looked.</param>
+    /// <param name="process">The executable of the process running the copy.</param>
+    internal static InstallLocation Of(IVelopackLocator? locator, string process)
     {
-        var process = Environment.ProcessPath ?? throw new InvalidOperationException("The app's executable is unknown.");
-        return VelopackLocator.IsCurrentSet
-            && VelopackLocator.Current is { CurrentlyInstalledVersion: not null, AppContentDir: { } content, RootAppDir: { } root,
-                ThisExeRelativePath: { } executable }
+        // An AppImage runs from a mount that lasts only as long as its process, so the file itself is what starts it again.
+        if (OperatingSystem.IsLinux() && locator is LinuxVelopackLocator { AppImagePath: { } image, CurrentlyInstalledVersion: not null })
+        {
+            return new InstallLocation(image, Directory: null, IsInstalled: true);
+        }
+
+        return locator is { CurrentlyInstalledVersion: not null, AppContentDir: { } content, RootAppDir: { } root,
+            ThisExeRelativePath: { } executable }
             ? new InstallLocation(Path.Combine(content, executable), root, IsInstalled: true)
             : new InstallLocation(process, Path.GetDirectoryName(process)!, IsInstalled: false);
     }

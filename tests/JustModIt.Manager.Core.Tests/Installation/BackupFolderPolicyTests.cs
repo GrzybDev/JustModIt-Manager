@@ -63,6 +63,15 @@ public sealed class BackupFolderPolicyTests : IDisposable
         Check(_temp.CreateDirectory("App/Backups")).Should().Be(BackupFolderProblem.InsideAppFolder);
     }
 
+    [Fact]
+    public void An_app_that_is_a_single_file_leaves_the_folder_holding_it_free_for_backups()
+    {
+        var applications = _temp.CreateDirectory("Applications");
+        File.WriteAllText(Path.Combine(applications, "ExampleApp.AppImage"), "");
+
+        BackupFolderPolicy.Check(applications, [_temp.Combine("Games/Example")], appFolder: null, _volumes).Should().BeNull();
+    }
+
     private BackupFolderProblem? Check(string folder) =>
         BackupFolderPolicy.Check(folder, [_temp.Combine("Games/Example")], _temp.Combine("App"), _volumes);
 }

@@ -32,8 +32,11 @@ public sealed record AgentOptions
     /// </summary>
     public required string ExecutablePath { get; init; }
 
-    /// <summary>The folder the app is installed in, which updates replace; backups are never allowed in it.</summary>
-    public required string InstallDirectory { get; init; }
+    /// <summary>
+    /// The folder the app is installed in, which updates replace; backups are never allowed in it. Null for an AppImage, a
+    /// single file that updates replace.
+    /// </summary>
+    public required string? InstallDirectory { get; init; }
 
     /// <summary>Registers autostart and the link scheme, which a development build does only when asked to.</summary>
     public bool IntegratesWithShell { get; init; }

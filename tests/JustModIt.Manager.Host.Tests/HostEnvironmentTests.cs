@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Versioning;
 using JustModIt.Manager.Agent;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Library;
@@ -11,6 +12,7 @@ using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Ui;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Velopack.Locators;
 
 namespace JustModIt.Manager.Host.Tests;
 
@@ -111,6 +113,41 @@ public sealed class HostEnvironmentTests : IDisposable
     }
 
     [Fact]
+    [SupportedOSPlatform("linux")]
+    public void An_appimage_is_started_through_its_file_and_has_no_folder_that_keeps_backups_out()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "The updater runs the app as an AppImage only on Linux.");
+        var root = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"));
+        var image = Path.Combine(root, "Applications", "ExampleApp.AppImage");
+        // The AppImage's runtime mounts its files at a temporary folder and runs the app from usr/bin there.
+        var content = Directory.CreateDirectory(Path.Combine(root, ".mount_ExampleApp", "usr", "bin")).FullName;
+        var executable = Path.Combine(content, "ExampleApp");
+        var appId = $"ExampleApp{Guid.NewGuid():N}";
+        Directory.CreateDirectory(Path.GetDirectoryName(image)!);
+        File.WriteAllText(image, "");
+        File.WriteAllText(Path.Combine(content, "UpdateNix"), "");
+        File.WriteAllText(Path.Combine(content, "sq.version"),
+            $"<package><metadata><id>{appId}</id><version>1.2.3</version></metadata></package>");
+        var previous = Environment.GetEnvironmentVariable("APPIMAGE");
+        Environment.SetEnvironmentVariable("APPIMAGE", image);
+        try
+        {
+            var location = InstallLocation.Of(new LinuxVelopackLocator(new MountedProcess(executable), null), executable);
+            var options = HostEnvironment.Create(Product with { IsDevelopmentBuild = false }, location).AgentOptions();
+
+            location.Should().Be(new InstallLocation(image, Directory: null, IsInstalled: true));
+            (options.ExecutablePath, options.InstallDirectory, options.IntegratesWithShell).Should().Be((image, null, true));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("APPIMAGE", previous);
+            Directory.Delete(root, recursive: true);
+            // The updater's locator starts its log there.
+            File.Delete(Path.Combine(Path.GetTempPath(), $"velopack_{appId}.log"));
+        }
+    }
+
+    [Fact]
     public void Updates_follow_the_apps_feed_and_are_off_without_one()
     {
         HostEnvironment.Create(Product, Build).AgentOptions().Updates.Should().BeNull();
@@ -187,6 +224,18 @@ public sealed class HostEnvironmentTests : IDisposable
     }
 
     public void Dispose() => Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", _runtimeDirectory);
+
+    private sealed class MountedProcess(string path) : IProcessImpl
+    {
+        public string GetCurrentProcessPath() => path;
+
+        public uint GetCurrentProcessId() => (uint)Environment.ProcessId;
+
+        public void StartProcess(string exePath, IEnumerable<string> args, string? workDir, bool showWindow) =>
+            throw new InvalidOperationException("Finding where the app lives starts nothing.");
+
+        public void Exit(int exitCode) => throw new InvalidOperationException("Finding where the app lives ends nothing.");
+    }
 
     private sealed class NoHandoff : IForegroundHandoff
     {

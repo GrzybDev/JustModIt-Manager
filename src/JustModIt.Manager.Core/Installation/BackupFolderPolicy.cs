@@ -26,10 +26,10 @@ public static class BackupFolderPolicy
     /// <summary>Checks a folder the player picked for backups.</summary>
     /// <param name="folder">The folder as the player gave it.</param>
     /// <param name="gameFolders">The folders of every detected or installed game.</param>
-    /// <param name="appFolder">The folder the app itself is installed in.</param>
+    /// <param name="appFolder">The folder the app itself is installed in; null when the app is a single file, as an AppImage is.</param>
     /// <param name="volumes">Tells network shares from local disks.</param>
     /// <returns>Null when the folder is fine.</returns>
-    public static BackupFolderProblem? Check(string folder, IEnumerable<string> gameFolders, string appFolder, IVolumes volumes)
+    public static BackupFolderProblem? Check(string folder, IEnumerable<string> gameFolders, string? appFolder, IVolumes volumes)
     {
         if (string.IsNullOrWhiteSpace(folder) || !Path.IsPathFullyQualified(folder))
         {
@@ -52,7 +52,7 @@ public static class BackupFolderPolicy
             return BackupFolderProblem.InsideGameFolder;
         }
 
-        if (PathComparison.Overlaps(PathCanonicalizer.Canonicalize(appFolder), canonical))
+        if (appFolder is not null && PathComparison.Overlaps(PathCanonicalizer.Canonicalize(appFolder), canonical))
         {
             return BackupFolderProblem.InsideAppFolder;
         }
