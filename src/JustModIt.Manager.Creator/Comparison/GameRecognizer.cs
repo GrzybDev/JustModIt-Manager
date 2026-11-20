@@ -35,8 +35,6 @@ public static class GameRecognizer
 {
     private const int SampleSize = 32;
 
-    private static readonly EnumerationOptions TopLevel = new() { IgnoreInaccessible = true };
-
     /// <summary>Recognises the game an author's folder is made for, off the calling thread.</summary>
     /// <param name="folder">The author's folder, laid out like the game.</param>
     /// <param name="candidates">The detected games.</param>
@@ -97,10 +95,12 @@ public static class GameRecognizer
         return new Recognition(paths.Count, [.. ranked.Select(each => each.Game)], winner);
     }, cancellationToken).WaitAsync(cancellationToken);
 
-    // A game that has none of the sample's top-level names costs one listing of its top level and nothing more.
+    // A game that has none of the sample's top-level names is read no further than its top level. Paths are looked up
+    // ignoring letter case, as Wine reads the game's files.
     private static int Score(IFileSystem fileSystem, string directory, List<string> sample, HashSet<string> tops)
     {
-        if (!fileSystem.Enumerate(directory, "*", TopLevel).Any(entry => tops.Contains(Path.GetFileName(entry.FullPath))))
+        var names = new CaseInsensitiveNames(fileSystem);
+        if (!tops.Any(top => names.Find(directory, top) is not null))
         {
             return 0;
         }
@@ -109,7 +109,7 @@ public static class GameRecognizer
         Dictionary<string, bool> folders = new(PackagePath.Comparer);
         foreach (var path in sample)
         {
-            if (fileSystem.FileExists(PackagePath.ToFullPath(directory, path)))
+            if (fileSystem.FileExists(names.Resolve(directory, path)))
             {
                 score += 2;
             }
@@ -117,7 +117,7 @@ public static class GameRecognizer
             {
                 if (!folders.TryGetValue(parent, out var exists))
                 {
-                    folders[parent] = exists = fileSystem.DirectoryExists(PackagePath.ToFullPath(directory, parent));
+                    folders[parent] = exists = fileSystem.DirectoryExists(names.Resolve(directory, parent));
                 }
 
                 score += exists ? 1 : 0;

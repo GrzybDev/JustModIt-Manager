@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.Tests.TestSupport;
@@ -198,6 +199,23 @@ public sealed class PreflightTests : IAsyncDisposable
 
         blocked.Issues.Should().Equal(new PathConflictIssue("data"), new PathConflictIssue("readme.txt/inside.txt"),
             new PathConflictIssue("new"), new PathConflictIssue("movies"));
+    }
+
+    [Fact]
+    public async Task Refuses_paths_where_the_game_holds_names_that_differ_only_in_letter_case()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows' file systems hold no two names that differ only in letter case.");
+        _harness.WriteGameFile("Data/strings.pak", "another spelling of the folder");
+        _harness.WriteGameFile("movies/Intro.bik", "another spelling of the file");
+
+        var blocked = await _harness.InstallBlockedAsync(_harness.ManifestPackage(new TestPackage()
+            .Copy("data/strings.pak", "Strings")
+            .Copy("MOVIES/intro.bik", "Video")
+            .Copy("readme.txt", "Changed")));
+
+        blocked.Issues.Should().Equal(new GameCaseTwinsIssue("data/strings.pak"), new GameCaseTwinsIssue("MOVIES/intro.bik"));
+        JobFailures.FromIssues(blocked.Issues).Should().BeEquivalentTo(
+            new JobFailure(JobFailureReason.GameCaseTwins) { Files = ["data/strings.pak", "MOVIES/intro.bik"] });
     }
 
     [Fact]

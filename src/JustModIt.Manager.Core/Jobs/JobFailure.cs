@@ -35,6 +35,12 @@ public enum JobFailureReason
     /// <summary>The game's files are not the version the package was made for.</summary>
     UnsupportedGameVersion,
 
+    /// <summary>
+    /// The game holds entries whose names differ only in letter case on paths of the package (<see cref="JobFailure.Files"/>),
+    /// so it is not clear which one the game reads.
+    /// </summary>
+    GameCaseTwins,
+
     /// <summary>The project's new release was made for another version of the game, so the installed one was kept.</summary>
     NewReleaseIncompatible,
 

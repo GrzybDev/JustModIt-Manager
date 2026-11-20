@@ -122,6 +122,11 @@ internal static class JobFailures
             return new JobFailure(JobFailureReason.KeptFilesPending) { Files = Distinct(kept.Select(issue => issue.Path)) };
         }
 
+        if (issues.OfType<GameCaseTwinsIssue>().ToList() is { Count: > 0 } twins)
+        {
+            return new JobFailure(JobFailureReason.GameCaseTwins) { Files = Distinct(twins.Select(issue => issue.Path)) };
+        }
+
         var incompatible = issues.Where(issue => issue is MissingFileIssue or PathConflictIssue or FileMismatchIssue { AlreadyPatched: false })
             .ToList();
         if (incompatible.Count > 0)

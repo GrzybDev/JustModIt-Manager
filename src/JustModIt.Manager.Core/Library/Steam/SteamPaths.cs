@@ -1,4 +1,3 @@
-using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library.Steam;
@@ -23,29 +22,13 @@ internal static class SteamPaths
         FindChildDirectory(fileSystem, directory, SteamApps);
 
     /// <summary>
-    /// Finds the existing subfolder with this name, preferring the exact spelling, since on case-sensitive file systems
-    /// the name may differ in case from what Steam recorded (e.g. an installdir written on Windows); null when none exists.
+    /// Finds the existing subfolder with this name in any letter case, the exact spelling first, since on case-sensitive file
+    /// systems the name may differ in case from what Steam recorded (e.g. an installdir written on Windows); null when none
+    /// exists or several differ only in case.
     /// </summary>
     /// <param name="fileSystem">Reads the folder.</param>
     /// <param name="directory">The folder to look in.</param>
     /// <param name="name">The subfolder's name as Steam recorded it.</param>
-    public static string? FindChildDirectory(IFileSystem fileSystem, string directory, string name)
-    {
-        var exact = Path.Join(directory, name);
-        if (fileSystem.DirectoryExists(exact))
-        {
-            return exact;
-        }
-
-        if (PathComparison.Comparison == StringComparison.OrdinalIgnoreCase)
-        {
-            return null;
-        }
-
-        // The name is also a search pattern, so wildcard characters in it are ruled out by the exact comparison.
-        return fileSystem.TryList(directory, name, FileListing.AnyCase)
-            .Where(entry => entry.IsDirectory && string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase))
-            .Select(entry => entry.FullPath)
-            .FirstOrDefault();
-    }
+    public static string? FindChildDirectory(IFileSystem fileSystem, string directory, string name) =>
+        new CaseInsensitiveNames(fileSystem).Find(directory, name) is { IsDirectory: true } entry ? entry.FullPath : null;
 }

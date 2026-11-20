@@ -81,6 +81,13 @@ public sealed record UnsafePathIssue(string Path) : InstallIssue;
 /// <param name="Path">Where the package needs the file or folder.</param>
 public sealed record PathConflictIssue(string Path) : InstallIssue;
 
+/// <summary>
+/// The game holds two entries whose names differ only in letter case on a path of the package, which only a file system
+/// that tells case apart allows, so it is not clear which one the game reads.
+/// </summary>
+/// <param name="Path">The path as the package names it.</param>
+public sealed record GameCaseTwinsIssue(string Path) : InstallIssue;
+
 /// <summary>The package names the games it was made for in the game's own store, and this one is not among them.</summary>
 /// <param name="Targets">The games the package names.</param>
 public sealed record OtherGameIssue(ValueList<PackageTarget> Targets) : InstallIssue;

@@ -322,6 +322,13 @@ internal sealed class InstallSimulation(GameFolder game, ProgressTracker progres
             return null;
         }
 
+        if (game.HasCaseTwins(path))
+        {
+            // The game's own folder holds the problem, so no part is left out for it.
+            Issues.Add(new GameCaseTwinsIssue(path));
+            return null;
+        }
+
         Paths[path] = full;
         return full;
     }

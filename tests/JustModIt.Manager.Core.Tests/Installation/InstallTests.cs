@@ -54,6 +54,32 @@ public sealed class InstallTests : IAsyncDisposable
         harness.AppFiles().Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task A_package_spelled_in_another_letter_case_installs_into_the_games_folders_and_its_uninstall_restores_them()
+    {
+        var before = _harness.Snapshot();
+        var patch = await TestPatch.CreateAsync(InstallHarness.OriginalPak, InstallHarness.ChangedPak);
+
+        var result = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage()
+            .Patch("DATA/Strings.PAK", patch)
+            .Copy("Data/New/text.txt", "Text")
+            .Copy("data/NEW/readme.txt", "Read me")
+            .Copy("DATA/new/TEXT.txt", "Changed text")));
+
+        (await File.ReadAllBytesAsync(_harness.GameFile("data/strings.pak"), InstallHarness.Token)).Should().Equal(InstallHarness.ChangedPak);
+        _harness.Snapshot().Keys.Where(path => !path.StartsWith(InstallHarness.HiddenFolderName, StringComparison.Ordinal))
+            .Should().BeEquivalentTo("bin", "bin/game.exe", "bin/library.dll", "data", "data/strings.pak", "data/New", "data/New/text.txt",
+                "data/New/readme.txt", "movies", "movies/intro.bik", "readme.txt");
+        _harness.ReadGameFile("data/New/text.txt").Should().Be("Changed text");
+        var files = await _harness.Engine.LoadFilesAsync(result.Record.Id, InstallHarness.Token);
+        files.Files.Select(file => file.Path).Should().Equal("data/strings.pak", "data/New/text.txt", "data/New/readme.txt");
+        files.CreatedDirectories.Should().Equal("data/New");
+
+        await _harness.UninstallAsync(result.Record.Id);
+
+        _harness.Snapshot().Should().BeEquivalentTo(before);
+    }
+
     [Theory]
     [InlineData(BackupLocation.GameFolder, ".example-app/backups")]
     [InlineData(BackupLocation.AppData, "backups/steam-1000")]

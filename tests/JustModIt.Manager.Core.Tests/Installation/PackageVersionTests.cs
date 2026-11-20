@@ -155,7 +155,7 @@ public sealed class PackageVersionTests : IAsyncDisposable
         {
             var key = new GameKey(new StoreId(version.GetProperty("store").GetString()!), version.GetProperty("id").GetString()!);
             var holds = version.GetProperty("holds").EnumerateArray().ToDictionary(
-                held => PackagePath.ToFullPath(game.Root, held.GetProperty("path").GetString()!),
+                held => game.Locate(held.GetProperty("path").GetString()!),
                 held => new SimulatedFile(held.GetProperty("size").GetInt64(), held.GetProperty("sha256").GetString(), DiskPath: null),
                 PathComparison.Comparer);
             await using var opened = await new PackageReader().OpenAsync(file, key, null, InstallHarness.Token);

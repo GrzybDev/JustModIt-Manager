@@ -188,6 +188,7 @@ public sealed class JobFailuresTests
         nameof(GameManagedByOtherAppIssue) => new GameManagedByOtherAppIssue("OtherApp", "folder"),
         nameof(UnsafePathIssue) => new UnsafePathIssue("../a"),
         nameof(PathConflictIssue) => new PathConflictIssue("a"),
+        nameof(GameCaseTwinsIssue) => new GameCaseTwinsIssue("a"),
         nameof(MissingFileIssue) => new MissingFileIssue("a"),
         nameof(NewerAppRequiredIssue) => new NewerAppRequiredIssue(PackageError.UnsupportedCapability) { Part = 1 },
         nameof(FileMismatchIssue) => new FileMismatchIssue("a", AlreadyPatched: false),

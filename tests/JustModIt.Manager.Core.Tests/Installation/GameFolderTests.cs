@@ -21,7 +21,6 @@ public sealed class GameFolderTests : IDisposable
     [Fact]
     public void Resolves_to_the_spelling_on_disk()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows looks game paths up ignoring letter case.");
         var resolved = _game.TryResolve("data/STRINGS.pak");
 
         resolved.Should().Be(Path.Join(_game.Root, "Data", "strings.pak"));
@@ -31,7 +30,6 @@ public sealed class GameFolderTests : IDisposable
     [Fact]
     public void Spells_the_existing_folders_above_a_new_file_as_they_are_on_disk()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows looks game paths up ignoring letter case.");
         var resolved = _game.TryResolve("data/lang/text.txt");
 
         resolved.Should().Be(Path.Join(_game.Root, "Data", "lang", "text.txt"));
@@ -62,7 +60,6 @@ public sealed class GameFolderTests : IDisposable
     [Fact]
     public void Refuses_paths_inside_another_apps_folder_spelled_in_another_case()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows looks game paths up ignoring letter case.");
         InstallHarness.WriteOwnerFile(_temp.Combine("Game/Data/Mods/.other-app"), "OtherApp");
 
         _game.TryResolve("Data/Mods/.OTHER-APP/lock").Should().BeNull();

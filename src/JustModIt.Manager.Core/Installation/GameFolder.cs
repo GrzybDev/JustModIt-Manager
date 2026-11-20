@@ -11,8 +11,11 @@ namespace JustModIt.Manager.Core.Installation;
 /// </summary>
 internal sealed class GameFolder
 {
+    // Every spelling of a path means the one entry Windows and Wine would find, also an entry the operation creates.
     private readonly Dictionary<string, string?> _directories = new(PackagePath.Comparer);
+    private readonly Dictionary<string, string?> _files = new(PackagePath.Comparer);
     private readonly Dictionary<string, bool> _appFolders = new(PathComparison.Comparer);
+    private readonly CaseInsensitiveNames _names = new(PhysicalFileSystem.Instance);
 
     private GameFolder(string root, string hiddenFolderName)
     {
@@ -54,11 +57,31 @@ internal sealed class GameFolder
             return null;
         }
 
+        if (_files.TryGetValue(relativePath, out var cached))
+        {
+            return cached;
+        }
+
         var separator = relativePath.LastIndexOf(PackagePath.Separator);
         var directory = separator < 0 ? Root : ResolveDirectory(relativePath[..separator]);
         var resolved = directory is null ? null : ResolveSegment(directory, relativePath[(separator + 1)..], isLast: true);
         // Judged by the resolved path, since a link or a short name spells the folders above differently.
-        return resolved is null || AppFolders.WouldMark(RelativePathOf(resolved)) ? null : resolved;
+        var safe = resolved is null || AppFolders.WouldMark(RelativePathOf(resolved)) ? null : resolved;
+        _files[relativePath] = safe;
+        return safe;
+    }
+
+    /// <summary>
+    /// Whether the game holds two entries whose names differ only in letter case where a path leads, which only a file
+    /// system that tells case apart allows, so it is not clear which one the game reads.
+    /// </summary>
+    /// <param name="relativePath">A game-relative package path that <see cref="TryResolve"/> resolves.</param>
+    public bool HasCaseTwins(string relativePath)
+    {
+        var separator = relativePath.LastIndexOf(PackagePath.Separator);
+        var directory = separator < 0 ? Root : ResolveDirectory(relativePath[..separator]);
+        return directory is not null
+            && (_names.HasTwins(directory, relativePath[(separator + 1)..]) || (separator >= 0 && HasCaseTwins(relativePath[..separator])));
     }
 
     /// <summary>
@@ -103,7 +126,7 @@ internal sealed class GameFolder
 
     private string? ResolveSegment(string parent, string name, bool isLast)
     {
-        var path = Path.Join(parent, name);
+        var path = _names.Resolve(parent, name);
         string? linkTarget;
         try
         {
@@ -133,8 +156,8 @@ internal sealed class GameFolder
     }
 
     private bool IsInside(string path) =>
-        PathComparison.IsWithin(Root, path) && !PathComparison.AreSame(Root, path) && !PathComparison.IsWithin(HiddenDirectory, path)
-        && !StoreFolders.Names.Any(store => PathComparison.IsWithin(Path.Join(Root, store), path))
+        PathComparison.IsWithin(Root, path) && !PathComparison.AreSame(Root, path)
+        && !AppFolders.IsReservedTopFolder(PackagePath.FirstSegment(RelativePathOf(path)), HiddenFolderName)
         && !IsInAppFolder(path);
 
     private bool IsInAppFolder(string path)

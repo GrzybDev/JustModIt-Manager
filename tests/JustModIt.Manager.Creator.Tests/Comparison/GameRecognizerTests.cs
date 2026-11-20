@@ -60,6 +60,18 @@ public sealed class GameRecognizerTests
         named.Winner.Should().Be(new RecognizedGame(Tidewater, 2, NameMatches: true));
     }
 
+    [Fact]
+    public async Task Recognises_a_game_whose_files_are_spelled_in_another_letter_case()
+    {
+        Add(@"D:\Work\Translation", "data/paks/strings.pak");
+        Add(@"C:\Steam\Lantern Isle", "Data/Paks/strings.pak", "Data/Paks/fonts.pak");
+
+        var recognition = await GameRecognizer.RecognizeAsync(@"D:\Work\Translation", [new(LanternSteam, "Lantern Isle", @"C:\Steam\Lantern Isle")],
+            LibraryAccess.Unlimited, _files, TestContext.Current.CancellationToken);
+
+        recognition.Winner.Should().Be(new RecognizedGame(LanternSteam, 2, NameMatches: false));
+    }
+
     private void Add(string folder, params string[] paths)
     {
         foreach (var path in paths)

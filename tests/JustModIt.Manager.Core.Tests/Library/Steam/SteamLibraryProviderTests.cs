@@ -67,6 +67,18 @@ public sealed class SteamLibraryProviderTests
     }
 
     [Fact]
+    public async Task A_game_folder_spelled_in_another_letter_case_than_its_manifest_is_found()
+    {
+        _steam.AddApp(1001, "Example Quest", createFolder: false);
+        _steam.Files.AddDirectory(_steam.GameFolder("EXAMPLE QUEST"));
+
+        var game = (await _steam.ScanAsync()).Games.Single();
+
+        game.State.Should().Be(GameInstallState.Installed);
+        game.InstallDirectory.Should().BeEquivalentTo(_steam.GameFolder("EXAMPLE QUEST"));
+    }
+
+    [Fact]
     public async Task Soundtracks_and_tools_are_not_games()
     {
         _steam.AddApp(1001, "Example Soundtrack", createFolder: false);

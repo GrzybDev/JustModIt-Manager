@@ -117,8 +117,9 @@ internal static class FileInspector
         {
             cancellationToken.ThrowIfCancellationRequested();
             var path = game.TryResolve(file.Path);
-            // A link that appeared since the install resolves elsewhere than the path it recorded.
-            if (path is null || !PathComparison.AreSame(path, PackagePath.ToFullPath(game.Root, file.Path)))
+            // A link that appeared since the install resolves elsewhere than the path it recorded, while letter case may
+            // differ, as names are found ignoring it.
+            if (path is null || !PackagePath.Comparer.Equals(game.RelativePathOf(path), file.Path))
             {
                 inspected.Add(new RuntimeInspection(file, null, RuntimeFound.Unresolvable));
             }
