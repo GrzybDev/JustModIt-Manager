@@ -88,8 +88,9 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
         issues.AddRange(simulation.Issues);
         issues.AddRange(OwnerIssues(simulation, owners));
         issues.AddRange(kept.Issues);
+        // A file is replaced by a rename into its folder, and its original moved out of it.
         issues.AddRange(AccessIssues(locks.Probe([.. simulation.Originals.Keys, .. simulation.RuntimeOriginals.Keys], cancellationToken),
-            [game.Root, .. simulation.TargetDirectories], game));
+            [game.Root, .. simulation.TargetDirectories, .. simulation.Originals.Keys.Select(path => Path.GetDirectoryName(path)!)], game));
 
         var movesOriginals = volumes.AreOnSameVolume(game.Root, backup.Directory);
         var newBytes = simulation.CopiedBytes + simulation.PatchedBytes;
@@ -173,11 +174,11 @@ internal sealed class InstallPreflight(FileLockProbe locks, IVolumes volumes, lo
     }
 
     /// <summary>
-    /// Files other programs hold or the user may not write, and existing folders that will receive new files but take
-    /// none; permissions are never reported as a lock, since closing programs does not help.
+    /// Files other programs hold or the user may not write, and existing folders that will receive files but take none;
+    /// permissions are never reported as a lock, since closing programs does not help.
     /// </summary>
     /// <param name="files">What the lock probe found for the files to change.</param>
-    /// <param name="directories">Existing folders that will receive new files.</param>
+    /// <param name="directories">Existing folders that will receive new or replaced files.</param>
     /// <param name="game">The game folder, which the issues' paths are relative to.</param>
     public static IEnumerable<InstallIssue> AccessIssues(FileLockReport files, IEnumerable<string> directories, GameFolder game)
     {

@@ -78,16 +78,20 @@ public sealed class PreflightTests : IAsyncDisposable
 
     [Fact]
     [SupportedOSPlatform("windows")]
-    public async Task Asks_for_permission_where_the_user_may_not_write()
+    public async Task Asks_for_permission_where_the_user_may_not_write_also_where_the_package_only_patches()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "The test denies access with a Windows ACL.");
-        var data = new DirectoryInfo(_harness.GameFile("data"));
-        using (FolderAccess.DenyCreatingFiles(data))
+        var patch = await TestPatch.CreateAsync(InstallHarness.OriginalPak, InstallHarness.ChangedPak);
+        InstallBlockedException copying;
+        InstallBlockedException patching;
+        using (FolderAccess.DenyCreatingFiles(new DirectoryInfo(_harness.GameFile("data"))))
         {
-            var blocked = await _harness.InstallBlockedAsync(_harness.ManifestPackage(new TestPackage().Copy("data/new.txt", "new")));
-
-            blocked.Issues.Should().Equal(new PermissionRequiredIssue("data"));
+            copying = await _harness.InstallBlockedAsync(_harness.ManifestPackage(new TestPackage().Copy("data/new.txt", "new")));
+            patching = await _harness.InstallBlockedAsync(_harness.ManifestPackage(new TestPackage().Patch("data/strings.pak", patch)));
         }
+
+        copying.Issues.Should().Equal(new PermissionRequiredIssue("data"));
+        patching.Issues.Should().Equal(new PermissionRequiredIssue("data"));
     }
 
     [Fact]
