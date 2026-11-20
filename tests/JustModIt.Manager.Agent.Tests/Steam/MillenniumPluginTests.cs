@@ -1,6 +1,8 @@
 using System.Text.Json;
 using JustModIt.Manager.Agent.Steam;
 using JustModIt.Manager.Agent.Tests.TestSupport;
+using JustModIt.Manager.Core;
+using JustModIt.Manager.Core.Library;
 
 namespace JustModIt.Manager.Agent.Tests.Steam;
 
@@ -8,16 +10,33 @@ public sealed class MillenniumPluginTests : IDisposable
 {
     private const string Name = "example-app";
 
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"), "Steam");
+    private readonly string _home = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"), "home");
+    private readonly MillenniumFolders _millennium;
     private readonly MillenniumPlugin _plugin;
 
     public MillenniumPluginTests()
     {
-        Directory.CreateDirectory(Path.Combine(_root, "millennium", "config"));
-        _plugin = new MillenniumPlugin(_root, Name);
+        // The Linux layout, which is the user's own whatever the system, with one XDG folder set and one left to its default.
+        _millennium = MillenniumFolders.For(Path.Combine(_home, ".local", "share", "Steam"),
+            new LibraryEnvironment { Platform = AppPlatform.Linux, HomeDirectory = _home, XdgConfigHome = Path.Combine(_home, "settings") });
+        Directory.CreateDirectory(Path.GetDirectoryName(ConfigFile)!);
+        _plugin = new MillenniumPlugin(_millennium, Name);
     }
 
-    private string ConfigFile => Path.Combine(_root, "millennium", "config", "config.json");
+    private string ConfigFile => _millennium.ConfigFile;
+
+    [Fact]
+    public void On_linux_millennium_keeps_its_plugins_and_settings_in_the_user_s_folders_and_counts_as_installed_only_with_its_files()
+    {
+        (_millennium.Plugins, _millennium.ConfigFile).Should().Be((Path.Combine(_home, ".local", "share", "millennium", "plugins"),
+            Path.Combine(_home, "settings", "millennium", "config.json")));
+        Config("""{"plugins": {"enabledPlugins": ["another-plugin"]}}""");
+        var library = Path.Combine(_home, "millennium-files");
+
+        (_millennium with { Library = library }).IsInstalled.Should().BeFalse("Millennium's settings outlive it in the user's folders");
+        Directory.CreateDirectory(library);
+        (_millennium with { Library = library }).IsInstalled.Should().BeTrue();
+    }
 
     [Fact]
     public async Task A_plugin_the_player_turned_off_in_millennium_stays_off_when_the_app_updates_it()
@@ -61,7 +80,7 @@ public sealed class MillenniumPluginTests : IDisposable
         Directory.Exists(_plugin.Directory).Should().BeFalse();
     }
 
-    public void Dispose() => Directory.Delete(Path.GetDirectoryName(_root)!, recursive: true);
+    public void Dispose() => Directory.Delete(Path.GetDirectoryName(_home)!, recursive: true);
 
     private static IReadOnlyDictionary<string, byte[]> Files(string version) =>
         MillenniumPlugin.Files(Name, version, "Achievement texts", "Shows translated achievements.");

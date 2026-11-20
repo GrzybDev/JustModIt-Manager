@@ -226,7 +226,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
 
     private async Task ReconcileAsync(CancellationToken cancellationToken)
     {
-        var root = _steam.FindRoot();
+        var steam = _steam.Find();
         var session = _steam.Read();
         var running = Follow(session.ProcessId);
         var current = _settings.Current;
@@ -240,12 +240,12 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
             IsNeeded = needed,
         };
 
-        var millennium = root is not null && MillenniumPlugin.IsInstalledIn(root);
-        var classic = root is not null && !millennium && current.AchievementClassicMode;
-        if (root is not null && !(classic && (needed || demand is null)))
+        var millennium = steam is not null && steam.Millennium.IsInstalled;
+        var classic = steam is not null && !millennium && current.AchievementClassicMode;
+        if (steam is not null && !(classic && (needed || demand is null)))
         {
             // The port closes at Steam's next start.
-            Switch(() => ClassicSwitch.TurnOff(root, SwitchOwner));
+            Switch(() => ClassicSwitch.TurnOff(steam.Root, SwitchOwner));
         }
 
         if (!(classic && needed && running))
@@ -257,7 +257,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
         if (millennium)
         {
             var unused = demand is not null && !current.AchievementTexts && demand.LaunchOptionsGames.Count == 0;
-            status = await _millennium.ReconcileAsync(root!, running ? _run : null, needed, unused, demand, status, cancellationToken)
+            status = await _millennium.ReconcileAsync(steam!.Millennium, running ? _run : null, needed, unused, demand, status, cancellationToken)
                 .ConfigureAwait(false);
         }
         else
@@ -265,7 +265,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
             _millennium.Stop();
             if (classic)
             {
-                status = await ReconcileClassicAsync(root!, needed, demand, status, cancellationToken).ConfigureAwait(false);
+                status = await ReconcileClassicAsync(steam!.Root, needed, demand, status, cancellationToken).ConfigureAwait(false);
             }
         }
 

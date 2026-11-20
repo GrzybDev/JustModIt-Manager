@@ -64,7 +64,7 @@ internal sealed class SteamRootLocator(IFileSystem fileSystem, IRegistry registr
     private IEnumerable<string> LinuxCandidates()
     {
         var home = environment.HomeDirectory;
-        foreach (var candidate in SandboxCandidates(home, environment.XdgDataHome))
+        foreach (var candidate in SandboxCandidates(home, environment.DataDirectory))
         {
             yield return candidate;
         }

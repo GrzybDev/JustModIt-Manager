@@ -7,12 +7,12 @@ using JustModIt.Manager.Core.IO;
 namespace JustModIt.Manager.Agent.Steam;
 
 /// <summary>
-/// The app's plugin in the Millennium folder inside Steam's, and Millennium's list of the plugins it loads, which Millennium
-/// keeps in memory while Steam runs and writes back, so both change only while Steam is closed.
+/// The app's plugin among Millennium's, and Millennium's list of the plugins it loads, which Millennium keeps in memory while
+/// Steam runs and writes back, so both change only while Steam is closed.
 /// </summary>
-/// <param name="steamRoot">The folder Steam is installed in.</param>
+/// <param name="millennium">Where Millennium keeps its plugins and its settings.</param>
 /// <param name="name">The plugin's name, the app's own, so two apps or a development build each keep a plugin of their own.</param>
-internal sealed class MillenniumPlugin(string steamRoot, string name)
+internal sealed class MillenniumPlugin(MillenniumFolders millennium, string name)
 {
     public const string TextsFileName = "texts.json";
     public const string StatusFileName = "status.json";
@@ -21,13 +21,9 @@ internal sealed class MillenniumPlugin(string steamRoot, string name)
 
     public string Name => name;
 
-    public string Directory { get; } = Path.Join(steamRoot, "millennium", "plugins", name);
+    public string Directory { get; } = Path.Join(millennium.Plugins, name);
 
-    private string ConfigFile => ConfigFileIn(steamRoot);
-
-    /// <summary>Whether Millennium is installed in Steam's folder.</summary>
-    /// <param name="steamRoot">The folder Steam is installed in.</param>
-    public static bool IsInstalledIn(string steamRoot) => File.Exists(ConfigFileIn(steamRoot));
+    private string ConfigFile => millennium.ConfigFile;
 
     /// <summary>The plugin's files as this version of the app writes them, by their path in the plugin's folder.</summary>
     /// <param name="name">The plugin's name.</param>
@@ -115,7 +111,8 @@ internal sealed class MillenniumPlugin(string steamRoot, string name)
             System.IO.Directory.Delete(Directory, recursive: true);
         }
 
-        if (IsInstalledIn(steamRoot))
+        // Also settings an uninstalled Millennium left behind, which an install later reads again.
+        if (File.Exists(ConfigFile))
         {
             await EnableAsync(false, cancellationToken).ConfigureAwait(false);
         }
@@ -132,8 +129,6 @@ internal sealed class MillenniumPlugin(string steamRoot, string name)
 
     /// <summary>What the plugin reported last; null when it reported nothing or the report cannot be read now.</summary>
     public JsonDocument? ReadStatus() => ReadJson(StatusFileName);
-
-    private static string ConfigFileIn(string steamRoot) => Path.Join(steamRoot, "millennium", "config", "config.json");
 
     private async Task EnableAsync(bool enabled, CancellationToken cancellationToken)
     {

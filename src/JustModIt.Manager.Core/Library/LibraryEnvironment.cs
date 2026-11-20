@@ -22,6 +22,12 @@ public sealed record LibraryEnvironment
     /// <summary><c>XDG_CONFIG_HOME</c>, when it is set to an absolute path.</summary>
     public string? XdgConfigHome { get; init; }
 
+    /// <summary>The folder of the user's data on Linux: <see cref="XdgDataHome"/>, else <c>~/.local/share</c>.</summary>
+    public string DataDirectory => XdgDataHome ?? Path.Join(HomeDirectory, ".local", "share");
+
+    /// <summary>The folder of the user's settings on Linux: <see cref="XdgConfigHome"/>, else <c>~/.config</c>.</summary>
+    public string ConfigDirectory => XdgConfigHome ?? Path.Join(HomeDirectory, ".config");
+
     /// <summary><c>SNAP_USER_DATA</c>, when it is set to an absolute path.</summary>
     public string? SnapUserData { get; init; }
 

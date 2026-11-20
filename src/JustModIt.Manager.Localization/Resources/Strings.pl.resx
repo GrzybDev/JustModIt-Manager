@@ -3913,7 +3913,7 @@
     <value>Tryb klasyczny bez Millennium</value>
   </data>
   <data name="Settings_ClassicModeDescription" xml:space="preserve">
-    <value>{millennium, select, true {Nieużywany, dopóki Millennium jest zainstalowane.} other {Na czas działania Steama otwiera jego lokalny port debugowania, niezależnie od tego, które konto Windows uruchomi Steama. Przez ten port inne programy na tym komputerze, także z innych kont Windows, mogą sterować Steamem zalogowanego konta. Wyłączenie zamyka port przy następnym uruchomieniu Steama, o ile tryb klasyczny nie jest włączony na innym koncie Windows.}}</value>
+    <value>{millennium, select, true {Nieużywany, dopóki Millennium jest zainstalowane.} other {{folder, select, shared {Na czas działania Steama otwiera jego lokalny port debugowania, niezależnie od tego, które konto Windows uruchomi Steama. Przez ten port inne programy na tym komputerze, także z innych kont Windows, mogą sterować Steamem zalogowanego konta. Wyłączenie zamyka port przy następnym uruchomieniu Steama, o ile tryb klasyczny nie jest włączony na innym koncie Windows.} other {Na czas działania Steama otwiera jego lokalny port debugowania. Przez ten port inne programy na tym komputerze, także z innych kont, mogą sterować Steamem zalogowanego konta. Wyłączenie zamyka port przy następnym uruchomieniu Steama.}}}}</value>
   </data>
   <data name="Settings_SteamMillennium" xml:space="preserve">
     <value>Wtyczka Millennium</value>

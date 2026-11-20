@@ -22,7 +22,7 @@ internal static class HeroicLauncher
             AppPlatform.MacOS => [Path.Join(home, "Library", "Application Support", "heroic")],
             _ =>
             [
-                Path.Join(environment.XdgConfigHome ?? Path.Join(home, ".config"), "heroic"),
+                Path.Join(environment.ConfigDirectory, "heroic"),
                 Path.Join(home, ".var", "app", "com.heroicgameslauncher.hgl", "config", "heroic"),
             ],
         };

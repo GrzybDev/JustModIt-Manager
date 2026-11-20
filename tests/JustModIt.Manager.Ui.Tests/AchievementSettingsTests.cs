@@ -74,7 +74,9 @@ public sealed class AchievementSettingsTests
         (steam.Title, steam.Status, steam.StatusTone, steam.Details).Should().Be(
             ("Tryb klasyczny", "Port debugowania zajęty", Tone.Warning, "port debugowania Steama 127.0.0.1:8080"));
         ui.Find<Callout>("PortTaken").IsEffectivelyVisible.Should().BeTrue();
-        AutomationProperties.GetHelpText(Switch(ui, "ClassicModeSwitch")).Should().StartWith("Na czas działania Steama otwiera jego lokalny port");
+        AutomationProperties.GetHelpText(Switch(ui, "ClassicModeSwitch")).Should().StartWith("Na czas działania Steama otwiera jego lokalny port")
+            .And.Match(text => text.Contains("kont Windows", StringComparison.Ordinal) == OperatingSystem.IsWindows(),
+                "only on Windows does Steam's folder serve every account of the computer");
         await RenderAsync(ui, "settings-achievements-classic");
 
         ui.Push(State(classic with { PortTaken = false, Reachable = true }) with { Version = 2 });

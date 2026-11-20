@@ -63,8 +63,9 @@ public sealed partial class SteamDeliveryViewModel(UiServices services) : Observ
     [ObservableProperty]
     public partial bool IsPortTaken { get; private set; }
 
-    public string ClassicModeDescription =>
-        Text.Format(Strings.Settings_ClassicModeDescription, ("millennium", HasMillennium ? "true" : "false"));
+    // Steam's folder on Windows serves every account of the computer, so another account may keep the port open.
+    public string ClassicModeDescription => Text.Format(Strings.Settings_ClassicModeDescription,
+        ("millennium", HasMillennium ? "true" : "false"), ("folder", OperatingSystem.IsWindows() ? "shared" : "own"));
 
     /// <summary>Follows the way into Steam's interface as the agent's state has it.</summary>
     public void Refresh()

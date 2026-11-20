@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using JustModIt.Manager.Agent.Steam;
+using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Settings;
@@ -20,7 +21,10 @@ internal sealed class FakeSteamClient : ISteamClient
 
     public ConcurrentQueue<string> Opened { get; } = new();
 
-    public string? FindRoot() => Root;
+    // Millennium's Windows layout on every system, so no test reaches the user's own folders.
+    public SteamFolders? Find() => Root is { } root
+        ? new SteamFolders(root, MillenniumFolders.For(root, new LibraryEnvironment { Platform = AppPlatform.Windows, HomeDirectory = root }))
+        : null;
 
     public SteamSession Read() => Session;
 

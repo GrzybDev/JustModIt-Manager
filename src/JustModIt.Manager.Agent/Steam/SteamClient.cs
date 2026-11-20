@@ -20,8 +20,8 @@ internal sealed record SteamSession(int? ProcessId, GameKey? RunningGame, string
 /// <summary>The Steam client on this computer, apart from the rest of the agent so that tests never reach the real one.</summary>
 internal interface ISteamClient
 {
-    /// <summary>The folder Steam is installed in; null when it is not installed.</summary>
-    string? FindRoot();
+    /// <summary>The folder Steam is installed in and where Millennium works for it; null when Steam is not installed.</summary>
+    SteamFolders? Find();
 
     /// <summary>What Steam recorded of itself now.</summary>
     SteamSession Read();
@@ -72,7 +72,9 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
         ? new ClientFiles(fileSystem, folders, processes, environment, folder)
         : null;
 
-    public string? FindRoot() => SteamInstallation.FindRoot(fileSystem, registry, environment);
+    public SteamFolders? Find() => SteamInstallation.FindRoot(fileSystem, registry, environment) is { } root
+        ? new SteamFolders(root, MillenniumFolders.For(root, environment))
+        : null;
 
     public SteamSession Read()
     {

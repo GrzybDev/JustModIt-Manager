@@ -29,8 +29,7 @@ internal sealed class LegendarySource(IFileSystem fileSystem, string legendaryDi
     /// <param name="environment">The user's folders and environment variables.</param>
     public static string StandaloneDirectory(LibraryEnvironment environment)
     {
-        return environment.LegendaryConfigPath
-            ?? Path.Join(environment.XdgConfigHome ?? Path.Join(environment.HomeDirectory, ".config"), "legendary");
+        return environment.LegendaryConfigPath ?? Path.Join(environment.ConfigDirectory, "legendary");
     }
 
     /// <summary>Creates the source of the Legendary that Heroic runs for its Epic games.</summary>

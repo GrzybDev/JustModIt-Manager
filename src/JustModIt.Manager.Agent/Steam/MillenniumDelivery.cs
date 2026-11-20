@@ -47,17 +47,17 @@ internal sealed partial class MillenniumDelivery(IFolderWatcher folders, AgentOp
         Text.Format(Strings.SteamPlugin_Description, ("product", options.ProductName)));
 
     /// <summary>Brings the plugin and its texts file up to date and tells how the plugin stands.</summary>
-    /// <param name="steamRoot">The folder Steam is installed in, which holds Millennium.</param>
+    /// <param name="millennium">Where Millennium keeps its plugins and its settings.</param>
     /// <param name="run">The run of Steam now; null while Steam is closed.</param>
     /// <param name="needed">Something needs Steam's interface, so the plugin is worth installing.</param>
     /// <param name="unused">Nothing can need it until the player turns something on, so it goes.</param>
     /// <param name="demand">What Steam's interface is to get; null before the first, which leaves the plugin as it is.</param>
     /// <param name="status">The status so far, which the plugin's adds to.</param>
     /// <param name="cancellationToken">Stops the writes.</param>
-    public async Task<SteamUiStatus> ReconcileAsync(string steamRoot, SteamRun? run, bool needed, bool unused, SteamUiDemand? demand,
+    public async Task<SteamUiStatus> ReconcileAsync(MillenniumFolders millennium, SteamRun? run, bool needed, bool unused, SteamUiDemand? demand,
         SteamUiStatus status, CancellationToken cancellationToken)
     {
-        var plugin = Plugin(steamRoot);
+        var plugin = Plugin(millennium);
         // Millennium keeps its list of plugins in memory while Steam runs and writes it back, so both change only while Steam is closed.
         if (run is null && demand is not null)
         {
@@ -148,9 +148,9 @@ internal sealed partial class MillenniumDelivery(IFolderWatcher folders, AgentOp
         }
     }
 
-    private MillenniumPlugin Plugin(string root)
+    private MillenniumPlugin Plugin(MillenniumFolders millennium)
     {
-        var plugin = new MillenniumPlugin(root, options.Identity.Slug);
+        var plugin = new MillenniumPlugin(millennium, options.Identity.Slug);
         if (_plugin?.Directory != plugin.Directory)
         {
             _plugin = plugin;

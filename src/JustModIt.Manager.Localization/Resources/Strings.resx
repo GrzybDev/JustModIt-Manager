@@ -3925,7 +3925,7 @@
     <value>Classic mode without Millennium</value>
   </data>
   <data name="Settings_ClassicModeDescription" xml:space="preserve">
-    <value>{millennium, select, true {Not used while Millennium is installed.} other {While Steam runs, it opens Steam's local debugging port, whichever Windows account starts Steam. Through that port, other programs on this computer, also from other Windows accounts, can control the signed-in Steam account. Turning it off closes the port at Steam's next start, unless the classic mode is on in another Windows account.}}</value>
+    <value>{millennium, select, true {Not used while Millennium is installed.} other {{folder, select, shared {While Steam runs, it opens Steam's local debugging port, whichever Windows account starts Steam. Through that port, other programs on this computer, also from other Windows accounts, can control the signed-in Steam account. Turning it off closes the port at Steam's next start, unless the classic mode is on in another Windows account.} other {While Steam runs, it opens Steam's local debugging port. Through that port, other programs on this computer, also from other accounts, can control the signed-in Steam account. Turning it off closes the port at Steam's next start.}}}}</value>
   </data>
   <data name="Settings_SteamMillennium" xml:space="preserve">
     <value>Millennium plugin</value>

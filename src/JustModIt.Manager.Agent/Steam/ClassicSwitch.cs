@@ -4,15 +4,15 @@ using JustModIt.Manager.Protocol.Activation;
 namespace JustModIt.Manager.Agent.Steam;
 
 /// <summary>
-/// The file in Steam's folder whose presence makes Steam open its local debug port at its start, for whichever Windows
-/// account starts Steam. Each copy of the app that turns it on writes its name with its account into it, so a copy takes
+/// The file in Steam's folder whose presence makes Steam open its local debug port at its start, for whichever account
+/// starts that Steam. Each copy of the app that turns it on writes its name with its account into it, so a copy takes
 /// away only a file the copies made and only once none needs it, and never one the player made, which holds no name.
 /// </summary>
 internal static class ClassicSwitch
 {
     private const string FileName = ".cef-enable-remote-debugging";
 
-    /// <summary>The line a copy of the app keeps in the file: its instance name and the Windows account it runs for.</summary>
+    /// <summary>The line a copy of the app keeps in the file: its instance name and the account it runs for.</summary>
     /// <param name="identity">The app's names.</param>
     public static string OwnerOf(AppIdentity identity) => $"{identity.InstanceName}.{InstanceNames.CurrentUserId()}";
 

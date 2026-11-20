@@ -50,9 +50,10 @@ internal static class ShellHooks
         });
         Apply(product, environment =>
         {
-            if (SteamInstallation.FindRoot(PhysicalFileSystem.Instance, WindowsRegistry.Instance, LibraryEnvironment.ForCurrentUser()) is { } steam)
+            var user = LibraryEnvironment.ForCurrentUser();
+            if (SteamInstallation.FindRoot(PhysicalFileSystem.Instance, WindowsRegistry.Instance, user) is { } steam)
             {
-                SteamCleanup.Remove(steam, environment.Identity);
+                SteamCleanup.Remove(steam, user, environment.Identity);
             }
         });
     }

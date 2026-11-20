@@ -4,6 +4,7 @@ using JustModIt.Manager.Agent.Tests.TestSupport;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Protocol.Activation;
@@ -231,7 +232,7 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
         await _run.ContinueWith(_ => { }, TaskScheduler.Default);
         File.WriteAllLines(Path.Combine(_root, ".cef-enable-remote-debugging"), [ClassicSwitch.OwnerOf(Options.Identity), "AnotherApp"]);
 
-        SteamCleanup.Remove(_root, Options.Identity);
+        SteamCleanup.Remove(_root, new LibraryEnvironment { Platform = AppPlatform.Windows, HomeDirectory = _root }, Options.Identity);
 
         Directory.Exists(PluginFolder).Should().BeFalse();
         using var config = JsonDocument.Parse(File.ReadAllText(Path.Combine(_root, "millennium", "config", "config.json")));
