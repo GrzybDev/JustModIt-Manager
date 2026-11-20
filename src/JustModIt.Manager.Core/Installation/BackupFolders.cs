@@ -1,6 +1,7 @@
 using System.Buffers;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 
 namespace JustModIt.Manager.Core.Installation;
@@ -81,11 +82,14 @@ internal static class BackupFolders
 
     /// <summary>
     /// Whether the folder is there, or else was deleted: the folder it lives in (the game's, the app's data folder or the
-    /// player's) is there, which a disconnected drive or a renamed folder of the player's would not leave.
+    /// player's) is there on a drive that is, which a disconnected drive or a renamed folder of the player's would not
+    /// leave, though an empty mount point stays behind its unmounted drive on Linux.
     /// </summary>
     /// <param name="backupDirectory">The record's backup folder.</param>
     public static bool IsReachable(string backupDirectory) =>
-        Directory.Exists(backupDirectory) || Directory.Exists(Path.GetDirectoryName(OwnedRootOf(backupDirectory)));
+        Directory.Exists(backupDirectory)
+        || (Path.GetDirectoryName(OwnedRootOf(backupDirectory)) is { } parent && Directory.Exists(parent)
+            && !PhysicalFileSystem.Instance.IsDriveMissing(parent));
 
     /// <summary>Whether an install keeps any originals in its backup folder.</summary>
     /// <param name="files">The install's files.</param>

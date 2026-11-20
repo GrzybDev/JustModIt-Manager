@@ -1,3 +1,5 @@
+using JustModIt.Manager.Core.IO;
+
 namespace JustModIt.Manager.Core.Platform;
 
 /// <summary>
@@ -8,7 +10,8 @@ public interface IVolumes
 {
     /// <summary>
     /// A stable id of the volume holding <paramref name="path"/> or its nearest existing ancestor, which survives a
-    /// change of drive letter; null when it cannot be told.
+    /// change of drive letter on Windows and is the mount on Linux, where a rename fails between two mounts of one file
+    /// system; null when it cannot be told.
     /// </summary>
     /// <param name="path">A file or directory path, which need not exist.</param>
     string? GetVolumeId(string path);
@@ -38,6 +41,6 @@ public static class VolumesExtensions
     public static bool AreOnSameVolume(this IVolumes volumes, string first, string second)
     {
         return volumes.GetVolumeId(first) is { } a && volumes.GetVolumeId(second) is { } b
-            && string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+            && string.Equals(a, b, PathComparison.Comparison);
     }
 }

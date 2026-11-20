@@ -1,0 +1,7 @@
+# <file system>	<dir>	<type>	<options>	<dump>	<pass>
+UUID=1e2f3a4b-0000-4000-8000-000000000001	/	btrfs	subvol=/root	0	1
+UUID=5a6b7c8d-0000-4000-8000-000000000003	/home	ext4	defaults	0	2
+#/dev/sdc1	/mnt/old	ext4	defaults	0	2
+LABEL=Shelf	/mnt/games/	ext4	defaults,nofail,noauto	0	2
+/dev/sdd1	/mnt/backup\040disk	ext4	defaults,nofail	0	2
+/dev/nvme0n1p4	none	swap	defaults	0	0

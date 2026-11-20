@@ -46,4 +46,8 @@ public interface IFileSystem
     /// <summary>The path with links, junctions and short names resolved (see <see cref="IO.PathCanonicalizer"/>).</summary>
     /// <param name="path">A path whose tail may not exist yet.</param>
     string GetCanonicalPath(string path);
+
+    /// <summary>Whether the drive a path is on is not there, such as an unplugged one, rather than only the path.</summary>
+    /// <param name="path">A full path.</param>
+    bool IsDriveMissing(string path) => Path.GetPathRoot(path) is not { Length: > 0 } root || !DirectoryExists(root);
 }

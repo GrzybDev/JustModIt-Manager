@@ -1,0 +1,9 @@
+22 1 0:21 / / rw,relatime shared:1 - btrfs /dev/nvme0n1p2 rw,ssd,subvolid=256,subvol=/root
+23 22 0:22 / /proc rw,nosuid,nodev,noexec,relatime shared:5 - proc proc rw
+30 22 259:3 / /home rw,relatime shared:20 - ext4 /dev/nvme0n1p3 rw
+31 22 259:3 /offload/opt /opt rw,relatime shared:20 - ext4 /dev/nvme0n1p3 rw
+40 22 0:40 / /tmp rw,nosuid,nodev shared:30 - tmpfs tmpfs rw,size=8000000k,inode64
+52 22 179:1 / /run/media/player/Old\040Card rw,nosuid,nodev,relatime shared:40 - exfat /dev/mmcblk0p1 rw,uid=1000,gid=1000
+60 22 0:60 / /mnt/nas rw,relatime shared:50 - nfs4 nas.example:/export/games rw,vers=4.2
+70 22 8:17 / /srv/shelf rw,relatime shared:60 - ext4 /dev/sdb1 rw
+71 70 0:71 / /srv/shelf rw,relatime shared:61 - tmpfs tmpfs rw,size=1024k

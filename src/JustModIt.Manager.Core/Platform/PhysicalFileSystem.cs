@@ -54,4 +54,9 @@ public sealed class PhysicalFileSystem : IFileSystem
     }
 
     public string GetCanonicalPath(string path) => PathCanonicalizer.Canonicalize(path);
+
+    // Every Linux path lies under the root /, so a drive is the mount point where the path really lies, past its links.
+    public bool IsDriveMissing(string path) => OperatingSystem.IsWindows()
+        ? !Directory.Exists(Path.GetPathRoot(path))
+        : MountTable.Read().IsDriveMissing(GetCanonicalPath(path), Environment.UserName);
 }

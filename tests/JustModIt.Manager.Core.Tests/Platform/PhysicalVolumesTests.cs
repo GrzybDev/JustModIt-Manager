@@ -39,6 +39,20 @@ public sealed class PhysicalVolumesTests : IDisposable
     }
 
     [Fact]
+    public void Tells_mounts_apart_and_a_removable_drive_that_is_not_mounted()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Linux tells volumes and drives by its mounts.");
+        var folder = _temp.CreateDirectory("game");
+        var unplugged = $"/run/media/{Environment.UserName}/Example Card/Games";
+
+        _volumes.AreOnSameVolume(folder, _temp.Combine("game/backups/not/yet/there")).Should().BeTrue();
+        _volumes.AreOnSameVolume(folder, "/proc/self").Should().BeFalse();
+        _volumes.IsAttached("00000000-0000-4000-8000-000000000000@/run/media/example").Should().BeFalse();
+        PhysicalFileSystem.Instance.IsDriveMissing(folder).Should().BeFalse();
+        PhysicalFileSystem.Instance.IsDriveMissing(unplugged).Should().BeTrue();
+    }
+
+    [Fact]
     public void Takes_shares_for_network_paths()
     {
         _volumes.IsNetworkPath(@"\\server\share\Games").Should().Be(OperatingSystem.IsWindows());
