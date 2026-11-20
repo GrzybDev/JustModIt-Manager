@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
@@ -53,6 +55,33 @@ public sealed class LiveLibraryTests
         }
 
         (await provider.InspectFolderAsync(owned[0].InstallDirectory, Token)).Folder.Should().Be(owned[0].LibraryId);
+    }
+
+    [Fact]
+    public async Task The_real_steam_app_info_cache_names_windows_for_every_installed_game_that_names_a_system()
+    {
+        var environment = LibraryEnvironment.ForCurrentUser();
+        var root = SteamInstallation.FindRoot(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment)!;
+        var games = (await new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment,
+            TimeProvider.System, NullLogger<SteamLibraryProvider>.Instance).ScanAsync(LibraryScanContext.Empty, Token)).Games;
+
+        var reading = Stopwatch.StartNew();
+        Dictionary<uint, SteamAppSystems> systems;
+        using (var cache = PhysicalFileSystem.Instance.OpenRead(Path.Join(root, "appcache", "appinfo.vdf"), SharedFileRead.Sharing))
+        {
+            systems = SteamAppInfo.Read(cache, games.Select(AppId).ToHashSet());
+        }
+
+        TestContext.Current.TestOutputHelper?.WriteLine($"Read {systems.Count} installed apps in {reading.ElapsedMilliseconds} ms.");
+        systems.Should().HaveSameCount(games, "Steam keeps the information of every app it installed");
+        foreach (var game in games)
+        {
+            var app = systems[AppId(game)];
+            game.Content.Select(depot => app.DepotOsLists.GetValueOrDefault(depot.Split('@')[0])).Append(app.CommonOsList).OfType<string>()
+                .Should().OnlyContain(list => list.Contains("windows", StringComparison.OrdinalIgnoreCase), $"{game.Name} is installed on Windows");
+        }
+
+        static uint AppId(InstalledGame game) => uint.Parse(game.Key.StoreGameId, CultureInfo.InvariantCulture);
     }
 
     [Fact]
