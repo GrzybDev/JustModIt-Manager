@@ -10,19 +10,36 @@
              theme:Motion.Shown="{Binding IsConnecting}">
   <Border Classes="connectingBackdrop">
     <StackPanel Classes="connectingContent" AutomationProperties.LiveSetting="Polite">
-      <Panel Classes="connectingArt">
-        <Ellipse Classes="connectingGlow pulse" />
-        <Image Classes="bob" Source="{Binding Logo}" Width="64" Height="64" />
+      <Panel Classes="connectingArt" Classes.still="{Binding !IsWaiting}">
+        <Ellipse Classes="connectingGlow" Classes.pulse="{Binding IsWaiting}" />
+        <Image Classes.bob="{Binding IsWaiting}" Source="{Binding Logo}" Width="64" Height="64" />
       </Panel>
       <StackPanel Spacing="6">
-        <TextBlock Classes="h2" TextAlignment="Center" Text="{Binding ConnectingTitle}" />
+        <TextBlock x:Name="TitleText" Classes="h2" TextAlignment="Center" Text="{Binding ConnectingTitle}" />
         <TextBlock Classes="bodyL" TextAlignment="Center" Text="{Binding ConnectingMessage}" />
       </StackPanel>
-      <ProgressBar Classes="thin" Width="160" IsIndeterminate="True" AutomationProperties.Name="{Binding ConnectingTitle}" />
+      <ProgressBar Classes="thin connectingBar" Classes.shown="{Binding IsWaiting}" Width="160" IsIndeterminate="True"
+                   theme:Motion.Shown="{Binding IsWaiting}" AutomationProperties.Name="{Binding ConnectingTitle}" />
       <StackPanel Spacing="12" IsVisible="{Binding IsSlowToConnect}">
-        <TextBlock Classes="caption" TextAlignment="Center" Text="{x:Static loc:Strings.Shell_ConnectingSlow}" />
-        <Button Classes="outline" HorizontalAlignment="Center" Content="{x:Static loc:Strings.Shell_StartAgent}"
-                ui:ButtonAssist.Icon="{x:Static theme:Icons.RotateCcw}" Command="{Binding StartAgentCommand}" />
+        <TextBlock Classes="caption" TextAlignment="Center" Text="{x:Static loc:Strings.Shell_ConnectingSlow}"
+                   IsVisible="{Binding !StartRefused}" />
+        <Grid Classes="connectingLine" Classes.shown="{Binding ShowsRefusal}" ColumnDefinitions="Auto,*" ColumnSpacing="8"
+              HorizontalAlignment="Center" IsVisible="{Binding ShowsRefusal}">
+          <ui:Icon Classes="warningText" Data="{x:Static theme:Icons.TriangleAlert}" Width="15" Height="15" Margin="0,2,0,0"
+                   VerticalAlignment="Top" />
+          <TextBlock Grid.Column="1" Classes="caption warningText" TextWrapping="Wrap"
+                     Text="{x:Static loc:Strings.Shell_StartAgentFailed}" />
+        </Grid>
+        <Button x:Name="StartAgentButton" Classes="outline" Classes.waiting="{Binding IsStartingAgent}" HorizontalAlignment="Center"
+                Command="{Binding StartAgentCommand}" AutomationProperties.Name="{Binding StartAgentText}">
+          <StackPanel Classes="buttonContent" Orientation="Horizontal">
+            <ui:Icon Classes="buttonIcon" Classes.spin="{Binding IsStartingAgent}" Data="{x:Static theme:Icons.RotateCcw}" />
+            <TextBlock Text="{Binding StartAgentText}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Classes="quiet" HorizontalAlignment="Center" Content="{x:Static loc:Strings.Settings_LogsFolder}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding OpenLogsFolderCommand}"
+                IsVisible="{Binding OffersLogsFolder}" />
       </StackPanel>
     </StackPanel>
   </Border>

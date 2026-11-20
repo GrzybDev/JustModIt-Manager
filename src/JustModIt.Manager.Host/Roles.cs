@@ -1,8 +1,11 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using JustModIt.Manager.Agent;
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Platform.Linux;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -15,7 +18,8 @@ namespace JustModIt.Manager.Host;
 
 /// <summary>
 /// The roles one executable plays: a launch that finds its role taken hands its command line to the agent and ends, and
-/// a launcher that finds no agent becomes the agent itself, so no second process starts.
+/// a launcher that finds no agent becomes the agent itself, so no second process starts; where the agent runs as the
+/// user's systemd unit, a launcher starts the unit and becomes the window instead.
 /// </summary>
 internal static partial class Roles
 {
@@ -52,6 +56,60 @@ internal static partial class Roles
     }
 
     /// <summary>
+    /// Starts the agent's unit and runs the window, where the agent runs as the user's systemd unit; otherwise runs the
+    /// agent as <see cref="RunAgent"/> does. Returns the exit code.
+    /// </summary>
+    /// <param name="environment">This process's environment.</param>
+    /// <param name="options">What the app hands the startup about itself.</param>
+    /// <param name="launch">The command line, parsed.</param>
+    /// <param name="args">The command line as given, for a hand-over.</param>
+    public static int RunLauncher(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args)
+    {
+        if (!environment.RunsAgentAsUnit)
+        {
+            return RunAgent(environment, options, launch, args);
+        }
+
+        var unit = AgentPlatform.Unit(environment.AgentOptions());
+        if (launch.Background)
+        {
+            return StartUnit(environment, unit) ? 0 : RunAgent(environment, options, launch, args);
+        }
+
+        // The launch becomes the window itself, so the window takes the desktop's activation, and in a store's game session it
+        // is the program the store started, which the session shows.
+        return LaunchWindow(environment.StartedBySteam, () => InstanceLock.TryAcquire(environment.Names.UiLock),
+            () => StartUnit(environment, unit), windowLock => RunHolding(environment, windowLock, UiRole, Window(environment, options, launch)),
+            () => RunUi(environment, options, launch, args), () => RunAgent(environment, options, launch, args));
+    }
+
+    /// <summary>
+    /// Carries out a launch that becomes the window where the agent runs as the user's systemd unit, taking the window's lock
+    /// before the unit starts, so an agent that starts meanwhile sees the window on its way.
+    /// </summary>
+    /// <param name="startedBySteam">Whether Steam started this launch from its library.</param>
+    /// <param name="takeWindow">Takes the window's lock; null while another process holds it.</param>
+    /// <param name="startUnit">Starts the agent's unit; false when systemd did not.</param>
+    /// <param name="runWindow">Runs the window, holding the lock it is given until it ends.</param>
+    /// <param name="handOver">Hands the command line over to the agent, for the window that runs.</param>
+    /// <param name="runAgent">Runs the agent in this process.</param>
+    /// <returns>The exit code.</returns>
+    internal static int LaunchWindow(bool startedBySteam, Func<InstanceLock?> takeWindow, Func<bool> startUnit,
+        Func<InstanceLock, int> runWindow, Func<int> handOver, Func<int> runAgent)
+    {
+        var windowLock = takeWindow();
+        // Where systemd does not start the unit, the launch runs the agent itself, unless Steam started it, since Steam ends
+        // every process of its launch.
+        if (!startUnit() && !startedBySteam)
+        {
+            windowLock?.Dispose();
+            return runAgent();
+        }
+
+        return windowLock is null ? handOver() : runWindow(windowLock);
+    }
+
+    /// <summary>
     /// Runs the window's process, or hands the command line to the agent when a window runs already, and returns the
     /// exit code.
     /// </summary>
@@ -60,8 +118,7 @@ internal static partial class Roles
     /// <param name="launch">The command line, parsed.</param>
     /// <param name="args">The command line as given, for a hand-over.</param>
     public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
-        RunClaimed(environment, environment.Names.UiLock, UiRole, args,
-            (loggers, _, previous) => WindowHost.Run(environment.WindowContext(options, launch, loggers, previous)));
+        RunClaimed(environment, environment.Names.UiLock, UiRole, args, Window(environment, options, launch));
 
     /// <summary>
     /// Ends the session markers of the runs that the installer stopped to replace the app, so the next start does not take
@@ -73,6 +130,27 @@ internal static partial class Roles
     {
         SessionMarker.EndStopped(stateDirectory, AgentRole);
         SessionMarker.EndStopped(stateDirectory, UiRole);
+    }
+
+    /// <summary>
+    /// Starts the agent as a process of its own for a window that waited for it in vain; a running agent takes the launch
+    /// over, and the window reconnects to whichever answers.
+    /// </summary>
+    /// <param name="executable">This copy's executable.</param>
+    /// <param name="logger">Receives why the process could not be started.</param>
+    /// <returns>False when the system could not start it.</returns>
+    internal static bool StartAgentProcess(string executable, ILogger logger)
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo(executable, LaunchArguments.BackgroundSwitch) { UseShellExecute = false });
+            return true;
+        }
+        catch (Win32Exception exception)
+        {
+            LogAgentNotStarted(logger, exception);
+            return false;
+        }
     }
 
     // A launch whose role is taken hands its command line over and ends; a failed hand-over is in the launcher's log.
@@ -88,15 +166,34 @@ internal static partial class Roles
                 .GetAwaiter().GetResult();
         }
 
-        if (claim is not Claimed { Lock: var instanceLock })
-        {
-            return claim is Forwarded ? 0 : 1;
-        }
+        return claim is Claimed { Lock: var instanceLock } ? RunHolding(environment, instanceLock, role, run)
+            : claim is Forwarded ? 0
+            : 1;
+    }
 
+    private static int RunHolding(HostEnvironment environment, InstanceLock instanceLock, string role,
+        Func<ILoggerFactory, SessionMarker, UncleanExit?, int> run)
+    {
         using (instanceLock)
         {
             return RunRole(environment, role, run);
         }
+    }
+
+    private static Func<ILoggerFactory, SessionMarker, UncleanExit?, int> Window(HostEnvironment environment, AppOptions options,
+        LaunchArguments launch) =>
+        (loggers, _, previous) => WindowHost.Run(environment.WindowContext(options, launch, loggers, previous));
+
+    private static bool StartUnit(HostEnvironment environment, AgentUnit unit)
+    {
+        if (unit.Start())
+        {
+            return true;
+        }
+
+        using var log = new RoleLog(environment, LauncherRole);
+        LogUnitNotStarted(log.Loggers.CreateLogger(typeof(Roles).FullName!));
+        return false;
     }
 
     // Refused before the claim, so a run that never starts takes no lock, begins no session and logs no start.
@@ -134,6 +231,12 @@ internal static partial class Roles
         session.End();
         return exitCode;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The agent's process could not be started")]
+    private static partial void LogAgentNotStarted(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The agent's systemd unit could not be started")]
+    private static partial void LogUnitNotStarted(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The agent does not run on {System} yet")]
     private static partial void LogUnsupported(ILogger logger, SystemRelease system);

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using JustModIt.Manager.Agent;
 using JustModIt.Manager.Agent.Diagnostics;
@@ -71,6 +72,21 @@ internal sealed record HostEnvironment
     /// <summary>The updater started this process after applying an update, or after failing to apply it.</summary>
     public bool RestartedByUpdater { get; init; }
 
+    /// <summary>Registers autostart and the link scheme, which a development build does only when asked to.</summary>
+    public bool IntegratesWithShell => Install.IsInstalled || (Product.IsDevelopmentBuild && Product.DevelopmentShellIntegration);
+
+    /// <summary>
+    /// Runs the agent as the user's systemd unit, out of every launch's process tree, as a copy that integrates with the
+    /// system does on Linux.
+    /// </summary>
+    public bool RunsAgentAsUnit => OperatingSystem.IsLinux() && AgentPlatform.IsSupported && IntegratesWithShell;
+
+    /// <summary>
+    /// Steam started this process from its library, which ends every process of the launch once the window closes; told on
+    /// Linux only, where the launch's way depends on it.
+    /// </summary>
+    public bool StartedBySteam { get; init; }
+
     /// <summary>Works out the environment of this process.</summary>
     /// <param name="product">The app's build settings.</param>
     /// <param name="install">Where this copy of the app lives.</param>
@@ -89,8 +105,14 @@ internal sealed record HostEnvironment
             Revision = RevisionOf(Assembly.GetEntryAssembly()),
             Install = install,
             System = SystemRelease.Current(),
+            StartedBySteam = IsSteamLaunch(Environment.GetEnvironmentVariable("SteamGameId")),
         };
     }
+
+    /// <summary>Tells a process of a launch from Steam's library, every one of which carries the game's id, never 0.</summary>
+    /// <param name="steamGameId">The process's <c>SteamGameId</c>; null where it has none.</param>
+    internal static bool IsSteamLaunch(string? steamGameId) =>
+        OperatingSystem.IsLinux() && ulong.TryParse(steamGameId, NumberStyles.None, CultureInfo.InvariantCulture, out var game) && game != 0;
 
     /// <summary>The agent's options for this app and copy.</summary>
     public AgentOptions AgentOptions() => new()
@@ -105,7 +127,8 @@ internal sealed record HostEnvironment
         TargetLanguage = TargetLanguage.FromCode(Product.TargetLanguage),
         ExecutablePath = Install.ExecutablePath,
         InstallDirectory = Install.Directory,
-        IntegratesWithShell = Install.IsInstalled || (Product.IsDevelopmentBuild && Product.DevelopmentShellIntegration),
+        IntegratesWithShell = IntegratesWithShell,
+        LaunchesBecomeWindows = RunsAgentAsUnit,
         Updates = Product.UpdateUrl.Length > 0
             ? new UpdateFeed(Product.UpdateUrl, Product.UpdateChannel.Length > 0 ? Product.UpdateChannel : null)
             : null,
@@ -152,6 +175,11 @@ internal sealed record HostEnvironment
             WindowFrames = OperatingSystem.IsWindows() ? new WindowsWindowFrames() : null,
             Frame = FrameFor(Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")),
             Compose = options.ConfigureUi,
+            // Restarting the unit also brings back an agent that runs but no longer answers.
+            StartAgent = RunsAgentAsUnit
+                ? () => AgentPlatform.Unit(AgentOptions(), loggers.CreateLogger<AgentUnit>()).Restart()
+                : () => Roles.StartAgentProcess(Install.ExecutablePath, loggers.CreateLogger(typeof(Roles).FullName!)),
+            LogsDirectory = Locations.LogsDirectory,
         };
     }
 

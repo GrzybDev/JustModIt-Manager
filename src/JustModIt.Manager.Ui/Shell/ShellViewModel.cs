@@ -1,12 +1,10 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Localization;
-using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Images;
@@ -53,7 +51,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private readonly UiServices _services;
     private readonly Func<UiServices, PageViewModel>? _firstRun;
     private readonly NavigationItem _creator;
-    private readonly DispatcherTimer _slowConnection;
+    private ITimer? _slowConnection;
     private bool _toldUncleanExit;
     private bool _toldWindowCrash;
     private NavigationTarget? _pendingLink;
@@ -74,12 +72,6 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _creator = new(ShellSection.Creator, Strings.Shell_Creator, Icons.WandSparkles, new CreatorRoute()) { IsVisible = false };
         Secondary = [_creator, new(ShellSection.Settings, Strings.Shell_Settings, Icons.Settings, new SettingsRoute())];
         Wordmark = services.Context.ProductName.ToUpper(Text.Culture);
-        _slowConnection = new DispatcherTimer { Interval = SlowConnection };
-        _slowConnection.Tick += (_, _) =>
-        {
-            _slowConnection.Stop();
-            IsSlowToConnect = true;
-        };
 
         Navigator.Navigated += (_, _) => SyncNavigation();
         Agent.PropertyChanged += OnAgentChanged;
@@ -129,13 +121,37 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(ConnectingTitle), nameof(ConnectingMessage))]
     public partial bool IsUpdating { get; private set; }
 
-    public string ConnectingTitle => IsUpdating ? Strings.Shell_UpdatingTitle : Strings.Shell_ConnectingTitle;
+    public string ConnectingTitle => IsUpdating ? Strings.Shell_UpdatingTitle
+        : StartRefused ? Strings.Shell_StartAgentFailedTitle
+        : Strings.Shell_ConnectingTitle;
 
     public string ConnectingMessage => IsUpdating ? Strings.Shell_UpdatingMessage : Strings.Shell_ConnectingMessage;
+
+    /// <summary>Something is still under way while the window waits, so the connecting view moves and shows its bar.</summary>
+    public bool IsWaiting => IsUpdating || !StartRefused;
 
     /// <summary>The agent has not answered for a while, so the window offers to start it again.</summary>
     [ObservableProperty]
     public partial bool IsSlowToConnect { get; private set; }
+
+    /// <summary>The window asked the system to start the agent and waits for it; the button stays where it is, taking no presses.</summary>
+    [ObservableProperty]
+    public partial bool IsStartingAgent { get; private set; }
+
+    /// <summary>The system refused to start the agent, so the window says so rather than that the agent does not answer.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConnectingTitle), nameof(IsWaiting), nameof(StartAgentText), nameof(OffersLogsFolder))]
+    public partial bool StartRefused { get; private set; }
+
+    /// <summary>The line saying the system refused, which comes in anew with every refusal, so a screen reader reads it again.</summary>
+    [ObservableProperty]
+    public partial bool ShowsRefusal { get; private set; }
+
+    /// <summary>The button's label: after a refusal it promises no start, only another try.</summary>
+    public string StartAgentText => StartRefused ? Strings.Library_Retry : Strings.Shell_StartAgent;
+
+    /// <summary>The logs folder is offered after a refusal, whose reason only the logs know.</summary>
+    public bool OffersLogsFolder => StartRefused;
 
     /// <summary>The first-run setup, shown instead of the sidebar and the pages until it is done; null once it is.</summary>
     [ObservableProperty]
@@ -146,7 +162,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _slowConnection.Stop();
+        _slowConnection?.Dispose();
         Agent.PropertyChanged -= OnAgentChanged;
         Agent.NavigationRequested -= OnNavigationRequested;
         Agent.Noticed -= OnNoticed;
@@ -171,19 +187,61 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
     }
 
-    // The agent is this same program in the background; started this way it takes over and the window reconnects to it.
-    [RelayCommand]
-    private void StartAgent()
+    // The button stays where it is, with the focus, while the system answers and then while the agent has its usual time to
+    // connect; a press meanwhile does nothing, so it never starts the agent twice.
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private async Task StartAgentAsync()
     {
-        IsSlowToConnect = false;
-        _slowConnection.Start();
-        if (Environment.ProcessPath is { } executable)
+        if (IsStartingAgent)
         {
-            _ = Task.Run(() =>
-            {
-                using var process = Process.Start(new ProcessStartInfo(executable, LaunchArguments.BackgroundSwitch) { UseShellExecute = false });
-            });
+            return;
         }
+
+        IsStartingAgent = true;
+        StopCountingSlowConnection();
+        var started = await Task.Run(_services.Context.StartAgent).ConfigureAwait(true);
+        if (!IsConnecting)
+        {
+            return;
+        }
+
+        if (started)
+        {
+            StartRefused = false;
+            ShowsRefusal = false;
+            CountSlowConnection();
+            return;
+        }
+
+        IsStartingAgent = false;
+        StartRefused = true;
+        ShowsRefusal = false;
+        Dispatcher.UIThread.Post(() => ShowsRefusal = StartRefused, DispatcherPriority.Background);
+    }
+
+    [RelayCommand]
+    private void OpenLogsFolder() => _services.Links.OpenFolder(_services.Context.LogsDirectory);
+
+    private void CountSlowConnection()
+    {
+        _slowConnection?.Dispose();
+        ITimer? timer = null;
+        timer = _services.Clock.CreateTimer(_ => Dispatcher.UIThread.Post(() =>
+        {
+            if (timer == _slowConnection)
+            {
+                StopCountingSlowConnection();
+                IsSlowToConnect = true;
+                IsStartingAgent = false;
+            }
+        }), null, SlowConnection, Timeout.InfiniteTimeSpan);
+        _slowConnection = timer;
+    }
+
+    private void StopCountingSlowConnection()
+    {
+        _slowConnection?.Dispose();
+        _slowConnection = null;
     }
 
     private void OnAgentChanged(object? sender, PropertyChangedEventArgs e)
@@ -241,12 +299,15 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         IsUpdating = Agent.Link == AgentLink.Incompatible;
         if (connected)
         {
-            _slowConnection.Stop();
+            StopCountingSlowConnection();
             IsSlowToConnect = false;
+            IsStartingAgent = false;
+            StartRefused = false;
+            ShowsRefusal = false;
         }
-        else if (!_slowConnection.IsEnabled && !IsSlowToConnect)
+        else if (_slowConnection is null && !IsSlowToConnect)
         {
-            _slowConnection.Start();
+            CountSlowConnection();
         }
     }
 

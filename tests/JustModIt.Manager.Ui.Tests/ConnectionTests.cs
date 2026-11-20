@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Localization;
@@ -46,6 +47,62 @@ public sealed class ConnectionTests
         waiting.Classes.Should().NotContain("shown");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
         waiting.IsVisible.Should().BeFalse("a faded view and its loops would go on drawing under the pages, and a screen reader would read it");
+    }
+
+    [AvaloniaFact]
+    public async Task A_refused_start_of_the_background_part_is_said_instead_of_no_answer()
+    {
+        var answers = Channel.CreateUnbounded<bool>();
+        var (starts, onUiThread) = (0, false);
+        using var ui = new UiHarness(context: context => context with
+        {
+            StartAgent = () =>
+            {
+                Interlocked.Increment(ref starts);
+                onUiThread |= Dispatcher.UIThread.CheckAccess();
+                return answers.Reader.ReadAsync().AsTask().GetAwaiter().GetResult();
+            },
+        });
+        ui.Agent.Link = AgentLink.Connecting;
+        UiHarness.Settle();
+        var button = ui.Find<Button>("StartAgentButton");
+        button.IsEffectivelyVisible.Should().BeFalse("nothing has the focus while the agent has its time to start");
+
+        ui.Clock.Advance(ShellViewModel.SlowConnection);
+        UiHarness.Settle();
+        (button.IsEffectivelyVisible, button.IsFocused).Should().Be((true, true));
+
+        ui.Shell.StartAgentCommand.Execute(null);
+        UiHarness.Settle();
+        ui.Shell.StartAgentCommand.Execute(null);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(200));
+        (ui.Shell.IsStartingAgent, button.IsFocused, button.Classes.Contains("waiting")).Should().Be((true, true, true),
+            "the button waits for the system where it stands");
+        ui.Render("connecting-start-waiting");
+
+        answers.Writer.TryWrite(false);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.ShowsRefusal);
+        (ui.Shell.ConnectingTitle, ui.Shell.StartAgentText, ui.Shell.IsWaiting).Should()
+            .Be((Strings.Shell_StartAgentFailedTitle, Strings.Library_Retry, false));
+        button.IsFocused.Should().BeTrue();
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("connecting-start-refused");
+        ui.Click(ui.Find<Button>().Single(found => Equals(found.Content, Strings.Settings_LogsFolder)));
+        ui.Links.Folders.Should().Equal(ui.Session.Services.Context.LogsDirectory);
+
+        // Started this time, the agent gets its usual time before the window offers to start it again.
+        ui.Shell.StartAgentCommand.Execute(null);
+        answers.Writer.TryWrite(true);
+        await UiHarness.WaitUntilAsync(() => !ui.Shell.StartRefused);
+        (ui.Shell.ConnectingTitle, ui.Shell.IsStartingAgent, ui.Shell.IsWaiting).Should().Be((Strings.Shell_ConnectingTitle, true, true));
+        ui.Clock.Advance(ShellViewModel.SlowConnection);
+        UiHarness.Settle();
+        ui.Shell.IsStartingAgent.Should().BeFalse();
+        (starts, onUiThread).Should().Be((2, false), "a press while the button waited started nothing, and none ran on the UI thread");
+
+        ui.Agent.Link = AgentLink.Connected;
+        ui.Push(TestStates.Idle());
+        (ui.Shell.ShowsPages, ui.Shell.IsSlowToConnect, ui.Shell.StartRefused).Should().Be((true, false, false));
     }
 
     [AvaloniaFact]

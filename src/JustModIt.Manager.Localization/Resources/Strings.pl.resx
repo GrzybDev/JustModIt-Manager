@@ -471,6 +471,12 @@
   <data name="Shell_StartAgent" xml:space="preserve">
     <value>Uruchom ją ponownie</value>
   </data>
+  <data name="Shell_StartAgentFailedTitle" xml:space="preserve">
+    <value>Brak połączenia</value>
+  </data>
+  <data name="Shell_StartAgentFailed" xml:space="preserve">
+    <value>System nie uruchomił części aplikacji działającej w tle.</value>
+  </data>
   <data name="Shell_PageGame" xml:space="preserve">
     <value>Gra</value>
   </data>

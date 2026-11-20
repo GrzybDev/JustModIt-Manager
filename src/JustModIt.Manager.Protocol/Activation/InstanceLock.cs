@@ -14,6 +14,37 @@ public sealed class InstanceLock : IDisposable
     public static InstanceLock? TryAcquire(string name) =>
         OperatingSystem.IsWindows() ? TryAcquireMutex(name) : TryAcquireFile(name);
 
+    /// <summary>Tells whether another holder has the named lock, without keeping it.</summary>
+    /// <param name="name">One of the locks in <see cref="InstanceNames"/>.</param>
+    public static bool IsHeld(string name)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                if (!Mutex.TryOpenExisting(name, out var mutex))
+                {
+                    return false;
+                }
+
+                mutex.Dispose();
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return true;
+            }
+        }
+
+        if (!File.Exists(name))
+        {
+            return false;
+        }
+
+        using var probe = TryAcquireFile(name);
+        return probe is null;
+    }
+
     public void Dispose() => _held.Dispose();
 
     private static InstanceLock? TryAcquireMutex(string name)

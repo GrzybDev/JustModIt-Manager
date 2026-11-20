@@ -11,14 +11,17 @@ public sealed class InstanceLockTests : IDisposable
     private string Name => _instance.Names.AgentLock;
 
     [Fact]
-    public void Only_the_first_holder_gets_the_lock_until_it_lets_go()
+    public void Only_the_first_holder_gets_the_lock_until_it_lets_go_and_a_look_at_it_takes_nothing()
     {
+        InstanceLock.IsHeld(Name).Should().BeFalse();
         using (var first = InstanceLock.TryAcquire(Name))
         {
             first.Should().NotBeNull();
+            InstanceLock.IsHeld(Name).Should().BeTrue();
             InstanceLock.TryAcquire(Name).Should().BeNull();
         }
 
+        InstanceLock.IsHeld(Name).Should().BeFalse();
         using var next = InstanceLock.TryAcquire(Name);
         next.Should().NotBeNull();
     }
@@ -51,6 +54,7 @@ public sealed class InstanceLockTests : IDisposable
 
         // flock waits for the lock, so it takes it as soon as this test lets go.
         await WaitUntilHeldAsync().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        InstanceLock.IsHeld(Name).Should().BeTrue();
         holder.Kill(entireProcessTree: true);
         await holder.WaitForExitAsync(TestContext.Current.CancellationToken);
 

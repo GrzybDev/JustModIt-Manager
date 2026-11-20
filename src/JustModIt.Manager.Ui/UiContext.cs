@@ -89,4 +89,13 @@ public sealed record UiContext
 
     /// <summary>The app's own views, pages, styles and resources, added after the shared ones so they win.</summary>
     public Action<UiComposition>? Compose { get; init; }
+
+    /// <summary>
+    /// Starts the agent again after the window waited for it in vain and tells whether the system took the start; it may wait
+    /// for the system, so it runs off the UI thread.
+    /// </summary>
+    public required Func<bool> StartAgent { get; init; }
+
+    /// <summary>Where the app writes its logs, which the window opens when the system refused to start the agent, since only they say why.</summary>
+    public required string LogsDirectory { get; init; }
 }

@@ -41,6 +41,12 @@ public sealed record AgentOptions
     /// <summary>Registers autostart and the link scheme, which a development build does only when asked to.</summary>
     public bool IntegratesWithShell { get; init; }
 
+    /// <summary>
+    /// A launch becomes the window itself, as where the agent runs as the user's systemd unit, so another process holding
+    /// the window's lock may be a window on its way.
+    /// </summary>
+    public bool LaunchesBecomeWindows { get; init; }
+
     /// <summary>Where the app's own updates come from; null turns self-update off.</summary>
     public UpdateFeed? Updates { get; init; }
 

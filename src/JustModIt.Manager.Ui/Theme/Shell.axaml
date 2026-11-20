@@ -254,4 +254,40 @@
       </RadialGradientBrush>
     </Setter>
   </Style>
+  <!-- Nothing is under way any more: the glow dims and stands still. -->
+  <Style Selector="Panel.connectingArt.still Ellipse.connectingGlow">
+    <Setter Property="Opacity" Value="0.55" />
+  </Style>
+  <!-- The button waits for the system and the agent where it stands, keeping the focus. -->
+  <Style Selector="shell|ConnectingView Button.waiting">
+    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+  </Style>
+  <!-- Once nothing is under way the bar fades away; with reduced motion it goes at once. -->
+  <Style Selector="ProgressBar.connectingBar">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="ProgressBar.connectingBar.shown">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector=":is(Window):not(.reducedMotion) ProgressBar.connectingBar">
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <!-- A line that comes in fades in each time it does, so a press that ends the same way shows it took effect. -->
+  <Style Selector=":is(Window):not(.reducedMotion) :is(Panel).connectingLine.shown">
+    <Style.Animations>
+      <Animation Duration="0:0:0.15">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="0" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
 </Styles>

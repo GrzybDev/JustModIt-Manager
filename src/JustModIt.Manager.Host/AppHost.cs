@@ -43,9 +43,12 @@ public static class AppHost
         }
 
         var launch = LaunchArguments.Parse(args, environment.Links);
-        return launch.Role == ProcessRole.Ui
-            ? Roles.RunUi(environment, options, launch, args)
-            : Roles.RunAgent(environment, options, launch, args);
+        return launch.Role switch
+        {
+            ProcessRole.Ui => Roles.RunUi(environment, options, launch, args),
+            ProcessRole.Launcher => Roles.RunLauncher(environment, options, launch, args),
+            _ => Roles.RunAgent(environment, options, launch, args),
+        };
     }
 
     // Before it replaces the app's files, an update, like an installer run over this copy, stops every process of the app

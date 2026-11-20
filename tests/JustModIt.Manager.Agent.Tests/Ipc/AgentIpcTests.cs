@@ -62,6 +62,32 @@ public sealed class AgentIpcTests : IAsyncDisposable
         (await window.NextAsync<Navigate>()).Target.Should().Be(new SettingsTarget());
     }
 
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public async Task A_launch_while_the_windows_lock_is_held_waits_for_the_window_only_where_launches_become_one(
+        bool launchesBecomeWindows, int starts)
+    {
+        _agent.Options = _agent.Options with { LaunchesBecomeWindows = launchesBecomeWindows };
+        _agent.Start();
+        var launcher = await _agent.ConnectLauncherAsync();
+
+        // A launch that becomes the window holds the window's lock before it connects; elsewhere the lock is a closing window's.
+        using (InstanceLock.TryAcquire(_agent.Options.Names.UiLock))
+        {
+            await launcher.RequestAsync(new Activate(["example-app://settings"]), cancellationToken: AgentHarness.Token);
+            var window = await _agent.ConnectWindowAsync();
+
+            (await window.NextAsync<Navigate>()).Target.Should().Be(new SettingsTarget());
+            _agent.Starter.Starts.Should().Be(starts);
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            File.Delete(_agent.Options.Names.UiLock);
+        }
+    }
+
     [Fact]
     public async Task A_window_that_connects_while_a_start_with_the_system_waits_gets_the_catalogue_at_once()
     {

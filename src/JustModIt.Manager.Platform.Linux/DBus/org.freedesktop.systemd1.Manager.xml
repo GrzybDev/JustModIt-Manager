@@ -3,6 +3,19 @@
 <node>
   <interface name="org.freedesktop.systemd1.Manager">
     <method name="Reload" />
+    <method name="StartUnit">
+      <arg type="s" name="name" direction="in" />
+      <arg type="s" name="mode" direction="in" />
+      <arg type="o" name="job" direction="out" />
+    </method>
+    <method name="RestartUnit">
+      <arg type="s" name="name" direction="in" />
+      <arg type="s" name="mode" direction="in" />
+      <arg type="o" name="job" direction="out" />
+    </method>
+    <method name="ResetFailedUnit">
+      <arg type="s" name="name" direction="in" />
+    </method>
     <method name="GetUnitFileState">
       <arg type="s" name="file" direction="in" />
       <arg type="s" name="state" direction="out" />

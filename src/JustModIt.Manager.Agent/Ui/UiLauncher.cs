@@ -33,7 +33,8 @@ internal sealed class UiProcessStarter(AgentOptions options) : IUiStarter
 
 /// <summary>
 /// The window: brings the running one to the front, or starts its process, and keeps it up to date; the window's own
-/// lock keeps it to one process, so a start while another is on its way only makes the new process hand over and end.
+/// lock keeps it to one process, so a start while another is on its way only makes the new process hand over and end, and
+/// where launches become the window, none is started while another process holds that lock.
 /// </summary>
 public sealed partial class UiLauncher : IDisposable
 {
@@ -44,6 +45,8 @@ public sealed partial class UiLauncher : IDisposable
     private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(30);
 
     private readonly IUiStarter _starter;
+    private readonly string _uiLock;
+    private readonly bool _launchesBecomeWindows;
     private readonly IForegroundHandoff _foreground;
     private readonly StatePublisher _publisher;
     private readonly TimeProvider _time;
@@ -59,14 +62,17 @@ public sealed partial class UiLauncher : IDisposable
 
     /// <summary>Creates the launcher, which forwards every snapshot, job progress and job end to the window from then on.</summary>
     /// <param name="starter">Starts the window's process.</param>
+    /// <param name="options">Names the lock the window's process holds, and tells whether launches become the window.</param>
     /// <param name="foreground">Lets the window take the foreground.</param>
     /// <param name="publisher">The snapshots, job progress and job ends to forward.</param>
     /// <param name="time">Times how long a started window has to connect.</param>
     /// <param name="logger">Receives the window's starts, connections and closes.</param>
-    public UiLauncher(IUiStarter starter, IForegroundHandoff foreground, StatePublisher publisher, TimeProvider time,
+    public UiLauncher(IUiStarter starter, AgentOptions options, IForegroundHandoff foreground, StatePublisher publisher, TimeProvider time,
         ILogger<UiLauncher> logger)
     {
         _starter = starter;
+        _uiLock = options.Names.UiLock;
+        _launchesBecomeWindows = options.LaunchesBecomeWindows;
         _foreground = foreground;
         _publisher = publisher;
         _time = time;
@@ -254,6 +260,19 @@ public sealed partial class UiLauncher : IDisposable
 
     private void StartWindow()
     {
+        // A launch that becomes the window holds its lock before it connects, and then gets the page that waits for it. A
+        // window that is closing holds it too, so the next activation looks again.
+        if (_launchesBecomeWindows && InstanceLock.IsHeld(_uiLock))
+        {
+            lock (_gate)
+            {
+                _startedAt = null;
+            }
+
+            LogWindowOnItsWay();
+            return;
+        }
+
         try
         {
             var processId = _starter.Start();
@@ -300,6 +319,9 @@ public sealed partial class UiLauncher : IDisposable
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Started the window as process {ProcessId}")]
     private partial void LogStarted(int processId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "A window's process is on its way, so no other is started")]
+    private partial void LogWindowOnItsWay();
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The window could not be started")]
     private partial void LogStartFailed(Exception exception);

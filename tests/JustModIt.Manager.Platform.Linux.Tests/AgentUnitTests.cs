@@ -130,6 +130,75 @@ public sealed class AgentUnitTests : IDisposable
     }
 
     [Fact]
+    public async Task A_launch_starts_the_unit_and_keeps_it_as_the_setting_left_it()
+    {
+        await using var bus = await PrivateBus.StartAsync(Token);
+        var systemd = await FakeSystemd.StartAsync(bus);
+        var unit = new AgentUnit(DesktopId, "Example App", "/home/player/Applications/ExampleApp.AppImage", ["--agent", "--background"],
+            _folder, await bus.ConnectAsync());
+
+        unit.Start().Should().BeTrue();
+
+        File.ReadAllText(UnitFile).Should().Be(unit.Text(install: false), "a unit a launch writes must not read as disabled by someone else");
+        Drain(systemd).Should().Equal("Reload", $"ResetFailedUnit {Name}", $"StartUnit {Name} replace");
+        unit.Enable();
+        Drain(systemd);
+
+        unit.Start().Should().BeTrue();
+
+        File.ReadAllText(UnitFile).Should().Be(unit.Text(install: true));
+        Drain(systemd).Should().Equal($"ResetFailedUnit {Name}", $"StartUnit {Name} replace");
+        systemd.State = "masked";
+        unit.Start().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Restarting_the_agent_resets_a_failed_unit_and_restarts_it()
+    {
+        await using var bus = await PrivateBus.StartAsync(Token);
+        var systemd = await FakeSystemd.StartAsync(bus);
+        var unit = new AgentUnit(DesktopId, "Example App", "/home/player/Applications/ExampleApp.AppImage", ["--agent", "--background"],
+            _folder, await bus.ConnectAsync());
+
+        unit.Restart().Should().BeTrue();
+
+        File.ReadAllText(UnitFile).Should().Be(unit.Text(install: false));
+        Drain(systemd).Should().Equal("Reload", $"ResetFailedUnit {Name}", $"RestartUnit {Name} replace");
+        systemd.State = "masked";
+        unit.Restart().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_launch_from_another_copy_leaves_the_unit_on_its_file_and_a_moved_file_is_followed()
+    {
+        await using var bus = await PrivateBus.StartAsync(Token);
+        var systemd = await FakeSystemd.StartAsync(bus);
+        var connection = await bus.ConnectAsync();
+        var copies = Directory.CreateDirectory(Path.Join(_folder, "copies")).FullName;
+        var served = Path.Join(copies, "Example $App 100%.AppImage");
+        var other = Path.Join(copies, "Downloads", "ExampleApp.AppImage");
+        Directory.CreateDirectory(Path.GetDirectoryName(other)!);
+        File.WriteAllBytes(served, []);
+        File.WriteAllBytes(other, []);
+        var updated = new AgentUnit(DesktopId, "Example App", served, ["--agent", "--background"], _folder, connection);
+        var downloaded = new AgentUnit(DesktopId, "Example App", other, ["--agent", "--background"], _folder, connection);
+        updated.Enable();
+        Drain(systemd);
+
+        downloaded.Start().Should().BeTrue();
+        downloaded.Disable();
+
+        File.ReadAllText(UnitFile).Should().Be(updated.Text(install: false), "the agent stays on the copy the updater serves");
+        Drain(systemd).Should().Equal($"ResetFailedUnit {Name}", $"StartUnit {Name} replace", $"DisableUnitFiles {Name}", "Reload");
+        File.Delete(served);
+
+        downloaded.Start().Should().BeTrue();
+
+        File.ReadAllText(UnitFile).Should().Be(downloaded.Text(install: false));
+        Drain(systemd).Should().Equal("Reload", $"ResetFailedUnit {Name}", $"StartUnit {Name} replace");
+    }
+
+    [Fact]
     public async Task A_systemd_that_refuses_fails_as_a_file_error_would()
     {
         await using var bus = await PrivateBus.StartAsync(Token);
@@ -150,6 +219,7 @@ public sealed class AgentUnitTests : IDisposable
 
         unit.Invoking(autostart => autostart.Enable()).Should().Throw<IOException>();
         unit.GetState().Should().Be(AutostartState.Disabled, "with no systemd to ask, nothing could have enabled the unit");
+        unit.Start().Should().BeFalse("a launch then runs the agent itself");
     }
 
     public void Dispose()

@@ -41,6 +41,16 @@ internal sealed class FakeSystemd : DBusHandler, IManagerHandler
         return default;
     }
 
+    public ValueTask<ObjectPath> StartUnitAsync(string name, string mode) => Job($"StartUnit {name} {mode}", name);
+
+    public ValueTask<ObjectPath> RestartUnitAsync(string name, string mode) => Job($"RestartUnit {name} {mode}", name);
+
+    public ValueTask ResetFailedUnitAsync(string name)
+    {
+        Record($"ResetFailedUnit {name}");
+        return default;
+    }
+
     public ValueTask<string> GetUnitFileStateAsync(string file)
     {
         Record($"GetUnitFileState {file}");
@@ -63,6 +73,14 @@ internal sealed class FakeSystemd : DBusHandler, IManagerHandler
         (string, string, string)[] changes = _enabled ? [("unlink", "default.target.wants", files[0])] : [];
         _enabled = false;
         return ValueTask.FromResult(changes);
+    }
+
+    private ValueTask<ObjectPath> Job(string call, string name)
+    {
+        Record(call);
+        return State == "masked"
+            ? throw new DBusErrorReplyException("org.freedesktop.systemd1.UnitMasked", $"Unit {name} is masked.")
+            : ValueTask.FromResult(new ObjectPath("/org/freedesktop/systemd1/job/1"));
     }
 
     private void Record(string call)

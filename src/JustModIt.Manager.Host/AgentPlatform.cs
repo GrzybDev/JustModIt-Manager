@@ -59,8 +59,10 @@ internal static class AgentPlatform
 
     /// <summary>The agent's systemd user unit on Linux, which runs the app's executable as the agent.</summary>
     /// <param name="options">The app's identity, name and executable.</param>
-    public static AgentUnit Unit(AgentOptions options) => new(options.Identity.DesktopId, options.ProductName, options.ExecutablePath,
-        UnitArguments, Path.Join(LibraryEnvironment.ForCurrentUser().ConfigDirectory, "systemd", "user"), DBusConnection.Session);
+    /// <param name="logger">Receives why systemd did not start the unit; null where the caller tells it itself.</param>
+    public static AgentUnit Unit(AgentOptions options, ILogger<AgentUnit>? logger = null) => new(options.Identity.DesktopId,
+        options.ProductName, options.ExecutablePath, UnitArguments,
+        Path.Join(LibraryEnvironment.ForCurrentUser().ConfigDirectory, "systemd", "user"), DBusConnection.Session, logger);
 
     [SupportedOSPlatform("windows")]
     private static void AddWindows(IServiceCollection services, AgentOptions options)

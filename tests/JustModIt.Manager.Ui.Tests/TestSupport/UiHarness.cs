@@ -126,6 +126,8 @@ public sealed class UiHarness : IDisposable
             CreatorDirectory = Path.Combine(Path.GetTempPath(), "ExampleApp.UiTests", Guid.NewGuid().ToString("N")),
             ImageHosts = ["images.example.com"],
             Compose = compose,
+            StartAgent = () => throw new InvalidOperationException("A test that starts the agent gives a context of its own."),
+            LogsDirectory = Path.Combine(AppContext.BaseDirectory, "logs"),
         };
     }
 
