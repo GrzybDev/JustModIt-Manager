@@ -17,6 +17,9 @@ internal sealed class SteamTree
 
     public static readonly DateTimeOffset WrittenAt = new(2026, 3, 1, 10, 0, 0, TimeSpan.Zero);
 
+    /// <summary>An app info cache of invented apps, which <see cref="SteamAppInfoTests"/> describes.</summary>
+    public static readonly byte[] AppInfo = File.ReadAllBytes(Path.Join(AppContext.BaseDirectory, "Library", "Steam", "Fixtures", "appinfo.vdf"));
+
     private readonly List<(string Path, bool? Mounted)> _listed = [];
 
     /// <summary>Creates a Steam root with its <c>steamapps</c> folder.</summary>
@@ -128,6 +131,10 @@ internal sealed class SteamTree
     public void AddDownload(uint appId, DateTimeOffset? changedAt = null) =>
         Files.AddDirectory(Path.Join(Root, "steamapps", "downloading", appId.ToString(CultureInfo.InvariantCulture)),
             lastWriteTimeUtc: changedAt ?? WrittenAt);
+
+    /// <summary>Writes the root's app info cache, <see cref="AppInfo"/> unless given.</summary>
+    /// <param name="content">The cache's bytes.</param>
+    public void AddAppInfo(byte[]? content = null) => Files.AddFile(Path.Join(Root, "appcache", "appinfo.vdf"), content ?? AppInfo);
 
     public void SetUpdating(uint appId) =>
         Registry.SetValue(RegistryHive.CurrentUser, RegistryView.Default, $@"{SteamKey}\Apps\{appId}", "Updating", RegistryValue.FromDWord(1));

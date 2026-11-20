@@ -284,6 +284,22 @@ public sealed class GogLibraryProviderTests
     }
 
     [Fact]
+    public async Task On_linux_a_folder_with_a_windows_program_holds_a_windows_build_the_app_does_not_start()
+    {
+        var installs = TestPaths.Rooted('E', "Wine Games");
+        _files.AddInfo(Path.Join(installs, "Windows"), "1001", "Windows Build");
+        _files.AddInfo(Path.Join(installs, "Native"), "1002", "Native Build", program: "start.sh");
+        var provider = new GogLibraryProvider(_files, [], AppPlatform.Linux, NullLogger<GogLibraryProvider>.Instance);
+
+        var scan = await provider.ScanAsync(Manual(installs), Token);
+
+        scan.Games.Select(game => (game.Name, game.Platform, game.Launch)).Should().BeEquivalentTo([
+            ("Windows Build", OperatingSystemKind.Windows, (GameLaunch?)null),
+            ("Native Build", OperatingSystemKind.Linux, LaunchProgram.TryCreate("start.sh", null, null)),
+        ]);
+    }
+
+    [Fact]
     public async Task Games_whose_drive_does_not_answer_are_reported_while_the_others_are_read()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "GOG Galaxy, whose folder the scan watches for, exists only on Windows.");

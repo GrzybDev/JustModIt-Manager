@@ -9,8 +9,7 @@ namespace JustModIt.Manager.Core.Tests.Library.Steam;
 // 4000 for macOS; 5000 that names no system; and 6000 with a value of a type app info never holds.
 public sealed class SteamAppInfoTests
 {
-    private static readonly byte[] Cache =
-        File.ReadAllBytes(Path.Join(AppContext.BaseDirectory, "Library", "Steam", "Fixtures", "appinfo.vdf"));
+    private static readonly byte[] Cache = SteamTree.AppInfo;
 
     [Fact]
     public void Only_the_asked_for_apps_are_read_and_only_their_own_and_their_depots_systems()

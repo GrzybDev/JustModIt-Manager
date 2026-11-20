@@ -11,6 +11,8 @@ internal static class SteamPaths
     public const string Config = "config";
     public const string LibraryFoldersFile = "libraryfolders.vdf";
     public const string ManifestPattern = "appmanifest_*.acf";
+    public const string AppCache = "appcache";
+    public const string AppInfoFile = "appinfo.vdf";
 
     /// <summary>
     /// Finds the <c>steamapps</c> folder in any letter case, since very old Linux clients created <c>SteamApps</c>; null
@@ -19,16 +21,16 @@ internal static class SteamPaths
     /// <param name="fileSystem">Reads the folder.</param>
     /// <param name="directory">A Steam root or library folder.</param>
     public static string? FindSteamApps(IFileSystem fileSystem, string directory) =>
-        FindChildDirectory(fileSystem, directory, SteamApps);
+        FindChildDirectory(new CaseInsensitiveNames(fileSystem), directory, SteamApps);
 
     /// <summary>
     /// Finds the existing subfolder with this name in any letter case, the exact spelling first, since on case-sensitive file
     /// systems the name may differ in case from what Steam recorded (e.g. an installdir written on Windows); null when none
     /// exists or several differ only in case.
     /// </summary>
-    /// <param name="fileSystem">Reads the folder.</param>
+    /// <param name="names">Looks names up in the folder, keeping a listing it needed for the next lookup there.</param>
     /// <param name="directory">The folder to look in.</param>
     /// <param name="name">The subfolder's name as Steam recorded it.</param>
-    public static string? FindChildDirectory(IFileSystem fileSystem, string directory, string name) =>
-        new CaseInsensitiveNames(fileSystem).Find(directory, name) is { IsDirectory: true } entry ? entry.FullPath : null;
+    public static string? FindChildDirectory(CaseInsensitiveNames names, string directory, string name) =>
+        names.Find(directory, name) is { IsDirectory: true } entry ? entry.FullPath : null;
 }

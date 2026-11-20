@@ -20,17 +20,20 @@ public sealed class SteamLibraryProviderTests
     public async Task An_installed_game_is_reported_with_its_details()
     {
         var written = new DateTimeOffset(2026, 4, 2, 8, 30, 0, TimeSpan.Zero);
-        _steam.AddApp(1001, "Example Quest", writtenAt: written, buildId: "4242",
-            extra: "\"UserConfig\" { \"language\" \"polish\" } \"InstalledDepots\" { \"1003\" { \"manifest\" \"77\" } }");
+        // Linux reads the build's system from Steam's cache; elsewhere it is the app's own.
+        _steam.AddAppInfo();
+        _steam.AddApp(1000, "Example Quest", writtenAt: written, buildId: "4242",
+            extra: "\"UserConfig\" { \"language\" \"polish\" } " + Depots("1003"));
 
         var scan = await _steam.ScanAsync();
 
         scan.IsPresent.Should().BeTrue();
         scan.IsComplete.Should().BeTrue();
+        scan.RecheckAt.Should().BeNull();
         scan.Libraries.Should().Equal(new LibraryLocation(_steam.RootId, SteamLibraryProvider.LibrarySource, _steam.RootId, LibraryState.Online));
         scan.Games.Should().Equal(new InstalledGame
         {
-            Key = Quest,
+            Key = new GameKey(StoreId.Steam, "1000"),
             Name = "Example Quest",
             InstallDirectory = _steam.GameFolder("Example Quest", _steam.RootId),
             LibraryId = _steam.RootId,
@@ -40,9 +43,42 @@ public sealed class SteamLibraryProviderTests
             StoreActivityAt = written,
             Platform = TestEnvironments.HostSystem,
             Languages = ["pl"],
-            Content = ["1003@77"],
-            Launch = LaunchLink.TryCreate("steam://rungameid/1001"),
+            Content = ["1003@1"],
+            Launch = LaunchLink.TryCreate("steam://rungameid/1000"),
         });
+    }
+
+    [Fact]
+    public async Task On_linux_the_installed_depots_tell_a_proton_build_from_a_native_one_and_the_cache_misses_are_read_again()
+    {
+        var steam = new SteamTree(Path.Join(TestEnvironments.Linux.HomeDirectory, ".local", "share", "Steam"), registered: false);
+        steam.AddAppInfo();
+        steam.AddApp(1000, "Run Through Proton", extra: Depots("1001", "1003"));
+        steam.AddApp(3000, "Native", extra: Depots("3001"));
+        steam.AddApp(2000, "Without Depots Of One System", extra: Depots("2001"));
+        steam.AddApp(5000, "Without Any List", extra: Depots("5001"));
+        steam.AddApp(7000, "Not Cached Yet", writtenAt: steam.Time.GetUtcNow() - TimeSpan.FromMinutes(25));
+        var provider = steam.CreateProvider(TestEnvironments.Linux);
+
+        var scan = await provider.ScanAsync(LibraryScanContext.Empty, Token);
+        var probed = await provider.ProbeAsync(scan.Games.Single(game => game.Name == "Run Through Proton"), LibraryScanContext.Empty, Token);
+        steam.AddAppInfo([.. SteamTree.AppInfo.Take(100)]);
+        var damaged = await provider.ScanAsync(LibraryScanContext.Empty, Token);
+
+        scan.Games.ToDictionary(game => game.Name, game => game.Platform).Should().BeEquivalentTo(new Dictionary<string, OperatingSystemKind>
+        {
+            ["Run Through Proton"] = OperatingSystemKind.Windows,
+            ["Native"] = OperatingSystemKind.Linux,
+            ["Without Depots Of One System"] = OperatingSystemKind.Windows,
+            ["Without Any List"] = OperatingSystemKind.Windows,
+            ["Not Cached Yet"] = OperatingSystemKind.Unknown,
+        });
+        scan.RecheckAt.Should().Be(steam.Time.GetUtcNow() + TimeSpan.FromMinutes(25), "the longer a game goes unnamed, the later it is looked for");
+        probed!.Platform.Should().Be(OperatingSystemKind.Windows);
+        damaged.Games.Should().HaveCount(5).And.OnlyContain(game => game.Platform == OperatingSystemKind.Unknown && game.IsReady);
+        damaged.IsComplete.Should().BeTrue();
+        steam.Time.Advance(TimeSpan.FromDays(1));
+        (await provider.ScanAsync(LibraryScanContext.Empty, Token)).RecheckAt.Should().BeNull("after a day only the next scan looks again");
     }
 
     [Fact]
@@ -506,6 +542,23 @@ public sealed class SteamLibraryProviderTests
     }
 
     [Fact]
+    public async Task A_probe_where_no_cache_tells_the_builds_waits_for_no_drive_but_the_games()
+    {
+        var steam = new SteamTree(TestPaths.Rooted('C', "Program Files (x86)", "Steam"), registered: false);
+        var library = steam.AddLibrary(TestPaths.Rooted('D', "Games"));
+        steam.AddApp(1001, "Example Quest", library: library);
+        var known = (await steam.CreateProvider(TestEnvironments.Windows).ScanAsync(LibraryScanContext.Empty, Token)).Games.Single();
+        using var files = new HangingFileSystem(steam.Files);
+        files.Hang(steam.Root);
+
+        var probed = await steam.CreateProvider(TestEnvironments.Windows, files)
+            .ProbeAsync(known, LibraryScanContext.Empty with { Access = new LibraryAccess(new CountingTimeProvider(), files) }, Token)
+            .WaitAsync(TimeSpan.FromSeconds(30), Token);
+
+        probed!.State.Should().Be(GameInstallState.Installed);
+    }
+
+    [Fact]
     public async Task A_probe_reads_the_game_again()
     {
         _steam.AddApp(1001, "Example Quest");
@@ -592,15 +645,22 @@ public sealed class SteamLibraryProviderTests
     {
         var empty = TestPaths.Rooted('D', "Empty");
         var game = TestPaths.Rooted('D', "Copied", "Game");
+        var native = TestPaths.Rooted('D', "Copied", "Native");
         _steam.Files.AddDirectory(Path.Join(empty, "steamapps"));
         _steam.Files.AddFile(Path.Join(game, "steam_api64.dll"), "");
+        _steam.Files.AddFile(Path.Join(native, "LibSteam_API.so"), "");
 
         var provider = _steam.CreateProvider();
 
         (await provider.InspectFolderAsync(empty, Token)).Should().Be(LibraryFolderEvidence.None);
         (await provider.InspectFolderAsync(game, Token))
             .Should().Be(LibraryFolderEvidence.Rejected(LibraryFolderRejection.GameOutsideLibrary));
+        (await provider.InspectFolderAsync(native, Token))
+            .Should().Be(LibraryFolderEvidence.Rejected(LibraryFolderRejection.GameOutsideLibrary));
     }
+
+    private static string Depots(params string[] depots) =>
+        "\"InstalledDepots\" { " + string.Concat(depots.Select(depot => $"\"{depot}\" {{ \"manifest\" \"1\" }} ")) + "}";
 
     private async Task<StoreScan> ScanRunningOutOfTimeAsync(HangingFileSystem files, params string[] manualFolders)
     {

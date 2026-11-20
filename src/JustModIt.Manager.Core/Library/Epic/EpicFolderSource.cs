@@ -1,3 +1,4 @@
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library.Epic;
@@ -7,7 +8,9 @@ namespace JustModIt.Manager.Core.Library.Epic;
 /// left in its <c>.egstore</c> folder; no launcher lists such a game, so the app cannot start it.
 /// </summary>
 /// <param name="fileSystem">Reads the folders.</param>
-/// <param name="platform">The system the app runs on, taken as the system the games are built for.</param>
+/// <param name="platform">
+/// The system the app runs on, taken as the system the games are built for, except on Linux, where Epic has no builds.
+/// </param>
 internal sealed class EpicFolderSource(IFileSystem fileSystem, AppPlatform platform)
     : ManualFolderSource<EpicInstallRecord>(fileSystem, LibrarySource)
 {
@@ -27,7 +30,7 @@ internal sealed class EpicFolderSource(IFileSystem fileSystem, AppPlatform platf
                     AppName = manifest.AppName!,
                     CatalogItemId = LauncherJson.NullIfBlank(manifest.CatalogItemId),
                     Name = LauncherJson.NullIfBlank(Path.GetFileName(folder)),
-                    Platform = platform.AsOperatingSystem(),
+                    Platform = platform == AppPlatform.Linux ? OperatingSystemKind.Windows : platform.AsOperatingSystem(),
                 },
             ];
     }

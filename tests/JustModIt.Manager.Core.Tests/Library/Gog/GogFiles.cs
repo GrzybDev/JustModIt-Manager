@@ -16,11 +16,13 @@ internal static class GogFiles
     /// <param name="playTasks">Whether the file names a primary play task, as a base game's does.</param>
     /// <param name="languages">The items of the languages list, written as given (quoted JSON strings).</param>
     /// <param name="writtenAt">When the file was written; <see cref="WrittenAt"/> when null.</param>
+    /// <param name="program">The program the primary play task starts.</param>
     public static string AddInfo(this InMemoryFileSystem files, string folder, string gameId, string name, string? rootGameId = null,
-        string? buildId = "100", bool playTasks = true, string languages = "\"en-US\"", DateTimeOffset? writtenAt = null)
+        string? buildId = "100", bool playTasks = true, string languages = "\"en-US\"", DateTimeOffset? writtenAt = null,
+        string program = "game.exe")
     {
         var tasks = playTasks
-            ? """[ { "category": "game", "isPrimary": true, "type": "FileTask", "path": "game.exe" } ]"""
+            ? $$"""[ { "category": "game", "isPrimary": true, "type": "FileTask", "path": "{{program}}" } ]"""
             : "[]";
         var json = $$"""
             {

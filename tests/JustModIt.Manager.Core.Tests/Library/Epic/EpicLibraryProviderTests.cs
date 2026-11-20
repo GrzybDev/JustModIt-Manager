@@ -220,13 +220,13 @@ public sealed class EpicLibraryProviderTests
     }
 
     [Fact]
-    public async Task A_folder_the_player_added_counts_only_with_a_launchers_manifest_in_it()
+    public async Task A_folder_the_player_added_counts_only_with_a_launchers_manifest_in_it_and_holds_a_windows_build_on_linux()
     {
         var copied = TestPaths.Rooted('D', "Copied");
         var empty = _files.AddDirectory(TestPaths.Rooted('D', "Empty"));
         AddManifest(Folder, Namespace, "ExampleApp");
         _files.AddFile(Path.Join(copied, ".egstore", $"{Guid}.mancpn"), """{ "AppName": """);
-        var provider = CreateProvider();
+        var provider = EpicLibraryProvider.Create(_files, _registry, TestEnvironments.Linux, NullLogger<EpicLibraryProvider>.Instance);
 
         var scan = await provider.ScanAsync(new LibraryScanContext(new ValueList<string>([Folder, copied])), Token);
 
@@ -238,7 +238,7 @@ public sealed class EpicLibraryProviderTests
             LibraryId = Folder,
             State = GameInstallState.Installed,
             StoreActivityAt = WrittenAt,
-            Platform = TestEnvironments.HostSystem,
+            Platform = OperatingSystemKind.Windows,
         });
         (await provider.InspectFolderAsync(Folder, Token)).Should().Be(LibraryFolderEvidence.Accepted(Folder));
         (await provider.InspectFolderAsync(copied, Token)).Should().Be(LibraryFolderEvidence.None);

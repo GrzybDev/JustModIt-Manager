@@ -27,6 +27,10 @@ internal sealed record GogGameInfo(
     LaunchProgram? PlayTask)
 {
     public bool IsDlc => RootGameId is not null && RootGameId != GameId;
+
+    /// <summary>The system the primary play task's program is built for: Windows for an <c>.exe</c>; null when it does not tell.</summary>
+    public OperatingSystemKind? Build =>
+        PlayTask?.Executable.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) == true ? OperatingSystemKind.Windows : null;
 }
 
 /// <summary>

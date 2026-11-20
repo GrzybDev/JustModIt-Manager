@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
@@ -9,12 +10,13 @@ namespace JustModIt.Manager.Core.Library.Steam;
 
 /// <summary>
 /// Finds Steam games through the client's own records: its library lists, the app manifests in each library, the
-/// <c>downloading</c> folder and the per-app registry values, wherever the client may be installed.
+/// <c>downloading</c> folder, the per-app registry values on Windows and the app info cache on Linux, wherever the client
+/// may be installed.
 /// </summary>
 /// <param name="fileSystem">Reads the client's files and the games' folders.</param>
 /// <param name="registry">Reads where Steam is and which apps it updates, on Windows.</param>
 /// <param name="environment">The user's folders Steam is found relative to.</param>
-/// <param name="time">Tells which downloads still count as active.</param>
+/// <param name="time">Tells which downloads still count as active, and when to read the cache again for games it missed.</param>
 /// <param name="logger">Logs what could not be read.</param>
 public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegistry registry, LibraryEnvironment environment,
     TimeProvider time, ILogger<SteamLibraryProvider> logger) : ILibraryProvider
@@ -28,7 +30,12 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
 
     private const int MaxLevelsAboveLibrary = 3;
 
-    private static readonly string[] SteamGameMarkers = ["steam_api.dll", "steam_api64.dll", "steam_appid.txt"];
+    // Steam writes its app info cache now and then, so a game installed since may be missing from it for a while; a game it
+    // has not named for a day waits for the store's next scan.
+    private static readonly TimeSpan AppInfoRecheck = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan AppInfoPatience = TimeSpan.FromDays(1);
+
+    private static readonly string[] SteamGameMarkers = ["steam_api.dll", "steam_api64.dll", "libsteam_api.so", "steam_appid.txt"];
 
     private readonly SteamRootLocator _roots = new(fileSystem, registry, environment);
 
@@ -37,14 +44,13 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
     public async Task<StoreScan> ScanAsync(LibraryScanContext context, CancellationToken cancellationToken)
     {
         var access = context.Access;
-        var candidates = await Task.WhenAll(_roots.Candidates().Select(candidate => FindRootAsync(candidate, access, cancellationToken)))
+        var candidates = await FindCandidatesAsync(access, cancellationToken).ConfigureAwait(false);
+        var roots = Roots(candidates);
+        List<string> rootPaths = [.. roots.Select(root => root.Root!)];
+        var (libraries, listsComplete) = await LocateLibrariesAsync(rootPaths, context.ManualFolders, access, cancellationToken)
             .ConfigureAwait(false);
-        List<RootCandidate> roots =
-            [.. candidates.Where(candidate => candidate.Root is not null).DistinctBy(candidate => candidate.Root, PathComparison.Comparer)];
-        var (libraries, listsComplete) = await LocateLibrariesAsync([.. roots.Select(root => root.Root!)], context.ManualFolders, access,
-            cancellationToken).ConfigureAwait(false);
         var reads = await Task.WhenAll(libraries.Select(library => ReadLibraryAsync(library, access, cancellationToken))).ConfigureAwait(false);
-        var scan = Combine(reads);
+        var scan = await WithBuildsAsync(Combine(reads), rootPaths, access, cancellationToken).ConfigureAwait(false);
         logger.ScanCompleted(scan.Games.Count, libraries.Count, scan.Libraries.Count(library => library.State != LibraryState.Online));
 
         // The current client keeps a second copy of its library list in config. Without any root, the places Steam may be
@@ -66,15 +72,27 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
     {
         var library = await DescribeAsync(new LibraryCandidate(game.LibraryId, IsMounted: null, IsManual: false), context.Access,
             cancellationToken).ConfigureAwait(false);
-        var probed = Combine([await ReadLibraryAsync(library, context.Access, cancellationToken).ConfigureAwait(false)]).Describe(game);
+        var scan = Combine([await ReadLibraryAsync(library, context.Access, cancellationToken).ConfigureAwait(false)]);
+        if (scan.Describe(game) is not { } probed)
+        {
+            // Steam may have moved the game to another library since the last scan.
+            return (await ScanAsync(context, cancellationToken).ConfigureAwait(false)).Describe(game);
+        }
 
-        // Steam may have moved the game to another library since the last scan.
-        return probed ?? (await ScanAsync(context, cancellationToken).ConfigureAwait(false)).Describe(game);
+        if (!ReadsBuilds)
+        {
+            return probed;
+        }
+
+        var roots = Roots(await FindCandidatesAsync(context.Access, cancellationToken).ConfigureAwait(false));
+        return (await WithBuildsAsync(scan, [.. roots.Select(root => root.Root!)], context.Access, cancellationToken).ConfigureAwait(false))
+            .Describe(game);
     }
 
     public Task<LibraryFolderEvidence> InspectFolderAsync(string path, CancellationToken cancellationToken)
     {
         var picked = fileSystem.GetCanonicalPath(path);
+        var names = new CaseInsensitiveNames(fileSystem);
 
         // A picked steamapps folder, or a game folder inside one, stands for the library above it.
         var candidate = picked;
@@ -87,7 +105,7 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
             }
         }
 
-        var isSteamGame = SteamGameMarkers.Any(marker => fileSystem.FileExists(Path.Join(picked, marker)));
+        var isSteamGame = SteamGameMarkers.Any(marker => names.Find(picked, marker) is { IsDirectory: false });
         return Task.FromResult(isSteamGame ? LibraryFolderEvidence.Rejected(LibraryFolderRejection.GameOutsideLibrary) : LibraryFolderEvidence.None);
     }
 
@@ -120,6 +138,67 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
                     root is null ? null : WatchedFolder.Toward(fileSystem, Path.Join(root, SteamPaths.Config, SteamPaths.LibraryFoldersFile))));
             },
             () => RootCandidate.Unanswered, cancellationToken);
+
+    private Task<RootCandidate[]> FindCandidatesAsync(LibraryAccess access, CancellationToken cancellationToken) =>
+        Task.WhenAll(_roots.Candidates().Select(candidate => FindRootAsync(candidate, access, cancellationToken)));
+
+    private static List<RootCandidate> Roots(IEnumerable<RootCandidate> candidates) =>
+        [.. candidates.Where(candidate => candidate.Root is not null).DistinctBy(candidate => candidate.Root, PathComparison.Comparer)];
+
+    // Steam runs a game's Windows build through Proton, so on Linux only the systems its cache names for the depots it
+    // installed tell that build from a native one.
+    private bool ReadsBuilds => environment.Platform == AppPlatform.Linux;
+
+    private async Task<StoreScan> WithBuildsAsync(StoreScan scan, IReadOnlyList<string> roots, LibraryAccess access,
+        CancellationToken cancellationToken)
+    {
+        if (!ReadsBuilds || scan.Games.Count == 0)
+        {
+            return scan;
+        }
+
+        var appIds = scan.Games.Select(AppIdOf).ToHashSet();
+        var caches = await Task.WhenAll(roots.Select(root => ReadAppInfoAsync(root, appIds, access, cancellationToken))).ConfigureAwait(false);
+        ValueList<InstalledGame> games =
+        [
+            .. scan.Games.Select(game => game with
+            {
+                // Of several Steam installations, the first whose cache knows the game tells its build.
+                Platform = caches.Select(cache => cache?.GetValueOrDefault(AppIdOf(game))).OfType<SteamAppSystems>().FirstOrDefault()
+                    ?.BuildOf(game.Content) ?? OperatingSystemKind.Unknown,
+            }),
+        ];
+        List<InstalledGame> unknown = [.. games.Where(game => game.Platform == OperatingSystemKind.Unknown)];
+        var now = time.GetUtcNow();
+        // Each look waits as long as the newest of them has gone unnamed since Steam wrote its manifest, so looks thin out.
+        var unnamedFor = now - unknown.Max(game => game.StoreActivityAt) ?? TimeSpan.MaxValue;
+        if (unnamedFor > AppInfoPatience)
+        {
+            return scan with { Games = games };
+        }
+
+        logger.BuildsUnknown(unknown.Count);
+        var recheckAt = now + (unnamedFor > AppInfoRecheck ? unnamedFor : AppInfoRecheck);
+        return scan with { Games = games, RecheckAt = scan.RecheckAt < recheckAt ? scan.RecheckAt : recheckAt };
+    }
+
+    private Task<Dictionary<uint, SteamAppSystems>?> ReadAppInfoAsync(string root, IReadOnlySet<uint> appIds, LibraryAccess access,
+        CancellationToken cancellationToken) =>
+        ReadAsync<Dictionary<uint, SteamAppSystems>?>(access, root, _ =>
+            {
+                try
+                {
+                    using var stream = fileSystem.OpenRead(Path.Join(root, SteamPaths.AppCache, SteamPaths.AppInfoFile),
+                        FileShare.ReadWrite | FileShare.Delete);
+                    return Task.FromResult<Dictionary<uint, SteamAppSystems>?>(SteamAppInfo.Read(stream, appIds));
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+                {
+                    logger.AppInfoUnreadable(SteamLog.Describe(exception));
+                    return Task.FromResult<Dictionary<uint, SteamAppSystems>?>(null);
+                }
+            },
+            () => null, cancellationToken);
 
     private async Task<(IReadOnlyList<SteamLibrary> Libraries, bool IsComplete)> LocateLibrariesAsync(IReadOnlyList<string> roots,
         IReadOnlyList<string> manualFolders, LibraryAccess access, CancellationToken cancellationToken)
@@ -249,6 +328,8 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
         }
 
         var downloads = SteamDownloads.LastChanges(fileSystem, library.SteamAppsDirectory);
+        // One look at the library's folders, so a folder listed for one manifest is not listed again for the next.
+        var names = new CaseInsensitiveNames(fileSystem);
         var now = time.GetUtcNow();
         var installations = new List<SteamInstallation>();
         var unreadable = new List<UnreadableGame>();
@@ -276,7 +357,7 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
             }
 
             var download = SteamDownloads.Classify(downloads.TryGetValue(appId, out var changed) ? changed : null, now);
-            if (Evaluate(library, manifest, file.LastWriteTimeUtc, download) is { } installation)
+            if (Evaluate(library, manifest, file.LastWriteTimeUtc, download, names) is { } installation)
             {
                 installations.Add(installation);
             }
@@ -298,7 +379,7 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
     }
 
     private SteamInstallation? Evaluate(SteamLibrary library, SteamAppManifest manifest, DateTimeOffset lastWriteTime,
-        SteamDownload download)
+        SteamDownload download, CaseInsensitiveNames names)
     {
         if (SteamToolFilter.IsTool(manifest))
         {
@@ -306,11 +387,11 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
         }
 
         var common = Path.Join(library.SteamAppsDirectory, SteamPaths.Common);
-        var folder = SteamPaths.FindChildDirectory(fileSystem, common, manifest.InstallDir);
+        var folder = SteamPaths.FindChildDirectory(names, common, manifest.InstallDir);
 
         // Soundtracks are apps with manifests too, but Steam puts their files under music instead of common.
         if (folder is null
-            && SteamPaths.FindChildDirectory(fileSystem, Path.Join(library.SteamAppsDirectory, SteamPaths.Music), manifest.InstallDir) is not null)
+            && SteamPaths.FindChildDirectory(names, Path.Join(library.SteamAppsDirectory, SteamPaths.Music), manifest.InstallDir) is not null)
         {
             return null;
         }
@@ -399,6 +480,8 @@ public sealed partial class SteamLibraryProvider(IFileSystem fileSystem, IRegist
             .Where(file => !file.IsDirectory && ManifestFileName().IsMatch(file.Name));
 
     private static GameKey KeyOf(uint appId) => new(StoreId.Steam, appId.ToString(CultureInfo.InvariantCulture));
+
+    private static uint AppIdOf(InstalledGame game) => uint.Parse(game.Key.StoreGameId, NumberStyles.None, CultureInfo.InvariantCulture);
 
     // Several apps can resolve to one folder: a shared installdir (a game and its playtest or episodes), or links between
     // libraries. Projects are installed per folder, so exactly one app may claim it: the one whose files Steam considers

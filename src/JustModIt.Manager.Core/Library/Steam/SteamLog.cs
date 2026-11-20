@@ -7,11 +7,23 @@ internal static partial class SteamLog
 {
     /// <summary>
     /// Describes <paramref name="exception"/> without a path: by its message for a parse error, which names only the
-    /// problem and the line, and by its type otherwise, since I/O messages quote the full path.
+    /// problem and where it is, and by its type otherwise, since I/O messages quote the full path.
     /// </summary>
     /// <param name="exception">A failure to read one of Steam's files.</param>
     public static string Describe(Exception exception) =>
-        exception is FormatException ? exception.Message : exception.GetType().Name;
+        exception is FormatException or InvalidDataException ? exception.Message : exception.GetType().Name;
+
+    /// <summary>Logs an app info cache that could not be read, so the systems of the games' builds stay unknown.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="error">What failed, from <see cref="Describe"/>.</param>
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Steam's app info cache could not be read: {Error}")]
+    public static partial void AppInfoUnreadable(this ILogger logger, string error);
+
+    /// <summary>Logs games whose build's system the app info cache does not tell yet, so the store is read again later.</summary>
+    /// <param name="logger">The logger to write to.</param>
+    /// <param name="count">How many games.</param>
+    [LoggerMessage(Level = LogLevel.Information, Message = "The systems of {Count} Steam games' builds are unknown until Steam's app info cache names them")]
+    public static partial void BuildsUnknown(this ILogger logger, int count);
 
     /// <summary>Logs a library list that could not be read.</summary>
     /// <param name="logger">The logger to write to.</param>

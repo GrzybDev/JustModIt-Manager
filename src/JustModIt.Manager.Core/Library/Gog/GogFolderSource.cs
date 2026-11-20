@@ -7,7 +7,7 @@ namespace JustModIt.Manager.Core.Library.Gog;
 /// described by its own <c>goggame-&lt;id&gt;.info</c>.
 /// </summary>
 /// <param name="fileSystem">Reads the folders.</param>
-/// <param name="platform">The system the app runs on, taken as the system the games are built for.</param>
+/// <param name="platform">The system the app runs on, taken as the system of a game whose play task does not tell.</param>
 internal sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platform)
     : ManualFolderSource<GogInstallRecord>(fileSystem, LibrarySource)
 {
@@ -19,12 +19,12 @@ internal sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platfo
     /// <summary>Finds the game in the folder itself or, failing that, the games in its direct subfolders.</summary>
     /// <param name="folder">The folder the player picked.</param>
     /// <param name="cancellationToken">Cancels the search.</param>
-    internal async IAsyncEnumerable<(string GameId, string Folder)> FindGamesAsync(string folder,
+    internal async IAsyncEnumerable<(GogGameInfo Game, string Folder)> FindGamesAsync(string folder,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         if ((await _infos.ReadAsync(folder, cancellationToken).ConfigureAwait(false)).Base is { } game)
         {
-            yield return (game.GameId, folder);
+            yield return (game, folder);
             yield break;
         }
 
@@ -32,7 +32,7 @@ internal sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platfo
         {
             if ((await _infos.ReadAsync(subfolder, cancellationToken).ConfigureAwait(false)).Base is { } found)
             {
-                yield return (found.GameId, subfolder);
+                yield return (found, subfolder);
             }
         }
     }
@@ -40,9 +40,9 @@ internal sealed class GogFolderSource(IFileSystem fileSystem, AppPlatform platfo
     protected override async Task<IReadOnlyList<GogInstallRecord>> FindRecordsAsync(string folder, CancellationToken cancellationToken)
     {
         var records = new List<GogInstallRecord>();
-        await foreach (var (gameId, gameFolder) in FindGamesAsync(folder, cancellationToken).ConfigureAwait(false))
+        await foreach (var (game, gameFolder) in FindGamesAsync(folder, cancellationToken).ConfigureAwait(false))
         {
-            records.Add(new GogInstallRecord(gameId, gameFolder, folder) { Platform = platform.AsOperatingSystem() });
+            records.Add(new GogInstallRecord(game.GameId, gameFolder, folder) { Platform = game.Build ?? platform.AsOperatingSystem() });
         }
 
         return records;

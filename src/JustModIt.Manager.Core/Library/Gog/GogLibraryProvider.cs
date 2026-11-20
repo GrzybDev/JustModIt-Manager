@@ -14,6 +14,7 @@ public sealed class GogLibraryProvider : ILibraryProvider
     private static readonly string[] GameFolderEntries = [GogInfoReader.InfoPattern, .. GogStateResolver.DownloadMarkers];
 
     private readonly IFileSystem _fileSystem;
+    private readonly AppPlatform _platform;
     private readonly InstallRecordScanner<GogInstallRecord> _scanner;
     private readonly GogInfoReader _infos;
     private readonly GogFolderSource _folders;
@@ -21,12 +22,16 @@ public sealed class GogLibraryProvider : ILibraryProvider
     /// <summary>Creates a provider that reads the given launchers and installers.</summary>
     /// <param name="fileSystem">Reads the launchers' files and the games' folders.</param>
     /// <param name="sources">Launchers and installers, in order of precedence; folders the player added are always read.</param>
-    /// <param name="platform">The system the app runs on, taken as the system of games in folders the player added.</param>
+    /// <param name="platform">
+    /// The system the app runs on, taken as the system of games in folders the player added that do not tell, and the only one
+    /// whose programs it starts.
+    /// </param>
     /// <param name="logger">Logs sources and records that were skipped.</param>
     internal GogLibraryProvider(IFileSystem fileSystem, IEnumerable<IInstallSource<GogInstallRecord>> sources, AppPlatform platform,
         ILogger<GogLibraryProvider> logger)
     {
         _fileSystem = fileSystem;
+        _platform = platform;
         _folders = new GogFolderSource(fileSystem, platform);
         _scanner = new InstallRecordScanner<GogInstallRecord>(Store, [.. sources, _folders], logger);
         _infos = new GogInfoReader(fileSystem);
@@ -125,7 +130,8 @@ public sealed class GogLibraryProvider : ILibraryProvider
             StoreActivityAt = info?.LastWriteTime,
             Platform = record.Platform,
             Languages = [.. languages],
-            Launch = record.Launch ?? info?.PlayTask,
+            // Only the launcher that installed it knows how to start a build for another system, such as Heroic through Wine.
+            Launch = record.Launch ?? (record.Platform == _platform.AsOperatingSystem() ? info?.PlayTask : null),
         };
         var watch = _fileSystem.DirectoryExists(directory) ? new WatchedFolder(directory, GameFolderEntries) : null;
         return new RecordFinding(record.GameId, game, watch);
