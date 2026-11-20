@@ -23,17 +23,21 @@ public sealed partial class LicensesTests
         [
             ("Avalonia", "12.1.6", "MIT"),
             ("SkiaSharp and HarfBuzzSharp", "8.3.1.3 · 3.119.4", "MIT"),
-            ("Skia (libSkiaSharp.dll)", "119", "BSD-3-Clause"),
-            ("Wuffs (in libSkiaSharp.dll)", "commit e3f919c of wuffs-mirror-release-c", "Apache-2.0"),
-            ("SPIRV-Cross (in libSkiaSharp.dll)", "commit 6e1fb9b", "Apache-2.0 OR MIT"),
+            ("Skia (libSkiaSharp)", "119", "BSD-3-Clause"),
+            ("Wuffs (in libSkiaSharp)", "commit e3f919c of wuffs-mirror-release-c", "Apache-2.0"),
+            ("SPIRV-Cross (in libSkiaSharp)", "commit 6e1fb9b", "Apache-2.0 OR MIT"),
+            ("AppImage runtime", "commit 3d17002 of type2-runtime", "MIT"),
             ("Inter", "3.19", "OFL-1.1"),
         ]);
-        components.Single(component => component.Name == "Libraries built into libSkiaSharp.dll").License.Should().BeNull("several licences apply");
+        components.Single(component => component.Name == "Libraries built into libSkiaSharp").License.Should().BeNull("several licences apply");
+        components.Single(component => component.Name == "ANGLE (av_libglesv2.dll)").Systems.Should().Equal("Windows");
+        components.Single(component => component.Name == "Libraries built into the AppImage runtime").Systems.Should().Equal("Linux");
         components.Single(component => component.Name == "SkiaSharp and HarfBuzzSharp").Notice.Should()
             .Contain("\n### SkiaSharp and HarfBuzzSharp – THIRD-PARTY-NOTICES.txt\n", "a text named over two lines of the notices comes with it too");
         components.Should().AllSatisfy(component =>
         {
             ComponentUses.Of(component.Name).Should().NotBeNull($"the page says what {component.Name} is for");
+            component.Systems.Should().BeSubsetOf(["Windows", "Linux"], "a system the page does not know would hide {0} everywhere", component.Name);
             foreach (Match reference in SeeReference().Matches(component.Notice.Split("\n### ")[0]))
             {
                 var text = string.Join(' ', reference.Groups[1].Value.Split([' ', '\n'], StringSplitOptions.RemoveEmptyEntries));
@@ -70,6 +74,11 @@ public sealed partial class LicensesTests
         ui.Links.Opened.Should().Equal([new Uri($"https://code.example.com/example-app/tree/{revision}")], "the source of this very version");
         page.Libraries.Single(component => component.Name == "Avalonia").Use.Should().Be("Okno i kontrolki interfejsu");
         page.Artwork.Select(component => component.Name).Should().Equal("Lucide", "Simple Icons", "Inter");
+        var (shipped, other) = OperatingSystem.IsWindows()
+            ? ("ANGLE (av_libglesv2.dll)", "AppImage runtime")
+            : ("AppImage runtime", "ANGLE (av_libglesv2.dll)");
+        page.Libraries.Select(component => component.Name).Should().Contain(shipped)
+            .And.NotContain(other, "the page lists the components that ship with the system it runs on");
         ui.Render("licenses");
 
         ui.Click(ui.Find<Button>("ToggleLicense"));

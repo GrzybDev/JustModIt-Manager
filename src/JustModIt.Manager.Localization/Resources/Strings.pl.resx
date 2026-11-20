@@ -2449,7 +2449,7 @@
     <value>Aktualizacje aplikacji</value>
   </data>
   <data name="Licenses_UseVelopackInstaller" xml:space="preserve">
-    <value>Instalator i program aktualizujący</value>
+    <value>Program aktualizujący, a w systemie Windows także instalator</value>
   </data>
   <data name="Licenses_UseAvalonia" xml:space="preserve">
     <value>Okno i kontrolki interfejsu</value>
@@ -2484,6 +2484,9 @@
   <data name="Licenses_UseHarfBuzz" xml:space="preserve">
     <value>Składanie tekstu</value>
   </data>
+  <data name="Licenses_UseFreeType" xml:space="preserve">
+    <value>Wczytywanie i rysowanie czcionek</value>
+  </data>
   <data name="Licenses_UseAngle" xml:space="preserve">
     <value>OpenGL ES na Direct3D 11</value>
   </data>
@@ -2510,6 +2513,12 @@
   </data>
   <data name="Licenses_UseLzma" xml:space="preserve">
     <value>Kompresja łatek</value>
+  </data>
+  <data name="Licenses_UseAppImageRuntime" xml:space="preserve">
+    <value>Uruchamianie aplikacji z pliku AppImage</value>
+  </data>
+  <data name="Licenses_UseAppImageLibraries" xml:space="preserve">
+    <value>Montowanie i odczytywanie pliku AppImage</value>
   </data>
   <data name="Licenses_UseInter" xml:space="preserve">
     <value>Czcionka interfejsu</value>

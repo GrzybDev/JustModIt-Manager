@@ -2461,7 +2461,7 @@
     <value>The app's updates</value>
   </data>
   <data name="Licenses_UseVelopackInstaller" xml:space="preserve">
-    <value>Installer and updater</value>
+    <value>The updater and, on Windows, the installer</value>
   </data>
   <data name="Licenses_UseAvalonia" xml:space="preserve">
     <value>The window and its controls</value>
@@ -2496,6 +2496,9 @@
   <data name="Licenses_UseHarfBuzz" xml:space="preserve">
     <value>Shaping text</value>
   </data>
+  <data name="Licenses_UseFreeType" xml:space="preserve">
+    <value>Reading and drawing fonts</value>
+  </data>
   <data name="Licenses_UseAngle" xml:space="preserve">
     <value>OpenGL ES on Direct3D 11</value>
   </data>
@@ -2522,6 +2525,12 @@
   </data>
   <data name="Licenses_UseLzma" xml:space="preserve">
     <value>Compressing patches</value>
+  </data>
+  <data name="Licenses_UseAppImageRuntime" xml:space="preserve">
+    <value>Starting the app from its AppImage file</value>
+  </data>
+  <data name="Licenses_UseAppImageLibraries" xml:space="preserve">
+    <value>Mounting and reading the AppImage file</value>
   </data>
   <data name="Licenses_UseInter" xml:space="preserve">
     <value>The interface's typeface</value>

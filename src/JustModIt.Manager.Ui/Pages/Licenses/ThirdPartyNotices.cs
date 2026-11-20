@@ -8,7 +8,8 @@ namespace JustModIt.Manager.Ui.Pages.Licenses;
 /// <param name="Version">Its versions, as the notices give them; empty when they give none.</param>
 /// <param name="License">Its licence in a few words; null when several licences apply.</param>
 /// <param name="Notice">Its part of the notices, with the licence texts and upstream notices that part refers to, in Markdown.</param>
-public sealed record ThirdPartyComponent(string Name, string Version, string? License, string Notice);
+/// <param name="Systems">The systems it ships with, as the notices name them; empty when it ships with every system.</param>
+public sealed record ThirdPartyComponent(string Name, string Version, string? License, string Notice, IReadOnlyList<string> Systems);
 
 /// <summary>
 /// Reads the components out of the app's <c>THIRD-PARTY-NOTICES.md</c>: each one under "Components", with the texts
@@ -34,7 +35,7 @@ internal static partial class ThirdPartyNotices
                     .Where(texts.ContainsKey).Distinct();
                 var notice = string.Join("\n\n", [section.Body, .. referred.Select(name => texts[name])]);
                 return new ThirdPartyComponent(section.Title, Version(fields), fields.TryGetValue("Licence", out var license) ? Short(license) : null,
-                    notice);
+                    notice, fields.TryGetValue("Systems", out var systems) ? systems.Split(", ") : []);
             }),
         ];
     }

@@ -6,23 +6,40 @@ namespace JustModIt.Manager.Host.Tests;
 
 public sealed partial class ThirdPartyNoticesTests
 {
-    private const string Runtime = "/win-x64";
+    // Build tools: the trimmer and Avalonia's MSBuild tasks.
+    private static readonly string[] BuildTools = ["Microsoft.NET.ILLink.Tasks", "Avalonia.BuildServices"];
 
-    // Packages in the apps' lock files that never reach a win-x64 release; every other one needs a notice.
-    private static readonly HashSet<string> NotShipped = new(StringComparer.Ordinal)
-    {
-        // Build tools: the trimmer and Avalonia's MSBuild tasks.
-        "Microsoft.NET.ILLink.Tasks",
-        "Avalonia.BuildServices",
-
-        // Native files for Linux, macOS and the browser, which a win-x64 publish leaves out.
-        "HarfBuzzSharp.NativeAssets.Linux",
+    // Native files for macOS and the browser, which no release ships.
+    private static readonly string[] OtherNatives =
+    [
         "HarfBuzzSharp.NativeAssets.macOS",
         "HarfBuzzSharp.NativeAssets.WebAssembly",
-        "SkiaSharp.NativeAssets.Linux",
         "SkiaSharp.NativeAssets.macOS",
         "SkiaSharp.NativeAssets.WebAssembly",
-    };
+    ];
+
+    // The systems the apps are released for, each with the packages in the apps' lock files that never reach its release;
+    // every other package needs a notice. NativeAOT trims away the code that only another system runs, as the strings of
+    // the published executables show.
+    private static readonly Release[] Releases =
+    [
+        new("Windows", "win-x64",
+        [
+            .. BuildTools, .. OtherNatives,
+            "HarfBuzzSharp.NativeAssets.Linux",
+            "SkiaSharp.NativeAssets.Linux",
+            "Tmds.DBus.Protocol",
+        ]),
+        new("Linux", "linux-x64",
+        [
+            .. BuildTools, .. OtherNatives,
+            "Avalonia.Angle.Windows.Natives",
+            "HarfBuzzSharp.NativeAssets.Win32",
+            "SkiaSharp.NativeAssets.Win32",
+            "MicroCom.Runtime",
+            "Microsoft.Windows.CsWin32",
+        ]),
+    ];
 
     // Code generators that only a library references, whose generated code is compiled into the apps.
     private static readonly HashSet<string> GeneratedIntoApps = new(StringComparer.Ordinal) { "Microsoft.Windows.CsWin32" };
@@ -46,7 +63,8 @@ public sealed partial class ThirdPartyNoticesTests
             .Should().BeEmpty(
                 "every package that an app's packages.lock.json ships needs a component in THIRD-PARTY-NOTICES.md with its licence "
                 + "and copyright, which names it as \"id version\" on its \"- NuGet package:\" or \"- NuGet packages:\" line; a "
-                + "package that never reaches a release (a build tool or another platform's files) goes on NotShipped with the reason");
+                + "package that never reaches a release (a build tool or another platform's files) goes on that release's NotShipped "
+                + "with the reason");
     }
 
     [Fact]
@@ -76,10 +94,32 @@ public sealed partial class ThirdPartyNoticesTests
     [Fact]
     public void Packages_said_not_to_ship_are_still_locked()
     {
-        var locked = Locked().Select(package => package.Name).ToHashSet(StringComparer.Ordinal);
+        var gone = Releases.SelectMany(release =>
+        {
+            var locked = Locked(release).Select(package => package.Name).ToHashSet(StringComparer.Ordinal);
+            return release.NotShipped.Where(package => !locked.Contains(package)).Select(package => $"{package} ({release.System})");
+        });
 
-        string.Join(", ", NotShipped.Where(package => !locked.Contains(package)))
-            .Should().BeEmpty("a package that no app uses any more leaves NotShipped too");
+        string.Join(", ", gone).Should().BeEmpty("a package that no app uses any more leaves NotShipped too");
+    }
+
+    [Fact]
+    public void Components_of_one_system_ship_nothing_with_another()
+    {
+        var hidden = Components.Select(component => (component.Title, Systems: SystemsLine().Match(component.Text)))
+            .Where(component => component.Systems.Success)
+            .SelectMany(component =>
+            {
+                var systems = component.Systems.Groups["systems"].Value.Split(", ");
+                var packages = Listed.Where(package => package.Component == component.Title).Select(package => package.Name)
+                    .ToHashSet(StringComparer.Ordinal);
+                return Releases.Where(release => !systems.Contains(release.System))
+                    .SelectMany(release => Shipped(release).Where(package => packages.Contains(package.Name))
+                        .Select(package => $"{component.Title}: {package.Name} ships with {release.System}"));
+            });
+
+        string.Join(Environment.NewLine, hidden).Should().BeEmpty(
+            "the licences page leaves out a component whose \"- Systems:\" line does not name the system it runs on");
     }
 
     [Fact]
@@ -100,31 +140,34 @@ public sealed partial class ThirdPartyNoticesTests
     private static string VersionOf(string title) =>
         VersionLine().Match(Components.Single(component => component.Title == title).Text).Groups["version"].Value;
 
-    private static IEnumerable<LockedPackage> Shipped() => Locked().Where(package => !NotShipped.Contains(package.Name));
+    private static IEnumerable<LockedPackage> Shipped() => Releases.SelectMany(Shipped).Distinct();
 
-    private static List<LockedPackage> Locked() =>
+    private static IEnumerable<LockedPackage> Shipped(Release release) =>
+        Locked(release).Where(package => !release.NotShipped.Contains(package.Name));
+
+    private static List<LockedPackage> Locked(Release release) =>
     [
-        .. RepositoryFiles.Apps().SelectMany(app => LockedBy(Path.Combine(app, "packages.lock.json")))
+        .. RepositoryFiles.Apps().SelectMany(app => LockedBy(Path.Combine(app, "packages.lock.json"), release.Runtime))
             .Concat(Directory.EnumerateDirectories(RepositoryFiles.PathOf("src"))
                 .Select(project => Path.Combine(project, "packages.lock.json"))
                 .Where(File.Exists)
-                .SelectMany(LockedBy)
+                .SelectMany(lockFile => LockedBy(lockFile, release.Runtime))
                 .Where(package => GeneratedIntoApps.Contains(package.Name)))
             .Distinct()
             .OrderBy(package => package.Name, StringComparer.Ordinal),
     ];
 
-    // A win-x64 publish restores the packages of the framework plus the runtime-specific ones.
-    private static IEnumerable<LockedPackage> LockedBy(string lockFile)
+    // A publish restores the packages of the framework plus those of its runtime.
+    private static IEnumerable<LockedPackage> LockedBy(string lockFile, string runtime)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(lockFile));
         var targets = document.RootElement.GetProperty("dependencies");
-        var runtime = targets.EnumerateObject().Single(target => target.Name.EndsWith(Runtime, StringComparison.Ordinal));
-        var framework = targets.GetProperty(runtime.Name[..^Runtime.Length]);
+        var graph = targets.EnumerateObject().Single(target => target.Name.EndsWith($"/{runtime}", StringComparison.Ordinal));
+        var framework = targets.GetProperty(graph.Name[..^(runtime.Length + 1)]);
 
         return
         [
-            .. framework.EnumerateObject().Concat(runtime.Value.EnumerateObject())
+            .. framework.EnumerateObject().Concat(graph.Value.EnumerateObject())
                 .Where(package => package.Value.GetProperty("type").GetString() != "Project")
                 .Select(package => new LockedPackage(package.Name, package.Value.GetProperty("resolved").GetString()!)),
         ];
@@ -151,6 +194,9 @@ public sealed partial class ThirdPartyNoticesTests
     [GeneratedRegex(@"^- Version: (?<version>\S+)", RegexOptions.Multiline)]
     private static partial Regex VersionLine();
 
+    [GeneratedRegex(@"^- Systems: (?<systems>.+)$", RegexOptions.Multiline)]
+    private static partial Regex SystemsLine();
+
     [GeneratedRegex(@"#define LZMA_VERSION_MAJOR (?<major>\d+).*?#define LZMA_VERSION_MINOR (?<minor>\d+).*?#define LZMA_VERSION_PATCH (?<patch>\d+)",
         RegexOptions.Singleline)]
     private static partial Regex LzmaVersion();
@@ -159,6 +205,8 @@ public sealed partial class ThirdPartyNoticesTests
     private static partial Regex XdeltaVersion();
 
     private sealed record Component(string Title, string Text);
+
+    private sealed record Release(string System, string Runtime, HashSet<string> NotShipped);
 
     private sealed record LockedPackage(string Name, string Version);
 

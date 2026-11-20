@@ -174,7 +174,8 @@ public sealed partial class LicensesPageViewModel : PageViewModel
         _license = Paragraphs(license);
         BrandingSummary = brandingSummary;
         Branding = branding;
-        foreach (var component in components)
+        // The notices cover every system the apps ship for; the page lists what ships with this one.
+        foreach (var component in components.Where(listed => listed.Systems.Count == 0 || listed.Systems.Any(OperatingSystem.IsOSPlatform)))
         {
             var use = ComponentUses.Of(component.Name);
             (use?.IsArtwork == true ? Artwork : Libraries).Add(new ComponentRow(component, use));

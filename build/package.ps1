@@ -136,8 +136,19 @@ if ($SignTemplate) {
 }
 Invoke-Native 'dotnet' ($vpk + $packArguments)
 
-# A player downloads the installer or the AppImage and the full package; deltas only reach an installed copy.
 $assets = Get-ChildItem $releases -Filter 'assets.*.json' | Get-Content -Raw | ConvertFrom-Json
+if ($linux) {
+    # vpk puts its own AppImage runtime in front of the app, so a Velopack upgrade could ship one the notices do not describe.
+    $appImage = Join-Path $releases ($assets | Where-Object Type -EQ 'Portable').RelativeFileName
+    $shipped = "$(& $appImage --appimage-version 2>&1)" -replace '^.*/commit/', ''
+    $notices = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'THIRD-PARTY-NOTICES.md')
+    $described = [regex]::Match($notices, '(?m)^### AppImage runtime\s+- Version: commit ([0-9a-f]+)').Groups[1].Value
+    if (-not $shipped -or -not $described.StartsWith($shipped)) {
+        throw "The AppImage runtime is $shipped, but THIRD-PARTY-NOTICES.md describes $described."
+    }
+}
+
+# A player downloads the installer or the AppImage and the full package; deltas only reach an installed copy.
 $hashes = foreach ($asset in $assets | Where-Object Type -NE 'Delta') {
     $file = Join-Path $releases $asset.RelativeFileName
     "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $(Split-Path -Leaf $file)"
