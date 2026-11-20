@@ -217,14 +217,14 @@
     <Setter Property="Padding" Value="20,12,16,14" />
   </Style>
   <Style Selector="TextBlock.monoPath">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
     <Setter Property="FontSize" Value="14" />
     <Setter Property="LineHeight" Value="22" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
   </Style>
   <Style Selector="TextBox.monoField">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
     <Setter Property="FontSize" Value="14" />
   </Style>
   <Style Selector="Border.runtimePrompt">

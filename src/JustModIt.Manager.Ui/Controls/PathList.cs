@@ -17,8 +17,6 @@ public sealed class PathList : Border
     public static readonly StyledProperty<IReadOnlyList<string>?> PathsProperty =
         AvaloniaProperty.Register<PathList, IReadOnlyList<string>?>(nameof(Paths));
 
-    private static readonly FontFamily Mono = new("Cascadia Mono, Consolas, monospace");
-
     private readonly StackPanel _lines = new() { Spacing = 2 };
 
     /// <summary>Creates an empty list.</summary>
@@ -50,10 +48,11 @@ public sealed class PathList : Border
         _lines.Children.Clear();
         var secondary = StatusLine.ThemeBrush(this, "TextSecondaryBrush");
         var bright = StatusLine.ThemeBrush(this, "TextBrush");
+        var mono = this.FindResource(ActualThemeVariant, "MonoFont") as FontFamily ?? FontFamily.Default;
         foreach (var path in Paths ?? [])
         {
             var cut = path.LastIndexOf('/') + 1;
-            var text = new TextBlock { FontFamily = Mono, FontSize = 13, LineHeight = 20, TextWrapping = TextWrapping.Wrap };
+            var text = new TextBlock { FontFamily = mono, FontSize = 13, LineHeight = 20, TextWrapping = TextWrapping.Wrap };
             text.Inlines = [new Run(path[..cut]) { Foreground = secondary }, new Run(path[cut..]) { Foreground = bright }];
             var icon = new Icon
             {

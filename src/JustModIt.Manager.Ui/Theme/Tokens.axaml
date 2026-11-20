@@ -114,6 +114,9 @@
 
   <!-- Inter 3.19 (SIL Open Font License) from Avalonia.Fonts.Inter; ExtraBold titles render with its Bold. -->
   <FontFamily x:Key="InterFont">fonts:Inter#Inter</FontFamily>
+  <!-- Code, paths and reports. Avalonia takes only the exact names of a list, never the generic monospace, so the faces
+       are named: Windows' own, then those Linux desktops ship (SteamOS has all three, Noto Sans Mono as its monospace). -->
+  <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas, Noto Sans Mono, DejaVu Sans Mono, Hack</FontFamily>
 
   <!-- The brush of the product's name in the title bar; an app may replace it with its own (UiComposition). -->
   <SolidColorBrush x:Key="WordmarkBrush" Color="{StaticResource TextColor}" />

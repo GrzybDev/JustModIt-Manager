@@ -100,7 +100,7 @@
       <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
     </Style>
     <Style Selector="Run.code">
-      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
       <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
     </Style>
     <Style Selector="Border.code">
@@ -112,7 +112,7 @@
       <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
     <Style Selector="SelectableTextBlock.code">
-      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
       <Setter Property="FontSize" Value="13" />
       <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
     </Style>

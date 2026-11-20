@@ -15,9 +15,9 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="overlays:ReportField">
               <Grid ColumnDefinitions="84,*" ColumnSpacing="10">
-                <TextBlock FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" LineHeight="19"
+                <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="12" LineHeight="19"
                            Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding Label}" />
-                <TextBlock Grid.Column="1" FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" LineHeight="19" TextWrapping="Wrap"
+                <TextBlock Grid.Column="1" FontFamily="{StaticResource MonoFont}" FontSize="12" LineHeight="19" TextWrapping="Wrap"
                            Foreground="{StaticResource TextBodyBrush}" Text="{Binding Value}" />
               </Grid>
             </DataTemplate>

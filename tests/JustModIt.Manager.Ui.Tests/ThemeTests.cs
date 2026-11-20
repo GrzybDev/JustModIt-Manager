@@ -1,4 +1,5 @@
 using System.Reflection;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
@@ -26,6 +27,15 @@ public sealed class ThemeTests
 
         StoreIcons.MarkOf("gog-registry").Should().BeSameAs(StoreIcons.Gog);
         StoreIcons.MarkOf("heroic").Should().BeNull("a launcher without a mark of its own gets the store icon");
+    }
+
+    [AvaloniaFact]
+    public void Code_and_paths_are_set_in_a_fixed_width_face_on_this_system()
+    {
+        var mono = Application.Current!.FindResource("MonoFont").Should().BeOfType<FontFamily>().Subject;
+
+        FontManager.Current.TryGetGlyphTypeface(new Typeface(mono), out var face).Should().BeTrue();
+        face!.Metrics.IsFixedPitch.Should().BeTrue($"{face.FamilyName} stands in for the monospace faces the theme names");
     }
 
     [AvaloniaFact]
