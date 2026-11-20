@@ -125,6 +125,15 @@ public sealed class HostEnvironmentTests : IDisposable
     }
 
     [Fact]
+    public void A_start_with_the_system_goes_quietly_into_the_tray_and_the_unit_runs_the_agent_itself()
+    {
+        AgentPlatform.RunEntryCommand(@"C:\Program Files\Example App\ExampleApp.exe")
+            .Should().Be("\"C:\\Program Files\\Example App\\ExampleApp.exe\" --background", "a folder with spaces stays one word");
+        LaunchArguments.Parse(AgentPlatform.UnitArguments, new AppLinks("example-app"))
+            .Should().Be(new LaunchArguments(ProcessRole.Agent, Background: true, Target: null), "a launcher there would start the unit again");
+    }
+
+    [Fact]
     [SupportedOSPlatform("linux")]
     public void An_appimage_is_started_through_its_file_and_has_no_folder_that_keeps_backups_out()
     {

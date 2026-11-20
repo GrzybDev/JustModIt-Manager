@@ -29,10 +29,10 @@ public sealed class ShellRegistrationTests : IDisposable
             run.SetValue("OtherApp", "other.exe");
         }
 
-        var autostart = new WindowsAutostart(Name, _root);
+        var autostart = new WindowsAutostart(Name, Command, _root);
         autostart.GetState().Should().Be(AutostartState.Disabled);
         autostart.Invoking(start => start.Disable()).Should().NotThrow();
-        autostart.Enable(Command);
+        autostart.Enable();
         using (var approved = Win32.Registry.CurrentUser.CreateSubKey(ApprovedKey))
         {
             approved.SetValue(Name, new byte[] { 3, 0, 0, 0 }, Win32.RegistryValueKind.Binary);
@@ -49,13 +49,13 @@ public sealed class ShellRegistrationTests : IDisposable
     [Fact]
     public void Enabling_writes_the_command_and_follows_a_moved_executable()
     {
-        var autostart = new WindowsAutostart(Name, _root);
+        new WindowsAutostart(Name, Command, _root).Enable();
+        var moved = new WindowsAutostart(Name, Command.Replace("current", "moved", StringComparison.Ordinal), _root);
 
-        autostart.Enable(Command);
-        autostart.Enable(Command.Replace("current", "moved", StringComparison.Ordinal));
+        moved.Enable();
 
         Read(RunKey, Name).Should().Be(Command.Replace("current", "moved", StringComparison.Ordinal));
-        autostart.GetState().Should().Be(AutostartState.Enabled);
+        moved.GetState().Should().Be(AutostartState.Enabled);
     }
 
     [Theory]
@@ -63,8 +63,8 @@ public sealed class ShellRegistrationTests : IDisposable
     [InlineData(new byte[] { 2, 0, 0, 0 }, AutostartState.Enabled)]
     public void The_systems_startup_switch_wins(byte[] flags, AutostartState expected)
     {
-        var autostart = new WindowsAutostart(Name, _root);
-        autostart.Enable(Command);
+        var autostart = new WindowsAutostart(Name, Command, _root);
+        autostart.Enable();
         using (var approved = Win32.Registry.CurrentUser.CreateSubKey(ApprovedKey))
         {
             approved.SetValue(Name, flags, Win32.RegistryValueKind.Binary);
@@ -76,14 +76,14 @@ public sealed class ShellRegistrationTests : IDisposable
     [Fact]
     public void Enabling_again_overrides_the_systems_switch()
     {
-        var autostart = new WindowsAutostart(Name, _root);
-        autostart.Enable(Command);
+        var autostart = new WindowsAutostart(Name, Command, _root);
+        autostart.Enable();
         using (var approved = Win32.Registry.CurrentUser.CreateSubKey(ApprovedKey))
         {
             approved.SetValue(Name, new byte[] { 3, 0, 0, 0 }, Win32.RegistryValueKind.Binary);
         }
 
-        autostart.Enable(Command);
+        autostart.Enable();
 
         autostart.GetState().Should().Be(AutostartState.Enabled);
         Read(ApprovedKey, Name).Should().BeNull();

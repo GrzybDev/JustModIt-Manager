@@ -9,10 +9,6 @@ namespace JustModIt.Manager.Agent.Shell;
 /// <summary>Autostart and the link scheme, as the installer's hooks and the running agent both set them up.</summary>
 public static class ShellRegistration
 {
-    /// <summary>The command autostart runs, which starts quietly into the tray.</summary>
-    /// <param name="executable">The executable the updater keeps at a stable path.</param>
-    public static string AutostartCommand(string executable) => $"\"{executable}\" {LaunchArguments.BackgroundSwitch}";
-
     /// <summary>
     /// Registers the link scheme and brings autostart in line with the saved setting, except that autostart the player
     /// turned off among the system's startup apps stays off; only turning the setting on again overrides that.
@@ -21,7 +17,7 @@ public static class ShellRegistration
     /// <param name="autostart">The system's autostart entry.</param>
     /// <param name="scheme">The app's link scheme.</param>
     /// <param name="productName">The name the system shows for the scheme.</param>
-    /// <param name="executable">The executable that links and autostart start.</param>
+    /// <param name="executable">The executable that links start.</param>
     /// <param name="startWithSystem">The saved setting.</param>
     public static void Register(ILinkRegistration links, IAutostart autostart, string scheme, string productName, string executable,
         bool startWithSystem)
@@ -29,7 +25,7 @@ public static class ShellRegistration
         links.Register(scheme, productName, executable);
         if (!startWithSystem || autostart.GetState() != AutostartState.DisabledBySystem)
         {
-            ApplyAutostart(autostart, executable, startWithSystem);
+            ApplyAutostart(autostart, startWithSystem);
         }
     }
 
@@ -45,13 +41,12 @@ public static class ShellRegistration
 
     /// <summary>Follows a change of the setting, which overrides the system's switch.</summary>
     /// <param name="autostart">The system's autostart entry.</param>
-    /// <param name="executable">The executable that autostart starts.</param>
     /// <param name="startWithSystem">The new setting.</param>
-    public static void ApplyAutostart(IAutostart autostart, string executable, bool startWithSystem)
+    public static void ApplyAutostart(IAutostart autostart, bool startWithSystem)
     {
         if (startWithSystem)
         {
-            autostart.Enable(AutostartCommand(executable));
+            autostart.Enable();
         }
         else
         {
@@ -114,7 +109,7 @@ public sealed partial class ShellIntegration(
     {
         if (e.Previous.StartWithSystem != e.Current.StartWithSystem)
         {
-            _ = ApplyAsync(() => ShellRegistration.ApplyAutostart(autostart, options.ExecutablePath, settings.Current.StartWithSystem));
+            _ = ApplyAsync(() => ShellRegistration.ApplyAutostart(autostart, settings.Current.StartWithSystem));
         }
     }
 
@@ -123,7 +118,8 @@ public sealed partial class ShellIntegration(
         await _applying.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            change();
+            // The system's autostart may wait for a bus whose answers come on the thread that raised the change.
+            await Task.Run(change, cancellationToken).ConfigureAwait(false);
         }
         // The app works without autostart and links; a locked-down registry must not stop the agent.
         catch (Exception exception) when (exception is UnauthorizedAccessException or SecurityException or IOException)

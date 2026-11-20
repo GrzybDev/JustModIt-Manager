@@ -14,6 +14,12 @@
         "resolved": "2.5.3",
         "contentHash": "JG78yapjF3r3GUj5UWv3m6r4L5hhdusumlhSoO+bkUakMW4kAInn4q3ulnNy1tqNLiwfumFoukdd+NVGbC3A7g=="
       },
+      "Tmds.DBus.Generator": {
+        "type": "Direct",
+        "requested": "[0.94.1, )",
+        "resolved": "0.94.1",
+        "contentHash": "n47ZKQNGI/dC+cev04XCLg6u/jkm6prvlInz2cLIJSZGrrRy7ug3h9UcmjuggwfHgN70nl7NOYsdAQDcRf1LjA=="
+      },
       "xunit.v3.mtp-v2": {
         "type": "Direct",
         "requested": "[3.2.2, )",

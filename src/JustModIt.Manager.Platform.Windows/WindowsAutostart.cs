@@ -9,15 +9,18 @@ namespace JustModIt.Manager.Platform.Windows;
 public sealed class WindowsAutostart : IAutostart
 {
     private readonly string _name;
+    private readonly string _command;
     private readonly string _runKey;
     private readonly string _approvedKey;
 
     /// <summary>Creates the autostart for one Run entry.</summary>
     /// <param name="name">The entry's name among the startup apps, one per app and build.</param>
+    /// <param name="command">The whole command line the entry runs, with the executable quoted.</param>
     /// <param name="softwareKey">The current user's key that holds <c>Microsoft\Windows</c>; tests pass one of their own.</param>
-    public WindowsAutostart(string name, string softwareKey = "Software")
+    public WindowsAutostart(string name, string command, string softwareKey = "Software")
     {
         _name = name;
+        _command = command;
         _runKey = $@"{softwareKey}\Microsoft\Windows\CurrentVersion\Run";
         _approvedKey = $@"{softwareKey}\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
     }
@@ -39,13 +42,13 @@ public sealed class WindowsAutostart : IAutostart
             : AutostartState.Enabled;
     }
 
-    public void Enable(string command)
+    public void Enable()
     {
         using (var run = Win32.Registry.CurrentUser.CreateSubKey(_runKey))
         {
-            if (!string.Equals(run.GetValue(_name) as string, command, StringComparison.Ordinal))
+            if (!string.Equals(run.GetValue(_name) as string, _command, StringComparison.Ordinal))
             {
-                run.SetValue(_name, command, Win32.RegistryValueKind.String);
+                run.SetValue(_name, _command, Win32.RegistryValueKind.String);
             }
         }
 

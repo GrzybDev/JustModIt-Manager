@@ -59,8 +59,6 @@ internal sealed class FakeShellRegistration : IAutostart, ILinkRegistration
 
     public AutostartState State { get; set; }
 
-    public string? Command { get; private set; }
-
     public ConcurrentDictionary<string, (string DisplayName, string Executable)> Schemes { get; } = new();
 
     public AutostartState GetState()
@@ -71,11 +69,10 @@ internal sealed class FakeShellRegistration : IAutostart, ILinkRegistration
         }
     }
 
-    public void Enable(string command)
+    public void Enable()
     {
         lock (_gate)
         {
-            Command = command;
             State = AutostartState.Enabled;
         }
     }
@@ -84,7 +81,6 @@ internal sealed class FakeShellRegistration : IAutostart, ILinkRegistration
     {
         lock (_gate)
         {
-            Command = null;
             State = AutostartState.Disabled;
         }
     }

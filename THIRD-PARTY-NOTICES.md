@@ -126,9 +126,9 @@ Microsoft Public License, the Apache License 2.0 and BSD-style licences, reprodu
 - Copyright: Copyright 2006 Alp Toker, Copyright 2010 Other Contributors, Copyright 2016 Tom Deseyn
 - NuGet packages: Tmds.DBus.Generator 0.94.1, Tmds.DBus.Protocol 0.94.1
 - Systems: Linux
-- Use: D-Bus messaging, compiled into the app's executable, for Avalonia and for the app's calls to the desktop, whose
-  code the generator writes from the interfaces' descriptions while the app is built; the generator itself does not
-  ship.
+- Use: D-Bus messaging, compiled into the app's executable, for Avalonia and for the app's calls to the desktop and to
+  systemd, whose code the generator writes from the interfaces' descriptions while the app is built; the generator
+  itself does not ship.
 
 ### SkiaSharp and HarfBuzzSharp
 

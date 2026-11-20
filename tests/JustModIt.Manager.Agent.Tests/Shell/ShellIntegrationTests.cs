@@ -11,8 +11,6 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
 {
     private readonly AgentHarness _agent = new();
 
-    private string Command => $"\"{_agent.Options.ExecutablePath}\" --background";
-
     private AppIdentity Development => new(_agent.Options.Identity.AppId, _agent.Options.Identity.VendorId, "example-app",
         "com.example.ExampleApp", isDevelopmentBuild: true);
 
@@ -22,7 +20,7 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
         _agent.Options = _agent.Options with { IntegratesWithShell = true };
         _agent.Start();
 
-        await Eventually.HoldsAsync(() => _agent.Registration.Command == Command);
+        await Eventually.HoldsAsync(() => _agent.Registration.State == AutostartState.Enabled);
         _agent.Registration.Schemes.Should().ContainKey("example-app")
             .WhoseValue.Should().Be(("Example App", _agent.Options.ExecutablePath));
     }
@@ -64,7 +62,7 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
         var window = await _agent.ConnectWindowAsync();
         await window.StateAsync(state => state.IsLoaded);
 
-        _agent.Registration.Command.Should().BeNull();
+        _agent.Registration.State.Should().Be(AutostartState.Disabled);
         _agent.Registration.Schemes.Should().BeEmpty();
     }
 

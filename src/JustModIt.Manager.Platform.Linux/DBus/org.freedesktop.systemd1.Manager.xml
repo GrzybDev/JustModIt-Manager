@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!-- The members of the systemd manager the app uses, as systemd's D-Bus API (org.freedesktop.systemd1(5)) defines them. -->
+<node>
+  <interface name="org.freedesktop.systemd1.Manager">
+    <method name="Reload" />
+    <method name="GetUnitFileState">
+      <arg type="s" name="file" direction="in" />
+      <arg type="s" name="state" direction="out" />
+    </method>
+    <method name="EnableUnitFiles">
+      <arg type="as" name="files" direction="in" />
+      <arg type="b" name="runtime" direction="in" />
+      <arg type="b" name="force" direction="in" />
+      <arg type="b" name="carries_install_info" direction="out" />
+      <arg type="a(sss)" name="changes" direction="out" />
+    </method>
+    <method name="DisableUnitFiles">
+      <arg type="as" name="files" direction="in" />
+      <arg type="b" name="runtime" direction="in" />
+      <arg type="a(sss)" name="changes" direction="out" />
+    </method>
+  </interface>
+</node>

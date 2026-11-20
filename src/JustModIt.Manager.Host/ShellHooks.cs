@@ -23,7 +23,8 @@ internal static class ShellHooks
     /// <summary>Registers the link scheme, and autostart when the settings ask for it, after an install or an update.</summary>
     /// <param name="product">The app's build settings.</param>
     public static void Register(ProductSettings product) => Apply(product, environment =>
-        ShellRegistration.Register(WindowsLinkRegistration.Instance, new WindowsAutostart(environment.Identity.InstanceName),
+        ShellRegistration.Register(WindowsLinkRegistration.Instance,
+            AgentPlatform.WindowsRunEntry(environment.Identity, environment.Install.ExecutablePath),
             environment.Identity.Slug, product.ProductName, environment.Install.ExecutablePath,
             ReadSettings(environment.Locations).StartWithSystem));
 
@@ -44,8 +45,8 @@ internal static class ShellHooks
     {
         Apply(product, environment =>
         {
-            ShellRegistration.Unregister(WindowsLinkRegistration.Instance, new WindowsAutostart(environment.Identity.InstanceName),
-                environment.Identity.Slug);
+            ShellRegistration.Unregister(WindowsLinkRegistration.Instance,
+                AgentPlatform.WindowsRunEntry(environment.Identity, environment.Install.ExecutablePath), environment.Identity.Slug);
             ForgetInstallation(environment.Locations);
         });
         Apply(product, environment =>
