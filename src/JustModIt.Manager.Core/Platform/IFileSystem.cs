@@ -50,4 +50,11 @@ public interface IFileSystem
     /// <summary>Whether the drive a path is on is not there, such as an unplugged one, rather than only the path.</summary>
     /// <param name="path">A full path.</param>
     bool IsDriveMissing(string path) => Path.GetPathRoot(path) is not { Length: > 0 } root || !DirectoryExists(root);
+
+    /// <summary>
+    /// The folder the drive a path is on is mounted on, told without touching the drive, which may not answer: the path's
+    /// root where paths name their drive.
+    /// </summary>
+    /// <param name="path">A full path.</param>
+    string MountOf(string path) => Path.GetPathRoot(path) ?? path;
 }

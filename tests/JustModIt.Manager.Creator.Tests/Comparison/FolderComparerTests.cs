@@ -413,7 +413,7 @@ public sealed class FolderComparerTests : IDisposable
         var token = TestContext.Current.CancellationToken;
         using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
         var time = new CountingTimeProvider();
-        var comparer = new FolderComparer(Workspace.Options, files, new LibraryAccess(time));
+        var comparer = new FolderComparer(Workspace.Options, files, new LibraryAccess(time, files));
 
         files.Hang(_workspace.GamePath("data"));
         using var stopping = CancellationTokenSource.CreateLinkedTokenSource(token);

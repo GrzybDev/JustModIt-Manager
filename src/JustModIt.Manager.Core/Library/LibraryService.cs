@@ -75,8 +75,8 @@ public sealed partial class LibraryService : ILibraryService, IAsyncDisposable
         _watches = new WatchCoordinator(folderWatcher, registryWatcher, OnWatchSignal, logger);
         // One access per store, so a drive that does not answer holds up only that store's reads of it.
         _access = _providers.Select(provider => provider.Store).Distinct()
-            .ToDictionary(store => store, store => new LibraryAccess(time, () => MarkChanged(store)));
-        _folderChecks = new LibraryAccess(time);
+            .ToDictionary(store => store, store => new LibraryAccess(time, fileSystem, () => MarkChanged(store)));
+        _folderChecks = new LibraryAccess(time, fileSystem);
     }
 
     public event EventHandler<LibrarySnapshot>? Changed;

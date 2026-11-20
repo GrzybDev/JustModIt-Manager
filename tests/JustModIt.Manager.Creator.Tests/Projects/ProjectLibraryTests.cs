@@ -1,6 +1,7 @@
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Creator.Tests.TestSupport;
 
@@ -99,7 +100,7 @@ public sealed class ProjectLibraryTests : IDisposable
         await _library.ImportRecentAsync([path], Access, Token);
         var id = (await _library.ListAsync(Access, Token)).Projects.Should().ContainSingle().Which.Project.Id;
         File.Delete(ProjectFile(id));
-        var hung = new LibraryAccess(new LimitAtOnce());
+        var hung = new LibraryAccess(new LimitAtOnce(), PhysicalFileSystem.Instance);
         var read = () => hung.ReadAsync(path, _ => new TaskCompletionSource<bool>().Task, Token);
         await read.Should().ThrowAsync<TimeoutException>();
 

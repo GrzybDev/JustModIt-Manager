@@ -107,6 +107,14 @@ internal sealed class InMemoryFileSystem : IFileSystem
         return full;
     }
 
+    // A drive lies where TestPaths puts it: below its root on Windows, and elsewhere below its own mount point /mnt/<letter>.
+    public string MountOf(string path)
+    {
+        var full = PathComparison.Normalize(path);
+        return OperatingSystem.IsWindows() ? Path.GetPathRoot(full) ?? full
+            : full.Split('/') is ["", "mnt", { Length: 1 } drive, ..] ? $"/mnt/{drive}" : "/";
+    }
+
     private IEnumerable<FileEntry> List(string directory, string searchPattern, EnumerationOptions options, int depth)
     {
         var children = _nodes

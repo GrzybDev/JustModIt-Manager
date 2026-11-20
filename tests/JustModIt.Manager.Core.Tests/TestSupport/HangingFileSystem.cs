@@ -106,6 +106,9 @@ internal sealed class HangingFileSystem(IFileSystem inner) : IFileSystem, IDispo
         return inner.GetCanonicalPath(path);
     }
 
+    // Telling a path's mount never touches the drive, so a drive that does not answer cannot hold it up.
+    public string MountOf(string path) => inner.MountOf(path);
+
     // Lets every blocked call go on, so no thread outlives the test.
     public void Dispose()
     {

@@ -6,7 +6,9 @@ namespace JustModIt.Manager.Core.Tests.Library;
 
 public sealed class LibraryAccessTests : IDisposable
 {
-    private const string Library = @"D:\Library";
+    private static readonly string Library = TestPaths.Rooted('D', "Library");
+    private static readonly string OnTheSameDrive = TestPaths.Rooted('D', "Other");
+    private static readonly string OnAnotherDrive = TestPaths.Rooted('E', "Other");
 
     private readonly FakeTimeProvider _time = new();
     private readonly ManualResetEventSlim _drive = new(initialState: true);
@@ -14,7 +16,9 @@ public sealed class LibraryAccessTests : IDisposable
     private int _reads;
     private int _lateAnswers;
 
-    public LibraryAccessTests() => _access = new LibraryAccess(_time, () => Interlocked.Increment(ref _lateAnswers));
+    // Each drive is a mount of its own on Linux, as it is a root on Windows.
+    public LibraryAccessTests() =>
+        _access = new LibraryAccess(_time, new InMemoryFileSystem(), () => Interlocked.Increment(ref _lateAnswers));
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -43,25 +47,23 @@ public sealed class LibraryAccessTests : IDisposable
     [Fact]
     public async Task A_drive_whose_earlier_read_still_hangs_is_not_read_again_while_other_drives_are()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows paths name the drive they are on.");
         await HangAsync();
 
-        await FluentActions.Awaiting(() => _access.ReadAsync(@"d:\library\", ReadAsync, Token)).Should().ThrowAsync<TimeoutException>();
-        await FluentActions.Awaiting(() => _access.ReadAsync(@"D:\Other", ReadAsync, Token)).Should().ThrowAsync<TimeoutException>();
+        await FluentActions.Awaiting(() => _access.ReadAsync(Path.Join(Library, "Saves"), ReadAsync, Token)).Should().ThrowAsync<TimeoutException>();
+        await FluentActions.Awaiting(() => _access.ReadAsync(OnTheSameDrive, ReadAsync, Token)).Should().ThrowAsync<TimeoutException>();
         Reads.Should().Be(1);
-        (await _access.ReadAsync(@"E:\Other", _ => Task.FromResult(7), Token)).Should().Be(7);
+        (await _access.ReadAsync(OnAnotherDrive, _ => Task.FromResult(7), Token)).Should().Be(7);
     }
 
     [Fact]
     public async Task Reads_of_one_drive_wait_for_each_other_while_other_drives_are_read_meanwhile()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows paths name the drive they are on.");
         _drive.Reset();
         var first = _access.ReadAsync(Library, ReadAsync, Token);
         await Eventually.HoldsAsync(() => Reads == 1, "the drive is being read");
 
-        var second = _access.ReadAsync(@"D:\Other", ReadAsync, Token);
-        (await _access.ReadAsync(@"E:\Other", _ => Task.FromResult(7), Token)).Should().Be(7);
+        var second = _access.ReadAsync(OnTheSameDrive, ReadAsync, Token);
+        (await _access.ReadAsync(OnAnotherDrive, _ => Task.FromResult(7), Token)).Should().Be(7);
         await Eventually.SettleAsync();
         Reads.Should().Be(1, "a drive that may not answer holds at most one thread");
         _drive.Set();
@@ -84,7 +86,7 @@ public sealed class LibraryAccessTests : IDisposable
             return Task.FromResult(1);
         }, Token);
         await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
-        var waiting = _access.ReadAsync(@"D:\Other", _ =>
+        var waiting = _access.ReadAsync(OnTheSameDrive, _ =>
         {
             secondStarted.TrySetResult();
             return ReadAsync(CancellationToken.None);

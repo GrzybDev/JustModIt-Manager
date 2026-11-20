@@ -17,24 +17,29 @@ public sealed class GameRecognizerTests
     [Fact]
     public async Task Recognises_a_game_while_another_drive_hangs()
     {
-        Add(@"D:\Work\Translation", "data/strings.bin", "data/fonts/title.ttf", "loader/proxy.dll");
-        Add(@"C:\Steam\Lantern Isle", "data/strings.bin", "data/fonts/body.ttf", "bin/lantern.exe");
-        Add(@"C:\GOG\Lantern Isle", "data/strings.bin", "data/fonts/body.ttf", "bin/lantern.exe");
-        Add(@"C:\Steam\Tidewater", "Tide_Data/level.bin");
-        Add(@"X:\Games\Ashfall", "data/strings.bin");
+        var translation = TestPaths.Rooted('D', "Work", "Translation");
+        var lanternSteam = TestPaths.Rooted('C', "Steam", "Lantern Isle");
+        var lanternGog = TestPaths.Rooted('C', "GOG", "Lantern Isle");
+        var tidewater = TestPaths.Rooted('C', "Steam", "Tidewater");
+        var ashfall = TestPaths.Rooted('X', "Games", "Ashfall");
+        Add(translation, "data/strings.bin", "data/fonts/title.ttf", "loader/proxy.dll");
+        Add(lanternSteam, "data/strings.bin", "data/fonts/body.ttf", "bin/lantern.exe");
+        Add(lanternGog, "data/strings.bin", "data/fonts/body.ttf", "bin/lantern.exe");
+        Add(tidewater, "Tide_Data/level.bin");
+        Add(ashfall, "data/strings.bin");
         using var hanging = new HangingFileSystem(_files);
-        hanging.Hang(@"X:\Games\Ashfall");
+        hanging.Hang(ashfall);
         // A game that has none of the folder's top-level names is read no further than its top level.
-        hanging.Hang(@"C:\Steam\Tidewater\Tide_Data");
+        hanging.Hang(Path.Join(tidewater, "Tide_Data"));
         var time = new CountingTimeProvider();
 
-        var recognizing = GameRecognizer.RecognizeAsync(@"D:\Work\Translation",
+        var recognizing = GameRecognizer.RecognizeAsync(translation,
         [
-            new(Ashfall, "Ashfall", @"X:\Games\Ashfall"),
-            new(Tidewater, "Tidewater", @"C:\Steam\Tidewater"),
-            new(LanternSteam, "Lantern Isle", @"C:\Steam\Lantern Isle"),
-            new(LanternGog, "Lantern Isle", @"C:\GOG\Lantern Isle"),
-        ], new LibraryAccess(time), hanging, TestContext.Current.CancellationToken);
+            new(Ashfall, "Ashfall", ashfall),
+            new(Tidewater, "Tidewater", tidewater),
+            new(LanternSteam, "Lantern Isle", lanternSteam),
+            new(LanternGog, "Lantern Isle", lanternGog),
+        ], new LibraryAccess(time, hanging), hanging, TestContext.Current.CancellationToken);
         await hanging.RunOutOfTimeAsync(time);
         var recognition = await recognizing;
 

@@ -157,7 +157,7 @@ public sealed class LiveLibraryTests
             EpicLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment,
                 NullLogger<EpicLibraryProvider>.Instance),
         ];
-        var limited = LibraryScanContext.Empty with { Access = new LibraryAccess(TimeProvider.System) };
+        var limited = LibraryScanContext.Empty with { Access = new LibraryAccess(TimeProvider.System, PhysicalFileSystem.Instance) };
 
         foreach (var provider in providers)
         {

@@ -496,7 +496,7 @@ public sealed class SteamLibraryProviderTests
         files.Hang(library);
         var time = new CountingTimeProvider();
 
-        var probing = _steam.CreateProvider(files: files).ProbeAsync(known, LibraryScanContext.Empty with { Access = new LibraryAccess(time) }, Token);
+        var probing = _steam.CreateProvider(files: files).ProbeAsync(known, LibraryScanContext.Empty with { Access = new LibraryAccess(time, files) }, Token);
         await files.RunOutOfTimeAsync(time);
         var probed = await probing;
 
@@ -606,7 +606,7 @@ public sealed class SteamLibraryProviderTests
     {
         var time = new CountingTimeProvider();
         var scanning = _steam.CreateProvider(files: files)
-            .ScanAsync(new LibraryScanContext([.. manualFolders]) { Access = new LibraryAccess(time) }, Token);
+            .ScanAsync(new LibraryScanContext([.. manualFolders]) { Access = new LibraryAccess(time, files) }, Token);
         await files.RunOutOfTimeAsync(time);
         return await scanning;
     }

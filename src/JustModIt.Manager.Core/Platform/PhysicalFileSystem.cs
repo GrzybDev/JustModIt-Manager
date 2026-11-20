@@ -59,4 +59,10 @@ public sealed class PhysicalFileSystem : IFileSystem
     public bool IsDriveMissing(string path) => OperatingSystem.IsWindows()
         ? !Directory.Exists(Path.GetPathRoot(path))
         : MountTable.Read().IsDriveMissing(GetCanonicalPath(path), Environment.UserName);
+
+    // On Linux the path's text alone tells its mount, as a drive letter does on Windows: following its links would read the
+    // drive that may not answer before any time limit runs.
+    public string MountOf(string path) => OperatingSystem.IsWindows()
+        ? Path.GetPathRoot(path) ?? path
+        : MountTable.Read().MountOf(PathComparison.Normalize(path))?.Point ?? "/";
 }

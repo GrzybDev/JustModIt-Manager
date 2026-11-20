@@ -36,7 +36,7 @@ public sealed class FileChangesTests : IDisposable
         using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
         var time = new CountingTimeProvider();
         files.Hang(_workspace.AuthorDirectory);
-        var hanging = check(files, new LibraryAccess(time));
+        var hanging = check(files, new LibraryAccess(time, files));
         await files.RunOutOfTimeAsync(time);
         (await hanging).Should().BeNull("a drive that does not answer leaves the folder unavailable");
 

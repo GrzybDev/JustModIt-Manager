@@ -65,7 +65,7 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         _logger = logger;
         _store = new InstallRecordStore(options.InstallsDirectory, time);
         _leftovers = new InstallRecordStore(options.LeftoversDirectory, time);
-        _folderChecks = new LibraryAccess(time);
+        _folderChecks = new LibraryAccess(time, PhysicalFileSystem.Instance);
         _ownership = new GameFolderOwnership(_store, options);
         _hook = new ChangeHook(options.BeforeChange);
         _worker = Task.Run(ProcessAsync);

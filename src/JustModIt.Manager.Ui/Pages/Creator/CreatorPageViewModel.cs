@@ -35,7 +35,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
         FileSystem = fileSystem;
         Log = services.Context.Loggers.CreateLogger<CreatorPageViewModel>();
         Library = new ProjectLibrary(services.Context.CreatorDirectory, services.Clock);
-        Access = new LibraryAccess(services.Clock);
+        Access = new LibraryAccess(services.Clock, fileSystem ?? PhysicalFileSystem.Instance);
         Services.Agent.PropertyChanged += OnAgentChanged;
     }
 

@@ -494,9 +494,8 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_library_that_does_not_answer_stays_offline_while_the_other_libraries_and_stores_go_on()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test lays out Steam as it is on Windows.");
         var steam = new SteamTree();
-        var slow = steam.AddLibrary(@"D:\Slow");
+        var slow = steam.AddLibrary(TestPaths.Rooted('D', "Slow"));
         steam.AddApp(1001, "Slow Quest", library: slow);
         steam.AddApp(1003, "Root Quest");
         using var files = new HangingFileSystem(steam.Files);
@@ -519,9 +518,8 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_library_that_answers_late_is_read_again()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test lays out Steam as it is on Windows.");
         var steam = new SteamTree();
-        var slow = steam.AddLibrary(@"D:\Slow");
+        var slow = steam.AddLibrary(TestPaths.Rooted('D', "Slow"));
         steam.AddApp(1001, "Slow Quest", library: slow);
         using var files = new HangingFileSystem(steam.Files);
         await StartWithSteamAsync(steam, files);

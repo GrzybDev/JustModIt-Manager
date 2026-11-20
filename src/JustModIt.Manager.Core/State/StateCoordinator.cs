@@ -8,6 +8,7 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.Steam;
@@ -54,7 +55,7 @@ public sealed partial class StateCoordinator(ILibraryService library, ICatalogue
 
     private readonly Channel<Trigger> _triggers = Channel.CreateUnbounded<Trigger>(new UnboundedChannelOptions { SingleReader = true });
     private readonly Lock _publishGate = new();
-    private readonly LibraryAccess _backupChecks = new(time);
+    private readonly LibraryAccess _backupChecks = new(time, PhysicalFileSystem.Instance);
 
     // Only the loop touches these, so they need no lock.
     private readonly Dictionary<Guid, InstallRecord> _records = [];

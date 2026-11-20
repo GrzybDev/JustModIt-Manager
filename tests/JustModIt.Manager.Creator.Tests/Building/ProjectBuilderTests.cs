@@ -171,7 +171,7 @@ public sealed class ProjectBuilderTests : IDisposable
         var time = new CountingTimeProvider();
         files.Hang(folder);
 
-        var run = new ProjectBuilder(new XDelta3Patcher(), Workspace.Options, _library, new LibraryAccess(time), fileSystem: files)
+        var run = new ProjectBuilder(new XDelta3Patcher(), Workspace.Options, _library, new LibraryAccess(time, files), fileSystem: files)
             .BuildAsync(Request(parts), progress: null, Token);
         await files.RunOutOfTimeAsync(time);
 

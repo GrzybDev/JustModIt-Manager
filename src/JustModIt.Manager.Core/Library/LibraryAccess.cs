@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library;
 
@@ -12,19 +13,22 @@ public sealed class LibraryAccess
     public static readonly TimeSpan TimeLimit = TimeSpan.FromSeconds(15);
 
     private readonly TimeProvider? _time;
+    private readonly IFileSystem? _fileSystem;
     private readonly Action? _onLateAnswer;
     private readonly Lock _gate = new();
     private readonly Dictionary<string, Drive> _drives = new(PathComparison.Comparer);
 
     /// <summary>Creates an access that gives up on a read after <see cref="TimeLimit"/>.</summary>
     /// <param name="time">Counts the time limit.</param>
+    /// <param name="fileSystem">Tells the drive each path lies on, whose reads take turns.</param>
     /// <param name="onLateAnswer">
     /// Called on any thread once a read that ran out of time ends, so the library can be read again, but only once until
     /// the drive answers in time, so a dead drive is not polled.
     /// </param>
-    public LibraryAccess(TimeProvider time, Action? onLateAnswer = null)
+    public LibraryAccess(TimeProvider time, IFileSystem fileSystem, Action? onLateAnswer = null)
     {
         _time = time;
+        _fileSystem = fileSystem;
         _onLateAnswer = onLateAnswer;
     }
 
@@ -44,12 +48,13 @@ public sealed class LibraryAccess
     /// </exception>
     public async Task<T> ReadAsync<T>(string path, Func<CancellationToken, Task<T>> read, CancellationToken cancellationToken)
     {
-        if (_time is not { } time)
+        if (_time is not { } time || _fileSystem is not { } fileSystem)
         {
             return await read(cancellationToken).ConfigureAwait(false);
         }
 
-        var drive = DriveOf(path);
+        // Telling a path's drive may read the system's table of mounts, which a caller on the UI thread must not.
+        var drive = await Task.Run(() => DriveOf(fileSystem, path), cancellationToken).ConfigureAwait(false);
         await drive.Turn.WaitAsync(cancellationToken).ConfigureAwait(false);
         bool hanging;
         lock (_gate)
@@ -136,12 +141,10 @@ public sealed class LibraryAccess
         }
     }
 
-    // Everything on a drive stops answering with it. Unix mounts every drive below one root, so there each folder stands
-    // for itself.
-    private Drive DriveOf(string path)
+    // Everything on a drive stops answering with it.
+    private Drive DriveOf(IFileSystem fileSystem, string path)
     {
-        var folder = PathComparison.Normalize(path);
-        var name = OperatingSystem.IsWindows() ? Path.GetPathRoot(folder) ?? folder : folder;
+        var name = fileSystem.MountOf(PathComparison.Normalize(path));
         lock (_gate)
         {
             if (!_drives.TryGetValue(name, out var drive))

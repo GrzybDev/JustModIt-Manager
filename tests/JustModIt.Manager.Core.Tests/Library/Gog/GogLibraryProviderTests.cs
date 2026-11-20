@@ -286,7 +286,7 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task Games_whose_drive_does_not_answer_are_reported_while_the_others_are_read()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows paths name the drive they are on.");
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "GOG Galaxy, whose folder the scan watches for, exists only on Windows.");
         var slow = TestPaths.Rooted('Q', "Slow", "Game");
         var other = TestPaths.Rooted('Q', "Other");
         _files.AddInfo(Folder, "1100000001", "Example");
@@ -353,7 +353,7 @@ public sealed class GogLibraryProviderTests
         files.Hang(Folder);
         var time = new CountingTimeProvider();
 
-        var probing = CreateProvider(files).ProbeAsync(known, LibraryScanContext.Empty with { Access = new LibraryAccess(time) }, Token);
+        var probing = CreateProvider(files).ProbeAsync(known, LibraryScanContext.Empty with { Access = new LibraryAccess(time, files) }, Token);
         await files.RunOutOfTimeAsync(time);
 
         (await probing).Should().Be(known with { State = GameInstallState.Offline, Reason = GameStateReason.LibraryOffline });
@@ -413,7 +413,7 @@ public sealed class GogLibraryProviderTests
         params IInstallSource<GogInstallRecord>[] extra)
     {
         var time = new CountingTimeProvider();
-        var scanning = CreateProvider(files, extra).ScanAsync(context with { Access = new LibraryAccess(time) }, Token);
+        var scanning = CreateProvider(files, extra).ScanAsync(context with { Access = new LibraryAccess(time, files) }, Token);
         await files.RunOutOfTimeAsync(time);
         return await scanning;
     }
