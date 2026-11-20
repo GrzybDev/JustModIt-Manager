@@ -32,7 +32,7 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
     public Task<GameIndex> ListGameAsync(string gameDirectory, IReadOnlyList<ExistingInstall> installs, CancellationToken cancellationToken) =>
         Task.Run(async () =>
         {
-            if (!await FolderExistsAsync(gameDirectory, cancellationToken).ConfigureAwait(false))
+            if (!await FileChanges.FolderExistsAsync(_access, _fileSystem, gameDirectory, cancellationToken).ConfigureAwait(false))
             {
                 throw new CreatorBlockedException([new CreatorBlock(CreatorBlockReason.GameFolderMissing, gameDirectory)]);
             }
@@ -53,17 +53,15 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
         return Task.Run(() => CompareCoreAsync(request, progress, cancellationToken), cancellationToken).WaitAsync(cancellationToken);
     }
 
-    // Only opening a folder has a time limit, since a large listing may well outlast it; a stop ends the wait for one.
-    private Task<bool> FolderExistsAsync(string folder, CancellationToken cancellationToken) =>
-        _access.ReadAsync(folder, _ => Task.FromResult(_fileSystem.DirectoryExists(folder)), cancellationToken);
-
     private async Task<FolderComparison> CompareCoreAsync(ComparisonRequest request, IProgress<CompareProgress>? progress,
         CancellationToken cancellationToken)
     {
         CreatorBlockReason? unopened;
         try
         {
-            unopened = await FolderExistsAsync(request.AuthorDirectory, cancellationToken).ConfigureAwait(false) ? null : CreatorBlockReason.AuthorFolderMissing;
+            unopened = await FileChanges.FolderExistsAsync(_access, _fileSystem, request.AuthorDirectory, cancellationToken).ConfigureAwait(false)
+                ? null
+                : CreatorBlockReason.AuthorFolderMissing;
         }
         catch (TimeoutException)
         {

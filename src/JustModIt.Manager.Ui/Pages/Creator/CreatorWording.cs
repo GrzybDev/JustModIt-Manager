@@ -4,6 +4,7 @@ using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
+using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Pages.Library;
@@ -33,9 +34,9 @@ internal static class CreatorWording
         // The line-breaking rules allow a break only after a drive's colon, which leaves "C:" alone at the end of a line; a word
         // joiner keeps it with its separator, and a zero-width space after every further separator gives the path its own breaks.
         // Both slashes count, since a package's paths take '/' on every system and Windows' own paths take '\'.
-        var root = Path.GetPathRoot(path) ?? "";
-        return root.Replace(":", ":⁠", StringComparison.Ordinal)
-            + path[root.Length..].Replace("\\", "\\​", StringComparison.Ordinal).Replace("/", "/​", StringComparison.Ordinal);
+        var root = CreatorProjectStore.RootOf(path).Length;
+        return path[..root].Replace(":", ":⁠", StringComparison.Ordinal)
+            + path[root..].Replace("\\", "\\​", StringComparison.Ordinal).Replace("/", "/​", StringComparison.Ordinal);
     }
 
     /// <summary>An operation's kind as its chip says it.</summary>

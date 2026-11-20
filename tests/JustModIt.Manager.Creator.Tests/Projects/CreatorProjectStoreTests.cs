@@ -2,7 +2,10 @@ using System.Collections.Immutable;
 using System.Text;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
+using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Creator.Tests.TestSupport;
 using JustModIt.Manager.Tests;
@@ -223,6 +226,25 @@ public sealed class CreatorProjectStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Opens_a_folder_named_by_another_system_as_written_and_finds_it_missing()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var foreign = OperatingSystem.IsWindows() ? "/home/example/Voices" : @"D:\Translations\Voices";
+        await File.WriteAllTextAsync(ProjectPath, $$"""
+            { "formatVersion": 5, "parts": [ { "authorFolder": "{{foreign.Replace(@"\", @"\\", StringComparison.Ordinal)}}" } ] }
+            """, token);
+
+        var folder = (await CreatorProjectStore.LoadAsync(ProjectPath, token)).Parts[0].AuthorFolder;
+        var compare = () => _workspace.CompareAsync(authorDirectory: folder);
+
+        folder.Should().Be(foreign);
+        (await compare.Should().ThrowAsync<CreatorBlockedException>()).Which.Blocks.Should().ContainSingle()
+            .Which.Reason.Should().Be(CreatorBlockReason.AuthorFolderMissing);
+        (await FileChanges.CheckAsync(folder, new Dictionary<string, FileStamp>(), [], LibraryAccess.Unlimited, PhysicalFileSystem.Instance, token))
+            .Should().BeNull();
+    }
+
+    [Fact]
     public async Task Tells_a_project_from_a_newer_app_even_when_the_rest_is_unreadable()
     {
         await File.WriteAllTextAsync(ProjectPath, """{ "formatVersion": 6, "steps": 5 }""", TestContext.Current.CancellationToken);
@@ -281,7 +303,6 @@ public sealed class CreatorProjectStoreTests : IDisposable
     [MemberData(nameof(ProjectFiles))]
     public async Task Reads_a_project_file_of_every_format_into_the_expected_project(string file, CreatorProject expected)
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The saved files hold Windows paths.");
         var project = await CreatorProjectStore.LoadAsync(Path.Join(Fixtures, file), TestContext.Current.CancellationToken);
         await CreatorProjectStore.SaveAsync(project, ProjectPath, TestContext.Current.CancellationToken);
 

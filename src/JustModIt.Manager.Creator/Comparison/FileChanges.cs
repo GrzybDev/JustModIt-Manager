@@ -37,8 +37,7 @@ public readonly record struct FileChanges(int Changed, int Added, int Removed)
         {
             return await Task.Run(async () =>
             {
-                // Only opening the folder has a time limit, since a large listing may well outlast it.
-                if (!await access.ReadAsync(folder, _ => Task.FromResult(fileSystem.DirectoryExists(folder)), cancellationToken).ConfigureAwait(false))
+                if (!await FolderExistsAsync(access, fileSystem, folder, cancellationToken).ConfigureAwait(false))
                 {
                     return (FileChanges?)null;
                 }
@@ -108,6 +107,21 @@ public readonly record struct FileChanges(int Changed, int Added, int Removed)
 
         return new BuildChanges(changed, before.Count, restamped);
     }, cancellationToken);
+
+    /// <summary>
+    /// Whether a folder is there, the only read of a folder given a time limit, since a large listing may well outlast one.
+    /// </summary>
+    /// <param name="access">Gives up on the folder when its drive does not answer.</param>
+    /// <param name="fileSystem">Looks the folder up.</param>
+    /// <param name="folder">The folder.</param>
+    /// <param name="cancellationToken">Stops the wait for a drive that does not answer.</param>
+    /// <exception cref="TimeoutException">The folder's drive does not answer.</exception>
+    internal static Task<bool> FolderExistsAsync(LibraryAccess access, IFileSystem fileSystem, string folder, CancellationToken cancellationToken) =>
+        // A folder of a project made on another system, such as D:\… on Linux, is not here, though .NET would look for it in
+        // the current folder.
+        Path.IsPathFullyQualified(folder)
+            ? access.ReadAsync(folder, _ => Task.FromResult(fileSystem.DirectoryExists(folder)), cancellationToken)
+            : Task.FromResult(false);
 
     /// <summary>
     /// The files of an author's folder, without links, the folders of other parts and what git and file managers keep there.

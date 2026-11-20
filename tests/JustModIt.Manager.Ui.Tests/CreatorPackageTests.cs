@@ -861,6 +861,7 @@ public sealed class CreatorPackageTests : IDisposable
     [AvaloniaFact]
     public async Task An_author_s_folder_at_a_drive_s_root_asks_for_an_output_folder()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows has drive roots, which leave no folder beside them for the packages.");
         const string root = @"Q:\";
         using var ui = await _work.OpenAsync(files: new DriveRootFileSystem(root, _work.AuthorFolder));
         var page = await CreatorWorkspace.NewProjectAsync(ui, root, "Lantern Isle");

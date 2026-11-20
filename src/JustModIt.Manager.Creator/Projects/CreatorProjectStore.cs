@@ -55,6 +55,18 @@ public static class CreatorProjectStore
         return Task.Run(() => AtomicFile.WriteAllBytesAsync(path, Serialize(project, directory), cancellationToken), cancellationToken);
     }
 
+    /// <summary>
+    /// The root of a folder as the system that named it writes it, so a folder of a project made on another system keeps its
+    /// root, such as D:\ on Linux, where .NET finds none in it.
+    /// </summary>
+    /// <param name="folder">A folder as a project holds it.</param>
+    /// <returns>Empty for a folder relative to the project's, which is written as a package path.</returns>
+    public static string RootOf(string folder) =>
+        folder.Length > 2 && char.IsAsciiLetter(folder[0]) && folder[1] == ':' && folder[2] is '/' or '\\' ? folder[..3]
+        : Path.GetPathRoot(folder) is { Length: > 0 } root ? root
+        : folder.StartsWith('\\') ? folder[..1]
+        : string.Empty;
+
     /// <summary>Opens a project file of this or an older format, off the calling thread.</summary>
     /// <param name="path">The project file.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
@@ -223,10 +235,12 @@ public static class CreatorProjectStore
         Acknowledged = [.. Items(document.Acknowledged).Distinct(StringComparer.Ordinal)],
     };
 
+    // A project made on another system keeps its folders as that system names them, so they read as missing here rather than
+    // as folders inside the project's.
     private static string FullFolder(string projectDirectory, string? folder) => folder switch
     {
         null or "" => string.Empty,
-        _ when Path.IsPathFullyQualified(folder) => folder,
+        _ when RootOf(folder).Length > 0 => folder,
         _ => Path.GetFullPath(PackagePath.ToFullPath(projectDirectory, folder)),
     };
 

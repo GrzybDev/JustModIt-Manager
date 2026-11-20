@@ -38,6 +38,7 @@ public sealed class CreatorLibraryTests : IDisposable
     {
         var sleeping = Directory.CreateDirectory(Path.Combine(_work.Root, "Work", "On a sleeping disk")).FullName;
         var gone = Path.Combine(_work.Root, "Work", "Gone");
+        var foreign = OperatingSystem.IsWindows() ? "/home/example/Translations/Driftwood" : @"D:\Translations\Driftwood";
         var ember = Project("Ember Isles", CreatorWorkspace.Lantern, _work.AuthorFolder) with
         {
             Site = new ProjectSite(Guid.NewGuid(), "ember-isles", "nimbus", "Nimbus", ""),
@@ -49,6 +50,7 @@ public sealed class CreatorLibraryTests : IDisposable
             Project("Tidewater", CreatorWorkspace.Tidewater),
             Project("Ashfall", new GameKey(StoreId.Gog, "5399"), sleeping),
             Project("Lantern Isle", CreatorWorkspace.Ashfall, gone),
+            Project("Driftwood", CreatorWorkspace.Lantern, foreign),
             Project("Saltmarsh", null),
         ];
         await SeedAsync(projects);
@@ -62,7 +64,7 @@ public sealed class CreatorLibraryTests : IDisposable
         using var ui = await OpenAsync(TestStates.Idle(creatorMode: true), files);
         var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
         await UiHarness.WaitUntilAsync(() => creator.Cards.Count() == projects.Length && creator.Cards.All(shown => shown.Details.Length > 0)
-            && Card(ui, "Lantern Isle")!.Line is not null);
+            && Card(ui, "Lantern Isle")!.Line is not null && Card(ui, "Driftwood")!.Line is not null);
 
         var card = (string name) => Card(ui, name)!;
         card("Ember Isles").Details.Should().Be(GameWording.Join(["Nimbus", Text.Format(Strings.Creator_LastPackage, ("hasVersion", "true"),
@@ -73,6 +75,8 @@ public sealed class CreatorLibraryTests : IDisposable
         card("Lantern Isle").Line!.Label.Should().Contain("Gone").And.NotContain(_work.Root, "a long path would fill the card");
         card("Lantern Isle").FolderTip.Should().Be(gone);
         card("Lantern Isle").AccessibleName.Should().Contain(gone, "screen readers get the whole path");
+        card("Driftwood").Line!.Label.Replace("\u2060", "", StringComparison.Ordinal).Replace("\u200B", "", StringComparison.Ordinal).Should()
+            .Be(State("FolderGone", OperatingSystem.IsWindows() ? "/…/Driftwood" : @"D:\…\Driftwood"), "a project made on another system keeps its folders");
         ui.Find<StatusLine>().Single(line => line.DataContext == card("Lantern Isle")).Bounds.Height.Should().BeLessThanOrEqualTo(2 * 17, "a state takes two lines at most");
         card("Saltmarsh").Line!.Label.Should().Be(State("NoVersion"));
         card("Ashfall").Line.Should().BeNull("before the stores' first scan a missing game is not a game gone");
