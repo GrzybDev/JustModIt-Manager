@@ -1,17 +1,82 @@
+using System.Globalization;
 using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Core.Library.Steam;
 
+/// <summary>What the Linux Steam client keeps of itself in its folder.</summary>
+/// <param name="ProcessId">The client's process; it stays recorded after Steam exits, and null when none is.</param>
+/// <param name="Language">Steam's interface language by its API name; null when none can be read now.</param>
+public sealed record SteamClientFiles(int? ProcessId, string? Language);
+
 /// <summary>Where Steam is installed, for the parts of the app beyond the library that work with Steam's own folder.</summary>
 public static class SteamInstallation
 {
-    /// <summary>The folder Steam is installed in, found as the library finds it; null when Steam is not installed.</summary>
+    /// <summary>The file in the Linux client's folder that names its process.</summary>
+    public const string ProcessFile = "steam.pid";
+
+    /// <summary>The file in the Linux client's folder that keeps its settings as Windows keeps them in the registry.</summary>
+    public const string RegistryFile = "registry.vdf";
+
+    /// <summary>
+    /// The folder Steam is installed in; null when it is not installed. On Linux only the client behind <c>~/.steam</c>
+    /// counts, since a Flatpak or Snap Steam runs in a sandbox of its own.
+    /// </summary>
     /// <param name="fileSystem">Reads the candidate folders.</param>
     /// <param name="registry">Tells where Steam is installed, on Windows.</param>
     /// <param name="environment">The user's folders Steam is found relative to.</param>
     public static string? FindRoot(IFileSystem fileSystem, IRegistry registry, LibraryEnvironment environment)
     {
         var locator = new SteamRootLocator(fileSystem, registry, environment);
-        return locator.Candidates().Select(locator.Probe).FirstOrDefault(root => root is not null);
+        IEnumerable<string> candidates = ClientFolder(environment) is { } client
+            ? [Path.Join(client, "root"), Path.Join(client, "steam")]
+            : locator.Candidates();
+        return candidates.Select(locator.Probe).FirstOrDefault(root => root is not null);
+    }
+
+    /// <summary>The Linux client's own folder, <c>~/.steam</c>; null on other systems.</summary>
+    /// <param name="environment">The user's folders.</param>
+    public static string? ClientFolder(LibraryEnvironment environment) =>
+        environment.Platform == AppPlatform.Linux ? Path.Join(environment.HomeDirectory, ".steam") : null;
+
+    /// <summary>Reads what the Linux client keeps of itself in its folder.</summary>
+    /// <param name="fileSystem">Reads the files.</param>
+    /// <param name="environment">The user's folders.</param>
+    public static SteamClientFiles ReadClientFiles(IFileSystem fileSystem, LibraryEnvironment environment)
+    {
+        if (ClientFolder(environment) is not { } folder)
+        {
+            return new SteamClientFiles(null, null);
+        }
+
+        var processId = int.TryParse(ReadText(fileSystem, Path.Join(folder, ProcessFile)), NumberStyles.None, CultureInfo.InvariantCulture,
+            out var id) && id > 0 ? id : (int?)null;
+        return new SteamClientFiles(processId, Language(ReadText(fileSystem, Path.Join(folder, RegistryFile))));
+    }
+
+    // Steam rewrites the file in place, so a read may meet half of it, or none when it was just emptied.
+    private static string? Language(string? registry)
+    {
+        try
+        {
+            return registry is null ? null
+                : VdfParser.Parse(registry)["Registry"]?["HKCU"]?["Software"]?["Valve"]?["Steam"]?.GetString("language");
+        }
+        catch (VdfFormatException)
+        {
+            return null;
+        }
+    }
+
+    private static string? ReadText(IFileSystem fileSystem, string path)
+    {
+        try
+        {
+            using var reader = new StreamReader(fileSystem.OpenRead(path, FileShare.ReadWrite | FileShare.Delete));
+            return reader.ReadToEnd().Trim();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 }

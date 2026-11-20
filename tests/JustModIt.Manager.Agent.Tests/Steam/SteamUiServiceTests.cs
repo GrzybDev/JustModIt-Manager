@@ -103,15 +103,16 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Restarting_steam_waits_for_the_game_to_end_answers_before_steam_exits_and_puts_the_plugin_in_before_the_start()
+    public async Task Restarting_steam_waits_for_a_game_even_one_started_unreported_answers_before_steam_exits_and_puts_the_plugin_in_first()
     {
         _steam.Start(7);
-        _steam.Change(_steam.Session with { RunningGame = Game });
         Start(SteamUiDemand.From([Texts], []));
-        await Eventually.HoldsAsync(() => _service.Status is { RestartNeeded: true, RunningGame: not null });
+        await Eventually.HoldsAsync(() => _service.Status.RestartNeeded);
+        _steam.Session = _steam.Session with { RunningGame = Game };
 
         _service.RestartSteam().Should().Be(SteamRestartResult.GameRunning);
         _steam.Opened.Should().BeEmpty();
+        await Eventually.HoldsAsync(() => _service.Status.RunningGame == Game);
 
         _steam.Change(_steam.Session with { RunningGame = null });
         await Eventually.HoldsAsync(() => _service.Status.RunningGame is null);

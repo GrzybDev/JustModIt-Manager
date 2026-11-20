@@ -50,24 +50,37 @@ internal interface ISteamClient
     bool Open(string link);
 }
 
-/// <summary>The Steam client as its registry entries and its process tell.</summary>
-/// <param name="fileSystem">Finds Steam's folder.</param>
-/// <param name="registry">Reads what Steam recorded.</param>
-/// <param name="watcher">Reports changes of what Steam recorded.</param>
-/// <param name="processes">Tells whether Steam's process runs and when it exits.</param>
+/// <summary>
+/// The Steam client as its process and its records tell: its registry entries on Windows, and on Linux the files in its
+/// own folder and the processes a Steam game's launch started.
+/// </summary>
+/// <param name="fileSystem">Finds Steam's folder and reads its files.</param>
+/// <param name="registry">Reads what Steam recorded, on Windows.</param>
+/// <param name="watcher">Reports changes of what Steam recorded, on Windows.</param>
+/// <param name="folders">Reports changes of Steam's files, on Linux.</param>
+/// <param name="processes">Tells whether Steam's process runs and when it exits, and on Linux which game runs.</param>
 /// <param name="shell">Opens Steam's links.</param>
 /// <param name="environment">The user's folders Steam is found relative to.</param>
-internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IRegistryWatcher watcher, IProcessSource processes,
-    IDesktopShell shell, LibraryEnvironment environment) : ISteamClient
+internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IRegistryWatcher watcher, IFolderWatcher folders,
+    IProcessSource processes, IDesktopShell shell, LibraryEnvironment environment) : ISteamClient
 {
     private const string SteamKey = @"Software\Valve\Steam";
     private const string ProcessKey = SteamKey + @"\ActiveProcess";
     private const string ProcessName = "steam";
 
+    private readonly ClientFiles? _files = SteamInstallation.ClientFolder(environment) is { } folder
+        ? new ClientFiles(fileSystem, folders, processes, environment, folder)
+        : null;
+
     public string? FindRoot() => SteamInstallation.FindRoot(fileSystem, registry, environment);
 
     public SteamSession Read()
     {
+        if (_files is not null)
+        {
+            return _files.Read();
+        }
+
         var steam = registry.ReadKey(RegistryHive.CurrentUser, RegistryView.Default, SteamKey);
         var processId = registry.ReadKey(RegistryHive.CurrentUser, RegistryView.Default, ProcessKey)?.GetValue("pid")?.AsNumber();
         var game = steam?.GetValue("RunningAppID")?.AsNumber();
@@ -99,6 +112,11 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
 
     public IDisposable Watch(Action changed)
     {
+        if (_files is not null)
+        {
+            return _files.Watch(changed);
+        }
+
         // Steam's own key holds the running game and the language, the subkey its process; each only its values.
         var steam = watcher.Watch(new WatchedRegistryKey(RegistryHive.CurrentUser, RegistryView.Default, SteamKey, IncludeSubkeys: false),
             _ => changed());
@@ -123,6 +141,125 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
         {
             first.Dispose();
             second.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// The Linux client, which keeps its process and its settings in files of its own folder and records nothing while a
+    /// game runs, so the game is a process its launch started, whose exit is reported while the client is watched.
+    /// </summary>
+    /// <param name="fileSystem">Reads the client's files.</param>
+    /// <param name="folders">Reports changes of the client's files.</param>
+    /// <param name="processes">Lists the processes and tells when one exits.</param>
+    /// <param name="environment">The user's folders.</param>
+    /// <param name="folder">The client's folder.</param>
+    private sealed class ClientFiles(IFileSystem fileSystem, IFolderWatcher folders, IProcessSource processes,
+        LibraryEnvironment environment, string folder) : IDisposable
+    {
+        private readonly Lock _gate = new();
+        private readonly HashSet<int> _awaited = [];
+        private string _language = "";
+        private Action? _changed;
+        private CancellationTokenSource? _watching;
+        private WatchedFolder? _target;
+        private IDisposable? _watch;
+
+        public SteamSession Read()
+        {
+            var files = SteamInstallation.ReadClientFiles(fileSystem, environment);
+            var game = processes.Snapshot().FirstOrDefault(process => process.Game?.Store == StoreId.Steam);
+            Action? exitReport;
+            CancellationToken watching;
+            string language;
+            lock (_gate)
+            {
+                // A file caught being rewritten names no language, so the last one stands.
+                language = _language = files.Language ?? _language;
+                Follow();
+                exitReport = game is not null && _changed is not null && _awaited.Add(game.Id) ? _changed : null;
+                watching = _watching?.Token ?? CancellationToken.None;
+            }
+
+            if (exitReport is not null)
+            {
+                _ = ReportExitAsync(game!, exitReport, watching);
+            }
+
+            return new SteamSession(files.ProcessId, game?.Game, language);
+        }
+
+        public ClientFiles Watch(Action changed)
+        {
+            lock (_gate)
+            {
+                _changed = changed;
+                _watching = new CancellationTokenSource();
+                Follow();
+            }
+
+            return this;
+        }
+
+        public void Dispose()
+        {
+            lock (_gate)
+            {
+                _changed = null;
+                _watching?.Cancel();
+                _watching?.Dispose();
+                _watching = null;
+                _watch?.Dispose();
+                (_watch, _target) = (null, null);
+                _awaited.Clear();
+            }
+        }
+
+        // While the folder is missing the way to it is watched, so each read after a step down follows it further.
+        private void Follow()
+        {
+            if (_changed is not { } changed)
+            {
+                return;
+            }
+
+            var target = fileSystem.DirectoryExists(folder)
+                ? new WatchedFolder(folder, [SteamInstallation.ProcessFile, SteamInstallation.RegistryFile])
+                : WatchedFolder.Toward(fileSystem, folder);
+            if (_watch is not null && Equals(target, _target))
+            {
+                return;
+            }
+
+            _watch?.Dispose();
+            (_watch, _target) = (null, target);
+            try
+            {
+                _watch = target is null ? null : folders.Watch(target, _ => changed());
+            }
+            // The next read tries again.
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
+        private async Task ReportExitAsync(ProcessEntry game, Action changed, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var exited = await processes.WaitForExitAsync(game.Id, game.Name, cancellationToken).ConfigureAwait(false);
+                lock (_gate)
+                {
+                    _awaited.Remove(game.Id);
+                }
+
+                if (exited)
+                {
+                    changed();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 }

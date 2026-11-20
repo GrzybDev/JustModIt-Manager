@@ -15,7 +15,8 @@ internal sealed class FakeSteamClient : ISteamClient
 
     public string? Root { get; set; }
 
-    public SteamSession Session { get; private set; } = new(null, null, "");
+    /// <summary>What Steam recorded; set directly, it changes without a report, as a game's start does on Linux.</summary>
+    public SteamSession Session { get; set; } = new(null, null, "");
 
     public ConcurrentQueue<string> Opened { get; } = new();
 

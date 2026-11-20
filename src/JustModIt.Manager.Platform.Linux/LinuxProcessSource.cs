@@ -11,8 +11,11 @@ namespace JustModIt.Manager.Platform.Linux;
 public sealed class LinuxProcessSource : IProcessSource
 {
     // Linux tells the exit of a process the agent did not start only through a pidfd, which Ubuntu 22.04's glibc does not
-    // wrap, so the process is looked for again.
+    // wrap and only poll() over a native structure waits on, so the process is looked for again: every second for a minute,
+    // as a restart of Steam waits for its exit, then less often, since Steam runs all day on a Steam Deck.
+    private const int PromptExitChecks = 60;
     private static readonly TimeSpan ExitCheckInterval = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan LongExitCheckInterval = TimeSpan.FromSeconds(30);
 
     private readonly ProcFiles _proc;
 
@@ -41,9 +44,9 @@ public sealed class LinuxProcessSource : IProcessSource
         }
 
         // Any user's process can be looked at; a zombie has exited, and an id reused holds another start time.
-        while (_proc.StartTimeOf(processId) == started)
+        for (var checks = 0; _proc.StartTimeOf(processId) == started; checks++)
         {
-            await Task.Delay(ExitCheckInterval, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(checks < PromptExitChecks ? ExitCheckInterval : LongExitCheckInterval, cancellationToken).ConfigureAwait(false);
         }
 
         return true;

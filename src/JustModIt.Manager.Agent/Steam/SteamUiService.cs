@@ -116,8 +116,10 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
 
     public SteamRestartResult RestartSteam()
     {
-        if (Status.RunningGame is not null)
+        // Read afresh, since on Linux nothing tells when a game starts; the status follows.
+        if (_process is not null && _steam.Read().RunningGame is not null)
         {
+            Wake();
             return SteamRestartResult.GameRunning;
         }
 
