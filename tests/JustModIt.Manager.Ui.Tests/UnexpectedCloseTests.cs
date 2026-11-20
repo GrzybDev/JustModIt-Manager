@@ -71,6 +71,7 @@ public sealed class UnexpectedCloseTests
         ui.Click(ui.Find<Button>("ReportPreviewToggle"));
         dialog.Preview.Select(field => field.Label).Should().Equal("Aplikacja", "Proces", "System", "Kiedy", "Błąd", "Stos");
         dialog.Preview[1].Value.Should().Be("działanie w tle");
+        dialog.Preview[2].Value.Should().StartWith("Example OS 2.4, ");
         dialog.Preview[5].Value.Should().Be(string.Join(Environment.NewLine, "Example.State.StateCoordinator.Publish() + 0x4c",
             "Example.State.StateCoordinator.RunAsync() + 0x1f2"));
         ui.Unnamed().Should().BeEmpty();

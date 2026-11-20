@@ -238,7 +238,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     partial void OnSendErrorReportsChanged(bool value) => Change(settings => settings with { SendErrorReports = value });
 
     [RelayCommand]
-    private async Task ShowErrorReportExampleAsync() => await _services.Dialogs.ShowAsync(new ErrorReportExampleViewModel(_services.Context.ProductName, _services.Context.Version)).ConfigureAwait(true);
+    private async Task ShowErrorReportExampleAsync() => await _services.Dialogs.ShowAsync(new ErrorReportExampleViewModel(_services.Context)).ConfigureAwait(true);
 
     private static string Overline(string text) => text.ToUpper(Text.Culture);
 

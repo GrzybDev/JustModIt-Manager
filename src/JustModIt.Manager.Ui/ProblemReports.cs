@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace JustModIt.Manager.Ui;
 
 /// <summary>Where the player reports a problem with the app, from the settings or after it closed unexpectedly.</summary>
@@ -17,7 +15,7 @@ internal static class ProblemReports
 
         // With issue forms a plain new issue lands on the template chooser; the bug form's field ids take the values.
         var query = "template=bug_report.yml&version=" + Uri.EscapeDataString(context.Version)
-            + "&system=" + Uri.EscapeDataString(RuntimeInformation.OSDescription);
+            + "&system=" + Uri.EscapeDataString(context.System.ToString());
         return new UriBuilder(issues) { Query = query }.Uri;
     }
 }

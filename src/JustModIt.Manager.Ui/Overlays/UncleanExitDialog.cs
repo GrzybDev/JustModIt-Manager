@@ -57,7 +57,7 @@ public sealed partial class UncleanExitDialogViewModel : DialogViewModel<bool>
             : null;
         if (exit.CrashType is not null && services.ErrorReports.IsAvailable)
         {
-            _errorReport = new ErrorReport(exit, services.Context.Site.ProductName, services.Context.ProductName, services.Clock);
+            _errorReport = new ErrorReport(exit, services.Context.Site.ProductName, services.Context.ProductName, services.Context.System, services.Clock);
             Preview = Fields(_errorReport);
             SendsAutomatically = services.Agent.State.Settings.SendErrorReports;
             if (SendsAutomatically)
@@ -212,7 +212,7 @@ public sealed partial class UncleanExitDialogViewModel : DialogViewModel<bool>
         [
             new(Strings.Shell_ReportFieldApp, $"{report.ProductName} {report.Version}"),
             new(Strings.Shell_ReportFieldProcess, Text.Format(Strings.Shell_ReportProcess, ("process", report.IsWindow ? "window" : "agent"))),
-            new(Strings.Shell_ReportFieldSystem, $"{ErrorReport.ThisSystem}, {ErrorReport.ThisArchitecture}, {ErrorReport.ThisRuntime}"),
+            new(Strings.Shell_ReportFieldSystem, $"{report.System}, {ErrorReport.ThisArchitecture}, {ErrorReport.ThisRuntime}"),
             new(Strings.Shell_ReportFieldTime, Formats.DateAndTime(report.CrashedAt, _services.Clock.LocalTimeZone)),
             new(Strings.Shell_ReportFieldError, string.Join(Environment.NewLine,
                 report.Errors.Select(cause => cause.Message.Length > 0 ? $"{cause.Type}: {cause.Message}" : cause.Type))),

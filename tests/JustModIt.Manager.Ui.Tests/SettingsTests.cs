@@ -18,6 +18,7 @@ using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Controls.Markdown;
+using JustModIt.Manager.Ui.Diagnostics;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Settings;
@@ -505,7 +506,7 @@ public sealed class SettingsTests
         ui.Agent.Requests.OfType<ChangeSettings>().Should().ContainSingle().Which.Settings.SendErrorReports.Should().BeTrue();
         ui.Click(ui.Find<Button>("ErrorReportExample"));
         var example = ui.Shell.Dialogs.Current.Should().BeOfType<ErrorReportExampleViewModel>().Subject;
-        example.Fields.Select(field => field.Value).Should().Contain(["Example App 0.1.0", "okno"]);
+        example.Fields.Select(field => field.Value).Should().Contain(["Example App 0.1.0", "okno", $"Example OS 2.4, {ErrorReport.ThisArchitecture}"]);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render("settings-error-reports-example");
         ui.Click(ui.Find<Button>("CloseExample"));
@@ -564,8 +565,7 @@ public sealed class SettingsTests
         ui.Click(ui.Find<Button>("ReportProblem"));
         ui.Links.Opened[0].Should().Be(new Uri("https://example.com/"));
         ui.Links.Opened[1].Should().Be(new Uri("https://code.example.com/example-app"));
-        var report = Uri.UnescapeDataString(ui.Links.Opened[2].Query);
-        report.Should().StartWith("?template=bug_report.yml&version=0.1.0&system=").And.NotContain(Environment.UserName,
+        Uri.UnescapeDataString(ui.Links.Opened[2].Query).Should().Be("?template=bug_report.yml&version=0.1.0&system=Example OS 2.4",
             "a report carries the app's and the system's version and nothing else");
 
         var answer = ui.Agent.Answer;

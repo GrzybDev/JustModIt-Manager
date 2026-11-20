@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -110,6 +111,7 @@ public sealed class UiHarness : IDisposable
         {
             ProductName = "Example App",
             Version = "0.1.0",
+            System = new SystemRelease("Example OS", "2.4", Kernel: null),
             PipeName = "ExampleApp.Tests",
             Links = links,
             Creator = CreatorOptions.For(new Core.AppIdentity("ExampleApp", "ExampleVendor", "example-app", true), "Example App 0.1.0",

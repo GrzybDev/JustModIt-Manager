@@ -14,6 +14,9 @@ public sealed record UiContext
 
     public required string Version { get; init; }
 
+    /// <summary>The system the window runs on, which problem and error reports name.</summary>
+    public required SystemRelease System { get; init; }
+
     /// <summary>The agent's pipe, which the window talks to for everything.</summary>
     public required string PipeName { get; init; }
 

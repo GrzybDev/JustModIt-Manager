@@ -18,7 +18,7 @@ body:
   - type: input
     id: system
     attributes:
-      label: Wersja Windows
+      label: System
       placeholder: Windows 11 24H2
   - type: input
     id: game
@@ -42,7 +42,7 @@ body:
     id: what-happened
     attributes:
       label: Co się stało
-      description: Co zrobiłeś, czego się spodziewałeś i co stało się zamiast tego. Zrzuty ekranu bardzo pomagają.
+      description: Co zrobiono, czego oczekiwano i co stało się zamiast tego. Zrzuty ekranu bardzo pomagają.
     validations:
       required: true
   - type: textarea
@@ -63,5 +63,5 @@ body:
     attributes:
       label: Przed wysłaniem
       options:
-        - label: Przejrzałem istniejące zgłoszenia i nie ma wśród nich tego problemu.
+        - label: Przejrzano istniejące zgłoszenia i nie ma wśród nich tego problemu.
           required: true

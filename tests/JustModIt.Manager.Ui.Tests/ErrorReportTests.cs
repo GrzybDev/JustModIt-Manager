@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Diagnostics;
 
@@ -18,6 +19,8 @@ public sealed class ErrorReportTests
                 new CrashError("System.IO.IOException", "The file '%USERPROFILE%\\save.dat' is in use.", ""),
             ]),
     };
+
+    private static readonly SystemRelease ExampleLinux = new("Example OS", "2.4", "6.1.7");
 
     [Theory]
     [InlineData("https://0123abcd@errors.example.com/7", "https://errors.example.com/api/7/envelope/", "0123abcd")]
@@ -40,7 +43,7 @@ public sealed class ErrorReportTests
     [Fact]
     public void The_envelope_carries_the_crash_and_nothing_that_names_the_player_or_the_computer()
     {
-        var report = new ErrorReport(Crash, "ExampleApp", "Example App", TimeProvider.System);
+        var report = new ErrorReport(Crash, "ExampleApp", "Example App", ExampleLinux, TimeProvider.System);
 
         var lines = Encoding.UTF8.GetString(report.ToEnvelope(new DateTimeOffset(2026, 10, 15, 13, 0, 0, TimeSpan.Zero))).Split('\n');
         using var header = JsonDocument.Parse(lines[0]);
@@ -54,6 +57,9 @@ public sealed class ErrorReportTests
         root.GetProperty("level").GetString().Should().Be("fatal");
         root.GetProperty("timestamp").GetString().Should().StartWith("2026-10-15T12:32:00");
         root.GetProperty("tags").GetProperty("process").GetString().Should().Be("agent");
+        var system = root.GetProperty("contexts").GetProperty("os");
+        (system.GetProperty("name").GetString(), system.GetProperty("version").GetString(), system.GetProperty("kernel_version").GetString())
+            .Should().Be(("Example OS", "2.4", "6.1.7"), "reports group by the distribution and its version, not by the kernel's");
         var exceptions = root.GetProperty("exception").GetProperty("values").EnumerateArray().ToList();
         exceptions.Select(exception => exception.GetProperty("type").GetString()).Should()
             .Equal("System.IO.IOException", "System.InvalidOperationException");
@@ -78,7 +84,7 @@ public sealed class ErrorReportTests
             return new HttpResponseMessage(answers.Dequeue());
         });
         var reports = new ErrorReports(ErrorReportTarget.Parse("https://0123abcd@errors.example.com/7"), "ExampleApp/0.9.0", connection);
-        var report = new ErrorReport(Crash, "ExampleApp", "Example App", TimeProvider.System);
+        var report = new ErrorReport(Crash, "ExampleApp", "Example App", ExampleLinux, TimeProvider.System);
 
         (await reports.SendAsync(report, TestContext.Current.CancellationToken)).Should().Be(report.Id.ToString("N")[..8]);
         (await reports.SendAsync(report, TestContext.Current.CancellationToken)).Should().BeNull("the server's limit was reached");

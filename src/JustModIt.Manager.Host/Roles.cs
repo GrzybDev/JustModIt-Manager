@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using JustModIt.Manager.Agent;
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -102,7 +103,7 @@ internal static partial class Roles
     private static int Refuse(HostEnvironment environment)
     {
         using var log = new RoleLog(environment, LauncherRole);
-        LogUnsupported(log.Loggers.CreateLogger(typeof(Roles).FullName!), RuntimeInformation.OSDescription);
+        LogUnsupported(log.Loggers.CreateLogger(typeof(Roles).FullName!), environment.System);
         return 1;
     }
 
@@ -119,7 +120,7 @@ internal static partial class Roles
     {
         using var log = new RoleLog(environment, role);
         var logger = log.Loggers.CreateLogger(typeof(Roles).FullName!);
-        LogStarting(logger, role, environment.Version, RuntimeInformation.OSDescription, RuntimeInformation.ProcessArchitecture,
+        LogStarting(logger, role, environment.Version, environment.System, RuntimeInformation.ProcessArchitecture,
             environment.Install.IsInstalled, Environment.IsPrivilegedProcess);
         var session = new SessionMarker(environment.Locations.StateDirectory, role, environment.Version, TimeProvider.System, log.Redactor);
         var previous = session.Begin();
@@ -135,11 +136,11 @@ internal static partial class Roles
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The agent does not run on {System} yet")]
-    private static partial void LogUnsupported(ILogger logger, string system);
+    private static partial void LogUnsupported(ILogger logger, SystemRelease system);
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Starting the {Role} {Version} on {System} ({Architecture}); installed: {Installed}, elevated: {Elevated}")]
-    private static partial void LogStarting(ILogger logger, string role, string version, string system, Architecture architecture,
+    private static partial void LogStarting(ILogger logger, string role, string version, SystemRelease system, Architecture architecture,
         bool installed, bool elevated);
 
     private sealed class RoleLog : IDisposable

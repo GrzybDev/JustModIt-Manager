@@ -3,6 +3,7 @@ using JustModIt.Manager.Agent;
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
@@ -51,6 +52,9 @@ internal sealed record HostEnvironment
 
     public required InstallLocation Install { get; init; }
 
+    /// <summary>The system this process runs on, as its log and the window's reports name it.</summary>
+    public required SystemRelease System { get; init; }
+
     /// <summary>The updater started this process after applying an update, or after failing to apply it.</summary>
     public bool RestartedByUpdater { get; init; }
 
@@ -71,6 +75,7 @@ internal sealed record HostEnvironment
             Version = VersionOf(Assembly.GetEntryAssembly()),
             Revision = RevisionOf(Assembly.GetEntryAssembly()),
             Install = install,
+            System = SystemRelease.Current(),
         };
     }
 
@@ -105,6 +110,7 @@ internal sealed record HostEnvironment
         {
             ProductName = Product.ProductName,
             Version = Version,
+            System = System,
             PipeName = Names.PipeName,
             Links = Links,
             Creator = CreatorOptions(),

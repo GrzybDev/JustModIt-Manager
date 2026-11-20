@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Ui.Diagnostics;
@@ -54,12 +55,14 @@ public sealed class ErrorReport
     /// <param name="exit">The crash, as its run recorded it.</param>
     /// <param name="appId">The app's id, which names its releases in the reports.</param>
     /// <param name="productName">The app's name.</param>
+    /// <param name="system">The system the app runs on.</param>
     /// <param name="clock">Dates a report whose crash has no time.</param>
-    public ErrorReport(UncleanExitView exit, string appId, string productName, TimeProvider clock)
+    public ErrorReport(UncleanExitView exit, string appId, string productName, SystemRelease system, TimeProvider clock)
     {
         Id = Guid.NewGuid();
         AppId = appId;
         ProductName = productName;
+        System = system;
         Version = exit.Version;
         IsWindow = exit.IsWindow;
         CrashedAt = exit.CrashedAt ?? clock.GetUtcNow();
@@ -79,16 +82,13 @@ public sealed class ErrorReport
 
     public DateTimeOffset CrashedAt { get; }
 
-    /// <summary>This computer's system, e.g. <c>Windows 10.0.26100</c>.</summary>
-    public static string ThisSystem { get; } = OperatingSystem.IsWindows()
-        ? "Windows " + Environment.OSVersion.Version.ToString(3)
-        : RuntimeInformation.OSDescription;
+    public SystemRelease System { get; }
 
     public static string ThisArchitecture { get; } = RuntimeInformation.OSArchitecture switch
     {
-        System.Runtime.InteropServices.Architecture.X64 => "x64",
-        System.Runtime.InteropServices.Architecture.Arm64 => "arm64",
-        System.Runtime.InteropServices.Architecture.X86 => "x86",
+        Architecture.X64 => "x64",
+        Architecture.Arm64 => "arm64",
+        Architecture.X86 => "x86",
         var other => other.ToString(),
     };
 
@@ -169,8 +169,17 @@ public sealed class ErrorReport
             writer.WriteEndObject();
             writer.WriteStartObject("contexts");
             writer.WriteStartObject("os");
-            writer.WriteString("name", OperatingSystem.IsWindows() ? "Windows" : RuntimeInformation.OSDescription);
-            writer.WriteString("version", Environment.OSVersion.Version.ToString(3));
+            writer.WriteString("name", System.Name);
+            if (System.Version is { } version)
+            {
+                writer.WriteString("version", version);
+            }
+
+            if (System.Kernel is { } kernel)
+            {
+                writer.WriteString("kernel_version", kernel);
+            }
+
             writer.WriteEndObject();
             writer.WriteStartObject("device");
             writer.WriteString("arch", ThisArchitecture);
