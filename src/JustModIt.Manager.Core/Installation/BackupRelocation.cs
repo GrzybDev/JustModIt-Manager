@@ -58,6 +58,7 @@ internal static class BackupRelocation
             }
 
             moved = record with { Backup = target };
+            FileDurability.FlushFolders([source, .. BackupFolders.ChainOf(target.Directory)]);
             hook.Before(ChangeKind.Record);
             await store.SaveRecordAsync(moved, cancellationToken).ConfigureAwait(false);
         }

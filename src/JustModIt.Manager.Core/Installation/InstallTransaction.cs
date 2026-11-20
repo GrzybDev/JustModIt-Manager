@@ -169,6 +169,9 @@ internal sealed partial class InstallTransaction : IDisposable
     public async Task CommitAsync(InstallRecord record, InstalledFiles files, InstallRecordStore store,
         CancellationToken cancellationToken)
     {
+        // The game's changes reach the disk before the record says they happened, also when the record is on another drive.
+        FileDurability.FlushFolders([.. _touched.Keys.Concat(_createdDirectories).Select(path => Path.GetDirectoryName(path)!),
+            .. BackupFolders.ChainOf(BackupDirectory)]);
         _hook.Before(ChangeKind.Record);
         await store.SaveAsync(record, files, cancellationToken).ConfigureAwait(false);
         _journal.Dispose();

@@ -47,6 +47,17 @@ internal static class BackupFolders
     private static string OwnedRootOf(string backupDirectory) =>
         Path.GetDirectoryName(Path.GetDirectoryName(backupDirectory)!)!;
 
+    /// <summary>
+    /// The record's backup folder, the app's folders above it and the folder that holds them: every folder whose entries
+    /// creating the backup folder may have changed.
+    /// </summary>
+    /// <param name="backupDirectory">The record's backup folder.</param>
+    public static string[] ChainOf(string backupDirectory)
+    {
+        var root = OwnedRootOf(backupDirectory);
+        return [backupDirectory, Path.GetDirectoryName(backupDirectory)!, root, Path.GetDirectoryName(root)!];
+    }
+
     /// <summary>Removes the record's backup folder and the app's folders above it while they are empty.</summary>
     /// <param name="backupDirectory">The record's backup folder.</param>
     public static void DeleteIfEmpty(string backupDirectory) =>

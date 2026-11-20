@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Installation;
 
@@ -123,6 +124,9 @@ internal sealed class TransactionJournal : IDisposable
         {
             journal.Add(header);
             journal.Commit();
+            // Recovery finds the journal, in a folder that may be new as well, only once both folders hold their entries.
+            var folder = Path.GetDirectoryName(path)!;
+            FileDurability.FlushFolders([folder, Path.GetDirectoryName(folder)!]);
             return journal;
         }
         catch

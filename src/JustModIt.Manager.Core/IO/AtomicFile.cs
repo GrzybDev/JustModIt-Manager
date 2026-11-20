@@ -76,6 +76,7 @@ public static class AtomicFile
 
             await TransientFileRetry.RunAsync(() => File.Move(temporary, target, overwrite: true), time, cancellationToken)
                 .ConfigureAwait(false);
+            FileDurability.FlushFolders([Path.GetDirectoryName(target)!]);
         }
         catch
         {

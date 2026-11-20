@@ -341,7 +341,10 @@ public sealed partial class InstallEngine
                     await _leftovers.SaveAsync(record, left, cancellationToken).ConfigureAwait(false);
                 }
 
-                // Removing the record commits the uninstall; what follows only tidies up.
+                // Removing the record commits the uninstall, so the game's changes reach the disk first; what follows only
+                // tidies up.
+                FileDurability.FlushFolders([.. plan.Steps.Select(step => Path.GetDirectoryName(step.Path)!),
+                    .. files.CreatedDirectories.Select(directory => Path.GetDirectoryName(game.Locate(directory))!), record.Backup.Directory]);
                 _hook.Before(ChangeKind.Record);
                 File.Delete(folder.RecordFile);
             }
