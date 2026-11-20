@@ -51,7 +51,7 @@ public sealed partial class LibraryService : ILibraryService, IAsyncDisposable
     /// <summary>Creates the service; <see cref="RunAsync"/> starts its loop.</summary>
     /// <param name="providers">One provider per supported store.</param>
     /// <param name="settings">Gives the folders the player added and reports their changes.</param>
-    /// <param name="runningGames">Finds the processes running from a game's folder.</param>
+    /// <param name="runningGames">Finds a game's running processes.</param>
     /// <param name="fileSystem">Checks the folders the player picks.</param>
     /// <param name="folderWatcher">Watches the stores' folders.</param>
     /// <param name="registryWatcher">Null on platforms without a registry.</param>
@@ -173,7 +173,7 @@ public sealed partial class LibraryService : ILibraryService, IAsyncDisposable
             return new GameProbe(key, probed, []);
         }
 
-        var running = await Task.Run(() => _runningGames.FindProcessesIn(probed.InstallDirectory, cancellationToken), cancellationToken)
+        var running = await Task.Run(() => _runningGames.FindProcessesIn(key, probed.InstallDirectory, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
         return running.Count == 0 || probed.State != GameInstallState.Installed
             ? new GameProbe(key, probed, running)

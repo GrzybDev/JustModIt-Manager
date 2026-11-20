@@ -94,7 +94,7 @@ internal sealed class FakeRunningGames : IRunningGameDetector
 
     public int Waits => Volatile.Read(ref _waits);
 
-    public ValueList<RunningProcess> FindProcessesIn(string directory, CancellationToken cancellationToken) =>
+    public ValueList<RunningProcess> FindProcessesIn(GameKey game, string directory, CancellationToken cancellationToken) =>
         Running.TryGetValue(directory, out var processes) ? processes : [];
 
     public Task WaitForExitAsync(IEnumerable<RunningProcess> processes, CancellationToken cancellationToken)

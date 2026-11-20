@@ -6,6 +6,7 @@
     <Project Path="src/JustModIt.Manager.Creator/JustModIt.Manager.Creator.csproj" />
     <Project Path="src/JustModIt.Manager.Host/JustModIt.Manager.Host.csproj" />
     <Project Path="src/JustModIt.Manager.Localization/JustModIt.Manager.Localization.csproj" />
+    <Project Path="src/JustModIt.Manager.Platform.Linux/JustModIt.Manager.Platform.Linux.csproj" />
     <Project Path="src/JustModIt.Manager.Platform.Windows/JustModIt.Manager.Platform.Windows.csproj" />
     <Project Path="src/JustModIt.Manager.Protocol/JustModIt.Manager.Protocol.csproj" />
     <Project Path="src/JustModIt.Manager.Ui/JustModIt.Manager.Ui.csproj" />
@@ -18,6 +19,7 @@
     <Project Path="tests/JustModIt.Manager.Host.Tests/JustModIt.Manager.Host.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.LiveTests/JustModIt.Manager.LiveTests.csproj" />
     <Project Path="tests/JustModIt.Manager.Localization.Tests/JustModIt.Manager.Localization.Tests.csproj" />
+    <Project Path="tests/JustModIt.Manager.Platform.Linux.Tests/JustModIt.Manager.Platform.Linux.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.Platform.Windows.Tests/JustModIt.Manager.Platform.Windows.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.Protocol.Tests/JustModIt.Manager.Protocol.Tests.csproj" />
     <Project Path="tests/JustModIt.Manager.Ui.Tests/JustModIt.Manager.Ui.Tests.csproj" />

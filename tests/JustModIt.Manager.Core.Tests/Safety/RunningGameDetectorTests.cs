@@ -1,4 +1,5 @@
 using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Time.Testing;
@@ -9,6 +10,7 @@ public sealed class RunningGameDetectorTests
 {
     private const int OwnSession = 1;
     private static readonly string Game = TestPaths.Rooted('D', "Games", "Example");
+    private static readonly GameKey Example = new(StoreId.Steam, "4242");
 
     private readonly InMemoryFileSystem _files = new();
     private readonly FakeProcessSource _processes = new();
@@ -54,15 +56,35 @@ public sealed class RunningGameDetectorTests
     [Fact]
     public void A_hidden_process_of_the_own_session_is_matched_by_an_executable_in_the_folder()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows names a process after its .exe file.");
-        _files.AddFile(@"D:\Games\Example\Binaries\Win64\Example-Win64-Shipping.exe", "");
-        _files.AddFile(@"D:\Games\Example\a\b\c\d\Deep.exe", "");
+        _files.AddFile(Path.Join(Game, "Binaries", "Win64", "Example-Win64-Shipping.exe"), "");
+        _files.AddFile(Path.Join(Game, "a", "b", "c", "d", "Deep.exe"), "");
         _processes.Add(10, "example-win64-shipping", imagePath: null);
         _processes.Add(11, "Example-Win64-Shipping", imagePath: null, sessionId: 2);
         _processes.Add(12, "Unrelated", imagePath: null);
         _processes.Add(13, "Deep", imagePath: null);
 
         Find(Game).Should().Equal(new RunningProcess(10, "Example-Win64-Shipping.exe", ExecutablePath: null));
+    }
+
+    [Fact]
+    public void A_steam_launch_counts_as_the_game_running_outside_its_folder_until_its_last_process_exits()
+    {
+        var steam = TestPaths.Rooted('C', "Steam");
+        var game = Path.Join(Game, "Example.exe");
+        _processes.Add(10, "reaper", Path.Join(steam, "ubuntu12_32", "reaper"), game: Example);
+        _processes.Add(11, "Example", game, game: Example);
+        _processes.Add(12, "wineserver", Path.Join(steam, "Proton", "files", "bin", "wineserver"), game: Example);
+        _processes.Add(13, "Other", Path.Join(steam, "steamapps", "common", "Other", "Other.exe"), game: new GameKey(StoreId.Steam, "1"));
+
+        var whilePlaying = Find(Game);
+        _processes.Exit(11);
+        var afterwards = Find(Game);
+        _processes.Exit(10);
+        _processes.Exit(12);
+
+        whilePlaying.Should().Equal(new RunningProcess(11, "Example.exe", game));
+        afterwards.Select(process => process.Name).Should().Equal("reaper", "wineserver");
+        Find(Game).Should().BeEmpty();
     }
 
     [Fact]
@@ -118,7 +140,7 @@ public sealed class RunningGameDetectorTests
 
     private RunningGameDetector Detector() => new(_processes, _files, _time);
 
-    private ValueList<RunningProcess> Find(string directory) => Detector().FindProcessesIn(directory, Token);
+    private ValueList<RunningProcess> Find(string directory) => Detector().FindProcessesIn(Example, directory, Token);
 
     private sealed class FakeProcessSource : IProcessSource
     {
@@ -128,11 +150,11 @@ public sealed class RunningGameDetectorTests
 
         public int CurrentSessionId => OwnSession;
 
-        public void Add(int id, string name, string? imagePath, int sessionId = OwnSession, bool waitable = true)
+        public void Add(int id, string name, string? imagePath, int sessionId = OwnSession, bool waitable = true, GameKey? game = null)
         {
             lock (_gate)
             {
-                _processes.Add((new ProcessEntry(id, name, sessionId, imagePath), waitable));
+                _processes.Add((new ProcessEntry(id, name, sessionId, imagePath, game), waitable));
             }
         }
 

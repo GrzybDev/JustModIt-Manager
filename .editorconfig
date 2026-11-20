@@ -64,7 +64,7 @@ dotnet_diagnostic.CA1310.severity = warning
 dotnet_diagnostic.SYSLIB1054.severity = warning
 dotnet_diagnostic.CA1416.severity = error
 
-[src/JustModIt.Manager.{Core,Platform.Windows,Creator,Protocol,Agent}/**.cs]
+[src/JustModIt.Manager.{Core,Platform.Windows,Platform.Linux,Creator,Protocol,Agent}/**.cs]
 dotnet_diagnostic.CA2007.severity = warning
 
 [{src/JustModIt.Manager.Platform.Windows,tests/JustModIt.Manager.Platform.Windows.Tests}/**.cs]

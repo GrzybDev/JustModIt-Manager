@@ -1,16 +1,27 @@
+using JustModIt.Manager.Core.Games;
+
 namespace JustModIt.Manager.Core.Safety;
 
 /// <summary>A running process.</summary>
 /// <param name="Id">The process id, which the system reuses once the process exits.</param>
-/// <param name="Name">The system's process name, without the <c>.exe</c> extension on Windows.</param>
-/// <param name="SessionId">The login session the process runs in.</param>
-/// <param name="ImagePath">Null when the system does not reveal it, e.g. for protected or other users' processes.</param>
-public sealed record ProcessEntry(int Id, string Name, int SessionId, string? ImagePath);
+/// <param name="Name">
+/// The name of its program without the <c>.exe</c> extension; a Windows program that Wine runs is named after itself.
+/// </param>
+/// <param name="SessionId">
+/// The login session the process runs in on Windows, and its user on Linux, where a systemd service and a shell never
+/// share a session.
+/// </param>
+/// <param name="ImagePath">
+/// Its program, a Windows program that Wine runs rather than Wine's loader; null when the system does not reveal it, e.g.
+/// for protected or other users' processes.
+/// </param>
+/// <param name="Game">The store's game whose launch started the process, as its environment names it; null for none.</param>
+public sealed record ProcessEntry(int Id, string Name, int SessionId, string? ImagePath, GameKey? Game = null);
 
 /// <summary>The running processes, as the platform reports them.</summary>
 public interface IProcessSource
 {
-    /// <summary>The login session this process runs in.</summary>
+    /// <summary>The login session this process runs in on Windows, and its user on Linux.</summary>
     int CurrentSessionId { get; }
 
     /// <summary>Lists the processes running now.</summary>

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using JustModIt.Manager.Core.Collections;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 
@@ -13,10 +14,14 @@ public sealed record RunningProcess(int ProcessId, string Name, string? Executab
 
 public interface IRunningGameDetector
 {
-    /// <summary>Finds processes started from inside <paramref name="directory"/>, such as the game or its launcher.</summary>
+    /// <summary>
+    /// Finds a game's processes: those started from inside its folder, such as the game or its launcher, and while none
+    /// is, those its store's launch started for it.
+    /// </summary>
+    /// <param name="game">The game, which a store's launch names in the processes it starts.</param>
     /// <param name="directory">The game's folder.</param>
     /// <param name="cancellationToken">Stops the search.</param>
-    ValueList<RunningProcess> FindProcessesIn(string directory, CancellationToken cancellationToken);
+    ValueList<RunningProcess> FindProcessesIn(GameKey game, string directory, CancellationToken cancellationToken);
 
     /// <summary>Completes once every one of <paramref name="processes"/> has exited.</summary>
     /// <param name="processes">Processes that <see cref="FindProcessesIn"/> found.</param>
@@ -24,7 +29,7 @@ public interface IRunningGameDetector
     Task WaitForExitAsync(IEnumerable<RunningProcess> processes, CancellationToken cancellationToken);
 }
 
-/// <summary>Finds running processes whose executable lives inside a game's folder.</summary>
+/// <summary>Finds a game's running processes, by their executables inside its folder or by its store's launch.</summary>
 /// <param name="processSource">Lists the running processes and waits for them to exit.</param>
 /// <param name="fileSystem">Canonicalises paths and lists the executables in a game's folder.</param>
 /// <param name="time">Paces the checks for processes that cannot be waited on.</param>
@@ -41,36 +46,37 @@ public sealed class RunningGameDetector(IProcessSource processSource, IFileSyste
     // Canonicalising an image costs a file open per process; images rarely move, so the result is reused.
     private readonly ConcurrentDictionary<string, string> _canonicalImages = new(PathComparison.Comparer);
 
-    public ValueList<RunningProcess> FindProcessesIn(string directory, CancellationToken cancellationToken)
+    public ValueList<RunningProcess> FindProcessesIn(GameKey game, string directory, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         var requested = PathComparison.Normalize(directory);
         var canonical = fileSystem.GetCanonicalPath(directory);
         Dictionary<string, string>? executables = null;
         var found = new List<RunningProcess>();
+        var launched = new List<RunningProcess>();
         foreach (var process in processSource.Snapshot())
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (process.ImagePath is { } image)
+            if (process.ImagePath is { } image && IsInside(requested, canonical, image))
             {
-                if (IsInside(requested, canonical, image))
-                {
-                    found.Add(new RunningProcess(process.Id, Path.GetFileName(image), image));
-                }
-
-                continue;
+                found.Add(new RunningProcess(process.Id, Path.GetFileName(image), image));
             }
-
             // The system hides the image of some processes, such as protected ones. A game can only run in the user's
             // own session, so a same-named executable in the folder is reported, without a path, to err on the safe side.
-            if (process.SessionId == processSource.CurrentSessionId
+            else if (process.ImagePath is null && process.SessionId == processSource.CurrentSessionId
                 && (executables ??= FindExecutables(canonical, cancellationToken)).TryGetValue(process.Name, out var fileName))
             {
                 found.Add(new RunningProcess(process.Id, fileName, ExecutablePath: null));
             }
+            else if (process.Game == game)
+            {
+                launched.Add(new RunningProcess(process.Id, Path.GetFileName(process.ImagePath) ?? process.Name, process.ImagePath));
+            }
         }
 
-        return [.. found];
+        // A launch starts before the game's own program and outlives it, Wine's server among its processes; once the game's
+        // processes are waited for, the next look finds what is left of it.
+        return [.. found.Count > 0 ? found : launched];
     }
 
     public async Task WaitForExitAsync(IEnumerable<RunningProcess> processes, CancellationToken cancellationToken)

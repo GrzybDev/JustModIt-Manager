@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
@@ -9,6 +10,8 @@ namespace JustModIt.Manager.Platform.Windows.Tests;
 [SupportedOSPlatform("windows")]
 public sealed class ProcessAndLockTests : IDisposable
 {
+    private static readonly GameKey Game = new(StoreId.Steam, "1000");
+
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"));
     private readonly List<string> _links = [];
 
@@ -33,9 +36,9 @@ public sealed class ProcessAndLockTests : IDisposable
         CreateJunction(junction, folder);
         var detector = new RunningGameDetector(WindowsProcessSource.Instance, PhysicalFileSystem.Instance, TimeProvider.System);
 
-        detector.FindProcessesIn(folder, Token).Should().Contain(process => process.ProcessId == Environment.ProcessId);
-        detector.FindProcessesIn(junction, Token).Should().Contain(process => process.ProcessId == Environment.ProcessId);
-        detector.FindProcessesIn(_directory, Token).Should().BeEmpty();
+        detector.FindProcessesIn(Game, folder, Token).Should().Contain(process => process.ProcessId == Environment.ProcessId);
+        detector.FindProcessesIn(Game, junction, Token).Should().Contain(process => process.ProcessId == Environment.ProcessId);
+        detector.FindProcessesIn(Game, _directory, Token).Should().BeEmpty();
     }
 
     [Fact]

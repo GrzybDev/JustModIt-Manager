@@ -765,7 +765,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
 
         public ConcurrentQueue<string> Directories { get; } = new();
 
-        public ValueList<RunningProcess> FindProcessesIn(string directory, CancellationToken cancellationToken)
+        public ValueList<RunningProcess> FindProcessesIn(GameKey game, string directory, CancellationToken cancellationToken)
         {
             Directories.Enqueue(directory);
             return Processes;
