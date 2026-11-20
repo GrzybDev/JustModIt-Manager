@@ -177,7 +177,6 @@
         "dependencies": {
           "JustModIt.Manager.Core": "[0.1.0, )",
           "JustModIt.Manager.Localization": "[0.1.0, )",
-          "JustModIt.Manager.Platform.Windows": "[0.1.0, )",
           "JustModIt.Manager.Protocol": "[0.1.0, )",
           "Microsoft.Extensions.DependencyInjection": "[10.0.15, )",
           "Microsoft.Extensions.Logging": "[10.0.15, )",

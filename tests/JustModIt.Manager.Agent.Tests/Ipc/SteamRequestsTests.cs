@@ -18,7 +18,6 @@ public sealed class SteamRequestsTests : IAsyncDisposable
 
     public SteamRequestsTests()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
         _agent = new AgentHarness { Configure = services => services.AddSingleton<ISteamUi>(_steam) };
     }
 

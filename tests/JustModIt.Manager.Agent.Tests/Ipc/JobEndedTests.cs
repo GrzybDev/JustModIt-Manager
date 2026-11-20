@@ -31,8 +31,6 @@ public sealed class JobEndedTests : IAsyncDisposable
 
     private AgentHarness? _agent;
 
-    public JobEndedTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
-
     [Fact]
     public async Task A_finished_uninstall_tells_the_window_how_many_files_it_left_as_they_were()
     {

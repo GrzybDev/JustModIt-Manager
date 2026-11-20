@@ -17,7 +17,6 @@ public sealed class CatalogueQueryTests : IAsyncDisposable
 
     public CatalogueQueryTests()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
         _agent = new AgentHarness { Configure = services => services.AddSingleton<ILibraryProvider>(_ => new OneGameLibrary(Found, GameFolder)) };
     }
 

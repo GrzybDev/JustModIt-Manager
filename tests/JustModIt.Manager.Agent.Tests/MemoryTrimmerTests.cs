@@ -11,8 +11,6 @@ public sealed class MemoryTrimmerTests
 
     private static readonly MemoryTrimSchedule Quick = new(TimeSpan.FromMilliseconds(200), Megabyte, TimeSpan.FromMilliseconds(500));
 
-    public MemoryTrimmerTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
-
     private static TimeSpan SeveralQuietSpells => (Quick.QuietPeriod + Quick.FollowUp) * 3;
 
     [Fact]

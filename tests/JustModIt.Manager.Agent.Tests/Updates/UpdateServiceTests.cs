@@ -23,7 +23,6 @@ public sealed class UpdateServiceTests : IAsyncDisposable
 
     public UpdateServiceTests()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
         _updater = new FakeUpdater();
         _agent = Harness(_updater, Soon);
     }

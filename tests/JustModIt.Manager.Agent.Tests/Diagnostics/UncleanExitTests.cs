@@ -10,8 +10,6 @@ public sealed class UncleanExitTests : IAsyncDisposable
 {
     private readonly AgentHarness _agent = new();
 
-    public UncleanExitTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
-
     [Theory]
     [InlineData("System.InvalidOperationException")]
     [InlineData(null)]

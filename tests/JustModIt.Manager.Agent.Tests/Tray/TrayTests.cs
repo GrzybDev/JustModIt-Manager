@@ -14,8 +14,6 @@ public sealed class TrayTests : IAsyncDisposable
 
     private readonly AgentHarness _agent = new();
 
-    public TrayTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
-
     [Fact]
     public async Task The_icon_shows_the_app_and_what_it_does()
     {

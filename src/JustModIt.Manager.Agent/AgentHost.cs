@@ -13,7 +13,9 @@ public static class AgentHost
     /// <param name="options">The app's identity, folders, site and update feed.</param>
     /// <param name="start">The command line the agent started with.</param>
     /// <param name="loggers">Creates every service's logger.</param>
-    /// <param name="configure">The app's own registrations, which replace or add to the agent's.</param>
+    /// <param name="configure">
+    /// The system's services, then the app's own registrations, which replace or add to the agent's.
+    /// </param>
     /// <param name="cancellationToken">Tears the agent down without the usual exit, e.g. at the end of a test.</param>
     public static async Task RunAsync(AgentOptions options, LaunchArguments start, ILoggerFactory loggers,
         Action<IServiceCollection>? configure = null, CancellationToken cancellationToken = default)

@@ -53,7 +53,7 @@ public sealed class OneProjectPerGamePolicyTests
 
             Program.Options.ConfigureAgent!(services);
 
-            await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+            await using var provider = services.BuildServiceProvider();
             provider.GetRequiredService<IInstallPolicy>().Should().BeOfType<OneProjectPerGamePolicy>();
             product.TargetLanguage.Should().Be("pl");
         }

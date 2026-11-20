@@ -11,7 +11,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JustModIt.Manager.Core\JustModIt.Manager.Core.csproj" />
-    <ProjectReference Include="..\JustModIt.Manager.Platform.Windows\JustModIt.Manager.Platform.Windows.csproj" />
     <ProjectReference Include="..\JustModIt.Manager.Protocol\JustModIt.Manager.Protocol.csproj" />
     <ProjectReference Include="..\JustModIt.Manager.Localization\JustModIt.Manager.Localization.csproj" />
   </ItemGroup>

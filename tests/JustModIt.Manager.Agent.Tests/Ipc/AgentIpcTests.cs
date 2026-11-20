@@ -16,8 +16,6 @@ public sealed class AgentIpcTests : IAsyncDisposable
 
     private readonly AgentHarness _agent = new();
 
-    public AgentIpcTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
-
     [Fact]
     public async Task A_window_gets_the_whole_state_at_once_and_every_change_after()
     {

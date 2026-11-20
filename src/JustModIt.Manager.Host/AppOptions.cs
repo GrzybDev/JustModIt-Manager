@@ -12,7 +12,9 @@ public sealed record AppOptions
     /// <summary>The app's own assembly, into which its build merged its texts and embedded its licence and notices.</summary>
     public required Assembly App { get; init; }
 
-    /// <summary>The app's own agent services, registered after the shared ones, so they add to or replace them.</summary>
+    /// <summary>
+    /// The app's own agent services, registered after the shared and the system's ones, so they add to or replace them.
+    /// </summary>
     public Action<IServiceCollection>? ConfigureAgent { get; init; }
 
     /// <summary>The app's own views, pages, styles and resources of the window, added after the shared ones so they win.</summary>

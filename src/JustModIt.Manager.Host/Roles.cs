@@ -20,6 +20,7 @@ internal static partial class Roles
 {
     private const string AgentRole = "agent";
     private const string UiRole = "ui";
+    private const string LauncherRole = "launcher";
 
     // How long a launch keeps trying to reach an agent that is still starting or already exiting.
     private static readonly TimeSpan HandOverTimeout = TimeSpan.FromSeconds(15);
@@ -29,17 +30,25 @@ internal static partial class Roles
     /// <param name="options">What the app hands the startup about itself.</param>
     /// <param name="launch">The command line, parsed.</param>
     /// <param name="args">The command line as given, for a hand-over.</param>
-    public static int RunAgent(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
-        RunClaimed(environment, environment.Names.AgentLock, AgentRole, args, (loggers, session, previous) =>
+    public static int RunAgent(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args)
+    {
+        if (!AgentPlatform.IsSupported)
+        {
+            return Refuse(environment);
+        }
+
+        return RunClaimed(environment, environment.Names.AgentLock, AgentRole, args, (loggers, session, previous) =>
         {
             var agent = environment.AgentOptions() with
             {
                 Session = session,
                 PreviousExit = UntoldExit.Carry(environment.Locations.StateDirectory, previous),
             };
-            AgentHost.RunAsync(agent, launch, loggers, options.ConfigureAgent).GetAwaiter().GetResult();
+            AgentHost.RunAsync(agent, launch, loggers, services => AgentPlatform.Compose(services, agent, options.ConfigureAgent))
+                .GetAwaiter().GetResult();
             return 0;
         });
+    }
 
     /// <summary>
     /// Runs the window's process, or hands the command line to the agent when a window runs already, and returns the
@@ -70,7 +79,7 @@ internal static partial class Roles
         Func<ILoggerFactory, SessionMarker, UncleanExit?, int> run)
     {
         InstanceClaim claim;
-        using (var log = new RoleLog(environment, "launcher"))
+        using (var log = new RoleLog(environment, LauncherRole))
         {
             claim = SingleInstance.ClaimOrForwardAsync(lockName, environment.Names.PipeName,
                     Hello.ForCurrentProcess(ProcessRole.Launcher, environment.Version), args, HandOverTimeout, AllowForeground,
@@ -87,6 +96,14 @@ internal static partial class Roles
         {
             return RunRole(environment, role, run);
         }
+    }
+
+    // Refused before the claim, so a run that never starts takes no lock, begins no session and logs no start.
+    private static int Refuse(HostEnvironment environment)
+    {
+        using var log = new RoleLog(environment, LauncherRole);
+        LogUnsupported(log.Loggers.CreateLogger(typeof(Roles).FullName!), RuntimeInformation.OSDescription);
+        return 1;
     }
 
     // The launcher has the foreground because the player just started it; the agent needs it to bring the window up.
@@ -116,6 +133,9 @@ internal static partial class Roles
         session.End();
         return exitCode;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The agent does not run on {System} yet")]
+    private static partial void LogUnsupported(ILogger logger, string system);
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Starting the {Role} {Version} on {System} ({Architecture}); installed: {Installed}, elevated: {Elevated}")]

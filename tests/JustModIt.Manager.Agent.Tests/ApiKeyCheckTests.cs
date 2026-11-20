@@ -9,8 +9,6 @@ namespace JustModIt.Manager.Agent.Tests;
 
 public sealed class ApiKeyCheckTests
 {
-    public ApiKeyCheckTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
-
     [Fact]
     public async Task The_agent_checks_the_key_at_start_and_drops_one_the_site_refuses_without_telling_the_player()
     {

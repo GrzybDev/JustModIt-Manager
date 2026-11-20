@@ -36,8 +36,6 @@ public sealed class ClearCacheTests : IAsyncDisposable
 
     private readonly AgentHarness _agent = new() { Configure = services => services.AddSingleton<IInstallEngine>(new InstalledEngine()) };
 
-    public ClearCacheTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
-
     [Fact]
     public async Task Clearing_the_cache_keeps_the_download_of_every_package_of_an_install()
     {

@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Agent.Ipc;
 using JustModIt.Manager.Agent.Lifetime;
@@ -26,7 +25,6 @@ using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Core.Steam;
-using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
@@ -36,14 +34,14 @@ using Microsoft.Extensions.Logging;
 namespace JustModIt.Manager.Agent;
 
 /// <summary>
-/// The agent's composition root; an app replaces or adds services by registering its own after these, since the last
-/// registration of a service wins.
+/// The agent's services that every system shares; the caller registers the system's own services after these, then the
+/// app's, since the last registration of a service wins.
 /// </summary>
 public static class AgentServices
 {
     private const string StorageClient = "storage";
 
-    /// <summary>Registers every service of the agent.</summary>
+    /// <summary>Registers the agent's services that every system shares, before the system's own and the app's.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <param name="options">The app's identity, folders, site and update feed.</param>
     /// <param name="settings">The loaded settings, shared by every service.</param>
@@ -58,31 +56,9 @@ public static class AgentServices
         services.AddSingleton(loggers);
         services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
 
-        if (!OperatingSystem.IsWindows())
-        {
-            throw new PlatformNotSupportedException("The agent runs only on Windows so far.");
-        }
-
-        AddWindows(services, options);
         AddEngine(services, options);
         AddAgentParts(services, options);
         return services;
-    }
-
-    [SupportedOSPlatform("windows")]
-    private static void AddWindows(IServiceCollection services, AgentOptions options)
-    {
-        services.AddSingleton<IRegistry>(WindowsRegistry.Instance);
-        services.AddSingleton<IRegistryWatcher>(WindowsRegistryWatcher.Instance);
-        services.AddSingleton<ISqliteReader>(WindowsSqliteReader.Instance);
-        services.AddSingleton<ISystemEvents, WindowsSystemEvents>();
-        services.AddSingleton<IProcessSource>(WindowsProcessSource.Instance);
-        services.AddSingleton<ILockHolderSource>(RestartManagerLockHolders.Instance);
-        services.AddSingleton<IAutostart>(new WindowsAutostart(options.Identity.InstanceName));
-        services.AddSingleton<ILinkRegistration>(WindowsLinkRegistration.Instance);
-        services.AddSingleton<IForegroundHandoff>(WindowsForegroundHandoff.Instance);
-        services.AddSingleton<ITrayHost>(provider =>
-            new WindowsTrayHost(options.ExecutablePath, provider.GetRequiredService<ILogger<WindowsTrayHost>>()));
     }
 
     private static void AddEngine(IServiceCollection services, AgentOptions options)

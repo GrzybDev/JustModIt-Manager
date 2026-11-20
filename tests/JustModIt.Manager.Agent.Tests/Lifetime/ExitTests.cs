@@ -15,7 +15,6 @@ public sealed class ExitTests : IAsyncDisposable
 
     public ExitTests()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
         _agent = new AgentHarness { Configure = services => services.AddSingleton<IInstallEngine>(_engine) };
     }
 

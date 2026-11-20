@@ -5,7 +5,9 @@ using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
@@ -270,4 +272,28 @@ internal sealed class OfflineCatalogueApi : ICatalogueApi
 
     public Task<IReadOnlyDictionary<Guid, Uri>> ResolveDownloadsAsync(ReleaseLocator release, IReadOnlyList<Guid> files,
         CancellationToken cancellationToken) => throw Offline;
+}
+
+/// <summary>A system with no registry, no processes and no events, so no test reaches the developer's own.</summary>
+internal sealed class QuietSystem : IRegistry, IRegistryWatcher, ISystemEvents, IProcessSource, IDisposable
+{
+    public static QuietSystem Instance { get; } = new();
+
+    public event EventHandler? Resumed { add { } remove { } }
+
+    public event EventHandler? VolumeArrived { add { } remove { } }
+
+    public int CurrentSessionId => 1;
+
+    public RegistryKeySnapshot? ReadKey(RegistryHive hive, RegistryView view, string path) => null;
+
+    public IDisposable Watch(WatchedRegistryKey key, Action<WatchSignal> onSignal) => this;
+
+    public IReadOnlyList<ProcessEntry> Snapshot() => [];
+
+    public Task<bool> WaitForExitAsync(int processId, string name, CancellationToken cancellationToken) => Task.FromResult(true);
+
+    public void Dispose()
+    {
+    }
 }

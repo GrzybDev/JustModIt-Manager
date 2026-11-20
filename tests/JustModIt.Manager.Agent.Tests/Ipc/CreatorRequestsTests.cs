@@ -18,7 +18,6 @@ public sealed class CreatorRequestsTests : IAsyncDisposable
 
     public CreatorRequestsTests()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
         var folder = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", "Example Game");
         _agent = new AgentHarness
         {

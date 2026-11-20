@@ -152,7 +152,6 @@
         "dependencies": {
           "JustModIt.Manager.Core": "[0.1.0, )",
           "JustModIt.Manager.Localization": "[0.1.0, )",
-          "JustModIt.Manager.Platform.Windows": "[0.1.0, )",
           "JustModIt.Manager.Protocol": "[0.1.0, )",
           "Microsoft.Extensions.DependencyInjection": "[10.0.15, )",
           "Microsoft.Extensions.Logging": "[10.0.15, )",
@@ -173,13 +172,6 @@
         "type": "Project",
         "dependencies": {
           "MessageFormat": "[8.0.0, )"
-        }
-      },
-      "justmodit.manager.platform.windows": {
-        "type": "Project",
-        "dependencies": {
-          "JustModIt.Manager.Core": "[0.1.0, )",
-          "Microsoft.Extensions.Logging.Abstractions": "[10.0.15, )"
         }
       },
       "justmodit.manager.protocol": {

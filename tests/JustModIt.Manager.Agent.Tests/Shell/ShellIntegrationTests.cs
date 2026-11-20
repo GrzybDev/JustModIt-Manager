@@ -11,8 +11,6 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
 {
     private readonly AgentHarness _agent = new();
 
-    public ShellIntegrationTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
-
     private string Command => $"\"{_agent.Options.ExecutablePath}\" --background";
 
     private AppIdentity Development => new(_agent.Options.Identity.AppId, _agent.Options.Identity.VendorId, "example-app",

@@ -5,7 +5,9 @@ using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -17,8 +19,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace JustModIt.Manager.Agent.Tests.TestSupport;
 
 /// <summary>
-/// A whole agent over an empty data folder of its own, with no stores, an offline site and fakes for everything that
-/// would reach the desktop: the tray, the registry entries, the window's process and the shell.
+/// A whole agent over an empty data folder of its own, with no stores, an offline site, a quiet system (no registry,
+/// processes or events) and fakes for everything that would reach the desktop: the tray, the registry entries, the
+/// window's process and the shell.
 /// </summary>
 internal sealed class AgentHarness : IAsyncDisposable
 {
@@ -84,6 +87,10 @@ internal sealed class AgentHarness : IAsyncDisposable
         _run = AgentHost.RunAsync(Options, start ?? new LaunchArguments(ProcessRole.Agent, Background: false, Target: null),
             NullLoggerFactory.Instance, services =>
             {
+                services.AddSingleton<IRegistry>(QuietSystem.Instance);
+                services.AddSingleton<IRegistryWatcher>(QuietSystem.Instance);
+                services.AddSingleton<ISystemEvents>(QuietSystem.Instance);
+                services.AddSingleton<IProcessSource>(QuietSystem.Instance);
                 services.RemoveAll<ILibraryProvider>();
                 services.AddSingleton<ICatalogueApi>(new OfflineCatalogueApi());
                 services.AddSingleton<IUiStarter>(Starter);

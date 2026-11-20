@@ -30,7 +30,6 @@ public sealed class FeatureChoiceTests : IAsyncDisposable
 
     public FeatureChoiceTests()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
         _agent = new AgentHarness
         {
             Configure = services =>

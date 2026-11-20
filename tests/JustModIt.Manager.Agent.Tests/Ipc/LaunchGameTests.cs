@@ -18,7 +18,6 @@ public sealed class LaunchGameTests : IAsyncDisposable
 
     public LaunchGameTests()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The agent runs only on Windows so far.");
         _agent = new AgentHarness { Configure = services => services.AddSingleton<ILibraryProvider>(_ => new FixedStore(GameFolder)) };
     }
 
