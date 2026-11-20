@@ -15,7 +15,7 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
     {
         Key = new GameKey(StoreId.Gog, "54321098765432109"),
         Name = "Café Racer",
-        InstallDirectory = @"D:\GOG Games\Cafe Racer",
+        InstallDirectory = TestPaths.Rooted('D', "GOG Games", "Cafe Racer"),
         LibraryId = "gog-registry",
         BuildId = "54321098765432109",
         State = GameInstallState.Updating,
@@ -48,7 +48,8 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
                 new StoreStatus(StoreId.Gog, IsPresent: true, ScanFailed: true, IsComplete: false,
                 [
                     new LibraryLocation("gog-registry", "gog-registry", null, LibraryState.Online),
-                    new LibraryLocation(@"E:\Games", "gog-folder", @"E:\Games", LibraryState.Offline, IsManual: true, UnreadableEntries: 2),
+                    new LibraryLocation(TestPaths.Rooted('E', "Games"), "gog-folder", TestPaths.Rooted('E', "Games"), LibraryState.Offline,
+                        IsManual: true, UnreadableEntries: 2),
                 ]),
             ],
             ScannedAt = new DateTimeOffset(2026, 3, 2, 8, 0, 0, TimeSpan.Zero),
@@ -81,16 +82,18 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
     [Fact]
     public void Entries_that_cannot_be_read_are_left_out_and_an_unknown_state_blocks_writing()
     {
-        using var json = JsonDocument.Parse("""
+        var library = TestPaths.Rooted('D', "Library");
+        var (kept, broken) = (Path.Join(library, "Kept"), TestPaths.Rooted('D', "Broken"));
+        using var json = JsonDocument.Parse($$"""
             {
               "version": 1,
-              "stores": [ { "store": "steam", "libraries": [ { "id": "x" }, { "id": "D:\\Library", "source": "steam-library", "state": "Sideways" } ] },
+              "stores": [ { "store": "steam", "libraries": [ { "id": "x" }, { "id": "{{Escaped(library)}}", "source": "steam-library", "state": "Sideways" } ] },
                           { "store": "" }, 42 ],
               "games": [
-                { "key": "steam:1003", "name": "Kept", "installDirectory": "D:\\Library\\Kept", "libraryId": "D:\\Library", "state": "Hovering",
+                { "key": "steam:1003", "name": "Kept", "installDirectory": "{{Escaped(kept)}}", "libraryId": "{{Escaped(library)}}", "state": "Hovering",
                   "launch": { "executable": "..\\Elsewhere\\tool.exe" } },
-                { "key": "steam:1004", "name": "Relative", "installDirectory": "Library\\Relative", "libraryId": "D:\\Library" },
-                { "key": "no-separator", "name": "Broken", "installDirectory": "D:\\Broken", "libraryId": "D:\\Library" }
+                { "key": "steam:1004", "name": "Relative", "installDirectory": "Library\\Relative", "libraryId": "{{Escaped(library)}}" },
+                { "key": "no-separator", "name": "Broken", "installDirectory": "{{Escaped(broken)}}", "libraryId": "{{Escaped(library)}}" }
               ]
             }
             """);
@@ -99,12 +102,14 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
 
         snapshot.IsCached.Should().BeTrue();
         snapshot.Stores.Should().Equal(new StoreStatus(StoreId.Steam, false, false, true,
-            [new LibraryLocation(@"D:\Library", "steam-library", null, LibraryState.Online)]));
+            [new LibraryLocation(library, "steam-library", null, LibraryState.Online)]));
         snapshot.Games.Values.Should().ContainSingle().Which.Should().Match<InstalledGame>(game =>
             game.State == GameInstallState.Unknown && game.Launch == null);
     }
 
     public void Dispose() => _directory.Dispose();
+
+    private static string Escaped(string path) => path.Replace(@"\", @"\\", StringComparison.Ordinal);
 
     private static JsonDocumentStore<LibrarySnapshot> Store(string file) =>
         new(file, LibrarySnapshotFormat.Instance, TimeProvider.System, NullLogger<JsonDocumentStore<LibrarySnapshot>>.Instance);

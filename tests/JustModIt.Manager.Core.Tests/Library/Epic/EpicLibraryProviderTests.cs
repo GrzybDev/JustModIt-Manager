@@ -31,6 +31,8 @@ public sealed class EpicLibraryProviderTests
     private readonly InMemoryRegistry _registry = new();
     private readonly Dictionary<string, List<string>> _legendaryEntries = [];
 
+    public EpicLibraryProviderTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The tests lay out the stores as they are on Windows.");
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]

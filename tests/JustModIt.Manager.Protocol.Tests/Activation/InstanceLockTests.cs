@@ -33,6 +33,7 @@ public sealed class InstanceLockTests
     [Fact]
     public void Name_taken_by_another_kind_of_object_counts_as_held()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows gives other kinds of objects a name.");
         using var squatter = new EventWaitHandle(false, EventResetMode.ManualReset, _name);
 
         InstanceLock.TryAcquire(_name).Should().BeNull();

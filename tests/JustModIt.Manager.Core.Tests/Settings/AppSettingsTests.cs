@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.Tests.TestSupport;
 
 namespace JustModIt.Manager.Core.Tests.Settings;
 
@@ -73,7 +74,7 @@ public sealed class AppSettingsTests
     [Fact]
     public void A_library_folder_is_added_once()
     {
-        var folder = new LibraryFolder(StoreId.Steam, Rooted("SteamLibrary"));
+        var folder = new LibraryFolder(StoreId.Steam, TestPaths.Rooted('E', "SteamLibrary"));
 
         var settings = AppSettings.Default.WithLibraryFolder(folder).WithLibraryFolder(folder with { Path = folder.Path + Path.DirectorySeparatorChar });
 
@@ -83,8 +84,8 @@ public sealed class AppSettingsTests
     [Fact]
     public void The_same_folder_may_serve_two_stores_and_is_removed_per_store()
     {
-        var steam = new LibraryFolder(StoreId.Steam, Rooted("Games"));
-        var gog = new LibraryFolder(StoreId.Gog, Rooted("Games"));
+        var steam = new LibraryFolder(StoreId.Steam, TestPaths.Rooted('E', "Games"));
+        var gog = new LibraryFolder(StoreId.Gog, TestPaths.Rooted('E', "Games"));
 
         var settings = AppSettings.Default.WithLibraryFolder(steam).WithLibraryFolder(gog).WithoutLibraryFolder(steam);
 
@@ -114,6 +115,4 @@ public sealed class AppSettingsTests
         settings.IsAdultContentConfirmed(now.AddHours(23).AddMinutes(59)).Should().BeTrue();
         settings.IsAdultContentConfirmed(now.AddDays(1)).Should().BeFalse();
     }
-
-    private static string Rooted(string name) => Path.Combine(OperatingSystem.IsWindows() ? @"E:\" : "/mnt", name);
 }

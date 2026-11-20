@@ -12,14 +12,16 @@ public sealed class GameLaunchTests
     [Fact]
     public void A_program_starts_with_its_arguments_in_its_folder_inside_the_game()
     {
-        _files.AddFile(@"D:\Games\Example\bin\game.exe", "");
+        var game = TestPaths.Rooted('D', "Games", "Example");
+        var executable = Path.Join(game, "bin", "game.exe");
+        _files.AddFile(executable, "");
 
-        LaunchProgram.TryCreate(@"bin\game.exe", "-windowed", "bin")!.Resolve(_files, Game)
-            .Should().Be(new ProgramStart(@"D:\Games\Example\bin\game.exe", "-windowed", @"D:\Games\Example\bin"));
-        LaunchProgram.TryCreate("bin/game.exe", null, null)!.Resolve(_files, Game)
-            .Should().Be(new ProgramStart(@"D:\Games\Example\bin\game.exe", "", Game));
-        LaunchProgram.TryCreate("missing.exe", null, null)!.Resolve(_files, Game).Should().BeNull();
-        LaunchProgram.TryCreate("bin/game.exe", null, "missing")!.Resolve(_files, Game).Should().BeNull();
+        LaunchProgram.TryCreate(@"bin\game.exe", "-windowed", "bin")!.Resolve(_files, game)
+            .Should().Be(new ProgramStart(executable, "-windowed", Path.Join(game, "bin")));
+        LaunchProgram.TryCreate("bin/game.exe", null, null)!.Resolve(_files, game)
+            .Should().Be(new ProgramStart(executable, "", game));
+        LaunchProgram.TryCreate("missing.exe", null, null)!.Resolve(_files, game).Should().BeNull();
+        LaunchProgram.TryCreate("bin/game.exe", null, "missing")!.Resolve(_files, game).Should().BeNull();
     }
 
     [Fact]

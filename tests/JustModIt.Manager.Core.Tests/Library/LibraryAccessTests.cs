@@ -43,6 +43,7 @@ public sealed class LibraryAccessTests : IDisposable
     [Fact]
     public async Task A_drive_whose_earlier_read_still_hangs_is_not_read_again_while_other_drives_are()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows paths name the drive they are on.");
         await HangAsync();
 
         await FluentActions.Awaiting(() => _access.ReadAsync(@"d:\library\", ReadAsync, Token)).Should().ThrowAsync<TimeoutException>();
@@ -54,6 +55,7 @@ public sealed class LibraryAccessTests : IDisposable
     [Fact]
     public async Task Reads_of_one_drive_wait_for_each_other_while_other_drives_are_read_meanwhile()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows paths name the drive they are on.");
         _drive.Reset();
         var first = _access.ReadAsync(Library, ReadAsync, Token);
         await Eventually.HoldsAsync(() => Reads == 1, "the drive is being read");

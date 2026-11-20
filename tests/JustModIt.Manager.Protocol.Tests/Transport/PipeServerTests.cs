@@ -33,6 +33,7 @@ public sealed class PipeServerTests
     [Fact]
     public async Task Client_that_never_says_hello_is_dropped_and_frees_its_slot()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows keeps a client waiting for the one slot connected while the slot frees.");
         var options = TestPipes.Options with { MaxConnections = 1, HandshakeTimeout = TimeSpan.FromMilliseconds(200) };
         await using var server = TestPipes.StartServer(_name, new TestHandler(), options);
         await using var silent = await ConnectRawAsync();

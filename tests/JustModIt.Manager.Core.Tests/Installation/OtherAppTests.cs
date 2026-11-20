@@ -181,6 +181,7 @@ public sealed class OtherAppTests : IAsyncDisposable
     [Fact]
     public async Task An_owner_file_that_cannot_go_yet_is_removed_by_recovery_rather_than_left_behind()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows refuses to delete a file another program holds.");
         var before = _harness.Snapshot();
         var installed = await _harness.InstallAsync(_harness.ManifestPackage(new TestPackage().Copy("readme.txt", "Changed")));
         await using (new FileStream(Path.Join(_harness.HiddenDirectory, AppFolders.OwnerFileName), FileMode.Open, FileAccess.Read,

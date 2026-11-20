@@ -15,6 +15,8 @@ public sealed class SteamLibraryProviderTests
 
     private readonly SteamTree _steam = new();
 
+    public SteamLibraryProviderTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The tests lay out the stores as they are on Windows.");
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]

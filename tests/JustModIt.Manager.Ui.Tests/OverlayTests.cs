@@ -139,6 +139,7 @@ public sealed class OverlayTests
     [AvaloniaFact]
     public async Task Notices_in_front_show_in_the_corner_and_lead_to_their_game()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The texts name the drive of a Windows path.");
         using var ui = new UiHarness(TestStates.Idle());
 
         ui.Agent.Notice(new NoticeView(NoticeKind.Installed) { Game = TestStates.Ember, GameName = "Ember Hollow", TeamName = "Lantern Team" });

@@ -24,6 +24,8 @@ public sealed class GogLibraryProviderTests
     private readonly InMemoryRegistry _registry = new();
     private readonly InMemorySqlite _sqlite = new();
 
+    public GogLibraryProviderTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The tests lay out the stores as they are on Windows.");
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]

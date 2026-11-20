@@ -75,7 +75,9 @@ public sealed class ReleaseDownloadTests : IDisposable
             await Task.Delay(10, Token);
         }
 
-        await ((Func<Task>)(() => failing)).Should().ThrowAsync<UnauthorizedAccessException>();
+        (await ((Func<Task>)(() => failing)).Should().ThrowAsync<Exception>()).Which.Should().Match<Exception>(
+            exception => exception is IOException || exception is UnauthorizedAccessException,
+            "Windows refuses to write over a folder as access denied, Linux as an error");
         AddressSavedFor(BaseFile).Should().Be($"https://storage.example.com/releases/{BaseFile:D}/package.zip");
         Directory.Delete(blocked);
         await _downloader.DownloadReleaseAsync(Download(BaseFile, VoicesFile), null, Token);

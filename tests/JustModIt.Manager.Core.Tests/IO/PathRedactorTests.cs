@@ -63,6 +63,10 @@ public sealed class PathRedactorTests
         var redacted = redactor.Redact($"{Path.Combine(profile, "Games")} and {temp}");
 
         redacted.Should().NotContain(profile);
-        redacted.Should().NotContain(Path.GetTempPath());
+        if (OperatingSystem.IsWindows())
+        {
+            // Only Windows keeps the temporary folder in the user's profile; Linux's /tmp names no user.
+            redacted.Should().NotContain(Path.GetTempPath());
+        }
     }
 }

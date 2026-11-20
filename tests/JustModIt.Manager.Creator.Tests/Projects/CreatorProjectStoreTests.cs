@@ -281,6 +281,7 @@ public sealed class CreatorProjectStoreTests : IDisposable
     [MemberData(nameof(ProjectFiles))]
     public async Task Reads_a_project_file_of_every_format_into_the_expected_project(string file, CreatorProject expected)
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The saved files hold Windows paths.");
         var project = await CreatorProjectStore.LoadAsync(Path.Join(Fixtures, file), TestContext.Current.CancellationToken);
         await CreatorProjectStore.SaveAsync(project, ProjectPath, TestContext.Current.CancellationToken);
 

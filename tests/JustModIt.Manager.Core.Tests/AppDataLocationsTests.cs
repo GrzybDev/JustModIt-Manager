@@ -1,14 +1,15 @@
+using JustModIt.Manager.Core.Tests.TestSupport;
+
 namespace JustModIt.Manager.Core.Tests;
 
 public sealed class AppDataLocationsTests
 {
-    private static readonly string Root = OperatingSystem.IsWindows() ? @"C:\" : "/";
-    private static readonly string Home = Rooted("home", "player");
+    private static readonly string Home = TestPaths.Rooted('C', "home", "player");
 
     private readonly Dictionary<string, string> _environment = new() { ["HOME"] = Home };
     private readonly Dictionary<Environment.SpecialFolder, string> _folders = new()
     {
-        [Environment.SpecialFolder.LocalApplicationData] = Rooted("Users", "player", "AppData", "Local"),
+        [Environment.SpecialFolder.LocalApplicationData] = TestPaths.Rooted('C', "Users", "player", "AppData", "Local"),
         [Environment.SpecialFolder.UserProfile] = Home,
     };
 
@@ -17,7 +18,7 @@ public sealed class AppDataLocationsTests
     {
         var locations = Resolve(AppPlatform.Windows);
 
-        var data = Rooted("Users", "player", "AppData", "Local", "ExampleVendor", "ExampleApp");
+        var data = TestPaths.Rooted('C', "Users", "player", "AppData", "Local", "ExampleVendor", "ExampleApp");
         locations.DataDirectory.Should().Be(data);
         locations.SettingsFile.Should().Be(Path.Combine(data, "settings.json"));
         locations.StateDirectory.Should().Be(Path.Combine(data, "state"));
@@ -43,12 +44,12 @@ public sealed class AppDataLocationsTests
     [Fact]
     public void Linux_honours_absolute_xdg_variables_and_ignores_relative_ones()
     {
-        _environment["XDG_DATA_HOME"] = Rooted("data");
+        _environment["XDG_DATA_HOME"] = TestPaths.Rooted('C', "data");
         _environment["XDG_CACHE_HOME"] = "relative/cache";
 
         var locations = Resolve(AppPlatform.Linux);
 
-        locations.DataDirectory.Should().Be(Path.Combine(Rooted("data"), "ExampleVendor", "ExampleApp"));
+        locations.DataDirectory.Should().Be(Path.Combine(TestPaths.Rooted('C', "data"), "ExampleVendor", "ExampleApp"));
         locations.CacheDirectory.Should().Be(Path.Combine(Home, ".cache", "ExampleVendor", "ExampleApp"));
     }
 
@@ -104,6 +105,4 @@ public sealed class AppDataLocationsTests
     private AppDataLocations Resolve(AppPlatform platform) =>
         AppDataLocations.Resolve(platform, _environment.GetValueOrDefault, folder => _folders.GetValueOrDefault(folder, string.Empty),
             "ExampleVendor", "ExampleApp");
-
-    private static string Rooted(params string[] segments) => Path.Combine([Root, .. segments]);
 }

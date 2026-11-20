@@ -1,19 +1,20 @@
 using JustModIt.Manager.Core.IO;
+using JustModIt.Manager.Core.Tests.TestSupport;
 
 namespace JustModIt.Manager.Core.Tests.IO;
 
 public sealed class PathComparisonTests
 {
-    private static readonly string Root = OperatingSystem.IsWindows() ? @"C:\" : "/";
+    private static readonly string Root = Path.GetPathRoot(TestPaths.Rooted('C'))!;
 
     [Fact]
     public void Trailing_separators_and_dot_segments_do_not_matter() =>
-        PathComparison.AreSame(Rooted("Games", "Lantern") + Path.DirectorySeparatorChar, Rooted("Games", "Other", "..", "Lantern"))
-            .Should().BeTrue();
+        PathComparison.AreSame(TestPaths.Rooted('C', "Games", "Lantern") + Path.DirectorySeparatorChar,
+            TestPaths.Rooted('C', "Games", "Other", "..", "Lantern")).Should().BeTrue();
 
     [Fact]
     public void Different_folders_are_not_the_same() =>
-        PathComparison.AreSame(Rooted("Games", "Lantern"), Rooted("Games", "Lantern 2")).Should().BeFalse();
+        PathComparison.AreSame(TestPaths.Rooted('C', "Games", "Lantern"), TestPaths.Rooted('C', "Games", "Lantern 2")).Should().BeFalse();
 
     [Fact]
     public void Letter_case_and_forward_slashes_do_not_matter_on_windows()
@@ -38,27 +39,25 @@ public sealed class PathComparisonTests
     [Fact]
     public void A_folder_contains_itself_and_everything_below_it()
     {
-        PathComparison.IsWithin(Rooted("Games"), Rooted("Games")).Should().BeTrue();
-        PathComparison.IsWithin(Rooted("Games"), Rooted("Games", "Lantern", "bin", "game.exe")).Should().BeTrue();
-        PathComparison.IsWithin(Root, Rooted("Games")).Should().BeTrue();
+        PathComparison.IsWithin(TestPaths.Rooted('C', "Games"), TestPaths.Rooted('C', "Games")).Should().BeTrue();
+        PathComparison.IsWithin(TestPaths.Rooted('C', "Games"), TestPaths.Rooted('C', "Games", "Lantern", "bin", "game.exe")).Should().BeTrue();
+        PathComparison.IsWithin(Root, TestPaths.Rooted('C', "Games")).Should().BeTrue();
     }
 
     [Fact]
     public void A_name_prefix_is_not_containment()
     {
-        PathComparison.IsWithin(Rooted("Gam"), Rooted("Games")).Should().BeFalse();
-        PathComparison.IsWithin(Rooted("Games", "Lantern"), Rooted("Games")).Should().BeFalse();
+        PathComparison.IsWithin(TestPaths.Rooted('C', "Gam"), TestPaths.Rooted('C', "Games")).Should().BeFalse();
+        PathComparison.IsWithin(TestPaths.Rooted('C', "Games", "Lantern"), TestPaths.Rooted('C', "Games")).Should().BeFalse();
     }
 
     [Fact]
     public void Nested_folders_overlap_in_both_directions()
     {
-        PathComparison.Overlaps(Rooted("Games"), Rooted("Games", "Lantern")).Should().BeTrue();
-        PathComparison.Overlaps(Rooted("Games", "Lantern"), Rooted("Games")).Should().BeTrue();
-        PathComparison.Overlaps(Rooted("Games", "Lantern"), Rooted("Games", "Ember")).Should().BeFalse();
+        PathComparison.Overlaps(TestPaths.Rooted('C', "Games"), TestPaths.Rooted('C', "Games", "Lantern")).Should().BeTrue();
+        PathComparison.Overlaps(TestPaths.Rooted('C', "Games", "Lantern"), TestPaths.Rooted('C', "Games")).Should().BeTrue();
+        PathComparison.Overlaps(TestPaths.Rooted('C', "Games", "Lantern"), TestPaths.Rooted('C', "Games", "Ember")).Should().BeFalse();
     }
-
-    private static string Rooted(params string[] segments) => Path.Combine([Root, .. segments]);
 
     private static void SkipUnlessWindows() => Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows path rules.");
 }

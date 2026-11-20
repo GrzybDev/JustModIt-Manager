@@ -44,7 +44,7 @@ internal static class TestProjects
     private static readonly Guid SteamPlatform = Guid.Parse("44444444-0000-4000-8000-000000000001");
 
     public static string GameFolder(GameKey game) =>
-        Path.Join(OperatingSystem.IsWindows() ? @"C:\Games" : "/games", "Example " + game.StoreGameId);
+        TestPaths.Rooted('C', "Games", "Example " + game.StoreGameId);
 
     public static InstalledGame Installed(GameKey? game = null, GameInstallState state = GameInstallState.Installed,
         string? folder = null, string? build = "100") => new()

@@ -350,6 +350,26 @@ public sealed class CreatorLibraryTests : IDisposable
         await ui.AnswerAsync(Strings.Creator_Remove);
         await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
         await ui.RenderBothAsync("creator-remove");
+        await ui.AnswerAsync(Strings.Creator_Remove);
+
+        await UiHarness.WaitUntilAsync(() => !creator.Cards.Any());
+        Directory.Exists(Path.Combine(LibraryFolder, project.Id.ToString())).Should().BeFalse();
+        Directory.Exists(_work.AuthorFolder).Should().BeTrue();
+    }
+
+    [AvaloniaFact]
+    public async Task A_project_whose_file_another_program_holds_stays_until_it_can_be_removed()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows refuses to delete a file another program holds.");
+        var project = Project("Lantern Isle", CreatorWorkspace.Lantern, _work.AuthorFolder);
+        await SeedAsync(project);
+        using var ui = await OpenAsync(TestStates.Idle(creatorMode: true));
+        await UiHarness.WaitUntilAsync(() => Card(ui, "Lantern Isle") is not null);
+        var creator = (CreatorPageViewModel)ui.Shell.Navigator.Current!;
+
+        ui.Click(MoreButton(ui, Card(ui, "Lantern Isle")!));
+        await ui.AnswerAsync(Strings.Creator_Remove);
+        await UiHarness.WaitUntilAsync(() => ui.Shell.Dialogs.Current is ConfirmDialogViewModel { IsClosing: false });
         using (File.Open(Path.Combine(LibraryFolder, project.Id.ToString(), "project.json"), FileMode.Open, FileAccess.Read, FileShare.None))
         {
             ui.Click(ui.Button(Strings.Creator_Remove));
@@ -369,7 +389,6 @@ public sealed class CreatorLibraryTests : IDisposable
 
         await UiHarness.WaitUntilAsync(() => !creator.Cards.Any());
         Directory.Exists(Path.Combine(LibraryFolder, project.Id.ToString())).Should().BeFalse();
-        Directory.Exists(_work.AuthorFolder).Should().BeTrue();
     }
 
     [AvaloniaFact]

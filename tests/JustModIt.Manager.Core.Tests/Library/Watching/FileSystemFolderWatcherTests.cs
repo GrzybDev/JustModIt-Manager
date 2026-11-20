@@ -16,12 +16,12 @@ public sealed class FileSystemFolderWatcherTests : IDisposable
         var steamApps = _directory.CreateDirectory("steamapps");
         using var watch = FileSystemFolderWatcher.Instance.Watch(new WatchedFolder(steamApps, ["appmanifest_*.acf"]), _signals.Enqueue);
 
-        _directory.Write(@"steamapps\other.txt", "ignored");
-        _directory.Write(@"steamapps\common\Game\appmanifest_1.acf", "nested, ignored");
+        _directory.Write("steamapps/other.txt", "ignored");
+        _directory.Write("steamapps/common/Game/appmanifest_1.acf", "nested, ignored");
         await Eventually.SettleAsync();
         _signals.Should().BeEmpty();
 
-        _directory.Write(@"steamapps\appmanifest_1000.acf", "\"AppState\" {}");
+        _directory.Write("steamapps/appmanifest_1000.acf", "\"AppState\" {}");
 
         await Eventually.HoldsAsync(() => _signals.Contains(WatchSignal.Changed), "the manifest is reported");
     }
@@ -32,7 +32,7 @@ public sealed class FileSystemFolderWatcherTests : IDisposable
         var folder = _directory.CreateDirectory("folder");
         FileSystemFolderWatcher.Instance.Watch(new WatchedFolder(folder, []), _signals.Enqueue).Dispose();
 
-        _directory.Write(@"folder\file.txt", "data");
+        _directory.Write("folder/file.txt", "data");
         await Eventually.SettleAsync();
 
         _signals.Should().BeEmpty();

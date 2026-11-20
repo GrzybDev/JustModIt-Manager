@@ -12,7 +12,7 @@ public sealed class AdvancedPlanTests : IDisposable
     public AdvancedPlanTests()
     {
         _workspace.Game("Data/Strings.pak", "original strings");
-        _workspace.Game("data/fonts/main.ttf", "font");
+        _workspace.Game("Data/fonts/main.ttf", "font");
         _workspace.Game("bin/engine.dll", "engine");
         _workspace.Author("strings.pak", "customized strings");
         _workspace.Author("readme.txt", "notes");

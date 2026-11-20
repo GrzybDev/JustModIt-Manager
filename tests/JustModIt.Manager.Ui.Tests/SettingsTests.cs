@@ -11,6 +11,7 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
@@ -84,6 +85,7 @@ public sealed class SettingsTests
     [AvaloniaFact]
     public async Task Another_folder_for_backups_is_picked_checked_and_taken_and_a_refused_one_says_why()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The texts name the drive of a Windows path.");
         using var ui = await OpenAsync(State(settings => settings with { CustomBackupFolder = @"E:\Old backups" }));
         ui.Pickers.Folder = BackupFolder;
         ui.Agent.Answer = request => request is ValidateBackupFolder { Folder: BackupFolder }
@@ -153,7 +155,7 @@ public sealed class SettingsTests
     [AvaloniaFact]
     public async Task Backups_in_a_folder_that_is_gone_name_the_games_they_hold_back_and_are_not_offered_to_move_elsewhere()
     {
-        const string folder = @"F:\Backups";
+        var folder = TestPaths.Rooted('F', "Backups");
         var gone = Unreachable(Installed("Ember Hollow", "4100", state: MyGameState.BackupsUnavailable), folder);
         // A running game is told first, but its originals are out of reach all the same.
         var running = Unreachable(NotReady("Saltmarsh", "4300", GameInstallState.Running, GameStateReason.GameRunning), folder);
@@ -208,6 +210,7 @@ public sealed class SettingsTests
     [AvaloniaFact]
     public async Task The_apps_data_shows_what_it_takes_and_its_cache_is_cleared_only_while_no_job_runs()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The texts name the drive of a Windows path.");
         var measured = new AppDataUsage(@"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp", 317_718_528, 224_395_264, 90_177_536,
             3_355_443);
         var state = State();
@@ -663,7 +666,7 @@ public sealed class SettingsTests
         Installs = [game.Installs[0] with
         {
             BackupLocation = BackupLocation.CustomFolder,
-            BackupDirectory = $@"{folder}\ExampleApp\steam-{game.Key.StoreGameId}\{Guid.Empty:N}",
+            BackupDirectory = Path.Join(folder, "ExampleApp", $"steam-{game.Key.StoreGameId}", Guid.Empty.ToString("N")),
             BackupsUnavailable = true,
         }],
     };

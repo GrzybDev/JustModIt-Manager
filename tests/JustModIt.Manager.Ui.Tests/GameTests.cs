@@ -428,6 +428,7 @@ public sealed class GameTests
     [AvaloniaFact]
     public async Task Updates_repairs_and_failures_offer_what_sees_to_them()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The texts name the drive of a Windows path.");
         var update = UpdateAvailable("Ember Hollow", "4100");
         using var ui = Open(State(update), update, update.Installs[0].Project);
         var page = Page(ui);
@@ -614,6 +615,7 @@ public sealed class GameTests
     [AvaloniaFact]
     public async Task An_install_without_its_game_or_project_offers_only_to_be_uninstalled()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The texts name the drive of a Windows path.");
         var gone = Orphaned("Ember Hollow", "4100", OrphanReason.GameNotDetected);
         using var ui = Open(State(gone), gone);
         var page = Page(ui);

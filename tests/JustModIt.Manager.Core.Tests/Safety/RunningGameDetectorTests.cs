@@ -7,8 +7,8 @@ namespace JustModIt.Manager.Core.Tests.Safety;
 
 public sealed class RunningGameDetectorTests
 {
-    private const string Game = @"D:\Games\Example";
     private const int OwnSession = 1;
+    private static readonly string Game = TestPaths.Rooted('D', "Games", "Example");
 
     private readonly InMemoryFileSystem _files = new();
     private readonly FakeProcessSource _processes = new();
@@ -21,18 +21,18 @@ public sealed class RunningGameDetectorTests
     [Fact]
     public void A_process_started_from_the_folder_or_below_it_is_found()
     {
-        _processes.Add(10, "Example", @"D:\Games\Example\Example.exe");
-        _processes.Add(11, "Launcher", @"D:\Games\Example\bin\x64\Launcher.exe");
-        _processes.Add(12, "Other", @"D:\Games\Other\Other.exe");
+        var (example, launcher) = (Path.Join(Game, "Example.exe"), Path.Join(Game, "bin", "x64", "Launcher.exe"));
+        _processes.Add(10, "Example", example);
+        _processes.Add(11, "Launcher", launcher);
+        _processes.Add(12, "Other", TestPaths.Rooted('D', "Games", "Other", "Other.exe"));
 
-        Find(Game).Should().Equal(
-            new RunningProcess(10, "Example.exe", @"D:\Games\Example\Example.exe"),
-            new RunningProcess(11, "Launcher.exe", @"D:\Games\Example\bin\x64\Launcher.exe"));
+        Find(Game).Should().Equal(new RunningProcess(10, "Example.exe", example), new RunningProcess(11, "Launcher.exe", launcher));
     }
 
     [Fact]
     public void The_folder_matches_in_another_case_with_a_trailing_separator_but_not_as_a_name_prefix()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows paths ignore letter case.");
         _processes.Add(10, "Example", @"d:\games\EXAMPLE\Example.exe");
         _processes.Add(11, "Sequel", @"D:\Games\Example 2\Sequel.exe");
 
@@ -43,16 +43,18 @@ public sealed class RunningGameDetectorTests
     [Fact]
     public void A_process_started_through_a_link_to_the_folder_is_found()
     {
-        _files.AddDirectoryLink(@"C:\Link", Game);
-        _processes.Add(10, "Example", @"C:\Link\Example.exe");
+        var link = TestPaths.Rooted('C', "Link");
+        _files.AddDirectoryLink(link, Game);
+        _processes.Add(10, "Example", Path.Join(link, "Example.exe"));
 
         Find(Game).Select(process => process.ProcessId).Should().Equal(10);
-        Find(@"C:\Link").Select(process => process.ProcessId).Should().Equal(10);
+        Find(link).Select(process => process.ProcessId).Should().Equal(10);
     }
 
     [Fact]
     public void A_hidden_process_of_the_own_session_is_matched_by_an_executable_in_the_folder()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows names a process after its .exe file.");
         _files.AddFile(@"D:\Games\Example\Binaries\Win64\Example-Win64-Shipping.exe", "");
         _files.AddFile(@"D:\Games\Example\a\b\c\d\Deep.exe", "");
         _processes.Add(10, "example-win64-shipping", imagePath: null);

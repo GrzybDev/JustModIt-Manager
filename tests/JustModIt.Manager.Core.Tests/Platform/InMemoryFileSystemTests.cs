@@ -11,7 +11,7 @@ public sealed class InMemoryFileSystemTests : FileSystemContractTests
 
     protected override IFileSystem FileSystem => _fileSystem;
 
-    protected override string Root { get; } = Path.Combine(OperatingSystem.IsWindows() ? @"D:\" : "/mnt", "Library");
+    protected override string Root { get; } = TestPaths.Rooted('D', "Library");
 
     protected override string WriteFile(string relativePath, byte[] content, DateTimeOffset lastWriteTimeUtc) =>
         _fileSystem.AddFile(Path.Combine(Root, relativePath), content, lastWriteTimeUtc);

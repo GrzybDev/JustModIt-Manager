@@ -216,6 +216,7 @@ public sealed class InstallTests : IAsyncDisposable
     [Fact]
     public async Task Replaces_and_deletes_read_only_files_and_puts_the_attribute_back()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Hidden is a Windows file attribute.");
         File.SetAttributes(_harness.GameFile("readme.txt"), FileAttributes.ReadOnly);
         File.SetAttributes(_harness.GameFile("movies/intro.bik"), FileAttributes.ReadOnly | FileAttributes.Hidden);
         var before = _harness.Snapshot();

@@ -26,13 +26,23 @@ public sealed class WatchCoordinatorTests : IDisposable
     {
         _coordinator.Apply(StoreId.Steam, new WatchPlan([Library, Other], [Key])).Should().BeTrue();
         _coordinator.Apply(StoreId.Steam, new WatchPlan([Other], [Key])).Should().BeFalse();
-        _coordinator.Apply(StoreId.Steam,
-                new WatchPlan([new WatchedFolder(@"e:\other\STEAMAPPS\", ["DOWNLOADING", "appmanifest_*.acf", "downloading"])], [Key]))
-            .Should().BeFalse("the same folder spelled differently is the same watch");
 
         _watcher.Started.Should().Be(3);
         _watcher.Active.Should().BeEquivalentTo(new object[] { Other, Key });
         _coordinator.ActiveCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void The_same_folder_spelled_differently_is_the_same_watch()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows paths ignore letter case.");
+        _coordinator.Apply(StoreId.Steam, new WatchPlan([Other], [Key]));
+
+        _coordinator.Apply(StoreId.Steam,
+                new WatchPlan([new WatchedFolder(@"e:\other\STEAMAPPS\", ["DOWNLOADING", "appmanifest_*.acf", "downloading"])], [Key]))
+            .Should().BeFalse();
+
+        _watcher.Started.Should().Be(2);
     }
 
     [Fact]

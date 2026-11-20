@@ -18,11 +18,10 @@ namespace JustModIt.Manager.Core.Tests.Library;
 
 public sealed class LibraryServiceTests : IAsyncDisposable
 {
-    private const string LibraryPath = @"D:\Library";
-
+    private static readonly string LibraryPath = TestPaths.Rooted('D', "Library");
     private static readonly LibraryLocation SteamLibrary = new(LibraryPath, "steam-library", LibraryPath, LibraryState.Online);
-    private static readonly WatchedFolder SteamFolder = new(@"D:\Library\steamapps", ["appmanifest_*.acf"]);
-    private static readonly WatchedFolder GogFolder = new(@"E:\GOG\Example", ["goggame-*.info"]);
+    private static readonly WatchedFolder SteamFolder = new(Path.Join(LibraryPath, "steamapps"), ["appmanifest_*.acf"]);
+    private static readonly WatchedFolder GogFolder = new(TestPaths.Rooted('E', "GOG", "Example"), ["goggame-*.info"]);
 
     private readonly CountingTimeProvider _time = new();
     private readonly FakeLibraryProvider _steam = new(StoreId.Steam);
@@ -332,6 +331,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_download_that_stops_changing_is_read_again_and_counts_as_left_over()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test lays out Steam as it is on Windows.");
         var steam = new SteamTree();
         steam.AddApp(1001, "Example Quest");
         steam.AddDownload(1001, changedAt: _time.GetUtcNow());
@@ -421,18 +421,19 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_folder_with_a_stores_records_is_added_to_the_settings()
     {
-        _files.AddDirectory(@"E:\Games");
-        _gog.Evidence = LibraryFolderEvidence.Accepted(@"E:\Games");
+        var games = TestPaths.Rooted('E', "Games");
+        _files.AddDirectory(games);
+        _gog.Evidence = LibraryFolderEvidence.Accepted(games);
         await StartAsync();
 
-        var result = await Service.AddLibraryFolderAsync(@"E:\Games", Token);
+        var result = await Service.AddLibraryFolderAsync(games, Token);
 
-        result.Should().Be(new LibraryFolderResult(new LibraryFolder(StoreId.Gog, @"E:\Games"), null));
-        _settings!.Current.LibraryFolders.Should().Equal(new LibraryFolder(StoreId.Gog, @"E:\Games"));
-        (await Service.AddLibraryFolderAsync(@"E:\Games", Token)).Rejection.Should().Be(LibraryFolderRejection.AlreadyAdded);
+        result.Should().Be(new LibraryFolderResult(new LibraryFolder(StoreId.Gog, games), null));
+        _settings!.Current.LibraryFolders.Should().Equal(new LibraryFolder(StoreId.Gog, games));
+        (await Service.AddLibraryFolderAsync(games, Token)).Rejection.Should().Be(LibraryFolderRejection.AlreadyAdded);
         await Eventually.HoldsAsync(() => _gog.Scans > 1, "the added folder is scanned");
 
-        Service.RemoveLibraryFolder(new LibraryFolder(StoreId.Gog, @"E:\Games"));
+        Service.RemoveLibraryFolder(new LibraryFolder(StoreId.Gog, games));
 
         _settings.Current.LibraryFolders.Should().BeEmpty();
     }
@@ -440,12 +441,13 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_folder_is_refused_with_the_most_specific_reason()
     {
-        _files.AddDirectory(@"E:\Expansion");
+        var expansion = TestPaths.Rooted('E', "Expansion");
+        _files.AddDirectory(expansion);
         await StartAsync();
 
-        var noEvidence = await Service.AddLibraryFolderAsync(@"E:\Expansion", Token);
+        var noEvidence = await Service.AddLibraryFolderAsync(expansion, Token);
         _gog.Evidence = LibraryFolderEvidence.Rejected(LibraryFolderRejection.DlcOnly);
-        var dlcOnly = await Service.AddLibraryFolderAsync(@"E:\Expansion", Token);
+        var dlcOnly = await Service.AddLibraryFolderAsync(expansion, Token);
 
         _steam.Evidence = LibraryFolderEvidence.Accepted(LibraryPath);
         var known = await Service.AddLibraryFolderAsync(LibraryPath, Token);
@@ -453,7 +455,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
         noEvidence.Rejection.Should().Be(LibraryFolderRejection.NoEvidence);
         dlcOnly.Rejection.Should().Be(LibraryFolderRejection.DlcOnly);
         known.Rejection.Should().Be(LibraryFolderRejection.AlreadyDetected);
-        (await Service.AddLibraryFolderAsync(@"E:\Missing", Token)).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
+        (await Service.AddLibraryFolderAsync(TestPaths.Rooted('E', "Missing"), Token)).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
         (await Service.AddLibraryFolderAsync(@"Relative\Folder", Token)).Rejection.Should().Be(LibraryFolderRejection.Unreachable);
         _settings!.Current.LibraryFolders.Should().BeEmpty();
     }
@@ -461,6 +463,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_folder_picked_through_a_link_is_stored_as_its_target_and_not_added_twice()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test lays out Steam as it is on Windows.");
         var steam = new SteamTree();
         steam.AddApp(1001, "Example Quest", library: @"D:\SteamLibrary");
         steam.Files.AddDirectoryLink(@"E:\Linked", @"D:\SteamLibrary");
@@ -477,11 +480,12 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_folder_that_does_not_answer_in_time_is_unreachable()
     {
-        _files.AddDirectory(@"\\server\share");
+        var share = TestPaths.Rooted('S', "share");
+        _files.AddDirectory(share);
         _steam.InspectionHangs = true;
         await StartAsync();
 
-        var adding = Service.AddLibraryFolderAsync(@"\\server\share", Token);
+        var adding = Service.AddLibraryFolderAsync(share, Token);
         await Eventually.HoldsAsync(() => _steam.Inspections == 1, "the folder is looked into");
         _time.Advance(LibraryAccess.TimeLimit);
 
@@ -491,6 +495,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_library_that_does_not_answer_stays_offline_while_the_other_libraries_and_stores_go_on()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test lays out Steam as it is on Windows.");
         var steam = new SteamTree();
         var slow = steam.AddLibrary(@"D:\Slow");
         steam.AddApp(1001, "Slow Quest", library: slow);
@@ -515,6 +520,7 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_library_that_answers_late_is_read_again()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test lays out Steam as it is on Windows.");
         var steam = new SteamTree();
         var slow = steam.AddLibrary(@"D:\Slow");
         steam.AddApp(1001, "Slow Quest", library: slow);
@@ -690,12 +696,12 @@ public sealed class LibraryServiceTests : IAsyncDisposable
 
     private static GameKey Key(string id, StoreId? store = null) => new(store ?? StoreId.Steam, id);
 
-    private static InstalledGame Game(string id, string library = LibraryPath, StoreId? store = null) => new()
+    private static InstalledGame Game(string id, string? library = null, StoreId? store = null) => new()
     {
         Key = Key(id, store),
         Name = $"Game {id}",
-        InstallDirectory = Path.Join(library, "steamapps", "common", id),
-        LibraryId = library,
+        InstallDirectory = Path.Join(library ?? LibraryPath, "steamapps", "common", id),
+        LibraryId = library ?? LibraryPath,
         State = GameInstallState.Installed,
     };
 

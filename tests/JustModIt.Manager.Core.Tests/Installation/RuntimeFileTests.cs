@@ -478,6 +478,7 @@ public sealed class RuntimeFileTests : IAsyncDisposable
     [Fact]
     public async Task A_letter_case_difference_is_not_a_link()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows looks game paths up ignoring letter case.");
         var result = await InstallAsync(new TestPackage().Copy("tool/loader.dll", "loader").Declare("tool/List_Original.dat"));
         _harness.WriteGameFile("tool/list_original.dat", "Copy written by the software");
 

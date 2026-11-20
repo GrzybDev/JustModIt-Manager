@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
@@ -40,10 +41,11 @@ public sealed class UnexpectedCloseTests
         ui.Unnamed().Should().BeEmpty();
         ui.Render("unexpected-close");
 
-        ui.Pickers.SaveFile = @"D:\Reports\report.zip";
+        var report = TestPaths.Rooted('D', "Reports", "report.zip");
+        ui.Pickers.SaveFile = report;
         ui.Click(ui.Find<Button>("SaveReport"));
         ui.Pickers.Suggested.Should().Equal("Example App – raport 2026-09-29.zip");
-        ui.Agent.Requests.OfType<SaveDiagnosticReport>().Should().Equal(new SaveDiagnosticReport(@"D:\Reports\report.zip"));
+        ui.Agent.Requests.OfType<SaveDiagnosticReport>().Should().Equal(new SaveDiagnosticReport(report));
         dialog.SaveResult.Should().Be("Raport zapisano jako report.zip.");
         ui.Agent.Answer = request => request is SaveDiagnosticReport ? throw new RequestFailedException(ErrorCode.Failed) : null;
         ui.Click(ui.Find<Button>("SaveReport"));

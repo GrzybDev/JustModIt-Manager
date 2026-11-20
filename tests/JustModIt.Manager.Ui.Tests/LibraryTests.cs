@@ -37,6 +37,7 @@ public sealed class LibraryTests
     [AvaloniaFact]
     public async Task The_panel_puts_what_needs_the_player_first_and_its_button_starts_everything_that_can_start_now()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The texts name the drive of a Windows path.");
         using var ui = new UiHarness(Library());
         var page = Page(ui);
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));

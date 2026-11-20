@@ -17,6 +17,8 @@ public sealed class HeroicGogSourceTests
 
     private readonly InMemoryFileSystem _files = new();
 
+    public HeroicGogSourceTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The tests lay out the stores as they are on Windows.");
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]

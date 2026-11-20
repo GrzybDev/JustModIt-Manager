@@ -41,11 +41,11 @@ public sealed class SettingsFormatTests : IDisposable
             OnboardingStep = 3,
             TrayNoticeShown = true,
             BackupLocation = BackupLocation.CustomFolder,
-            CustomBackupFolder = Rooted("Backups"),
+            CustomBackupFolder = TestPaths.Rooted('E', "Backups"),
             PreferredTeams = [Guid.Parse("5a6b7c8d-0000-4000-8000-000000000002"), Guid.Parse("5a6b7c8d-0000-4000-8000-000000000001")],
             AdultContentConfirmedUntil = new DateTimeOffset(2026, 9, 2, 18, 30, 0, TimeSpan.FromHours(2)),
             RevealedAdultGames = [Guid.Parse("7c8d9e0f-0000-4000-8000-000000000003")],
-            RecentCreatorProjects = [Rooted("Second.exampleproj"), Rooted("First.exampleproj")],
+            RecentCreatorProjects = [TestPaths.Rooted('E', "Second.exampleproj"), TestPaths.Rooted('E', "First.exampleproj")],
             InstallationId = Guid.Parse("c0ffee00-0000-4000-8000-000000000042"),
         }
             .WithGame(GogGame, preferences => (preferences with
@@ -58,8 +58,8 @@ public sealed class SettingsFormatTests : IDisposable
             }).WithFeatures(Project, new Dictionary<string, bool> { ["voice-over"] = false, ["signs"] = true }))
             .WithGame(SteamGame, preferences => (preferences with { AchievementTexts = true }).WithFeatures(
                 Guid.Parse("0b2c4d6e-8f10-4a12-b314-c516d718e921"), new Dictionary<string, bool> { ["Text only"] = true }))
-            .WithLibraryFolder(new LibraryFolder(StoreId.Steam, Rooted("SteamLibrary")))
-            .WithLibraryFolder(new LibraryFolder(StoreId.Gog, Rooted("GOG Games")));
+            .WithLibraryFolder(new LibraryFolder(StoreId.Steam, TestPaths.Rooted('E', "SteamLibrary")))
+            .WithLibraryFolder(new LibraryFolder(StoreId.Gog, TestPaths.Rooted('E', "GOG Games")));
 
         await SaveAsync(settings);
 
@@ -242,7 +242,7 @@ public sealed class SettingsFormatTests : IDisposable
         var settings = AppSettings.Default with
         {
             BackupLocation = BackupLocation.AppData,
-            CustomBackupFolder = Rooted("Backups"),
+            CustomBackupFolder = TestPaths.Rooted('E', "Backups"),
         };
 
         await SaveAsync(settings);
@@ -253,13 +253,13 @@ public sealed class SettingsFormatTests : IDisposable
     [Fact]
     public async Task An_unknown_backup_location_falls_back_alone()
     {
-        var folder = Rooted("Backups").Replace("\\", "\\\\", StringComparison.Ordinal);
+        var folder = TestPaths.Rooted('E', "Backups").Replace("\\", "\\\\", StringComparison.Ordinal);
         _directory.Write("settings.json", $$"""{ "backupLocation": "Cloud", "customBackupFolder": "{{folder}}" }""");
 
         var settings = await LoadAsync();
 
         settings!.BackupLocation.Should().Be(BackupLocation.GameFolder);
-        settings.CustomBackupFolder.Should().Be(Rooted("Backups"));
+        settings.CustomBackupFolder.Should().Be(TestPaths.Rooted('E', "Backups"));
     }
 
     [Theory]
@@ -277,18 +277,18 @@ public sealed class SettingsFormatTests : IDisposable
     [Fact]
     public async Task A_folder_listed_twice_is_kept_once()
     {
-        var folder = Rooted("SteamLibrary").Replace("\\", "\\\\", StringComparison.Ordinal);
+        var folder = TestPaths.Rooted('E', "SteamLibrary").Replace("\\", "\\\\", StringComparison.Ordinal);
         _directory.Write("settings.json", $$"""
             { "libraryFolders": [ { "store": "steam", "path": "{{folder}}" }, { "store": "STEAM", "path": "{{folder}}" } ] }
             """);
 
-        (await LoadAsync())!.LibraryFolders.Should().Equal(new LibraryFolder(StoreId.Steam, Rooted("SteamLibrary")));
+        (await LoadAsync())!.LibraryFolders.Should().Equal(new LibraryFolder(StoreId.Steam, TestPaths.Rooted('E', "SteamLibrary")));
     }
 
     [Fact]
     public async Task Recent_projects_keep_full_paths_each_once()
     {
-        var paths = Enumerable.Range(1, 7).Select(number => Rooted($"Project {number}.exampleproj")).ToList();
+        var paths = Enumerable.Range(1, 7).Select(number => TestPaths.Rooted('E', $"Project {number}.exampleproj")).ToList();
         var json = string.Join(", ", paths.Prepend(paths[0]).Select(path => $"\"{path.Replace("\\", "\\\\", StringComparison.Ordinal)}\""));
         _directory.Write("settings.json", $$"""{ "recentCreatorProjects": [ "relative.exampleproj", 7, {{json}} ] }""");
 
@@ -303,6 +303,4 @@ public sealed class SettingsFormatTests : IDisposable
     private Task<AppSettings?> LoadAsync() => CreateStore().LoadAsync(TestContext.Current.CancellationToken);
 
     private Task SaveAsync(AppSettings settings) => CreateStore().SaveAsync(settings, TestContext.Current.CancellationToken);
-
-    private static string Rooted(string name) => Path.Combine(OperatingSystem.IsWindows() ? @"E:\" : "/mnt", name);
 }
