@@ -61,6 +61,27 @@ public sealed class CatalogueRefreshLoopTests : IDisposable
     }
 
     [Fact]
+    public async Task Opening_the_window_ends_the_start_delay_once()
+    {
+        var loopTime = new CountingTimeProvider(_site.Time.GetUtcNow());
+        var (_, loop) = Create(loopTime);
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var running = Task.CompletedTask;
+        await loopTime.WakeAsync(() => running = loop.RunAsync(TimeSpan.FromMinutes(2), stop.Token), "the loop waits to start");
+
+        await loopTime.WakeAsync(loop.EndStartDelay, "the first refresh runs at once");
+        _site.CountRequests(FirstPage).Should().Be(1);
+
+        loop.EndStartDelay();
+        await loopTime.AdvanceAndWaitAsync(CatalogueRefreshLoop.Interval * 1.1);
+        _site.CountRequests(FirstPage).Should().Be(2, "only the schedule refreshes once the start delay is over");
+
+        await stop.CancelAsync();
+        var stopped = async () => await running;
+        await stopped.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
     public async Task Tries_again_a_quarter_of_an_hour_after_a_failure()
     {
         _site.IsOffline = true;

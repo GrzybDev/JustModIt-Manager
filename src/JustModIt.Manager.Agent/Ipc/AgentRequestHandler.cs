@@ -1,5 +1,6 @@
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Ui;
+using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
@@ -12,6 +13,7 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="activation">Acts on a later launch's command line.</param>
 /// <param name="lifetime">Tells whether the agent is leaving.</param>
 /// <param name="ui">Follows the window's connection.</param>
+/// <param name="catalogue">Refreshes at once when a window connects while a start with the system waits.</param>
 /// <param name="links">Reads links in a later launch's command line.</param>
 public sealed class AgentRequestHandler(
     AgentCommands commands,
@@ -19,6 +21,7 @@ public sealed class AgentRequestHandler(
     ActivationHandler activation,
     AgentLifetime lifetime,
     UiLauncher ui,
+    CatalogueRefreshLoop catalogue,
     AppLinks links) : IConnectionHandler
 {
     public void OnConnected(PipeConnection connection)
@@ -26,6 +29,7 @@ public sealed class AgentRequestHandler(
         if (connection.Peer.Role == ProcessRole.Ui)
         {
             ui.OnConnected(connection);
+            catalogue.EndStartDelay();
         }
     }
 

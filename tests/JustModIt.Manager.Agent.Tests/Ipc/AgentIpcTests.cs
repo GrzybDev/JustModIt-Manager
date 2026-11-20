@@ -63,6 +63,18 @@ public sealed class AgentIpcTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_window_that_connects_while_a_start_with_the_system_waits_gets_the_catalogue_at_once()
+    {
+        await _agent.SaveSettingsAsync(AppSettings.Default with { OnboardingCompleted = true });
+        _agent.Start(new LaunchArguments(ProcessRole.Agent, Background: true, Target: null));
+
+        var window = await _agent.ConnectWindowAsync();
+
+        (await window.StateAsync(state => state.Catalogue.State == CatalogueState.Failed)).Catalogue.Failure
+            .Should().Be(CatalogueErrorReason.Offline, "the refresh asked the site rather than waiting two minutes");
+    }
+
+    [Fact]
     public async Task A_launch_brings_the_running_window_to_the_front()
     {
         _agent.Start();

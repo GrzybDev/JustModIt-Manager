@@ -27,8 +27,19 @@ public sealed partial class CatalogueRefreshLoop(
         FullMode = BoundedChannelFullMode.DropWrite,
     });
 
+    private volatile bool _waitingToStart;
+
     /// <summary>Refreshes as soon as possible, e.g. when the player asks for it.</summary>
     public void RequestRefresh() => _requests.Writer.TryWrite(true);
+
+    /// <summary>Ends the wait before the first refresh, e.g. when the player opens the window; afterwards it changes nothing.</summary>
+    public void EndStartDelay()
+    {
+        if (_waitingToStart)
+        {
+            RequestRefresh();
+        }
+    }
 
     /// <summary>Refreshes the catalogue until cancelled.</summary>
     /// <param name="startDelay">
@@ -38,6 +49,7 @@ public sealed partial class CatalogueRefreshLoop(
     /// <param name="cancellationToken">Stops the loop.</param>
     public async Task RunAsync(TimeSpan startDelay, CancellationToken cancellationToken)
     {
+        _waitingToStart = startDelay > TimeSpan.Zero;
         var delay = startDelay;
         while (true)
         {
@@ -72,6 +84,8 @@ public sealed partial class CatalogueRefreshLoop(
     {
         await time.WaitForSignalAsync(token => _requests.Reader.WaitToReadAsync(token).AsTask(), delay, cancellationToken)
             .ConfigureAwait(false);
+        // Before the requests are dropped, so a start delay ended just now asks for no second refresh.
+        _waitingToStart = false;
         while (_requests.Reader.TryRead(out _))
         {
         }
