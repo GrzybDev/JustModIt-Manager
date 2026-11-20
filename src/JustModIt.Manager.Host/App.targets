@@ -5,6 +5,8 @@
     <AssemblyName>$(ManagerAppId)</AssemblyName>
     <ApplicationManifest>$(MSBuildThisFileDirectory)app.manifest</ApplicationManifest>
     <ApplicationIcon>Branding\app.ico</ApplicationIcon>
+    <!-- The window's logo, and the Linux release's icon, which has no .ico. -->
+    <ManagerLogo>Branding\logo-256.png</ManagerLogo>
     <PublishAot>true</PublishAot>
     <ManagerAppProject>true</ManagerAppProject>
   </PropertyGroup>
@@ -16,7 +18,7 @@
 
   <!-- The window's logo and icon, which AppBranding reads from the app's own assembly. -->
   <ItemGroup>
-    <EmbeddedResource Include="Branding\logo-256.png" LogicalName="JustModIt.Manager.Logo.png" WithCulture="false" Visible="false" />
+    <EmbeddedResource Include="$(ManagerLogo)" LogicalName="JustModIt.Manager.Logo.png" WithCulture="false" Visible="false" />
     <EmbeddedResource Include="Branding\app.ico" LogicalName="JustModIt.Manager.Icon.ico" WithCulture="false" Visible="false" />
   </ItemGroup>
 

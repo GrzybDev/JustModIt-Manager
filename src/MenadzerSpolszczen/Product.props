@@ -16,6 +16,8 @@
     <ManagerIssuesUrl>https://github.com/GrzybDev/MenadzerSpolszczen/issues/new</ManagerIssuesUrl>
     <ManagerLanguage>pl</ManagerLanguage>
     <ManagerTargetLanguage>pl</ManagerTargetLanguage>
+    <!-- The menu categories of the Linux desktop entry. -->
+    <ManagerDesktopCategories>Game;Utility;</ManagerDesktopCategories>
     <ManagerAccentColor>#D4213D</ManagerAccentColor>
   </PropertyGroup>
 </Project>

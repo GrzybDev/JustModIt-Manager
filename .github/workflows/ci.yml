@@ -28,7 +28,12 @@ jobs:
 
   package:
     needs: checks
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Ubuntu 22.04 has glibc 2.35, the oldest the Linux release runs on: NativeAOT binds to the builder's glibc.
+        os: [windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -42,15 +47,22 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
 
+      # vpk builds the AppImage's file system with mksquashfs.
+      - name: Install the Linux packaging tools
+        if: ${{ runner.os == 'Linux' }}
+        run: sudo apt-get update && sudo apt-get install -y squashfs-tools
+
       - name: Test the build scripts
         shell: pwsh
         run: Invoke-Pester -Path build/tests -CI
 
       - uses: actions/setup-node@v7
+        if: ${{ runner.os == 'Windows' }}
         with:
           node-version: 26
 
       - name: Test the Steam scripts
+        if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: node --test "steam/**/*.test.mjs"
 
@@ -69,7 +81,7 @@ jobs:
       - name: Keep the installers
         uses: actions/upload-artifact@v7
         with:
-          name: packages
+          name: packages-${{ runner.os }}
           path: artifacts/release/*/releases/
           retention-days: 7
           if-no-files-found: error

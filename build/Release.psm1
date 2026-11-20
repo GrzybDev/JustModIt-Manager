@@ -32,8 +32,8 @@ function Get-AppProjects {
 
 function Read-AppProject([System.IO.DirectoryInfo]$Folder) {
     $project = Get-ChildItem $Folder.FullName -Filter '*.csproj' | Select-Object -First 1
-    $properties = 'Product', 'Company', 'AssemblyName', 'ApplicationIcon', 'ManagerAppId', 'ManagerAppSlug', 'ManagerUpdateUrl',
-        'ManagerUpdateChannel'
+    $properties = 'Product', 'Company', 'AssemblyName', 'ApplicationIcon', 'ManagerLogo', 'ManagerDesktopCategories',
+        'ManagerAppId', 'ManagerAppSlug', 'ManagerUpdateUrl', 'ManagerUpdateChannel'
     $arguments = @('msbuild', $project.FullName, '-p:Configuration=Release', '-getItem:PackageVersion') +
         @($properties | ForEach-Object { "-getProperty:$_" })
     $read = Get-NativeOutput 'dotnet' $arguments
@@ -48,8 +48,10 @@ function Read-AppProject([System.IO.DirectoryInfo]$Folder) {
         Project = $project.FullName
         Product = $values.Product
         Company = $values.Company
-        MainExe = "$($values.AssemblyName).exe"
+        AssemblyName = $values.AssemblyName
         Icon = Join-Path $Folder.FullName $values.ApplicationIcon
+        Logo = Join-Path $Folder.FullName $values.ManagerLogo
+        Categories = $values.ManagerDesktopCategories
         AppId = $values.ManagerAppId
         Slug = $values.ManagerAppSlug
         UpdateUrl = $values.ManagerUpdateUrl.TrimEnd('/')
@@ -101,6 +103,13 @@ function Compare-Version([string]$Left, [string]$Right) {
         if ($order -ne 0) { return [Math]::Sign($order) }
     }
     return $leftParts.Count.CompareTo($rightParts.Count)
+}
+
+# The version in $Name, the file name of a full package of the app $AppId. vpk names a package after its channel, except
+# Windows' default one, and the default on Linux ($Linux) is linux.
+function Get-PackageVersion([string]$AppId, [string]$Name, [bool]$Linux) {
+    $channel = if ($Linux) { '-linux' } else { '' }
+    if ($Name -match "^$([regex]::Escape($AppId))-(?<version>.+)$channel-full\.nupkg$") { $Matches.version }
 }
 
 # The versions of the app's tags, <slug>/v<version>, that the ref contains, oldest first.
@@ -216,4 +225,4 @@ function Write-ReleaseNotes {
 }
 
 Export-ModuleMember -Function Invoke-Native, Get-NativeOutput, Get-AppProjects, Get-AppSlug, Find-App, Read-AppProject,
-    Confirm-Version, Compare-Version, Get-AppTagVersions, Get-NextVersion, Write-ReleaseNotes
+    Confirm-Version, Compare-Version, Get-PackageVersion, Get-AppTagVersions, Get-NextVersion, Write-ReleaseNotes

@@ -23,6 +23,17 @@ Describe 'Compare-Version' {
     }
 }
 
+Describe 'Get-PackageVersion' {
+    It 'reads the version of <Name>, so the next pre-release gets its delta' -TestCases @(
+        @{ Name = 'ExampleApp-1.2.0-beta.1-full.nupkg'; Linux = $false }
+        @{ Name = 'ExampleApp-1.2.0-beta.1-linux-full.nupkg'; Linux = $true }
+    ) {
+        $version = Get-PackageVersion 'ExampleApp' $Name $Linux
+        $version | Should -Be '1.2.0-beta.1'
+        Compare-Version $version '1.2.0-beta.2' | Should -Be -1
+    }
+}
+
 Describe 'Confirm-Version' {
     It 'accepts <Version>, which Velopack packs' -TestCases @(
         @{ Version = '0.0.1' }, @{ Version = '0.0.1-ci.1' }, @{ Version = '1.2.3-beta.4' }

@@ -1,17 +1,18 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-Publishes one app with NativeAOT and packs it into a Velopack release.
+Publishes one app with NativeAOT for the system it runs on and packs it into a Velopack release.
 
 .DESCRIPTION
-Everything that sets one app apart (its package id, title, authors, icon, update feed, channel and tag prefix) is read
-from its project with MSBuild, so the script is the same for every app. The output folder receives:
+Everything that sets one app apart (its package id, title, authors, icons, menu categories, update feed, channel and
+tag prefix) is read from its project with MSBuild, so the script is the same for every app. NativeAOT compiles only for
+the system it runs on, so Windows packs the Windows release and Linux the AppImage. The output folder receives:
 
-  publish\           the published app, as the installer lays it out
-  symbols\           the program databases, which never go into the package
-  releases\          the Velopack release: installer, full and delta packages, release feed
+  publish\           the published app, as the installer or the AppImage lays it out
+  symbols\           the program databases and debug symbols, which never go into the package
+  releases\          the Velopack release: installer or AppImage, full and delta packages, release feed
   release-notes.md   the commits since the app's previous tag, leaving out those that touch only other apps
-  checksums.txt      the SHA-256 of the installer and the full package
+  checksums.txt      the SHA-256 of every file a player downloads: the installer or the AppImage, and the full package
 
 The API key for the app's site comes from the MANAGER_API_KEY environment variable when it is set, and the address
 error reports go to from MANAGER_ERROR_REPORTS_DSN.
@@ -28,8 +29,6 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Version,
 
-    [string]$Runtime = 'win-x64',
-
     # Defaults to artifacts\release\<ManagerAppId>.
     [string]$OutputDir,
 
@@ -43,7 +42,7 @@ param(
     [string]$SourceUrl,
 
     # A command that code-signs files in place, which vpk runs through cmd with {{file}} or {{file...}}: first for the
-    # app's files and its own executables, then for the installer.
+    # app's files and its own executables, then for the installer. Windows only.
     [string]$SignTemplate
 )
 
@@ -51,6 +50,9 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'Release.psm1') -Force
 $root = Split-Path -Parent $PSScriptRoot
+# Windows PowerShell has no $IsLinux.
+$linux = [Environment]::OSVersion.Platform -eq 'Unix'
+$runtime = if ($linux) { 'linux-x64' } else { 'win-x64' }
 
 # A command-line property ends at a comma or semicolon, and $, @, % and others are MSBuild syntax; every %XX is unescaped.
 function ConvertTo-MSBuildValue([string]$Value) {
@@ -60,13 +62,15 @@ function ConvertTo-MSBuildValue([string]$Value) {
 Confirm-Version $Version
 
 # The NativeAOT linker finds Visual Studio through vswhere, which the Visual Studio installer does not put on PATH.
-$installer = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
-if (-not (Get-Command 'vswhere' -ErrorAction SilentlyContinue) -and (Test-Path (Join-Path $installer 'vswhere.exe'))) {
-    $env:PATH = "$installer;$env:PATH"
+if (-not $linux) {
+    $installer = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
+    if (-not (Get-Command 'vswhere' -ErrorAction SilentlyContinue) -and (Test-Path (Join-Path $installer 'vswhere.exe'))) {
+        $env:PATH = "$installer;$env:PATH"
+    }
 }
 
 $target = Read-AppProject (Find-App $App)
-if (-not $OutputDir) { $OutputDir = Join-Path $root "artifacts\release\$($target.AppId)" }
+if (-not $OutputDir) { $OutputDir = [System.IO.Path]::Combine($root, 'artifacts', 'release', $target.AppId) }
 $publish = Join-Path $OutputDir 'publish'
 $symbols = Join-Path $OutputDir 'symbols'
 $releases = Join-Path $OutputDir 'releases'
@@ -76,13 +80,10 @@ foreach ($output in $publish, $symbols, $releases, $notes, $checksums) {
     if (Test-Path $output) { Remove-Item $output -Recurse -Force }
 }
 
-$vpkFolder = Join-Path $root "artifacts\tools\vpk\$($target.VelopackVersion)"
-$vpk = Join-Path $vpkFolder 'vpk.exe'
-if (-not (Test-Path $vpk)) {
-    Invoke-Native 'dotnet' @('tool', 'install', 'vpk', '--version', $target.VelopackVersion, '--tool-path', $vpkFolder)
-}
+# The packaging tool has to be the version of the Velopack library that the app runs.
+$vpk = @('tool', 'exec', "vpk@$($target.VelopackVersion)", '--yes', '--')
 
-$publishArguments = @('publish', $target.Project, '-c', 'Release', '-r', $Runtime, "-p:Version=$Version", '-o', $publish)
+$publishArguments = @('publish', $target.Project, '-c', 'Release', '-r', $runtime, "-p:Version=$Version", '-o', $publish)
 if ($env:MANAGER_API_KEY) { $publishArguments += "-p:ManagerApiKey=$(ConvertTo-MSBuildValue $env:MANAGER_API_KEY)" }
 if ($env:MANAGER_ERROR_REPORTS_DSN) {
     $publishArguments += "-p:ManagerErrorReportsDsn=$(ConvertTo-MSBuildValue $env:MANAGER_ERROR_REPORTS_DSN)"
@@ -90,7 +91,8 @@ if ($env:MANAGER_ERROR_REPORTS_DSN) {
 Invoke-Native 'dotnet' $publishArguments
 
 New-Item -ItemType Directory -Force $symbols, $releases | Out-Null
-Get-ChildItem $publish -Filter '*.pdb' | Move-Item -Destination $symbols
+# NativeAOT writes the executable's symbols on Linux to <app>.dbg, which vpk would otherwise pack.
+Get-ChildItem $publish -File | Where-Object Extension -In '.pdb', '.dbg' | Move-Item -Destination $symbols
 
 if (-not $NoDelta -and $target.UpdateUrl) {
     $downloadArguments = @('download', 'github', '--repoUrl', $target.UpdateUrl, '--outputDir', $releases, '--skip-updates')
@@ -98,10 +100,10 @@ if (-not $NoDelta -and $target.UpdateUrl) {
     # The delta is made against the newest release of any kind, since testers update to pre-releases too.
     $downloadArguments += '--pre'
     if ($Token) { $downloadArguments += @('--token', $Token) }
-    & $vpk @downloadArguments
+    & dotnet @vpk @downloadArguments
     $downloaded = $LASTEXITCODE -eq 0
     $latest = @(Get-ChildItem $releases -Filter '*-full.nupkg' | ForEach-Object {
-        if ($_.Name -match "^$([regex]::Escape($target.AppId))-(?<version>.+)-full\.nupkg$") { $Matches.version }
+        Get-PackageVersion $target.AppId $_.Name $linux
     })
     if (-not $downloaded -or $latest.Count -eq 0) {
         Write-Warning "No earlier release came from $($target.UpdateUrl), so this one has no delta package."
@@ -115,9 +117,14 @@ if (-not $NoDelta -and $target.UpdateUrl) {
 }
 
 $packArguments = @('pack', '--packId', $target.AppId, '--packVersion', $Version, '--packTitle', $target.Product,
-    '--packAuthors', $target.Company, '--packDir', $publish, '--mainExe', $target.MainExe, '--icon', $target.Icon,
-    '--runtime', $Runtime, '--outputDir', $releases, '--shortcuts', 'StartMenuRoot', '--noPortable', '--delta', 'BestSpeed',
-    '--skip-updates')
+    '--packAuthors', $target.Company, '--packDir', $publish, '--runtime', $runtime, '--outputDir', $releases, '--delta',
+    'BestSpeed', '--skip-updates')
+$packArguments += if ($linux) {
+    @('--mainExe', $target.AssemblyName, '--icon', $target.Logo, '--categories', $target.Categories)
+}
+else {
+    @('--mainExe', "$($target.AssemblyName).exe", '--icon', $target.Icon, '--shortcuts', 'StartMenuRoot', '--noPortable')
+}
 if ($target.Channel) { $packArguments += @('--channel', $target.Channel) }
 if (Write-ReleaseNotes -Target $target -Version $Version -Path $notes -SourceUrl $SourceUrl) {
     $packArguments += @('--releaseNotes', $notes)
@@ -127,11 +134,12 @@ if ($SignTemplate) {
     Write-Host "vpk has the app's files signed, then the installer, with: $SignTemplate"
     $packArguments += @('--signTemplate', $SignTemplate)
 }
-Invoke-Native $vpk $packArguments
+Invoke-Native 'dotnet' ($vpk + $packArguments)
 
+# A player downloads the installer or the AppImage and the full package; deltas only reach an installed copy.
 $assets = Get-ChildItem $releases -Filter 'assets.*.json' | Get-Content -Raw | ConvertFrom-Json
-$setup = Join-Path $releases ($assets | Where-Object Type -eq 'Installer').RelativeFileName
-$hashes = foreach ($file in $setup, (Join-Path $releases ($assets | Where-Object Type -eq 'Full').RelativeFileName)) {
+$hashes = foreach ($asset in $assets | Where-Object Type -NE 'Delta') {
+    $file = Join-Path $releases $asset.RelativeFileName
     "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $(Split-Path -Leaf $file)"
 }
 [System.IO.File]::WriteAllText($checksums, ($hashes -join "`n") + "`n", (New-Object System.Text.UTF8Encoding $false))
@@ -139,7 +147,7 @@ $hashes = foreach ($file in $setup, (Join-Path $releases ($assets | Where-Object
 if ($env:GITHUB_OUTPUT) {
     @(
         "app-id=$($target.AppId)", "product=$($target.Product)", "update-url=$($target.UpdateUrl)",
-        "channel=$($target.Channel)", "vpk=$vpk", "releases=$releases", "symbols=$symbols", "setup=$setup",
+        "channel=$($target.Channel)", "velopack=$($target.VelopackVersion)", "releases=$releases", "symbols=$symbols",
         "checksums=$checksums"
     ) | Add-Content -Path $env:GITHUB_OUTPUT -Encoding UTF8
 }
