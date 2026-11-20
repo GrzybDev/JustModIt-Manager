@@ -43,6 +43,9 @@ public sealed class GameIndex
 
     private readonly Dictionary<string, GameFile> _files = new(PackagePath.Comparer);
     private readonly Dictionary<string, string> _directories = new(PackagePath.Comparer);
+
+    // Only a case-sensitive file system lists two spellings of one path, which Windows and Wine take for one.
+    private readonly Dictionary<string, (string First, string Second)> _twins = new(PackagePath.Comparer);
     private Dictionary<long, List<GameFile>>? _bySize;
     private Dictionary<string, List<GameFile>>? _byDirectory;
     private ILookup<string, string>? _byName;
@@ -119,6 +122,11 @@ public sealed class GameIndex
             index._directories.TryAdd(path, path);
         }
 
+        foreach (var (path, (first, second)) in _twins)
+        {
+            index._twins.TryAdd(layout.ToPackage(path), (layout.ToPackage(first), layout.ToPackage(second)));
+        }
+
         return index;
     }
 
@@ -159,6 +167,25 @@ public sealed class GameIndex
         }
 
         return path;
+    }
+
+    /// <summary>
+    /// Two entries of the game at the path, or at the nearest folder above it that has two, whose names differ only in letter
+    /// case, so it is not clear which one the game reads.
+    /// </summary>
+    /// <param name="path">Game-relative, in any letter case.</param>
+    /// <returns>The spelling listed first and the other; null when the game spells the path and its folders one way.</returns>
+    internal (string First, string Second)? CaseTwinOf(string path)
+    {
+        for (var current = path; current.Length > 0; current = DirectoryOf(current))
+        {
+            if (_twins.TryGetValue(current, out var twins))
+            {
+                return twins;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>The game files of a size.</summary>
@@ -217,6 +244,11 @@ public sealed class GameIndex
         }
 
         var path = PackagePath.FromFullPath(Root, entry.FullPath);
+        if ((_files.TryGetValue(path, out var file) ? file.Path : _directories.GetValueOrDefault(path)) is { } listed)
+        {
+            _twins.TryAdd(path, (listed, path));
+        }
+
         if (entry.IsDirectory)
         {
             _directories.TryAdd(path, path);

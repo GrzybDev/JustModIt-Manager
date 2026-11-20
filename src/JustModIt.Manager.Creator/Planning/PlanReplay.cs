@@ -117,6 +117,12 @@ internal sealed class PlanReplay
                 continue;
             }
 
+            if (_game.CaseTwinOf(path) is (var first, var second))
+            {
+                AddRuntime(FindingKind.GameCaseTwins, i, first, related: second);
+                continue;
+            }
+
             if (!declared.Add(path))
             {
                 AddRuntime(FindingKind.DuplicatePath, i, path);
@@ -162,7 +168,7 @@ internal sealed class PlanReplay
     private PlannedOperation Copy(PlannedOperation operation)
     {
         var source = SourceOf(operation);
-        if (!IsValid(operation, operation.Path) || source is null)
+        if (!IsValidInGame(operation, operation.Path) || source is null)
         {
             return operation with { SourceFile = source };
         }
@@ -187,7 +193,7 @@ internal sealed class PlanReplay
     private PlannedOperation Patch(PlannedOperation operation)
     {
         var source = SourceOf(operation);
-        if (!IsValid(operation, operation.Path))
+        if (!IsValidInGame(operation, operation.Path))
         {
             return operation with { SourceFile = source };
         }
@@ -206,7 +212,7 @@ internal sealed class PlanReplay
     private PlannedOperation Rename(PlannedOperation operation)
     {
         var from = operation.From ?? string.Empty;
-        if (!(IsValid(operation, from) & IsValid(operation, operation.Path)))
+        if (!(IsValidInGame(operation, from) & IsValidInGame(operation, operation.Path)))
         {
             return operation;
         }
@@ -239,7 +245,7 @@ internal sealed class PlanReplay
 
     private PlannedOperation Delete(PlannedOperation operation)
     {
-        if (!IsValid(operation, operation.Path))
+        if (!IsValidInGame(operation, operation.Path))
         {
             return operation;
         }
@@ -314,6 +320,23 @@ internal sealed class PlanReplay
         }
 
         return true;
+    }
+
+    // Of two entries that differ only in letter case, which one the game reads is not clear, so a game path may cross neither.
+    private bool IsValidInGame(PlannedOperation operation, string path)
+    {
+        if (!IsValid(operation, path))
+        {
+            return false;
+        }
+
+        if (_game.CaseTwinOf(path) is not (var first, var second))
+        {
+            return true;
+        }
+
+        Add(FindingKind.GameCaseTwins, operation, first, related: second);
+        return false;
     }
 
     /// <summary>What keeps a path from being declared as a file the package's software writes; null when nothing does.</summary>
@@ -414,11 +437,17 @@ internal sealed class PlanReplay
         return edits[a.Length][b.Length];
     }
 
-    private void Add(FindingKind kind, PlannedOperation operation, string path, string? suggested = null) =>
-        _findings.Add(new PlanFinding(kind, path) { OperationIndex = _index, StepIndex = operation.StepIndex, SuggestedPath = suggested });
+    private void Add(FindingKind kind, PlannedOperation operation, string path, string? suggested = null, string? related = null) =>
+        _findings.Add(new PlanFinding(kind, path)
+        {
+            OperationIndex = _index,
+            StepIndex = operation.StepIndex,
+            SuggestedPath = suggested,
+            RelatedPath = related,
+        });
 
-    private void AddRuntime(FindingKind kind, int index, string path, string? suggested = null) =>
-        _findings.Add(new PlanFinding(kind, path) { RuntimeIndex = index, SuggestedPath = suggested });
+    private void AddRuntime(FindingKind kind, int index, string path, string? suggested = null, string? related = null) =>
+        _findings.Add(new PlanFinding(kind, path) { RuntimeIndex = index, SuggestedPath = suggested, RelatedPath = related });
 
     private readonly record struct PathState(Origin Origin, FileReference? Content);
 }

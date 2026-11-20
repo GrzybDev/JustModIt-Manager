@@ -357,6 +357,24 @@ public sealed class SimplePlanTests : IDisposable
             .Which.StepIndex.Should().Be(2);
     }
 
+    [Fact]
+    public async Task Refuses_game_paths_through_folders_whose_names_differ_only_in_letter_case()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows' file systems hold no two names that differ only in letter case.");
+        _workspace.Game("Data/a.txt", "a file of the game");
+        _workspace.Game("data/b.txt", "a file a tool wrote under another spelling");
+        _workspace.Author("data/c.txt", "new");
+        _workspace.Author("other/d.txt", "new");
+
+        var plan = (await ReviewAsync(Part.WithRuntimeFile(new RuntimeFileChoice("DATA/list.idx", RuntimeFileKind.CreatesFile)))).Plan;
+
+        var twins = plan.Findings.Where(finding => finding.Kind == FindingKind.GameCaseTwins).ToList();
+        twins.Select(finding => (finding.OperationIndex, finding.RuntimeIndex)).Should().Equal(((int?)0, (int?)null), (null, 0));
+        twins.Should().AllSatisfy(finding => new[] { finding.Path, finding.RelatedPath }.Should().BeEquivalentTo("Data", "data"));
+        plan.Findings.Should().NotContain(finding => finding.OperationIndex == 1, "the game spells the other folder one way");
+        plan.CanBuild.Should().BeFalse();
+    }
+
     private static ReviewEntry Entry(CreatorReview review, string path) => review.Entries.Single(entry => entry.File.Path == path);
 
     private Task<CreatorReview> ReviewAsync(ProjectPart part) => _workspace.ReviewAsync(Workspace.Project(part));

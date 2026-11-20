@@ -28,6 +28,12 @@ public enum FindingKind
     /// <summary>A folder stands where the package needs a file, or a file where it needs a folder.</summary>
     PathConflict,
 
+    /// <summary>
+    /// The game holds two entries on the path whose names differ only in letter case, so it is not clear which one it reads;
+    /// <see cref="PlanFinding.Path"/> and <see cref="PlanFinding.RelatedPath"/> name them.
+    /// </summary>
+    GameCaseTwins,
+
     /// <summary>The author's file is not in the author's folder, e.g. it was removed after the comparison.</summary>
     AuthorFileMissing,
 
