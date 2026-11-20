@@ -340,6 +340,9 @@ public sealed class CreatorPackageTests : IDisposable
         (await reopened.FlushAsync()).Should().BeTrue();
 
         site.SetResult();
+        await UiHarness.WaitUntilAsync(() => reopened.Project.Site is not null);
+        (await reopened.FlushAsync()).Should().BeTrue();
+        // Long enough for the closed session's save delay, had it taken the answer.
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
 
         closed.Project.Metadata.Version.Should().BeEmpty();
