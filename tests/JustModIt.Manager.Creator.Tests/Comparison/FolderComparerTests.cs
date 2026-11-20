@@ -6,7 +6,6 @@ using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
 using JustModIt.Manager.Creator.Tests.TestSupport;
-using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Creator.Tests.Comparison;
 
@@ -413,7 +412,7 @@ public sealed class FolderComparerTests : IDisposable
         _workspace.Author("data/strings.bin", "customized");
         var token = TestContext.Current.CancellationToken;
         using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
-        var time = new FakeTimeProvider();
+        var time = new CountingTimeProvider();
         var comparer = new FolderComparer(Workspace.Options, files, new LibraryAccess(time));
 
         files.Hang(_workspace.GamePath("data"));

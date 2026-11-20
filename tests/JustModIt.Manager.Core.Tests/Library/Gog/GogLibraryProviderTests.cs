@@ -6,7 +6,6 @@ using JustModIt.Manager.Core.Library.Heroic;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Core.Tests.Library.Gog;
 
@@ -352,7 +351,7 @@ public sealed class GogLibraryProviderTests
         var known = (await Scan()).Games.Single();
         using var files = new HangingFileSystem(_files);
         files.Hang(Folder);
-        var time = new FakeTimeProvider();
+        var time = new CountingTimeProvider();
 
         var probing = CreateProvider(files).ProbeAsync(known, LibraryScanContext.Empty with { Access = new LibraryAccess(time) }, Token);
         await files.RunOutOfTimeAsync(time);
@@ -413,7 +412,7 @@ public sealed class GogLibraryProviderTests
     private async Task<StoreScan> ScanRunningOutOfTimeAsync(HangingFileSystem files, LibraryScanContext context,
         params IInstallSource<GogInstallRecord>[] extra)
     {
-        var time = new FakeTimeProvider();
+        var time = new CountingTimeProvider();
         var scanning = CreateProvider(files, extra).ScanAsync(context with { Access = new LibraryAccess(time) }, Token);
         await files.RunOutOfTimeAsync(time);
         return await scanning;

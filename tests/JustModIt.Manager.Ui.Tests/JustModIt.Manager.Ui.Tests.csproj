@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\CountingTimeProvider.cs" Link="TestSupport\CountingTimeProvider.cs" />
     <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\Eventually.cs" Link="TestSupport\Eventually.cs" />
     <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\HangingFileSystem.cs" Link="TestSupport\HangingFileSystem.cs" />
     <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\TestPaths.cs" Link="TestSupport\TestPaths.cs" />

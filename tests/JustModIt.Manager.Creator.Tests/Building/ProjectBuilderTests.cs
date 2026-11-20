@@ -11,7 +11,6 @@ using JustModIt.Manager.Creator.Building;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Creator.Tests.TestSupport;
-using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Creator.Tests.Building;
 
@@ -169,7 +168,7 @@ public sealed class ProjectBuilderTests : IDisposable
             _ => parts[1].Versions[0].Plan.AuthorDirectory,
         };
         using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
-        var time = new FakeTimeProvider();
+        var time = new CountingTimeProvider();
         files.Hang(folder);
 
         var run = new ProjectBuilder(new XDelta3Patcher(), Workspace.Options, _library, new LibraryAccess(time), fileSystem: files)

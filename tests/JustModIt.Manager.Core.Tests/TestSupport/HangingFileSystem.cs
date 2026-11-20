@@ -33,15 +33,15 @@ internal sealed class HangingFileSystem(IFileSystem inner) : IFileSystem, IDispo
         }
     }
 
-    /// <summary>Waits until a call blocks, then moves the clock past the <see cref="LibraryAccess.TimeLimit"/>.</summary>
+    /// <summary>
+    /// Waits until a call blocks and every read the clock times is a blocked one, then moves the clock past the
+    /// <see cref="LibraryAccess.TimeLimit"/>, so the reads of the drives that answer never run out of time with it.
+    /// </summary>
     /// <param name="time">The clock the library's reads are timed by.</param>
-    public async Task RunOutOfTimeAsync(FakeTimeProvider time)
+    public async Task RunOutOfTimeAsync(CountingTimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(time);
-        await Eventually.HoldsAsync(() => Blocked > 0, "a drive does not answer");
-
-        // Reads of the drives that answer end meanwhile, so only the blocked one runs out of time.
-        await Eventually.SettleAsync();
+        await Eventually.HoldsAsync(() => Blocked > 0 && time.DriveLimits == Blocked, "only the drives that do not answer are read");
         time.Advance(LibraryAccess.TimeLimit);
     }
 

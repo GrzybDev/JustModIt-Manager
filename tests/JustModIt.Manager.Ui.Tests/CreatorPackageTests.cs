@@ -932,7 +932,8 @@ public sealed class CreatorPackageTests : IDisposable
         package.Build.ProblemTitle.Should().Be(Strings.Creator_BuildCancelledTitle);
 
         await BuildAsync(ui);
-        await files.RunOutOfTimeAsync(ui.Clock);
+        // The stopped build's read still holds the drive, so the new build waits for its turn before it reads anything.
+        ui.Clock.Advance(LibraryAccess.TimeLimit);
         await BuildEndedAsync(package);
 
         package.Build.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FolderUnavailable)),

@@ -5,7 +5,6 @@ using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Tests.TestSupport;
-using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Core.Tests.Library.Steam;
 
@@ -483,7 +482,7 @@ public sealed class SteamLibraryProviderTests
         var known = (await _steam.ScanAsync()).Games.Single();
         using var files = new HangingFileSystem(_steam.Files);
         files.Hang(library);
-        var time = new FakeTimeProvider();
+        var time = new CountingTimeProvider();
 
         var probing = _steam.CreateProvider(files: files).ProbeAsync(known, LibraryScanContext.Empty with { Access = new LibraryAccess(time) }, Token);
         await files.RunOutOfTimeAsync(time);
@@ -593,7 +592,7 @@ public sealed class SteamLibraryProviderTests
 
     private async Task<StoreScan> ScanRunningOutOfTimeAsync(HangingFileSystem files, params string[] manualFolders)
     {
-        var time = new FakeTimeProvider();
+        var time = new CountingTimeProvider();
         var scanning = _steam.CreateProvider(files: files)
             .ScanAsync(new LibraryScanContext([.. manualFolders]) { Access = new LibraryAccess(time) }, Token);
         await files.RunOutOfTimeAsync(time);

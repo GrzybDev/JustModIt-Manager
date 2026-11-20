@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -19,7 +20,6 @@ using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Shell;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Ui.Tests.TestSupport;
 
@@ -86,7 +86,7 @@ public sealed class UiHarness : IDisposable
     public FakeClipboard Clipboard { get; } = new();
 
     /// <summary>A clock standing at <see cref="TestStates.Now"/>, in UTC.</summary>
-    public FakeTimeProvider Clock { get; } = new(TestStates.Now);
+    internal CountingTimeProvider Clock { get; } = new(TestStates.Now);
 
     public UiSession Session { get; }
 

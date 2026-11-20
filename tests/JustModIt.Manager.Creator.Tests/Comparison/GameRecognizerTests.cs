@@ -2,7 +2,6 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Creator.Comparison;
-using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Creator.Tests.Comparison;
 
@@ -27,7 +26,7 @@ public sealed class GameRecognizerTests
         hanging.Hang(@"X:\Games\Ashfall");
         // A game that has none of the folder's top-level names is read no further than its top level.
         hanging.Hang(@"C:\Steam\Tidewater\Tide_Data");
-        var time = new FakeTimeProvider();
+        var time = new CountingTimeProvider();
 
         var recognizing = GameRecognizer.RecognizeAsync(@"D:\Work\Translation",
         [

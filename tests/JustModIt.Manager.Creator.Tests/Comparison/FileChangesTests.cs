@@ -3,7 +3,6 @@ using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Tests.TestSupport;
-using Microsoft.Extensions.Time.Testing;
 
 namespace JustModIt.Manager.Creator.Tests.Comparison;
 
@@ -35,7 +34,7 @@ public sealed class FileChangesTests : IDisposable
         (await check(PhysicalFileSystem.Instance, LibraryAccess.Unlimited)).Should().Be(new FileChanges(Changed: 1, Added: 1, Removed: 1));
 
         using var files = new HangingFileSystem(PhysicalFileSystem.Instance);
-        var time = new FakeTimeProvider();
+        var time = new CountingTimeProvider();
         files.Hang(_workspace.AuthorDirectory);
         var hanging = check(files, new LibraryAccess(time));
         await files.RunOutOfTimeAsync(time);
