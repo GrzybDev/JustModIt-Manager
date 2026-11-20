@@ -126,19 +126,48 @@ public sealed class HostingRulesTests : IDisposable
             && finding.BlocksBuild);
     }
 
-    [Fact]
-    public async Task Lets_a_game_executable_change_only_through_a_patch()
+    [Theory]
+    [InlineData("Game.exe")]
+    [InlineData("Game.x86_64")]
+    [InlineData("bin/Game")]
+    public async Task Lets_a_game_program_change_only_through_a_patch(string path)
     {
-        _workspace.Game("Game.exe", Workspace.Bytes(4096, 1));
-        _workspace.Author("game.exe", Workspace.Bytes(4200, 2));
+        _workspace.Game(path, Elf(4096, 1));
+        _workspace.Author(path.ToLowerInvariant(), Elf(4200, 2));
         _workspace.Author("tools/converter.exe", Workspace.Bytes(2048, 3));
         var review = await ReviewAsync(Project);
 
-        var copied = await ReviewAsync(Workspace.Project(Part.WithChoice(review.Entries.Single(entry => entry.File.Path == "Game.exe"), FileChoice.Copy)));
+        var copied = await ReviewAsync(Workspace.Project(Part.WithChoice(review.Entries.Single(entry => entry.File.Path == path), FileChoice.Copy)));
 
         review.Plan.Findings.Should().BeEmpty();
         copied.Plan.Findings.Should().ContainSingle().Which.Should().Match<PlanFinding>(finding =>
-            finding.Kind == FindingKind.WholeGameExecutable && finding.Path == "Game.exe");
+            finding.Kind == FindingKind.WholeGameExecutable && finding.Path == path);
+    }
+
+    [Fact]
+    public async Task Tells_a_program_without_an_extension_by_its_header_never_by_its_mode()
+    {
+        var level = _workspace.Game("Data/level0", Workspace.Bytes(4096, 1));
+        if (!OperatingSystem.IsWindows())
+        {
+            // As Steam leaves every game file, data files included.
+            File.SetUnixFileMode(level, File.GetUnixFileMode(level) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute
+                | UnixFileMode.OtherExecute);
+        }
+
+        _workspace.Game("bin/server", Elf(4096, 2));
+        _workspace.Author("Data/level0", Workspace.Bytes(4100, 3));
+        _workspace.Author("tools/notes", "how the package was made");
+        var part = Part.WithChoice((await ReviewAsync(Project)).Entries.Single(entry => entry.File.Path == "Data/level0"), FileChoice.Copy);
+
+        var data = await PlanAsync(Workspace.Project(part));
+        _workspace.Author("tools/patcher", Elf(2048, 4));
+        var program = await PlanAsync(Workspace.Project(part.WithRuntimeFile(new RuntimeFileChoice("bin/server", RuntimeFileKind.ChangesGameFile))));
+
+        data.Findings.Should().ContainSingle().Which.Kind.Should().Be(FindingKind.WholeGameFile);
+        data.CarriesCode.Should().BeFalse();
+        program.CarriesCode.Should().BeTrue();
+        program.Findings.Should().Contain(finding => finding.Kind == FindingKind.RuntimeCode && finding.Path == "bin/server");
     }
 
     [Theory]
@@ -198,6 +227,7 @@ public sealed class HostingRulesTests : IDisposable
     {
         _workspace.Author("plugins/subtitles.dll", "the translation's own library");
         _workspace.Author("plugins/hook.DLL", "a hooking library of another author");
+        _workspace.Author("lib/libsubtitles.so.2", "the translation's own library for Linux");
         const string Source = "https://code.example.com/hook";
 
         var own = await PlanAsync(Project);
@@ -207,7 +237,7 @@ public sealed class HostingRulesTests : IDisposable
         var ownAgain = await PlanAsync(Project.WithLibraryNotice(new LibraryNotice("plugins/hook.dll", "MIT", Source))
             .WithoutLibraryNotice("plugins/HOOK.dll"));
 
-        own.Findings.Should().HaveCount(2).And.OnlyContain(finding => finding.Kind == FindingKind.AddedLibrary && !finding.BlocksBuild);
+        own.Findings.Should().HaveCount(3).And.OnlyContain(finding => finding.Kind == FindingKind.AddedLibrary && !finding.BlocksBuild);
         own.Format.Kind.Should().Be(PackageKind.Zip);
         asked.Findings.Single(finding => finding.BlocksBuild).Path.Should().Be("plugins/hook.DLL");
         asked.Format.Should().Be(new PackageFormatDecision(PackageKind.Manifest, [FormatReason.CarriesThirdPartyNotices]));
@@ -308,6 +338,8 @@ public sealed class HostingRulesTests : IDisposable
 
         plan.Findings.Should().NotContain(finding => finding.Kind == FindingKind.RuntimeSettings);
     }
+
+    private static byte[] Elf(int size, int seed) => [0x7F, (byte)'E', (byte)'L', (byte)'F', .. Workspace.Bytes(size - 4, seed)];
 
     private Task<CreatorReview> ReviewAsync(CreatorProject project) => _workspace.ReviewAsync(project);
 

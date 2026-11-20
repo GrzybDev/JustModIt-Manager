@@ -59,7 +59,7 @@ public static class CreatorPlanner
         }
 
         findings.AddRange(HostingRules.Check(comparison, resolved, options.Rules));
-        findings.AddRange(HostingRules.CheckRuntime(runtime, resolved, options.Rules));
+        findings.AddRange(HostingRules.CheckRuntime(comparison, runtime, resolved, options.Rules));
         var tools = findings.Where(finding => finding.Kind == FindingKind.ThirdPartyTool).Select(finding => finding.ToolId!).ToList();
         var libraries = findings.Where(finding => finding.Kind == FindingKind.AddedLibrary)
             .Select(finding => (Path: finding.Path!, Notice: project.LibraryNoticeOf(finding.Path!)))
@@ -70,7 +70,7 @@ public static class CreatorPlanner
             findings.Add(new PlanFinding(FindingKind.TooManyThirdPartyNotices));
         }
 
-        var carriesCode = tools.Count > 0 || HostingRules.CarriesCode(resolved, options.Rules);
+        var carriesCode = tools.Count > 0 || HostingRules.CarriesCode(comparison, resolved, options.Rules);
         if (runtime.Count > 0 && !carriesCode)
         {
             findings.Add(new PlanFinding(FindingKind.RuntimeWithoutCode));

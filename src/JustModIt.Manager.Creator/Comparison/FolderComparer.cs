@@ -107,7 +107,7 @@ public sealed class FolderComparer(CreatorOptions options, IFileSystem? fileSyst
                 .Concat(missing)
                 .OrderBy(file => file.Path, StringComparer.OrdinalIgnoreCase),
         ];
-        return new FolderComparison(game.Root, authorDirectory, compared, game);
+        return new FolderComparison(game.Root, authorDirectory, compared, game, _fileSystem);
     }
 
     private List<Candidate> ListAuthorFiles(ComparisonRequest request, string authorDirectory, CancellationToken cancellationToken)

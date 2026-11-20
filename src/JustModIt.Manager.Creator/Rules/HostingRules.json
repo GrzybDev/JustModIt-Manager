@@ -40,6 +40,7 @@
     ".arc", ".assets", ".ba2", ".big", ".bin", ".bsa", ".bundle", ".cpk", ".dat", ".forge", ".gpk", ".npk", ".pak",
     ".pck", ".pkg", ".resources", ".rpa", ".rpf", ".sb", ".toc", ".ucas", ".utoc", ".vpk", ".wad", ".xp3"
   ],
+  "programExtensions": [ ".exe", ".x86_64", ".x86", ".sh" ],
   "libraryExtensions": [ ".dll", ".so", ".dylib" ],
   "saveNames": [ "save", "saves", "savegame", "savegames", "savedata", "SaveGames", "*.sav", "*.save" ],
   "settingsExtensions": [ ".ini", ".cfg", ".conf", ".config", ".json", ".xml", ".toml", ".yaml", ".yml", ".lua" ],

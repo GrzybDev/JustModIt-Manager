@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO.Enumeration;
+using System.Text.RegularExpressions;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Planning;
@@ -10,10 +11,8 @@ namespace JustModIt.Manager.Creator.Rules;
 /// Checks a plan against what the site hosts: the team's own work, never game files, store libraries or ways around
 /// copy protection, so game files change only through patches, renames and deletions, which carry none of their content.
 /// </summary>
-internal static class HostingRules
+internal static partial class HostingRules
 {
-    private const string ExecutableExtension = ".exe";
-
     // A plugin of the ASI loaders, which load it as a library.
     private const string LoaderPluginExtension = ".asi";
 
@@ -52,11 +51,12 @@ internal static class HostingRules
     }
 
     /// <summary>What the rules find in the files the package's software writes while the game runs.</summary>
+    /// <param name="comparison">The comparison the plan was made from, which tells a program without an extension.</param>
     /// <param name="files">The declared files, in the plan's order.</param>
     /// <param name="operations">The resolved operations, which may write some of the files too.</param>
     /// <param name="rules">The rules to apply.</param>
-    public static IEnumerable<PlanFinding> CheckRuntime(IReadOnlyList<PlannedRuntimeFile> files, IReadOnlyList<PlannedOperation> operations,
-        HostingRuleSet rules)
+    public static IEnumerable<PlanFinding> CheckRuntime(FolderComparison comparison, IReadOnlyList<PlannedRuntimeFile> files,
+        IReadOnlyList<PlannedOperation> operations, HostingRuleSet rules)
     {
         for (var i = 0; i < files.Count; i++)
         {
@@ -65,7 +65,7 @@ internal static class HostingRules
                 continue;
             }
 
-            foreach (var finding in CheckRuntimeFile(files[i], operations, rules))
+            foreach (var finding in CheckRuntimeFile(comparison, files[i], operations, rules))
             {
                 yield return finding with { RuntimeIndex = i };
             }
@@ -73,10 +73,12 @@ internal static class HostingRules
     }
 
     /// <summary>Whether the package carries a program, the only thing that can change files while the game runs.</summary>
+    /// <param name="comparison">The comparison the plan was made from, which tells a program without an extension.</param>
     /// <param name="operations">The resolved operations.</param>
-    /// <param name="rules">Name the extensions of libraries.</param>
-    public static bool CarriesCode(IReadOnlyList<PlannedOperation> operations, HostingRuleSet rules) =>
-        operations.Any(operation => operation.Kind is OperationKind.Copy or OperationKind.Rename && IsCode(operation.Path, rules));
+    /// <param name="rules">Name the extensions of programs and libraries.</param>
+    public static bool CarriesCode(FolderComparison comparison, IReadOnlyList<PlannedOperation> operations, HostingRuleSet rules) =>
+        operations.Any(operation => operation.Kind is OperationKind.Copy or OperationKind.Rename
+            && IsCode(comparison, operation.Path, operation.SourceFile ?? operation.Original, rules));
 
     /// <summary>Whether a patch carries most of its file, as one of an encrypted or recompressed archive does.</summary>
     /// <param name="rules">Hold the thresholds.</param>
@@ -106,7 +108,7 @@ internal static class HostingRules
 
         var game = comparison.Game.TryGetFile(operation.Path, out var found) ? found : null;
         var size = operation.SourceFile?.Stamp.Size ?? operation.Replaces?.Stamp.Size ?? 0;
-        if (game is not null && game.Path.EndsWith(ExecutableExtension, StringComparison.OrdinalIgnoreCase))
+        if (game is not null && IsProgram(comparison, game.Path, new FileReference(game.FullPath, game.Stamp), rules))
         {
             yield return new PlanFinding(FindingKind.WholeGameExecutable, operation.Path);
         }
@@ -130,8 +132,8 @@ internal static class HostingRules
         }
     }
 
-    private static IEnumerable<PlanFinding> CheckRuntimeFile(PlannedRuntimeFile file, IReadOnlyList<PlannedOperation> operations,
-        HostingRuleSet rules)
+    private static IEnumerable<PlanFinding> CheckRuntimeFile(FolderComparison comparison, PlannedRuntimeFile file,
+        IReadOnlyList<PlannedOperation> operations, HostingRuleSet rules)
     {
         var name = GameIndex.NameOf(file.Path);
         if (Matches(rules.StoreLibraries, name))
@@ -148,7 +150,7 @@ internal static class HostingRules
         {
             yield return new PlanFinding(FindingKind.RuntimeSave, file.Path);
         }
-        else if (IsCode(file.Path, rules))
+        else if (IsCode(comparison, file.Path, file.GameFile, rules))
         {
             yield return new PlanFinding(FindingKind.RuntimeCode, file.Path)
             {
@@ -169,13 +171,19 @@ internal static class HostingRules
         }
     }
 
-    private static bool IsCode(string path, HostingRuleSet rules)
-    {
-        var extension = Path.GetExtension(path);
-        return extension.Equals(ExecutableExtension, StringComparison.OrdinalIgnoreCase)
-            || extension.Equals(LoaderPluginExtension, StringComparison.OrdinalIgnoreCase)
-            || rules.LibraryExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
-    }
+    private static bool IsCode(FolderComparison comparison, string path, FileReference? file, HostingRuleSet rules) =>
+        Path.GetExtension(path).Equals(LoaderPluginExtension, StringComparison.OrdinalIgnoreCase) || IsLibrary(path, rules)
+        || IsProgram(comparison, path, file, rules);
+
+    // Only a program without an extension has its file's header read.
+    private static bool IsProgram(FolderComparison comparison, string path, FileReference? file, HostingRuleSet rules) =>
+        Path.GetExtension(path) is { Length: > 0 } extension
+            ? rules.ProgramExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase)
+            : file is not null && comparison.IsElf(file.FullPath, file.Stamp);
+
+    // A Linux library carries its version after its extension, as in libexample.so.1.2.
+    private static bool IsLibrary(string path, HostingRuleSet rules) =>
+        rules.LibraryExtensions.Contains(Path.GetExtension(VersionSuffix().Replace(path, "")), StringComparer.OrdinalIgnoreCase);
 
     private static PlanFinding WholeGameFile(bool isArchive, string path, long size)
     {
@@ -192,7 +200,7 @@ internal static class HostingRules
         || FoldersOf(path).Any(folder => Matches(rules.CircumventionFolders, folder));
 
     private static bool IsUnknownLibrary(string path, HostingRuleSet rules) =>
-        PackagePath.IsValid(path) && rules.LibraryExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)
+        PackagePath.IsValid(path) && IsLibrary(path, rules)
         && !Matches(rules.StoreLibraries, GameIndex.NameOf(path)) && !IsCircumvention(path, rules) && ToolOf(path, rules) is null;
 
     private static bool IsArchive(string path, long size, HostingRuleSet rules) =>
@@ -210,4 +218,7 @@ internal static class HostingRules
         patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, name, ignoreCase: true));
 
     private static string[] FoldersOf(string path) => path.Split(PackagePath.Separator)[..^1];
+
+    [GeneratedRegex(@"(\.[0-9]+)+$", RegexOptions.CultureInvariant)]
+    private static partial Regex VersionSuffix();
 }

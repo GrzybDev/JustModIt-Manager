@@ -32,6 +32,12 @@ public sealed record HostingRuleSet
     /// <summary>Extensions of game archives, whose whole copy carries a large share of the game's assets.</summary>
     public required IReadOnlyList<string> ArchiveExtensions { get; init; }
 
+    /// <summary>
+    /// Extensions of programs, of which a game's may change only through a patch; a file without an extension is a program
+    /// when it is an ELF image.
+    /// </summary>
+    public required IReadOnlyList<string> ProgramExtensions { get; init; }
+
     /// <summary>Extensions of libraries of code, which a package adds either as the author's own or as another author's tool.</summary>
     public required IReadOnlyList<string> LibraryExtensions { get; init; }
 

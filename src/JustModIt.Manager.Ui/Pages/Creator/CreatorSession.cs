@@ -253,8 +253,9 @@ public sealed partial class CreatorSession : ObservableObject, IAsyncDisposable
         }
     }
 
-    // A plan reads no file, so every cell is planned again, base before add-ons, each add-on over its base's plan, since the
-    // base installs first; a pass stops between cells once a newer one began.
+    // A plan reads no file but, once per comparison, the header of a file a hosting rule asks about, so every cell is planned
+    // again, base before add-ons, each add-on over its base's plan, since the base installs first; a pass stops between cells
+    // once a newer one began.
     private ImmutableDictionary<CellKey, CreatorReview>? PlanAll(CreatorProject project, IReadOnlyList<CellKey> cells,
         ImmutableDictionary<CellKey, FolderComparison> comparisons, ImmutableDictionary<GameKey, IReadOnlySet<string>> kept, int plan)
     {
