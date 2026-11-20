@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
@@ -257,6 +258,44 @@ public sealed class InstallTests : IAsyncDisposable
             .Should().Equal(FileAttributes.ReadOnly, FileAttributes.ReadOnly | FileAttributes.Hidden);
         await _harness.UninstallAsync(result.Record.Id);
         _harness.Snapshot().Should().BeEquivalentTo(before);
+    }
+
+    [Theory]
+    [InlineData("game folder")]
+    [InlineData("app data on another drive")]
+    [UnsupportedOSPlatform("windows")]
+    public async Task Files_keep_their_permissions_through_an_install_and_its_uninstall_wherever_originals_go(string location)
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Only Unix keeps permission bits.");
+        await using var harness = InstallHarness.At(location);
+        harness.WriteGameFile("bin/game", "native program");
+        var modes = new Dictionary<string, string> { ["bin/game"] = "755", ["data/strings.pak"] = "555", ["readme.txt"] = "444" };
+        foreach (var (path, mode) in modes)
+        {
+            File.SetUnixFileMode(harness.GameFile(path), (UnixFileMode)Convert.ToInt32(mode, 8));
+        }
+
+        var patch = await TestPatch.CreateAsync(InstallHarness.OriginalPak, InstallHarness.ChangedPak);
+        var before = harness.Snapshot();
+        Dictionary<string, string> ModesOf(params string[] paths) =>
+            paths.ToDictionary(path => path, path => Convert.ToString((int)File.GetUnixFileMode(harness.GameFile(path)), 8));
+
+        var result = await harness.InstallAsync(harness.ManifestPackage(new TestPackage()
+            .Rename("bin/game", "bin/game_original")
+            .Copy("bin/game", "wrapper")
+            .Patch("data/strings.pak", patch)
+            .Copy("readme.txt", "Changed")));
+
+        ModesOf("bin/game", "bin/game_original", "data/strings.pak", "readme.txt").Should().Equal(new Dictionary<string, string>
+        {
+            ["bin/game"] = "755",
+            ["bin/game_original"] = "755",
+            ["data/strings.pak"] = "555",
+            ["readme.txt"] = "444",
+        });
+        await harness.UninstallAsync(result.Record.Id);
+        ModesOf([.. modes.Keys]).Should().Equal(modes);
+        harness.Snapshot().Should().BeEquivalentTo(before);
     }
 
     [Fact]

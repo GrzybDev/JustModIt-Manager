@@ -60,6 +60,25 @@ public sealed class RuntimeFileTests : IAsyncDisposable
     }
 
     [Fact]
+    [UnsupportedOSPlatform("windows")]
+    public async Task A_declared_files_original_comes_back_with_its_permissions()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Only Unix keeps permission bits.");
+        var original = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead;
+        File.SetUnixFileMode(_harness.GameFile(List), original);
+        var result = await InstallAsync(Software());
+        Play();
+        // The software may write the list anew, which gives it the default permissions.
+        File.Delete(_harness.GameFile(List));
+        _harness.WriteGameFile(List, "List rewritten by the software");
+
+        await _harness.UninstallAsync(result.Record.Id);
+
+        _harness.ReadGameFile(List).Should().Be(OriginalList);
+        File.GetUnixFileMode(_harness.GameFile(List)).Should().Be(original);
+    }
+
+    [Fact]
     public async Task Uninstalling_removes_a_file_the_software_created_and_the_folders_made_for_it()
     {
         var result = await InstallAsync(new TestPackage().Copy("tool/loader.dll", "loader").Declare("tool/cache/index/list.dat"));

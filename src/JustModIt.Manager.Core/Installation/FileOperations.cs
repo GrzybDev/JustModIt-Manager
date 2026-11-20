@@ -38,7 +38,7 @@ internal static class FileOperations
         }
     }
 
-    /// <summary>Copies a file to a new one as <see cref="WriteNewFileAsync"/> writes it.</summary>
+    /// <summary>Copies a file to a new one as <see cref="WriteNewFileAsync"/> writes it, with the file's permissions.</summary>
     /// <param name="source">The file to copy.</param>
     /// <param name="destination">The new file; nothing may exist there yet.</param>
     /// <param name="progress">Receives the bytes written.</param>
@@ -49,7 +49,9 @@ internal static class FileOperations
         var stream = OpenRead(source);
         await using (stream.ConfigureAwait(false))
         {
-            return await WriteNewFileAsync(stream, destination, progress, cancellationToken).ConfigureAwait(false);
+            var copy = await WriteNewFileAsync(stream, destination, progress, cancellationToken).ConfigureAwait(false);
+            SetMode(destination, ModeOf(source));
+            return copy;
         }
     }
 
@@ -143,7 +145,7 @@ internal static class FileOperations
 
     /// <summary>
     /// Copies a file that a program may write while it is read, as <see cref="HashSharedAsync"/> reads it, and gives the
-    /// copy the file's time.
+    /// copy the file's time and permissions.
     /// </summary>
     /// <param name="source">The file to copy.</param>
     /// <param name="destination">The new file; nothing may exist there yet.</param>
@@ -166,6 +168,7 @@ internal static class FileOperations
         {
             copy = Unchanged(source, before, copy with { LastWriteTimeUtc = before.LastWriteTimeUtc });
             File.SetLastWriteTimeUtc(destination, before.LastWriteTimeUtc);
+            SetMode(destination, ModeOf(source));
             return copy;
         }
         catch
@@ -285,33 +288,60 @@ internal static class FileOperations
         }
     }
 
-    /// <summary>The <see cref="PreservedAttributes"/> a file has; null when it has none of them.</summary>
+    // Elsewhere a file's permissions travel with it through moves and copies, and replacing or deleting a file needs only
+    // its folder's, while changing the permissions of another user's file fails.
+
+    /// <summary>The <see cref="PreservedAttributes"/> a file has on Windows; null when it has none of them.</summary>
     /// <param name="path">The file, usually an original about to be backed up.</param>
     public static FileAttributes? PreservedAttributesOf(string path)
     {
-        var attributes = File.GetAttributes(path) & PreservedAttributes;
+        var attributes = OperatingSystem.IsWindows() ? File.GetAttributes(path) & PreservedAttributes : 0;
         return attributes == 0 ? null : attributes;
     }
 
-    /// <summary>Gives a file back the attributes it had.</summary>
+    /// <summary>Gives a file back the attributes it had on Windows.</summary>
     /// <param name="path">The file.</param>
     /// <param name="attributes">The attributes to add; null for none.</param>
     public static void RestoreAttributes(string path, FileAttributes? attributes)
     {
-        if (attributes is { } restored)
+        if (attributes is { } restored && OperatingSystem.IsWindows())
         {
             File.SetAttributes(path, File.GetAttributes(path) | restored);
         }
     }
 
-    /// <summary>Lets a read-only file be replaced or deleted.</summary>
+    /// <summary>Lets a read-only file be replaced or deleted on Windows.</summary>
     /// <param name="path">The file, which need not exist.</param>
     public static void ClearReadOnly(string path)
     {
         var file = new FileInfo(path);
-        if (file.Exists && file.IsReadOnly)
+        if (OperatingSystem.IsWindows() && file.Exists && file.IsReadOnly)
         {
             file.IsReadOnly = false;
+        }
+    }
+
+    /// <summary>A file's Unix permissions, such as the bit a native program needs to start; null on Windows or with no file.</summary>
+    /// <param name="path">The file.</param>
+    public static UnixFileMode? ModeOf(string path) => OperatingSystem.IsWindows() || !File.Exists(path) ? null : File.GetUnixFileMode(path);
+
+    /// <summary>Gives a file Unix permissions where its file system can hold them.</summary>
+    /// <param name="path">The file.</param>
+    /// <param name="mode">The permissions; null leaves the file its own.</param>
+    public static void SetMode(string path, UnixFileMode? mode)
+    {
+        if (mode is not { } permissions || OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            File.SetUnixFileMode(path, permissions);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // exFAT and NTFS mounts, as on memory cards formatted elsewhere, give every file one mode and refuse to change it.
         }
     }
 }

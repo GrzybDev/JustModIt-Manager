@@ -234,6 +234,9 @@ internal sealed partial class InstallTransaction : IDisposable
 
         PlanDirectories(target);
         var (touched, _) = await TouchAsync(target, progress, cancellationToken).ConfigureAwait(false);
+        // New content keeps the permissions of the file the path held, such as a native program's that a wrapper replaces
+        // after a rename took the program away.
+        FileOperations.SetMode(staged, touched.Mode ?? FileOperations.ModeOf(target));
         Replace(touched, staged, content);
     }
 
@@ -249,6 +252,7 @@ internal sealed partial class InstallTransaction : IDisposable
                 cancellationToken).ConfigureAwait(false);
         }
 
+        FileOperations.SetMode(staged, FileOperations.ModeOf(target));
         var (touched, _) = await TouchAsync(target, progress, cancellationToken).ConfigureAwait(false);
         Replace(touched, staged, new FileSnapshot(step.TargetSize, step.TargetSha256));
     }
@@ -351,6 +355,7 @@ internal sealed partial class InstallTransaction : IDisposable
                 Original = original,
                 Backup = name,
                 Attributes = attributes,
+                Mode = FileOperations.ModeOf(path),
                 Current = original,
             };
         }
@@ -413,6 +418,9 @@ internal sealed partial class InstallTransaction : IDisposable
         public string? Backup { get; init; }
 
         public FileAttributes? Attributes { get; init; }
+
+        /// <summary>The original's Unix permissions; null on Windows or for a path that held no file.</summary>
+        public UnixFileMode? Mode { get; init; }
 
         public FileSnapshot? Current { get; set; }
 
