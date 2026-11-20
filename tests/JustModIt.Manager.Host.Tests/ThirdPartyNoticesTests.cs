@@ -28,6 +28,7 @@ public sealed partial class ThirdPartyNoticesTests
             .. BuildTools, .. OtherNatives,
             "HarfBuzzSharp.NativeAssets.Linux",
             "SkiaSharp.NativeAssets.Linux",
+            "Tmds.DBus.Generator",
             "Tmds.DBus.Protocol",
         ]),
         new("Linux", "linux-x64",
@@ -42,7 +43,11 @@ public sealed partial class ThirdPartyNoticesTests
     ];
 
     // Code generators that only a library references, whose generated code is compiled into the apps.
-    private static readonly HashSet<string> GeneratedIntoApps = new(StringComparer.Ordinal) { "Microsoft.Windows.CsWin32" };
+    private static readonly HashSet<string> GeneratedIntoApps = new(StringComparer.Ordinal)
+    {
+        "Microsoft.Windows.CsWin32",
+        "Tmds.DBus.Generator",
+    };
 
     private static readonly List<Component> Components = ReadComponents();
 

@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Tmds.DBus.Protocol" />
+    <PackageReference Include="Tmds.DBus.Generator" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="DBus/*.xml" Namespace="JustModIt.Manager.Platform.Linux.DBus" DBusGeneratorMode="Proxy" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\JustModIt.Manager.Core\JustModIt.Manager.Core.csproj" />
   </ItemGroup>
 </Project>

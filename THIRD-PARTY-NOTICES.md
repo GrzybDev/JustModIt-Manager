@@ -119,14 +119,16 @@ Microsoft Public License, the Apache License 2.0 and BSD-style licences, reprodu
 - Systems: Windows
 - Use: COM interoperability for Avalonia, compiled into the app's executable.
 
-### Tmds.DBus.Protocol
+### Tmds.DBus
 
 - Website: https://github.com/tmds/Tmds.DBus
 - Licence: MIT (see "MIT License")
 - Copyright: Copyright 2006 Alp Toker, Copyright 2010 Other Contributors, Copyright 2016 Tom Deseyn
-- NuGet package: Tmds.DBus.Protocol 0.94.1
+- NuGet packages: Tmds.DBus.Generator 0.94.1, Tmds.DBus.Protocol 0.94.1
 - Systems: Linux
-- Use: D-Bus messaging for Avalonia, compiled into the app's executable.
+- Use: D-Bus messaging, compiled into the app's executable, for Avalonia and for the app's calls to the desktop, whose
+  code the generator writes from the interfaces' descriptions while the app is built; the generator itself does not
+  ship.
 
 ### SkiaSharp and HarfBuzzSharp
 
@@ -376,7 +378,7 @@ https://github.com/GrzybDev/JustModIt-Manager/issues.
 ### MIT License
 
 Applies to .NET, Brotli (in .NET), Microsoft.Extensions, CsWin32 and the Win32 metadata, MessageFormat, Velopack,
-Avalonia, MicroCom.Runtime, Tmds.DBus.Protocol, SkiaSharp and HarfBuzzSharp, Vulkan Memory Allocator, D3D12 Memory
+Avalonia, MicroCom.Runtime, Tmds.DBus, SkiaSharp and HarfBuzzSharp, Vulkan Memory Allocator, D3D12 Memory
 Allocator, CommunityToolkit.Mvvm, the AppImage runtime and mimalloc (in the AppImage runtime). The copyright lines are
 those of these projects' licence files; the component each belongs to is given in brackets.
 
@@ -390,9 +392,9 @@ Copyright © 2021 Caelan Sayler (Velopack)
 Copyright © 2024 Velopack Ltd. (Velopack)
 Copyright (c) AvaloniaUI OÜ All Rights Reserved (Avalonia)
 Copyright (c) 2021 Nikita Tsukanov (MicroCom.Runtime)
-Copyright 2006 Alp Toker <alp@atoker.com> (Tmds.DBus.Protocol)
-Copyright 2010 Other Contributors (Tmds.DBus.Protocol)
-Copyright 2016 Tom Deseyn <tom.deseyn@gmail.com> (Tmds.DBus.Protocol)
+Copyright 2006 Alp Toker <alp@atoker.com> (Tmds.DBus)
+Copyright 2010 Other Contributors (Tmds.DBus)
+Copyright 2016 Tom Deseyn <tom.deseyn@gmail.com> (Tmds.DBus)
 Copyright (c) 2015-2016 Xamarin, Inc. (SkiaSharp and HarfBuzzSharp)
 Copyright (c) 2017-2018 Microsoft Corporation. (SkiaSharp and HarfBuzzSharp)
 Copyright (c) 2017-2025 Advanced Micro Devices, Inc. All rights reserved. (Vulkan Memory Allocator)

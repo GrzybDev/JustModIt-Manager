@@ -5,6 +5,7 @@ using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
+using JustModIt.Manager.Platform.Linux;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Views;
@@ -133,7 +134,9 @@ internal sealed record HostEnvironment
             CreatorDirectory = Locations.CreatorDirectory,
             ImageHosts = Product.ImageHosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             Codecs = OperatingSystem.IsWindows() ? new WindowsMediaCodecs() : null,
-            SystemMotion = OperatingSystem.IsWindows() ? new WindowsSystemMotion() : null,
+            SystemMotion = OperatingSystem.IsWindows() ? new WindowsSystemMotion()
+                : OperatingSystem.IsLinux() ? PortalSystemMotion.Start(loggers.CreateLogger<PortalSystemMotion>())
+                : null,
             WindowFrames = OperatingSystem.IsWindows() ? new WindowsWindowFrames() : null,
             Frame = FrameFor(Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")),
             Compose = options.ConfigureUi,

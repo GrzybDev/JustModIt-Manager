@@ -136,7 +136,8 @@
       "justmodit.manager.platform.linux": {
         "type": "Project",
         "dependencies": {
-          "JustModIt.Manager.Core": "[0.1.0, )"
+          "JustModIt.Manager.Core": "[0.1.0, )",
+          "Tmds.DBus.Protocol": "[0.94.1, )"
         }
       },
       "Microsoft.Extensions.Logging.Abstractions": {
@@ -147,6 +148,12 @@
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.15"
         }
+      },
+      "Tmds.DBus.Protocol": {
+        "type": "CentralTransitive",
+        "requested": "[0.94.1, )",
+        "resolved": "0.94.1",
+        "contentHash": "11YMr7FnAbL83bQmVxlhbIKHvSLxjO81D12Ej0QMSGXMDTxNA9MTOa4MQxx43nv5el/efuPHwzyrj6a5ha2gug=="
       }
     },
     "net10.0/linux-x64": {

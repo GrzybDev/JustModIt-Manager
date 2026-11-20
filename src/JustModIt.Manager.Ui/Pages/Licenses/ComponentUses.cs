@@ -26,7 +26,7 @@ internal static class ComponentUses
         "Velopack installer and updater" => new(Strings.Licenses_UseVelopackInstaller),
         "Avalonia" => new(Strings.Licenses_UseAvalonia),
         "MicroCom.Runtime" => new(Strings.Licenses_UseMicroCom),
-        "Tmds.DBus.Protocol" => new(Strings.Licenses_UseDBus),
+        "Tmds.DBus" => new(Strings.Licenses_UseDBus),
         "SkiaSharp and HarfBuzzSharp" => new(Strings.Licenses_UseSkiaSharp),
         "Skia (libSkiaSharp)" => new(Strings.Licenses_UseSkia),
         "Libraries built into libSkiaSharp" => new(Strings.Licenses_UseSkiaLibraries),

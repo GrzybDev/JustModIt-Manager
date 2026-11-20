@@ -4,6 +4,7 @@ using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Platform.Linux;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -161,7 +162,7 @@ public sealed class HostEnvironmentTests : IDisposable
         context.ImageCacheDirectory.Should().Be(Path.Combine(environment.Locations.CacheDirectory, "images"));
         context.CreatorDirectory.Should().Be(environment.Locations.CreatorDirectory);
         context.Codecs.Should().Match(codecs => !OperatingSystem.IsWindows() || codecs is WindowsMediaCodecs, "the site's AVIF stills need them");
-        context.SystemMotion.Should().Match(motion => !OperatingSystem.IsWindows() || motion is WindowsSystemMotion);
+        context.SystemMotion.Should().Match(motion => OperatingSystem.IsWindows() ? motion is WindowsSystemMotion : motion is PortalSystemMotion);
         context.DesktopId.Should().Be("com.example.ExampleApp.Dev", "a development build's windows never group with an installed copy's");
     }
 

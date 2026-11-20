@@ -218,11 +218,6 @@
         "resolved": "3.119.4",
         "contentHash": "XOpbx/4CReO2wYsq2s6rbvdauc6dntG4Zv499sHGTJ87bwZaFXszFkwql3+FIZMc8kUPeaj3Mx2ezIJmo8a1Kg=="
       },
-      "Tmds.DBus.Protocol": {
-        "type": "Transitive",
-        "resolved": "0.94.1",
-        "contentHash": "11YMr7FnAbL83bQmVxlhbIKHvSLxjO81D12Ej0QMSGXMDTxNA9MTOa4MQxx43nv5el/efuPHwzyrj6a5ha2gug=="
-      },
       "xunit.analyzers": {
         "type": "Transitive",
         "resolved": "1.27.0",
@@ -311,6 +306,7 @@
         "type": "Project",
         "dependencies": {
           "JustModIt.Manager.Agent": "[0.1.0, )",
+          "JustModIt.Manager.Platform.Linux": "[0.1.0, )",
           "JustModIt.Manager.Platform.Windows": "[0.1.0, )",
           "JustModIt.Manager.Ui": "[0.1.0, )",
           "Velopack": "[1.2.161, )"
@@ -320,6 +316,13 @@
         "type": "Project",
         "dependencies": {
           "MessageFormat": "[8.0.0, )"
+        }
+      },
+      "justmodit.manager.platform.linux": {
+        "type": "Project",
+        "dependencies": {
+          "JustModIt.Manager.Core": "[0.1.0, )",
+          "Tmds.DBus.Protocol": "[0.94.1, )"
         }
       },
       "justmodit.manager.platform.windows": {
@@ -498,6 +501,12 @@
         "dependencies": {
           "Serilog": "4.2.0"
         }
+      },
+      "Tmds.DBus.Protocol": {
+        "type": "CentralTransitive",
+        "requested": "[0.94.1, )",
+        "resolved": "0.94.1",
+        "contentHash": "11YMr7FnAbL83bQmVxlhbIKHvSLxjO81D12Ej0QMSGXMDTxNA9MTOa4MQxx43nv5el/efuPHwzyrj6a5ha2gug=="
       },
       "Velopack": {
         "type": "CentralTransitive",

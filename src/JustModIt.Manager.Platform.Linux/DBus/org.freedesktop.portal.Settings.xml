@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!-- The members of the desktop portal's settings the app uses, as the XDG Desktop Portal specification defines them. -->
+<node>
+  <interface name="org.freedesktop.portal.Settings">
+    <method name="ReadAll">
+      <arg type="as" name="namespaces" direction="in" />
+      <arg type="a{sa{sv}}" name="value" direction="out" />
+    </method>
+    <signal name="SettingChanged">
+      <arg type="s" name="namespace" />
+      <arg type="s" name="key" />
+      <arg type="v" name="value" />
+    </signal>
+  </interface>
+</node>
