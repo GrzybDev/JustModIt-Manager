@@ -1194,7 +1194,8 @@ public sealed class CreatorPackageTests : IDisposable
             await BuildEndedAsync(package);
 
             package.Build.ProblemText.Should().Be(Text.Format(Strings.Creator_BuildFailed, ("failure", nameof(BuildFailure.FilesChanged)),
-                ("files", 1), ("file", file)), "a file is named by its path in the folder or the game, not above it");
+                ("files", 1), ("file", CreatorWording.Wrappable(file))), "a file is named by its path in the folder or the game, not above it")
+                .And.Contain("data/​", "a package's path may wrap after each folder on every system");
             await UiHarness.WaitUntilAsync(() => package.Cell!.IsComparing);
             held.Reads.Set();
             await UiHarness.WaitUntilAsync(() => package.Cell!.IsCompared && !package.Build.HasProblem);

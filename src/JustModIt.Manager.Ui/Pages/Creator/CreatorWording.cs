@@ -32,9 +32,10 @@ internal static class CreatorWording
     {
         // The line-breaking rules allow a break only after a drive's colon, which leaves "C:" alone at the end of a line; a word
         // joiner keeps it with its separator, and a zero-width space after every further separator gives the path its own breaks.
+        // Both slashes count, since a package's paths take '/' on every system and Windows' own paths take '\'.
         var root = Path.GetPathRoot(path) ?? "";
         return root.Replace(":", ":⁠", StringComparison.Ordinal)
-            + path[root.Length..].Replace(Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar + "​", StringComparison.Ordinal);
+            + path[root.Length..].Replace("\\", "\\​", StringComparison.Ordinal).Replace("/", "/​", StringComparison.Ordinal);
     }
 
     /// <summary>An operation's kind as its chip says it.</summary>
