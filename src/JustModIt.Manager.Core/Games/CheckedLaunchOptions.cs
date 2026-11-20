@@ -19,6 +19,12 @@ public enum LaunchOptionsRefusal
 public sealed partial record CheckedLaunchOptions(ValueList<string> Options, LaunchOptionsRefusal? Refusal = null)
 {
     /// <summary>
+    /// Steam's stand-in for the game's own command line among its launch options: what comes before it, such as variables for
+    /// the game's program, wraps the game, and what follows goes to the game.
+    /// </summary>
+    public const string GameCommand = "%command%";
+
+    /// <summary>
     /// Splits space-separated launch options, refusing them all when any one is not plain, since Steam runs a game's options
     /// as a command line.
     /// </summary>

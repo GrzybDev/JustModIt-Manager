@@ -3892,7 +3892,7 @@
     <value>{count, plural, one {The project needs a launch option} other {The project needs launch options}}</value>
   </data>
   <data name="GamePage_LaunchOptionsManual" xml:space="preserve">
-    <value>In Steam's library: right-click the game › Properties › Launch options. {count, plural, one {The option goes at the end of the field.} other {The options go at the end of the field.}}</value>
+    <value>In Steam's library: right-click the game › Properties › Launch options. {place, select, start {The options go at the start of the field, without %command% when the field holds it already. When the field already sets WINEDLLOVERRIDES, the value given here is added to that one instead, after a semicolon, with the whole value in quotes.} around {The options up to %command% go at the start of the field, without %command% when the field holds it already, and the others at the end. When the field already sets WINEDLLOVERRIDES, the value given here is added to that one instead, after a semicolon, with the whole value in quotes.} other {{count, plural, one {The option goes at the end of the field.} other {The options go at the end of the field.}}}}</value>
   </data>
   <data name="GamePage_Copy" xml:space="preserve">
     <value>Copy</value>

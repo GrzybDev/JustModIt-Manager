@@ -1,4 +1,5 @@
 using Avalonia.Media;
+using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Localization;
@@ -61,9 +62,14 @@ internal static class LaunchOptionsLines
         }
 
         var needed = Needed(options);
+        List<string> overrides = [.. needed.Where(SteamLaunchOptions.IsWineOverride)];
+        List<string> others = [.. needed.Where(option => option != CheckedLaunchOptions.GameCommand && !SteamLaunchOptions.IsWineOverride(option))];
+        // Wine reads its overrides only before Steam's command line, and the game gets the options after it.
+        IReadOnlyList<string> line = overrides.Count == 0 ? needed : [.. overrides, CheckedLaunchOptions.GameCommand, .. others];
         var count = ("count", (object?)needed.Count);
+        var place = ("place", (object?)(overrides.Count == 0 ? "end" : others.Count == 0 ? "start" : "around"));
         return new ManualLaunchOptions(Text.Format(Strings.GamePage_LaunchOptionsManualTitle, count),
-            Text.Format(Strings.GamePage_LaunchOptionsManual, count), string.Join(' ', needed));
+            Text.Format(Strings.GamePage_LaunchOptionsManual, count, place), string.Join(' ', line));
     }
 
     /// <summary>What an uninstall's result says of the launch options it takes out of Steam.</summary>

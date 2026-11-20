@@ -114,7 +114,7 @@ internal sealed partial class MillenniumDelivery(IFolderWatcher folders, AgentOp
             return new LaunchOptionsResult(null, LaunchOptionsFailure.Failed);
         }
 
-        return new LaunchOptionsResult(LaunchOptionsText.Changed(status.LaunchOptions.GetValueOrDefault(game, ""), add, remove));
+        return new LaunchOptionsResult(SteamLaunchOptions.Changed(status.LaunchOptions.GetValueOrDefault(game, ""), add, remove));
     }
 
     /// <summary>Stops following the plugin's reports, as when Millennium is gone.</summary>
@@ -230,7 +230,7 @@ internal sealed partial class MillenniumDelivery(IFolderWatcher folders, AgentOp
             if (_report.LaunchOptions.GetValueOrDefault(game.StoreGameId) is { } reported)
             {
                 result = result.Add(game, (_pending ?? []).Where(change => change.Game == game)
-                    .Aggregate(reported, (current, change) => LaunchOptionsText.Changed(current, change.Add, change.Remove)));
+                    .Aggregate(reported, (current, change) => SteamLaunchOptions.Changed(current, change.Add, change.Remove)));
             }
         }
 

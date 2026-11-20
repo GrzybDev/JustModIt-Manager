@@ -49,6 +49,22 @@ test('adds options at the end and takes out whole options, leaving the rest as t
   assert.equal(changed('-novid -examplelogs', [], ['-examplelog']), '-novid -examplelogs');
 });
 
+test('puts wine overrides where wine reads them, shares the entries of the players own and leaves other assignments to the game', () => {
+  const { changed } = steam({}).run();
+  const overrides = 'WINEDLLOVERRIDES=a=n,b';
+  assert.equal(changed('-novid', ['EXAMPLE_HOOK=a=n'], []), '-novid EXAMPLE_HOOK=a=n');
+  assert.equal(changed('', [overrides, '%command%'], []), 'WINEDLLOVERRIDES=a=n,b %command%');
+  assert.equal(changed('EXAMPLE_LOG=1  -novid', [overrides, '%command%', '-examplelog'], []),
+    'WINEDLLOVERRIDES=a=n,b %command% EXAMPLE_LOG=1  -novid -examplelog');
+  assert.equal(changed('wrapper %command%  -novid', [overrides, '%command%'], []), 'WINEDLLOVERRIDES=a=n,b wrapper %command%  -novid');
+  assert.equal(changed('WINEDLLOVERRIDES=a=n,b -novid', [overrides, '%command%'], []), 'WINEDLLOVERRIDES=a=n,b %command% -novid');
+  assert.equal(changed('WINEDLLOVERRIDES=b=n %command%', [overrides, '%command%'], []), 'WINEDLLOVERRIDES="b=n;a=n,b" %command%');
+  assert.equal(changed("WINEDLLOVERRIDES='b=n; c=d' %command%", [overrides], []), "WINEDLLOVERRIDES='b=n; c=d;a=n,b' %command%");
+  assert.equal(changed('WINEDLLOVERRIDES="b=n"\'c\' %command%', [overrides], []), 'WINEDLLOVERRIDES="b=n"\'c\' WINEDLLOVERRIDES=a=n,b %command%');
+  assert.equal(changed('WINEDLLOVERRIDES="b=n;a=n,b" %command% -novid', [], [overrides]), 'WINEDLLOVERRIDES="b=n" %command% -novid');
+  assert.equal(changed('WINEDLLOVERRIDES=a=n,b wrapper %command% -novid', [], [overrides]), 'wrapper %command% -novid');
+});
+
 test('changes the options steam has and tells the options after, without touching unchanged ones', async () => {
   const fake = steam({ 400: '-novid -oldflag', 401: '-examplelog' });
   const options = fake.run();

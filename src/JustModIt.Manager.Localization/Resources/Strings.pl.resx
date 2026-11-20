@@ -3880,7 +3880,7 @@
     <value>{count, plural, one {Projekt wymaga parametru uruchamiania} other {Projekt wymaga parametrów uruchamiania}}</value>
   </data>
   <data name="GamePage_LaunchOptionsManual" xml:space="preserve">
-    <value>W bibliotece Steama: prawy przycisk na grze › Właściwości › Opcje uruchamiania. {count, plural, one {Parametr dopisuje się na końcu pola.} other {Parametry dopisuje się na końcu pola.}}</value>
+    <value>W bibliotece Steama: prawy przycisk na grze › Właściwości › Opcje uruchamiania. {place, select, start {Parametry dopisuje się na początku pola, bez %command%, jeśli pole już go zawiera. Jeśli pole już ustawia WINEDLLOVERRIDES, podaną tu wartość dopisuje się do tamtej po średniku, a całą wartość ujmuje w cudzysłów.} around {Parametry do %command% dopisuje się na początku pola, bez %command%, jeśli pole już go zawiera, a pozostałe na końcu. Jeśli pole już ustawia WINEDLLOVERRIDES, podaną tu wartość dopisuje się do tamtej po średniku, a całą wartość ujmuje w cudzysłów.} other {{count, plural, one {Parametr dopisuje się na końcu pola.} other {Parametry dopisuje się na końcu pola.}}}}</value>
   </data>
   <data name="GamePage_Copy" xml:space="preserve">
     <value>Kopiuj</value>

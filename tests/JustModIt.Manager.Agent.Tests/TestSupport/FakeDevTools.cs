@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using JustModIt.Manager.Agent.Steam;
+using JustModIt.Manager.Core.Steam;
 
 namespace JustModIt.Manager.Agent.Tests.TestSupport;
 
@@ -129,7 +130,7 @@ internal sealed class FakeSteamPage(ConcurrentDictionary<string, string> launchO
                 return "null";
             }
 
-            launchOptions[app] = LaunchOptionsText.Changed(options, [.. arguments[1].EnumerateArray().Select(option => option.GetString()!)],
+            launchOptions[app] = SteamLaunchOptions.Changed(options, [.. arguments[1].EnumerateArray().Select(option => option.GetString()!)],
                 [.. arguments[2].EnumerateArray().Select(option => option.GetString()!)]);
             return JsonSerializer.Serialize(launchOptions[app]);
         }

@@ -208,7 +208,8 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
                 Parts = [.. package.Parts.Select(part => InstalledPartOf(part, request.Parts[part.Index]))],
                 LeftOutFeatures = LeftOutFeaturesOf(leftOut),
                 Source = request.Source,
-                LaunchOptions = request.LaunchOptions,
+                LaunchOptions = WineLibraryOverrides.Add(request.LaunchOptions, request.Game, _options.Platform, files.Files,
+                    folder => HoldsProgram(game, folder)),
                 Backup = backup,
                 FileCount = files.Files.Count(file => file.Change != FileChange.Unchanged),
                 IsTest = request.IsTest,
@@ -240,6 +241,10 @@ public sealed partial class InstallEngine : IInstallEngine, IAsyncDisposable
         _logger.Installed(package.FileName, request.Game.Key.ToString(), id);
         return record;
     }
+
+    private static bool HoldsProgram(GameFolder game, string folder) =>
+        PhysicalFileSystem.Instance.TryList(PackagePath.ToFullPath(game.Root, folder), "*.exe", FileListing.AnyCase)
+            .Any(entry => !entry.IsDirectory);
 
     private async Task TidyKeptFilesAsync(GameFolder game, Guid recordId, InstalledFiles files)
     {

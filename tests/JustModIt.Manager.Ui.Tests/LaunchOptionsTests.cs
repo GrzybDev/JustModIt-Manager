@@ -74,6 +74,22 @@ public sealed class LaunchOptionsTests
         ui.Shell.Toasts.Items.Should().ContainSingle().Which.Title.Should().Be("Skopiowano do schowka");
         ui.Unnamed().Should().BeEmpty();
         await ui.RenderBothAsync("launch-options-manual", () => ui.Find<Callout>("ManualLaunchOptions").BringIntoView());
+
+        var merge = " Jeśli pole już ustawia WINEDLLOVERRIDES, podaną tu wartość dopisuje się do tamtej po średniku, a całą wartość "
+            + "ujmuje w cudzysłów.";
+        ui.Push(State(With(new LaunchOptionsView(LaunchOptionsState.Manual, ["WINEDLLOVERRIDES=dinput8=n,b", "%command%"], [])))
+            with { Version = 2 });
+        Page(ui).Installs.Single().ManualLaunchOptions.Should().Be(new ManualLaunchOptions("Spolszczenie wymaga parametrów uruchamiania",
+            "W bibliotece Steama: prawy przycisk na grze › Właściwości › Opcje uruchamiania. Parametry dopisuje się na początku pola, "
+            + "bez %command%, jeśli pole już go zawiera." + merge, "WINEDLLOVERRIDES=dinput8=n,b %command%"));
+        await ui.RenderBothAsync("launch-options-manual-variables", () => ui.Find<Callout>("ManualLaunchOptions").BringIntoView());
+
+        // Read before, the field had Steam's command line, and the game takes the project's own option after it.
+        ui.Push(State(With(new LaunchOptionsView(LaunchOptionsState.Manual, ["WINEDLLOVERRIDES=dinput8=n,b", "%command%", "-fileopenlog"],
+            ["WINEDLLOVERRIDES=dinput8=n,b", "-fileopenlog"]))) with { Version = 3 });
+        Page(ui).Installs.Single().ManualLaunchOptions.Should().Be(new ManualLaunchOptions("Spolszczenie wymaga parametrów uruchamiania",
+            "W bibliotece Steama: prawy przycisk na grze › Właściwości › Opcje uruchamiania. Parametry do %command% dopisuje się na początku "
+            + "pola, bez %command%, jeśli pole już go zawiera, a pozostałe na końcu." + merge, "WINEDLLOVERRIDES=dinput8=n,b %command% -fileopenlog"));
     }
 
     [AvaloniaFact]

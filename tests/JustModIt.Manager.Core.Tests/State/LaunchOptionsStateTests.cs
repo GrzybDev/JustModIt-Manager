@@ -26,6 +26,7 @@ public sealed class LaunchOptionsStateTests : IDisposable
         var needed = new InstalledLaunchOptions(["-examplelog", "-windowed"]);
         var added = needed with { Added = ["-examplelog", "-windowed"] };
         var closed = Plugin with { Reachable = false };
+        var overrides = new InstalledLaunchOptions(["WINEDLLOVERRIDES=a=n,b", "%command%"]);
         (InstalledLaunchOptions Options, SteamUiStatus Steam, string? Current, LaunchOptionsState State, string[] Missing)[] cases =
         [
             (needed, Plugin, "-novid -windowed -examplelog", LaunchOptionsState.Applied, []),
@@ -37,6 +38,10 @@ public sealed class LaunchOptionsStateTests : IDisposable
             (needed, closed with { PluginDisabled = true }, null, LaunchOptionsState.Manual, []),
             (needed with { Present = ["-examplelog"] }, Plugin, "-windowed", LaunchOptionsState.RemovedByPlayer, ["-examplelog"]),
             (new InstalledLaunchOptions([]) { Refusal = LaunchOptionsRefusal.UnsafeOption }, Plugin, "", LaunchOptionsState.Refused, []),
+            // Wine reads only the last assignment of its overrides before Steam's command line.
+            (overrides, Plugin, "WINEDLLOVERRIDES='b=n;a=n,b' wrapper %command%", LaunchOptionsState.Applied, []),
+            (overrides, Plugin, "WINEDLLOVERRIDES=a=n,b WINEDLLOVERRIDES=b=n %command%", LaunchOptionsState.WaitingForSteam, ["WINEDLLOVERRIDES=a=n,b"]),
+            (overrides, Plugin, "%command% WINEDLLOVERRIDES=a=n,b", LaunchOptionsState.WaitingForSteam, ["WINEDLLOVERRIDES=a=n,b"]),
         ];
 
         foreach (var (options, steam, current, state, missing) in cases)

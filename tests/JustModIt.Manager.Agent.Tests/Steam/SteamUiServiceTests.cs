@@ -247,8 +247,18 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
     [InlineData("\"C:\\My  Tools\\x.exe\" %command% -examplelog", "", "-examplelog", "\"C:\\My  Tools\\x.exe\" %command%")]
     [InlineData("-examplelog  -novid", "", "-examplelog", "-novid")]
     [InlineData("-novid -examplelogs", "", "-examplelog", "-novid -examplelogs")]
+    [InlineData("-novid", "EXAMPLE_HOOK=a=n", "", "-novid EXAMPLE_HOOK=a=n")]
+    [InlineData("", "WINEDLLOVERRIDES=a=n,b %command%", "", "WINEDLLOVERRIDES=a=n,b %command%")]
+    [InlineData("EXAMPLE_LOG=1  -novid", "WINEDLLOVERRIDES=a=n,b %command% -examplelog", "", "WINEDLLOVERRIDES=a=n,b %command% EXAMPLE_LOG=1  -novid -examplelog")]
+    [InlineData("wrapper %command%  -novid", "WINEDLLOVERRIDES=a=n,b %command%", "", "WINEDLLOVERRIDES=a=n,b wrapper %command%  -novid")]
+    [InlineData("WINEDLLOVERRIDES=a=n,b -novid", "WINEDLLOVERRIDES=a=n,b %command%", "", "WINEDLLOVERRIDES=a=n,b %command% -novid")]
+    [InlineData("WINEDLLOVERRIDES=b=n %command%", "WINEDLLOVERRIDES=a=n,b %command%", "", "WINEDLLOVERRIDES=\"b=n;a=n,b\" %command%")]
+    [InlineData("WINEDLLOVERRIDES='b=n; c=d' %command%", "WINEDLLOVERRIDES=a=n,b", "", "WINEDLLOVERRIDES='b=n; c=d;a=n,b' %command%")]
+    [InlineData("WINEDLLOVERRIDES=\"b=n\"'c' %command%", "WINEDLLOVERRIDES=a=n,b", "", "WINEDLLOVERRIDES=\"b=n\"'c' WINEDLLOVERRIDES=a=n,b %command%")]
+    [InlineData("WINEDLLOVERRIDES=\"b=n;a=n,b\" %command% -novid", "", "WINEDLLOVERRIDES=a=n,b", "WINEDLLOVERRIDES=\"b=n\" %command% -novid")]
+    [InlineData("WINEDLLOVERRIDES=a=n,b wrapper %command% -novid", "", "WINEDLLOVERRIDES=a=n,b", "wrapper %command% -novid")]
     public void Options_change_as_the_script_in_steam_changes_them(string before, string add, string remove, string after) =>
-        LaunchOptionsText.Changed(before, add.Split(' ', StringSplitOptions.RemoveEmptyEntries), remove.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        SteamLaunchOptions.Changed(before, add.Split(' ', StringSplitOptions.RemoveEmptyEntries), remove.Split(' ', StringSplitOptions.RemoveEmptyEntries))
             .Should().Be(after);
 
     public async ValueTask DisposeAsync()

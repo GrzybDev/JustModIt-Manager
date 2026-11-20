@@ -166,12 +166,13 @@ public sealed record InstalledLaunchOptions(ValueList<string> Required)
 
     /// <summary>
     /// The options the app added for an install that is gone and the install in its place does not keep, which the app takes
-    /// out of the player's own.
+    /// out of the player's own; Steam's command line stays, since alone it changes nothing and what the player put before it
+    /// since may need it.
     /// </summary>
     /// <param name="removed">What the gone install kept; null when it kept nothing.</param>
     /// <param name="kept">What the install in its place keeps; null when it keeps nothing or none takes its place.</param>
     public static ValueList<string> TakenBack(InstalledLaunchOptions? removed, InstalledLaunchOptions? kept) =>
-        [.. (removed?.Added ?? []).Except(kept?.Added ?? [])];
+        [.. (removed?.Added ?? []).Except(kept?.Added ?? []).Where(option => option != CheckedLaunchOptions.GameCommand)];
 }
 
 /// <summary>An add-on an install went without, since its own check failed on the game.</summary>

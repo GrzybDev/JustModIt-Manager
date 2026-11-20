@@ -13,5 +13,6 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\JsonContracts.cs" Link="Shared\JsonContracts.cs" />
+    <Compile Include="..\Shared\RepositoryFiles.cs" Link="Shared\RepositoryFiles.cs" />
   </ItemGroup>
 </Project>

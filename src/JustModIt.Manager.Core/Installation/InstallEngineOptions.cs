@@ -1,6 +1,8 @@
 namespace JustModIt.Manager.Core.Installation;
 
-/// <summary>Where the install engine keeps its data, named after the app so two apps never share it.</summary>
+/// <summary>
+/// Where the install engine keeps its data, named after the app so two apps never share it, and the system the app runs on.
+/// </summary>
 public sealed record InstallEngineOptions
 {
     /// <summary>
@@ -23,6 +25,9 @@ public sealed record InstallEngineOptions
 
     /// <summary>From this many bytes of originals copied to another drive, the player is told that it takes a while.</summary>
     public long SlowBackupCopyBytes { get; init; } = 1L << 30;
+
+    /// <summary>The system the app runs on, which tells how a game's Windows build runs, such as through Proton on Linux.</summary>
+    public AppPlatform Platform { get; init; } = AppPlatforms.Current;
 
     /// <summary>Called right before every change, so tests can capture the state a crash would leave at that point.</summary>
     internal Action<ChangeKind, string?>? BeforeChange { get; init; }

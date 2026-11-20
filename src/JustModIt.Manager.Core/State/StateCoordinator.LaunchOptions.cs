@@ -33,7 +33,7 @@ public sealed partial class StateCoordinator
             }
             else
             {
-                var after = (result.Options ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
+                var after = SteamLaunchOptions.Of(result.Options ?? "");
                 foreach (var record in change.Records)
                 {
                     var kept = record.Kept(after);

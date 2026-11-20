@@ -30,25 +30,91 @@
     });
   }
 
-  function optionsOf(text) {
-    return text.split(/\s+/).filter(Boolean);
+  // Steam's stand-in for the game's command line: what comes before it sets the game's environment, what follows goes to
+  // the game. Wine reads its library overrides from the last assignment before it, whose entries the app shares.
+  const command = '%command%';
+  const overrides = 'WINEDLLOVERRIDES=';
+  const isOverride = (option) => option.startsWith(overrides);
+  const entryOf = (option) => option.slice(overrides.length);
+
+  function split(text, word) {
+    const words = [];
+    let end = 0;
+    for (const match of text.matchAll(word)) {
+      words.push({ space: text.slice(end, match.index), text: match[0] });
+      end = match.index + match[0].length;
+    }
+    return words;
   }
 
-  // Takes out whole options only and adds at the end, where Steam hands an option to the game whatever comes before it.
-  function changed(text, add, remove) {
-    const parts = text.trim().split(/(\s+)/).filter(Boolean);
-    const kept = [];
-    for (let index = 0; index < parts.length; index += 2) {
-      if (remove.includes(parts[index])) continue;
-      if (kept.length > 0) kept.push(parts[index - 1]);
-      kept.push(parts[index]);
+  // Words split at spaces outside quotes, as the shell that runs the options splits them, each with the spaces before it;
+  // where a quote is left open, which no shell runs, at every space.
+  function wordsOf(text) {
+    const trimmed = text.trim();
+    const words = split(trimmed, /(?:[^\s"']+|"[^"]*"|'[^']*')+/g);
+    const whole = words.map((word) => word.space + word.text).join('') === trimmed && words.every((word) => !/\S/.test(word.space));
+    return whole ? words : split(trimmed, /\S+/g);
+  }
+
+  // An assignment's entries and the quote around them; null for one whose quotes the app cannot read.
+  function readOverrides(word) {
+    const value = word.slice(overrides.length);
+    const quote = value.length > 1 && /^["']/.test(value) && value.endsWith(value[0]) && !value.slice(1, -1).includes(value[0])
+      ? value[0]
+      : '';
+    if (!quote && /["']/.test(value)) return null;
+    return { quote, entries: (quote ? value.slice(1, -1) : value).split(';').filter((entry) => entry.trim()) };
+  }
+
+  // More than one entry needs quotes, since the shell ends a command at a semicolon.
+  function assignment(entries, quote) {
+    const around = quote || (entries.length > 1 ? '"' : '');
+    return overrides + around + entries.join(';') + around;
+  }
+
+  function appliedOverrides(words, at) {
+    for (let index = at - 1; index >= 0; index--) if (isOverride(words[index].text)) return index;
+    return -1;
+  }
+
+  function changeOverrides(words, at, adding, removing) {
+    const applied = appliedOverrides(words, at);
+    const value = applied < 0 ? null : readOverrides(words[applied].text);
+    if (!value) {
+      // After an assignment whose quotes the app cannot read, the app's own is the one Wine reads.
+      if (adding.length > 0) words.splice(applied + 1, 0, { space: ' ', text: assignment(adding, '') });
+      return;
     }
 
-    let result = kept.join('');
-    for (const option of add) {
-      if (!optionsOf(result).includes(option)) result += (result ? ' ' : '') + option;
+    const kept = value.entries.filter((entry) => !removing.includes(entry.trim()));
+    for (const entry of adding) if (!kept.some((known) => known.trim() === entry)) kept.push(entry);
+    if (kept.length === value.entries.length && kept.every((entry, index) => entry === value.entries[index])) return;
+    if (kept.length === 0) words.splice(applied, 1);
+    else words[applied] = { ...words[applied], text: assignment(kept, value.quote) };
+  }
+
+  // Takes out whole options only and adds at the end, where Steam hands an option to the game whatever comes before it;
+  // Steam's command line goes before the player's words, which all went to the game without it, and the overrides' entries
+  // into the assignment Wine reads.
+  function changed(text, add, remove) {
+    const words = wordsOf(text).filter((word) => !remove.includes(word.text));
+    const adding = add.filter((option, index) => add.indexOf(option) === index);
+    const addMissing = (option) => {
+      if (!words.some((word) => word.text === option)) words.push({ space: ' ', text: option });
+    };
+    adding.filter((option) => option !== command && !isOverride(option)).forEach(addMissing);
+
+    let at = words.findIndex((word) => word.text === command);
+    if (at < 0 && adding.includes(command)) {
+      at = words.findIndex((word) => !isOverride(word.text));
+      if (at < 0) at = words.length;
+      words.splice(at, 0, { space: ' ', text: command });
     }
-    return result;
+
+    // Without Steam's command line nothing sets the environment, so an override goes to the game like any option.
+    if (at < 0) adding.filter(isOverride).forEach(addMissing);
+    else changeOverrides(words, at, adding.filter(isOverride).map(entryOf), remove.filter(isOverride).map(entryOf));
+    return words.map((word, index) => (index === 0 ? '' : word.space || ' ') + word.text).join('');
   }
 
   window.__launchOptions = {

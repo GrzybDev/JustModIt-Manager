@@ -148,7 +148,8 @@ internal sealed class InstallHarness : IAsyncDisposable
     };
 
     /// <summary>A fresh engine over the same folders, as after a restart of the app.</summary>
-    public InstallEngine CreateEngine()
+    /// <param name="platform">The system the engine takes the app to run on; the one the tests run on when null.</param>
+    public InstallEngine CreateEngine(AppPlatform? platform = null)
     {
         var engine = new InstallEngine(
             new InstallEngineOptions
@@ -160,6 +161,7 @@ internal sealed class InstallHarness : IAsyncDisposable
                 BackupsDirectory = Path.Join(AppData, "backups"),
                 SlowBackupCopyBytes = SlowBackupCopyBytes,
                 BeforeChange = (kind, path) => BeforeChange?.Invoke(kind, path),
+                Platform = platform ?? AppPlatforms.Current,
             },
             new PackageReader(), new FileLockProbe(LockHolders), Probe,
             Volumes, Time, NullLogger<InstallEngine>.Instance);

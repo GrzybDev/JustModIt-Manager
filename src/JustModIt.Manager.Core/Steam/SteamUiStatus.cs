@@ -74,10 +74,8 @@ public sealed record SteamUiStatus
     /// <summary>Millennium or the classic mode can bring texts and launch options into Steam's interface.</summary>
     public bool CanDeliver => Delivery != SteamUiDelivery.None && !PluginDisabled;
 
-    /// <summary>The player's launch options of a game, option by option; null while they were not read.</summary>
+    /// <summary>The player's launch options of a game that take effect, option by option; null while they were not read.</summary>
     /// <param name="game">The Steam game.</param>
     public IReadOnlySet<string>? LaunchOptionsOf(GameKey game) =>
-        LaunchOptions.TryGetValue(game, out var options)
-            ? options.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal)
-            : null;
+        LaunchOptions.TryGetValue(game, out var options) ? SteamLaunchOptions.Of(options) : null;
 }
