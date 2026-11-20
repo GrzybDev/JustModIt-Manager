@@ -142,7 +142,6 @@ public sealed partial class JobRunner : IAsyncDisposable
     /// </returns>
     public JobHandle Start(JobRequest request)
     {
-        JobContext job;
         lock (_gate)
         {
             if (_shutDown || _active.ContainsKey(request.Game))
@@ -159,17 +158,18 @@ public sealed partial class JobRunner : IAsyncDisposable
             var cancellation = request.Origin == JobOrigin.Automatic
                 ? CancellationTokenSource.CreateLinkedTokenSource(_exiting.Token)
                 : new CancellationTokenSource();
-            job = new JobContext(request, cancellation, Publish, _time);
+            var job = new JobContext(request, cancellation, Publish, _time);
             if (_active.Count == 0)
             {
                 _idle = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             }
 
             _active[request.Game] = job;
+            // Taken before the job runs, since a job that started may have left the queue by the time Start returns.
+            var handle = new JobHandle(job.Snapshot, job.Completion.Task);
             job.Execution = Task.Run(() => RunAsync(job));
+            return handle;
         }
-
-        return new JobHandle(job.Snapshot, job.Completion.Task);
     }
 
     /// <summary>Cancels a job for the player; an update past its uninstall still puts the previous release back.</summary>
