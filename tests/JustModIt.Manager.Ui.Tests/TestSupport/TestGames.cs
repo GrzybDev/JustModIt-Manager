@@ -2,6 +2,7 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Ui.Tests.TestSupport;
@@ -137,7 +138,7 @@ public static class TestGames
     {
         var game = UpdateAvailable(name, id);
         var failure = new FailureView(JobKind.Update, JobOrigin.Automatic, TestStates.Now.AddMinutes(-80),
-            new JobFailureView(JobFailureReason.NotEnoughSpace) { Location = @"D:\Games", RequiredBytes = 1_717_986_918, AvailableBytes = 966_367_641 });
+            new JobFailureView(JobFailureReason.NotEnoughSpace) { Location = TestPaths.Rooted('D', "Games"), RequiredBytes = 1_717_986_918, AvailableBytes = 966_367_641 });
         return game with { Installs = [game.Installs[0] with { LastFailure = failure, NeedsAttention = true }], NeedsAttention = true };
     }
 

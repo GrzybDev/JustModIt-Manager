@@ -230,7 +230,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             () => Navigator.Navigate(new SettingsRoute()),
             Agent.State.SteamUi.RunningGame is null
                 ? () => _ = AgentRequests.SendAsync(_services, new RestartSteam(), Strings.GamePage_RestartSteamFailed)
-                : null));
+                : null,
+            Agent.State.Volumes));
     }
 
     private void ApplyLink()

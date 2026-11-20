@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Core.Tests.TestSupport;
@@ -29,7 +30,7 @@ namespace JustModIt.Manager.Ui.Tests;
 
 public sealed class SettingsTests
 {
-    private const string BackupFolder = @"E:\Game backups";
+    private static readonly string BackupFolder = TestPaths.Rooted('E', "Game backups");
 
     [AvaloniaFact]
     public async Task Every_change_is_sent_at_once_with_the_other_settings_kept_and_quick_changes_never_take_each_other_back()
@@ -86,10 +87,9 @@ public sealed class SettingsTests
     [AvaloniaFact]
     public async Task Another_folder_for_backups_is_picked_checked_and_taken_and_a_refused_one_says_why()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The texts name the drive of a Windows path.");
-        using var ui = await OpenAsync(State(settings => settings with { CustomBackupFolder = @"E:\Old backups" }));
+        using var ui = await OpenAsync(State(settings => settings with { CustomBackupFolder = TestPaths.Rooted('E', "Old backups") }));
         ui.Pickers.Folder = BackupFolder;
-        ui.Agent.Answer = request => request is ValidateBackupFolder { Folder: BackupFolder }
+        ui.Agent.Answer = request => request is ValidateBackupFolder check && check.Folder == BackupFolder
             ? new BackupFolderChecked(BackupFolderProblem.InsideGameFolder)
             : null;
 
@@ -211,9 +211,8 @@ public sealed class SettingsTests
     [AvaloniaFact]
     public async Task The_apps_data_shows_what_it_takes_and_its_cache_is_cleared_only_while_no_job_runs()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The texts name the drive of a Windows path.");
-        var measured = new AppDataUsage(@"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp", 317_718_528, 224_395_264, 90_177_536,
-            3_355_443);
+        var measured = new AppDataUsage(TestPaths.Rooted('C', "Users", "Example", "AppData", "Local", "ExampleVendor", "ExampleApp"),
+            317_718_528, 224_395_264, 90_177_536, 3_355_443);
         var state = State();
         using var ui = await OpenAsync(state, answer: request => request switch
         {
@@ -251,6 +250,26 @@ public sealed class SettingsTests
         ui.Agent.Requests.OfType<ClearCache>().Should().ContainSingle();
         data.ClearText.Should().Be("Pamięć podręczna została wyczyszczona. Zwolniono 299,2\u00A0MB.");
         data.Usage.Should().Be("Folder danych aplikacji na dysku C: zajmuje 4,0\u00A0MB.");
+    }
+
+    [AvaloniaFact]
+    public async Task A_drive_is_named_as_the_home_folders_disk_or_else_by_its_root_when_the_agent_does_not_list_it()
+    {
+        var home = TestPaths.Rooted('C');
+        using var ui = await OpenAsync(State() with { Volumes = [new NamedVolume(home, "C:", HoldsHome: true)] }, answer: request => request switch
+        {
+            GetAppDataUsage => new AppDataUsage(Path.Join(home, "Data"), 317_718_528, 224_395_264, 90_177_536, 3_355_443),
+            ValidateBackupFolder => new BackupFolderChecked(AvailableBytes: 871_878_361_088),
+            _ => null,
+        });
+        ui.Pickers.Folder = TestPaths.Rooted('F', "Backups");
+
+        await UiHarness.WaitUntilAsync(() => Page(ui).Data.IsMeasured);
+        ui.Click(ui.Find<RadioButton>("BackupsInFolder"));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(100));
+
+        Page(ui).Data.Usage.Should().Be("Folder danych aplikacji na dysku z folderem domowym zajmuje 303,0 MB.");
+        Page(ui).Backups.FreeSpace.Should().Be($"Wolne miejsce na dysku {(OperatingSystem.IsWindows() ? "F:" : "/")} 812,0 GB");
     }
 
     [AvaloniaFact]

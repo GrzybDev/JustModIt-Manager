@@ -1360,7 +1360,7 @@ public sealed class CreatorPackageTests : IDisposable
         _ui.Push(State(null, installed: false));
 
         package.Test.State.Should().Be(TestInstallState.Failed);
-        package.Test.TestText.Should().Be(GameWording.FailureReason(running, StoreId.Steam, "Lantern Isle")).And.Contain("lantern.exe");
+        package.Test.TestText.Should().Be(GameWording.FailureReason(running, StoreId.Steam, "Lantern Isle", [])).And.Contain("lantern.exe");
         package.Test.HasTestProblem.Should().BeTrue();
         package.Test.OffersTestInstall.Should().BeTrue();
         await _ui.RenderAsync("creator-test-failed", 1400);
@@ -1381,7 +1381,7 @@ public sealed class CreatorPackageTests : IDisposable
         _ui.Agent.End(new JobEnded(Job(UndoJob, JobKind.Uninstall, JobStage.Uninstalling), JobOutcome.Failed, locked));
         package.Test.State.Should().Be(TestInstallState.Installed);
         package.Test.TestText.Should().Be(Text.Format(Strings.Creator_UndoTestFailed,
-            ("reason", GameWording.FailureReason(locked, StoreId.Steam, "Lantern Isle"))));
+            ("reason", GameWording.FailureReason(locked, StoreId.Steam, "Lantern Isle", []))));
         package.Test.HasTestProblem.Should().BeTrue();
         _ui.Click(_ui.Button(Strings.Creator_UndoTest));
         _ui.Agent.End(new JobEnded(Job(UndoJob, JobKind.Uninstall, JobStage.Uninstalling), JobOutcome.Succeeded));

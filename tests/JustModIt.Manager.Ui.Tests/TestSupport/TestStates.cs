@@ -1,6 +1,8 @@
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Ui.Tests.TestSupport;
@@ -13,6 +15,10 @@ public static class TestStates
     /// <summary>The moment the tests' clock stands at, a day after the invented projects' newest releases.</summary>
     public static readonly DateTimeOffset Now = new(2026, 9, 29, 14, 58, 0, TimeSpan.Zero);
 
+    /// <summary>The drives the tests' paths lie on, each labelled with its letter, so the texts name them alike on both systems.</summary>
+    public static IReadOnlyList<NamedVolume> Drives { get; } =
+        [.. "CDE".Select(letter => new NamedVolume(TestPaths.Rooted(letter), $"{letter}:"))];
+
     /// <summary>An agent that has read everything and has nothing to do, its setup done and its version current.</summary>
     public static AppStateView Idle(bool creatorMode = false) => new()
     {
@@ -20,6 +26,7 @@ public static class TestStates
         IsLoaded = true,
         Settings = SettingsView.From(AppSettings.Default) with { OnboardingCompleted = true, CreatorMode = creatorMode },
         Update = new AppUpdateView { State = AppUpdateState.UpToDate, CurrentVersion = "0.1.0" },
+        Volumes = Drives,
     };
 
     public static JobView Job(JobKind kind = JobKind.Install, JobStage stage = JobStage.Installing, double? fraction = 0.42,

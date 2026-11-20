@@ -128,7 +128,8 @@ public sealed partial class AppDataViewModel : ObservableObject
             }
 
             _usage = usage;
-            Usage = Text.Format(Strings.Settings_DiskUsageText, ("drive", BackupsViewModel.Drive(usage.DataFolder)),
+            var drive = GameWording.Drive(usage.DataFolder, _services.Agent.State.Volumes);
+            Usage = Text.Format(Strings.Settings_DiskUsageText, ("volume", drive.Kind), ("drive", drive.Name),
                 ("size", Formats.FileSize(usage.Total)));
             Downloads = Formats.FileSize(usage.Downloads);
             ImagesAndCatalogue = Formats.FileSize(usage.ImagesAndCatalogue);

@@ -788,7 +788,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     private InstallRow Row(GameView game, InstallView install, bool several, bool isSubject)
     {
         var version = GameWording.Version(install);
-        var drive = Path.GetPathRoot(install.InstallDirectory)?.TrimEnd('\\', '/') ?? "";
+        var drive = GameWording.Drive(install.InstallDirectory, _services.Agent.State.Volumes);
         var (detail, warning) = install.Status switch
         {
             { State: MyGameState.BackupsUnavailable } when install.MissingOriginals.Count > 0 =>
@@ -798,8 +798,10 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                 ("store", GameWording.StoreName(game.Key.Store))), true),
             _ when install.LeftOut.Count > 0 => (string.Join(" ", install.LeftOut.Select(feature => Text.Format(Strings.GamePage_FeatureLeftOut,
                 ("reason", feature.Reason == PartLeftOutReason.NewerApp ? "app" : "other"), ("name", Quoted(feature.Name))))), true),
-            { State: MyGameState.Orphaned, Orphan: OrphanReason.GameNotDetected } => (Text.Format(Strings.GamePage_BackupsStay, ("drive", drive)), false),
-            { State: MyGameState.Orphaned, Orphan: OrphanReason.GameMoved } => (Text.Format(Strings.GamePage_LeftBehind, ("drive", drive)), false),
+            { State: MyGameState.Orphaned, Orphan: OrphanReason.GameNotDetected } =>
+                (Text.Format(Strings.GamePage_BackupsStay, ("volume", drive.Kind), ("drive", drive.Name)), false),
+            { State: MyGameState.Orphaned, Orphan: OrphanReason.GameMoved } =>
+                (Text.Format(Strings.GamePage_LeftBehind, ("volume", drive.Kind), ("drive", drive.Name)), false),
             { State: MyGameState.TestInstalled } => (Strings.GamePage_TestDetail, false),
             _ => (Text.Format(Strings.GamePage_FilesInPlace, ("location", install.BackupLocation.ToString())), false),
         };
@@ -1074,9 +1076,9 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                 case MyGameState.Orphaned when install.Status.Orphan == OrphanReason.GameNotDetected:
                     return Outlined(StepKind.Gone, Tone.Warning, Icons.TriangleAlert, Strings.GamePage_GoneTitle, Strings.GamePage_GoneText);
                 case MyGameState.Orphaned when install.Status.Orphan == OrphanReason.GameMoved:
-                    var drive = Path.GetPathRoot(game.Detected?.InstallDirectory ?? "")?.TrimEnd('\\', '/') ?? "";
+                    var drive = GameWording.Drive(game.Detected?.InstallDirectory ?? "", state.Volumes);
                     return Outlined(StepKind.Moved, Tone.Warning, Icons.FolderInput, Strings.GamePage_MovedTitle,
-                        Text.Format(Strings.GamePage_MovedText, ("store", store), ("drive", drive)));
+                        Text.Format(Strings.GamePage_MovedText, ("store", store), ("volume", drive.Kind), ("drive", drive.Name)));
                 case MyGameState.Orphaned:
                     return Outlined(StepKind.NotInCatalogue, Tone.Info, Icons.Unlink, Strings.GamePage_NotInCatalogueTitle,
                         Strings.GamePage_NotInCatalogueText);
@@ -1125,7 +1127,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         if (game.InstallRefusal is { } refusal)
         {
             return new NextStep(StepKind.Refused, Tone.Neutral, Icons.Ban, Strings.GamePage_RefusedTitle,
-                GameWording.FailureReason(new JobFailureView(refusal), game.Key.Store, game.Name));
+                GameWording.FailureReason(new JobFailureView(refusal), game.Key.Store, game.Name, state.Volumes));
         }
 
         if (project.Unavailable is not null)
@@ -1249,7 +1251,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
     {
         var reason = failure.LostPrevious
             ? Strings.Library_PreviousLost
-            : GameWording.FailureReason(failure.Failure, game.Key.Store, game.Name);
+            : GameWording.FailureReason(failure.Failure, game.Key.Store, game.Name, _services.Agent.State.Volumes);
         var version = install is null ? "" : GameWording.Version(install);
         var kept = install is not null && failure.Kind is JobKind.Update or JobKind.Repair && !failure.LostPrevious && version.Length > 0
             ? " " + Text.Format(Strings.GamePage_FailedKept, ("version", version))

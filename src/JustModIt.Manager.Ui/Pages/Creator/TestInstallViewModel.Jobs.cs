@@ -159,7 +159,7 @@ public sealed partial class TestInstallViewModel
     private string FailureText(JobFailureView? failure) =>
         failure is null || Game is not { } game
             ? Strings.Creator_TestFailed
-            : GameWording.FailureReason(failure, game.Key.Store, game.Name);
+            : GameWording.FailureReason(failure, game.Key.Store, game.Name, _page.Creator.Agent.State.Volumes);
 
     private void ShowJob(JobView job)
     {

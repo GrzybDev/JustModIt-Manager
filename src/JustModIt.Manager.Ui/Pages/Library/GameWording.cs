@@ -1,5 +1,8 @@
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Views;
 
@@ -43,14 +46,18 @@ internal static class GameWording
             : "";
 
     /// <summary>Why a job failed, as one sentence.</summary>
-    public static string FailureReason(JobFailureView? failure, StoreId store, string game)
+    /// <param name="failure">The failure; null for a job that was cancelled.</param>
+    /// <param name="store">The game's store.</param>
+    /// <param name="game">The game's name.</param>
+    /// <param name="volumes">The system's drives and shares, which name the drive of the failure's place.</param>
+    public static string FailureReason(JobFailureView? failure, StoreId store, string game, IReadOnlyList<NamedVolume> volumes)
     {
         if (failure is null)
         {
             return Strings.GamePage_FailureCancelled;
         }
 
-        var drive = failure.Location is { Length: > 0 } location ? Path.GetPathRoot(location)?.TrimEnd('\\', '/') ?? location : "";
+        var drive = Drive(failure.Location ?? "", volumes);
         var state = failure.GameState is { } gameState ? GameState(gameState, failure.StateReason ?? GameStateReason.None, store) : "";
         return Text.Format(Strings.GamePage_FailureReason,
             ("reason", failure.Reason.ToString()),
@@ -61,12 +68,51 @@ internal static class GameWording
             ("processes", string.Join(", ", failure.Processes)),
             ("file", failure.Files.Count > 0 ? failure.Files[0] : ""),
             ("files", failure.Files.Count),
-            ("drive", drive),
+            ("volume", drive.Kind),
+            ("drive", drive.Name),
             ("location", failure.Location ?? ""),
             ("required", failure.RequiredBytes is { } required ? Formats.FileSize(required) : ""),
             ("available", failure.AvailableBytes is { } available ? Formats.FileSize(available) : ""),
             ("app", failure.OtherApp ?? ""),
             ("unavailability", failure.Unavailability?.ToString() ?? ""));
+    }
+
+    /// <summary>
+    /// The volume a path lies on: the deepest one the agent lists that holds it, else the path's root as the system that wrote
+    /// the path names it, such as a Windows drive.
+    /// </summary>
+    /// <param name="path">A full path; any other, such as a project's folder from another system, lies on no listed volume.</param>
+    /// <param name="volumes">The system's drives and shares from the agent's state.</param>
+    public static NamedVolume Volume(string path, IReadOnlyList<NamedVolume> volumes)
+    {
+        NamedVolume? found = null;
+        // A folder written on another system, such as a project's from Windows on Linux, lies on no drive here.
+        if (Path.IsPathFullyQualified(path))
+        {
+            foreach (var volume in volumes)
+            {
+                if (PathComparison.IsWithin(volume.MountPoint, path) && volume.MountPoint.Length >= (found?.MountPoint.Length ?? 0))
+                {
+                    found = volume;
+                }
+            }
+        }
+
+        return found ?? new NamedVolume(CreatorProjectStore.RootOf(path));
+    }
+
+    /// <summary>
+    /// How the drive texts name the drive a path lies on: <c>home</c> for the disk with the home folder, else <c>other</c>
+    /// with the drive's label, its mount point or its letter.
+    /// </summary>
+    /// <param name="path">A full path; an empty one names no drive.</param>
+    /// <param name="volumes">The system's drives and shares from the agent's state.</param>
+    public static (string Kind, string Name) Drive(string path, IReadOnlyList<NamedVolume> volumes)
+    {
+        var volume = Volume(path, volumes);
+        // A drive letter reads without its separator, as in "E:", and Linux's root has nothing else to read.
+        var point = volume.MountPoint.TrimEnd('\\', '/') is { Length: > 0 } trimmed ? trimmed : volume.MountPoint;
+        return (volume.HoldsHome ? "home" : "other", volume.Label ?? point);
     }
 
     /// <summary>What a job is doing now, e.g. "Downloading".</summary>

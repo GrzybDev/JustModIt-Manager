@@ -188,16 +188,16 @@ public sealed partial class ProjectCard(CreatorPageViewModel page, Guid id) : Ob
     private string Label(string state, string? folder) => Text.Format(Strings.Creator_CardState, ("state", state), ("path", folder ?? ""),
         ("count", _changes?.Count ?? 0), ("hasVersion", _changes?.Version.Length > 0 ? "true" : "false"), ("version", GameWording.ShortVersion(_changes?.Version ?? "")));
 
-    // A long path would fill the card, so the line keeps the drive and the folder's name, and the tooltip the whole path. Both
-    // slashes count, since a project made on another system keeps that system's folders.
-    private static string? Shortened(string? folder)
+    // A long path would fill the card, so the line keeps the drive's root or mount point and the folder's name, and the tooltip
+    // the whole path. Both slashes count, since a project made on another system keeps that system's folders.
+    private string? Shortened(string? folder)
     {
         if (folder is null)
         {
             return null;
         }
 
-        var root = CreatorProjectStore.RootOf(folder).TrimEnd('/', '\\').Length;
+        var root = GameWording.Volume(folder, page.Agent.State.Volumes).MountPoint.TrimEnd('/', '\\').Length;
         var trimmed = folder.TrimEnd('/', '\\');
         var separator = trimmed.LastIndexOfAny(['/', '\\']);
         return CreatorWording.Wrappable(separator > root ? $"{folder[..root]}{trimmed[separator]}…{trimmed[separator..]}" : folder);

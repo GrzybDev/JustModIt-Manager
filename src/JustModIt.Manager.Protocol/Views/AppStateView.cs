@@ -1,5 +1,6 @@
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 
@@ -54,6 +55,9 @@ public sealed record AppStateView
 
     /// <inheritdoc cref="AppState.SteamUi"/>
     public SteamUiView SteamUi { get; init; } = new();
+
+    /// <summary>The system's drives and shares, which the texts name a Linux path's drive by; none on Windows.</summary>
+    public IReadOnlyList<NamedVolume> Volumes { get; init; } = [];
 
     /// <summary>Makes the snapshot of the engine's state and the agent's own status.</summary>
     /// <param name="version">The snapshot's number among those the agent sent.</param>

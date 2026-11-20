@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Protocol.Messages;
@@ -89,11 +90,21 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
     private async Task PublishAsync(CancellationToken cancellationToken)
     {
         var version = 0L;
+        IReadOnlyList<NamedVolume>? volumes = null;
+        DateTimeOffset? volumesScannedAt = null;
         while (true)
         {
             await _changes.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            var state = AppStateView.From(++version, coordinator.Current, settings.Current, catalogue.Current.Site, status.Activity,
-                status.Update) with { UncleanExit = status.UncleanExit };
+            var current = coordinator.Current;
+            // A drive that comes or goes starts a scan of the stores, so the volumes are read again only after one.
+            if (volumes is null || volumesScannedAt != current.LibraryScannedAt)
+            {
+                volumes = NamedVolume.Read();
+                volumesScannedAt = current.LibraryScannedAt;
+            }
+
+            var state = AppStateView.From(++version, current, settings.Current, catalogue.Current.Site, status.Activity,
+                status.Update) with { UncleanExit = status.UncleanExit, Volumes = volumes };
             Volatile.Write(ref _latest, state);
             EventRaising.RaiseEach(Published, this, state, LogListenerFailed);
         }

@@ -1,6 +1,7 @@
 using Avalonia.Media;
 using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Pages.Library;
@@ -22,7 +23,9 @@ public static class NoticeToasts
     /// <param name="restartSteam">
     /// Starts Steam again, which shows achievement texts that wait for it; null while a Steam game runs, which a restart would close.
     /// </param>
-    public static ToastViewModel Create(NoticeView notice, Action<NoticeView> showGame, Action showSettings, Action? restartSteam)
+    /// <param name="volumes">The system's drives and shares, which name the drive of a failure's place.</param>
+    public static ToastViewModel Create(NoticeView notice, Action<NoticeView> showGame, Action showSettings, Action? restartSteam,
+        IReadOnlyList<NamedVolume> volumes)
     {
         if (notice.Kind == NoticeKind.AchievementTexts)
         {
@@ -63,7 +66,7 @@ public static class NoticeToasts
             _ => (ToastTone.Danger, Icons.CircleX,
                 Text.Format(Strings.Toast_FailedTitle, ("job", notice.Job?.ToString() ?? "")),
                 About(Strings.Toast_Failed, ("reason", notice.Game is { } game
-                    ? GameWording.FailureReason(notice.Failure, game.Store, notice.GameName ?? "")
+                    ? GameWording.FailureReason(notice.Failure, game.Store, notice.GameName ?? "", volumes)
                     : "")), true),
         };
 

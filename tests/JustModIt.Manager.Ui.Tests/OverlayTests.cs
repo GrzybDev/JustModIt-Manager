@@ -8,6 +8,7 @@ using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.Tests.TestSupport;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
@@ -139,7 +140,6 @@ public sealed class OverlayTests
     [AvaloniaFact]
     public async Task Notices_in_front_show_in_the_corner_and_lead_to_their_game()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The texts name the drive of a Windows path.");
         using var ui = new UiHarness(TestStates.Idle());
 
         ui.Agent.Notice(new NoticeView(NoticeKind.Installed) { Game = TestStates.Ember, GameName = "Ember Hollow", TeamName = "Lantern Team" });
@@ -151,7 +151,7 @@ public sealed class OverlayTests
             Job = JobKind.Update,
             Failure = new JobFailureView(JobFailureReason.NotEnoughSpace)
             {
-                Location = @"D:\Games\Ember Hollow",
+                Location = TestPaths.Rooted('D', "Games", "Ember Hollow"),
                 RequiredBytes = 1_717_986_918,
                 AvailableBytes = 966_367_642,
             },

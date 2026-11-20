@@ -8,6 +8,7 @@ using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
@@ -195,6 +196,7 @@ public sealed class MessageTests
         {
             PendingRecoveries = [new RecoveredOperation(RecordId, RecoveryOutcome.Failed)],
             UncleanExit = new UncleanExitView("1.0.0"),
+            Volumes = [new NamedVolume("/home", "home", HoldsHome: true), new NamedVolume("/run/media/player/Example Card")],
         }),
     ];
 

@@ -341,8 +341,9 @@ public sealed partial class BackupsViewModel : ObservableObject
         }
 
         FolderProblem = check.Problem is { } problem ? Text.Format(Strings.Settings_BackupFolderProblem, ("problem", problem.ToString())) : null;
+        var drive = GameWording.Drive(folder, _services.Agent.State.Volumes);
         FreeSpace = check.AvailableBytes is { } free
-            ? Text.Format(Strings.Settings_FreeSpace, ("drive", Drive(folder)), ("space", Formats.FileSize(free)))
+            ? Text.Format(Strings.Settings_FreeSpace, ("volume", drive.Kind), ("drive", drive.Name), ("space", Formats.FileSize(free)))
             : null;
         return check.Problem is null;
     }
@@ -425,10 +426,6 @@ public sealed partial class BackupsViewModel : ObservableObject
         ? Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(install.BackupDirectory))))
             ?? install.BackupDirectory
         : install.BackupDirectory;
-
-    /// <summary>The drive a folder is on, as the texts name it, e.g. <c>E:</c>.</summary>
-    /// <param name="folder">A full path.</param>
-    internal static string Drive(string folder) => Path.GetPathRoot(folder)?.TrimEnd('\\', '/') ?? folder;
 
     private sealed record GameInstall(GameView Game, InstallView Install);
 }

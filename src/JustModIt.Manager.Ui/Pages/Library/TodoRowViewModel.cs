@@ -2,6 +2,7 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
@@ -99,14 +100,14 @@ public sealed partial class TodoRowViewModel(string key) : GameItemViewModel
 
             if (game.LastFailure is { } failure)
             {
-                Row(TodoKind.Failure, null).ShowFailure(game, null, failure);
+                Row(TodoKind.Failure, null).ShowFailure(game, null, failure, state.Volumes);
             }
 
             foreach (var install in game.Installs)
             {
                 if (install.LastFailure is { } installFailure)
                 {
-                    Row(TodoKind.Failure, install.Id).ShowFailure(game, install, installFailure);
+                    Row(TodoKind.Failure, install.Id).ShowFailure(game, install, installFailure, state.Volumes);
                     continue;
                 }
 
@@ -150,10 +151,10 @@ public sealed partial class TodoRowViewModel(string key) : GameItemViewModel
         IsDanger = false;
     }
 
-    private void ShowFailure(GameView game, InstallView? install, FailureView failure)
+    private void ShowFailure(GameView game, InstallView? install, FailureView failure, IReadOnlyList<NamedVolume> volumes)
     {
         Line = new LineContent(Icons.CircleX, Tone.Danger, Text.Format(Strings.Library_StateFailed, ("kind", failure.Kind.ToString())),
-            failure.LostPrevious ? Strings.Library_PreviousLost : GameWording.FailureReason(failure.Failure, game.Key.Store, game.Name));
+            failure.LostPrevious ? Strings.Library_PreviousLost : GameWording.FailureReason(failure.Failure, game.Key.Store, game.Name, volumes));
         // Trying again is refused the same way until the player uninstalls and the store checks the game's files, which the
         // game's page leads through.
         Request = failure.Failure?.Reason == JobFailureReason.KeptFilesBlockReplacement ? null : (failure.Kind, install) switch

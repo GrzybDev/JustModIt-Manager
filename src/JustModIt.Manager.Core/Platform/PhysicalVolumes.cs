@@ -29,7 +29,7 @@ public sealed class PhysicalVolumes : IVolumes
         ArgumentException.ThrowIfNullOrWhiteSpace(volumeId);
         if (!OperatingSystem.IsWindows())
         {
-            return MountTable.Read().Mounts.Any(mount => mount.VolumeId == volumeId);
+            return MountTable.ReadNamed().Mounts.Any(mount => mount.VolumeId == volumeId);
         }
 
         try
@@ -95,7 +95,7 @@ public sealed class PhysicalVolumes : IVolumes
     }
 
     private static Mount? MountOf(string path) =>
-        ExistingAncestor(path) is { } existing ? MountTable.Read().MountOf(LinkResolver.Resolve(existing)) : null;
+        ExistingAncestor(path) is { } existing ? MountTable.ReadNamed().MountOf(LinkResolver.Resolve(existing)) : null;
 
     [SupportedOSPlatform("windows")]
     private static string? WindowsMountPointOf(string path) =>

@@ -1159,7 +1159,7 @@
     <value>Zadanie zostało anulowane.</value>
   </data>
   <data name="GamePage_FailureReason" xml:space="preserve">
-    <value>{reason, select, AlreadyRunning {Dla tej gry trwa już inne zadanie.} GameNotDetected {{store} nie zgłasza już tej gry.} GameNotReady {Gra nie była gotowa: {state}.} GameRunning {Gra była uruchomiona ({processes}).} GameFolderMissing {Brakuje folderu gry.} GameBusy {Inna instalacja zmieniała w tym czasie pliki gry.} FilesLocked {Pliki gry są używane przez: {processes}.} PermissionRequired {Brak uprawnień do zmiany plików gry ({file}).} NotEnoughSpace {Za mało miejsca na dysku {drive} (potrzeba {required}, wolne {available}).} OtherGame {Paczka jest przeznaczona dla innej gry.} UnsupportedGameVersion {Pliki gry są w innej wersji niż ta, dla której przygotowano paczkę.} GameCaseTwins {W folderze gry są pliki lub foldery o nazwach różniących się tylko wielkością liter ({file}), więc nie wiadomo, który z nich odczytuje gra.} NewReleaseIncompatible {Nowa wersja pasuje do innej wersji gry, więc zainstalowana została bez zmian.} AlreadyApplied {Pliki gry mają już zawartość paczki.} ConflictingInstall {Inny zainstalowany projekt zmienia te same pliki.} KeptFilesPending {Pliki zachowane po wcześniejszym odinstalowaniu wciąż mają zawartość zostawioną przez jego oprogramowanie, więc najpierw trzeba sprawdzić spójność plików gry w {store}.} KeptFilesBlockReplacement {Odinstalowanie zainstalowanej wersji zostawiłoby pliki zmienione przez jej oprogramowanie tak, jak są, a nowe paczki zapisują te same pliki, więc najpierw trzeba ją odinstalować, potem sprawdzić spójność plików gry w {store} i zainstalować ponownie.} OtherProjectInstalled {Do tej gry zainstalowany jest już inny projekt.} ManagedByOtherApp {Plikami gry zarządza inna aplikacja ({app}).} RecoveryPending {Wcześniejsza operacja na tej grze czeka na dokończenie.} InstallNotFound {Ta instalacja już nie istnieje.} UnreadableInstall {Nie udało się odczytać zapisu instalacji; mogła go utworzyć nowsza wersja aplikacji.} BackupFolderUnavailable {Folder z oryginalnymi plikami jest niedostępny ({location}).} OriginalsMissing {Brakuje kopii {files, plural, one {oryginału # pliku} few {oryginałów # plików} many {oryginałów # plików} other {oryginałów # pliku}}, więc {storeId, select, gog {najpierw trzeba zainstalować grę ponownie w {store}} other {najpierw trzeba sprawdzić spójność plików gry w {store}}}.} ProjectNotFound {Projektu nie ma już w serwisie.} ProjectNotCompleted {Projekt nie jest jeszcze ukończony.} ReleaseUnavailable {Tej wersji nie można już pobrać.} NoPackage {Ta wersja nie ma paczki dla tej gry.} Offline {Brak połączenia z internetem.} ServerError {Serwer nie odpowiedział poprawnie.} DownloadCorrupt {Pobrany plik był uszkodzony.} InvalidPackage {Paczka jest uszkodzona.} AppUpdateRequired {Paczka wymaga nowszej wersji aplikacji.} InstallFailed {Coś poszło nie tak, więc wszystkie zmiany zostały cofnięte.} RollbackIncomplete {Nie wszystkie zmiany udało się już cofnąć; aplikacja spróbuje ponownie przy następnym uruchomieniu.} AccessDenied {Nie udało się uzyskać dostępu do pliku.} DiskError {Zapis na dysku się nie powiódł.} other {Wystąpił nieoczekiwany błąd.}}</value>
+    <value>{reason, select, AlreadyRunning {Dla tej gry trwa już inne zadanie.} GameNotDetected {{store} nie zgłasza już tej gry.} GameNotReady {Gra nie była gotowa: {state}.} GameRunning {Gra była uruchomiona ({processes}).} GameFolderMissing {Brakuje folderu gry.} GameBusy {Inna instalacja zmieniała w tym czasie pliki gry.} FilesLocked {Pliki gry są używane przez: {processes}.} PermissionRequired {Brak uprawnień do zmiany plików gry ({file}).} NotEnoughSpace {Za mało miejsca na dysku {volume, select, home {z folderem domowym} other {{drive}}} (potrzeba {required}, wolne {available}).} OtherGame {Paczka jest przeznaczona dla innej gry.} UnsupportedGameVersion {Pliki gry są w innej wersji niż ta, dla której przygotowano paczkę.} GameCaseTwins {W folderze gry są pliki lub foldery o nazwach różniących się tylko wielkością liter ({file}), więc nie wiadomo, który z nich odczytuje gra.} NewReleaseIncompatible {Nowa wersja pasuje do innej wersji gry, więc zainstalowana została bez zmian.} AlreadyApplied {Pliki gry mają już zawartość paczki.} ConflictingInstall {Inny zainstalowany projekt zmienia te same pliki.} KeptFilesPending {Pliki zachowane po wcześniejszym odinstalowaniu wciąż mają zawartość zostawioną przez jego oprogramowanie, więc najpierw trzeba sprawdzić spójność plików gry w {store}.} KeptFilesBlockReplacement {Odinstalowanie zainstalowanej wersji zostawiłoby pliki zmienione przez jej oprogramowanie tak, jak są, a nowe paczki zapisują te same pliki, więc najpierw trzeba ją odinstalować, potem sprawdzić spójność plików gry w {store} i zainstalować ponownie.} OtherProjectInstalled {Do tej gry zainstalowany jest już inny projekt.} ManagedByOtherApp {Plikami gry zarządza inna aplikacja ({app}).} RecoveryPending {Wcześniejsza operacja na tej grze czeka na dokończenie.} InstallNotFound {Ta instalacja już nie istnieje.} UnreadableInstall {Nie udało się odczytać zapisu instalacji; mogła go utworzyć nowsza wersja aplikacji.} BackupFolderUnavailable {Folder z oryginalnymi plikami jest niedostępny ({location}).} OriginalsMissing {Brakuje kopii {files, plural, one {oryginału # pliku} few {oryginałów # plików} many {oryginałów # plików} other {oryginałów # pliku}}, więc {storeId, select, gog {najpierw trzeba zainstalować grę ponownie w {store}} other {najpierw trzeba sprawdzić spójność plików gry w {store}}}.} ProjectNotFound {Projektu nie ma już w serwisie.} ProjectNotCompleted {Projekt nie jest jeszcze ukończony.} ReleaseUnavailable {Tej wersji nie można już pobrać.} NoPackage {Ta wersja nie ma paczki dla tej gry.} Offline {Brak połączenia z internetem.} ServerError {Serwer nie odpowiedział poprawnie.} DownloadCorrupt {Pobrany plik był uszkodzony.} InvalidPackage {Paczka jest uszkodzona.} AppUpdateRequired {Paczka wymaga nowszej wersji aplikacji.} InstallFailed {Coś poszło nie tak, więc wszystkie zmiany zostały cofnięte.} RollbackIncomplete {Nie wszystkie zmiany udało się już cofnąć; aplikacja spróbuje ponownie przy następnym uruchomieniu.} AccessDenied {Nie udało się uzyskać dostępu do pliku.} DiskError {Zapis na dysku się nie powiódł.} other {Wystąpił nieoczekiwany błąd.}}</value>
   </data>
   <data name="Library_Joined" xml:space="preserve">
     <value>{first} · {second}</value>
@@ -1183,7 +1183,7 @@
     <value>Wróć do „Moich gier”</value>
   </data>
   <data name="GamePage_BackupsStay" xml:space="preserve">
-    <value>Kopia oryginalnych plików nadal zajmuje miejsce na dysku {drive}</value>
+    <value>Kopia oryginalnych plików nadal zajmuje miejsce na dysku {volume, select, home {z folderem domowym} other {{drive}}}</value>
   </data>
   <data name="GamePage_BackupsText" xml:space="preserve">
     <value>Folder z kopią oryginałów ({folder}) jest niedostępny: dysk, na którym leży, jest odłączony albo nie odpowiada, albo folder zmienił nazwę lub miejsce. Do jego powrotu projektu nie da się odinstalować ani zaktualizować.</value>
@@ -1375,7 +1375,7 @@
     <value>Uruchom grę</value>
   </data>
   <data name="GamePage_LeftBehind" xml:space="preserve">
-    <value>Został w poprzednim folderze gry, na dysku {drive}</value>
+    <value>Został w poprzednim folderze gry, na dysku {volume, select, home {z folderem domowym} other {{drive}}}</value>
   </data>
   <data name="GamePage_Loading" xml:space="preserve">
     <value>Wczytywanie strony projektu…</value>
@@ -1384,7 +1384,7 @@
     <value>Nie udało się przywrócić poprzedniej wersji</value>
   </data>
   <data name="GamePage_MovedText" xml:space="preserve">
-    <value>{store} zgłasza grę teraz na dysku {drive}. Po odinstalowaniu projektu ze starego folderu można go zainstalować w nowym miejscu.</value>
+    <value>{store} zgłasza grę teraz na dysku {volume, select, home {z folderem domowym} other {{drive}}}. Po odinstalowaniu projektu ze starego folderu można go zainstalować w nowym miejscu.</value>
   </data>
   <data name="GamePage_MovedTitle" xml:space="preserve">
     <value>Gra zmieniła folder</value>
@@ -2068,7 +2068,7 @@
     <value>Folder na oryginalne pliki gier</value>
   </data>
   <data name="Settings_FreeSpace" xml:space="preserve">
-    <value>Wolne miejsce na dysku {drive} {space}</value>
+    <value>Wolne miejsce na dysku {volume, select, home {z folderem domowym} other {{drive}}} {space}</value>
   </data>
   <data name="Settings_BackupFolderProblem" xml:space="preserve">
     <value>{problem, select, NotFullyQualified {To nie jest pełna ścieżka folderu.} Missing {Ten folder nie istnieje.} NetworkFolder {Folder sieciowy może zniknąć akurat wtedy, gdy grze trzeba przywrócić oryginały, dlatego kopie mogą trafić tylko na dysk lokalny.} NotWritable {Aplikacja nie może zapisywać w tym folderze.} InsideGameFolder {Sklep może usunąć albo sprawdzić folder gry, dlatego kopie nie mogą trafić do jego środka.} InsideAppFolder {Aktualizacje aplikacji zastępują jej folder, dlatego kopie nie mogą trafić do jego środka.} other {Ten folder nie może przechować kopii.}}</value>
@@ -2170,7 +2170,7 @@
     <value>Miejsce na dysku</value>
   </data>
   <data name="Settings_DiskUsageText" xml:space="preserve">
-    <value>Folder danych aplikacji na dysku {drive} zajmuje {size}.</value>
+    <value>Folder danych aplikacji na dysku {volume, select, home {z folderem domowym} other {{drive}}} zajmuje {size}.</value>
   </data>
   <data name="Settings_DiskUsageMeasuring" xml:space="preserve">
     <value>Trwa liczenie miejsca zajętego przez folder danych aplikacji…</value>
