@@ -129,7 +129,7 @@ internal static partial class XDelta3Native
             var version = ToManaged(Version());
             return version.StartsWith(CompatibleVersion, StringComparison.Ordinal)
                 ? null
-                : $"The xdelta3 shim reports '{version}'; rebuild it with native/build.ps1.";
+                : $"The xdelta3 shim reports '{version}'; rebuild it with native/build.ps1 or native/build.sh.";
         }
         catch (Exception exception) when (exception is DllNotFoundException or EntryPointNotFoundException or BadImageFormatException)
         {

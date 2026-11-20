@@ -23,6 +23,9 @@ cmake --build "$root/build/$rid"
 mkdir -p "$root/bin/$rid"
 case "$rid" in
   osx-*) cp "$root/build/$rid/libxd3shim.dylib" "$root/bin/$rid/" ;;
-  *) cp "$root/build/$rid/libxd3shim.so" "$root/bin/$rid/" ;;
+  *) cp "$root/build/$rid/libxd3shim.so" "$root/bin/$rid/"
+     if nm -D --defined-only "$root/bin/$rid/libxd3shim.so" | awk '{print $3}' | grep -v '^xds_' | grep -q .; then
+       echo "libxd3shim.so exports more than its xds_ functions" >&2; exit 1
+     fi ;;
 esac
 echo "xd3shim -> $root/bin/$rid"

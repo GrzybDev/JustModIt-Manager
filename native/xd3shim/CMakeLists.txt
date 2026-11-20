@@ -33,4 +33,7 @@ target_compile_definitions(xd3shim PRIVATE XDS_XD3_VERSION="${XDELTA3_VERSION}")
 set_target_properties(xd3shim PROPERTIES C_STANDARD 99 C_VISIBILITY_PRESET hidden)
 if(APPLE)
   set_target_properties(xd3shim PROPERTIES INSTALL_NAME_DIR "@rpath")
+elseif(UNIX)
+  # The static xz and xdelta3 would export their symbols too, so a system liblzma in the process could take their place.
+  target_link_options(xd3shim PRIVATE "LINKER:--exclude-libs,ALL")
 endif()

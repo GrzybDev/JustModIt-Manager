@@ -23,7 +23,6 @@ jobs:
     uses: GrzybDev/actions/.github/workflows/dotnet-checks.yml@v1
     with:
       solution: JustModIt.Manager.slnx
-      runners: '["windows-latest"]'
       # The native shim builds from them.
       submodules: true
 
