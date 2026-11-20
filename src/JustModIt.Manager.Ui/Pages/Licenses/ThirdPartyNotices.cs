@@ -30,7 +30,8 @@ internal static partial class ThirdPartyNotices
             .. sections.Where(section => section.Part == Components).Select(section =>
             {
                 var fields = Fields(section.Body);
-                var referred = Quoted().Matches(section.Body).Select(match => match.Groups[1].Value).Where(texts.ContainsKey).Distinct();
+                var referred = Quoted().Matches(section.Body).Select(match => Whitespace().Replace(match.Groups[1].Value, " "))
+                    .Where(texts.ContainsKey).Distinct();
                 var notice = string.Join("\n\n", [section.Body, .. referred.Select(name => texts[name])]);
                 return new ThirdPartyComponent(section.Title, Version(fields), fields.TryGetValue("Licence", out var license) ? Short(license) : null,
                     notice);
@@ -133,6 +134,10 @@ internal static partial class ThirdPartyNotices
 
     [GeneratedRegex("\"([^\"]+)\"")]
     private static partial Regex Quoted();
+
+    // The notices are wrapped, so a name in quotes may go on over the next line.
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex Whitespace();
 
     [GeneratedRegex(@"^- ([A-Za-z][A-Za-z ]*): (.*)$")]
     private static partial Regex Field();

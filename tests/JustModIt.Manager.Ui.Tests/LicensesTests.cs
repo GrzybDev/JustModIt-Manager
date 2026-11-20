@@ -29,12 +29,15 @@ public sealed partial class LicensesTests
             ("Inter", "3.19", "OFL-1.1"),
         ]);
         components.Single(component => component.Name == "Libraries built into libSkiaSharp.dll").License.Should().BeNull("several licences apply");
+        components.Single(component => component.Name == "SkiaSharp and HarfBuzzSharp").Notice.Should()
+            .Contain("\n### SkiaSharp and HarfBuzzSharp – THIRD-PARTY-NOTICES.txt\n", "a text named over two lines of the notices comes with it too");
         components.Should().AllSatisfy(component =>
         {
             ComponentUses.Of(component.Name).Should().NotBeNull($"the page says what {component.Name} is for");
             foreach (Match reference in SeeReference().Matches(component.Notice.Split("\n### ")[0]))
             {
-                component.Notice.Should().Contain("\n### " + reference.Groups[1].Value + "\n", $"{component.Name} refers to it");
+                var text = string.Join(' ', reference.Groups[1].Value.Split([' ', '\n'], StringSplitOptions.RemoveEmptyEntries));
+                component.Notice.Should().Contain("\n### " + text + "\n", $"{component.Name} refers to it");
             }
         });
     }
