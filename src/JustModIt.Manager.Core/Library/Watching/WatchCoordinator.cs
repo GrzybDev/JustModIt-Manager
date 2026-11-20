@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace JustModIt.Manager.Core.Library.Watching;
 
 /// <summary>
-/// Owns every system watcher of every store and keeps them in line with the stores' latest watch plans, so a library
+/// Owns every watch of every store and keeps them in line with the stores' latest watch plans, so a library
 /// added, removed or moved to another drive is followed after the scan that found it; it watches nothing until a plan is
 /// applied.
 /// </summary>
@@ -20,8 +20,9 @@ internal sealed partial class WatchCoordinator(IFolderWatcher folders, IRegistry
     private readonly Dictionary<(StoreId Store, object Target), IDisposable> _active = [];
     private readonly HashSet<(StoreId Store, object Target)> _starting = [];
     private bool _disposed;
+    private int _limitTold;
 
-    /// <summary>The number of system watchers running.</summary>
+    /// <summary>The number of watches running, one per store and folder or registry key.</summary>
     public int ActiveCount
     {
         get
@@ -155,6 +156,14 @@ internal sealed partial class WatchCoordinator(IFolderWatcher folders, IRegistry
                 void Report(WatchSignal signal) => onSignal(store, signal);
                 started.Add((target, target is WatchedFolder folder ? folders.Watch(folder, Report) : registryKeys!.Watch((WatchedRegistryKey)target, Report)));
             }
+            // The limit holds back every folder over it at every scan, so it is told once.
+            catch (WatchLimitException exception)
+            {
+                if (Interlocked.Exchange(ref _limitTold, 1) == 0)
+                {
+                    LogWatchLimitReached(exception.Message);
+                }
+            }
             // The periodic rescan covers what cannot be watched, e.g. a folder on some network drives, and the next plan
             // tries again.
             catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException
@@ -177,4 +186,8 @@ internal sealed partial class WatchCoordinator(IFolderWatcher folders, IRegistry
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Cannot watch a {Store} library: {Error}")]
     private partial void LogWatchFailed(StoreId store, string error);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "The system's limit of folder watches is reached, so libraries over it are read only by the periodic scan: {Error}")]
+    private partial void LogWatchLimitReached(string error);
 }

@@ -83,7 +83,7 @@ public sealed partial class LibraryService : ILibraryService, IAsyncDisposable
 
     public LibrarySnapshot Snapshot => Volatile.Read(ref _snapshot);
 
-    /// <summary>The number of system watchers running.</summary>
+    /// <summary>The number of watches of the stores running, one per store and folder or registry key.</summary>
     public int ActiveWatchCount => _watches.ActiveCount;
 
     /// <summary>

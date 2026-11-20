@@ -1,3 +1,4 @@
+using System.IO.Enumeration;
 using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
@@ -50,6 +51,11 @@ public sealed class WatchedFolder : IEquatable<WatchedFolder>
     public string Directory { get; }
 
     public ValueList<string> Filters { get; }
+
+    /// <summary>Whether an entry matters, by its name ignoring letter case, as stores spell their files either way on every system.</summary>
+    /// <param name="name">The entry's name in the folder.</param>
+    public bool Matches(string name) =>
+        Filters.Count == 0 || Filters.Any(filter => FileSystemName.MatchesSimpleExpression(filter, name, ignoreCase: true));
 
     /// <summary>
     /// Watches the folder holding <paramref name="path"/> for its name or, while that folder is missing, its nearest

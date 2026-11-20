@@ -82,6 +82,21 @@ public sealed class WatchCoordinatorTests : IDisposable
     }
 
     [Fact]
+    public void The_system_s_limit_of_watches_is_told_once_however_many_folders_and_plans_it_holds_back()
+    {
+        var log = new LogLines<WatchCoordinator>();
+        using var coordinator = new WatchCoordinator(_watcher, _watcher, (_, _) => { }, log);
+        _watcher.Failure = new WatchLimitException("The configured user limit (128) has been reached.", new IOException());
+        _watcher.Failing.UnionWith([Library, Other]);
+
+        coordinator.Apply(StoreId.Steam, new WatchPlan([Library], []));
+        coordinator.Apply(StoreId.Gog, new WatchPlan([Other], []));
+        coordinator.Rewatch();
+
+        log.Lines.Should().ContainSingle().Which.Message.Should().Contain("limit (128)");
+    }
+
+    [Fact]
     public async Task A_watch_that_hangs_while_starting_is_started_once_and_kept_when_it_answers()
     {
         _watcher.Hang(Library);

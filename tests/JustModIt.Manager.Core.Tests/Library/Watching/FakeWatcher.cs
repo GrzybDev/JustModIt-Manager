@@ -20,6 +20,9 @@ internal sealed class FakeWatcher : IFolderWatcher, IRegistryWatcher, IDisposabl
     /// <summary>Targets that fail to start, as a folder on some network drives does.</summary>
     public HashSet<object> Failing { get; } = [];
 
+    /// <summary>How the targets in <see cref="Failing"/> fail.</summary>
+    public Exception Failure { get; set; } = new IOException("The folder cannot be watched.");
+
     /// <summary>How many watches are blocked while they start.</summary>
     public int Blocked => Volatile.Read(ref _blocked);
 
@@ -75,7 +78,7 @@ internal sealed class FakeWatcher : IFolderWatcher, IRegistryWatcher, IDisposabl
     {
         if (Failing.Contains(target))
         {
-            throw new IOException("The folder cannot be watched.");
+            throw Failure;
         }
 
         if (target.Equals(Volatile.Read(ref _hanging)))
