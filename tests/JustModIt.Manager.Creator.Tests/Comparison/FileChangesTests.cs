@@ -44,4 +44,22 @@ public sealed class FileChangesTests : IDisposable
         Directory.Delete(_workspace.AuthorDirectory, recursive: true);
         (await check(PhysicalFileSystem.Instance, LibraryAccess.Unlimited)).Should().BeNull();
     }
+
+    [Fact]
+    public async Task Lists_dot_and_hidden_files_and_leaves_out_what_git_and_file_managers_keep()
+    {
+        _workspace.Author(".doorstop_version", "4.0");
+        File.SetAttributes(_workspace.Author("BepInEx/config.cfg", "settings"), FileAttributes.Hidden);
+        _workspace.Author(".git/HEAD", "ref: refs/heads/main");
+        _workspace.Author("Thumbs.db", "thumbnails");
+        _workspace.Author("data/desktop.ini", "[.ShellClassInfo]");
+        _workspace.Author(".directory", "[Desktop Entry]");
+
+        var comparison = await _workspace.CompareAsync();
+        var changes = await FileChanges.CheckAsync(_workspace.AuthorDirectory, new Dictionary<string, FileStamp>(), [], LibraryAccess.Unlimited,
+            PhysicalFileSystem.Instance, TestContext.Current.CancellationToken);
+
+        comparison.Files.Select(file => file.AuthorPath).Should().Equal(".doorstop_version", "BepInEx/config.cfg");
+        changes.Should().Be(new FileChanges(Changed: 0, Added: 2, Removed: 0));
+    }
 }

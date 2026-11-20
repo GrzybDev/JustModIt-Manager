@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Packages;
@@ -12,8 +13,12 @@ namespace JustModIt.Manager.Creator.Comparison;
 /// <param name="Removed">Files listed then that are gone.</param>
 public readonly record struct FileChanges(int Changed, int Added, int Removed)
 {
-    // The default skips hidden and system files, which in an author's folder are .git, Thumbs.db and desktop.ini.
-    private static readonly EnumerationOptions AuthorFiles = new() { RecurseSubdirectories = true, IgnoreInaccessible = false };
+    // Hidden files are the author's too, and Linux counts every dot name as hidden, such as a loader's .doorstop_version.
+    private static readonly EnumerationOptions AuthorFiles = new() { AttributesToSkip = 0, IgnoreInaccessible = false };
+
+    // What git and the file managers of Windows and of KDE keep in a folder, which no game reads.
+    private static readonly FrozenSet<string> LeftOut =
+        FrozenSet.Create(StringComparer.OrdinalIgnoreCase, ".git", "Thumbs.db", "desktop.ini", ".directory");
 
     public int Count => Changed + Added + Removed;
 
@@ -104,7 +109,9 @@ public readonly record struct FileChanges(int Changed, int Added, int Removed)
         return new BuildChanges(changed, before.Count, restamped);
     }, cancellationToken);
 
-    /// <summary>The files of an author's folder, without links and the folders of other parts.</summary>
+    /// <summary>
+    /// The files of an author's folder, without links, the folders of other parts and what git and file managers keep there.
+    /// </summary>
     /// <param name="fileSystem">Lists the folder.</param>
     /// <param name="folder">The author's folder.</param>
     /// <param name="skipped">Folders within it that hold other parts' files.</param>
@@ -112,12 +119,26 @@ public readonly record struct FileChanges(int Changed, int Added, int Removed)
     internal static IEnumerable<FileEntry> List(IFileSystem fileSystem, string folder, IReadOnlyList<string> skipped, CancellationToken cancellationToken)
     {
         var left = skipped.Select(fileSystem.GetCanonicalPath).ToList();
-        foreach (var entry in fileSystem.Enumerate(folder, "*", AuthorFiles))
+        // Walked here, not by the listing's recursion, so a .git folder and its thousands of objects are never listed.
+        var folders = new Queue<string>([folder]);
+        while (folders.TryDequeue(out var current))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!entry.IsDirectory && !entry.IsLink && !left.Exists(skip => PathComparison.IsWithin(skip, entry.FullPath)))
+            foreach (var entry in fileSystem.Enumerate(current, "*", AuthorFiles))
             {
-                yield return entry;
+                cancellationToken.ThrowIfCancellationRequested();
+                if (entry.IsLink || LeftOut.Contains(entry.Name))
+                {
+                    continue;
+                }
+
+                if (!entry.IsDirectory)
+                {
+                    yield return entry;
+                }
+                else if (!left.Exists(skip => PathComparison.IsWithin(skip, entry.FullPath)))
+                {
+                    folders.Enqueue(entry.FullPath);
+                }
             }
         }
     }
