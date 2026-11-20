@@ -12,11 +12,5 @@ internal static class LiveTest
 
     public static void SkipUnlessEnabled() =>
         Assert.SkipUnless(Environment.GetEnvironmentVariable(Switch) == "1", $"Set {Switch}=1 to run tests against the real site.");
-
-    public static void SkipUnlessEnabledOnWindows()
-    {
-        SkipUnlessEnabled();
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The engine's live tests need the Windows stores.");
-    }
 }
 

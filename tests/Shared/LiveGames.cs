@@ -10,8 +10,9 @@ namespace JustModIt.Manager.Tests;
 /// <param name="Announced">A Steam game whose project the site only announces, with no release yet.</param>
 /// <param name="Creator">The package creator's case, a release with an add-on whose software changes game files.</param>
 /// <param name="Epic">An Epic game that Heroic's Legendary installed into a Steam library's folder, if there is one.</param>
+/// <param name="Linux">On Linux, a Steam game run through Proton and a native one, if the file names them.</param>
 internal sealed record LiveGames(GameKey TargetLanguage, GameKey AddsFiles, GameKey ReplacesFiles, GameKey Announced,
-    LiveCreatorCase Creator, LiveEpicGame? Epic)
+    LiveCreatorCase Creator, LiveEpicGame? Epic, LiveLinuxGames? Linux)
 {
     /// <summary>The file's name next to the tests, copied there from the tests' folder.</summary>
     public const string FileName = "live-games.json";
@@ -47,7 +48,8 @@ internal sealed record LiveGames(GameKey TargetLanguage, GameKey AddsFiles, Game
         var root = document.RootElement;
         var steam = Child(root, "steam");
         var creator = Child(root, "creator");
-        var epic = root.TryGetProperty("epic", out var found) && found.ValueKind == JsonValueKind.Object ? found : (JsonElement?)null;
+        var epic = Optional(root, "epic");
+        var linux = Optional(root, "linux");
         return new LiveGames(
             Steam(Text(steam, "targetLanguage")),
             Steam(Text(steam, "addsFiles")),
@@ -60,10 +62,14 @@ internal sealed record LiveGames(GameKey TargetLanguage, GameKey AddsFiles, Game
                 Text(creator, "rewrittenFile"),
                 Text(creator, "createdFile"),
                 [.. Child(creator, "addOnFolders").EnumerateArray().Select(folder => folder.GetString()!)]),
-            epic is { } game ? new LiveEpicGame(new GameKey(StoreId.Epic, Text(game, "namespace")), Text(game, "appName")) : null);
+            epic is { } game ? new LiveEpicGame(new GameKey(StoreId.Epic, Text(game, "namespace")), Text(game, "appName")) : null,
+            linux is { } games ? new LiveLinuxGames(Steam(Text(games, "proton")), Steam(Text(games, "native"))) : null);
     }
 
     private static GameKey Steam(string id) => new(StoreId.Steam, id);
+
+    private static JsonElement? Optional(JsonElement parent, string name) =>
+        parent.TryGetProperty(name, out var child) && child.ValueKind == JsonValueKind.Object ? child : null;
 
     private static JsonElement Child(JsonElement parent, string name) =>
         parent.TryGetProperty(name, out var child) ? child : throw new InvalidDataException($"{FileName} has no \"{name}\".");
@@ -81,6 +87,11 @@ internal sealed record LiveGames(GameKey TargetLanguage, GameKey AddsFiles, Game
 /// <param name="AddOnFolders">The folders whose files make the add-on, each ending with a slash; the rest makes the base.</param>
 internal sealed record LiveCreatorCase(GameKey Game, string RenamedFile, string RenamedTo, string RewrittenFile, string CreatedFile,
     IReadOnlyList<string> AddOnFolders);
+
+/// <summary>The Steam games of a Linux machine whose builds the store's records tell apart.</summary>
+/// <param name="Proton">A game whose Windows build Steam runs through Proton.</param>
+/// <param name="Native">A game whose Linux build Steam installed.</param>
+internal sealed record LiveLinuxGames(GameKey Proton, GameKey Native);
 
 /// <summary>An Epic game the live tests look for.</summary>
 /// <param name="Key">The game, by its catalog namespace.</param>

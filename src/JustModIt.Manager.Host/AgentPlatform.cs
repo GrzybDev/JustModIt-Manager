@@ -4,6 +4,7 @@ using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
+using JustModIt.Manager.Platform.Linux;
 using JustModIt.Manager.Platform.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -54,6 +55,11 @@ internal static class AgentPlatform
     [SupportedOSPlatform("linux")]
     private static void AddLinux(IServiceCollection services)
     {
+        services.AddSingleton<IRegistry>(NoWindowsRecords.Instance);
+        services.AddSingleton<IRegistryWatcher>(NoWindowsRecords.Instance);
+        services.AddSingleton<ISqliteReader>(NoWindowsRecords.Instance);
+        services.AddSingleton<IProcessSource>(LinuxProcessSource.Instance);
+        services.AddSingleton<ILockHolderSource>(ProcLockHolders.Instance);
         // Windows tells the agent of a logout or a shutdown through the tray's window instead.
         services.AddSingleton<IAgentService, StopSignal>();
     }

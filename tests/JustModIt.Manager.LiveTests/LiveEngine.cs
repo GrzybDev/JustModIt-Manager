@@ -1,24 +1,19 @@
-using System.Runtime.Versioning;
+using JustModIt.Manager.Agent;
 using JustModIt.Manager.Core;
-using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Downloads;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
-using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Library;
-using JustModIt.Manager.Core.Library.Epic;
-using JustModIt.Manager.Core.Library.Gog;
-using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Library.Watching;
-using JustModIt.Manager.Core.Packages;
-using JustModIt.Manager.Core.Platform;
-using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Creator;
-using JustModIt.Manager.Platform.Windows;
+using JustModIt.Manager.Host;
+using JustModIt.Manager.Tests;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.LiveTests;
@@ -33,7 +28,6 @@ internal sealed record OfferedRelease(ProjectLocator Project, ReleaseFileLocator
 /// The engine composed as the app composes it, over a data folder of its own, undoing whatever it installed when disposed
 /// or, after a stopped run, at the next start, and keeping downloads across runs, since the site counts every one.
 /// </summary>
-[SupportedOSPlatform("windows")]
 internal sealed partial class LiveEngine : IAsyncDisposable
 {
     // Long enough for a job to download, install and check a real release.
@@ -41,52 +35,23 @@ internal sealed partial class LiveEngine : IAsyncDisposable
 
     private static readonly TimeSpan ScanTimeout = TimeSpan.FromMinutes(1);
 
-    private readonly TimeProvider _time = TimeProvider.System;
+    private readonly ServiceProvider _services;
     private readonly ILoggerFactory _loggers;
-    private readonly RunningGameDetector _runningGames;
-    private readonly WindowsSystemEvents _systemEvents;
-    private readonly CatalogueApiClient _api;
-    private readonly HttpClient _storage;
-    private readonly PackageDownloader _downloader;
     private readonly CancellationTokenSource _stop = new();
     private readonly List<Task> _loops = [];
-    private StateCoordinator? _coordinator;
 
-    private LiveEngine(AppDataLocations locations, SettingsService settings, ILoggerFactory loggers)
+    private LiveEngine(ServiceProvider services, AppDataLocations locations, SettingsService settings, ILoggerFactory loggers)
     {
-        Locations = locations;
+        _services = services;
         _loggers = loggers;
-        _systemEvents = new WindowsSystemEvents(loggers.CreateLogger<WindowsSystemEvents>());
+        Locations = locations;
         Settings = settings;
-        var environment = LibraryEnvironment.ForCurrentUser();
-        _runningGames = new RunningGameDetector(WindowsProcessSource.Instance, PhysicalFileSystem.Instance, _time);
-        Library = new LibraryService(
-            [
-                new SteamLibraryProvider(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment, _time,
-                    _loggers.CreateLogger<SteamLibraryProvider>()),
-                GogLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, WindowsSqliteReader.Instance, environment,
-                    _loggers.CreateLogger<GogLibraryProvider>()),
-                EpicLibraryProvider.Create(PhysicalFileSystem.Instance, WindowsRegistry.Instance, environment,
-                    _loggers.CreateLogger<EpicLibraryProvider>()),
-            ],
-            settings, _runningGames, PhysicalFileSystem.Instance, FileSystemFolderWatcher.Instance, WindowsRegistryWatcher.Instance,
-            _systemEvents, Store("library.json", LibrarySnapshotFormat.Instance), _time, _loggers.CreateLogger<LibraryService>());
-        _api = new CatalogueApiClient(LiveApp.ApiOptions, _time);
-        var cache = new CatalogueCache(locations.CatalogueCacheDirectory, _time, _loggers.CreateLogger<CatalogueCache>());
-        var pages = new ProjectPageCache(_api, cache, _time, _loggers.CreateLogger<ProjectPageCache>());
-        Catalogue = new CatalogueService(new CatalogueCrawler(_api, _time), new CrawlIndexSource(pages, _time), pages, cache,
-            _loggers.CreateLogger<CatalogueService>());
-        _storage = CatalogueHttp.CreateStorageClient(LiveApp.ApiOptions);
-        _downloader = new PackageDownloader(_api, _storage, DownloadsDirectory, ProductConfiguration.PackageExtension, _time,
-            _loggers.CreateLogger<PackageDownloader>());
-        Downloads = new CountingDownloader(_downloader);
-        Engine = new InstallEngine(InstallEngineOptions.For(LiveApp.Identity, locations), new PackageReader(),
-            new FileLockProbe(RestartManagerLockHolders.Instance), Library, PhysicalVolumes.Instance, _time,
-            _loggers.CreateLogger<InstallEngine>());
-        Jobs = new JobRunner(Engine, Catalogue, Downloads, Library, _runningGames, settings,
-            new ReplacementMarkers(locations.ReplacingDirectory, _time, _loggers.CreateLogger<ReplacementMarkers>()), _time,
-            _loggers.CreateLogger<JobRunner>());
-        var jobLogger = _loggers.CreateLogger<LiveEngine>();
+        Library = services.GetRequiredService<LibraryService>();
+        Catalogue = services.GetRequiredService<CatalogueService>();
+        Downloads = services.GetRequiredService<CountingDownloader>();
+        Engine = services.GetRequiredService<IInstallEngine>();
+        Jobs = services.GetRequiredService<JobRunner>();
+        var jobLogger = loggers.CreateLogger<LiveEngine>();
         Jobs.Changed += (_, job) =>
             LogJob(jobLogger, job.Kind, job.Game, job.Stage, job.WaitReason, string.Join(", ", job.RunningProcesses));
     }
@@ -99,13 +64,11 @@ internal sealed partial class LiveEngine : IAsyncDisposable
 
     public CountingDownloader Downloads { get; }
 
-    public InstallEngine Engine { get; }
+    public IInstallEngine Engine { get; }
 
     public JobRunner Jobs { get; }
 
     public AppDataLocations Locations { get; }
-
-    private static string DownloadsDirectory => Path.Combine(LiveApp.TestFolder, "downloads");
 
     /// <summary>Composes the engine over the data folder named <paramref name="name"/> and scans the stores once.</summary>
     /// <param name="name">Names the data folder; each test class uses the same one in every run.</param>
@@ -113,7 +76,8 @@ internal sealed partial class LiveEngine : IAsyncDisposable
     public static async Task<LiveEngine> StartAsync(string name, CancellationToken cancellationToken)
     {
         var data = Path.Combine(LiveApp.TestFolder, name);
-        var locations = new AppDataLocations(data, Path.Combine(data, "cache"), Path.Combine(data, "logs"));
+        // The test classes share the cache, so the downloads, which the site counts, are kept across them and across runs.
+        var locations = new AppDataLocations(data, LiveApp.TestFolder, Path.Combine(data, "logs"));
         if (Directory.Exists(data))
         {
             // A run that stopped half-way may have left a game changed; its journal and records say how to undo that.
@@ -126,14 +90,10 @@ internal sealed partial class LiveEngine : IAsyncDisposable
     /// <summary>Starts the state coordinator and the catalogue's refresh loop, as the agent runs them.</summary>
     public StateCoordinator StartCoordinator()
     {
-        _coordinator = new StateCoordinator(Library, Catalogue, Settings, Engine, Jobs, _runningGames,
-            Store("failures.json", FailedAttemptsFormat.Instance), Store("automation.json", AutomationHistoryFormat.Instance),
-            Store("launch-options.json", LaunchOptionsRemovalsFormat.Instance), new StateCoordinatorOptions { TargetLanguage = LiveApp.Language }, _time, _loggers.CreateLogger<StateCoordinator>());
-        var refresh = new CatalogueRefreshLoop(Catalogue, _coordinator.IndexRequestForRefresh, _time,
-            _loggers.CreateLogger<CatalogueRefreshLoop>());
-        _loops.Add(_coordinator.RunAsync(_stop.Token));
-        _loops.Add(refresh.RunAsync(TimeSpan.Zero, _stop.Token));
-        return _coordinator;
+        var coordinator = _services.GetRequiredService<StateCoordinator>();
+        _loops.Add(coordinator.RunAsync(_stop.Token));
+        _loops.Add(_services.GetRequiredService<CatalogueRefreshLoop>().RunAsync(TimeSpan.Zero, _stop.Token));
+        return coordinator;
     }
 
     /// <summary>The game as its store describes it now; skips the test unless it is installed and idle.</summary>
@@ -195,19 +155,8 @@ internal sealed partial class LiveEngine : IAsyncDisposable
                 await loop.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             }
 
-            if (_coordinator is not null)
-            {
-                await _coordinator.DisposeAsync();
-            }
-
-            await Jobs.DisposeAsync();
-            await Engine.DisposeAsync();
+            await _services.DisposeAsync();
             await Settings.DisposeAsync();
-            await Library.DisposeAsync();
-            _systemEvents.Dispose();
-            _downloader.Dispose();
-            _storage.Dispose();
-            _api.Dispose();
             _stop.Dispose();
             _loggers.Dispose();
             // A data folder whose installs could not be undone stays, so the next start tries again.
@@ -222,7 +171,14 @@ internal sealed partial class LiveEngine : IAsyncDisposable
     {
         var loggers = new TestOutputLoggers(TestContext.Current.TestOutputHelper);
         var settings = await SettingsService.LoadAsync(locations, TimeProvider.System, loggers, cancellationToken);
-        var engine = new LiveEngine(locations, settings, loggers);
+        var options = LiveApp.ThisProcess().AgentOptions() with { Locations = locations };
+        var services = new ServiceCollection().AddAgent(options, settings, loggers);
+        AgentPlatform.Compose(services, options, app: null);
+        services.TryAddSingleton<ISystemEvents>(QuietSystemEvents.Instance);
+        var downloader = services.Single(service => service.ServiceType == typeof(IPackageDownloader)).ImplementationFactory!;
+        services.AddSingleton(provider => new CountingDownloader((IPackageDownloader)downloader(provider)));
+        services.AddSingleton<IPackageDownloader>(provider => provider.GetRequiredService<CountingDownloader>());
+        var engine = new LiveEngine(services.BuildServiceProvider(), locations, settings, loggers);
         engine._loops.Add(engine.Library.RunAsync(engine._stop.Token));
         try
         {
@@ -258,10 +214,6 @@ internal sealed partial class LiveEngine : IAsyncDisposable
             }
         }
     }
-
-    private JsonDocumentStore<T> Store<T>(string fileName, IJsonDocumentFormat<T> format)
-        where T : class =>
-        new(Path.Combine(Locations.StateDirectory, fileName), format, _time, _loggers.CreateLogger<JsonDocumentStore<T>>());
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Kind} of {Game}: {Stage} {WaitReason} {Processes}")]
     private static partial void LogJob(ILogger logger, JobKind kind, GameKey game, JobStage stage, JobWaitReason? waitReason,

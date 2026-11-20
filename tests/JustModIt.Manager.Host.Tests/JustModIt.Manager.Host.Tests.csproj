@@ -23,5 +23,6 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\RepositoryFiles.cs" Link="Shared\RepositoryFiles.cs" />
+    <Compile Include="..\Shared\QuietSystemEvents.cs" Link="Shared\QuietSystemEvents.cs" />
   </ItemGroup>
 </Project>

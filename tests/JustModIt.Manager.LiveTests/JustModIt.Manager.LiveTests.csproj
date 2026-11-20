@@ -3,14 +3,18 @@
   <Import Project="..\..\src\MenadzerSpolszczen\Product.props" />
   <Import Project="..\..\src\JustModIt.Manager.Host\ProductConfiguration.targets" />
 
+  <!-- The engine is composed through Host, as the app composes it, from the settings ProductConfiguration gives an app. -->
   <PropertyGroup>
     <ManagerDevelopmentName>LiveTests</ManagerDevelopmentName>
+    <ManagerAppProject>true</ManagerAppProject>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\JustModIt.Manager.Core\JustModIt.Manager.Core.csproj" />
-    <ProjectReference Include="..\..\src\JustModIt.Manager.Creator\JustModIt.Manager.Creator.csproj" />
-    <ProjectReference Include="..\..\src\JustModIt.Manager.Platform.Windows\JustModIt.Manager.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\src\JustModIt.Manager.Host\JustModIt.Manager.Host.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\QuietSystemEvents.cs" Link="Shared\QuietSystemEvents.cs" />
   </ItemGroup>
 
   <!-- The games of this machine that the live tests use, named in a file that git leaves out. -->

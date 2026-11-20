@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
@@ -12,7 +11,6 @@ using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.LiveTests;
 
-[SupportedOSPlatform("windows")]
 public sealed class CreatorLiveTests : IDisposable
 {
     private readonly string _workspace = Path.Combine(LiveApp.TestFolder, nameof(CreatorLiveTests) + ".work");
@@ -29,7 +27,7 @@ public sealed class CreatorLiveTests : IDisposable
     [Fact]
     public async Task Turns_the_released_files_into_a_base_and_an_add_on_whose_software_changes_files_that_its_undo_puts_back()
     {
-        LiveTest.SkipUnlessEnabledOnWindows();
+        LiveTest.SkipUnlessEnabled();
         var release = LiveGames.Load().Creator;
         var (library, rewritten, created) = (release.RenamedFile, release.RewrittenFile, release.CreatedFile);
         await using var engine = await LiveEngine.StartAsync(nameof(CreatorLiveTests), Token);

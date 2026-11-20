@@ -3,14 +3,19 @@ using System.Runtime.Versioning;
 using JustModIt.Manager.Agent;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Library;
+using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Core.State;
+using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Platform.Linux;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
+using JustModIt.Manager.Tests;
 using JustModIt.Manager.Ui;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Velopack.Locators;
 
@@ -57,9 +62,8 @@ public sealed class HostEnvironmentTests : IDisposable
     }
 
     [Fact]
-    public async Task The_system_gives_every_service_the_agents_parts_take_and_the_app_still_replaces_one()
+    public async Task The_systems_services_compose_the_agent_and_the_app_still_replaces_one()
     {
-        Assert.SkipUnless(AgentPlatform.IsSupported, "Only Windows has the system services the agent takes.");
         var data = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"));
         var options = HostEnvironment.Create(Product, Build).AgentOptions() with
         {
@@ -72,10 +76,18 @@ public sealed class HostEnvironmentTests : IDisposable
                 TestContext.Current.CancellationToken);
             var services = new ServiceCollection().AddAgent(options, settings, NullLoggerFactory.Instance);
             AgentPlatform.Compose(services, options, app => app.AddSingleton<IForegroundHandoff>(handoff));
+            services.TryAddSingleton<ISystemEvents>(QuietSystemEvents.Instance);
 
-            // Building checks what every constructor takes, but not what a factory resolves, as the stores' providers do.
-            await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+            // Building checks what every constructor takes, but not what a factory resolves, as the stores' providers do. Where
+            // the agent refuses to start, the desktop's services are missing, so the engine is resolved alone.
+            await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
+            {
+                ValidateOnBuild = AgentPlatform.IsSupported,
+                ValidateScopes = true,
+            });
             provider.GetServices<ILibraryProvider>().Should().HaveCount(3);
+            provider.GetRequiredService<StateCoordinator>().Should().NotBeNull();
+            provider.GetRequiredService<ISteamUi>().Should().NotBeNull();
             provider.GetRequiredService<IForegroundHandoff>().Should().BeSameAs(handoff, "the app's registrations come last");
         }
         finally

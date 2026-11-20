@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.State;
@@ -6,7 +5,6 @@ using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.LiveTests;
 
-[SupportedOSPlatform("windows")]
 public sealed class MyGamesLiveTests
 {
     private static readonly TimeSpan SettleTimeout = TimeSpan.FromMinutes(3);
@@ -14,7 +12,7 @@ public sealed class MyGamesLiveTests
     [Fact]
     public async Task Lists_only_the_detected_games_with_an_installable_release()
     {
-        LiveTest.SkipUnlessEnabledOnWindows();
+        LiveTest.SkipUnlessEnabled();
         var games = LiveGames.Load();
         GameKey[] installable = [games.TargetLanguage, games.ReplacesFiles, games.AddsFiles];
         await using var engine = await LiveEngine.StartAsync(nameof(MyGamesLiveTests), LiveTest.Token);

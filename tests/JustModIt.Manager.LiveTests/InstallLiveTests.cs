@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.IO;
@@ -8,7 +7,6 @@ using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.LiveTests;
 
-[SupportedOSPlatform("windows")]
 public sealed class InstallLiveTests
 {
     private static CancellationToken Token => LiveTest.Token;
@@ -19,7 +17,7 @@ public sealed class InstallLiveTests
     [InlineData(true)]
     public async Task Installs_and_uninstalls_the_current_release_without_a_trace(bool replacesGameFiles)
     {
-        LiveTest.SkipUnlessEnabledOnWindows();
+        LiveTest.SkipUnlessEnabled();
         var games = LiveGames.Load();
         await using var engine = await LiveEngine.StartAsync(nameof(InstallLiveTests), Token);
         var game = await engine.ReadyGameAsync(replacesGameFiles ? games.ReplacesFiles : games.AddsFiles, Token);

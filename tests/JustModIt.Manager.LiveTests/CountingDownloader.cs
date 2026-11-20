@@ -4,7 +4,7 @@ namespace JustModIt.Manager.LiveTests;
 
 /// <summary>Counts the downloads of packages that were not kept yet, which is at least what the site counts.</summary>
 /// <param name="inner">The downloader that does the work.</param>
-internal sealed class CountingDownloader(IPackageDownloader inner) : IPackageDownloader
+internal sealed class CountingDownloader(IPackageDownloader inner) : IPackageDownloader, IDisposable
 {
     private int _fromSite;
 
@@ -42,4 +42,6 @@ internal sealed class CountingDownloader(IPackageDownloader inner) : IPackageDow
 
     public Task<int> PruneAsync(IReadOnlySet<Guid> keep, bool keepPartial, CancellationToken cancellationToken) =>
         inner.PruneAsync(keep, keepPartial, cancellationToken);
+
+    public void Dispose() => (inner as IDisposable)?.Dispose();
 }
