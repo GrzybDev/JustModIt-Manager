@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Host.Tests;
 
-public sealed class HostEnvironmentTests
+public sealed class HostEnvironmentTests : IDisposable
 {
     private static readonly InstallLocation Build = new(@"C:\Work\ExampleApp\bin\ExampleApp.exe", @"C:\Work\ExampleApp\bin", IsInstalled: false);
 
@@ -26,6 +26,17 @@ public sealed class HostEnvironmentTests
         ApiKey = "test-key",
         IsDevelopmentBuild = true,
     };
+
+    private readonly string? _runtimeDirectory = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
+
+    public HostEnvironmentTests()
+    {
+        // Tests in a container run without a session, which gives every process of the app its runtime folder.
+        if (!OperatingSystem.IsWindows() && _runtimeDirectory is null)
+        {
+            Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", Path.GetTempPath());
+        }
+    }
 
     [Fact]
     public void The_agent_gets_the_apps_identity_site_and_names()
@@ -162,6 +173,8 @@ public sealed class HostEnvironmentTests
         HostEnvironment.VersionOf(assembly).Should().Be(built[0]).And.NotContain("+");
         HostEnvironment.RevisionOf(assembly).Should().Be(built.ElementAtOrDefault(1));
     }
+
+    public void Dispose() => Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", _runtimeDirectory);
 
     private sealed class NoHandoff : IForegroundHandoff
     {

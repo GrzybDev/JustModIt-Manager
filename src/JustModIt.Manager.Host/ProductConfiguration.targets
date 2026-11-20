@@ -56,7 +56,7 @@ internal static class ProductConfiguration
 {
     public const string ProductName = @"$([MSBuild]::Escape($(Product.Replace('"', '""'))))"%3B
 
-    /// <summary>Names the exe, the data folder, the mutexes and the pipe.</summary>
+    /// <summary>Names the exe, the data folder, the locks and the pipe.</summary>
     public const string AppId = @"$([MSBuild]::Escape($(ManagerAppId.Replace('"', '""'))))"%3B
 
     /// <summary>The folder above the data folder.</summary>

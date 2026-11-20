@@ -33,15 +33,18 @@ public sealed class PipeServerTests
     [Fact]
     public async Task Client_that_never_says_hello_is_dropped_and_frees_its_slot()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows keeps a client waiting for the one slot connected while the slot frees.");
         var options = TestPipes.Options with { MaxConnections = 1, HandshakeTimeout = TimeSpan.FromMilliseconds(200) };
         await using var server = TestPipes.StartServer(_name, new TestHandler(), options);
         await using var silent = await ConnectRawAsync();
+        using var received = new MemoryStream();
 
+        // A client that waited meanwhile would be reset on Unix, where the one slot's socket closes and opens again.
+        await silent.CopyToAsync(received, TestContext.Current.CancellationToken)
+            .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         await using var client = await TestPipes.ConnectAsync(_name);
 
+        received.Length.Should().BeGreaterThan(0, "the server's hello was sent before the silent client was dropped");
         (await client.RequestAsync(new Ping(), cancellationToken: TestContext.Current.CancellationToken)).Should().BeNull();
-        (await silent.ReadAsync(new byte[1024], TestContext.Current.CancellationToken)).Should().BeGreaterThan(0, "the server's hello was sent");
     }
 
     [Fact]

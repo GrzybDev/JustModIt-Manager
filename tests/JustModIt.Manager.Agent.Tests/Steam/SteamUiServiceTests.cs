@@ -52,7 +52,7 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
         ProductName = "Example App",
         Version = "1.4.0",
         Locations = new AppDataLocations(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath()),
-        Names = InstanceNames.ForCurrentUser("ExampleApp"),
+        Names = InstanceNames.ForRuntimeDirectory("ExampleApp", Path.GetTempPath()),
         Api = new CatalogueApiOptions(new Uri("https://api.example.com/"), null, "ExampleApp", "1.4.0"),
         PackageExtension = ".examplemod",
         ExecutablePath = Path.Combine(Path.GetTempPath(), "ExampleApp.exe"),

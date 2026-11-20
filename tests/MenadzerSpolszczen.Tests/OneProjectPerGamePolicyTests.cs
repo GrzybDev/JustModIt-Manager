@@ -38,7 +38,7 @@ public sealed class OneProjectPerGamePolicyTests
             ProductName = product.ProductName,
             Version = "1.0.0",
             Locations = new AppDataLocations(data, Path.Combine(data, "cache"), Path.Combine(data, "logs")),
-            Names = InstanceNames.ForCurrentUser(product.Identity.InstanceName),
+            Names = InstanceNames.ForRuntimeDirectory(product.Identity.InstanceName, data),
             Api = new CatalogueApiOptions(new Uri(product.ApiUrl), null, product.AppId, "1.0.0"),
             PackageExtension = product.PackageExtension,
             TargetLanguage = TargetLanguage.FromCode(product.TargetLanguage),

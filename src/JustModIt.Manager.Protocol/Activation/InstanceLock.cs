@@ -3,13 +3,20 @@ namespace JustModIt.Manager.Protocol.Activation;
 /// <summary>Held for the whole life of a role; while it exists, later launches know the role is taken.</summary>
 public sealed class InstanceLock : IDisposable
 {
-    private readonly Mutex _mutex;
+    private readonly IDisposable _held;
 
-    private InstanceLock(Mutex mutex) => _mutex = mutex;
+    private InstanceLock(IDisposable held) => _held = held;
 
     /// <summary>Takes the named lock, or returns null when another holder has it.</summary>
-    /// <param name="name">One of the names in <see cref="InstanceNames"/>.</param>
-    public static InstanceLock? TryAcquire(string name)
+    /// <param name="name">
+    /// One of the locks in <see cref="InstanceNames"/>: a mutex's name on Windows, a lock file's path elsewhere.
+    /// </param>
+    public static InstanceLock? TryAcquire(string name) =>
+        OperatingSystem.IsWindows() ? TryAcquireMutex(name) : TryAcquireFile(name);
+
+    public void Dispose() => _held.Dispose();
+
+    private static InstanceLock? TryAcquireMutex(string name)
     {
         Mutex mutex;
         bool createdNew;
@@ -33,5 +40,18 @@ public sealed class InstanceLock : IDisposable
         return null;
     }
 
-    public void Dispose() => _mutex.Dispose();
+    private static InstanceLock? TryAcquireFile(string path)
+    {
+        try
+        {
+            // A NativeAOT build's named mutexes reach no other process off Windows, so the lock is the file's own lock,
+            // which the system drops however its holder ends. The file stays: removing it would race the next holder.
+            return new InstanceLock(new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Another process holds the file, or a copy run as another user (through sudo) made it.
+            return null;
+        }
+    }
 }

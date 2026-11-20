@@ -7,13 +7,20 @@ using JustModIt.Manager.Protocol.Transport;
 
 namespace JustModIt.Manager.Protocol.Tests.Activation;
 
-public sealed class SingleInstanceTests
+public sealed class SingleInstanceTests : IDisposable
 {
     // No process ever has this id, so such an agent counts as already gone.
     private static readonly Hello _exitedAgent = TestPipes.AgentHello with { ProcessId = int.MaxValue };
 
-    private readonly string _lock = $@"Local\ExampleApp.Tests.{Guid.NewGuid():N}";
-    private readonly string _pipe = TestPipes.NewName();
+    private readonly TestInstance _instance = new();
+    private readonly string _lock;
+    private readonly string _pipe;
+
+    public SingleInstanceTests()
+    {
+        _lock = _instance.Names.AgentLock;
+        _pipe = _instance.Names.PipeName;
+    }
 
     [Fact]
     public async Task First_launch_claims_the_role()
@@ -175,6 +182,8 @@ public sealed class SingleInstanceTests
             onAgentFound,
             TestPipes.Options,
             cancellationToken: TestContext.Current.CancellationToken);
+
+    public void Dispose() => _instance.Dispose();
 
     private static async Task AnswerWithNonsenseAsync(NamedPipeServerStream pipe)
     {

@@ -41,7 +41,10 @@ internal sealed class AgentHarness : IAsyncDisposable
             ProductName = "Example App",
             Version = "1.0.0",
             Locations = new AppDataLocations(data, Path.Combine(data, "cache"), Path.Combine(data, "logs")),
-            Names = InstanceNames.ForCurrentUser(identity.InstanceName),
+            // Tests in a container run without a session, so without the runtime folder the pipe lies in off Windows.
+            Names = OperatingSystem.IsWindows()
+                ? InstanceNames.ForCurrentUser(identity.InstanceName)
+                : InstanceNames.ForRuntimeDirectory(identity.InstanceName, Path.GetTempPath()),
             Api = new CatalogueApiOptions(new Uri("https://api.example.com/"), null, "ExampleApp", "1.0.0"),
             PackageExtension = ".examplemod",
             ExecutablePath = Path.Combine(Directory, "app", "ExampleApp.exe"),

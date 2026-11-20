@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Security.Principal;
+using JustModIt.Manager.Core;
 using JustModIt.Manager.Protocol.Activation;
 
 namespace JustModIt.Manager.Protocol.Tests.Activation;
@@ -49,5 +50,27 @@ public sealed class InstanceNamesTests
         var names = InstanceNames.ForCurrentUser("ExampleApp");
 
         names.Should().Be(InstanceNames.Create("ExampleApp", identity.User!.Value, process.SessionId));
+    }
+
+    [Fact]
+    public void Current_user_off_Windows_is_found_in_the_runtime_folder_whatever_the_session()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows names the sign-in session instead of a runtime folder.");
+        var session = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
+        try
+        {
+            Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", "/run/user/1000");
+            InstanceNames.ForCurrentUser("ExampleApp").Should().Be(new InstanceNames(
+                "/run/user/1000/ExampleApp.Agent.lock", "/run/user/1000/ExampleApp.Ui.lock", "/run/user/1000/ExampleApp.sock"),
+                "systemd makes the agent's service a session of its own, which a launch must still find");
+
+            Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", null);
+            var withoutSession = () => InstanceNames.ForCurrentUser("ExampleApp");
+            withoutSession.Should().Throw<AppDataUnavailableException>("the app must not guess where another session looks");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", session);
+        }
     }
 }

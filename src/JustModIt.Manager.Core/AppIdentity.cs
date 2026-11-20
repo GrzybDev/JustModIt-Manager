@@ -7,7 +7,7 @@ namespace JustModIt.Manager.Core;
 public sealed record AppIdentity
 {
     /// <summary>Takes the app's names from its build.</summary>
-    /// <param name="appId">Names the exe, the data folder, the mutexes and the pipe.</param>
+    /// <param name="appId">Names the exe, the data folder, the locks and the pipe.</param>
     /// <param name="vendorId">The folder above the data folder.</param>
     /// <param name="slug">The link scheme and, with a leading dot, the hidden folder in game folders.</param>
     /// <param name="isDevelopmentBuild">Whether this is a development build, which takes names of its own.</param>
@@ -48,7 +48,7 @@ public sealed record AppIdentity
     public string HiddenFolderName => "." + Slug;
 
     /// <summary>
-    /// The name behind the data folder, the mutexes, the pipe and the owner file in games, with ".Dev" (or another
+    /// The name behind the data folder, the locks, the pipe and the owner file in games, with ".Dev" (or another
     /// development name) in a development build so it never shares data with an installed copy or hands its start over to one.
     /// </summary>
     public string InstanceName { get; }

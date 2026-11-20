@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using Microsoft.Extensions.Logging;
@@ -37,7 +38,8 @@ internal static class TestPipes
 
     public static async Task<PipeConnection> ConnectAsync(string name, Hello? hello = null, TestHandler? handler = null)
     {
-        // A server listens a moment after it starts, and a client connects only to a pipe that listens.
+        // A server listens a moment after it starts, and a client connects only to a pipe that listens. On Unix a client that
+        // connects while a slot's socket closes and opens again is reset, and tries again as the app's clients do.
         var deadline = DateTime.UtcNow + ConnectTimeout;
         while (true)
         {
@@ -46,12 +48,28 @@ internal static class TestPipes
                 return await PipeClient.ConnectAsync(name, hello ?? UiHello, handler, Options,
                     cancellationToken: TestContext.Current.CancellationToken);
             }
-            catch (TimeoutException) when (DateTime.UtcNow < deadline)
+            catch (Exception ex) when (ex is TimeoutException or IOException && DateTime.UtcNow < deadline)
             {
                 await Task.Delay(Options.RetryDelay, TestContext.Current.CancellationToken);
             }
         }
     }
+}
+
+// Off Windows the names lie in a folder of their own, as they lie in a session's runtime folder.
+internal sealed class TestInstance : IDisposable
+{
+    private readonly DirectoryInfo? _folder = OperatingSystem.IsWindows() ? null : Directory.CreateTempSubdirectory("ExampleApp.Tests.");
+
+    public TestInstance()
+    {
+        var name = $"ExampleApp.Tests.{Guid.NewGuid():N}";
+        Names = _folder is null ? InstanceNames.ForCurrentUser(name) : InstanceNames.ForRuntimeDirectory(name, _folder.FullName);
+    }
+
+    public InstanceNames Names { get; }
+
+    public void Dispose() => _folder?.Delete(recursive: true);
 }
 
 internal sealed class TestHandler : IConnectionHandler

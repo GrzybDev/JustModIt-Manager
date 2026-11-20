@@ -45,7 +45,7 @@ public sealed class ClassicModeTests : IAsyncDisposable
             ProductName = "Example App",
             Version = "1.4.0",
             Locations = new AppDataLocations(_root, _root, _root),
-            Names = InstanceNames.ForCurrentUser(Owner),
+            Names = InstanceNames.ForRuntimeDirectory(Owner, _root),
             Api = new CatalogueApiOptions(new Uri("https://api.example.com/"), null, Owner, "1.4.0"),
             PackageExtension = ".examplemod",
             ExecutablePath = Path.Combine(_root, "ExampleApp.exe"),

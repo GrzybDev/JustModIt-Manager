@@ -35,7 +35,7 @@
   <PropertyGroup>
     <ManagerApiKey Condition="'$(ManagerApiKey)' == ''"></ManagerApiKey>
     <ManagerErrorReportsDsn Condition="'$(ManagerErrorReportsDsn)' == ''"></ManagerErrorReportsDsn>
-    <!-- A development build uses its own data folder, mutexes and pipe, so it never touches an installed copy. -->
+    <!-- A development build uses its own data folder, locks and pipe, so it never touches an installed copy. -->
     <ManagerDevelopmentBuild Condition="'$(ManagerDevelopmentBuild)' == '' and '$(Configuration)' == 'Release'">false</ManagerDevelopmentBuild>
     <ManagerDevelopmentBuild Condition="'$(ManagerDevelopmentBuild)' == ''">true</ManagerDevelopmentBuild>
     <!-- Added to a development build's names; a copy that runs beside the developer's own build takes another one. -->
