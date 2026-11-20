@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
@@ -584,5 +585,28 @@ internal sealed class FakeGameProbe : IGameProbe
 
 internal sealed class FakeLockHolders : ILockHolderSource
 {
-    public IReadOnlyList<string> FindHolders(IReadOnlyList<string> paths) => ["Example.exe"];
+    private readonly ConcurrentDictionary<string, bool> _held = new(PathComparison.Comparer);
+
+    /// <summary>Opens a file as a running game would, which the system then names as its holder.</summary>
+    /// <param name="path">The file to hold.</param>
+    /// <returns>Closes the file when disposed.</returns>
+    public IDisposable Hold(string path)
+    {
+        var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        var key = PathCanonicalizer.Canonicalize(path);
+        _held[key] = true;
+        return new Release(() =>
+        {
+            _held.TryRemove(key, out _);
+            file.Dispose();
+        });
+    }
+
+    public IReadOnlyList<FileHolder> FindHolders(IReadOnlyList<string> paths) =>
+        [.. paths.Where(path => _held.ContainsKey(PathCanonicalizer.Canonicalize(path))).Select(path => new FileHolder("Example.exe", path))];
+
+    private sealed class Release(Action release) : IDisposable
+    {
+        public void Dispose() => release();
+    }
 }

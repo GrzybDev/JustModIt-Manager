@@ -119,11 +119,10 @@ public sealed class UninstallTests : IAsyncDisposable
     [Fact]
     public async Task Refuses_while_a_file_is_locked_or_the_game_runs()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows locks files.");
         var result = await InstallAsync(new TestPackage().Copy("readme.txt", "Changed"));
 
         FileLockedIssue locked;
-        await using (new FileStream(_harness.GameFile("readme.txt"), FileMode.Open, FileAccess.Read, FileShare.None))
+        using (_harness.LockHolders.Hold(_harness.GameFile("readme.txt")))
         {
             locked = (InstallBlockedException(await UninstallFailureAsync(result.Record.Id)).Issues.Should().ContainSingle().Which
                 as FileLockedIssue)!;

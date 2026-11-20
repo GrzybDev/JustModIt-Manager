@@ -274,8 +274,10 @@ internal sealed class OfflineCatalogueApi : ICatalogueApi
         CancellationToken cancellationToken) => throw Offline;
 }
 
-/// <summary>A system with no registry, no processes and no events, so no test reaches the developer's own.</summary>
-internal sealed class QuietSystem : IRegistry, IRegistryWatcher, ISystemEvents, IProcessSource, IDisposable
+/// <summary>
+/// A system with no registry, no processes, no programs holding files and no events, so no test reaches the developer's own.
+/// </summary>
+internal sealed class QuietSystem : IRegistry, IRegistryWatcher, ISystemEvents, IProcessSource, ILockHolderSource, IDisposable
 {
     public static QuietSystem Instance { get; } = new();
 
@@ -292,6 +294,8 @@ internal sealed class QuietSystem : IRegistry, IRegistryWatcher, ISystemEvents, 
     public IReadOnlyList<ProcessEntry> Snapshot() => [];
 
     public Task<bool> WaitForExitAsync(int processId, string name, CancellationToken cancellationToken) => Task.FromResult(true);
+
+    public IReadOnlyList<FileHolder> FindHolders(IReadOnlyList<string> paths) => [];
 
     public void Dispose()
     {

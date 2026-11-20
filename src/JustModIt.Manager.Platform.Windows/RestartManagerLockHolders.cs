@@ -17,7 +17,7 @@ public sealed class RestartManagerLockHolders : ILockHolderSource
 
     public static RestartManagerLockHolders Instance { get; } = new();
 
-    public IReadOnlyList<string> FindHolders(IReadOnlyList<string> paths)
+    public IReadOnlyList<FileHolder> FindHolders(IReadOnlyList<string> paths)
     {
         if (paths.Count == 0)
         {
@@ -34,7 +34,8 @@ public sealed class RestartManagerLockHolders : ILockHolderSource
         {
             string[] files = [.. paths.Select(Path.GetFullPath)];
             return PInvoke.RmRegisterResources(session, files, [], []) == WIN32_ERROR.ERROR_SUCCESS
-                ? [.. GetHolders(session).Select(Describe).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)]
+                ? [.. GetHolders(session).Select(Describe).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select(program => new FileHolder(program, Path: null))]
                 : [];
         }
         finally

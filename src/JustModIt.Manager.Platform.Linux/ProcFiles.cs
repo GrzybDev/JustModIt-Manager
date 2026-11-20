@@ -85,6 +85,23 @@ internal sealed class ProcFiles(string root)
                 : null;
     }
 
+    /// <summary>The files a process holds open, by the paths the kernel names them with; none once it has exited.</summary>
+    /// <param name="processId">The process, which the user must own, since others' are not shown.</param>
+    public IEnumerable<string> OpenFiles(int processId)
+    {
+        string[] descriptors;
+        try
+        {
+            descriptors = Directory.GetFileSystemEntries(Path.Join(root, processId.ToString(CultureInfo.InvariantCulture), "fd"));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+
+        return descriptors.Select(LinkTarget).OfType<string>();
+    }
+
     private Status? ReadStatus(string process)
     {
         string text;
@@ -123,18 +140,8 @@ internal sealed class ProcFiles(string root)
 
     private string? ImageOf(string process, string name)
     {
-        string? image;
-        try
-        {
-            image = new FileInfo(Path.Join(root, process, "exe")).LinkTarget;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
-
         // Another user's process shows no program, and one replaced while it runs shows its old path with a mark.
-        if (string.IsNullOrEmpty(image))
+        if (LinkTarget(Path.Join(root, process, "exe")) is not { Length: > 0 } image)
         {
             return null;
         }
@@ -197,6 +204,18 @@ internal sealed class ProcFiles(string root)
         return (SteamGame(appId) ?? SteamGame(compatAppId)) is { } id
             ? new GameKey(StoreId.Steam, id.ToString(CultureInfo.InvariantCulture))
             : null;
+    }
+
+    private static string? LinkTarget(string path)
+    {
+        try
+        {
+            return new FileInfo(path).LinkTarget;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     private static uint? SteamGame(string? appId) =>

@@ -91,6 +91,7 @@ internal sealed class AgentHarness : IAsyncDisposable
                 services.AddSingleton<IRegistryWatcher>(QuietSystem.Instance);
                 services.AddSingleton<ISystemEvents>(QuietSystem.Instance);
                 services.AddSingleton<IProcessSource>(QuietSystem.Instance);
+                services.AddSingleton<ILockHolderSource>(QuietSystem.Instance);
                 services.RemoveAll<ILibraryProvider>();
                 services.AddSingleton<ICatalogueApi>(new OfflineCatalogueApi());
                 services.AddSingleton<IUiStarter>(Starter);

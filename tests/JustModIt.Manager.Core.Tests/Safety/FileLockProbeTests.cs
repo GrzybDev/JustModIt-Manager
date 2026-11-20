@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Tests.TestSupport;
 
@@ -20,10 +21,12 @@ public sealed class FileLockProbeTests : IDisposable
         var folder = _directory.CreateDirectory("folder");
 
         var report = Probe(free, _directory.Combine("missing.pak"), folder);
+        Probe();
 
         (report.InUse.Count, report.AccessDenied.Count).Should().Be((0, 0));
         FileLockProbe.ProbeFile(folder).Should().Be(FileLockState.Missing);
-        _holders.Calls.Should().BeEmpty();
+        _holders.Calls.Should().HaveCount(OperatingSystem.IsWindows() ? 0 : 1,
+            "only Windows tells files in use without asking for holders, and no files need no holders");
     }
 
     [Fact]
@@ -33,7 +36,7 @@ public sealed class FileLockProbeTests : IDisposable
         var held = _directory.Write("held.pak", "data");
 
         FileLockReport report;
-        using (new FileStream(held, FileMode.Open, FileAccess.Read, FileShare.Read))
+        using (Hold(held))
         {
             report = Probe(held, held.ToUpperInvariant());
         }
@@ -53,8 +56,8 @@ public sealed class FileLockProbeTests : IDisposable
         var free = _directory.Write("free.pak", "data");
 
         FileLockReport report;
-        using (new FileStream(first, FileMode.Open, FileAccess.Read, FileShare.Read))
-        using (new FileStream(second, FileMode.Open, FileAccess.Read, FileShare.Read))
+        using (Hold(first))
+        using (Hold(second))
         {
             report = Probe(first, free, second);
         }
@@ -64,13 +67,38 @@ public sealed class FileLockProbeTests : IDisposable
     }
 
     [Fact]
+    [SupportedOSPlatform("linux")]
+    public void On_linux_every_file_is_asked_about_and_one_a_program_holds_is_in_use()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Only Linux finds the files in use by the programs holding them.");
+        Assert.SkipWhen(Environment.IsPrivilegedProcess, "Root reads every file.");
+        var held = _directory.Write("held.pak", "data");
+        var free = _directory.Write("free.pak", "data");
+        var unreadable = _directory.Write("unreadable.pak", "data");
+        var missing = _directory.Combine("missing.pak");
+        File.SetUnixFileMode(unreadable, UnixFileMode.None);
+
+        FileLockReport report;
+        using (Hold(held))
+        {
+            report = Probe(held, free, unreadable, missing);
+        }
+
+        report.InUse.Should().Equal(held);
+        report.AccessDenied.Should().Equal(unreadable);
+        report.Holders.Should().Equal("Holder.exe");
+        _holders.Calls.Should().ContainSingle().Which.Should().Equal(held, free, unreadable, missing);
+    }
+
+    [Fact]
     public void A_read_only_file_can_still_be_written_unless_it_is_held()
     {
         var readOnly = _directory.Write("read-only.pak", "data");
         File.SetAttributes(readOnly, FileAttributes.ReadOnly);
         try
         {
-            FileLockProbe.ProbeFile(readOnly).Should().Be(FileLockState.ReadOnly);
+            // Elsewhere a file's own permissions do not keep it from being replaced, only its folder's.
+            FileLockProbe.ProbeFile(readOnly).Should().Be(OperatingSystem.IsWindows() ? FileLockState.ReadOnly : FileLockState.Free);
             (Probe(readOnly).InUse.Count, Probe(readOnly).AccessDenied.Count).Should().Be((0, 0));
             if (OperatingSystem.IsWindows())
             {
@@ -113,6 +141,13 @@ public sealed class FileLockProbeTests : IDisposable
 
     private FileLockReport Probe(params string[] paths) => new FileLockProbe(_holders).Probe(paths, Token);
 
+    // A program holding a file without a lock, which only the system's list of holders tells outside Windows.
+    private FileStream Hold(string path)
+    {
+        _holders.Held.Add(path);
+        return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+    }
+
     [SupportedOSPlatform("windows")]
     private static void DenyWriting(string path, bool deny)
     {
@@ -135,10 +170,13 @@ public sealed class FileLockProbeTests : IDisposable
     {
         public List<IReadOnlyList<string>> Calls { get; } = [];
 
-        public IReadOnlyList<string> FindHolders(IReadOnlyList<string> paths)
+        public HashSet<string> Held { get; } = new(PathComparison.Comparer);
+
+        // Two processes of one program may spell it differently.
+        public IReadOnlyList<FileHolder> FindHolders(IReadOnlyList<string> paths)
         {
             Calls.Add(paths);
-            return ["Holder.exe", "holder.exe"];
+            return [.. paths.Where(Held.Contains).SelectMany(path => new[] { new FileHolder("Holder.exe", path), new FileHolder("holder.exe", path) })];
         }
     }
 }

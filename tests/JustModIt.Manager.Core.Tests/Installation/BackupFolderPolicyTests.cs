@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Tests.TestSupport;
 
@@ -27,10 +26,8 @@ public sealed class BackupFolderPolicyTests : IDisposable
     }
 
     [Fact]
-    [SupportedOSPlatform("windows")]
     public void Refuses_a_folder_the_user_cannot_write_to()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test denies access with a Windows ACL.");
         var folder = new DirectoryInfo(_temp.CreateDirectory("Locked"));
 
         using (FolderAccess.DenyCreatingFiles(folder))

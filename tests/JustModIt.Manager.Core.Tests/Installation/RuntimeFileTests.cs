@@ -147,9 +147,8 @@ public sealed class RuntimeFileTests : IAsyncDisposable
     [Fact]
     public async Task A_declared_file_another_program_holds_open_refuses_the_install()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows refuses to share an open file.");
         InstallBlockedException blocked;
-        await using (new FileStream(_harness.GameFile(List), FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (_harness.LockHolders.Hold(_harness.GameFile(List)))
         {
             blocked = await _harness.InstallBlockedAsync(_harness.ManifestPackage(Software()));
         }

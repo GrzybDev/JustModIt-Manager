@@ -105,7 +105,7 @@ public static class AgentServices
             provider.GetRequiredKeyedService<HttpClient>(StorageClient), locations.DownloadsDirectory, options.PackageExtension,
             provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<PackageDownloader>>()));
         services.AddSingleton(new PackageReader());
-        services.AddSingleton(provider => new FileLockProbe(provider.GetService<ILockHolderSource>()));
+        services.AddSingleton(provider => new FileLockProbe(provider.GetRequiredService<ILockHolderSource>()));
         services.AddSingleton(InstallEngineOptions.For(options.Identity, locations));
         services.AddSingleton<IInstallEngine, InstallEngine>();
         services.AddSingleton<IInstallPolicy>(SideBySideInstallPolicy.Instance);

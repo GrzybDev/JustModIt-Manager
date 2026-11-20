@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
@@ -68,8 +67,7 @@ public sealed class PreflightTests : IAsyncDisposable
     [Fact]
     public async Task Names_the_programs_holding_files_it_would_change()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows locks files.");
-        await using var held = new FileStream(_harness.GameFile("bin/library.dll"), FileMode.Open, FileAccess.Read, FileShare.None);
+        using var held = _harness.LockHolders.Hold(_harness.GameFile("bin/library.dll"));
 
         var blocked = await _harness.InstallBlockedAsync(_harness.ManifestPackage(new TestPackage().Copy("bin/library.dll", "proxy")));
 
@@ -77,10 +75,8 @@ public sealed class PreflightTests : IAsyncDisposable
     }
 
     [Fact]
-    [SupportedOSPlatform("windows")]
     public async Task Asks_for_permission_where_the_user_may_not_write_also_where_the_package_only_patches()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test denies access with a Windows ACL.");
         var patch = await TestPatch.CreateAsync(InstallHarness.OriginalPak, InstallHarness.ChangedPak);
         InstallBlockedException copying;
         InstallBlockedException patching;

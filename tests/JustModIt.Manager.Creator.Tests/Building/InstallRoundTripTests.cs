@@ -285,7 +285,7 @@ public sealed class InstallRoundTripTests : IDisposable
             LeftoversDirectory = Path.Combine(data, "leftovers"),
             BackupsDirectory = Path.Combine(data, "backups"),
         };
-        return new InstallEngine(options, new PackageReader(), new FileLockProbe(holders: null),
+        return new InstallEngine(options, new PackageReader(), new FileLockProbe(new NoHolders()),
             new FixedProbe(game), PhysicalVolumes.Instance, TimeProvider.System, NullLogger<InstallEngine>.Instance);
     }
 
@@ -302,5 +302,10 @@ public sealed class InstallRoundTripTests : IDisposable
     {
         public Task<GameProbe> ProbeAsync(GameKey key, CancellationToken cancellationToken) =>
             Task.FromResult(new GameProbe(key, game, []));
+    }
+
+    private sealed class NoHolders : ILockHolderSource
+    {
+        public IReadOnlyList<FileHolder> FindHolders(IReadOnlyList<string> paths) => [];
     }
 }
