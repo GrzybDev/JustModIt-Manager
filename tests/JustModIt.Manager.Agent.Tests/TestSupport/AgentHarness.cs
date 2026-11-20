@@ -33,7 +33,7 @@ internal sealed class AgentHarness : IAsyncDisposable
     public AgentHarness()
     {
         var identity = new AppIdentity("ExampleApp" + Guid.NewGuid().ToString("N")[..12], "ExampleVendor", "example-app",
-            isDevelopmentBuild: false);
+            "com.example.ExampleApp", isDevelopmentBuild: false);
         var data = Path.Combine(Directory, "data");
         Options = new AgentOptions
         {

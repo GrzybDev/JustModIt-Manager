@@ -17,6 +17,7 @@
     <ManagerIssuesUrl>https://github.com/GrzybDev/JustModIt-Manager/issues/new</ManagerIssuesUrl>
     <ManagerLanguage>en</ManagerLanguage>
     <ManagerTargetLanguage></ManagerTargetLanguage>
+    <ManagerDesktopId>dev.grzyb.JustModItManager</ManagerDesktopId>
     <!-- The menu categories of the Linux desktop entry. -->
     <ManagerDesktopCategories>Game;Utility;</ManagerDesktopCategories>
     <ManagerAccentColor>#3B82F6</ManagerAccentColor>

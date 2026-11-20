@@ -10,16 +10,18 @@ public sealed record AppIdentity
     /// <param name="appId">Names the exe, the data folder, the locks and the pipe.</param>
     /// <param name="vendorId">The folder above the data folder.</param>
     /// <param name="slug">The link scheme and, with a leading dot, the hidden folder in game folders.</param>
+    /// <param name="desktopId">The app's reverse domain name, which Linux desktops know it by.</param>
     /// <param name="isDevelopmentBuild">Whether this is a development build, which takes names of its own.</param>
     /// <param name="developmentName">
     /// What a development build adds to its names, letters and digits; a copy that runs beside the developer's own takes
     /// another one.
     /// </param>
-    public AppIdentity(string appId, string vendorId, string slug, bool isDevelopmentBuild, string developmentName = "Dev")
+    public AppIdentity(string appId, string vendorId, string slug, string desktopId, bool isDevelopmentBuild, string developmentName = "Dev")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(appId);
         ArgumentException.ThrowIfNullOrWhiteSpace(vendorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(slug);
+        ArgumentException.ThrowIfNullOrWhiteSpace(desktopId);
         if (string.IsNullOrEmpty(developmentName) || !developmentName.All(char.IsAsciiLetterOrDigit))
         {
             throw new ArgumentException("A development name is made of letters and digits.", nameof(developmentName));
@@ -29,6 +31,7 @@ public sealed record AppIdentity
         VendorId = vendorId;
         Slug = isDevelopmentBuild ? $"{slug}-{developmentName.ToLowerInvariant()}" : slug;
         InstanceName = isDevelopmentBuild ? $"{appId}.{developmentName}" : appId;
+        DesktopId = isDevelopmentBuild ? $"{desktopId}.{developmentName}" : desktopId;
         IsDevelopmentBuild = isDevelopmentBuild;
     }
 
@@ -52,4 +55,10 @@ public sealed record AppIdentity
     /// development name) in a development build so it never shares data with an installed copy or hands its start over to one.
     /// </summary>
     public string InstanceName { get; }
+
+    /// <summary>
+    /// The app's reverse domain name, which Linux desktops know it by (its window's class), with ".Dev" (or another
+    /// development name) in a development build so its windows never group with an installed copy's.
+    /// </summary>
+    public string DesktopId { get; }
 }

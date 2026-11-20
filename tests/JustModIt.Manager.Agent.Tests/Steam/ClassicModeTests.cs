@@ -31,7 +31,7 @@ public sealed class ClassicModeTests : IAsyncDisposable
     private readonly FakeSteamClient _steam = new();
     private readonly FakeDevTools _port = new();
     private readonly FakeSettings _settings = new(AppSettings.Default with { OnboardingCompleted = true });
-    private readonly AppIdentity _identity = new(Owner, "ExampleVendor", "example-app", isDevelopmentBuild: false);
+    private readonly AppIdentity _identity = new(Owner, "ExampleVendor", "example-app", "com.example.ExampleApp", isDevelopmentBuild: false);
     private readonly SteamUiService _service;
     private Task _run = Task.CompletedTask;
 

@@ -23,6 +23,7 @@ public sealed partial class MainWindow : Window
     private readonly ShellViewModel? _shell;
     private readonly ISystemMotion? _systemMotion;
     private readonly IWindowFrames? _frames;
+    private readonly WindowFrame _frame;
     private readonly double _smallestHeight;
     private bool _closeDecided;
 
@@ -35,13 +36,17 @@ public sealed partial class MainWindow : Window
     /// <param name="icon">The window's icon; null for the system's default.</param>
     /// <param name="systemMotion">The system's wish for reduced motion, read whenever the window comes to the front; null for none.</param>
     /// <param name="frames">The system's frame around windows, which the smallest size makes up for; null for none.</param>
-    public MainWindow(ShellViewModel shell, IDataTemplate views, WindowIcon? icon, ISystemMotion? systemMotion, IWindowFrames? frames = null)
+    /// <param name="frame">Who draws the window's title bar and its buttons.</param>
+    public MainWindow(ShellViewModel shell, IDataTemplate views, WindowIcon? icon, ISystemMotion? systemMotion, IWindowFrames? frames,
+        WindowFrame frame)
         : this()
     {
         _shell = shell;
         _systemMotion = systemMotion;
         _frames = frames;
+        _frame = frame;
         _smallestHeight = MinHeight;
+        UseFrame(frame);
         ScalingChanged += (_, _) => FitSmallestSize();
         DataTemplates.Add(views);
         Icon = icon;
@@ -101,6 +106,14 @@ public sealed partial class MainWindow : Window
         base.OnOpened(e);
         UpdateMotion();
         FitSmallestSize();
+        if (_frame == WindowFrame.Screen)
+        {
+            FillScreen();
+        }
+        else
+        {
+            FitScreen();
+        }
     }
 
     protected override void OnClosed(EventArgs e)
@@ -177,6 +190,53 @@ public sealed partial class MainWindow : Window
         Classes.Set("reducedMotion", Motion.IsReduced);
         Classes.Set("loops", loops);
         Motion.SetLoops(this, loops);
+    }
+
+    private void UseFrame(WindowFrame frame)
+    {
+        switch (frame)
+        {
+            case WindowFrame.System:
+                ExtendClientAreaToDecorationsHint = false;
+                CaptionButtons.IsVisible = false;
+                break;
+            // Nothing in gamescope brings a minimised window back, and it shows every window full screen anyway.
+            case WindowFrame.Screen:
+                ExtendClientAreaToDecorationsHint = false;
+                MinimizeButton.IsVisible = false;
+                MaximizeButton.IsVisible = false;
+                CanResize = false;
+                Screens.Changed += (_, _) => FillScreen();
+                break;
+        }
+    }
+
+    // gamescope resizes no window for a full-screen or maximised state and centres a larger one, whose edges then lie off its
+    // X screen, out of the pointer's reach, while it still shows the whole window scaled; so the window takes the screen's
+    // bounds itself, again whenever docking changes the screen.
+    private void FillScreen()
+    {
+        if ((Screens.ScreenFromWindow(this) ?? Screens.Primary) is { } screen)
+        {
+            var size = screen.Bounds.Size.ToSize(screen.Scaling);
+            Position = screen.Bounds.Position;
+            Width = size.Width;
+            Height = size.Height;
+        }
+    }
+
+    // A window larger than its screen's working area would leave its bottom or its edge out of reach, since the system
+    // centres it without shrinking it.
+    private void FitScreen()
+    {
+        if (WindowState == WindowState.Normal && (Screens.ScreenFromWindow(this) ?? Screens.Primary) is { } screen)
+        {
+            var size = PixelSize.FromSize(FrameSize ?? ClientSize, DesktopScaling);
+            if (size.Width > screen.WorkingArea.Width || size.Height > screen.WorkingArea.Height)
+            {
+                WindowState = WindowState.Maximized;
+            }
+        }
     }
 
     // The system keeps a window at least its smallest size plus a title bar, which this window draws inside its own content.

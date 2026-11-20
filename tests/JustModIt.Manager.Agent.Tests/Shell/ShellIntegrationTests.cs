@@ -14,7 +14,7 @@ public sealed class ShellIntegrationTests : IAsyncDisposable
     private string Command => $"\"{_agent.Options.ExecutablePath}\" --background";
 
     private AppIdentity Development => new(_agent.Options.Identity.AppId, _agent.Options.Identity.VendorId, "example-app",
-        isDevelopmentBuild: true);
+        "com.example.ExampleApp", isDevelopmentBuild: true);
 
     [Fact]
     public async Task An_installed_app_registers_its_links_and_starts_with_the_system_by_default()

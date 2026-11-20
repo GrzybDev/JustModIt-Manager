@@ -80,7 +80,7 @@ public sealed class UiSession : IDisposable
     /// <summary>Creates the main window, showing the shell.</summary>
     public MainWindow CreateWindow() =>
         _window = new(Shell, Composition.Views, Services.Context.Branding.CreateIcon(), Services.Context.SystemMotion,
-            Services.Context.WindowFrames);
+            Services.Context.WindowFrames, Services.Context.Frame);
 
     public void Dispose()
     {

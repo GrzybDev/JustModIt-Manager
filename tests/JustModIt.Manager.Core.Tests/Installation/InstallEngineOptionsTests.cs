@@ -14,9 +14,9 @@ public sealed class InstallEngineOptionsTests : IDisposable
     public void A_development_build_keeps_to_folders_of_its_own_in_games_and_in_a_backup_folder_the_player_picked()
     {
         var locations = new AppDataLocations(_temp.Combine("data"), _temp.Combine("cache"), _temp.Combine("logs"));
-        var installed = InstallEngineOptions.For(new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: false),
+        var installed = InstallEngineOptions.For(new AppIdentity("ExampleApp", "ExampleVendor", "example-app", "com.example.ExampleApp", isDevelopmentBuild: false),
             locations);
-        var development = InstallEngineOptions.For(new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild: true),
+        var development = InstallEngineOptions.For(new AppIdentity("ExampleApp", "ExampleVendor", "example-app", "com.example.ExampleApp", isDevelopmentBuild: true),
             locations);
         var picked = new BackupChoice(BackupLocation.CustomFolder, _temp.CreateDirectory("Backups"));
         var game = _temp.CreateDirectory("Game");

@@ -8,6 +8,9 @@
            Text="ManagerPackageExtension and ManagerCreatorProjectExtension must be two different extensions, each a dot followed by letters or digits, and packages cannot use .zip." />
     <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(ManagerDevelopmentName)', '^[A-Za-z0-9]+$'))"
            Text="ManagerDevelopmentName must be letters or digits." />
+    <!-- Linux desktops name apps by reverse domain names, which the window's class has to match. -->
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(ManagerDesktopId)', '^[A-Za-z_][A-Za-z0-9_-]*(\.[A-Za-z_][A-Za-z0-9_-]*)+$'))"
+           Text="ManagerDesktopId must be a reverse domain name, such as dev.example.App: two or more segments of letters, digits, _ and -, separated by dots, none starting with a digit or -." />
     <PropertyGroup>
       <_ProductConfigurationFile>$(IntermediateOutputPath)ProductConfiguration.g.cs</_ProductConfigurationFile>
       <_DevelopmentBuildLiteral>false</_DevelopmentBuildLiteral>
@@ -30,6 +33,7 @@
         AppId = AppId,
         VendorId = VendorId,
         AppSlug = AppSlug,
+        DesktopId = DesktopId,
         PackageExtension = PackageExtension,
         CreatorProjectExtension = CreatorProjectExtension,
         ApiUrl = ApiUrl,
@@ -64,6 +68,9 @@ internal static class ProductConfiguration
 
     /// <summary>The link scheme and, with a leading dot, the hidden backup folder in game folders.</summary>
     public const string AppSlug = @"$([MSBuild]::Escape($(ManagerAppSlug.Replace('"', '""'))))"%3B
+
+    /// <summary>The app's reverse domain name, which Linux desktops know it by, e.g. as its window's class.</summary>
+    public const string DesktopId = @"$(ManagerDesktopId)"%3B
 
     /// <summary>The extension, with its dot, of the app's manifest packages, a format every app shares.</summary>
     public const string PackageExtension = @"$([MSBuild]::Escape($(ManagerPackageExtension.Replace('"', '""'))))"%3B

@@ -19,6 +19,7 @@ public sealed class ProductConfigurationTests
         ProductConfiguration.AppId.Should().Be("ExampleApp");
         ProductConfiguration.VendorId.Should().Be("ExampleVendor");
         ProductConfiguration.AppSlug.Should().Be("example-app");
+        ProductConfiguration.DesktopId.Should().Be("com.example.ExampleApp");
         ProductConfiguration.PackageExtension.Should().Be(".examplemod");
         ProductConfiguration.CreatorProjectExtension.Should().Be(".exampleproj");
         ProductConfiguration.ApiUrl.Should().Be("https://api.example.com/");
@@ -46,6 +47,7 @@ public sealed class ProductConfigurationTests
             AppId = "ExampleApp",
             VendorId = "ExampleVendor",
             AppSlug = "example-app",
+            DesktopId = "com.example.ExampleApp",
             PackageExtension = ".examplemod",
             CreatorProjectExtension = ".exampleproj",
             ApiUrl = "https://api.example.com/",

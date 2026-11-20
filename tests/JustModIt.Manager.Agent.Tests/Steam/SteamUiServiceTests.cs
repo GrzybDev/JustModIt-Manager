@@ -49,7 +49,7 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
 
     private static AgentOptions Options { get; } = new()
     {
-        Identity = new AppIdentity("ExampleApp", "ExampleVendor", Slug, isDevelopmentBuild: false),
+        Identity = new AppIdentity("ExampleApp", "ExampleVendor", Slug, "com.example.ExampleApp", isDevelopmentBuild: false),
         ProductName = "Example App",
         Version = "1.4.0",
         Locations = new AppDataLocations(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath()),

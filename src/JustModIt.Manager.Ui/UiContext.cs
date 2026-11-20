@@ -17,6 +17,9 @@ public sealed record UiContext
     /// <summary>The system the window runs on, which problem and error reports name.</summary>
     public required SystemRelease System { get; init; }
 
+    /// <summary>The app's reverse domain name, which the window gives Linux desktops as its class, so they group it under the app.</summary>
+    public required string DesktopId { get; init; }
+
     /// <summary>The agent's pipe, which the window talks to for everything.</summary>
     public required string PipeName { get; init; }
 
@@ -80,6 +83,9 @@ public sealed record UiContext
 
     /// <summary>The system's frame around windows, which the window's smallest size makes up for; null where it adds none.</summary>
     public IWindowFrames? WindowFrames { get; init; }
+
+    /// <summary>Who draws the window's title bar and its buttons.</summary>
+    public WindowFrame Frame { get; init; }
 
     /// <summary>The app's own views, pages, styles and resources, added after the shared ones so they win.</summary>
     public Action<UiComposition>? Compose { get; init; }

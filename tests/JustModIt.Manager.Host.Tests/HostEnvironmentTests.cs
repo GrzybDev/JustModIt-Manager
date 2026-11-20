@@ -162,6 +162,17 @@ public sealed class HostEnvironmentTests : IDisposable
         context.CreatorDirectory.Should().Be(environment.Locations.CreatorDirectory);
         context.Codecs.Should().Match(codecs => !OperatingSystem.IsWindows() || codecs is WindowsMediaCodecs, "the site's AVIF stills need them");
         context.SystemMotion.Should().Match(motion => !OperatingSystem.IsWindows() || motion is WindowsSystemMotion);
+        context.DesktopId.Should().Be("com.example.ExampleApp.Dev", "a development build's windows never group with an installed copy's");
+    }
+
+    [Fact]
+    public void The_window_draws_its_own_frame_on_windows_leaves_it_to_linux_desktops_and_fills_gamescopes_screen()
+    {
+        string?[] desktops = ["KDE", "ubuntu:GNOME", "gamescope", null];
+
+        desktops.Select(HostEnvironment.FrameFor).Should().Equal(OperatingSystem.IsWindows()
+            ? [WindowFrame.Own, WindowFrame.Own, WindowFrame.Own, WindowFrame.Own]
+            : [WindowFrame.System, WindowFrame.System, WindowFrame.Screen, WindowFrame.System]);
     }
 
     [Fact]

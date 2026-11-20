@@ -112,9 +112,10 @@ public sealed class UiHarness : IDisposable
             ProductName = "Example App",
             Version = "0.1.0",
             System = new SystemRelease("Example OS", "2.4", Kernel: null),
+            DesktopId = "com.example.ExampleApp",
             PipeName = "ExampleApp.Tests",
             Links = links,
-            Creator = CreatorOptions.For(new Core.AppIdentity("ExampleApp", "ExampleVendor", "example-app", true), "Example App 0.1.0",
+            Creator = CreatorOptions.For(new Core.AppIdentity("ExampleApp", "ExampleVendor", "example-app", "com.example.ExampleApp", true), "Example App 0.1.0",
                 ".examplemod", ".exampleproj"),
             Launch = new LaunchArguments(ProcessRole.Ui, Background: false, launch),
             Loggers = NullLoggerFactory.Instance,
@@ -225,6 +226,16 @@ public sealed class UiHarness : IDisposable
     {
         Window.KeyPress(key, modifiers, PhysicalKey.None, null);
         Window.KeyRelease(key, modifiers, PhysicalKey.None, null);
+        Settle();
+    }
+
+    /// <summary>
+    /// Gives a window in Game Mode the size of the Steam Deck's screen, 1280x800, after it filled the headless screen of
+    /// 1920x1280 as it opened.
+    /// </summary>
+    public void SizeToDeck()
+    {
+        (Window.Width, Window.Height) = (1280, 800);
         Settle();
     }
 

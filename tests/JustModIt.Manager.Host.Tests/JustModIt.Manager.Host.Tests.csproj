@@ -6,6 +6,7 @@
     <ManagerAppId>ExampleApp</ManagerAppId>
     <ManagerVendorId>ExampleVendor</ManagerVendorId>
     <ManagerAppSlug>example-app</ManagerAppSlug>
+    <ManagerDesktopId>com.example.ExampleApp</ManagerDesktopId>
     <ManagerPackageExtension>.examplemod</ManagerPackageExtension>
     <ManagerCreatorProjectExtension>.exampleproj</ManagerCreatorProjectExtension>
     <ManagerApiUrl>https://api.example.com/</ManagerApiUrl>

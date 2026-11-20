@@ -13,6 +13,9 @@ public sealed record ProductSettings
 
     public required string AppSlug { get; init; }
 
+    /// <summary>The app's reverse domain name, which Linux desktops know it by.</summary>
+    public required string DesktopId { get; init; }
+
     /// <summary>The extension, with its dot, of the app's manifest packages.</summary>
     public required string PackageExtension { get; init; }
 
@@ -61,5 +64,5 @@ public sealed record ProductSettings
     /// <summary>A development build registers autostart and the link scheme, which otherwise only an installed copy does.</summary>
     public bool DevelopmentShellIntegration { get; init; }
 
-    public AppIdentity Identity => new(AppId, VendorId, AppSlug, IsDevelopmentBuild, DevelopmentName);
+    public AppIdentity Identity => new(AppId, VendorId, AppSlug, DesktopId, IsDevelopmentBuild, DevelopmentName);
 }

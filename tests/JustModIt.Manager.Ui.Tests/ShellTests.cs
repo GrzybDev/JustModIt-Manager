@@ -94,6 +94,44 @@ public sealed class ShellTests
     }
 
     [AvaloniaFact]
+    public async Task Under_the_systems_frame_the_window_keeps_its_header_and_leaves_the_caption_buttons_to_the_system()
+    {
+        using var ui = new UiHarness(TestStates.Idle(), context: context => context with { Frame = WindowFrame.System });
+        ui.Shell.Navigator.Navigate(new UndetectedGamesRoute());
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        CaptionButtons(ui).Should().BeEmpty();
+        ui.Find<Button>("BackButton").IsEffectivelyVisible.Should().BeTrue();
+        ui.Find<TextBlock>().Should().Contain(text => text.Classes.Contains("wordmark") && text.IsEffectivelyVisible);
+        ui.Window.WindowState.Should().Be(WindowState.Normal);
+        ui.Render("shell-system-frame");
+    }
+
+    [AvaloniaFact]
+    public async Task On_a_screen_of_its_own_the_window_fills_it_and_offers_only_its_close_button()
+    {
+        // Larger than its screen, as on gamescope's screen of a Deck docked to a monitor.
+        using var ui = new UiHarness(TestStates.Idle(), width: 4000, height: 3000, context: context => context with { Frame = WindowFrame.Screen });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        CaptionButtons(ui).Select(Name).Should().Equal(Strings.Shell_Close);
+        var screen = ui.Window.Screens.Primary!;
+        (ui.Window.Position, ui.Window.ClientSize, ui.Window.WindowState, ui.Window.CanResize).Should().Be(
+            (screen.Bounds.Position, screen.Bounds.Size.ToSize(screen.Scaling), WindowState.Normal, false),
+            "gamescope resizes no window for a full-screen state and centres a larger one with its edges off the screen");
+        ui.SizeToDeck();
+        ui.Render("shell-screen");
+    }
+
+    [AvaloniaFact]
+    public void A_window_larger_than_its_screen_opens_maximized()
+    {
+        using var ui = new UiHarness(TestStates.Idle(), width: 4000, height: 3000);
+
+        ui.Window.WindowState.Should().Be(WindowState.Maximized);
+    }
+
+    [AvaloniaFact]
     public void The_keyboard_reaches_every_sidebar_entry_in_order_and_opens_it()
     {
         using var ui = new UiHarness(TestStates.Idle(creatorMode: true));
@@ -120,6 +158,9 @@ public sealed class ShellTests
 
     private static List<Button> NavigationButtons(UiHarness ui) =>
         [.. ui.Find<Button>().Where(button => button.Classes.Contains("nav") && button.IsEffectivelyVisible)];
+
+    private static List<Button> CaptionButtons(UiHarness ui) =>
+        [.. ui.Find<Button>().Where(button => button.Classes.Contains("caption") && button.IsEffectivelyVisible)];
 
     private static string Name(Control control) => ControlAutomationPeer.CreatePeerForElement(control).GetName();
 

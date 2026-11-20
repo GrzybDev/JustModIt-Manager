@@ -22,6 +22,7 @@ public static class WindowHost
         var exitCode = AppBuilder.Configure(() => new App(context,
                 () => agent = new AgentConnection(context.PipeName, context.Version, context.Loggers)))
             .UsePlatformDetect()
+            .With(new X11PlatformOptions { WmClass = context.DesktopId })
             .WithInterFont()
             // Once the platform runs, since the signal posts to its dispatcher.
             .StartWithClassicDesktopLifetime([], lifetime => lifetime.Startup += (_, _) => stops = CloseOnStopSignals(lifetime));

@@ -93,7 +93,7 @@ public sealed class AppDataLocationsTests
     [InlineData(true, "ExampleApp.Dev")]
     public void The_current_user_gets_a_fully_qualified_folder_named_after_the_app(bool isDevelopmentBuild, string folder)
     {
-        var identity = new AppIdentity("ExampleApp", "ExampleVendor", "example-app", isDevelopmentBuild);
+        var identity = new AppIdentity("ExampleApp", "ExampleVendor", "example-app", "com.example.ExampleApp", isDevelopmentBuild);
 
         var locations = AppDataLocations.ForCurrentUser(identity);
 

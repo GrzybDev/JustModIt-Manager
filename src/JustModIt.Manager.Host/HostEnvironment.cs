@@ -111,6 +111,7 @@ internal sealed record HostEnvironment
             ProductName = Product.ProductName,
             Version = Version,
             System = System,
+            DesktopId = Identity.DesktopId,
             PipeName = Names.PipeName,
             Links = Links,
             Creator = CreatorOptions(),
@@ -134,9 +135,18 @@ internal sealed record HostEnvironment
             Codecs = OperatingSystem.IsWindows() ? new WindowsMediaCodecs() : null,
             SystemMotion = OperatingSystem.IsWindows() ? new WindowsSystemMotion() : null,
             WindowFrames = OperatingSystem.IsWindows() ? new WindowsWindowFrames() : null,
+            Frame = FrameFor(Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")),
             Compose = options.ConfigureUi,
         };
     }
+
+    /// <summary>
+    /// Who draws the window's frame: the window itself on Windows, gamescope's full screen in its session, and otherwise
+    /// the desktop's window manager, since Avalonia draws a frame of its own on X11 only as an experiment.
+    /// </summary>
+    /// <param name="desktop">The desktop names of the session the window runs in, as <c>XDG_CURRENT_DESKTOP</c> lists them.</param>
+    internal static WindowFrame FrameFor(string? desktop) =>
+        OperatingSystem.IsWindows() ? WindowFrame.Own : Gamescope.IsSession(desktop) ? WindowFrame.Screen : WindowFrame.System;
 
     private static Uri? Address(string url) => Uri.TryCreate(url, UriKind.Absolute, out var address) ? address : null;
 

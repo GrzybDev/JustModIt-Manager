@@ -47,7 +47,7 @@
         <ui:Icon Data="{x:Static theme:Icons.ArrowLeft}" />
       </Button>
 
-      <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+      <StackPanel x:Name="CaptionButtons" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
         <Button x:Name="MinimizeButton" Classes="caption" Click="OnMinimize" ToolTip.Tip="{x:Static loc:Strings.Shell_Minimize}"
                 AutomationProperties.Name="{x:Static loc:Strings.Shell_Minimize}" WindowDecorationProperties.ElementRole="MinimizeButton">
           <ui:Icon Data="{x:Static theme:Icons.Minus}" />

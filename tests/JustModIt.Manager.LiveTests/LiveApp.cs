@@ -11,7 +11,7 @@ internal static class LiveApp
 
     // Names of their own, so the tests never take an installed copy's or a development build's installs for theirs.
     public static AppIdentity Identity { get; } = new(ProductConfiguration.AppId, ProductConfiguration.VendorId,
-        ProductConfiguration.AppSlug, isDevelopmentBuild: true, ProductConfiguration.DevelopmentName);
+        ProductConfiguration.AppSlug, ProductConfiguration.DesktopId, isDevelopmentBuild: true, ProductConfiguration.DevelopmentName);
 
     public static CatalogueApiOptions ApiOptions { get; } = new(new Uri(ProductConfiguration.ApiUrl),
         new Uri(ProductConfiguration.SiteUrl), ProductConfiguration.AppId, Version, ProductConfiguration.ApiKey);
