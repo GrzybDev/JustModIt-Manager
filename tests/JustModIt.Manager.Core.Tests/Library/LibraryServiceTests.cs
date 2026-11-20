@@ -331,7 +331,6 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_download_that_stops_changing_is_read_again_and_counts_as_left_over()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test lays out Steam as it is on Windows.");
         var steam = new SteamTree();
         steam.AddApp(1001, "Example Quest");
         steam.AddDownload(1001, changedAt: _time.GetUtcNow());
@@ -463,17 +462,17 @@ public sealed class LibraryServiceTests : IAsyncDisposable
     [Fact]
     public async Task A_folder_picked_through_a_link_is_stored_as_its_target_and_not_added_twice()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test lays out Steam as it is on Windows.");
+        var library = TestPaths.Rooted('D', "SteamLibrary");
         var steam = new SteamTree();
-        steam.AddApp(1001, "Example Quest", library: @"D:\SteamLibrary");
-        steam.Files.AddDirectoryLink(@"E:\Linked", @"D:\SteamLibrary");
+        steam.AddApp(1001, "Example Quest", library: library);
+        var linked = steam.Files.AddDirectoryLink(TestPaths.Rooted('E', "Linked"), library);
         await StartAsync(steam.CreateProvider(time: _time), steam.Files);
 
-        var added = await Service.AddLibraryFolderAsync(@"E:\Linked\steamapps\common\Example Quest", Token);
-        var again = await Service.AddLibraryFolderAsync(@"d:\steamlibrary\", Token);
+        var added = await Service.AddLibraryFolderAsync(Path.Join(linked, "steamapps", "common", "Example Quest"), Token);
+        var again = await Service.AddLibraryFolderAsync(library + Path.DirectorySeparatorChar, Token);
 
-        added.Folder.Should().Be(new LibraryFolder(StoreId.Steam, @"D:\SteamLibrary"));
-        _settings!.Current.LibraryFolders.Should().Equal(new LibraryFolder(StoreId.Steam, @"D:\SteamLibrary"));
+        added.Folder.Should().Be(new LibraryFolder(StoreId.Steam, library));
+        _settings!.Current.LibraryFolders.Should().Equal(new LibraryFolder(StoreId.Steam, library));
         again.Rejection.Should().Be(LibraryFolderRejection.AlreadyAdded);
     }
 

@@ -15,8 +15,6 @@ public sealed class SteamLibraryProviderTests
 
     private readonly SteamTree _steam = new();
 
-    public SteamLibraryProviderTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The tests lay out the stores as they are on Windows.");
-
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -30,18 +28,18 @@ public sealed class SteamLibraryProviderTests
 
         scan.IsPresent.Should().BeTrue();
         scan.IsComplete.Should().BeTrue();
-        scan.Libraries.Should().Equal(new LibraryLocation(@"c:\steam", SteamLibraryProvider.LibrarySource, @"c:\steam", LibraryState.Online));
+        scan.Libraries.Should().Equal(new LibraryLocation(_steam.RootId, SteamLibraryProvider.LibrarySource, _steam.RootId, LibraryState.Online));
         scan.Games.Should().Equal(new InstalledGame
         {
             Key = Quest,
             Name = "Example Quest",
-            InstallDirectory = @"c:\steam\steamapps\common\Example Quest",
-            LibraryId = @"c:\steam",
+            InstallDirectory = _steam.GameFolder("Example Quest", _steam.RootId),
+            LibraryId = _steam.RootId,
             BuildId = "4242",
             State = GameInstallState.Installed,
             Reason = GameStateReason.None,
             StoreActivityAt = written,
-            Platform = OperatingSystemKind.Windows,
+            Platform = TestEnvironments.HostSystem,
             Languages = ["pl"],
             Content = ["1003@77"],
             Launch = LaunchLink.TryCreate("steam://rungameid/1001"),
@@ -93,8 +91,8 @@ public sealed class SteamLibraryProviderTests
 
         scan.Games.Select(game => game.Key).Should().Equal(Quest);
         scan.UnreadableGames.Should().Equal(
-            new UnreadableGame(new GameKey(StoreId.Steam, "1003"), @"c:\steam", written),
-            new UnreadableGame(new GameKey(StoreId.Steam, "1004"), @"c:\steam", SteamTree.WrittenAt));
+            new UnreadableGame(new GameKey(StoreId.Steam, "1003"), _steam.RootId, written),
+            new UnreadableGame(new GameKey(StoreId.Steam, "1004"), _steam.RootId, SteamTree.WrittenAt));
         scan.Libraries.Single().UnreadableEntries.Should().Be(2);
     }
 
@@ -114,7 +112,7 @@ public sealed class SteamLibraryProviderTests
     }
 
     [Fact]
-    public async Task Downloads_and_the_registry_show_work_the_manifest_does_not_and_left_over_data_only_warns()
+    public async Task Downloads_show_work_the_manifest_does_not_and_left_over_data_only_warns()
     {
         var touched = _steam.Time.GetUtcNow() - TimeSpan.FromSeconds(20);
         _steam.AddApp(1001, "Left Over");
@@ -123,8 +121,6 @@ public sealed class SteamLibraryProviderTests
         _steam.AddDownload(1003, changedAt: touched);
         _steam.AddApp(1004, "First Install", stateFlags: 2);
         _steam.Files.AddFile(Path.Join(_steam.Root, "steamapps", "downloading", "state_1004_1005.patch"), "");
-        _steam.AddApp(1005, "Updating");
-        _steam.SetUpdating(1005);
 
         var scan = await _steam.ScanAsync();
 
@@ -133,9 +129,23 @@ public sealed class SteamLibraryProviderTests
         games["Starting"].Should().Match<InstalledGame>(game =>
             game.State == GameInstallState.Updating && game.Reason == GameStateReason.DownloadInProgress);
         games["First Install"].State.Should().Be(GameInstallState.Installing);
-        games["Updating"].State.Should().Be(GameInstallState.Updating);
         scan.RecheckAt.Should().Be(touched + SteamDownloads.ActiveWindow,
             "the starting game is read again once its data counts as left over");
+    }
+
+    [Fact]
+    public async Task The_registry_shows_an_update_the_manifest_does_not_and_is_watched()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Steam on Windows keeps its apps' updates in the registry.");
+        _steam.AddApp(1001, "Example Quest");
+        _steam.SetUpdating(1001);
+
+        var scan = await _steam.ScanAsync();
+
+        scan.Games.Single().State.Should().Be(GameInstallState.Updating);
+        scan.Watch.RegistryKeys.Should().Equal(
+            new WatchedRegistryKey(RegistryHive.CurrentUser, RegistryView.Default, SteamTree.SteamKey, IncludeSubkeys: false),
+            new WatchedRegistryKey(RegistryHive.CurrentUser, RegistryView.Default, $@"{SteamTree.SteamKey}\Apps", IncludeSubkeys: true));
     }
 
     [Fact]
@@ -185,63 +195,64 @@ public sealed class SteamLibraryProviderTests
     [Fact]
     public async Task Games_of_every_library_are_found_and_a_library_listed_twice_is_scanned_once()
     {
-        var library = _steam.AddLibrary(@"D:\SteamLibrary");
-        _steam.AddLibrary(@"D:\SteamLibrary\");
+        var library = _steam.AddLibrary(TestPaths.Rooted('D', "SteamLibrary"));
+        _steam.AddLibrary(library + Path.DirectorySeparatorChar);
         _steam.AddApp(1001, "Example Quest", library: library);
         _steam.AddApp(1003, "Root Game");
 
         var scan = await _steam.ScanAsync();
 
-        scan.Libraries.Select(location => location.Id).Should().Equal(@"c:\steam", @"D:\SteamLibrary");
-        scan.Games.Single(game => game.Key == Quest).LibraryId.Should().Be(@"D:\SteamLibrary");
+        scan.Libraries.Select(location => location.Id).Should().Equal(_steam.RootId, library);
+        scan.Games.Single(game => game.Key == Quest).LibraryId.Should().Be(library);
         scan.Games.Should().HaveCount(2);
     }
 
     [Fact]
     public async Task A_library_reached_through_a_link_is_scanned_once()
     {
-        var library = _steam.AddLibrary(@"D:\SteamLibrary");
-        _steam.Files.AddDirectoryLink(@"E:\Linked", @"D:\SteamLibrary");
-        _steam.AddLibrary(@"E:\Linked", create: false);
+        var library = _steam.AddLibrary(TestPaths.Rooted('D', "SteamLibrary"));
+        var linked = _steam.Files.AddDirectoryLink(TestPaths.Rooted('E', "Linked"), library);
+        _steam.AddLibrary(linked, create: false);
         _steam.AddApp(1001, "Example Quest", library: library);
 
         var scan = await _steam.ScanAsync();
 
-        scan.Libraries.Select(location => location.Id).Should().Equal(@"c:\steam", @"D:\SteamLibrary");
+        scan.Libraries.Select(location => location.Id).Should().Equal(_steam.RootId, library);
         scan.Games.Should().ContainSingle();
     }
 
     [Fact]
     public async Task Unavailable_libraries_are_offline_but_a_root_is_always_online()
     {
-        _steam.AddLibrary(@"D:\Missing", create: false);
-        _steam.AddLibrary(@"E:\Unmounted", mounted: false);
-        _steam.Files.AddDirectory(@"F:\NoSteamApps");
-        _steam.AddLibrary(@"F:\NoSteamApps", create: false);
+        var missing = _steam.AddLibrary(TestPaths.Rooted('D', "Missing"), create: false);
+        var unmounted = _steam.AddLibrary(TestPaths.Rooted('E', "Unmounted"), mounted: false);
+        var noSteamApps = _steam.AddLibrary(_steam.Files.AddDirectory(TestPaths.Rooted('F', "NoSteamApps")), create: false);
         _steam.AddLibrary(_steam.Root, mounted: false);
 
         var scan = await _steam.ScanAsync();
 
         scan.Libraries.Select(location => (location.Id, location.State)).Should().Equal(
-            (@"c:\steam", LibraryState.Online),
-            (@"D:\Missing", LibraryState.Offline),
-            (@"E:\Unmounted", LibraryState.Offline),
-            (@"F:\NoSteamApps", LibraryState.Offline));
+            (_steam.RootId, LibraryState.Online),
+            (missing, LibraryState.Offline),
+            (unmounted, LibraryState.Offline),
+            (noSteamApps, LibraryState.Offline));
     }
 
     [Fact]
     public async Task The_old_list_format_and_the_config_copy_are_both_read()
     {
-        _steam.Files.AddDirectory(@"D:\Old\steamapps");
-        _steam.Files.AddDirectory(@"E:\New\steamapps");
+        var old = TestPaths.Rooted('D', "Old");
+        var current = TestPaths.Rooted('E', "New");
+        _steam.Files.AddDirectory(Path.Join(old, "steamapps"));
+        _steam.Files.AddDirectory(Path.Join(current, "steamapps"));
         _steam.Files.AddFile(Path.Join(_steam.Root, "steamapps", "libraryfolders.vdf"),
-            "\"LibraryFolders\" { \"ContentStatsID\" \"1\" \"1\" \"D:\\\\Old\" }");
+            $"\"LibraryFolders\" {{ \"ContentStatsID\" \"1\" \"1\" \"{TestPaths.Escaped(old)}\" }}");
         _steam.Files.AddFile(Path.Join(_steam.Root, "config", "libraryfolders.vdf"),
-            "\"libraryfolders\" { \"0\" { \"path\" \"E:\\\\New\" } }");
+            $"\"libraryfolders\" {{ \"0\" {{ \"path\" \"{TestPaths.Escaped(current)}\" }} }}");
 
         var scan = await _steam.ScanAsync();
 
-        scan.Libraries.Select(location => location.Id).Should().Equal(@"c:\steam", @"D:\Old", @"E:\New");
+        scan.Libraries.Select(location => location.Id).Should().Equal(_steam.RootId, old, current);
         scan.IsComplete.Should().BeTrue();
     }
 
@@ -255,20 +266,20 @@ public sealed class SteamLibraryProviderTests
         var scan = await _steam.ScanAsync();
 
         scan.IsComplete.Should().BeFalse();
-        scan.Libraries.Select(location => location.Id).Should().Equal(@"c:\steam");
+        scan.Libraries.Select(location => location.Id).Should().Equal(_steam.RootId);
         scan.Games.Should().ContainSingle();
     }
 
     [Fact]
     public async Task One_readable_copy_of_the_library_list_is_enough()
     {
-        _steam.AddLibrary(@"D:\SteamLibrary");
+        var library = _steam.AddLibrary(TestPaths.Rooted('D', "SteamLibrary"));
         _steam.Files.AddFile(Path.Join(_steam.Root, "steamapps", "libraryfolders.vdf"), "\"libraryfolders\" {");
 
         var scan = await _steam.ScanAsync();
 
         scan.IsComplete.Should().BeTrue();
-        scan.Libraries.Select(location => location.Id).Should().Contain(@"D:\SteamLibrary");
+        scan.Libraries.Select(location => location.Id).Should().Contain(library);
     }
 
     [Fact]
@@ -283,6 +294,7 @@ public sealed class SteamLibraryProviderTests
     [Fact]
     public async Task Roots_come_from_the_user_registry_then_the_machine_registry_then_program_files()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Steam on Windows keeps its folder in the registry.");
         var steam = new SteamTree(@"C:\Program Files (x86)\Steam", registered: false);
         steam.Files.AddDirectory(@"D:\Machine32\steamapps");
         steam.Files.AddDirectory(@"E:\Machine64\steamapps");
@@ -301,11 +313,9 @@ public sealed class SteamLibraryProviderTests
     [Fact]
     public async Task Candidates_without_steamapps_are_not_roots()
     {
-        var steam = new SteamTree(@"D:\Steam", registered: false);
-        steam.Files.AddDirectory(@"C:\Program Files (x86)");
-        steam.Registry.SetText(RegistryHive.CurrentUser, RegistryView.Default, SteamTree.SteamKey, "SteamPath", "c:/nothing");
+        _steam.Files.Remove(Path.Join(_steam.Root, "steamapps"));
 
-        var scan = await steam.ScanAsync();
+        var scan = await _steam.ScanAsync();
 
         scan.IsPresent.Should().BeFalse();
         scan.Libraries.Should().BeEmpty();
@@ -314,16 +324,17 @@ public sealed class SteamLibraryProviderTests
     [Fact]
     public async Task A_steam_whose_own_drive_is_gone_is_not_taken_for_uninstalled()
     {
-        var steam = new SteamTree(@"E:\Steam");
-        steam.Files.AddDirectory(@"C:\Program Files (x86)");
-        var library = steam.AddLibrary(@"D:\Library");
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows tells a drive that is not attached from a folder that is gone.");
+        var steam = new SteamTree(TestPaths.Rooted('E', "Steam"));
+        steam.Files.AddDirectory(TestEnvironments.Windows.ProgramFilesX86!);
+        var library = steam.AddLibrary(TestPaths.Rooted('D', "Library"));
         steam.AddApp(1001, "Example Quest", library: library);
         steam.AddApp(1003, "Root Game");
         var games = (await steam.ScanAsync()).Games;
 
-        steam.Files.Remove(@"E:\");
+        steam.Files.Remove(TestPaths.Rooted('E'));
         var unplugged = await steam.ScanAsync();
-        steam.Files.AddDirectory(@"E:\");
+        steam.Files.AddDirectory(TestPaths.Rooted('E'));
         var uninstalled = await steam.ScanAsync();
 
         games.Should().HaveCount(2);
@@ -337,8 +348,8 @@ public sealed class SteamLibraryProviderTests
     [Fact]
     public async Task Linux_roots_are_searched_natively_then_in_flatpak_and_snap()
     {
-        var home = @"C:\home\player";
-        var files = new SteamTree(@"C:\unused", registered: false);
+        var home = TestEnvironments.Linux.HomeDirectory;
+        var files = new SteamTree(TestPaths.Rooted('U', "Unused"), registered: false);
         string[] roots =
         [
             Path.Join(home, "data", "Steam"),
@@ -352,13 +363,7 @@ public sealed class SteamLibraryProviderTests
         }
 
         files.Files.AddDirectoryLink(Path.Join(home, ".steam", "steam"), roots[0]);
-        var linux = new LibraryEnvironment
-        {
-            Platform = AppPlatform.Linux,
-            HomeDirectory = home,
-            XdgDataHome = Path.Join(home, "data"),
-            SnapUserData = Path.Join(home, "snapdata"),
-        };
+        var linux = TestEnvironments.Linux with { XdgDataHome = Path.Join(home, "data"), SnapUserData = Path.Join(home, "snapdata") };
 
         var scan = await files.CreateProvider(linux).ScanAsync(LibraryScanContext.Empty, Token);
 
@@ -369,9 +374,9 @@ public sealed class SteamLibraryProviderTests
     [Fact]
     public async Task The_mac_root_is_under_application_support()
     {
-        var steam = new SteamTree(@"C:\unused", registered: false);
-        var root = steam.Files.AddDirectory(@"C:\Users\Player\Library\Application Support\Steam\steamapps");
-        var mac = SteamTree.Windows with { Platform = AppPlatform.MacOS };
+        var steam = new SteamTree(TestPaths.Rooted('U', "Unused"), registered: false);
+        var mac = TestEnvironments.Windows with { Platform = AppPlatform.MacOS };
+        var root = steam.Files.AddDirectory(Path.Join(mac.HomeDirectory, "Library", "Application Support", "Steam", "steamapps"));
 
         var scan = await steam.CreateProvider(mac).ScanAsync(LibraryScanContext.Empty, Token);
 
@@ -379,60 +384,64 @@ public sealed class SteamLibraryProviderTests
     }
 
     [Fact]
-    public async Task The_watch_plan_follows_the_libraries_and_the_registry()
+    public async Task The_watch_plan_follows_the_libraries()
     {
-        _steam.AddLibrary(@"D:\SteamLibrary");
-        _steam.AddLibrary(@"E:\Unplugged", create: false);
-        _steam.Files.AddDirectory(@"E:\");
+        var library = _steam.AddLibrary(TestPaths.Rooted('D', "SteamLibrary"));
+        _steam.AddLibrary(TestPaths.Rooted('E', "Unplugged"), create: false);
+        var drive = _steam.Files.AddDirectory(TestPaths.Rooted('E'));
         _steam.AddDownload(1001);
 
         var watch = (await _steam.ScanAsync()).Watch;
 
         string[] entries = ["appmanifest_*.acf", "downloading", "libraryfolders.vdf"];
         watch.Folders.Should().Equal(
-            new WatchedFolder(@"c:\steam\steamapps", entries),
-            new WatchedFolder(@"c:\steam\steamapps\downloading", []),
-            new WatchedFolder(@"D:\SteamLibrary\steamapps", entries),
-            new WatchedFolder(@"E:\", ["Unplugged"]),
-            new WatchedFolder(@"c:\steam\config", ["libraryfolders.vdf"]));
-        watch.RegistryKeys.Should().Equal(
-            new WatchedRegistryKey(RegistryHive.CurrentUser, RegistryView.Default, SteamTree.SteamKey, IncludeSubkeys: false),
-            new WatchedRegistryKey(RegistryHive.CurrentUser, RegistryView.Default, $@"{SteamTree.SteamKey}\Apps", IncludeSubkeys: true));
+            new WatchedFolder(Path.Join(_steam.RootId, "steamapps"), entries),
+            new WatchedFolder(Path.Join(_steam.RootId, "steamapps", "downloading"), []),
+            new WatchedFolder(Path.Join(library, "steamapps"), entries),
+            new WatchedFolder(drive, ["Unplugged"]),
+            new WatchedFolder(Path.Join(_steam.RootId, "config"), ["libraryfolders.vdf"]));
     }
 
     [Fact]
     public async Task Without_steam_the_places_it_may_be_installed_to_are_watched()
     {
-        var steam = new SteamTree(@"D:\Unused", registered: false);
-        steam.Files.AddDirectory(@"C:\Program Files (x86)");
+        var steam = new SteamTree(TestPaths.Rooted('U', "Unused"), registered: false);
+        var programFiles = steam.Files.AddDirectory(TestEnvironments.Windows.ProgramFilesX86!);
+        var home = steam.Files.AddDirectory(TestEnvironments.Linux.HomeDirectory);
 
-        var scan = await steam.ScanAsync();
+        var windows = await steam.CreateProvider(TestEnvironments.Windows).ScanAsync(LibraryScanContext.Empty, Token);
+        var linux = await steam.CreateProvider(TestEnvironments.Linux).ScanAsync(LibraryScanContext.Empty, Token);
 
-        scan.IsPresent.Should().BeFalse();
-        scan.Watch.Folders.Should().Equal(new WatchedFolder(@"C:\Program Files (x86)", ["Steam"]));
+        windows.IsPresent.Should().BeFalse();
+        windows.Watch.Folders.Should().Equal(new WatchedFolder(programFiles, ["Steam"]));
+        linux.IsPresent.Should().BeFalse();
+        linux.Watch.Folders.Should().Equal(new WatchedFolder(home, [".local"]), new WatchedFolder(home, [".steam"]),
+            new WatchedFolder(home, [".var"]), new WatchedFolder(home, ["snap"]));
     }
 
     [Fact]
     public async Task A_folder_the_player_added_is_scanned_as_a_library()
     {
-        var steam = new SteamTree(@"D:\Unused", registered: false);
-        steam.Files.AddDirectory(@"E:\Games\steamapps");
-        steam.AddApp(1001, "Example Quest", library: @"E:\Games");
+        var steam = new SteamTree(TestPaths.Rooted('U', "Unused"), registered: false);
+        var games = TestPaths.Rooted('E', "Games");
+        var unplugged = TestPaths.Rooted('F', "Unplugged");
+        steam.Files.AddDirectory(Path.Join(games, "steamapps"));
+        steam.AddApp(1001, "Example Quest", library: games);
 
-        var scan = await steam.ScanAsync(@"E:\Games", @"F:\Unplugged");
+        var scan = await steam.ScanAsync(games, unplugged);
 
         scan.IsPresent.Should().BeTrue();
         scan.Libraries.Should().Equal(
-            new LibraryLocation(@"E:\Games", SteamLibraryProvider.LibrarySource, @"E:\Games", LibraryState.Online, IsManual: true),
-            new LibraryLocation(@"F:\Unplugged", SteamLibraryProvider.LibrarySource, @"F:\Unplugged", LibraryState.Offline, IsManual: true));
+            new LibraryLocation(games, SteamLibraryProvider.LibrarySource, games, LibraryState.Online, IsManual: true),
+            new LibraryLocation(unplugged, SteamLibraryProvider.LibrarySource, unplugged, LibraryState.Offline, IsManual: true));
         scan.Games.Single().Key.Should().Be(Quest);
     }
 
     [Fact]
     public async Task A_library_whose_drive_does_not_answer_is_offline_while_the_others_are_read()
     {
-        var slow = _steam.AddLibrary(@"D:\Slow");
-        var other = _steam.AddLibrary(@"E:\Other");
+        var slow = _steam.AddLibrary(TestPaths.Rooted('D', "Slow"));
+        var other = _steam.AddLibrary(TestPaths.Rooted('E', "Other"));
         _steam.AddApp(1001, "Example Quest", library: slow);
         _steam.AddApp(1003, "Other Quest", library: other);
         using var files = new HangingFileSystem(_steam.Files);
@@ -441,9 +450,9 @@ public sealed class SteamLibraryProviderTests
         var scan = await ScanRunningOutOfTimeAsync(files);
 
         scan.Libraries.Select(location => (location.Id, location.State)).Should().Equal(
-            (@"c:\steam", LibraryState.Online),
-            (@"D:\Slow", LibraryState.Offline),
-            (@"E:\Other", LibraryState.Online));
+            (_steam.RootId, LibraryState.Online),
+            (slow, LibraryState.Offline),
+            (other, LibraryState.Online));
         scan.Games.Select(game => game.Key.StoreGameId).Should().Equal("1003");
         scan.IsComplete.Should().BeFalse("a listed path that did not answer may stand for a library known under another one");
         scan.Watch.Folders.Should().NotContain(folder => PathComparison.IsWithin(slow, folder.Directory));
@@ -452,23 +461,24 @@ public sealed class SteamLibraryProviderTests
     [Fact]
     public async Task A_root_whose_drive_does_not_answer_leaves_steam_present_and_the_scan_incomplete()
     {
-        _steam.Files.AddDirectory(@"E:\Games\steamapps");
-        _steam.AddApp(1001, "Example Quest", library: @"E:\Games");
+        var games = TestPaths.Rooted('E', "Games");
+        _steam.Files.AddDirectory(Path.Join(games, "steamapps"));
+        _steam.AddApp(1001, "Example Quest", library: games);
         using var files = new HangingFileSystem(_steam.Files);
         files.Hang(_steam.Root);
 
-        var scan = await ScanRunningOutOfTimeAsync(files, @"E:\Games");
+        var scan = await ScanRunningOutOfTimeAsync(files, games);
 
         scan.IsPresent.Should().BeTrue();
         scan.IsComplete.Should().BeFalse();
-        scan.Libraries.Select(location => location.Id).Should().Equal(@"E:\Games");
+        scan.Libraries.Select(location => location.Id).Should().Equal(games);
         scan.Games.Should().ContainSingle();
     }
 
     [Fact]
     public async Task A_probe_of_a_game_whose_drive_does_not_answer_is_offline()
     {
-        var library = _steam.AddLibrary(@"D:\Slow");
+        var library = _steam.AddLibrary(TestPaths.Rooted('D', "Slow"));
         _steam.AddApp(1001, "Example Quest", library: library);
         var known = (await _steam.ScanAsync()).Games.Single();
         using var files = new HangingFileSystem(_steam.Files);
@@ -490,7 +500,7 @@ public sealed class SteamLibraryProviderTests
         _steam.AddApp(1001, "Example Quest");
         var provider = _steam.CreateProvider();
         var known = (await provider.ScanAsync(LibraryScanContext.Empty, Token)).Games.Single();
-        _steam.SetUpdating(1001);
+        _steam.AddApp(1001, "Example Quest", stateFlags: 1030);
 
         var probed = await provider.ProbeAsync(known, LibraryScanContext.Empty, Token);
 
@@ -539,7 +549,7 @@ public sealed class SteamLibraryProviderTests
         _steam.AddApp(1003, "Uninstalled Later");
         var provider = _steam.CreateProvider();
         var games = (await provider.ScanAsync(LibraryScanContext.Empty, Token)).Games;
-        var library = _steam.AddLibrary(@"D:\SteamLibrary");
+        var library = _steam.AddLibrary(TestPaths.Rooted('D', "SteamLibrary"));
         _steam.Files.Remove(_steam.ManifestPath(1001));
         _steam.AddApp(1001, "Example Quest", library: library);
         _steam.Files.Remove(_steam.ManifestPath(1003));
@@ -552,30 +562,32 @@ public sealed class SteamLibraryProviderTests
     }
 
     [Theory]
-    [InlineData(@"D:\SteamLibrary")]
-    [InlineData(@"D:\SteamLibrary\steamapps")]
-    [InlineData(@"D:\SteamLibrary\steamapps\common")]
-    [InlineData(@"D:\SteamLibrary\steamapps\common\Example Quest")]
-    public async Task A_library_with_manifests_or_a_folder_inside_it_is_evidence_of_that_library(string picked)
+    [InlineData]
+    [InlineData("steamapps")]
+    [InlineData("steamapps", "common")]
+    [InlineData("steamapps", "common", "Example Quest")]
+    public async Task A_library_with_manifests_or_a_folder_inside_it_is_evidence_of_that_library(params string[] below)
     {
-        _steam.Files.AddDirectory(@"D:\SteamLibrary\steamapps");
-        _steam.AddApp(1001, "Example Quest", library: @"D:\SteamLibrary");
+        var library = _steam.Files.AddDirectory(TestPaths.Rooted('D', "SteamLibrary"));
+        _steam.AddApp(1001, "Example Quest", library: library);
 
-        var evidence = await _steam.CreateProvider().InspectFolderAsync(picked, Token);
+        var evidence = await _steam.CreateProvider().InspectFolderAsync(Path.Join([library, .. below]), Token);
 
-        evidence.Should().Be(LibraryFolderEvidence.Accepted(@"D:\SteamLibrary"));
+        evidence.Should().Be(LibraryFolderEvidence.Accepted(library));
     }
 
     [Fact]
     public async Task A_folder_without_manifests_is_no_evidence_and_a_game_outside_a_library_is_named()
     {
-        _steam.Files.AddDirectory(@"D:\Empty\steamapps");
-        _steam.Files.AddFile(@"D:\Copied\Game\steam_api64.dll", "");
+        var empty = TestPaths.Rooted('D', "Empty");
+        var game = TestPaths.Rooted('D', "Copied", "Game");
+        _steam.Files.AddDirectory(Path.Join(empty, "steamapps"));
+        _steam.Files.AddFile(Path.Join(game, "steam_api64.dll"), "");
 
         var provider = _steam.CreateProvider();
 
-        (await provider.InspectFolderAsync(@"D:\Empty", Token)).Should().Be(LibraryFolderEvidence.None);
-        (await provider.InspectFolderAsync(@"D:\Copied\Game", Token))
+        (await provider.InspectFolderAsync(empty, Token)).Should().Be(LibraryFolderEvidence.None);
+        (await provider.InspectFolderAsync(game, Token))
             .Should().Be(LibraryFolderEvidence.Rejected(LibraryFolderRejection.GameOutsideLibrary));
     }
 

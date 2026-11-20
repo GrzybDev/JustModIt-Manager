@@ -7,4 +7,8 @@ internal static class TestPaths
     /// <param name="segments">The folders and file below the drive's root.</param>
     public static string Rooted(char drive, params string[] segments) =>
         Path.Combine([OperatingSystem.IsWindows() ? $@"{char.ToUpperInvariant(drive)}:\" : $"/mnt/{char.ToLowerInvariant(drive)}", .. segments]);
+
+    /// <summary>A path with its backslashes doubled, as JSON and Steam's text files write it inside quotes.</summary>
+    /// <param name="path">The path.</param>
+    public static string Escaped(string path) => path.Replace(@"\", @"\\", StringComparison.Ordinal);
 }

@@ -5,6 +5,7 @@ using JustModIt.Manager.Core.Collections;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Epic;
+using JustModIt.Manager.Core.Library.Heroic;
 using JustModIt.Manager.Core.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -12,18 +13,17 @@ namespace JustModIt.Manager.Core.Tests.Library.Epic;
 
 public sealed class EpicLibraryProviderTests
 {
-    private const string ProgramData = @"C:\ProgramData";
     private const string Manifests = @"C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests";
     private const string Pending = Manifests + @"\Pending";
     private const string InstalledDat = @"C:\ProgramData\Epic\UnrealEngineLauncher\LauncherInstalled.dat";
-    private const string Heroic = @"C:\Users\Player\AppData\Roaming\heroic";
-    private const string HeroicLegendary = Heroic + @"\legendaryConfig\legendary";
-    private const string Legendary = @"C:\Users\Player\.config\legendary";
-    private const string Folder = @"D:\Epic Games\Example";
     private const string Namespace = "0a1b2c3d4e5f60718293a4b5c6d7e8f9";
     private const string ItemId = "11112222333344445555666677778888";
     private const string Guid = "4FBDA9F39E21FE6564A51AAB980BCE51";
 
+    private static readonly string Heroic = HeroicLauncher.ConfigDirectories(TestEnvironments.Host)[0];
+    private static readonly string HeroicLegendary = Path.Join(Heroic, "legendaryConfig", "legendary");
+    private static readonly string Legendary = LegendarySource.StandaloneDirectory(TestEnvironments.Host);
+    private static readonly string Folder = TestPaths.Rooted('D', "Epic Games", "Example");
     private static readonly DateTimeOffset WrittenAt = new(2026, 3, 1, 9, 0, 0, TimeSpan.Zero);
     private static readonly GameKey Example = new(StoreId.Epic, Namespace);
 
@@ -31,13 +31,12 @@ public sealed class EpicLibraryProviderTests
     private readonly InMemoryRegistry _registry = new();
     private readonly Dictionary<string, List<string>> _legendaryEntries = [];
 
-    public EpicLibraryProviderTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The tests lay out the stores as they are on Windows.");
-
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task The_launchers_games_are_found_and_its_engine_plugins_and_dlc_are_not()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows has the Epic Games Launcher.");
         AddItem(Guid, "Example App", Namespace, Folder, name: "Example Game", version: "1.2.3");
         AddItem("A0000000000000000000000000000002", "ExampleExpansion", Namespace, Folder, categories: "\"games\", \"addons\"");
         AddItem("A0000000000000000000000000000003", "ExampleStandalone", "fedcba98765432100123456789abcdef", @"D:\Epic Games\Standalone",
@@ -80,6 +79,7 @@ public sealed class EpicLibraryProviderTests
     [InlineData("pending download", GameInstallState.Updating, GameStateReason.DownloadInProgress)]
     public async Task What_the_launcher_does_with_a_game_blocks_writing_it(string signal, GameInstallState state, GameStateReason reason)
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows has the Epic Games Launcher.");
         var later = WrittenAt.AddHours(1);
         AddItem(Guid, "ExampleApp", Namespace, Folder, version: "2.0", incomplete: signal == "incomplete install",
             needsValidation: signal == "needs validation");
@@ -117,6 +117,7 @@ public sealed class EpicLibraryProviderTests
     [InlineData(InstalledDat)]
     public async Task A_launcher_file_caught_mid_write_keeps_the_launchers_games_as_they_were(string damaged)
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows has the Epic Games Launcher.");
         AddItem(Guid, "ExampleApp", Namespace, Folder);
         _files.AddFile(damaged, """{ "AppName": """);
 
@@ -131,8 +132,8 @@ public sealed class EpicLibraryProviderTests
     {
         AddLegendary(HeroicLegendary, "ExampleApp", Namespace, Folder, title: "Example Game", version: "1.33");
         AddLegendary(HeroicLegendary, "ExampleExpansion", Namespace, Folder, isDlc: true);
-        AddLegendary(HeroicLegendary, "MacApp", "99999999999999999999999999999999", @"D:\Heroic\Mac App", platform: "Mac");
-        AddLegendary(Legendary, "Standalone", "fn", @"E:\Legendary\Standalone", title: "Standalone Game");
+        AddLegendary(HeroicLegendary, "MacApp", "99999999999999999999999999999999", TestPaths.Rooted('D', "Heroic", "Mac App"), platform: "Mac");
+        AddLegendary(Legendary, "Standalone", "fn", TestPaths.Rooted('E', "Legendary", "Standalone"), title: "Standalone Game");
 
         var scan = await Scan();
 
@@ -207,6 +208,7 @@ public sealed class EpicLibraryProviderTests
     [Fact]
     public async Task A_game_both_launchers_list_is_one_game_as_cautious_as_either()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows has the Epic Games Launcher.");
         AddItem(Guid, "ExampleApp", Namespace, Folder);
         AddLegendary(HeroicLegendary, "ExampleApp", Namespace, Folder);
         _files.AddFile(Path.Join(HeroicLegendary, "tmp", "ExampleApp.resume"), "");
@@ -220,12 +222,13 @@ public sealed class EpicLibraryProviderTests
     [Fact]
     public async Task A_folder_the_player_added_counts_only_with_a_launchers_manifest_in_it()
     {
+        var copied = TestPaths.Rooted('D', "Copied");
+        var empty = _files.AddDirectory(TestPaths.Rooted('D', "Empty"));
         AddManifest(Folder, Namespace, "ExampleApp");
-        _files.AddFile(Path.Join(@"D:\Copied", ".egstore", $"{Guid}.mancpn"), """{ "AppName": """);
-        _files.AddDirectory(@"D:\Empty");
+        _files.AddFile(Path.Join(copied, ".egstore", $"{Guid}.mancpn"), """{ "AppName": """);
         var provider = CreateProvider();
 
-        var scan = await provider.ScanAsync(new LibraryScanContext(new ValueList<string>([Folder, @"D:\Copied"])), Token);
+        var scan = await provider.ScanAsync(new LibraryScanContext(new ValueList<string>([Folder, copied])), Token);
 
         scan.Games.Should().Equal(new InstalledGame
         {
@@ -235,17 +238,17 @@ public sealed class EpicLibraryProviderTests
             LibraryId = Folder,
             State = GameInstallState.Installed,
             StoreActivityAt = WrittenAt,
-            Platform = OperatingSystemKind.Windows,
+            Platform = TestEnvironments.HostSystem,
         });
         (await provider.InspectFolderAsync(Folder, Token)).Should().Be(LibraryFolderEvidence.Accepted(Folder));
-        (await provider.InspectFolderAsync(@"D:\Copied", Token)).Should().Be(LibraryFolderEvidence.None);
-        (await provider.InspectFolderAsync(@"D:\Empty", Token)).Should().Be(LibraryFolderEvidence.None);
+        (await provider.InspectFolderAsync(copied, Token)).Should().Be(LibraryFolderEvidence.None);
+        (await provider.InspectFolderAsync(empty, Token)).Should().Be(LibraryFolderEvidence.None);
     }
 
     [Fact]
     public async Task A_game_folder_at_a_drive_root_is_named_after_its_app_and_survives_the_saved_snapshot()
     {
-        const string root = @"E:\";
+        var root = Path.GetPathRoot(TestPaths.Rooted('E'))!;
         AddManifest(root, Namespace, "ExampleApp");
 
         var scan = await CreateProvider().ScanAsync(new LibraryScanContext(new ValueList<string>([root])), Token);
@@ -271,7 +274,7 @@ public sealed class EpicLibraryProviderTests
     [Fact]
     public async Task A_probe_reads_the_game_folder_again()
     {
-        AddItem(Guid, "ExampleApp", Namespace, Folder);
+        AddLegendary(HeroicLegendary, "ExampleApp", Namespace, Folder);
         var provider = CreateProvider();
         var known = (await provider.ScanAsync(LibraryScanContext.Empty, Token)).Games.Single();
         _files.AddDirectory(Path.Join(Folder, ".egstore", "bps"));
@@ -284,6 +287,7 @@ public sealed class EpicLibraryProviderTests
     [Fact]
     public async Task Every_launcher_record_is_watched_but_no_game_folder()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows has the Epic Games Launcher.");
         AddItem(Guid, "ExampleApp", Namespace, Folder);
         _files.AddDirectory(Pending);
         _files.AddDirectory(@"C:\ProgramData\Epic\UnrealEngineLauncher");
@@ -309,27 +313,17 @@ public sealed class EpicLibraryProviderTests
     [Fact]
     public void Legendary_is_looked_for_where_it_looks_for_its_configuration()
     {
-        LibraryEnvironment Environment(string? legendaryConfig = null, string? xdgConfig = null) => new()
-        {
-            Platform = AppPlatform.Linux,
-            HomeDirectory = @"C:\home\player",
-            LegendaryConfigPath = legendaryConfig,
-            XdgConfigHome = xdgConfig,
-        };
+        var linux = TestEnvironments.Linux;
+        var xdg = TestPaths.Rooted('H', "xdg");
+        var custom = TestPaths.Rooted('H', "custom");
 
-        LegendarySource.StandaloneDirectory(Environment()).Should().Be(Path.Join(@"C:\home\player", ".config", "legendary"));
-        LegendarySource.StandaloneDirectory(Environment(xdgConfig: @"C:\xdg")).Should().Be(Path.Join(@"C:\xdg", "legendary"));
-        LegendarySource.StandaloneDirectory(Environment(@"C:\custom", @"C:\xdg")).Should().Be(@"C:\custom");
+        LegendarySource.StandaloneDirectory(linux).Should().Be(Path.Join(linux.HomeDirectory, ".config", "legendary"));
+        LegendarySource.StandaloneDirectory(linux with { XdgConfigHome = xdg }).Should().Be(Path.Join(xdg, "legendary"));
+        LegendarySource.StandaloneDirectory(linux with { LegendaryConfigPath = custom, XdgConfigHome = xdg }).Should().Be(custom);
     }
 
     private EpicLibraryProvider CreateProvider() =>
-        EpicLibraryProvider.Create(_files, _registry, new LibraryEnvironment
-        {
-            Platform = AppPlatform.Windows,
-            HomeDirectory = @"C:\Users\Player",
-            ApplicationData = @"C:\Users\Player\AppData\Roaming",
-            ProgramData = ProgramData,
-        }, NullLogger<EpicLibraryProvider>.Instance);
+        EpicLibraryProvider.Create(_files, _registry, TestEnvironments.Host, NullLogger<EpicLibraryProvider>.Instance);
 
     private Task<StoreScan> Scan() => CreateProvider().ScanAsync(LibraryScanContext.Empty, Token);
 
@@ -385,5 +379,5 @@ public sealed class EpicLibraryProviderTests
             { "FormatVersion": 0, "CatalogNamespace": "{{catalogNamespace}}", "CatalogItemId": "{{ItemId}}", "AppName": "{{appName}}" }
             """, WrittenAt);
 
-    private static string Json(string? value) => value is null ? "null" : $"\"{value.Replace(@"\", @"\\", StringComparison.Ordinal)}\"";
+    private static string Json(string? value) => value is null ? "null" : $"\"{TestPaths.Escaped(value)}\"";
 }

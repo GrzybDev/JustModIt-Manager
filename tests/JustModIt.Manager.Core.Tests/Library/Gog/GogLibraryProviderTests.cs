@@ -13,18 +13,17 @@ namespace JustModIt.Manager.Core.Tests.Library.Gog;
 public sealed class GogLibraryProviderTests
 {
     private const string GamesKey = @"SOFTWARE\GOG.com\Games";
-    private const string Folder = @"D:\GOG Games\Example";
-    private const string GalaxyStorage = @"C:\ProgramData\GOG.com\Galaxy\storage";
-    private const string GalaxyLibrary = GalaxyStorage + @"\galaxy-2.0.db";
-    private const string GalaxyJobs = GalaxyStorage + @"\jobs.db";
 
+    private static readonly string Folder = TestPaths.Rooted('D', "GOG Games", "Example");
+    private static readonly string GalaxyStorage = Path.Join(TestEnvironments.Windows.ProgramData, "GOG.com", "Galaxy", "storage");
+    private static readonly string GalaxyLibrary = Path.Join(GalaxyStorage, "galaxy-2.0.db");
+    private static readonly string GalaxyJobs = Path.Join(GalaxyStorage, "jobs.db");
+    private static readonly string Heroic = TestPaths.Rooted('R', "Roaming", "heroic");
     private static readonly GameKey Example = new(StoreId.Gog, "1100000001");
 
     private readonly InMemoryFileSystem _files = new();
     private readonly InMemoryRegistry _registry = new();
     private readonly InMemorySqlite _sqlite = new();
-
-    public GogLibraryProviderTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The tests lay out the stores as they are on Windows.");
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -57,18 +56,20 @@ public sealed class GogLibraryProviderTests
     public async Task Each_game_starts_through_what_installed_it()
     {
         InstallGalaxy();
-        _sqlite.Add(GalaxyLibrary, ["1100000001", Folder], ["1003", @"D:\GOG Galaxy\Moved Since"]);
+        var offline = TestPaths.Rooted('D', "GOG Games", "Offline");
+        var heroicGame = TestPaths.Rooted('D', "Heroic", "Another");
+        var added = TestPaths.Rooted('E', "Offline Installs");
+        _sqlite.Add(GalaxyLibrary, ["1100000001", Folder], ["1003", TestPaths.Rooted('D', "GOG Galaxy", "Moved Since")]);
         _files.AddInfo(Folder, "1100000001", "Through Galaxy");
         AddRecord("1100000001", Folder);
-        _files.AddInfo(@"D:\GOG Games\Offline", "1003", "Through The Offline Installer");
-        AddRecord("1003", @"D:\GOG Games\Offline");
-        _files.AddInfo(@"D:\Heroic\Another", "1001", "Through Heroic");
-        _files.AddFile(@"R:\Roaming\heroic\gog_store\installed.json",
-            """{ "installed": [ { "appName": "1001", "install_path": "D:\\Heroic\\Another", "platform": "windows" } ] }""");
-        _files.AddInfo(@"E:\Offline Installs\Third", "1002", "From Its Folder");
+        _files.AddInfo(offline, "1003", "Through The Offline Installer");
+        AddRecord("1003", offline);
+        _files.AddInfo(heroicGame, "1001", "Through Heroic");
+        _files.AddFile(Path.Join(Heroic, "gog_store", "installed.json"),
+            $$"""{ "installed": [ { "appName": "1001", "install_path": "{{TestPaths.Escaped(heroicGame)}}", "platform": "windows" } ] }""");
+        _files.AddInfo(Path.Join(added, "Third"), "1002", "From Its Folder");
 
-        var scan = await CreateProvider(new HeroicGogSource(_files, @"R:\Roaming\heroic"))
-            .ScanAsync(Manual(@"E:\Offline Installs"), Token);
+        var scan = await CreateProvider(new HeroicGogSource(_files, Heroic)).ScanAsync(Manual(added), Token);
 
         scan.Games.ToDictionary(game => game.Name, game => game.Launch).Should().BeEquivalentTo(new Dictionary<string, GameLaunch?>
         {
@@ -121,7 +122,7 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_stale_record_of_a_deleted_folder_does_not_hide_the_real_install()
     {
-        AddRecord("1100000001", @"D:\Old Location", view: RegistryView.Registry32);
+        AddRecord("1100000001", TestPaths.Rooted('D', "Old Location"), view: RegistryView.Registry32);
         AddRecord("1100000001", Folder, view: RegistryView.Registry64);
         _files.AddInfo(Folder, "1100000001", "Example");
 
@@ -134,16 +135,19 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_missing_folder_is_broken_and_a_missing_drive_is_offline()
     {
-        _files.AddDirectory(@"D:\");
-        AddRecord("1001", @"D:\Removed", name: "Registry Only");
-        AddRecord("1002", @"Q:\Unplugged\Game", name: "On Another Drive");
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows tells a drive that is not attached from a folder that is gone.");
+        _files.AddDirectory(TestPaths.Rooted('D'));
+        AddRecord("1001", TestPaths.Rooted('D', "Removed"), name: "Registry Only");
+        AddRecord("1002", TestPaths.Rooted('Q', "Unplugged", "Game"), name: "On Another Drive");
 
-        var games = (await Scan()).Games.ToDictionary(game => game.Name);
+        var scan = await CreateProvider().ScanAsync(Manual(TestPaths.Rooted('Q', "Unplugged")), Token);
 
+        var games = scan.Games.ToDictionary(game => game.Name);
         games["Registry Only"].Should().Match<InstalledGame>(game =>
             game.State == GameInstallState.Broken && game.Reason == GameStateReason.InstallDirectoryMissing);
         games["On Another Drive"].Should().Match<InstalledGame>(game =>
             game.State == GameInstallState.Offline && game.Reason == GameStateReason.LibraryOffline);
+        scan.Libraries.Single(library => library.IsManual).State.Should().Be(LibraryState.Offline);
     }
 
     [Fact]
@@ -234,16 +238,18 @@ public sealed class GogLibraryProviderTests
     }
 
     [Fact]
-    public async Task The_registry_and_every_game_folder_are_watched()
+    public async Task The_registry_the_way_to_galaxy_and_every_game_folder_are_watched()
     {
+        var programData = _files.AddDirectory(TestEnvironments.Windows.ProgramData!);
         _files.AddInfo(Folder, "1100000001", "Example");
         AddRecord("1100000001", Folder);
-        AddRecord("1001", @"D:\Removed");
+        AddRecord("1001", TestPaths.Rooted('D', "Removed"));
 
         var watch = (await Scan()).Watch;
 
         watch.RegistryKeys.Should().HaveCount(3).And.OnlyContain(key => key.Path == GamesKey && key.IncludeSubkeys);
-        watch.Folders.Should().Equal(new WatchedFolder(Folder, ["goggame-*.info", ".gogdl-resume", ".gogdl-download-cache"]));
+        watch.Folders.Should().Equal(new WatchedFolder(programData, ["GOG.com"]),
+            new WatchedFolder(Folder, ["goggame-*.info", ".gogdl-resume", ".gogdl-download-cache"]));
     }
 
     [Fact]
@@ -258,43 +264,47 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task Folders_the_player_added_hold_a_game_or_a_folder_of_games()
     {
-        _files.AddInfo(@"E:\Offline Installs\Example", "1100000001", "Example");
-        _files.AddInfo(@"E:\Offline Installs\Another", "1001", "Another");
-        _files.AddDirectory(@"E:\Offline Installs\Not A Game");
-        _files.AddInfo(@"F:\Single", "1002", "Single");
+        var installs = TestPaths.Rooted('E', "Offline Installs");
+        var single = TestPaths.Rooted('F', "Single");
+        _files.AddInfo(Path.Join(installs, "Example"), "1100000001", "Example");
+        _files.AddInfo(Path.Join(installs, "Another"), "1001", "Another");
+        _files.AddDirectory(Path.Join(installs, "Not A Game"));
+        _files.AddInfo(single, "1002", "Single");
 
-        var scan = await CreateProvider().ScanAsync(Manual(@"E:\Offline Installs", @"F:\Single", @"Q:\Unplugged"), Token);
+        var scan = await CreateProvider().ScanAsync(Manual(installs, single), Token);
 
         scan.IsPresent.Should().BeTrue();
         scan.Libraries.Select(library => (library.Id, library.State, library.IsManual)).Should().Equal(
-            (@"E:\Offline Installs", LibraryState.Online, true),
-            (@"F:\Single", LibraryState.Online, true),
-            (@"Q:\Unplugged", LibraryState.Offline, true));
+            (installs, LibraryState.Online, true),
+            (single, LibraryState.Online, true));
         scan.Games.Select(game => (game.Key.StoreGameId, game.LibraryId, game.InstallDirectory)).Should().BeEquivalentTo([
-            ("1001", @"E:\Offline Installs", @"E:\Offline Installs\Another"),
-            ("1100000001", @"E:\Offline Installs", @"E:\Offline Installs\Example"),
-            ("1002", @"F:\Single", @"F:\Single"),
+            ("1001", installs, Path.Join(installs, "Another")),
+            ("1100000001", installs, Path.Join(installs, "Example")),
+            ("1002", single, single),
         ]);
     }
 
     [Fact]
     public async Task Games_whose_drive_does_not_answer_are_reported_while_the_others_are_read()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows paths name the drive they are on.");
+        var slow = TestPaths.Rooted('Q', "Slow", "Game");
+        var other = TestPaths.Rooted('Q', "Other");
         _files.AddInfo(Folder, "1100000001", "Example");
         AddRecord("1100000001", Folder);
-        _files.AddInfo(@"Q:\Slow\Game", "1001", "Slow Game");
-        AddRecord("1001", @"Q:\Slow\Game");
-        _files.AddInfo(@"Q:\Other", "1002", "Other Game");
-        AddRecord("1002", @"Q:\Other");
+        _files.AddInfo(slow, "1001", "Slow Game");
+        AddRecord("1001", slow);
+        _files.AddInfo(other, "1002", "Other Game");
+        AddRecord("1002", other);
         using var files = new HangingFileSystem(_files);
-        files.Hang(@"Q:\");
+        files.Hang(TestPaths.Rooted('Q'));
 
         var scan = await ScanRunningOutOfTimeAsync(files, LibraryScanContext.Empty);
 
         scan.Games.Select(game => game.Key).Should().Equal(Example);
         scan.UnansweredGames.Should().BeEquivalentTo([
-            new UnansweredGame(new GameKey(StoreId.Gog, "1001"), @"Q:\Slow\Game"),
-            new UnansweredGame(new GameKey(StoreId.Gog, "1002"), @"Q:\Other"),
+            new UnansweredGame(new GameKey(StoreId.Gog, "1001"), slow),
+            new UnansweredGame(new GameKey(StoreId.Gog, "1002"), other),
         ]);
         files.HungCalls.Should().Be(1, "a drive that does not answer holds one thread");
         scan.Libraries.Single().UnreadableEntries.Should().Be(2, "a game on a drive that did not answer is not gone");
@@ -305,16 +315,18 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_folder_the_player_added_that_does_not_answer_is_offline()
     {
-        _files.AddInfo(@"E:\Offline Installs\Example", "1100000001", "Example");
-        _files.AddInfo(@"Q:\Slow\Another", "1001", "Another");
+        var installs = TestPaths.Rooted('E', "Offline Installs");
+        var slow = TestPaths.Rooted('Q', "Slow");
+        _files.AddInfo(Path.Join(installs, "Example"), "1100000001", "Example");
+        _files.AddInfo(Path.Join(slow, "Another"), "1001", "Another");
         using var files = new HangingFileSystem(_files);
-        files.Hang(@"Q:\Slow");
+        files.Hang(slow);
 
-        var scan = await ScanRunningOutOfTimeAsync(files, Manual(@"E:\Offline Installs", @"Q:\Slow"));
+        var scan = await ScanRunningOutOfTimeAsync(files, Manual(installs, slow));
 
         scan.Libraries.Select(library => (library.Id, library.State, library.IsManual)).Should().Equal(
-            (@"E:\Offline Installs", LibraryState.Online, true),
-            (@"Q:\Slow", LibraryState.Offline, true));
+            (installs, LibraryState.Online, true),
+            (slow, LibraryState.Offline, true));
         scan.Games.Select(game => game.Key).Should().Equal(Example);
     }
 
@@ -324,9 +336,9 @@ public sealed class GogLibraryProviderTests
         _files.AddInfo(Folder, "1100000001", "Example");
         AddRecord("1100000001", Folder);
         using var files = new HangingFileSystem(_files);
-        files.Hang(@"R:\Roaming");
+        files.Hang(Path.GetDirectoryName(Heroic)!);
 
-        var scan = await ScanRunningOutOfTimeAsync(files, LibraryScanContext.Empty, new HeroicGogSource(files, @"R:\Roaming\heroic"));
+        var scan = await ScanRunningOutOfTimeAsync(files, LibraryScanContext.Empty, new HeroicGogSource(files, Heroic));
 
         scan.IsComplete.Should().BeFalse();
         scan.Games.Select(game => game.Key).Should().Equal(Example);
@@ -367,16 +379,18 @@ public sealed class GogLibraryProviderTests
     [Fact]
     public async Task A_folder_with_a_game_or_games_is_evidence_and_one_with_only_dlc_is_not()
     {
-        _files.AddInfo(@"E:\Offline Installs\Example", "1100000001", "Example");
-        _files.AddInfo(@"F:\Expansion", "2001", "Example: Expansion", rootGameId: "1100000001", playTasks: false);
-        _files.AddDirectory(@"G:\Empty");
+        var installs = TestPaths.Rooted('E', "Offline Installs");
+        var game = Path.Join(installs, "Example");
+        var expansion = TestPaths.Rooted('F', "Expansion");
+        var empty = _files.AddDirectory(TestPaths.Rooted('G', "Empty"));
+        _files.AddInfo(game, "1100000001", "Example");
+        _files.AddInfo(expansion, "2001", "Example: Expansion", rootGameId: "1100000001", playTasks: false);
         var provider = CreateProvider();
 
-        (await provider.InspectFolderAsync(@"E:\Offline Installs\Example", Token)).Should().Be(
-            LibraryFolderEvidence.Accepted(@"E:\Offline Installs\Example"));
-        (await provider.InspectFolderAsync(@"E:\Offline Installs", Token)).Should().Be(LibraryFolderEvidence.Accepted(@"E:\Offline Installs"));
-        (await provider.InspectFolderAsync(@"F:\Expansion", Token)).Should().Be(LibraryFolderEvidence.Rejected(LibraryFolderRejection.DlcOnly));
-        (await provider.InspectFolderAsync(@"G:\Empty", Token)).Should().Be(LibraryFolderEvidence.None);
+        (await provider.InspectFolderAsync(game, Token)).Should().Be(LibraryFolderEvidence.Accepted(game));
+        (await provider.InspectFolderAsync(installs, Token)).Should().Be(LibraryFolderEvidence.Accepted(installs));
+        (await provider.InspectFolderAsync(expansion, Token)).Should().Be(LibraryFolderEvidence.Rejected(LibraryFolderRejection.DlcOnly));
+        (await provider.InspectFolderAsync(empty, Token)).Should().Be(LibraryFolderEvidence.None);
     }
 
     private static LibraryScanContext Manual(params string[] folders) => new(new ValueList<string>([.. folders]));

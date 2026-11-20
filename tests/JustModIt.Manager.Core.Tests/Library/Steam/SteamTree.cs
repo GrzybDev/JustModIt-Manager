@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Platform;
@@ -19,28 +20,30 @@ internal sealed class SteamTree
     private readonly List<(string Path, bool? Mounted)> _listed = [];
 
     /// <summary>Creates a Steam root with its <c>steamapps</c> folder.</summary>
-    /// <param name="root">The root folder.</param>
-    /// <param name="registered">Whether the user's registry names the root, as Steam itself does.</param>
-    public SteamTree(string root = @"C:\Steam", bool registered = true)
+    /// <param name="root">
+    /// The root folder; when null, <c>C:\Steam</c> on Windows and the native client's folder in the Linux home elsewhere.
+    /// </param>
+    /// <param name="registered">Whether the user's registry names the root, as Steam itself does on Windows.</param>
+    public SteamTree(string? root = null, bool registered = true)
     {
-        Root = root;
-        Files.AddDirectory(Path.Join(root, "steamapps"));
-        if (registered)
+        Root = root ?? (OperatingSystem.IsWindows()
+            ? @"C:\Steam"
+            : Path.Join(TestEnvironments.Linux.HomeDirectory, ".local", "share", "Steam"));
+        RootId = Root;
+        Files.AddDirectory(Path.Join(Root, "steamapps"));
+        if (registered && OperatingSystem.IsWindows())
         {
-            // Steam writes the path in lower case with forward slashes.
-            Registry.SetText(RegistryHive.CurrentUser, RegistryView.Default, SteamKey, "SteamPath",
-                root.Replace('\\', '/').ToLowerInvariant());
+            // Steam writes the path in lower case with forward slashes, and the provider reports the root as written.
+            var steamPath = Root.Replace('\\', '/').ToLowerInvariant();
+            Registry.SetText(RegistryHive.CurrentUser, RegistryView.Default, SteamKey, "SteamPath", steamPath);
+            RootId = PathComparison.Normalize(steamPath);
         }
     }
 
-    public static LibraryEnvironment Windows { get; } = new()
-    {
-        Platform = AppPlatform.Windows,
-        HomeDirectory = @"C:\Users\Player",
-        ProgramFilesX86 = @"C:\Program Files (x86)",
-    };
-
     public string Root { get; }
+
+    /// <summary>The root as the provider reports it.</summary>
+    public string RootId { get; }
 
     public InMemoryFileSystem Files { get; } = new();
 
@@ -50,11 +53,11 @@ internal sealed class SteamTree
     public FakeTimeProvider Time { get; } = new(WrittenAt.AddDays(1));
 
     /// <summary>Creates a Steam provider over this installation.</summary>
-    /// <param name="environment">The system the provider runs on; <see cref="Windows"/> when null.</param>
+    /// <param name="environment">The system the provider runs on; <see cref="TestEnvironments.Host"/> when null.</param>
     /// <param name="files">What the provider reads through, such as a wrapper around <see cref="Files"/>; <see cref="Files"/> when null.</param>
     /// <param name="time">The provider's clock; <see cref="Time"/> when null.</param>
     public SteamLibraryProvider CreateProvider(LibraryEnvironment? environment = null, IFileSystem? files = null, TimeProvider? time = null) =>
-        new(files ?? Files, Registry, environment ?? Windows, time ?? Time, NullLogger<SteamLibraryProvider>.Instance);
+        new(files ?? Files, Registry, environment ?? TestEnvironments.Host, time ?? Time, NullLogger<SteamLibraryProvider>.Instance);
 
     public Task<StoreScan> ScanAsync(params string[] manualFolders) =>
         CreateProvider().ScanAsync(new LibraryScanContext([.. manualFolders]), TestContext.Current.CancellationToken);
@@ -132,11 +135,11 @@ internal sealed class SteamTree
     private void WriteLibraryLists()
     {
         var builder = new StringBuilder("\"libraryfolders\"\n{\n");
-        builder.Append(CultureInfo.InvariantCulture, $"\t\"0\"\n\t{{\n\t\t\"path\"\t\t\"{Escape(Root)}\"\n\t}}\n");
+        builder.Append(CultureInfo.InvariantCulture, $"\t\"0\"\n\t{{\n\t\t\"path\"\t\t\"{TestPaths.Escaped(Root)}\"\n\t}}\n");
         for (var i = 0; i < _listed.Count; i++)
         {
             var (path, mounted) = _listed[i];
-            builder.Append(CultureInfo.InvariantCulture, $"\t\"{i + 1}\"\n\t{{\n\t\t\"path\"\t\t\"{Escape(path)}\"\n");
+            builder.Append(CultureInfo.InvariantCulture, $"\t\"{i + 1}\"\n\t{{\n\t\t\"path\"\t\t\"{TestPaths.Escaped(path)}\"\n");
             if (mounted is { } isMounted)
             {
                 builder.Append(CultureInfo.InvariantCulture, $"\t\t\"mounted\"\t\t\"{(isMounted ? 1 : 0)}\"\n");
@@ -149,6 +152,4 @@ internal sealed class SteamTree
         Files.AddFile(Path.Join(Root, "steamapps", "libraryfolders.vdf"), text);
         Files.AddFile(Path.Join(Root, "config", "libraryfolders.vdf"), text);
     }
-
-    private static string Escape(string path) => path.Replace("\\", "\\\\", StringComparison.Ordinal);
 }

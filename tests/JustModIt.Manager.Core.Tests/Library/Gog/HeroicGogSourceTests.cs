@@ -10,14 +10,12 @@ namespace JustModIt.Manager.Core.Tests.Library.Gog;
 
 public sealed class HeroicGogSourceTests
 {
-    private const string Heroic = @"C:\Users\Player\AppData\Roaming\heroic";
-    private const string Store = Heroic + @"\gog_store";
-    private const string Installed = Store + @"\installed.json";
-    private const string Queue = Heroic + @"\store\download-manager.json";
+    private static readonly string Heroic = HeroicLauncher.ConfigDirectories(TestEnvironments.Host)[0];
+    private static readonly string Store = Path.Join(Heroic, "gog_store");
+    private static readonly string Installed = Path.Join(Store, "installed.json");
+    private static readonly string Queue = Path.Join(Heroic, "store", "download-manager.json");
 
     private readonly InMemoryFileSystem _files = new();
-
-    public HeroicGogSourceTests() => Assert.SkipUnless(OperatingSystem.IsWindows(), "The tests lay out the stores as they are on Windows.");
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -76,24 +74,24 @@ public sealed class HeroicGogSourceTests
     [Fact]
     public async Task Without_installed_json_heroic_is_absent_and_watched_step_by_step()
     {
-        _files.AddDirectory(@"C:\Users\Player\AppData\Roaming");
+        var config = _files.AddDirectory(Path.GetDirectoryName(Heroic)!);
 
         var missing = await Scan();
         _files.AddDirectory(Store);
         var closer = await Scan();
 
         missing.Libraries.Should().BeEmpty();
-        missing.Watch.Folders.Should().Equal(new WatchedFolder(@"C:\Users\Player\AppData\Roaming", ["heroic"]));
+        missing.Watch.Folders.Should().Equal(new WatchedFolder(config, ["heroic"]));
         closer.Watch.Folders.Should().Equal(new WatchedFolder(Store, ["installed.json"]), new WatchedFolder(Heroic, ["store"]));
     }
 
     [Theory]
-    [InlineData(Installed)]
-    [InlineData(Queue)]
-    public async Task A_damaged_file_marks_the_library_unreadable(string damaged)
+    [InlineData("gog_store", "installed.json")]
+    [InlineData("store", "download-manager.json")]
+    public async Task A_damaged_file_marks_the_library_unreadable(string folder, string file)
     {
         _files.AddFile(Installed, """{ "installed": [ { "appName": "1001", "install_path": "D:\\Heroic\\Example" } ] }""");
-        _files.AddFile(damaged, """{ "installed": [ { "appName": """);
+        _files.AddFile(Path.Join(Heroic, folder, file), """{ "installed": [ { "appName": """);
 
         var scan = await Scan();
 
@@ -104,28 +102,40 @@ public sealed class HeroicGogSourceTests
     [Fact]
     public void Heroic_is_looked_for_where_each_platform_keeps_its_configuration()
     {
-        var home = @"C:\home\player";
-        LibraryEnvironment Environment(AppPlatform platform, string? xdgConfig = null) => new()
-        {
-            Platform = platform,
-            HomeDirectory = home,
-            ApplicationData = @"C:\Users\Player\AppData\Roaming",
-            XdgConfigHome = xdgConfig,
-        };
+        var windows = TestEnvironments.Windows;
+        var linux = TestEnvironments.Linux;
+        var xdg = TestPaths.Rooted('H', "xdg");
 
-        HeroicLauncher.ConfigDirectories(Environment(AppPlatform.Windows)).Should().Equal(Heroic);
-        HeroicLauncher.ConfigDirectories(Environment(AppPlatform.MacOS))
-            .Should().Equal(Path.Join(home, "Library", "Application Support", "heroic"));
-        HeroicLauncher.ConfigDirectories(Environment(AppPlatform.Linux)).Should().Equal(
-            Path.Join(home, ".config", "heroic"),
-            Path.Join(home, ".var", "app", "com.heroicgameslauncher.hgl", "config", "heroic"));
-        HeroicLauncher.ConfigDirectories(Environment(AppPlatform.Linux, xdgConfig: @"C:\xdg"))[0]
-            .Should().Be(Path.Join(@"C:\xdg", "heroic"));
+        HeroicLauncher.ConfigDirectories(windows).Should().Equal(Path.Join(windows.ApplicationData, "heroic"));
+        HeroicLauncher.ConfigDirectories(windows with { Platform = AppPlatform.MacOS })
+            .Should().Equal(Path.Join(windows.HomeDirectory, "Library", "Application Support", "heroic"));
+        HeroicLauncher.ConfigDirectories(linux).Should().Equal(
+            Path.Join(linux.HomeDirectory, ".config", "heroic"),
+            Path.Join(linux.HomeDirectory, ".var", "app", "com.heroicgameslauncher.hgl", "config", "heroic"));
+        HeroicLauncher.ConfigDirectories(linux with { XdgConfigHome = xdg })[0].Should().Be(Path.Join(xdg, "heroic"));
+    }
+
+    [Fact]
+    public async Task The_games_of_heroic_from_flatpak_are_found_on_linux()
+    {
+        var flatpak = HeroicLauncher.ConfigDirectories(TestEnvironments.Linux)[1];
+        var folder = TestPaths.Rooted('H', "player", "Games", "Heroic", "Example");
+        _files.AddInfo(folder, "1001", "Example");
+        _files.AddFile(Path.Join(flatpak, "gog_store", "installed.json"), $$"""
+            { "installed": [ { "appName": "1001", "install_path": "{{TestPaths.Escaped(folder)}}", "platform": "windows" } ] }
+            """);
+
+        var scan = await GogLibraryProvider.Create(_files, new InMemoryRegistry(), new InMemorySqlite(), TestEnvironments.Linux,
+            NullLogger<GogLibraryProvider>.Instance).ScanAsync(LibraryScanContext.Empty, Token);
+
+        scan.Games.Select(game => (game.Key.StoreGameId, game.InstallDirectory, game.Platform, game.Launch))
+            .Should().Equal(("1001", folder, OperatingSystemKind.Windows, HeroicLink("1001")));
     }
 
     [Fact]
     public async Task A_game_known_to_the_registry_and_heroic_is_reported_once_and_heroic_dlc_is_hidden()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows has GOG's registry records.");
         var registry = new InMemoryRegistry()
             .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\GOG.com\Games\1100000001", "path", @"D:\Games\Example");
         _files.AddInfo(@"D:\Games\Example", "1100000001", "Example");
@@ -150,6 +160,7 @@ public sealed class HeroicGogSourceTests
     [Fact]
     public async Task A_damaged_heroic_file_does_not_hide_the_registry_games()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows has GOG's registry records.");
         var registry = new InMemoryRegistry()
             .SetText(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\GOG.com\Games\1100000001", "path", @"D:\Games\Example");
         _files.AddInfo(@"D:\Games\Example", "1100000001", "Example");
@@ -167,10 +178,5 @@ public sealed class HeroicGogSourceTests
     private Task<SourceScan<GogInstallRecord>> Scan() => new HeroicGogSource(_files, Heroic).ScanAsync(LibraryScanContext.Empty, Token);
 
     private GogLibraryProvider Provider(InMemoryRegistry registry) =>
-        GogLibraryProvider.Create(_files, registry, new InMemorySqlite(), new LibraryEnvironment
-        {
-            Platform = AppPlatform.Windows,
-            HomeDirectory = @"C:\Users\Player",
-            ApplicationData = @"C:\Users\Player\AppData\Roaming",
-        }, NullLogger<GogLibraryProvider>.Instance);
+        GogLibraryProvider.Create(_files, registry, new InMemorySqlite(), TestEnvironments.Windows, NullLogger<GogLibraryProvider>.Instance);
 }

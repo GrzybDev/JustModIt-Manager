@@ -87,13 +87,13 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
         using var json = JsonDocument.Parse($$"""
             {
               "version": 1,
-              "stores": [ { "store": "steam", "libraries": [ { "id": "x" }, { "id": "{{Escaped(library)}}", "source": "steam-library", "state": "Sideways" } ] },
+              "stores": [ { "store": "steam", "libraries": [ { "id": "x" }, { "id": "{{TestPaths.Escaped(library)}}", "source": "steam-library", "state": "Sideways" } ] },
                           { "store": "" }, 42 ],
               "games": [
-                { "key": "steam:1003", "name": "Kept", "installDirectory": "{{Escaped(kept)}}", "libraryId": "{{Escaped(library)}}", "state": "Hovering",
+                { "key": "steam:1003", "name": "Kept", "installDirectory": "{{TestPaths.Escaped(kept)}}", "libraryId": "{{TestPaths.Escaped(library)}}", "state": "Hovering",
                   "launch": { "executable": "..\\Elsewhere\\tool.exe" } },
-                { "key": "steam:1004", "name": "Relative", "installDirectory": "Library\\Relative", "libraryId": "{{Escaped(library)}}" },
-                { "key": "no-separator", "name": "Broken", "installDirectory": "{{Escaped(broken)}}", "libraryId": "{{Escaped(library)}}" }
+                { "key": "steam:1004", "name": "Relative", "installDirectory": "Library\\Relative", "libraryId": "{{TestPaths.Escaped(library)}}" },
+                { "key": "no-separator", "name": "Broken", "installDirectory": "{{TestPaths.Escaped(broken)}}", "libraryId": "{{TestPaths.Escaped(library)}}" }
               ]
             }
             """);
@@ -108,8 +108,6 @@ public sealed class LibrarySnapshotFormatTests : IDisposable
     }
 
     public void Dispose() => _directory.Dispose();
-
-    private static string Escaped(string path) => path.Replace(@"\", @"\\", StringComparison.Ordinal);
 
     private static JsonDocumentStore<LibrarySnapshot> Store(string file) =>
         new(file, LibrarySnapshotFormat.Instance, TimeProvider.System, NullLogger<JsonDocumentStore<LibrarySnapshot>>.Instance);
