@@ -24,8 +24,8 @@ public sealed class TransientFileRetryTests
                 throw error switch
                 {
                     "sharing violation" => SharingViolation(),
-                    "lock violation" => new IOException("The file is locked.", unchecked((int)0x80070021)),
-                    "access denied" => new IOException("Access is denied.", unchecked((int)0x80070005)),
+                    "lock violation" => SystemErrors.IOException("The file is locked.", windowsError: 33, linuxErrno: 26),
+                    "access denied" => SystemErrors.IOException("Access is denied.", windowsError: 5, linuxErrno: 30),
                     _ => new UnauthorizedAccessException(),
                 };
             }
@@ -84,5 +84,5 @@ public sealed class TransientFileRetryTests
         attempts.Should().Be(1);
     }
 
-    private static IOException SharingViolation() => new("The file is in use.", unchecked((int)0x80070020));
+    private static IOException SharingViolation() => SystemErrors.IOException("The file is in use.", windowsError: 32, linuxErrno: 11);
 }

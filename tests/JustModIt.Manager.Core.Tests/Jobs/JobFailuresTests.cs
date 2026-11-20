@@ -4,6 +4,7 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Packages;
 using JustModIt.Manager.Core.Patching;
+using JustModIt.Manager.Core.Tests.TestSupport;
 
 namespace JustModIt.Manager.Core.Tests.Jobs;
 
@@ -14,8 +15,8 @@ public sealed class JobFailuresTests
         (new InstallFailedException(rolledBack: false, new IOException("Stuck.")), JobFailureReason.RollbackIncomplete),
         (new InstallFailedException(rolledBack: true, new InvalidOperationException("Odd.")), JobFailureReason.InstallFailed),
         (new InstallFailedException(rolledBack: true, new UnauthorizedAccessException()), JobFailureReason.AccessDenied),
-        (new InstallFailedException(rolledBack: true, new IOException("Full.", unchecked((int)0x80070070))), JobFailureReason.NotEnoughSpace),
-        (new InstallFailedException(rolledBack: true, new IOException("Full.", unchecked((int)0x80070027))), JobFailureReason.NotEnoughSpace),
+        (new InstallFailedException(rolledBack: true, SystemErrors.IOException("Full.", windowsError: 112, linuxErrno: 28)), JobFailureReason.NotEnoughSpace),
+        (new InstallFailedException(rolledBack: true, SystemErrors.IOException("Quota.", windowsError: 39, linuxErrno: 122)), JobFailureReason.NotEnoughSpace),
         (new InstallFailedException(rolledBack: true, new IOException("Bad sector.")), JobFailureReason.DiskError),
         (new InvalidPackageException(PackageError.UnsupportedFormatVersion), JobFailureReason.AppUpdateRequired),
         (new InvalidPackageException(PackageError.UnsupportedCapability, "repack"), JobFailureReason.AppUpdateRequired),

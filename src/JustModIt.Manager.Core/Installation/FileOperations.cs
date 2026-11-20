@@ -93,9 +93,9 @@ internal static class FileOperations
         {
             return false;
         }
-        catch (IOException)
+        catch (IOException exception)
         {
-            return null;
+            return IOErrors.IsAccessDenied(exception) ? false : null;
         }
     }
 

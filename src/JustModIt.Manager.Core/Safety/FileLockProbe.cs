@@ -85,6 +85,10 @@ public sealed class FileLockProbe(ILockHolderSource? holders)
         {
             return FileLockState.InUse;
         }
+        catch (IOException exception) when (IOErrors.IsAccessDenied(exception))
+        {
+            return FileLockState.AccessDenied;
+        }
         catch (UnauthorizedAccessException)
         {
             return ProbeUnwritable(path);
