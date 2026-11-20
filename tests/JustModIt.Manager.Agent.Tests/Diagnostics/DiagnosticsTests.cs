@@ -96,6 +96,18 @@ public sealed class DiagnosticsTests : IDisposable
         report.Exceptions[0].StackTrace.Should().Contain(nameof(Thrown));
     }
 
+    [Theory]
+    [InlineData("The file '/run/media/player/Card/steamapps/common/Unannounced Game/game.pak' is in use.", "The file '<path>' is in use.")]
+    [InlineData("Mounted at /tmp/.mount_Example/usr/bin", "Mounted at <path>")]
+    [InlineData("Listening on /run/user/1000/ExampleApp.sock failed", "Listening on <path>")]
+    [InlineData("Opening file:///run/media/player/Card/Unannounced%20Game/save.dat failed", "Opening <path>")]
+    [InlineData(@"Proton ran 'S:\steamapps\common\Unannounced Game\Game.exe'", "Proton ran '<path>'")]
+    [InlineData(@"Wine saved Z:\home\player\Unannounced Game\save.dat", "Wine saved <path>")]
+    [InlineData("Reading https://api.example.com/games/v1/ failed", "Reading https://api.example.com/games/v1/ failed")]
+    [InlineData("Keep one and/or the other, 3/4 done", "Keep one and/or the other, 3/4 done")]
+    public void A_report_hides_unix_and_wine_paths_and_file_addresses_but_keeps_web_addresses_and_words(string text, string expected) =>
+        ReportText.Scrub(text).Should().Be(expected);
+
     [Fact]
     public void An_untold_exit_keeps_its_report_for_the_window()
     {

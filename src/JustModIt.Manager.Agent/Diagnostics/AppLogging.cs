@@ -50,12 +50,13 @@ public static class AppLogging
 }
 
 /// <summary>
-/// Hides in a crash's report what the logs keep on this computer: the user's security id, which names the agent's pipe,
-/// and every path and game, since some players make games under a non-disclosure agreement and a report must not name one.
+/// Hides in a crash's report what the logs keep on this computer: the user's security id, which names the agent's pipe on
+/// Windows, and every path and game, since some players make games under a non-disclosure agreement and a report must not
+/// name one.
 /// </summary>
 internal static partial class ReportText
 {
-    /// <summary>The text with every Windows security id, path and game key replaced by a placeholder.</summary>
+    /// <summary>The text with every Windows security id, Windows or Unix path and game key replaced by a placeholder.</summary>
     /// <param name="text">A message or stack trace bound for a report.</param>
     public static string Scrub(string text) =>
         GameKey().Replace(FilePath().Replace(SecurityId().Replace(text, "<sid>"), "<path>"), "<game>");
@@ -64,8 +65,11 @@ internal static partial class ReportText
     private static partial Regex SecurityId();
 
     // A path runs to the next quote, angle bracket or line end, since folder names hold spaces and brackets; hiding the
-    // rest of a line is safer than leaving the end of a game's folder.
-    [GeneratedRegex(@"(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|\\\\[^\\/\s]+[\\/]|%[A-Za-z_]+%[\\/]|~[\\/])[^'""`<>|\r\n]*",
+    // rest of a line is safer than leaving the end of a game's folder. A Unix path starts at a slash that follows no word,
+    // dot, colon or slash, so addresses and words such as "and/or" stay, while a file address goes whole; Wine's paths have
+    // drive letters.
+    [GeneratedRegex(
+        @"(?:(?<![A-Za-z0-9])(?:file:/|[A-Za-z]:[\\/]|\\\\[^\\/\s]+[\\/]|%[A-Za-z_]+%[\\/]|~[\\/])|(?<![A-Za-z0-9._~:/\\-])/[^\s/'""`<>|])[^'""`<>|\r\n]*",
         RegexOptions.CultureInvariant)]
     private static partial Regex FilePath();
 
