@@ -52,6 +52,7 @@ public sealed class UiSession : IDisposable
         composition.Views.Register<UncleanExitDialogViewModel>(() => new UncleanExitDialogView());
         composition.Views.Register<ErrorReportExampleViewModel>(() => new ErrorReportExampleView());
         composition.Views.Register<AppUninstallDialogViewModel>(() => new AppUninstallDialogView());
+        composition.Views.Register<ControlsHintDialogViewModel>(() => new ControlsHintDialogView());
         Screens.Register(composition);
         context.Compose?.Invoke(composition);
 

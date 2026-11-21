@@ -46,6 +46,9 @@ public sealed record SettingsView
     /// <inheritdoc cref="AppSettings.OnboardingStep"/>
     public int OnboardingStep { get; init; }
 
+    /// <inheritdoc cref="AppSettings.ControlsHintShown"/>
+    public bool ControlsHintShown { get; init; }
+
     public BackupLocation BackupLocation { get; init; }
 
     /// <summary>The folder the player picked; kept while another location is chosen, so the player can go back to it.</summary>
@@ -82,6 +85,7 @@ public sealed record SettingsView
             CreatorMode = settings.CreatorMode,
             OnboardingCompleted = settings.OnboardingCompleted,
             OnboardingStep = settings.OnboardingStep,
+            ControlsHintShown = settings.ControlsHintShown,
             BackupLocation = settings.BackupLocation,
             CustomBackupFolder = settings.CustomBackupFolder,
             PreferredTeams = [.. settings.PreferredTeams],
@@ -111,6 +115,7 @@ public sealed record SettingsView
             CreatorMode = CreatorMode,
             OnboardingCompleted = OnboardingCompleted,
             OnboardingStep = OnboardingStep,
+            ControlsHintShown = ControlsHintShown,
             BackupLocation = BackupLocation,
             CustomBackupFolder = CustomBackupFolder,
             PreferredTeams = [.. PreferredTeams.Distinct()],

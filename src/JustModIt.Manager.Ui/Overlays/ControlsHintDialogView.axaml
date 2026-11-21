@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Overlays.ControlsHintDialogView"
+             x:DataType="overlays:ControlsHintDialogViewModel">
+  <Border Classes="dialog" Width="600" AutomationProperties.Name="{x:Static loc:Strings.Shell_ControlsTitle}"
+          AutomationProperties.HelpText="{x:Static loc:Strings.Shell_ControlsText}">
+    <StackPanel Spacing="16">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+        <Border Classes="iconChip accent" VerticalAlignment="Top">
+          <ui:Icon Data="{x:Static theme:Icons.Gamepad}" />
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="4">
+          <TextBlock Classes="dialogTitle" Text="{x:Static loc:Strings.Shell_ControlsTitle}" />
+          <TextBlock Classes="bodyText" Text="{x:Static loc:Strings.Shell_ControlsText}" />
+        </StackPanel>
+      </Grid>
+      <Border Classes="controlsTable" Grid.IsSharedSizeScope="True">
+        <StackPanel Spacing="8">
+          <Grid Classes="controlsRow heading">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" MinWidth="112" SharedSizeGroup="Key" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" MinWidth="92" SharedSizeGroup="Example" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Classes="overline" Text="{Binding KeyHeading}" />
+            <TextBlock Grid.Column="1" Classes="overline" Text="{Binding ActionHeading}" />
+            <TextBlock Grid.Column="2" Classes="overline" Text="{Binding ExampleHeading}" />
+          </Grid>
+          <Border Classes="divider" />
+          <ItemsControl ItemsSource="{Binding Rows}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="overlays:ControlsRow">
+                <Grid Classes="controlsRow">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="112" SharedSizeGroup="Key" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" MinWidth="92" SharedSizeGroup="Example" />
+                  </Grid.ColumnDefinitions>
+                  <Border Classes="keyCap">
+                    <TextBlock Text="{Binding Key}" />
+                  </Border>
+                  <TextBlock Grid.Column="1" Classes="controlsAction" Text="{Binding Action}" />
+                  <ItemsControl Grid.Column="2" ItemsSource="{Binding Buttons}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="4" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="overlays:ControllerButton">
+                        <Border Classes="padButton" Classes.round="{Binding IsRound}" AutomationProperties.Name="{Binding Label}">
+                          <Panel>
+                            <TextBlock Text="{Binding Label}" IsVisible="{Binding ShowsLabel}" />
+                            <ui:Icon Data="{Binding Icon}" IsVisible="{Binding !ShowsLabel}" />
+                          </Panel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBlock Classes="small" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding Footer}" />
+        <Button Grid.Column="1" Classes="outline" Content="{x:Static loc:Strings.Shell_Close}" Command="{Binding CancelCommand}" />
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>

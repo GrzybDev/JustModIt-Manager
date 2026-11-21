@@ -200,11 +200,12 @@ public sealed partial class MainWindow : Window
                 ExtendClientAreaToDecorationsHint = false;
                 CaptionButtons.IsVisible = false;
                 break;
-            // Nothing in gamescope brings a minimised window back, and it shows every window full screen anyway.
+            // Nothing in gamescope brings a minimised window back, and it shows every window full screen anyway, so the bar
+            // names the controls and the way out instead.
             case WindowFrame.Screen:
                 ExtendClientAreaToDecorationsHint = false;
-                MinimizeButton.IsVisible = false;
-                MaximizeButton.IsVisible = false;
+                CaptionButtons.IsVisible = false;
+                GameModeBar.IsVisible = true;
                 CanResize = false;
                 Screens.Changed += (_, _) => FillScreen();
                 break;

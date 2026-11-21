@@ -124,6 +124,17 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
 
     public void Dispose() => Agent.PropertyChanged -= OnAgentChanged;
 
+    public override bool GoBackWithin()
+    {
+        if (!BackCommand.CanExecute(null))
+        {
+            return false;
+        }
+
+        BackCommand.Execute(null);
+        return true;
+    }
+
     partial void OnAutomationChanged(AutomationChoice value) => OnChosen();
 
     partial void OnShowNotificationsChanged(bool value) => OnChosen();

@@ -87,6 +87,12 @@ public sealed record UiContext
     /// <summary>Who draws the window's title bar and its buttons.</summary>
     public WindowFrame Frame { get; init; }
 
+    /// <summary>
+    /// The window runs in a game session such as the Steam Deck's Game Mode, told by its own environment, since the
+    /// connecting view needs it before the agent says anything.
+    /// </summary>
+    public bool InGameMode => Frame == WindowFrame.Screen;
+
     /// <summary>The app's own views, pages, styles and resources, added after the shared ones so they win.</summary>
     public Action<UiComposition>? Compose { get; init; }
 

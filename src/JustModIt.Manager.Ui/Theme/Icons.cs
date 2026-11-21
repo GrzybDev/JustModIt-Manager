@@ -106,6 +106,8 @@ public static class Icons
 
     public static Geometry Gamepad => field ??= Parse("M6 11h4 M8 9v4 M15 12h.01 M18 10h.01 M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z");
 
+    public static Geometry GamepadDirectional => field ??= Parse("M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z");
+
     public static Geometry Globe => field ??= Parse("M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0z M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20 M2 12h20");
 
     public static Geometry GripVertical => field ??= Parse("M8 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M8 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M8 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M14 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M14 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M14 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z");
@@ -119,6 +121,8 @@ public static class Icons
     public static Geometry Image => field ??= Parse("M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z M7 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21");
 
     public static Geometry Info => field ??= Parse("M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0z M12 16v-4 M12 8h.01");
+
+    public static Geometry Keyboard => field ??= Parse("M10 8h.01 M12 12h.01 M14 8h.01 M16 12h.01 M18 8h.01 M6 8h.01 M7 16h10 M8 12h.01 M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2z");
 
     public static Geometry Languages => field ??= Parse("M5 8l6 6 M4 14l6-6 2-3 M2 5h12 M7 2h1 M22 22l-5-10-5 10 M14 18h6");
 

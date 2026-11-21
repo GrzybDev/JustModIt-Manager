@@ -40,8 +40,8 @@ public sealed partial class NavigationItem(ShellSection section, string title, G
 
 /// <summary>
 /// The window around the pages: the title bar's name and way back, the sidebar, the status card, the first-run setup
-/// that takes the whole window until it is done, the calm state shown while the agent cannot be reached, and the one-time
-/// word that the app closed unexpectedly last time.
+/// that takes the whole window until it is done, the calm state shown while the agent cannot be reached, the one-time
+/// word that the app closed unexpectedly last time, and in Game Mode the keys the window listens to.
 /// </summary>
 public sealed partial class ShellViewModel : ObservableObject, IDisposable
 {
@@ -54,6 +54,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private ITimer? _slowConnection;
     private bool _toldUncleanExit;
     private bool _toldWindowCrash;
+    private Task _toldUncleanExits = Task.CompletedTask;
+    private bool _shownControls;
     private Navigate? _pendingLink;
 
     /// <summary>Creates the shell, which opens the player's games or the place the window was started for.</summary>
@@ -182,6 +184,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private void Open(NavigationItem item) => Navigator.Navigate(item.Route);
 
     // Esc closes the dialog shown, else leaves a view within the page, such as a project's operations, wherever the focus is.
+    // In Game Mode it also goes back a step of the setup or a page, since the controller's button that Steam maps to it is the
+    // only way back there.
     [RelayCommand]
     private void Escape()
     {
@@ -189,11 +193,41 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         {
             Dialogs.CancelCurrent();
         }
+        else if (_services.Context.InGameMode && FirstRun is not null)
+        {
+            FirstRun.GoBackWithin();
+        }
+        else if (_services.Context.InGameMode && Navigator.GoBackCommand.CanExecute(null))
+        {
+            Navigator.GoBackCommand.Execute(null);
+        }
         else
         {
             Navigator.Current?.GoBackWithin();
         }
     }
+
+    // Seen once, the hint waits under its button, also when the player opened it there first.
+    [RelayCommand]
+    private async Task ShowControlsAsync(bool openedByItself)
+    {
+        await Dialogs.ShowAsync(new ControlsHintDialogViewModel(openedByItself)).ConfigureAwait(true);
+        if (Agent.HasState && !Agent.State.Settings.ControlsHintShown)
+        {
+            await AgentRequests.AskQuietlyAsync(Agent, new ChangeSettings(Agent.State.Settings with { ControlsHintShown = true }))
+                .ConfigureAwait(true);
+        }
+    }
+
+    // Once the setup is done, so the hint covers none of its steps, and after the word of an unclean exit.
+    private async Task ShowControlsOnceAsync()
+    {
+        await _toldUncleanExits.ConfigureAwait(true);
+        await ShowControlsCommand.ExecuteAsync(true).ConfigureAwait(true);
+    }
+
+    // The package creator needs pickers, a file manager and long forms, which Game Mode has no room for.
+    private bool ShowsCreator(SettingsView settings) => settings.CreatorMode && !_services.Context.InGameMode;
 
     // The button stays where it is, with the focus, while the system answers and then while the agent has its usual time to
     // connect; a press meanwhile does nothing, so it never starts the agent twice.
@@ -286,7 +320,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         if (_pendingLink is { Target: var link } navigate && Agent.HasState && (link is not InstallTarget || Agent.State.IsLoaded))
         {
             _pendingLink = null;
-            Navigator.Open(AgentLinks.RoutesFor(link, Agent.State));
+            Navigator.Open(AgentLinks.RoutesFor(link, Agent.State, ShowsCreator(Agent.State.Settings)));
             if (link is UninstallAppTarget)
             {
                 _ = Uninstall.ConfirmAsync();
@@ -314,7 +348,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
         Toasts.Show(NoticeToasts.Create(notice,
             about => Navigator.Open(AgentLinks.RoutesFor(new GameTarget(about.Game!.Value.Store.Value, about.Game.Value.StoreGameId),
-                Agent.State)),
+                Agent.State, ShowsCreator(Agent.State.Settings))),
             () => Navigator.Navigate(new SettingsRoute()),
             Agent.State.SteamUi.RunningGame is null
                 ? () => _ = AgentRequests.SendAsync(_services, new RestartSteam(), Strings.GamePage_RestartSteamFailed)
@@ -355,14 +389,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _toldWindowCrash = true;
         if (agentExit is not null || windowCrash is not null)
         {
-            _ = TellUncleanExitsAsync(agentExit, windowCrash);
+            _toldUncleanExits = TellUncleanExitsAsync(agentExit, windowCrash);
         }
 
         OpenPendingLink();
 
         var settings = Agent.State.Settings;
-        _creator.IsVisible = settings.CreatorMode;
-        if (!settings.CreatorMode && Navigator.CurrentRoute?.Section == ShellSection.Creator)
+        _creator.IsVisible = ShowsCreator(settings);
+        if (!_creator.IsVisible && Navigator.CurrentRoute?.Section == ShellSection.Creator)
         {
             Navigator.Navigate(new LibraryRoute());
         }
@@ -377,6 +411,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             (done as IDisposable)?.Dispose();
             // The setup ends with a check that fills the player's games, whatever a link opened behind it.
             Navigator.Navigate(new LibraryRoute());
+        }
+
+        if (_services.Context.InGameMode && settings is { OnboardingCompleted: true, ControlsHintShown: false } && !_shownControls)
+        {
+            _shownControls = true;
+            _ = ShowControlsOnceAsync();
         }
     }
 

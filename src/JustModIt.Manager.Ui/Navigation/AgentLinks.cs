@@ -12,8 +12,9 @@ public static class AgentLinks
     /// project lands on its list.
     /// </summary>
     /// <param name="target">The place, as a link names it; any website can make one, so nothing here starts an action.</param>
-    /// <param name="state">The agent's state: the player's games a project link looks in, and whether the package creator is on.</param>
-    public static IReadOnlyList<Route> RoutesFor(NavigationTarget target, AppStateView state)
+    /// <param name="state">The agent's state: the player's games a project link looks in.</param>
+    /// <param name="showsCreator">Whether the window shows the package creator, which a link to it otherwise leaves for the player's games.</param>
+    public static IReadOnlyList<Route> RoutesFor(NavigationTarget target, AppStateView state, bool showsCreator)
     {
         return target switch
         {
@@ -25,7 +26,7 @@ public static class AgentLinks
             CatalogueTarget => [new CatalogueRoute()],
             InstallTarget install => Install(install, state.Games),
             SettingsTarget or UninstallAppTarget => [new SettingsRoute()],
-            CreatorTarget when state.Settings.CreatorMode => [new CreatorRoute()],
+            CreatorTarget when showsCreator => [new CreatorRoute()],
             _ => [new LibraryRoute()],
         };
     }

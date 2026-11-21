@@ -30,6 +30,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string OnboardingCompleted = "onboardingCompleted";
     private const string OnboardingStep = "onboardingStep";
     private const string BackgroundNoticeShown = "backgroundNoticeShown";
+    private const string ControlsHintShown = "controlsHintShown";
     private const string BackupLocationName = "backupLocation";
     private const string CustomBackupFolder = "customBackupFolder";
     private const string PreferredTeams = "preferredTeams";
@@ -66,7 +67,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
         AutoUpdateApp, UpdatePrereleases, SendErrorReports, ShowNotifications, BlurAdultContent, AchievementTexts,
         AutoAchievementTexts, AchievementClassicMode, CreatorMode, OnboardingCompleted, OnboardingStep,
-        BackgroundNoticeShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
+        BackgroundNoticeShown, ControlsHintShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
         AdultContentConfirmedUntil, RevealedAdultGames, RecentCreatorProjects, InstallationId, LegacyShowAdultContent,
         LegacyAutoInstallProjects, LegacyAutoUpdateProjects, LegacyTrayNoticeShown);
 
@@ -106,6 +107,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             OnboardingStep = root.GetInt32OrNull(OnboardingStep) is >= 0 and var step ? step : defaults.OnboardingStep,
             BackgroundNoticeShown = root.GetBooleanOrNull(BackgroundNoticeShown) ?? root.GetBooleanOrNull(LegacyTrayNoticeShown)
                 ?? defaults.BackgroundNoticeShown,
+            ControlsHintShown = root.GetBooleanOrNull(ControlsHintShown) ?? defaults.ControlsHintShown,
             BackupLocation = backupLocation,
             CustomBackupFolder = customBackupFolder,
             PreferredTeams = ReadIds(root, PreferredTeams),
@@ -137,6 +139,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteBoolean(OnboardingCompleted, document.OnboardingCompleted);
         writer.WriteNumber(OnboardingStep, document.OnboardingStep);
         writer.WriteBoolean(BackgroundNoticeShown, document.BackgroundNoticeShown);
+        writer.WriteBoolean(ControlsHintShown, document.ControlsHintShown);
         writer.WriteString(BackupLocationName, document.BackupLocation.ToString());
         writer.WriteIfSet(CustomBackupFolder, document.CustomBackupFolder);
         writer.WriteStrings(PreferredTeams, document.PreferredTeams.Select(id => id.ToString()));

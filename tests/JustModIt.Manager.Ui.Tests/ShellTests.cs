@@ -3,12 +3,15 @@ using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
+using JustModIt.Manager.Ui.Pages.Onboarding;
 using JustModIt.Manager.Ui.Shell;
 using JustModIt.Manager.Ui.Tests.TestSupport;
 
@@ -108,19 +111,79 @@ public sealed class ShellTests
     }
 
     [AvaloniaFact]
-    public async Task On_a_screen_of_its_own_the_window_fills_it_and_offers_only_its_close_button()
+    public async Task A_Game_Mode_window_fills_its_screen_and_offers_its_bar_hint_and_way_back()
     {
         // Larger than its screen, as on gamescope's screen of a Deck docked to a monitor.
-        using var ui = new UiHarness(TestStates.Idle(), width: 4000, height: 3000, context: context => context with { Frame = WindowFrame.Screen });
+        using var ui = new UiHarness(width: 4000, height: 3000, context: context => context with { Frame = WindowFrame.Screen });
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
 
-        CaptionButtons(ui).Select(Name).Should().Equal(Strings.Shell_Close);
         var screen = ui.Window.Screens.Primary!;
         (ui.Window.Position, ui.Window.ClientSize, ui.Window.WindowState, ui.Window.CanResize).Should().Be(
             (screen.Bounds.Position, screen.Bounds.Size.ToSize(screen.Scaling), WindowState.Normal, false),
             "gamescope resizes no window for a full-screen state and centres a larger one with its edges off the screen");
         ui.SizeToDeck();
-        ui.Render("shell-screen");
+        CaptionButtons(ui).Should().BeEmpty("gamescope shows the window full screen, with nothing to minimise");
+        BarButtons(ui).Select(Name).Should().Equal([Strings.Shell_Close], "the controls wait for the pages");
+        ui.Render("gamemode-connecting");
+
+        var setup = GameMode(TestStates.Idle(creatorMode: true));
+        ui.Push(setup with { Settings = setup.Settings with { OnboardingCompleted = false } });
+        BarButtons(ui).Select(Name).Should().Equal(Strings.Shell_Controls, Strings.Shell_Close);
+        ui.Shell.Dialogs.Current.Should().BeNull("the hint covers none of the setup's steps");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
+        ui.Render("gamemode-setup");
+        var onboarding = ui.Shell.FirstRun.Should().BeOfType<OnboardingViewModel>().Subject;
+        onboarding.NextCommand.Execute(null);
+        ui.Press(Key.Escape);
+        onboarding.IsFirstStep.Should().BeTrue("Esc is the controller's way back through the setup's steps too");
+        ui.Press(Key.Escape);
+        (ui.Shell.FirstRun, onboarding.IsFirstStep).Should().Be((onboarding, true), "the first step has nothing to go back to");
+
+        ui.Push(setup with { Version = 2 });
+        ui.Shell.Dialogs.Current.Should().BeOfType<ControlsHintDialogViewModel>("the setup is done")
+            .Which.Footer.Should().NotBeNull("a hint that opened by itself says where it waits");
+        await ui.RenderBothAsync("gamemode-controls");
+        ui.Click(ui.Find<Button>().Single(button => button.IsEffectivelyVisible && Name(button) == Strings.Shell_Close
+            && button.FindAncestorOfType<DialogLayer>() is not null));
+        await UiHarness.WaitAsync(DialogHost.LeaveDuration * 2);
+        ui.Agent.Requests.OfType<ChangeSettings>().Where(request => request.Settings.ControlsHintShown).Should().ContainSingle();
+        ui.Push(setup with { Version = 3, Settings = setup.Settings with { ControlsHintShown = true } });
+        ui.Shell.Dialogs.Current.Should().BeNull("the hint showed by itself once");
+
+        NavigationButtons(ui).Select(Name).Should().NotContain(Strings.Shell_Creator, "Game Mode has no room for the creator's pickers");
+        ui.Agent.Navigate(new CreatorTarget());
+        UiHarness.Settle();
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new LibraryRoute());
+        await ui.RenderBothAsync("gamemode-library");
+
+        ui.Shell.Navigator.Navigate(new GameRoute(TestStates.Ember));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("gamemode-game-page");
+        ui.Press(Key.Escape);
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new LibraryRoute(), "Esc is the controller's way back");
+
+        ui.Click(BarButtons(ui).Single(button => Name(button) == Strings.Shell_Controls));
+        ui.Shell.Dialogs.Current.Should().BeOfType<ControlsHintDialogViewModel>("the hint stays under its button")
+            .Which.Footer.Should().BeNull("the player has just pressed that button");
+        ui.Press(Key.Escape);
+        await UiHarness.WaitAsync(DialogHost.LeaveDuration * 2);
+        ui.Shell.Dialogs.Current.Should().BeNull();
+        ui.Agent.Requests.OfType<ChangeSettings>().Where(request => request.Settings.ControlsHintShown).Should()
+            .ContainSingle("the hint was remembered already");
+
+        ui.Click(BarButtons(ui).Single(button => Name(button) == Strings.Shell_Close));
+        ui.Shell.Dialogs.Current.Should().BeOfType<ChoiceDialogViewModel>().Which.Title.Should().Be(Strings.Shell_CloseTitle);
+    }
+
+    [AvaloniaFact]
+    public void Esc_on_the_desktop_keeps_the_page()
+    {
+        using var ui = new UiHarness(TestStates.Idle());
+
+        ui.Shell.Navigator.Navigate(new GameRoute(TestStates.Ember));
+        ui.Press(Key.Escape);
+
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new GameRoute(TestStates.Ember), "a keyboard's Esc closes, it does not go back");
     }
 
     [AvaloniaFact]
@@ -161,6 +224,13 @@ public sealed class ShellTests
 
     private static List<Button> CaptionButtons(UiHarness ui) =>
         [.. ui.Find<Button>().Where(button => button.Classes.Contains("caption") && button.IsEffectivelyVisible)];
+
+    private static List<Button> BarButtons(UiHarness ui) =>
+        [.. ui.Find<StackPanel>("GameModeBar").GetVisualDescendants().OfType<Button>().Where(button => button.IsEffectivelyVisible)];
+
+    // What the agent of a Game Mode session sends: the window goes back to Steam's library.
+    private static AppStateView GameMode(AppStateView state) =>
+        state with { Activity = state.Activity with { WindowReturn = WindowReturn.StoreLibrary } };
 
     private static string Name(Control control) => ControlAutomationPeer.CreatePeerForElement(control).GetName();
 

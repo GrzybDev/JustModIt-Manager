@@ -78,6 +78,9 @@ public sealed record AppSettings
     /// <summary>Whether the player was told once that closing the window keeps the app running in the background.</summary>
     public bool BackgroundNoticeShown { get; init; }
 
+    /// <summary>Whether the window showed its controls in Game Mode once by itself, after which they wait under its button.</summary>
+    public bool ControlsHintShown { get; init; }
+
     /// <summary>
     /// Where new installs keep originals, since an install record keeps the backup folder it used;
     /// <see cref="BackupLocation.CustomFolder"/> requires <see cref="CustomBackupFolder"/>.

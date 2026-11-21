@@ -81,6 +81,69 @@
     <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
   </Style>
 
+  <!-- The controls hint (the Game Mode board, state 5): key caps, what they do, and the controller's buttons as examples. -->
+  <Style Selector="Border.controlsTable">
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="Background" Value="{StaticResource SurfaceSunkenBrush}" />
+  </Style>
+  <Style Selector="Grid.controlsRow">
+    <Setter Property="ColumnSpacing" Value="12" />
+  </Style>
+  <Style Selector="Grid.controlsRow.heading TextBlock.overline">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+  </Style>
+  <Style Selector="TextBlock.controlsAction">
+    <Setter Property="FontSize" Value="13.5" />
+    <Setter Property="LineHeight" Value="20" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+  </Style>
+  <Style Selector="Border.keyCap">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Padding" Value="7,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="1,1,1,2" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+    <Setter Property="Background" Value="{StaticResource FillBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.keyCap > TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+  </Style>
+  <Style Selector="Border.padButton">
+    <Setter Property="MinWidth" Value="26" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+    <Setter Property="Background" Value="#2A2F3A" />
+  </Style>
+  <Style Selector="Border.padButton.round">
+    <Setter Property="CornerRadius" Value="13" />
+  </Style>
+  <Style Selector="Border.padButton ui|Icon">
+    <Setter Property="Width" Value="14" />
+    <Setter Property="Height" Value="14" />
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+  <Style Selector="Border.padButton TextBlock">
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{StaticResource TextStrongBrush}" />
+  </Style>
+
   <!-- Notifications: the tone tints the edge and the icon; they slide in from the side and fade out. -->
   <Style Selector="Border.toast">
     <Setter Property="Width" Value="360" />

@@ -9,6 +9,9 @@ public enum WindowFrame
     /// <summary>The system's window manager draws the frame and its buttons above the window's own header.</summary>
     System,
 
-    /// <summary>The window fills a screen of its own without a frame, as in gamescope, and offers only its close button.</summary>
+    /// <summary>
+    /// The window fills a screen of its own without a frame, as in gamescope, and its title bar offers its controls and its
+    /// close button.
+    /// </summary>
     Screen,
 }

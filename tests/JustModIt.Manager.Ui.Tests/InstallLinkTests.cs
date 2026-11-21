@@ -25,10 +25,10 @@ public sealed class InstallLinkTests
         var otherSteam = Available("Ember Hollow", "4101", Ember);
         var gog = Installed("Ember Hollow", "4100", offer: Ember) with { Key = new GameKey(StoreId.Gog, "1100000001") };
 
-        ShouldOpenGame(AgentLinks.RoutesFor(link, State(steam, gog)), gog.Key);
-        ShouldOpenGame(AgentLinks.RoutesFor(link, State(steam, otherSteam)), steam.Key);
-        ShouldOpenGame(AgentLinks.RoutesFor(link, State(gog with { Detected = null }, otherSteam)), otherSteam.Key);
-        AgentLinks.RoutesFor(link with { TeamSlug = "night-owls" }, State(steam, gog)).Should()
+        ShouldOpenGame(AgentLinks.RoutesFor(link, State(steam, gog), showsCreator: false), gog.Key);
+        ShouldOpenGame(AgentLinks.RoutesFor(link, State(steam, otherSteam), showsCreator: false), steam.Key);
+        ShouldOpenGame(AgentLinks.RoutesFor(link, State(gog with { Detected = null }, otherSteam), showsCreator: false), otherSteam.Key);
+        AgentLinks.RoutesFor(link with { TeamSlug = "night-owls" }, State(steam, gog), showsCreator: false).Should()
             .Equal(new CatalogueRoute(), new CatalogueProjectRoute("ember-hollow", "night-owls", "ember-hollow"));
 
         using var ui = new UiHarness(State(steam) with { IsLoaded = false });

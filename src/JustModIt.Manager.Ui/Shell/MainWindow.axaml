@@ -63,6 +63,13 @@
         </Button>
       </StackPanel>
 
+      <StackPanel x:Name="GameModeBar" Grid.Column="1" Classes="gameModeBar" IsVisible="False">
+        <Button Classes="quiet small" Content="{x:Static loc:Strings.Shell_Controls}" ui:ButtonAssist.Icon="{x:Static theme:Icons.Keyboard}"
+                IsVisible="{Binding !IsConnecting}" Command="{Binding ShowControlsCommand}" CommandParameter="{x:False}" />
+        <Button Classes="quiet small" Content="{x:Static loc:Strings.Shell_Close}" ui:ButtonAssist.Icon="{x:Static theme:Icons.X}"
+                Click="OnClose" />
+      </StackPanel>
+
       <!-- Rows rather than docking, so the keyboard reaches the pages first and the tools after them. -->
       <Grid x:Name="Sidebar" Grid.Row="1" Classes="sidebar" Classes.away="{Binding !ShowsPages}" theme:Motion.Shown="{Binding ShowsPages}"
             RowDefinitions="Auto,*,Auto">

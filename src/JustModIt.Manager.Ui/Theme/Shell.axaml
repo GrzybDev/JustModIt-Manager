@@ -46,6 +46,15 @@
     <Setter Property="Foreground" Value="White" />
   </Style>
 
+  <!-- In Game Mode, labelled quiet buttons in place of the caption buttons (the Game Mode board, frame 1). -->
+  <Style Selector="StackPanel.gameModeBar">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="4" />
+    <Setter Property="Margin" Value="0,0,8,0" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
   <!-- The sidebar, which slides away for the first-run setup and while the window waits for the agent. -->
   <Style Selector="Grid.sidebar">
     <Setter Property="Margin" Value="12,10,12,12" />

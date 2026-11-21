@@ -67,15 +67,15 @@ public sealed class NavigationTests
         var game = new GameKey(StoreId.Gog, "1100000001");
 
         var idle = TestStates.Idle();
-        AgentLinks.RoutesFor(new GameTarget("gog", "1100000001"), idle).Should()
+        AgentLinks.RoutesFor(new GameTarget("gog", "1100000001"), idle, showsCreator: false).Should()
             .Equal(new LibraryRoute(), new GameRoute(game));
-        AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow", "lantern-team", "full"), idle).Should()
+        AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow", "lantern-team", "full"), idle, showsCreator: false).Should()
             .Equal(new CatalogueRoute(), new CatalogueProjectRoute("ember-hollow", "lantern-team", "full"));
-        AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow"), idle).Should()
+        AgentLinks.RoutesFor(new CatalogueTarget("ember-hollow"), idle, showsCreator: false).Should()
             .Equal(new CatalogueRoute(), new CatalogueGameRoute("ember-hollow"));
-        AgentLinks.RoutesFor(new GameTarget("not a store", "1"), idle).Should().Equal(new LibraryRoute());
-        AgentLinks.RoutesFor(new CreatorTarget(), idle).Should().Equal(new LibraryRoute());
-        AgentLinks.RoutesFor(new CreatorTarget(), TestStates.Idle(creatorMode: true)).Should().Equal(new CreatorRoute());
+        AgentLinks.RoutesFor(new GameTarget("not a store", "1"), idle, showsCreator: false).Should().Equal(new LibraryRoute());
+        AgentLinks.RoutesFor(new CreatorTarget(), idle, showsCreator: false).Should().Equal(new LibraryRoute());
+        AgentLinks.RoutesFor(new CreatorTarget(), idle, showsCreator: true).Should().Equal(new CreatorRoute());
 
         using var ui = new UiHarness(TestStates.Idle());
         ui.Shell.Navigator.Navigate(new SettingsRoute());
@@ -90,8 +90,12 @@ public sealed class NavigationTests
     public async Task A_link_that_waited_for_the_window_opens_its_page_and_says_so()
     {
         // Only Game Mode, whose window Steam starts, makes a link wait for the window.
-        using var ui = new UiHarness(TestStates.Idle() with { Games = [TestGames.Available("Ember Hollow", TestStates.Ember.StoreGameId)] },
-            context: context => context with { Frame = WindowFrame.Screen });
+        var state = TestStates.Idle();
+        using var ui = new UiHarness(state with
+        {
+            Games = [TestGames.Available("Ember Hollow", TestStates.Ember.StoreGameId)],
+            Settings = state.Settings with { ControlsHintShown = true },
+        }, context: context => context with { Frame = WindowFrame.Screen });
         ui.SizeToDeck();
 
         ui.Agent.Navigate(new GameTarget("steam", TestStates.Ember.StoreGameId), waited: true);

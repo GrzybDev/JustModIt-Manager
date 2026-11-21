@@ -379,6 +379,96 @@
   <data name="Shell_Close" xml:space="preserve">
     <value>Close</value>
   </data>
+  <data name="Shell_Controls" xml:space="preserve">
+    <value>Controls</value>
+  </data>
+  <data name="Shell_ControlsTitle" xml:space="preserve">
+    <value>Controls in Game Mode</value>
+  </data>
+  <data name="Shell_ControlsText" xml:space="preserve">
+    <value>The window works with a keyboard and mouse and listens to the keys below. The controller's buttons are mapped to them in Steam: the STEAM button › “Controller Settings”.</value>
+  </data>
+  <data name="Shell_ControlsKey" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="Shell_ControlsAction" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="Shell_ControlsExample" xml:space="preserve">
+    <value>For example</value>
+  </data>
+  <data name="Shell_ControlsMove" xml:space="preserve">
+    <value>Moving between cards and fields</value>
+  </data>
+  <data name="Shell_ControlsMoveKeys" xml:space="preserve">
+    <value>↑ ↓ ← →</value>
+  </data>
+  <data name="Shell_ControlsDpad" xml:space="preserve">
+    <value>D-pad</value>
+  </data>
+  <data name="Shell_ControlsChoose" xml:space="preserve">
+    <value>Choosing</value>
+  </data>
+  <data name="Shell_ControlsChooseKey" xml:space="preserve">
+    <value>Enter</value>
+  </data>
+  <data name="Shell_ControlsButtonA" xml:space="preserve">
+    <value>A</value>
+  </data>
+  <data name="Shell_ControlsBack" xml:space="preserve">
+    <value>Back, closing a dialog</value>
+  </data>
+  <data name="Shell_ControlsBackKey" xml:space="preserve">
+    <value>Esc</value>
+  </data>
+  <data name="Shell_ControlsButtonB" xml:space="preserve">
+    <value>B</value>
+  </data>
+  <data name="Shell_ControlsPreviousNext" xml:space="preserve">
+    <value>Previous and next item</value>
+  </data>
+  <data name="Shell_ControlsPreviousNextKeys" xml:space="preserve">
+    <value>⇧Tab / Tab</value>
+  </data>
+  <data name="Shell_ControlsButtonL1" xml:space="preserve">
+    <value>L1</value>
+  </data>
+  <data name="Shell_ControlsButtonR1" xml:space="preserve">
+    <value>R1</value>
+  </data>
+  <data name="Shell_ControlsSearch" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Shell_ControlsSearchKeys" xml:space="preserve">
+    <value>Ctrl+F</value>
+  </data>
+  <data name="Shell_ControlsButtonY" xml:space="preserve">
+    <value>Y</value>
+  </data>
+  <data name="Shell_ControlsCheckNow" xml:space="preserve">
+    <value>Check now</value>
+  </data>
+  <data name="Shell_ControlsCheckNowKey" xml:space="preserve">
+    <value>F5</value>
+  </data>
+  <data name="Shell_ControlsButtonMenu" xml:space="preserve">
+    <value>≡</value>
+  </data>
+  <data name="Shell_ControlsPointer" xml:space="preserve">
+    <value>Pointer and click</value>
+  </data>
+  <data name="Shell_ControlsPointerKey" xml:space="preserve">
+    <value>mouse</value>
+  </data>
+  <data name="Shell_ControlsRightTrackpad" xml:space="preserve">
+    <value>right trackpad</value>
+  </data>
+  <data name="Shell_ControlsButtonR2" xml:space="preserve">
+    <value>R2</value>
+  </data>
+  <data name="Shell_ControlsFooter" xml:space="preserve">
+    <value>This hint is also under the “{controls}” button.</value>
+  </data>
   <data name="Shell_StatusStarting" xml:space="preserve">
     <value>Starting…</value>
   </data>
