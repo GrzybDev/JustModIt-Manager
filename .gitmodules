@@ -4,3 +4,9 @@
 [submodule "native/xz"]
 	path = native/xz
 	url = https://github.com/tukaani-project/xz.git
+[submodule "native/libavif"]
+	path = native/libavif
+	url = https://github.com/AOMediaCodec/libavif.git
+[submodule "native/dav1d"]
+	path = native/dav1d
+	url = https://github.com/videolan/dav1d.git

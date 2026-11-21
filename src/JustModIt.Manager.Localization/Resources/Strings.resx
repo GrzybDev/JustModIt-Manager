@@ -2532,6 +2532,12 @@
   <data name="Licenses_UseLzma" xml:space="preserve">
     <value>Compressing patches</value>
   </data>
+  <data name="Licenses_UseAvif" xml:space="preserve">
+    <value>Reading and scaling AVIF pictures</value>
+  </data>
+  <data name="Licenses_UseDav1d" xml:space="preserve">
+    <value>Decoding the AV1 data of AVIF pictures</value>
+  </data>
   <data name="Licenses_UseAppImageRuntime" xml:space="preserve">
     <value>Starting the app from its AppImage file</value>
   </data>

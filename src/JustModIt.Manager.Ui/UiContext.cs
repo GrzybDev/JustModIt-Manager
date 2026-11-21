@@ -75,7 +75,7 @@ public sealed record UiContext
     /// </summary>
     public IReadOnlyList<string> ImageHosts { get; init; } = [];
 
-    /// <summary>The system's decoders for the pictures the window's own decoder does not read, such as AVIF; null for none.</summary>
+    /// <summary>The platform's decoders for the pictures the window's own decoder does not read, such as AVIF, and for clips; null for none.</summary>
     public IMediaCodecs? Codecs { get; init; }
 
     /// <summary>The system's wish for reduced motion, which the window follows; null where the system has none.</summary>

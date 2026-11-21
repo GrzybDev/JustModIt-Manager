@@ -151,6 +151,8 @@ public sealed class FakeImageServer : HttpMessageHandler
 /// <summary>An image service that hands out a plain bitmap of the size asked for at once, recording what was asked.</summary>
 public sealed class FakeImages : IImageLoader
 {
+    public bool PlaysClips { get; init; } = true;
+
     public List<(string Address, PixelSize Size)> Requests { get; } = [];
 
     public List<string> Blurred { get; } = [];

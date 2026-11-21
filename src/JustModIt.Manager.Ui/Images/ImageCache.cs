@@ -20,6 +20,9 @@ public sealed record RemotePicture(Bitmap Bitmap, PixelSize NaturalSize, bool Is
 /// <summary>Loads the site's images for the window, decoded to the size they are shown at.</summary>
 public interface IImageLoader
 {
+    /// <summary>Whether silent clips play, so a clip is downloaded only where its frames can show.</summary>
+    bool PlaysClips { get; }
+
     /// <summary>Loads an image decoded to cover a box of the given size.</summary>
     /// <param name="address">The image's absolute address.</param>
     /// <param name="size">The box it fills, in physical pixels.</param>
@@ -52,7 +55,7 @@ public interface IImageLoader
 /// <summary>
 /// The window's one image service: it downloads only from the hosts the site loads images from, over https, keeps every
 /// image on disk in the app's cache folder (the site never changes an image under its address), decodes on the thread
-/// pool straight to the size shown, with the system's decoders for what Skia does not read, and keeps the decoded images
+/// pool straight to the size shown, with the platform's decoders for what Skia does not read, and keeps the decoded images
 /// most recently used within a memory budget.
 /// </summary>
 public sealed partial class ImageCache : IImageLoader, IDisposable
@@ -74,9 +77,6 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
 
     // Decoding to sizes rounded up to this step lets a box that changes by a few pixels reuse the image decoded before.
     private const int SizeStep = 64;
-
-    // A format that cannot decode to a smaller size, such as PNG, decodes whole first; a small file can hold a huge picture.
-    private const long MaxDecodedPixels = 64L << 20;
 
     // How small an image is decoded before it is spread into a blur or averaged into a tint.
     private const int BlurSource = 24;
@@ -105,7 +105,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     /// <param name="sources">The only hosts images are loaded from, each alone or with the path its images are under, e.g. <c>images.example.com/vi/</c>.</param>
     /// <param name="http">The client the images are downloaded with; disposed with the service.</param>
     /// <param name="logger">Where failed downloads are logged.</param>
-    /// <param name="codecs">The system's decoders for the pictures Skia does not read and for clips; null for none.</param>
+    /// <param name="codecs">The platform's decoders for the pictures Skia does not read and for clips; null for none.</param>
     /// <param name="memoryBudget">The decoded images kept in memory, in bytes; null for <see cref="MemoryBudget"/>.</param>
     /// <param name="framesBudget">The memory the frames playing at once may hold, in bytes; null for <see cref="FramesBudget"/>.</param>
     public ImageCache(string directory, IEnumerable<string> sources, HttpClient http, ILogger logger, IMediaCodecs? codecs = null,
@@ -123,7 +123,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
     }
 
     /// <summary>Creates the service for the window, downloading with the client the agent's storage downloads use.</summary>
-    /// <param name="context">The site, the image hosts, the system's decoders and the cache folder.</param>
+    /// <param name="context">The site, the image hosts, the platform's decoders and the cache folder.</param>
     public static ImageCache For(UiContext context)
     {
         return new ImageCache(context.ImageCacheDirectory, context.ImageHosts, CatalogueHttp.CreateStorageClient(context.Site),
@@ -138,6 +138,8 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
             && _sources.Any(source => string.Equals(source.Host, address.IdnHost, StringComparison.OrdinalIgnoreCase)
                 && address.AbsolutePath.StartsWith(source.Path, StringComparison.Ordinal));
     }
+
+    public bool PlaysClips => _codecs?.PlaysClips == true;
 
     public Task<RemotePicture?> LoadAsync(string address, PixelSize size, CancellationToken cancellationToken)
     {
@@ -414,7 +416,7 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         return true;
     }
 
-    // Decoded to cover the box, never beyond the picture's own size; Skia reads what it can, the system's decoders the rest.
+    // Decoded to cover the box, never beyond the picture's own size; Skia reads what it can, the platform's decoders the rest.
     private RemotePicture? Decode(Uri address, string path, PixelSize box)
     {
         Exception? failure = null;
@@ -455,7 +457,8 @@ public sealed partial class ImageCache : IImageLoader, IDisposable
         // JPEG and WebP decode straight to a smaller size, which leaves little to scale.
         var info = codec.Info.WithSize(codec.GetScaledDimensions((float)size.Width / natural.Width))
             .WithColorType(SKColorType.Bgra8888).WithAlphaType(SKAlphaType.Premul).WithColorSpace(SKColorSpace.CreateSrgb());
-        if ((long)info.Width * info.Height > MaxDecodedPixels)
+        // A format that cannot decode to a smaller size, such as PNG, decodes whole first; a small file can hold a huge picture.
+        if ((long)info.Width * info.Height > MediaPicture.MaxPixels)
         {
             return null;
         }

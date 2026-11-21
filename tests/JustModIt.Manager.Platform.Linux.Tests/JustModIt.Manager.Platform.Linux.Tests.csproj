@@ -22,6 +22,11 @@
                      Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus" DBusGeneratorMode="Proxy" />
   </ItemGroup>
 
+  <!-- The invented still that Windows' decoders read as well. -->
+  <ItemGroup>
+    <None Include="..\JustModIt.Manager.Platform.Windows.Tests\Fixtures\still.avif" Link="Fixtures\still.avif" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- The games of this machine that the live tests use, named in a file that git leaves out. -->
   <ItemGroup>
     <Compile Include="..\Shared\LiveGames.cs" Link="Shared\LiveGames.cs" />

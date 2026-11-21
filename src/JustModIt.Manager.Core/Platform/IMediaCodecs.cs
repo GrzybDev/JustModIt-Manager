@@ -1,12 +1,15 @@
 namespace JustModIt.Manager.Core.Platform;
 
 /// <summary>
-/// The system's own decoders, for the pictures and silent clips of a site's pages that the window's decoder does not
-/// read, such as AVIF stills and the MP4 or WebM loops a store page's GIFs become; every call reads a file and decodes
-/// it, so it stays off the UI thread.
+/// The decoders of the system, or the app's own where the system guarantees none, for the pictures and silent clips of a
+/// site's pages that the window's decoder does not read, such as AVIF stills and the MP4 or WebM loops a store page's GIFs
+/// become; every call reads a file and decodes it, so it stays off the UI thread.
 /// </summary>
 public interface IMediaCodecs
 {
+    /// <summary>Whether <see cref="OpenClip"/> plays clips at all, so a clip is downloaded only where its frames can show.</summary>
+    bool PlaysClips { get; }
+
     /// <summary>Decodes the first frame of a picture to a size chosen from the picture's own.</summary>
     /// <param name="path">The picture's file.</param>
     /// <param name="sizeFor">Gives the size to decode to from the picture's own width and height.</param>
@@ -40,4 +43,8 @@ public interface IMediaClip : IDisposable
 /// <param name="NaturalWidth">The picture's own width.</param>
 /// <param name="NaturalHeight">The picture's own height.</param>
 /// <param name="Pixels">Width × height × 4 bytes.</param>
-public sealed record MediaPicture(int Width, int Height, int NaturalWidth, int NaturalHeight, byte[] Pixels);
+public sealed record MediaPicture(int Width, int Height, int NaturalWidth, int NaturalHeight, byte[] Pixels)
+{
+    /// <summary>The most pixels a picture is decoded with: a larger one is no site's still, and would take hundreds of megabytes.</summary>
+    public const long MaxPixels = 64L << 20;
+}

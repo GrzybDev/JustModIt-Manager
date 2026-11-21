@@ -13,8 +13,9 @@ namespace JustModIt.Manager.Ui.Controls;
 /// An image of the site, loaded once it comes near the visible part of its scroll area and decoded to the size it is
 /// shown at. It fills its box, cropping what does not fit unless <see cref="Stretch"/> says otherwise, and fades in on
 /// arrival; the <c>:loading</c>, <c>:loaded</c> and <c>:failed</c> pseudo-classes let a page show a placeholder. A
-/// moving picture, or a clip in <see cref="ClipSource"/>, plays while it can be seen and the window allows loops; with
-/// reduced motion it shows its first frame, and once it leaves the area near the view its frames are let go.
+/// moving picture, or a clip in <see cref="ClipSource"/> where the image service plays clips, plays while it can be seen
+/// and the window allows loops; with reduced motion it shows its first frame, and once it leaves the area near the view
+/// its frames are let go.
 /// </summary>
 public sealed class RemoteImage : Control
 {
@@ -260,11 +261,13 @@ public sealed class RemoteImage : Control
         _ = LoadAsync(loader, source, size);
     }
 
+    // A clip the image service cannot play is never downloaded, and its still stands in for it.
+    private string? PlayableClip => ClipSource is { Length: > 0 } clip && GetValue(LoaderProperty) is { PlaysClips: true } ? clip : null;
+
     // A moving picture plays where it can be seen; near the view it waits paused, and further away its frames go.
     private void UpdatePlayback()
     {
-        var clip = ClipSource is { Length: > 0 } given ? given : null;
-        var moving = clip ?? (_picture is { IsAnimated: true } ? _loadedSource : null);
+        var moving = PlayableClip ?? (_picture is { IsAnimated: true } ? _loadedSource : null);
         // With reduced motion a picture shows its still; a clip without one shows its first frame.
         if (moving is null || !_isNearView || _framesRefused || (Motion.IsReduced && _picture is not null)
             || GetValue(LoaderProperty) is not { } loader || TopLevel.GetTopLevel(this) is null)
@@ -466,7 +469,7 @@ public sealed class RemoteImage : Control
     private void FailWhenNothingShows()
     {
         if (_picture is null && _player is null && _loading is null && _opening is null
-            && (ClipSource is not { Length: > 0 } || _framesRefused))
+            && (PlayableClip is null || _framesRefused))
         {
             SetState(":failed");
             Show(null, failed: true);

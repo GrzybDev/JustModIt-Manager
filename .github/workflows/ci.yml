@@ -23,8 +23,9 @@ jobs:
     uses: GrzybDev/actions/.github/workflows/dotnet-checks.yml@v1
     with:
       solution: JustModIt.Manager.slnx
-      # The native shim builds from them.
+      # The native shims build from them; dav1d, which the AVIF shim holds, builds with meson and its assembly with nasm.
       submodules: true
+      apt-packages: meson nasm
 
   package:
     needs: checks
@@ -47,10 +48,10 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
 
-      # vpk builds the AppImage's file system with mksquashfs.
-      - name: Install the Linux packaging tools
+      # vpk builds the AppImage's file system with mksquashfs; meson and nasm build dav1d for the AVIF shim.
+      - name: Install the Linux build and packaging tools
         if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install -y squashfs-tools
+        run: sudo apt-get update && sudo apt-get install -y squashfs-tools meson nasm
 
       - name: Test the build scripts
         shell: pwsh

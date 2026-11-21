@@ -25,6 +25,6 @@
           Inputs="$(XdShimRoot)xd3shim\xd3shim.c;$(XdShimRoot)xd3shim\CMakeLists.txt" Outputs="$(XdShimFile)">
     <Exec Condition="$([MSBuild]::IsOSPlatform('Windows'))"
           Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(XdShimRoot)build.ps1&quot; -Rid $(XdShimRid)" />
-    <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="sh &quot;$(XdShimRoot)build.sh&quot; $(XdShimRid)" />
+    <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="sh &quot;$(XdShimRoot)build.sh&quot; $(XdShimRid) xd3shim" />
   </Target>
 </Project>

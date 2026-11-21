@@ -1,0 +1,24 @@
+<Project>
+  <!-- Puts the AVIF shim next to the output of a Linux build of every project that references Platform.Linux, which
+       includes both apps. native/build.sh builds it on the first build of a full checkout, and again after its sources
+       change. Windows decodes AVIF with its own codecs. -->
+  <PropertyGroup>
+    <AvifShimRoot>$(MSBuildThisFileDirectory)</AvifShimRoot>
+    <AvifShimRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</AvifShimRid>
+    <AvifShimRid Condition="'$(AvifShimRid)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">linux-x64</AvifShimRid>
+    <AvifShimFile>$(AvifShimRoot)bin\$(AvifShimRid)\libavifshim.so</AvifShimFile>
+    <!-- Worktrees and source archives come without the submodules and rely on a shim built elsewhere. -->
+    <AvifShimCanBuild Condition="Exists('$(AvifShimRoot)libavif\CMakeLists.txt') and Exists('$(AvifShimRoot)dav1d\meson.build')">true</AvifShimCanBuild>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(AvifShimRid.StartsWith('linux-'))">
+    <None Include="$(AvifShimFile)" Link="libavifshim.so" CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="BuildAvifShim" BeforeTargets="BeforeBuild"
+          Condition="$(AvifShimRid.StartsWith('linux-')) and '$(AvifShimCanBuild)' == 'true' and $([MSBuild]::IsOSPlatform('Linux'))"
+          Inputs="$(AvifShimRoot)avifshim\avifshim.c;$(AvifShimRoot)avifshim\CMakeLists.txt" Outputs="$(AvifShimFile)">
+    <Exec Command="sh &quot;$(AvifShimRoot)build.sh&quot; $(AvifShimRid) avifshim" />
+  </Target>
+</Project>

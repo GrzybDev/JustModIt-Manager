@@ -15,8 +15,7 @@ namespace JustModIt.Manager.Platform.Windows;
 [SupportedOSPlatform("windows")]
 public sealed class WindowsMediaCodecs : IMediaCodecs
 {
-    // A decoded picture larger than this is not a site's still, and would take hundreds of megabytes.
-    private const long MaxPixels = 64L << 20;
+    public bool PlaysClips => true;
 
     public MediaPicture? DecodePicture(string path, Func<int, int, (int Width, int Height)> sizeFor) => Decode(path, sizeFor, out _);
 
@@ -74,7 +73,7 @@ public sealed class WindowsMediaCodecs : IMediaCodecs
         }
 
         var (width, height) = sizeFor((int)naturalWidth, (int)naturalHeight);
-        if (width <= 0 || height <= 0 || (long)width * height > MaxPixels)
+        if (width <= 0 || height <= 0 || (long)width * height > MediaPicture.MaxPixels)
         {
             status = HRESULT.E_INVALIDARG;
             return null;

@@ -45,6 +45,8 @@ internal static class ComponentUses
         "Markdig" => new(Strings.Licenses_UseMarkdig),
         "xdelta3" => new(Strings.Licenses_UseXdelta),
         "liblzma (XZ Utils)" => new(Strings.Licenses_UseLzma),
+        "libavif" => new(Strings.Licenses_UseAvif),
+        "dav1d" => new(Strings.Licenses_UseDav1d),
         "AppImage runtime" => new(Strings.Licenses_UseAppImageRuntime),
         "Libraries built into the AppImage runtime" => new(Strings.Licenses_UseAppImageLibraries),
         "Inter" => new(Strings.Licenses_UseInter, IsArtwork: true),

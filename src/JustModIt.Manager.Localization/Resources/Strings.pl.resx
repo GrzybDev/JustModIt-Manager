@@ -2520,6 +2520,12 @@
   <data name="Licenses_UseLzma" xml:space="preserve">
     <value>Kompresja łatek</value>
   </data>
+  <data name="Licenses_UseAvif" xml:space="preserve">
+    <value>Odczytywanie i skalowanie obrazów AVIF</value>
+  </data>
+  <data name="Licenses_UseDav1d" xml:space="preserve">
+    <value>Dekodowanie danych AV1 w obrazach AVIF</value>
+  </data>
   <data name="Licenses_UseAppImageRuntime" xml:space="preserve">
     <value>Uruchamianie aplikacji z pliku AppImage</value>
   </data>

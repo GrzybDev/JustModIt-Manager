@@ -164,7 +164,7 @@ internal sealed record HostEnvironment
             ImageCacheDirectory = Locations.ImageCacheDirectory,
             CreatorDirectory = Locations.CreatorDirectory,
             ImageHosts = Product.ImageHosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-            Codecs = OperatingSystem.IsWindows() ? new WindowsMediaCodecs() : null,
+            Codecs = OperatingSystem.IsWindows() ? new WindowsMediaCodecs() : OperatingSystem.IsLinux() ? new LinuxMediaCodecs() : null,
             SystemMotion = OperatingSystem.IsWindows() ? new WindowsSystemMotion()
                 : OperatingSystem.IsLinux() ? PortalSystemMotion.Start(loggers.CreateLogger<PortalSystemMotion>())
                 : null,

@@ -68,10 +68,10 @@ if (-not $NoPublish) {
         # output stays as it is, and its Ubuntu 24.04 binds the build to glibc 2.39, which SteamOS has.
         $sdk = (Get-Content -Raw (Join-Path $root 'global.json') | ConvertFrom-Json).sdk.version
         $out = (New-Item -ItemType Directory $OutputDir).FullName
-        $steps = 'apt-get update -qq && apt-get install -y -qq --no-install-recommends clang cmake g++ make >/dev/null && ' +
-            'mkdir /work && tar -C /repo --exclude=./.git --exclude=./.claude --exclude=./artifacts --exclude=./native/build ' +
-            "-cf - . | tar -xf - -C /work && dotnet publish /work/src/$App/$($project.Name) -c Release -r $runtime -o /out " +
-            "$properties -nologo -v:q && rm -f /out/*.dbg /out/*.pdb"
+        $steps = 'apt-get update -qq && apt-get install -y -qq --no-install-recommends clang cmake g++ make meson nasm ' +
+            '>/dev/null && mkdir /work && tar -C /repo --exclude=./.git --exclude=./.claude --exclude=./artifacts ' +
+            "--exclude=./native/build -cf - . | tar -xf - -C /work && dotnet publish /work/src/$App/$($project.Name) " +
+            "-c Release -r $runtime -o /out $properties -nologo -v:q && rm -f /out/*.dbg /out/*.pdb"
         Invoke-Native 'docker' @('run', '--rm', '-v', "${root}:/repo:ro", '-v', "${out}:/out", '-v',
             'justmodit-manager-nuget:/root/.nuget/packages', "mcr.microsoft.com/dotnet/sdk:$sdk", 'sh', '-c', $steps)
     }
@@ -108,7 +108,7 @@ if ($Linux) {
     # With a terminal, a lost connection or Ctrl+C ends measure-agent.sh too, which then stops the agent and removes
     # the copy. On Linux the window's platform loads libX11 where Windows loads ANGLE.
     $output = & ssh -tt $Linux sh "$remote/measure-agent.sh" $exe.Name $vendor "$($exe.Name).$developmentName" `
-        $TimeoutSeconds 60 ([int]($IdleMinutes * 60)) libSkiaSharp libHarfBuzzSharp libX11
+        $TimeoutSeconds 60 ([int]($IdleMinutes * 60)) libSkiaSharp libHarfBuzzSharp libX11 libavifshim
     $code = $LASTEXITCODE
     $lines = @($output | ForEach-Object { "$_".TrimEnd() })
     if ($code -ne 0) { throw "measure-agent.sh failed with exit code ${code}:`n$(($lines -notlike '@reading *') -join "`n")" }

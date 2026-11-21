@@ -132,14 +132,22 @@ public sealed partial class ThirdPartyNoticesTests
     {
         var lzmaHeader = RepositoryFiles.PathOf("native", "xz", "src", "liblzma", "api", "lzma", "version.h");
         var xdeltaHeader = RepositoryFiles.PathOf("native", "xdelta", "xdelta3", "xdelta3-main.h");
-        Assert.SkipUnless(File.Exists(lzmaHeader) && File.Exists(xdeltaHeader), "The native/xz and native/xdelta submodules are not checked out.");
+        var avifHeader = RepositoryFiles.PathOf("native", "libavif", "include", "avif", "avif.h");
+        var dav1dBuild = RepositoryFiles.PathOf("native", "dav1d", "meson.build");
+        Assert.SkipUnless(new[] { lzmaHeader, xdeltaHeader, avifHeader, dav1dBuild }.All(File.Exists),
+            "The native/xz, native/xdelta, native/libavif and native/dav1d submodules are not checked out.");
 
         var lzma = LzmaVersion().Match(File.ReadAllText(lzmaHeader));
         var liblzma = $"{lzma.Groups["major"]}.{lzma.Groups["minor"]}.{lzma.Groups["patch"]}";
         var xdelta3 = XdeltaVersion().Match(File.ReadAllText(xdeltaHeader)).Groups[1].Value;
+        var avif = AvifVersion().Match(File.ReadAllText(avifHeader));
+        var libavif = $"{avif.Groups["major"]}.{avif.Groups["minor"]}.{avif.Groups["patch"]}";
+        var dav1d = Dav1dVersion().Match(File.ReadAllText(dav1dBuild)).Groups[1].Value;
 
         VersionOf("liblzma (XZ Utils)").Should().Be(liblzma, "native/xz builds liblzma {0}", liblzma);
         VersionOf("xdelta3").Should().Be(xdelta3, "native/xdelta builds xdelta3 {0}", xdelta3);
+        VersionOf("libavif").Should().Be(libavif, "native/libavif builds libavif {0}", libavif);
+        VersionOf("dav1d").Should().Be(dav1d, "native/dav1d builds dav1d {0}", dav1d);
     }
 
     private static string VersionOf(string title) =>
@@ -208,6 +216,12 @@ public sealed partial class ThirdPartyNoticesTests
 
     [GeneratedRegex(@"Xdelta version (\d+\.\d+\.\d+)")]
     private static partial Regex XdeltaVersion();
+
+    [GeneratedRegex(@"#define AVIF_VERSION_MAJOR (?<major>\d+)\s+#define AVIF_VERSION_MINOR (?<minor>\d+)\s+#define AVIF_VERSION_PATCH (?<patch>\d+)")]
+    private static partial Regex AvifVersion();
+
+    [GeneratedRegex(@"^\s*version: '(\d+\.\d+\.\d+)'", RegexOptions.Multiline)]
+    private static partial Regex Dav1dVersion();
 
     private sealed record Component(string Title, string Text);
 

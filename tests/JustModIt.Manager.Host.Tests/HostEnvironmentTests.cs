@@ -213,7 +213,8 @@ public sealed class HostEnvironmentTests : IDisposable
         context.IssuesAddress.Should().BeNull("an app without a place for reports offers none");
         context.ImageCacheDirectory.Should().Be(Path.Combine(environment.Locations.CacheDirectory, "images"));
         context.CreatorDirectory.Should().Be(environment.Locations.CreatorDirectory);
-        context.Codecs.Should().Match(codecs => !OperatingSystem.IsWindows() || codecs is WindowsMediaCodecs, "the site's AVIF stills need them");
+        context.Codecs.Should().Match(codecs => OperatingSystem.IsWindows() ? codecs is WindowsMediaCodecs : codecs is LinuxMediaCodecs,
+            "the site's AVIF stills need them");
         context.SystemMotion.Should().Match(motion => OperatingSystem.IsWindows() ? motion is WindowsSystemMotion : motion is PortalSystemMotion);
         context.DesktopId.Should().Be("com.example.ExampleApp.Dev", "a development build's windows never group with an installed copy's");
     }

@@ -269,6 +269,28 @@ public sealed class ImageTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_clip_the_codecs_cannot_play_is_never_downloaded_and_its_still_shows_in_its_place()
+    {
+        const string Still = "https://images.example.com/attachments/lantern.png";
+        const string Clip = "https://images.example.com/attachments/lantern.mp4";
+        _server.Images[Still] = TestImages.Png(96, 48);
+        _server.Images[Clip] = [.. "SYSTEMCLIP"u8];
+        using var images = Cache(codecs: new FakeCodecs(new PixelSize(96, 48), playsClips: false));
+        var image = new RemoteImage { Source = Still, ClipSource = Clip, Width = 96, Height = 48 };
+        var window = new Window { Width = 200, Height = 200, Content = image };
+        RemoteImage.SetLoader(window, images);
+        window.Show();
+
+        await UiHarness.WaitUntilAsync(() => image.Classes.Contains(":loaded"));
+        UiHarness.Settle();
+
+        image.Player.Should().BeNull();
+        image.Bitmap.Should().NotBeNull();
+        _server.Requests.Select(request => request.AbsoluteUri).Should().Equal(Still);
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task The_frames_playing_at_once_stay_within_their_memory_budget()
     {
         const string Moving = "https://images.example.com/attachments/three-colours.gif";
@@ -335,9 +357,11 @@ public sealed class ImageTests : IDisposable
     /// The system's decoders as the test sets them up: a file that starts with SYSTEMONLY is a picture of one size, and
     /// one that starts with SYSTEMCLIP a clip of that size, red and blue frames of 50 ms in turn.
     /// </summary>
-    private sealed class FakeCodecs(PixelSize natural) : IMediaCodecs
+    private sealed class FakeCodecs(PixelSize natural, bool playsClips = true) : IMediaCodecs
     {
         public List<string> Decoded { get; } = [];
+
+        public bool PlaysClips => playsClips;
 
         public MediaPicture? DecodePicture(string path, Func<int, int, (int Width, int Height)> sizeFor)
         {
