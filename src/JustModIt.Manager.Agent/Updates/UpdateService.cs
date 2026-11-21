@@ -256,7 +256,8 @@ public sealed partial class UpdateService(
 
     private void ApplyWhenUnnoticed()
     {
-        if (status.Update.State != AppUpdateState.Ready || jobs.IsBusy)
+        // An exit cancels or waits for the jobs, and the last one's end must not restart the app; the next start applies it.
+        if (lifetime.IsExiting || status.Update.State != AppUpdateState.Ready || jobs.IsBusy)
         {
             return;
         }

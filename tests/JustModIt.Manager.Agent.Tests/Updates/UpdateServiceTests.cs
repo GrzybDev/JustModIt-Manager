@@ -1,3 +1,4 @@
+using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Tests.TestSupport;
 using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Agent.Ui;
@@ -99,6 +100,27 @@ public sealed class UpdateServiceTests : IAsyncDisposable
         _updater.Applied.Task.IsCompleted.Should().BeFalse();
         engine.Release();
         (await _updater.Applied.Task.WaitAsync(Timeout, AgentHarness.Token)).Should().Equal("--background");
+    }
+
+    [Fact]
+    public async Task An_exit_after_the_jobs_leaves_a_ready_update_for_the_next_start()
+    {
+        var engine = new HeldRecoveryEngine();
+        await using var agent = Harness(_updater, Soon with { FirstCheck = _ => System.Threading.Timeout.InfiniteTimeSpan }, engine);
+        _updater.Newest = "1.1.0";
+        agent.Start();
+        await HeldRecoveryEngine.StartJobAsync(agent);
+        await Eventually.HoldsAsync(() => agent.Tray.Tooltip is not null);
+        agent.Tray.Pick(TrayCommands.CheckNow);
+        await Eventually.HoldsAsync(() => agent.Tray.Menu.Any(item => item.Command == TrayCommands.RestartToUpdate));
+        var lifetime = await agent.ServiceAsync<AgentLifetime>();
+
+        agent.Tray.Pick(TrayCommands.Exit);
+        await Eventually.HoldsAsync(() => lifetime.IsExiting);
+        engine.Release();
+
+        await agent.Run.WaitAsync(Timeout, AgentHarness.Token);
+        _updater.Applied.Task.IsCompleted.Should().BeFalse("an exit the player chose must not bring the app back in the tray");
     }
 
     [Fact]
