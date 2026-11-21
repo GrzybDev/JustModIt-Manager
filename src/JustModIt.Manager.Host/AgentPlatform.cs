@@ -22,8 +22,7 @@ namespace JustModIt.Manager.Host;
 internal static partial class AgentPlatform
 {
     /// <summary>Whether the agent runs on this system yet.</summary>
-    [SupportedOSPlatformGuard("windows")]
-    public static bool IsSupported => OperatingSystem.IsWindows();
+    public static bool IsSupported => OperatingSystem.IsWindows() || OperatingSystem.IsLinux();
 
     /// <summary>Registers the system's services and then the app's, so the app can still replace one of the system's.</summary>
     /// <param name="services">The agent's shared services.</param>

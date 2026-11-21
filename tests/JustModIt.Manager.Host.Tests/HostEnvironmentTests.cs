@@ -77,13 +77,8 @@ public sealed class HostEnvironmentTests : IDisposable
             AgentPlatform.Compose(services, options, Product.DesktopCategories, app: null,
                 configure: app => app.AddSingleton<IForegroundHandoff>(handoff));
 
-            // Building checks what every constructor takes, but not what a factory resolves, as the stores' providers do. Where
-            // the agent refuses to start, the desktop's services are missing, so the engine is resolved alone.
-            await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
-            {
-                ValidateOnBuild = AgentPlatform.IsSupported,
-                ValidateScopes = true,
-            });
+            // Building checks what every constructor takes, but not what a factory resolves, as the stores' providers do.
+            await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
             provider.GetServices<ILibraryProvider>().Should().HaveCount(3);
             provider.GetRequiredService<StateCoordinator>().Should().NotBeNull();
             provider.GetRequiredService<ISteamUi>().Should().NotBeNull();

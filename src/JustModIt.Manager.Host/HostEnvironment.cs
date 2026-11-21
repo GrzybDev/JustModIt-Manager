@@ -76,7 +76,7 @@ internal sealed record HostEnvironment
     /// Runs the agent as the user's systemd unit, out of every launch's process tree, as a copy that integrates with the
     /// system does on Linux.
     /// </summary>
-    public bool RunsAgentAsUnit => OperatingSystem.IsLinux() && AgentPlatform.IsSupported && IntegratesWithShell;
+    public bool RunsAgentAsUnit => OperatingSystem.IsLinux() && IntegratesWithShell;
 
     /// <summary>
     /// Steam started this process from its library, which ends every process of the launch once the window closes; told on
