@@ -30,9 +30,9 @@
                        IsVisible="{Binding ShowsProgress}" AutomationProperties.Name="{Binding Title}" />
         </StackPanel>
       </Grid>
-      <Button Classes="outline small" HorizontalAlignment="Stretch" Content="{Binding ActionText}"
+      <Button x:Name="StatusAction" Classes="outline small" HorizontalAlignment="Stretch" Content="{Binding ActionText}"
               ui:ButtonAssist.Icon="{Binding ActionIcon}" Command="{Binding ActCommand}" IsVisible="{Binding HasAction}"
-              ToolTip.Tip="{Binding ActionTip}" />
+              ToolTip.Tip="{Binding ActionTip}" ui:ToolTipAssist.ShowOnFocus="True" />
     </StackPanel>
   </Border>
 </UserControl>

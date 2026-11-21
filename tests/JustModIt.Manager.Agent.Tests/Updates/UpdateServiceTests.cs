@@ -241,6 +241,25 @@ public sealed class UpdateServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Restarting_to_update_with_the_window_kept_does_not_close_it_also_after_waiting_for_jobs()
+    {
+        var engine = new HeldRecoveryEngine();
+        await using var agent = Harness(_updater, Soon with { FirstCheck = _ => System.Threading.Timeout.InfiniteTimeSpan }, engine);
+        _updater.Newest = "1.1.0";
+        agent.Start();
+        var window = await agent.ConnectWindowAsync();
+        await HeldRecoveryEngine.StartJobAsync(agent);
+        await window.RequestAsync(new CheckNow());
+        await window.StateAsync(state => state.Update.State == AppUpdateState.Ready);
+
+        await window.RequestAsync(new ApplyAppUpdate { KeepWindow = true });
+        engine.Release();
+
+        (await _updater.Applied.Task.WaitAsync(Timeout, AgentHarness.Token)).Should().Equal("--background");
+        window.ShutdownRequests.Reader.TryRead(out _).Should().BeFalse("the window starts anew in the new version itself");
+    }
+
+    [Fact]
     public async Task A_window_with_unsaved_work_keeps_the_update_waiting()
     {
         await _agent.SaveSettingsAsync(AppSettings.Default with { AutoUpdateApp = false });

@@ -111,6 +111,7 @@ public sealed class MessageTests
         new DismissUncleanExit(),
         new SaveDiagnosticReport(@"C:\Reports\report.zip"),
         new ApplyAppUpdate(),
+        new ApplyAppUpdate { KeepWindow = true },
         new ExitApp(ExitMode.AfterJobs),
         new GetProjectPage("example-game", "lantern-team", Project),
         new ProjectPageResult

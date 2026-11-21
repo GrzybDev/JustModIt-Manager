@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Library;
@@ -249,8 +250,16 @@ public sealed record DismissUncleanExit : Message;
 /// <param name="Path">The report's full path.</param>
 public sealed record SaveDiagnosticReport(string Path) : Message;
 
-/// <summary>Restarts into the downloaded update once the window has agreed to close.</summary>
-public sealed record ApplyAppUpdate : Message;
+/// <summary>Restarts into the downloaded update once the window has agreed to close, or with the window kept.</summary>
+public sealed record ApplyAppUpdate : Message
+{
+    /// <summary>
+    /// The window stays open and starts anew in the new version itself, as in Game Mode, where only Steam's library could open
+    /// it again.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool KeepWindow { get; init; }
+}
 
 public enum ExitMode
 {

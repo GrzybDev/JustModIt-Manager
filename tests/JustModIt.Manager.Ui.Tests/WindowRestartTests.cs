@@ -2,6 +2,8 @@ using System.Threading.Channels;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Protocol.Messages;
+using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
@@ -162,8 +164,13 @@ public sealed class WindowRestartTests
     }
 
     [AvaloniaFact]
-    public void A_window_that_started_anew_in_the_agents_version_says_so_once()
+    public void A_window_that_started_anew_in_the_agents_version_says_so_once_unless_the_player_asked_for_it()
     {
+        using (var asked = new UiHarness(TestStates.Idle(), context: context => context with { Restarted = new WindowRestart("0.1.0", Asked: true) }))
+        {
+            asked.Session.Services.Toasts.Items.Should().BeEmpty("the update card said what would happen, and the card shows the new version");
+        }
+
         using var ui = new UiHarness(TestStates.Idle(), context: context => context with { Restarted = new WindowRestart("0.1.0") });
 
         ui.Session.Services.Toasts.Items.Should().ContainSingle().Which.Title.Should()
@@ -173,6 +180,67 @@ public sealed class WindowRestartTests
         ui.Agent.Link = AgentLink.Connected;
         UiHarness.Settle();
         ui.Session.Services.Toasts.Items.Should().ContainSingle();
+    }
+
+    [AvaloniaFact]
+    public async Task Restarting_to_update_in_Game_Mode_keeps_the_window_and_says_when_the_update_did_not_install()
+    {
+        List<WindowRestart> restarts = [];
+        var idle = TestStates.Idle();
+        var ready = idle with
+        {
+            Settings = idle.Settings with { ControlsHintShown = true },
+            Update = new AppUpdateView { State = AppUpdateState.Ready, Version = "0.3.1" },
+        };
+        using var ui = new UiHarness(ready, context: context => context with { Frame = WindowFrame.Screen, RestartWindow = restarts.Add });
+        ui.SizeToDeck();
+        ui.Shell.Status.ActionTip.Should().Be(Text.Format(Strings.Shell_StatusRestartTip, ("mode", "inplace"), ("version", "0.3.1")));
+
+        await ui.Shell.Status.ActCommand.ExecuteAsync(null);
+        ui.Agent.Requests.OfType<ApplyAppUpdate>().Should().ContainSingle().Which.KeepWindow.Should().BeTrue();
+        (ui.Agent.AgentVersion, ui.Agent.Link) = (null, AgentLink.Connecting);
+        UiHarness.Settle();
+
+        (ui.Shell.ConnectingTitle, ui.Shell.ConnectingMessage).Should()
+            .Be((Strings.Shell_UpdatingTitle, Text.Format(Strings.Shell_UpdatingMessage, ("mode", "inplace"))));
+        ui.Clock.Advance(ShellViewModel.SlowConnection);
+        UiHarness.Settle();
+        ui.Shell.ShowsStartAgent.Should().BeFalse("the updater has its time to replace the file and start the agent itself");
+        ui.Clock.Advance(ShellViewModel.SlowUpdate - ShellViewModel.SlowConnection);
+        UiHarness.Settle();
+        (ui.Shell.ConnectingTitle, ui.Shell.ShowsNoAnswer, ui.Shell.ShowsStartAgent).Should().Be((Strings.Shell_UpdatingTitle, true, true));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(900));
+        ui.Render("update-in-place-no-answer");
+
+        // The update did not install, so the old version came back.
+        (ui.Agent.AgentVersion, ui.Agent.Link) = ("0.1.0", AgentLink.Connected);
+        ui.Push(ready);
+        ui.Session.Services.Toasts.Items.Should().ContainSingle(toast => toast.IsWarning && toast.Title == Strings.Shell_UpdateNotInstalledTitle);
+        ui.Shell.Status.ActionText.Should().Be(Strings.Shell_StatusRestart);
+        await UiHarness.WaitUntilAsync(() => ui.Find<Button>("StatusAction").IsFocused);
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(500));
+        ui.Render("update-not-installed");
+
+        // An update that fails to apply leaves the agent running, so its next going is no update.
+        await ui.Shell.Status.ActCommand.ExecuteAsync(null);
+        ui.Push(ready with { Update = ready.Update with { State = AppUpdateState.Failed } });
+        (ui.Agent.AgentVersion, ui.Agent.Link) = (null, AgentLink.Connecting);
+        UiHarness.Settle();
+        ui.Shell.ConnectingTitle.Should().Be(Strings.Shell_ConnectingTitle);
+        (ui.Agent.AgentVersion, ui.Agent.Link) = ("0.1.0", AgentLink.Connected);
+        ui.Push(ready);
+        ui.Session.Services.Toasts.Items.Where(toast => toast.Title == Strings.Shell_UpdateNotInstalledTitle).Should().ContainSingle();
+
+        // Asked again, the agent applies the update and leaves before its answer goes out, then comes back in the new version,
+        // which the window starts anew in.
+        ui.Agent.Answer = request => request is ApplyAppUpdate ? throw new ConnectionClosedException() : null;
+        await ui.Shell.Status.ActCommand.ExecuteAsync(null);
+        (ui.Agent.AgentVersion, ui.Agent.Link) = (null, AgentLink.Connecting);
+        UiHarness.Settle();
+        ui.Shell.ConnectingTitle.Should().Be(Strings.Shell_UpdatingTitle);
+        (ui.Agent.AgentVersion, ui.Agent.Link) = ("0.3.1", AgentLink.Connected);
+        await UiHarness.WaitUntilAsync(() => !ui.Window.IsVisible);
+        restarts.Should().Equal(new WindowRestart("0.3.1", Asked: true));
     }
 
     [Theory]

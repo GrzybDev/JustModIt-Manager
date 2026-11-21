@@ -113,7 +113,7 @@ internal sealed class AgentCommands(
             : new BackupFolderChecked(AvailableBytes: volumes.GetAvailableBytes(validate.Folder)),
         DismissUncleanExit => Done(ForgetUncleanExit),
         SaveDiagnosticReport save => await SaveReportAsync(save.Path, cancellationToken).ConfigureAwait(false),
-        ApplyAppUpdate => RestartToUpdate(),
+        ApplyAppUpdate apply => RestartToUpdate(apply.KeepWindow),
         ExitApp exit => Done(() => _ = lifetime.RequestExitAsync(exit.Mode)),
         _ => throw new RequestFailedException(ErrorCode.Unsupported),
     };
@@ -378,8 +378,8 @@ internal sealed class AgentCommands(
     }
 
     // Answered before the window is asked to close, since closing ends the connection the answer would take.
-    private Message? RestartToUpdate() => status.Update.State == AppUpdateState.Ready
-        ? Done(() => _ = updates.RestartToUpdateAsync())
+    private Message? RestartToUpdate(bool keepWindow) => status.Update.State == AppUpdateState.Ready
+        ? Done(() => _ = updates.RestartToUpdateAsync(keepWindow))
         : throw Invalid("No update is ready.");
 
     private Message? Open(string target) =>

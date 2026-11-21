@@ -503,7 +503,7 @@
     <value>Restart</value>
   </data>
   <data name="Shell_StatusRestartTip" xml:space="preserve">
-    <value>The window closes, version {version} installs and the window opens again.</value>
+    <value>{mode, select, inplace {Version {version} installs, and the window starts again.} other {The window closes, version {version} installs and the window opens again.}}</value>
   </data>
   <data name="Shell_StatusUpdateAvailable" xml:space="preserve">
     <value>Update available</value>
@@ -597,6 +597,12 @@
   </data>
   <data name="Shell_WindowRestarted" xml:space="preserve">
     <value>The window started again in version {version}.</value>
+  </data>
+  <data name="Shell_UpdateNotInstalledTitle" xml:space="preserve">
+    <value>The update was not installed</value>
+  </data>
+  <data name="Shell_UpdateNotInstalled" xml:space="preserve">
+    <value>The app keeps running version {version}.</value>
   </data>
   <data name="Shell_PageGame" xml:space="preserve">
     <value>Game</value>

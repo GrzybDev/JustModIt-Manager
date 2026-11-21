@@ -55,6 +55,9 @@ public sealed partial class UpdateService(
     private int _disposed;
     private volatile bool _restartRequested;
 
+    // The window asked to stay, so a restart that waits for the jobs keeps it too.
+    private volatile bool _keepWindow;
+
     // Applying this version failed once, so it is applied again only when the player asks.
     private volatile string? _failedVersion;
 
@@ -138,8 +141,11 @@ public sealed partial class UpdateService(
     public Task CheckNowAsync() => updater.IsSupported ? CheckAsync(userAsked: true) : Task.CompletedTask;
 
     /// <summary>Restarts into the downloaded update at the player's request, once running jobs are done.</summary>
+    /// <param name="keepWindow">
+    /// Leaves the window open, which starts anew in the new version itself; otherwise the window closes first.
+    /// </param>
     /// <returns>False when there is nothing to apply, or the window refused to close.</returns>
-    public async Task<bool> RestartToUpdateAsync()
+    public async Task<bool> RestartToUpdateAsync(bool keepWindow = false)
     {
         if (status.Update.State != AppUpdateState.Ready)
         {
@@ -147,20 +153,21 @@ public sealed partial class UpdateService(
         }
 
         _restartRequested = true;
+        _keepWindow |= keepWindow;
         if (jobs.IsBusy)
         {
             return true;
         }
 
-        if (!await ui.CloseAsync(ShutdownReason.Update, _stopping.Token).ConfigureAwait(false))
+        if (!_keepWindow && !await ui.CloseAsync(ShutdownReason.Update, _stopping.Token).ConfigureAwait(false))
         {
             _restartRequested = false;
             return false;
         }
 
-        // The player is waiting for the app, so it comes back with its window, except in a store's game session, which shows
-        // only a window the store starts.
-        return Apply(status.Activity.WindowReturn == WindowReturn.StoreLibrary ? [LaunchArguments.BackgroundSwitch] : []);
+        // The player is waiting for the app, so it comes back with its window, unless the window stays, or the store's game
+        // session shows only a window the store starts.
+        return Apply(_keepWindow || status.Activity.WindowReturn == WindowReturn.StoreLibrary ? [LaunchArguments.BackgroundSwitch] : []);
     }
 
     // The container disposes it once for each service it is registered as.
@@ -323,6 +330,7 @@ public sealed partial class UpdateService(
             AtomicFile.TryDelete(options.Locations.UpdateAttemptFile);
             Volatile.Write(ref _applying, 0);
             _restartRequested = false;
+            _keepWindow = false;
             status.ChangeUpdate(update => update with { State = AppUpdateState.Failed });
             return false;
         }

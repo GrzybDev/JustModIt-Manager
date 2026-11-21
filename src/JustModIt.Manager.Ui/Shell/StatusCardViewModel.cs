@@ -6,6 +6,7 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
+using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Pages.Library;
@@ -21,15 +22,18 @@ public sealed partial class StatusCardViewModel : ObservableObject, IDisposable
 {
     private readonly IAgent _agent;
     private readonly string _version;
+    private readonly bool _keepsWindow;
     private JobView? _job;
 
     /// <summary>Creates the card, which follows the agent from then on.</summary>
     /// <param name="agent">The agent whose state the card sums up.</param>
     /// <param name="version">This app's version, shown until the agent reports its own.</param>
-    public StatusCardViewModel(IAgent agent, string version)
+    /// <param name="keepsWindow">The window stays open through the update and starts anew in the new version itself, as in Game Mode.</param>
+    public StatusCardViewModel(IAgent agent, string version, bool keepsWindow = false)
     {
         _agent = agent;
         _version = version;
+        _keepsWindow = keepsWindow;
         _agent.PropertyChanged += OnAgentChanged;
         _agent.JobsProgressed += OnJobsProgressed;
         Update();
@@ -88,6 +92,12 @@ public sealed partial class StatusCardViewModel : ObservableObject, IDisposable
 
     public bool HasAction => ActionText is not null;
 
+    /// <summary>The agent took the request to update with the window kept, which then waits for the new version.</summary>
+    public event EventHandler? UpdatingInPlace;
+
+    /// <summary>The card's action takes the focus back, as after an update that did not install.</summary>
+    public event EventHandler? ActionFocusRequested;
+
     /// <summary>The card read out as one sentence.</summary>
     public string AccessibleText => string.Join(" ", new[] { Title, Suffix, Detail }.Where(part => !string.IsNullOrEmpty(part)));
 
@@ -103,11 +113,31 @@ public sealed partial class StatusCardViewModel : ObservableObject, IDisposable
     private async Task ActAsync()
     {
         // The card shows the outcome once the agent's state changes; a request that did not get through changes nothing.
-        if (ActionMessage is { } message)
+        if (ActionMessage is ApplyAppUpdate { KeepWindow: true } update)
+        {
+            try
+            {
+                await _agent.RequestAsync(update).ConfigureAwait(true);
+            }
+            catch (Exception exception) when (exception is TimeoutException or RequestFailedException)
+            {
+                return;
+            }
+            // The agent may apply the update and leave before its answer goes out, which tells as much as the answer.
+            catch (ConnectionClosedException)
+            {
+            }
+
+            UpdatingInPlace?.Invoke(this, EventArgs.Empty);
+        }
+        else if (ActionMessage is { } message)
         {
             await AgentRequests.AskQuietlyAsync(_agent, message).ConfigureAwait(true);
         }
     }
+
+    /// <summary>Gives the card's action the focus, which it had before the window waited for the update.</summary>
+    public void FocusAction() => ActionFocusRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnAgentChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -218,8 +248,9 @@ public sealed partial class StatusCardViewModel : ObservableObject, IDisposable
             case AppUpdateState.Ready:
                 Show(Icons.Sparkles, Strings.Shell_StatusUpdateReady, Text.Format(Strings.Shell_StatusVersion, ("version", version)));
                 HasDot = true;
-                Offer(Strings.Shell_StatusRestart, Icons.RotateCcw, Text.Format(Strings.Shell_StatusRestartTip, ("version", version)),
-                    new ApplyAppUpdate());
+                Offer(Strings.Shell_StatusRestart, Icons.RotateCcw,
+                    Text.Format(Strings.Shell_StatusRestartTip, ("mode", _keepsWindow ? "inplace" : "other"), ("version", version)),
+                    new ApplyAppUpdate { KeepWindow = _keepsWindow });
                 break;
             case AppUpdateState.Available:
                 Show(Icons.Download, Strings.Shell_StatusUpdateAvailable, Text.Format(Strings.Shell_StatusVersion, ("version", version)));

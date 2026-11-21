@@ -490,7 +490,7 @@
     <value>Uruchom ponownie</value>
   </data>
   <data name="Shell_StatusRestartTip" xml:space="preserve">
-    <value>Okno się zamknie, zainstaluje się wersja {version} i okno otworzy się ponownie.</value>
+    <value>{mode, select, inplace {Zainstaluje się wersja {version}, a okno uruchomi się ponownie.} other {Okno się zamknie, zainstaluje się wersja {version} i okno otworzy się ponownie.}}</value>
   </data>
   <data name="Shell_StatusUpdateAvailable" xml:space="preserve">
     <value>Dostępna aktualizacja</value>
@@ -584,6 +584,12 @@
   </data>
   <data name="Shell_WindowRestarted" xml:space="preserve">
     <value>Okno uruchomiło się ponownie w wersji {version}.</value>
+  </data>
+  <data name="Shell_UpdateNotInstalledTitle" xml:space="preserve">
+    <value>Nie zainstalowano aktualizacji</value>
+  </data>
+  <data name="Shell_UpdateNotInstalled" xml:space="preserve">
+    <value>Aplikacja działa dalej w wersji {version}.</value>
   </data>
   <data name="Shell_PageGame" xml:space="preserve">
     <value>Gra</value>

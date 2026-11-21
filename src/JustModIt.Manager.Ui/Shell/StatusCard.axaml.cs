@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Shell;
@@ -16,9 +17,15 @@ public sealed partial class StatusCard : UserControl
     {
         base.OnDataContextChanged(e);
         _status?.PropertyChanged -= OnStatusChanged;
+        _status?.ActionFocusRequested -= OnActionFocusRequested;
         _status = DataContext as StatusCardViewModel;
         _status?.PropertyChanged += OnStatusChanged;
+        _status?.ActionFocusRequested += OnActionFocusRequested;
     }
+
+    // Once the pages are back, so the button is there to take it; a focus given back opens no tooltip.
+    private void OnActionFocusRequested(object? sender, EventArgs e) =>
+        Dispatcher.UIThread.Post(() => StatusAction.Focus(), DispatcherPriority.Loaded);
 
     private void OnStatusChanged(object? sender, PropertyChangedEventArgs e)
     {

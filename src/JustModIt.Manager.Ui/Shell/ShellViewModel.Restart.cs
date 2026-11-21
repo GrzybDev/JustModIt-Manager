@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
@@ -18,6 +19,10 @@ public sealed partial class ShellViewModel
     private string? _loggedVersion;
     private bool _toldRestart;
     private ILogger? _logger;
+    private KeptUpdate _keptUpdate;
+
+    // The player asked for the update the window starts anew for, which then says nothing of it.
+    private bool _askedRestart;
 
     /// <summary>
     /// The window closes to start anew in the agent's version, as when the agent asks it to close, without the close question;
@@ -43,6 +48,7 @@ public sealed partial class ShellViewModel
         if (agent == _services.Context.Version)
         {
             _restartFor = null;
+            _askedRestart = false;
         }
         else if (agent is not null && CanStartAnewFor(agent))
         {
@@ -97,7 +103,7 @@ public sealed partial class ShellViewModel
         if (agreed)
         {
             Agent.ReportRestarting();
-            Restarting?.Invoke(this, new WindowRestart(version));
+            Restarting?.Invoke(this, new WindowRestart(version, _askedRestart));
         }
         else
         {
@@ -139,10 +145,50 @@ public sealed partial class ShellViewModel
         ShowConnecting();
     }
 
-    // Once, after a start anew that reached the agent's version; vanishing and coming back would otherwise look like a crash.
+    // The agent may have gone to be updated before its answer reached the card.
+    private void OnUpdatingInPlace(object? sender, EventArgs e)
+    {
+        _keptUpdate = KeptUpdate.Asked;
+        if (Agent.Link != AgentLink.Connected)
+        {
+            StopCountingSlowConnection();
+            ApplyLink();
+        }
+    }
+
+    // The window stayed through the update the player asked for: the agent coming back in the window's own version did not
+    // install it, so the window says so and offers it again, and one in another version is what the window starts anew in.
+    private void FollowKeptUpdate(AgentLink link, string? agent)
+    {
+        if (_keptUpdate == KeptUpdate.Asked && link != AgentLink.Connected)
+        {
+            _keptUpdate = KeptUpdate.Away;
+        }
+        // An update that failed to apply leaves the agent running, so its next going is no update.
+        else if (_keptUpdate == KeptUpdate.Asked && Agent.HasState && Agent.State.Update.State != AppUpdateState.Ready)
+        {
+            _keptUpdate = KeptUpdate.None;
+        }
+        else if (_keptUpdate == KeptUpdate.Away && agent is not null)
+        {
+            _keptUpdate = KeptUpdate.None;
+            if (agent != _services.Context.Version)
+            {
+                _askedRestart = true;
+                return;
+            }
+
+            Toasts.Show(new ToastViewModel(ToastTone.Warning, Icons.TriangleAlert, Strings.Shell_UpdateNotInstalledTitle,
+                Text.Format(Strings.Shell_UpdateNotInstalled, ("version", agent))));
+            Status.FocusAction();
+        }
+    }
+
+    // Once, after a start anew that reached the agent's version and that the player did not ask for on the update card;
+    // vanishing and coming back would otherwise look like a crash.
     private void TellRestarted()
     {
-        if (!_toldRestart && _services.Context.Restarted is { } restarted && restarted.Version == _services.Context.Version)
+        if (!_toldRestart && _services.Context.Restarted is { Asked: false } restarted && restarted.Version == _services.Context.Version)
         {
             Toasts.Show(new ToastViewModel(ToastTone.Info, Icons.RotateCcw,
                 Text.Format(Strings.Shell_WindowRestarted, ("version", restarted.Version)), null));
@@ -153,4 +199,15 @@ public sealed partial class ShellViewModel
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The agent runs version {Agent} and this window {Window}, which works on as it is")]
     private static partial void LogOtherVersion(ILogger logger, string agent, string window);
+
+    private enum KeptUpdate
+    {
+        None,
+
+        // The agent took the request and still runs.
+        Asked,
+
+        // The agent went to be updated, and the window waits for it.
+        Away,
+    }
 }

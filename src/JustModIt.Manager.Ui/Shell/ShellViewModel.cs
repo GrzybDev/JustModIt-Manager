@@ -60,7 +60,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         _services = services;
         _firstRun = firstRun;
-        Status = new StatusCardViewModel(services.Agent, services.Context.Version);
+        Status = new StatusCardViewModel(services.Agent, services.Context.Version,
+            keepsWindow: services.Context.InGameMode && services.Context.RestartWindow is not null);
+        Status.UpdatingInPlace += OnUpdatingInPlace;
         Primary =
         [
             new(ShellSection.Library, Strings.Shell_Library, Icons.Gamepad, new LibraryRoute()),
@@ -135,6 +137,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         _slowConnection?.Dispose();
         _busyPage?.PropertyChanged -= OnBusyPageChanged;
+        Status.UpdatingInPlace -= OnUpdatingInPlace;
         Agent.PropertyChanged -= OnAgentChanged;
         Agent.NavigationRequested -= OnNavigationRequested;
         Agent.Noticed -= OnNoticed;

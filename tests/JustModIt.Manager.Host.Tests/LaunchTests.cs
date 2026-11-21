@@ -40,14 +40,16 @@ public sealed class LaunchTests : IDisposable
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("sv-SE");
         try
         {
-            var restart = new Ui.WindowRestart("1.1.0-beta.2", new Ui.WindowPlacement(-1280, 40, 1366.5, 768, Maximized: true));
+            var restart = new Ui.WindowRestart("1.1.0-beta.2", Placement: new Ui.WindowPlacement(-1280, 40, 1366.5, 768, Maximized: true));
             Environment.SetEnvironmentVariable("MANAGER_WINDOW_RESTARTED_FOR",
                 WindowRestarts.EnvironmentFor(restart)["MANAGER_WINDOW_RESTARTED_FOR"]);
 
             WindowRestarts.Take().Should().Be(restart);
             Environment.GetEnvironmentVariable("MANAGER_WINDOW_RESTARTED_FOR").Should().BeNull("no program the window starts inherits it");
             WindowRestarts.Take().Should().BeNull();
-            WindowRestarts.Parse(WindowRestarts.Format(restart with { Placement = null })).Should().Be(restart with { Placement = null });
+            // Game Mode's screen is the session's, and there only the player's update asks for it.
+            WindowRestarts.Parse(WindowRestarts.Format(restart with { Asked = true, Placement = null })).Should()
+                .Be(restart with { Asked = true, Placement = null });
         }
         finally
         {

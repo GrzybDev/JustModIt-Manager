@@ -36,12 +36,19 @@ internal static class WindowRestarts
         return environment;
     }
 
-    /// <summary>Writes a restart as the variable carries it: the version, then where the window stood, if anywhere.</summary>
+    /// <summary>
+    /// Writes a restart as the variable carries it: the version, whether the player asked for it, then where the window stood,
+    /// if anywhere.
+    /// </summary>
     /// <param name="restart">The restart to write.</param>
-    internal static string Format(WindowRestart restart) => restart.Placement is { } placement
-        ? string.Create(CultureInfo.InvariantCulture,
-            $"{restart.Version};{placement.X};{placement.Y};{placement.Width};{placement.Height};{(placement.Maximized ? 1 : 0)}")
-        : restart.Version;
+    internal static string Format(WindowRestart restart)
+    {
+        var text = $"{restart.Version};{(restart.Asked ? 1 : 0)}";
+        return restart.Placement is { } placement
+            ? string.Create(CultureInfo.InvariantCulture,
+                $"{text};{placement.X};{placement.Y};{placement.Width};{placement.Height};{(placement.Maximized ? 1 : 0)}")
+            : text;
+    }
 
     /// <summary>Reads a restart as <see cref="Format"/> wrote it.</summary>
     /// <param name="text">The variable's value; null when it is not set.</param>
@@ -54,7 +61,7 @@ internal static class WindowRestarts
         }
 
         var parts = text.Split(';');
-        return new WindowRestart(parts[0], parts is [_, var x, var y, var width, var height, var maximized]
+        return new WindowRestart(parts[0], parts[1] == "1", parts is [_, _, var x, var y, var width, var height, var maximized]
             ? new WindowPlacement(int.Parse(x, CultureInfo.InvariantCulture), int.Parse(y, CultureInfo.InvariantCulture),
                 double.Parse(width, CultureInfo.InvariantCulture), double.Parse(height, CultureInfo.InvariantCulture), maximized == "1")
             : null);

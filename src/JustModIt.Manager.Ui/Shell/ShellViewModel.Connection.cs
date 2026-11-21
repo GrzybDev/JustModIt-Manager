@@ -18,6 +18,12 @@ public sealed partial class ShellViewModel
     /// </summary>
     public static readonly TimeSpan SlowConnection = TimeSpan.FromSeconds(8);
 
+    /// <summary>
+    /// How long the window that stays through an update waits before it offers to start the agent again, so the offer does not
+    /// race the updater, which replaces the file and starts the agent itself.
+    /// </summary>
+    public static readonly TimeSpan SlowUpdate = TimeSpan.FromSeconds(60);
+
     private static readonly string[] ConnectingTexts =
     [
         nameof(ConnectingTitle), nameof(ConnectingMessage), nameof(IsWaiting), nameof(ShowsNoAnswer), nameof(ShowsStartAgent),
@@ -64,7 +70,8 @@ public sealed partial class ShellViewModel
     public string ConnectingMessage => Mode switch
     {
         Waiting.Update when _busyPage is not null => Strings.Shell_UpdatingAfterBuild,
-        Waiting.Update => Text.Format(Strings.Shell_UpdatingMessage, ("mode", _restartFor is null ? "other" : "inplace")),
+        Waiting.Update => Text.Format(Strings.Shell_UpdatingMessage,
+            ("mode", _restartFor is null && _keptUpdate != KeptUpdate.Away ? "other" : "inplace")),
         Waiting.Versions => Text.Format(Strings.Shell_VersionMismatch, ("window", _services.Context.Version), ("agent", Agent.AgentVersion ?? "")),
         _ => Strings.Shell_ConnectingMessage,
     };
@@ -93,7 +100,8 @@ public sealed partial class ShellViewModel
     /// <summary>In Game Mode the window comes from Steam's shortcut, which the settings on the desktop put right.</summary>
     public bool ShowsShortcutHint => MismatchCopy is not null && _services.Context.InGameMode;
 
-    private Waiting Mode => Agent.Link != AgentLink.Incompatible ? Waiting.Agent
+    private Waiting Mode => _keptUpdate == KeptUpdate.Away ? Waiting.Update
+        : Agent.Link != AgentLink.Incompatible ? Waiting.Agent
         : _restartFor is not null || (_services.Context.RestartWindow is null && !_mismatchSettled) ? Waiting.Update
         : Waiting.Versions;
 
@@ -129,7 +137,7 @@ public sealed partial class ShellViewModel
             StartRefused = false;
             ShowsRefusal = false;
             _agentBeforeStart = before;
-            CountSlowConnection();
+            CountSlowConnection(SlowConnection);
         }
         else
         {
@@ -151,6 +159,7 @@ public sealed partial class ShellViewModel
         var agent = Agent.AgentVersion;
         var connected = link == AgentLink.Connected && Agent.HasState;
         IsConnecting = !connected && !IsUninstalled;
+        FollowKeptUpdate(link, agent);
         FollowAgentVersion(link, agent);
         if (connected)
         {
@@ -168,7 +177,7 @@ public sealed partial class ShellViewModel
             _mismatchSettled = false;
             if (_slowConnection is null && !IsSlowToConnect && !IsStartingAgent)
             {
-                CountSlowConnection();
+                CountSlowConnection(_keptUpdate == KeptUpdate.Away ? SlowUpdate : SlowConnection);
             }
         }
         else
@@ -182,7 +191,7 @@ public sealed partial class ShellViewModel
 
             if (Mode == Waiting.Update && _restartFor is null && _slowConnection is null)
             {
-                CountSlowConnection();
+                CountSlowConnection(SlowConnection);
             }
         }
 
@@ -198,7 +207,7 @@ public sealed partial class ShellViewModel
         }
     }
 
-    private void CountSlowConnection()
+    private void CountSlowConnection(TimeSpan after)
     {
         _slowConnection?.Dispose();
         ITimer? timer = null;
@@ -221,7 +230,7 @@ public sealed partial class ShellViewModel
             }
 
             ShowConnecting();
-        }), null, SlowConnection, Timeout.InfiniteTimeSpan);
+        }), null, after, Timeout.InfiniteTimeSpan);
         _slowConnection = timer;
     }
 
