@@ -166,8 +166,7 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
         private string _language = "";
         private Action? _changed;
         private CancellationTokenSource? _watching;
-        private WatchedFolder? _target;
-        private IDisposable? _watch;
+        private FileFollower? _follower;
 
         public SteamSession Read()
         {
@@ -199,6 +198,7 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
             {
                 _changed = changed;
                 _watching = new CancellationTokenSource();
+                _follower = new FileFollower(fileSystem, folders, changed);
                 Follow();
             }
 
@@ -213,39 +213,15 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
                 _watching?.Cancel();
                 _watching?.Dispose();
                 _watching = null;
-                _watch?.Dispose();
-                (_watch, _target) = (null, null);
+                _follower?.Dispose();
+                _follower = null;
                 _awaited.Clear();
             }
         }
 
         // While the folder is missing the way to it is watched, so each read after a step down follows it further.
-        private void Follow()
-        {
-            if (_changed is not { } changed)
-            {
-                return;
-            }
-
-            var target = fileSystem.DirectoryExists(folder)
-                ? new WatchedFolder(folder, [SteamInstallation.ProcessFile, SteamInstallation.RegistryFile])
-                : WatchedFolder.Toward(fileSystem, folder);
-            if (_watch is not null && Equals(target, _target))
-            {
-                return;
-            }
-
-            _watch?.Dispose();
-            (_watch, _target) = (null, target);
-            try
-            {
-                _watch = target is null ? null : folders.Watch(target, _ => changed());
-            }
-            // The next read tries again.
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-            }
-        }
+        private void Follow() =>
+            _follower?.Follow([Path.Join(folder, SteamInstallation.ProcessFile), Path.Join(folder, SteamInstallation.RegistryFile)]);
 
         private async Task ReportExitAsync(ProcessEntry game, Action changed, CancellationToken cancellationToken)
         {

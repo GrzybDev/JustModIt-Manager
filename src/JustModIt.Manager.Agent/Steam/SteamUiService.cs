@@ -30,6 +30,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
     private readonly TimeProvider _time;
     private readonly ILogger<SteamUiService> _logger;
     private readonly MillenniumDelivery _millennium;
+    private readonly SteamProcess _process;
 
     private readonly Channel<bool> _wake = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
     {
@@ -42,11 +43,6 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
     private SteamUiStatus _status = SteamUiStatus.None;
     private SteamUiDemand? _demand;
     private CancellationToken _stopping;
-
-    private int? _process;
-    private SteamRun? _run;
-    private int _exitedProcess;
-    private int _staleProcess;
     private int _restarting;
 
     // Read and written only while holding _work.
@@ -67,6 +63,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
     {
         (_steam, _devTools, _settings, _options, _time, _logger) = (steam, devTools, settings, options, time, logger);
         _millennium = new MillenniumDelivery(folders, options, time, Wake, logger);
+        _process = new SteamProcess(steam, time, Wake);
     }
 
     public event EventHandler<SteamUiStatus>? Changed;
@@ -120,7 +117,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
     public SteamRestartResult RestartSteam()
     {
         // Read afresh, since on Linux nothing tells when a game starts; the status follows.
-        if (_process is not null && _steam.Read().RunningGame is not null)
+        if (_process.Id is not null && _steam.Read().RunningGame is not null)
         {
             Wake();
             return SteamRestartResult.GameRunning;
@@ -132,7 +129,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
             return SteamRestartResult.Restarting;
         }
 
-        var running = _process;
+        var running = _process.Id;
         if (running is not null && !_steam.Open(ExitLink))
         {
             Volatile.Write(ref _restarting, 0);
@@ -210,7 +207,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
                     return;
                 }
 
-                Volatile.Write(ref _exitedProcess, process);
+                _process.Exited(process);
             }
 
             // What waits for Steam to be closed goes in before it starts again.
@@ -255,7 +252,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
     {
         var steam = _steam.Find();
         var session = _steam.Read();
-        var running = Follow(session.ProcessId);
+        var running = _process.Follow(session.ProcessId, _stopping);
         var current = _settings.Current;
         // Before the first demand nothing in Steam's folder changes, since what is there may be needed.
         var demand = Volatile.Read(ref _demand);
@@ -284,7 +281,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
         if (millennium)
         {
             var unused = demand is not null && !current.AchievementTexts && demand.LaunchOptionsGames.Count == 0;
-            status = await _millennium.ReconcileAsync(steam!.Millennium, running ? _run : null, needed, unused, demand, status, cancellationToken)
+            status = await _millennium.ReconcileAsync(steam!.Millennium, running ? _process.Run : null, needed, unused, demand, status, cancellationToken)
                 .ConfigureAwait(false);
         }
         else
@@ -309,7 +306,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
             Switch(() => created = ClassicSwitch.TurnOn(root, SwitchOwner));
         }
 
-        if (!needed || demand is null || _process is not { } process)
+        if (!needed || demand is null || _process.Id is not { } process)
         {
             return status;
         }
@@ -368,7 +365,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
         }
 
         _classic = null;
-        if (clear && classic.Process == _process)
+        if (clear && classic.Process == _process.Id)
         {
             try
             {
@@ -393,48 +390,6 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             LogSwitchNotChanged(exception.GetType().Name);
-        }
-    }
-
-    // Steam records its process until it exits cleanly, so a process that was stopped from outside is still recorded.
-    private bool Follow(int? processId)
-    {
-        if (processId is not { } id || id == Volatile.Read(ref _exitedProcess) || id == _staleProcess)
-        {
-            _process = null;
-            return false;
-        }
-
-        if (id == _process)
-        {
-            return true;
-        }
-
-        if (!_steam.IsRunning(id))
-        {
-            _staleProcess = id;
-            _process = null;
-            return false;
-        }
-
-        _process = id;
-        _run = new SteamRun(_steam.StartedAt(id), _time.GetUtcNow());
-        _ = WaitForExitAsync(id);
-        return true;
-    }
-
-    private async Task WaitForExitAsync(int processId)
-    {
-        try
-        {
-            if (await _steam.WaitForExitAsync(processId, _stopping).ConfigureAwait(false))
-            {
-                Volatile.Write(ref _exitedProcess, processId);
-                Wake();
-            }
-        }
-        catch (OperationCanceledException)
-        {
         }
     }
 
