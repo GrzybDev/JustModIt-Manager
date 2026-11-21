@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Text;
 using JustModIt.Manager.Core.Games;
 
@@ -17,20 +16,6 @@ internal static class SteamAppInfo
     private const int EntryHeaderSize = 4 + 4 + 8 + 20 + 4 + 20;
 
     private const string OsList = "oslist";
-
-    private enum KeyValueType : byte
-    {
-        Object = 0,
-        String = 1,
-        Int32 = 2,
-        Float32 = 3,
-        Pointer = 4,
-        Color = 6,
-        UInt64 = 7,
-        End = 8,
-        Int64 = 10,
-        AlternateEnd = 11,
-    }
 
     /// <summary>Reads what the cache names for the given apps, skipping every other app by its size.</summary>
     /// <param name="stream">The cache, readable and seekable; it stays open.</param>
@@ -119,68 +104,27 @@ internal static class SteamAppInfo
         string? common = null;
         var depots = new Dictionary<string, string>(StringComparer.Ordinal);
         var path = new List<string>();
-        var position = 0;
-        while (true)
+        var reader = new BinaryKeyValues(data, keys);
+        while (reader.Read())
         {
-            var type = (KeyValueType)Take(data, ref position, 1)[0];
-            if (type is KeyValueType.End or KeyValueType.AlternateEnd)
+            switch (reader.Kind)
             {
-                if (path.Count == 0)
-                {
-                    return new SteamAppSystems(common, depots);
-                }
-
-                path.RemoveAt(path.Count - 1);
-                continue;
-            }
-
-            var index = BinaryPrimitives.ReadInt32LittleEndian(Take(data, ref position, 4));
-            var key = (uint)index < (uint)keys.Length
-                ? keys[index]
-                : throw new InvalidDataException("Steam's app info cache names a key its string table does not hold.");
-            switch (type)
-            {
-                case KeyValueType.Object:
-                    path.Add(key);
+                case BinaryKeyValueKind.Object:
+                    path.Add(reader.Key);
                     break;
-                case KeyValueType.String:
-                    var end = data[position..].IndexOf((byte)0);
-                    var value = end >= 0
-                        ? data.Slice(position, end)
-                        : throw new InvalidDataException("A text in Steam's app info cache runs past its entry.");
-                    position += end + 1;
-                    if (key == OsList && path is ["appinfo", "common"])
-                    {
-                        common = Encoding.UTF8.GetString(value);
-                    }
-                    else if (key == OsList && path is ["appinfo", "depots", var depot, "config"])
-                    {
-                        depots[depot] = Encoding.UTF8.GetString(value);
-                    }
-
+                case BinaryKeyValueKind.End:
+                    path.RemoveAt(path.Count - 1);
                     break;
-                case KeyValueType.Int32 or KeyValueType.Float32 or KeyValueType.Pointer or KeyValueType.Color:
-                    Take(data, ref position, 4);
+                case BinaryKeyValueKind.Text when reader.Key == OsList && path is ["appinfo", "common"]:
+                    common = Encoding.UTF8.GetString(reader.Text);
                     break;
-                case KeyValueType.UInt64 or KeyValueType.Int64:
-                    Take(data, ref position, 8);
+                case BinaryKeyValueKind.Text when reader.Key == OsList && path is ["appinfo", "depots", var depot, "config"]:
+                    depots[depot] = Encoding.UTF8.GetString(reader.Text);
                     break;
-                default:
-                    throw new InvalidDataException($"Steam's app info cache holds a value of the unknown type {(byte)type}.");
             }
         }
-    }
 
-    private static ReadOnlySpan<byte> Take(ReadOnlySpan<byte> data, ref int position, int length)
-    {
-        if (length > data.Length - position)
-        {
-            throw new InvalidDataException("A value in Steam's app info cache runs past its entry.");
-        }
-
-        var taken = data.Slice(position, length);
-        position += length;
-        return taken;
+        return new SteamAppSystems(common, depots);
     }
 }
 

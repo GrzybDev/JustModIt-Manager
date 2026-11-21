@@ -5,7 +5,8 @@ namespace JustModIt.Manager.Core.Library.Steam;
 
 /// <summary>
 /// Reads Valve's text KeyValues (<c>libraryfolders.vdf</c>, <c>appmanifest_*.acf</c>) without reflection into an object
-/// holding every top-level key; the binary form (<c>appinfo.vdf</c>) is not supported.
+/// holding every top-level key; <see cref="BinaryKeyValues"/> reads the binary form (<c>appinfo.vdf</c>,
+/// <c>shortcuts.vdf</c>).
 /// </summary>
 internal static class VdfParser
 {

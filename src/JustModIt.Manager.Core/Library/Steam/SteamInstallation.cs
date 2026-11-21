@@ -57,6 +57,57 @@ public static class SteamInstallation
             .FirstOrDefault(fileSystem.FileExists);
     }
 
+    /// <summary>The file in Steam's folder that lists the accounts that signed in, which names the one signed in last.</summary>
+    /// <param name="root">The folder Steam is installed in.</param>
+    public static string AccountsFile(string root) => Path.Join(root, "config", "loginusers.vdf");
+
+    /// <summary>The file of the shortcuts in the library of the account that signed in to Steam last.</summary>
+    /// <param name="fileSystem">Reads the list of accounts.</param>
+    /// <param name="root">The folder Steam is installed in.</param>
+    /// <returns>Null when no account signed in.</returns>
+    /// <exception cref="InvalidDataException">The list of accounts is damaged, or cut short while Steam writes it.</exception>
+    public static string? ShortcutsFile(IFileSystem fileSystem, string root)
+    {
+        try
+        {
+            return ReadText(fileSystem, AccountsFile(root)) switch
+            {
+                null => null,
+                // Steam rewrites the list in place, so one it just emptied names no account yet.
+                "" => throw new InvalidDataException("The list of Steam's accounts is empty."),
+                var accounts => SteamAccounts.Recent(accounts) is { } account
+                    ? Path.Join(root, "userdata", account.ToString(CultureInfo.InvariantCulture), "config", "shortcuts.vdf")
+                    : null,
+            };
+        }
+        catch (VdfFormatException exception)
+        {
+            throw new InvalidDataException(exception.Message, exception);
+        }
+    }
+
+    /// <summary>Reads the shortcuts of a library, which only Steam writes.</summary>
+    /// <param name="fileSystem">Reads the file.</param>
+    /// <param name="file">The library's shortcuts file.</param>
+    /// <returns>The shortcuts in the file's order; none when the library has no file of them.</returns>
+    /// <exception cref="InvalidDataException">The file is damaged, or cut short while Steam writes it.</exception>
+    /// <exception cref="IOException">The file could not be read.</exception>
+    public static IReadOnlyList<SteamShortcut> ReadShortcuts(IFileSystem fileSystem, string file)
+    {
+        using var bytes = new MemoryStream();
+        try
+        {
+            using var stream = fileSystem.OpenRead(file, FileShare.ReadWrite | FileShare.Delete);
+            stream.CopyTo(bytes);
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return [];
+        }
+
+        return SteamShortcuts.Read(bytes.GetBuffer().AsSpan(0, (int)bytes.Length));
+    }
+
     /// <summary>Reads what the Linux client keeps of itself in its folder.</summary>
     /// <param name="fileSystem">Reads the files.</param>
     /// <param name="environment">The user's folders.</param>
