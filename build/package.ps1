@@ -4,15 +4,19 @@
 Publishes one app with NativeAOT for the system it runs on and packs it into a Velopack release.
 
 .DESCRIPTION
-Everything that sets one app apart (its package id, title, authors, icons, menu categories, update feed, channel and
-tag prefix) is read from its project with MSBuild, so the script is the same for every app. NativeAOT compiles only for
-the system it runs on, so Windows packs the Windows release and Linux the AppImage. The output folder receives:
+Everything that sets one app apart (its package id, title, authors, icons, desktop id, menu categories, update feed,
+channel, tag prefix and texts) is read from its project with MSBuild, so the script is the same for every app.
+NativeAOT compiles only for the system it runs on, so Windows packs the Windows release and Linux the AppImage. The
+output folder receives:
 
   publish\           the published app, as the installer or the AppImage lays it out
   symbols\           the program databases and debug symbols, which never go into the package
-  releases\          the Velopack release: installer or AppImage, full and delta packages, release feed
+  releases\          the Velopack release: installer or AppImage, full and delta packages, release feed; on Linux also
+                     install.sh and <slug>-install.desktop, which install the release's AppImage into ~/Applications,
+                     and <slug>-install.zip, the installer file packed for Firefox, which renames a downloaded one
   release-notes.md   the commits since the app's previous tag, leaving out those that touch only other apps
-  checksums.txt      the SHA-256 of every file a player downloads: the installer or the AppImage, and the full package
+  checksums.txt      the SHA-256 of every file a player downloads: the installer or the AppImage and its installers, and
+                     the full package
 
 The API key for the app's site comes from the MANAGER_API_KEY environment variable when it is set, and the address
 error reports go to from MANAGER_ERROR_REPORTS_DSN.
@@ -137,6 +141,9 @@ if ($SignTemplate) {
 Invoke-Native 'dotnet' ($vpk + $packArguments)
 
 $assets = Get-ChildItem $releases -Filter 'assets.*.json' | Get-Content -Raw | ConvertFrom-Json
+$releaseTag = Get-ReleaseTag $target $Version
+# A player downloads the installer or the AppImage and the full package; deltas only reach an installed copy.
+$downloads = @($assets | Where-Object Type -NE 'Delta' | ForEach-Object { Join-Path $releases $_.RelativeFileName })
 if ($linux) {
     # vpk puts its own AppImage runtime in front of the app, so a Velopack upgrade could ship one the notices do not describe.
     $appImage = Join-Path $releases ($assets | Where-Object Type -EQ 'Portable').RelativeFileName
@@ -146,11 +153,14 @@ if ($linux) {
     if (-not $shipped -or -not $described.StartsWith($shipped)) {
         throw "The AppImage runtime is $shipped, but THIRD-PARTY-NOTICES.md describes $described."
     }
+
+    # Each release's installer installs that release, so a pre-release's installs the pre-release.
+    $downloads += Write-LinuxInstaller -Release "$($target.UpdateUrl)/releases/download/$releaseTag" `
+        -AppImage (Split-Path -Leaf $appImage) -Unit "$($target.DesktopId).service" -Slug $target.Slug `
+        -Texts (Read-AppTexts $target 'Installer_') -OutputDir $releases
 }
 
-# A player downloads the installer or the AppImage and the full package; deltas only reach an installed copy.
-$hashes = foreach ($asset in $assets | Where-Object Type -NE 'Delta') {
-    $file = Join-Path $releases $asset.RelativeFileName
+$hashes = foreach ($file in $downloads) {
     "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $(Split-Path -Leaf $file)"
 }
 [System.IO.File]::WriteAllText($checksums, ($hashes -join "`n") + "`n", (New-Object System.Text.UTF8Encoding $false))
@@ -159,7 +169,7 @@ if ($env:GITHUB_OUTPUT) {
     @(
         "app-id=$($target.AppId)", "product=$($target.Product)", "update-url=$($target.UpdateUrl)",
         "channel=$($target.Channel)", "velopack=$($target.VelopackVersion)", "releases=$releases", "symbols=$symbols",
-        "checksums=$checksums"
+        "checksums=$checksums", "release-tag=$releaseTag"
     ) | Add-Content -Path $env:GITHUB_OUTPUT -Encoding UTF8
 }
 

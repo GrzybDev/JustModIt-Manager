@@ -198,18 +198,21 @@ jobs:
           PRODUCT: ${{ steps.package.outputs.product }}
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_TAG: ${{ steps.package.outputs.release-tag }}
           PRERELEASE: ${{ steps.version.outputs.prerelease }}
           GH_TOKEN: ${{ github.token }}
           RELEASE_REPOSITORY_TOKEN: ${{ secrets.RELEASE_REPOSITORY_TOKEN }}
         run: |
-          # An app whose feed is this repository is released on its own tag with the workflow's token; a release-only
-          # repository gets plain version tags and needs a token that may write to it.
-          $own = $env:UPDATE_URL -eq "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY"
+          # The tag comes from the rule the package's installer links with: an app whose feed is the repository of its code
+          # is released on its own tag with the workflow's token; a release-only repository gets plain version tags and
+          # needs a token that may write to it.
+          $tag = $env:RELEASE_TAG
+          $own = $tag -eq $env:TAG
           if ($own) {
-            $token, $tag = $env:GH_TOKEN, $env:TAG
+            $token = $env:GH_TOKEN
           }
           elseif ($env:RELEASE_REPOSITORY_TOKEN) {
-            $token, $tag = $env:RELEASE_REPOSITORY_TOKEN, "v$env:VERSION"
+            $token = $env:RELEASE_REPOSITORY_TOKEN
           }
           else {
             throw "Publishing to $env:UPDATE_URL needs the RELEASE_REPOSITORY_TOKEN secret: a token that may write to that repository's contents."

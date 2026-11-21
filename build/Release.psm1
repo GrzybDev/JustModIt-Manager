@@ -32,8 +32,9 @@ function Get-AppProjects {
 
 function Read-AppProject([System.IO.DirectoryInfo]$Folder) {
     $project = Get-ChildItem $Folder.FullName -Filter '*.csproj' | Select-Object -First 1
-    $properties = 'Product', 'Company', 'AssemblyName', 'ApplicationIcon', 'ManagerLogo', 'ManagerDesktopCategories',
-        'ManagerAppId', 'ManagerAppSlug', 'ManagerUpdateUrl', 'ManagerUpdateChannel'
+    $properties = 'Product', 'Company', 'AssemblyName', 'ApplicationIcon', 'ManagerLogo', 'ManagerDesktopId',
+        'ManagerDesktopCategories', 'ManagerAppId', 'ManagerAppSlug', 'ManagerUpdateUrl', 'ManagerUpdateChannel',
+        'ManagerSourceUrl'
     $arguments = @('msbuild', $project.FullName, '-p:Configuration=Release', '-getItem:PackageVersion') +
         @($properties | ForEach-Object { "-getProperty:$_" })
     $read = Get-NativeOutput 'dotnet' $arguments
@@ -51,11 +52,13 @@ function Read-AppProject([System.IO.DirectoryInfo]$Folder) {
         AssemblyName = $values.AssemblyName
         Icon = Join-Path $Folder.FullName $values.ApplicationIcon
         Logo = Join-Path $Folder.FullName $values.ManagerLogo
+        DesktopId = $values.ManagerDesktopId
         Categories = $values.ManagerDesktopCategories
         AppId = $values.ManagerAppId
         Slug = $values.ManagerAppSlug
         UpdateUrl = $values.ManagerUpdateUrl.TrimEnd('/')
         Channel = $values.ManagerUpdateChannel
+        SourceUrl = $values.ManagerSourceUrl.TrimEnd('/')
         VelopackVersion = $velopack[0].Version
     }
 }
@@ -224,5 +227,96 @@ function Write-ReleaseNotes {
     return $true
 }
 
+# The tag that a version of the app ($Target, as Read-AppProject reads it) is released under: the app's own tag in the
+# repository of its code, v<version> in a repository that holds only its releases.
+function Get-ReleaseTag($Target, [string]$Version) {
+    if ($Target.UpdateUrl -eq $Target.SourceUrl) { "$($Target.Slug)/v$Version" } else { "v$Version" }
+}
+
+# The texts of the app ($Target, as Read-AppProject reads it) in its language whose names start with $Prefix, by the rest
+# of their names, with the app's name in place of {product}. They come from the resource set that its build merges.
+function Read-AppTexts($Target, [string]$Prefix) {
+    $read = Get-NativeOutput 'dotnet' @('msbuild', $Target.Project, '-t:MergeTexts', '-p:Configuration=Release',
+        '-getProperty:ManagerTextsFile')
+    if ($read.ExitCode -ne 0) { throw "MSBuild could not merge the texts of $($Target.Product):`n$($read.Lines -join "`n")" }
+    $texts = @{}
+    foreach ($data in ([xml](Get-Content -Raw -Encoding UTF8 ($read.Lines -join ''))).root.data) {
+        if ($data.name.StartsWith($Prefix)) {
+            $texts[$data.name.Substring($Prefix.Length)] = $data.value.Replace('{product}', $Target.Product)
+        }
+    }
+    return $texts
+}
+
+# Writes install.sh, which installs the release's AppImage into ~/Applications, or replaces it, and starts the app, and
+# <slug>-install.desktop, which runs it in a terminal from a file manager, also packed in <slug>-install.zip for Firefox;
+# returns their paths.
+function Write-LinuxInstaller {
+    param(
+        # The address that the release's files are downloaded from.
+        [Parameter(Mandatory = $true)]
+        [string]$Release,
+
+        # The AppImage's file name in the release, which it keeps in ~/Applications.
+        [Parameter(Mandatory = $true)]
+        [string]$AppImage,
+
+        # The agent's systemd user unit, restarted so that a running agent goes on from the new file.
+        [Parameter(Mandatory = $true)]
+        [string]$Unit,
+
+        # The app's ManagerAppSlug, which names the installer file.
+        [Parameter(Mandatory = $true)]
+        [string]$Slug,
+
+        # The installer's texts by name, as Read-AppTexts reads them.
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Texts,
+
+        # The folder both files are written to.
+        [Parameter(Mandatory = $true)]
+        [string]$OutputDir
+    )
+
+    $values = @{ Release = $Release; AppImage = $AppImage; Unit = $Unit } + $Texts
+    $values.Done = $Texts.Done.Replace('{file}', "~/Applications/$AppImage")
+    $template = Get-Content -Raw -Encoding UTF8 (Join-Path $PSScriptRoot 'install.sh')
+    $script = [regex]::Replace($template, '@(\w+)@', {
+        param($match)
+        if (-not $values.ContainsKey($match.Groups[1].Value)) { throw "install.sh has no value for $($match.Value)." }
+        ConvertTo-ShellLiteral $values[$match.Groups[1].Value]
+    })
+
+    $url = ConvertTo-ShellLiteral "$Release/install.sh"
+    # Ubuntu's desktop has wget but no curl. The terminal stays open until Enter, since a piped script's failure leaves
+    # nothing else behind.
+    $command = "{ command -v curl >/dev/null && curl -fsSL $url || wget -qO- $url; } | sh; echo; " +
+        "echo $(ConvertTo-ShellLiteral $Texts.Close); read -r reply"
+    # The Desktop Entry Specification's quoting of an argument, then its escaping of a string and of field codes.
+    $exec = 'sh -c "' + ($command -replace '([\\"`$])', '\$1').Replace('\', '\\').Replace('%', '%%') + '"'
+    $entry = "[Desktop Entry]`nType=Application`nName=$($Texts.Title)`nIcon=system-software-install`nTerminal=true`n" +
+        "Exec=$exec`n"
+
+    $paths = (Join-Path $OutputDir 'install.sh'), (Join-Path $OutputDir "$Slug-install.desktop"), (Join-Path $OutputDir "$Slug-install.zip")
+    $encoding = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($paths[0], $script, $encoding)
+    [System.IO.File]::WriteAllText($paths[1], $entry, $encoding)
+    # Firefox renames every downloaded .desktop file to .desktop.download, but not one inside an archive. The archive keeps
+    # the file's mode, so the extracted launcher is executable, which KDE takes for trusted.
+    [System.IO.File]::SetUnixFileMode($paths[1], 'UserRead, UserWrite, UserExecute, GroupRead, GroupExecute, OtherRead, OtherExecute')
+    Remove-Item $paths[2] -ErrorAction Ignore
+    $archive = [System.IO.Compression.ZipFile]::Open($paths[2], 'Create')
+    try {
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $paths[1], (Split-Path -Leaf $paths[1])) | Out-Null
+    }
+    finally {
+        $archive.Dispose()
+    }
+    return $paths
+}
+
+function ConvertTo-ShellLiteral([string]$Value) { "'" + $Value.Replace("'", "'\''") + "'" }
+
 Export-ModuleMember -Function Invoke-Native, Get-NativeOutput, Get-AppProjects, Get-AppSlug, Find-App, Read-AppProject,
-    Confirm-Version, Compare-Version, Get-PackageVersion, Get-AppTagVersions, Get-NextVersion, Write-ReleaseNotes
+    Confirm-Version, Compare-Version, Get-PackageVersion, Get-AppTagVersions, Get-NextVersion, Write-ReleaseNotes,
+    Get-ReleaseTag, Read-AppTexts, Write-LinuxInstaller

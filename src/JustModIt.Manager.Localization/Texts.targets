@@ -74,16 +74,17 @@
   </UsingTask>
 
   <Target Name="MergeTexts" BeforeTargets="AssignTargetPaths">
+    <!-- Public, so that the packaging script can read the merged texts for the Linux installer. -->
     <PropertyGroup>
-      <_ManagerTextsFile>$(IntermediateOutputPath)Texts.resx</_ManagerTextsFile>
+      <ManagerTextsFile>$(IntermediateOutputPath)Texts.resx</ManagerTextsFile>
     </PropertyGroup>
 
     <MergeTexts Language="$(_ManagerTextsLanguage)" PlatformDirectory="$(MSBuildThisFileDirectory)Resources"
-                AppDirectory="$(MSBuildProjectDirectory)\Resources" Output="$(_ManagerTextsFile)" />
+                AppDirectory="$(MSBuildProjectDirectory)\Resources" Output="$(ManagerTextsFile)" />
 
     <ItemGroup>
-      <EmbeddedResource Include="$(_ManagerTextsFile)" LogicalName="JustModIt.Manager.Texts.resources" WithCulture="false" />
-      <FileWrites Include="$(_ManagerTextsFile)" />
+      <EmbeddedResource Include="$(ManagerTextsFile)" LogicalName="JustModIt.Manager.Texts.resources" WithCulture="false" />
+      <FileWrites Include="$(ManagerTextsFile)" />
     </ItemGroup>
   </Target>
 </Project>
