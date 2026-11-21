@@ -18,7 +18,7 @@
             </Border>
             <StackPanel Grid.Column="1" Spacing="2">
               <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_DetectTitle}" />
-              <TextBlock Classes="caption" Text="{x:Static loc:Strings.Onboarding_Detect}" />
+              <TextBlock Classes="caption" Text="{Binding Detect}" />
             </StackPanel>
           </Grid>
           <Grid Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="12">

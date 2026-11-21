@@ -8,7 +8,7 @@ namespace JustModIt.Manager.Protocol.Tests.Views;
 public sealed class DetectionReportViewTests
 {
     [Fact]
-    public void Each_store_takes_the_launcher_and_folder_tip_of_the_sites_first_store_of_its_kind()
+    public void Each_store_takes_the_folder_tip_of_the_sites_first_store_of_its_kind_and_its_launcher_only_on_Windows()
     {
         var report = new DetectionReport(
         [
@@ -26,9 +26,11 @@ public sealed class DetectionReportViewTests
 
         var stores = DetectionReportView.From(report, storefronts).Stores;
 
+        // The site names the programs that install its stores' games on Windows, which other systems do not have.
+        var windows = OperatingSystem.IsWindows();
         stores.Select(store => (store.Name, store.Launcher, store.InstallHint)).Should().Equal(
-            ("Steam", "Steam", "Open the game's **Properties**."),
-            ("GOG", "GOG Galaxy", ""),
+            ("Steam", windows ? "Steam" : "", "Open the game's **Properties**."),
+            ("GOG", windows ? "GOG Galaxy" : "", ""),
             ("", "", ""));
     }
 }

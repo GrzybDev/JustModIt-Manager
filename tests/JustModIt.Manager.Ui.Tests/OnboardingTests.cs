@@ -159,6 +159,52 @@ public sealed class OnboardingTests
     }
 
     [AvaloniaFact]
+    public async Task A_store_whose_games_Heroic_found_is_named_by_the_store_and_says_so()
+    {
+        var state = FirstRun(settings => settings with { OnboardingStep = 1 });
+        using var ui = new UiHarness(state);
+        // GOG's launcher is named as the agent names it on Windows, where it found none of the games Heroic found.
+        ui.Agent.Answer = request => request is GetDetectionReport
+            ? new DetectionReportResult(new DetectionReportView(
+            [
+                new StoreDetectionView("steam")
+                {
+                    Name = "Steam", IsFound = true, IsComplete = true, GameCount = 129, Libraries = [new LibraryDetectionView("home", "steam-library")],
+                },
+                new StoreDetectionView("gog")
+                {
+                    Name = "GOG", Launcher = "GOG Galaxy", IsFound = true, IsComplete = true, GameCount = 4,
+                    Libraries = [new LibraryDetectionView("heroic-gog", "heroic")],
+                },
+                new StoreDetectionView("epic")
+                {
+                    Name = "Epic Games", IsFound = true, IsComplete = true, GameCount = 2,
+                    Libraries = [new LibraryDetectionView("heroic-legendary", "heroic"), new LibraryDetectionView("added", "epic-folder")],
+                },
+            ], Now))
+            : Answer(request);
+        await Settle();
+
+        Setup(ui).CurrentStep.Should().BeOfType<AutomationStep>().Which.Detect.Should().Be(OperatingSystem.IsLinux()
+            ? "W bibliotekach Steam i Heroic (GOG, Epic Games)."
+            : "W bibliotekach Steam, GOG Galaxy, Epic Games i Heroic.");
+        ui.Render("onboarding-2-automation-detection");
+        ui.Push(Found(state));
+        foreach (var _ in Enumerable.Range(0, 3))
+        {
+            ui.Click(Button(ui, Strings.Onboarding_Next));
+            await Settle();
+        }
+
+        Setup(ui).Ready.Stores.Select(store => (store.Name, store.Detail)).Should().Equal(
+            ("Steam", "1 biblioteka, 129 gier"),
+            ("GOG", "w Heroic: 1 biblioteka, 4 gry"),
+            ("Epic Games", "2 biblioteki, 2 gry"));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Render("onboarding-5-ready-heroic");
+    }
+
+    [AvaloniaFact]
     public async Task The_smallest_window_shortens_the_card_scrolls_the_step_and_keeps_its_buttons_in_view()
     {
         using var ui = new UiHarness(FirstRun(settings => settings with { OnboardingStep = 1 }), width: 960, height: 600);

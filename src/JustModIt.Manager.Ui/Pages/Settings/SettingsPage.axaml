@@ -429,21 +429,24 @@
             </ui:SettingRow>
             <WrapPanel x:Name="DataSizes" Margin="72,0,20,20" ItemSpacing="40" LineSpacing="12" IsVisible="{Binding Data.IsMeasured}"
                        theme:Motion.Enter="True">
-              <Grid Classes="size" ColumnDefinitions="Auto,Auto">
+              <Grid Classes="size" ColumnDefinitions="Auto,Auto" ToolTip.Tip="{Binding Data.CacheFolder}"
+                    AutomationProperties.HelpText="{Binding Data.CacheFolder}">
                 <ui:Icon Data="{x:Static theme:Icons.Package}" />
                 <StackPanel Grid.Column="1">
                   <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_DownloadedPackages}" />
                   <TextBlock Classes="h4" Text="{Binding Data.Downloads}" />
                 </StackPanel>
               </Grid>
-              <Grid Classes="size" ColumnDefinitions="Auto,Auto">
+              <Grid Classes="size" ColumnDefinitions="Auto,Auto" ToolTip.Tip="{Binding Data.CacheFolder}"
+                    AutomationProperties.HelpText="{Binding Data.CacheFolder}">
                 <ui:Icon Data="{x:Static theme:Icons.Image}" />
                 <StackPanel Grid.Column="1">
                   <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_ImagesAndCatalogue}" />
                   <TextBlock Classes="h4" Text="{Binding Data.ImagesAndCatalogue}" />
                 </StackPanel>
               </Grid>
-              <Grid Classes="size" ColumnDefinitions="Auto,Auto">
+              <Grid Classes="size" ColumnDefinitions="Auto,Auto" ToolTip.Tip="{Binding Data.LogsFolder}"
+                    AutomationProperties.HelpText="{Binding Data.LogsFolder}">
                 <ui:Icon Data="{x:Static theme:Icons.ScrollText}" />
                 <StackPanel Grid.Column="1">
                   <TextBlock Classes="caption" Text="{x:Static loc:Strings.Settings_Logs}" />

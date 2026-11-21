@@ -230,15 +230,18 @@ public sealed class SettingsTests
     [AvaloniaFact]
     public async Task The_apps_data_shows_what_it_takes_and_its_cache_is_cleared_only_while_no_job_runs()
     {
-        var measured = new AppDataUsage(TestPaths.Rooted('C', "Users", "Example", "AppData", "Local", "ExampleVendor", "ExampleApp"),
-            317_718_528, 224_395_264, 90_177_536, 3_355_443);
+        var folder = TestPaths.Rooted('C', "Users", "Example", "AppData", "Local", "ExampleVendor", "ExampleApp");
+        var measured = new AppDataUsage(folder, 317_718_528, 224_395_264, 90_177_536, 3_355_443, Path.Join(folder, "cache"),
+            Path.Join(folder, "logs"));
         var state = State();
-        using var ui = await OpenAsync(state, answer: request => request switch
-        {
-            GetAppDataUsage => measured,
-            ClearCache => Clear(),
-            _ => null,
-        });
+        // As on Windows, the cache lies inside the data folder.
+        using var ui = await OpenAsync(state, context => context with { ImageCacheDirectory = Path.Join(measured.DataFolder, "cache", "images") },
+            request => request switch
+            {
+                GetAppDataUsage => measured,
+                ClearCache => Clear(),
+                _ => null,
+            });
 
         Message? Clear()
         {
@@ -250,6 +253,8 @@ public sealed class SettingsTests
         await UiHarness.WaitUntilAsync(() => data.IsMeasured);
         data.Usage.Should().Be("Folder danych aplikacji na dysku C: zajmuje 303,0\u00A0MB.");
         (data.Downloads, data.ImagesAndCatalogue, data.Logs).Should().Be(("214,0\u00A0MB", "86,0\u00A0MB", "3,2\u00A0MB"));
+        ui.Find<WrapPanel>("DataSizes").Children.Select(ToolTip.GetTip).Should().AllSatisfy(tip => tip.Should().BeNull(),
+            "the sentence names the one folder everything lies in");
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
         ui.Render("settings-app-data", height: 3200);
 
@@ -272,22 +277,36 @@ public sealed class SettingsTests
     }
 
     [AvaloniaFact]
-    public async Task A_drive_is_named_as_the_home_folders_disk_or_else_by_its_root_when_the_agent_does_not_list_it()
+    public async Task Data_in_several_folders_is_counted_as_a_whole_and_a_drive_is_named_as_the_home_folders_disk_or_by_its_root()
     {
         var home = TestPaths.Rooted('C');
-        using var ui = await OpenAsync(State() with { Volumes = [new NamedVolume(home, "C:", HoldsHome: true)] }, answer: request => request switch
-        {
-            GetAppDataUsage => new AppDataUsage(Path.Join(home, "Data"), 317_718_528, 224_395_264, 90_177_536, 3_355_443),
-            ValidateBackupFolder => new BackupFolderChecked(AvailableBytes: 871_878_361_088),
-            _ => null,
-        });
-        ui.Pickers.Folder = TestPaths.Rooted('F', "Backups");
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        // As on Linux, the data, the cache and the logs lie in folders of their own.
+        using var ui = await OpenAsync(State() with { Volumes = [new NamedVolume(home, "C:", HoldsHome: true)] },
+            context => context with { ImageCacheDirectory = Path.Join(home, "Cache", "images") }, request => request switch
+            {
+                GetAppDataUsage => new AppDataUsage(Path.Join(home, "Data"), 317_718_528, 224_395_264, 90_177_536, 3_355_443,
+                    Path.Join(profile, ".cache", "ExampleVendor", "ExampleApp"),
+                    Path.Join(profile, ".local", "state", "ExampleVendor", "ExampleApp", "logs")),
+                ValidateBackupFolder => new BackupFolderChecked(AvailableBytes: 871_878_361_088),
+                _ => null,
+            });
+        ui.Pickers.Folder = Path.Join(home, "Backups");
 
         await UiHarness.WaitUntilAsync(() => Page(ui).Data.IsMeasured);
         ui.Click(ui.Find<RadioButton>("BackupsInFolder"));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+
+        Page(ui).Data.Usage.Should().Be("Dane aplikacji zajmują 303,0 MB.");
+        var cache = Path.Join("~", ".cache", "ExampleVendor", "ExampleApp");
+        ui.Find<WrapPanel>("DataSizes").Children.Select(ToolTip.GetTip).Should().Equal([cache, cache,
+            Path.Join("~", ".local", "state", "ExampleVendor", "ExampleApp", "logs")], "each size names the folder it lies in");
+        Page(ui).Backups.FreeSpace.Should().Be("Wolne miejsce na dysku z folderem domowym 812,0 GB");
+        ui.Render("settings-app-data-folders", height: 3200);
+        ui.Pickers.Folder = TestPaths.Rooted('F', "Backups");
+        ui.Click(ui.Find<Button>("PickBackupFolder"));
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(100));
 
-        Page(ui).Data.Usage.Should().Be("Folder danych aplikacji na dysku z folderem domowym zajmuje 303,0 MB.");
         Page(ui).Backups.FreeSpace.Should().Be($"Wolne miejsce na dysku {(OperatingSystem.IsWindows() ? "F:" : "/")} 812,0 GB");
     }
 

@@ -151,7 +151,9 @@ public sealed class MessageTests
             ScannedAt = Now,
         }), [new StorefrontPlatform { Uuid = Guid.Empty, Name = "Steam", Provider = "steam", InstallHint = "Open **Properties**." }])),
         new GetAppDataUsage(),
-        new AppDataUsage(@"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp", 317_718_528, 224_395_264, 90_177_536, 3_355_443),
+        new AppDataUsage(@"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp", 317_718_528, 224_395_264, 90_177_536, 3_355_443,
+            @"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp\cache",
+            @"C:\Users\Example\AppData\Local\ExampleVendor\ExampleApp\logs"),
         new GetAchievementTexts(Game),
         new AchievementTextsResult(new AchievementTexts
         {

@@ -296,7 +296,8 @@ public sealed class AgentIpcTests : IAsyncDisposable
         await window.RequestAsync(new ClearCache());
         var after = (AppDataUsage)(await window.RequestAsync(new GetAppDataUsage()))!;
 
-        before.Should().Match<AppDataUsage>(usage => usage.DataFolder == locations.DataDirectory && usage.Downloads == 5000
+        before.Should().Match<AppDataUsage>(usage => usage.DataFolder == locations.DataDirectory
+            && usage.CacheFolder == locations.CacheDirectory && usage.LogsFolder == locations.LogsDirectory && usage.Downloads == 5000
             && usage.ImagesAndCatalogue >= 570 && usage.Logs >= 3050 && usage.Total >= 8620);
         cached.Should().AllSatisfy(file => File.Exists(file).Should().BeFalse());
         File.Exists(log).Should().BeTrue("the logs are not a cache");

@@ -690,7 +690,7 @@
     <value>Game detection</value>
   </data>
   <data name="Onboarding_Detect" xml:space="preserve">
-    <value>In the libraries of Steam, GOG Galaxy, Epic Games and Heroic.</value>
+    <value>{system, select, linux {In the libraries of Steam and Heroic (GOG, Epic Games).} other {In the libraries of Steam, GOG Galaxy, Epic Games and Heroic.}}</value>
   </data>
   <data name="Onboarding_MatchTitle" xml:space="preserve">
     <value>Matching projects</value>
@@ -792,6 +792,9 @@
   </data>
   <data name="Onboarding_StoreFound" xml:space="preserve">
     <value>{libraries, plural, one {# library} other {# libraries}}, {games, plural, one {# game} other {# games}}</value>
+  </data>
+  <data name="Onboarding_StoreFoundIn" xml:space="preserve">
+    <value>in {launcher}: {libraries, plural, one {# library} other {# libraries}}, {games, plural, one {# game} other {# games}}</value>
   </data>
   <data name="Onboarding_StoreMissing" xml:space="preserve">
     <value>not found</value>
@@ -2070,7 +2073,7 @@
     <value>Game folder</value>
   </data>
   <data name="Settings_BackupGameFolderDescription" xml:space="preserve">
-    <value>A hidden folder next to the game's files, on the same drive. Even large files are put aside at once, and nothing goes to the system drive.</value>
+    <value>A hidden folder next to the game's files, on the same drive. Even large files are put aside at once and take no room on other drives.</value>
   </data>
   <data name="Settings_BackupAppData" xml:space="preserve">
     <value>App data</value>
@@ -2199,7 +2202,7 @@
     <value>Disk space</value>
   </data>
   <data name="Settings_DiskUsageText" xml:space="preserve">
-    <value>The app's data folder on {volume, select, home {the home folder's disk} other {drive {drive}}} takes {size}.</value>
+    <value>{folders, select, one {The app's data folder on drive {drive} takes {size}.} other {The app's data takes {size}.}}</value>
   </data>
   <data name="Settings_DiskUsageMeasuring" xml:space="preserve">
     <value>Measuring the space the app's data folder takes…</value>

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
@@ -39,6 +40,17 @@ public sealed partial class AppDataViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string Logs { get; private set; } = "";
+
+    /// <summary>
+    /// Where the packages, images and catalogue are, written from the home folder; null while everything lies in the data
+    /// folder or the agent does not say.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? CacheFolder { get; private set; }
+
+    /// <summary>Where the logs are, written from the home folder; null while everything lies in the data folder or the agent does not say.</summary>
+    [ObservableProperty]
+    public partial string? LogsFolder { get; private set; }
 
     /// <summary>What clearing the cache does, why it waits, or what it freed.</summary>
     [ObservableProperty]
@@ -128,12 +140,16 @@ public sealed partial class AppDataViewModel : ObservableObject
             }
 
             _usage = usage;
-            var drive = GameWording.Drive(usage.DataFolder, _services.Agent.State.Volumes);
-            Usage = Text.Format(Strings.Settings_DiskUsageText, ("volume", drive.Kind), ("drive", drive.Name),
-                ("size", Formats.FileSize(usage.Total)));
+            // On Linux the data, the cache and the logs lie in three of the system's folders, which no one drive names, so each
+            // size names its folder instead.
+            var split = !PathComparison.IsWithin(usage.DataFolder, _services.Context.ImageCacheDirectory);
+            Usage = Text.Format(Strings.Settings_DiskUsageText, ("folders", split ? "other" : "one"),
+                ("drive", GameWording.Drive(usage.DataFolder, _services.Agent.State.Volumes).Name), ("size", Formats.FileSize(usage.Total)));
             Downloads = Formats.FileSize(usage.Downloads);
             ImagesAndCatalogue = Formats.FileSize(usage.ImagesAndCatalogue);
             Logs = Formats.FileSize(usage.Logs);
+            CacheFolder = split && usage.CacheFolder is { } cache ? GameWording.FromHome(cache) : null;
+            LogsFolder = split && usage.LogsFolder is { } logs ? GameWording.FromHome(logs) : null;
             IsMeasured = true;
             return usage;
         }

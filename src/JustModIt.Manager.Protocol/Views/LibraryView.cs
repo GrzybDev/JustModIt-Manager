@@ -134,7 +134,10 @@ public sealed record StoreDetectionView(string Store)
     /// <summary>The store's name on the site; empty when the site lists no store of this kind.</summary>
     public string Name { get; init; } = "";
 
-    /// <inheritdoc cref="StorefrontPlatform.Launcher"/>
+    /// <summary>
+    /// The site's name of the program the store installs games with, given on Windows alone, where those programs run;
+    /// empty elsewhere and when the site names none.
+    /// </summary>
     public string Launcher { get; init; } = "";
 
     /// <summary>
@@ -161,7 +164,7 @@ public sealed record StoreDetectionView(string Store)
         return new StoreDetectionView(store.Store.Value)
         {
             Name = site?.Name ?? "",
-            Launcher = site?.Launcher ?? "",
+            Launcher = OperatingSystem.IsWindows() ? site?.Launcher ?? "" : "",
             InstallHint = site?.InstallHint ?? "",
             IsFound = store.IsFound,
             ScanFailed = store.ScanFailed,

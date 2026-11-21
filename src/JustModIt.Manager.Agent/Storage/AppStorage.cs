@@ -30,7 +30,8 @@ public sealed partial class AppStorage(AppDataLocations locations, CatalogueCach
         var total = Size(data) + new[] { locations.CacheDirectory, locations.LogsDirectory }
             .Where(folder => !PathComparison.IsWithin(data, folder)).Sum(Size);
         return new AppDataUsage(data, total, Size(locations.DownloadsDirectory),
-            Size(locations.ImageCacheDirectory) + Size(locations.CatalogueCacheDirectory), Size(locations.LogsDirectory));
+            Size(locations.ImageCacheDirectory) + Size(locations.CatalogueCacheDirectory), Size(locations.LogsDirectory),
+            locations.CacheDirectory, locations.LogsDirectory);
     }
 
     /// <summary>Deletes the window's images, the saved project pages and the downloaded packages that installs do not need.</summary>

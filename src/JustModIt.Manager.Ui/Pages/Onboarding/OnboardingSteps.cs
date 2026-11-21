@@ -50,6 +50,9 @@ public sealed class AutomationStep(OnboardingViewModel setup) : OnboardingStep(s
     public string Lead { get; } = Text.Format(Strings.Onboarding_AutomationLead, ("product", setup.ProductName));
 
     public string Heading { get; } = Overline(Strings.Onboarding_AutomationHeading);
+
+    /// <summary>Where the app looks for games, on Linux through Heroic, since the GOG and Epic Games launchers do not run there.</summary>
+    public string Detect { get; } = Text.Format(Strings.Onboarding_Detect, ("system", OperatingSystem.IsLinux() ? "linux" : "windows"));
 }
 
 /// <summary>Starting with the system and what closing the window does.</summary>
@@ -97,7 +100,9 @@ public sealed record StoreLine(string Store, string Name, string Detail, bool Is
     /// <param name="store">The store's part of the detection report.</param>
     public static StoreLine From(StoreDetectionView store)
     {
-        var name = store.Launcher is { Length: > 0 } launcher ? launcher
+        // Heroic found every library of the store, so the line names the store, not its own launcher, and says where.
+        var inHeroic = store.Libraries is [_, ..] libraries && libraries.All(library => library.Source == "heroic");
+        var name = !inHeroic && store.Launcher is { Length: > 0 } launcher ? launcher
             : store.Name is { Length: > 0 } site ? site
             : store.Store switch
             {
@@ -106,9 +111,11 @@ public sealed record StoreLine(string Store, string Name, string Detail, bool Is
                 "epic" => Strings.Onboarding_StoreEpic,
                 _ => store.Store,
             };
+        (string, object?)[] found = [("libraries", store.Libraries.Count), ("games", store.GameCount)];
         var detail = !store.IsFound ? Strings.Onboarding_StoreMissing
             : store.ScanFailed ? Strings.Onboarding_StoreUnreadable
-            : Text.Format(Strings.Onboarding_StoreFound, ("libraries", store.Libraries.Count), ("games", store.GameCount));
+            : inHeroic ? Text.Format(Strings.Onboarding_StoreFoundIn, [("launcher", Strings.Undetected_ClientHeroic), .. found])
+            : Text.Format(Strings.Onboarding_StoreFound, found);
         return new StoreLine(store.Store, name, detail, store.IsFound && !store.ScanFailed);
     }
 }

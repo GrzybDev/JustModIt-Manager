@@ -676,7 +676,7 @@
     <value>Wykrywanie gier</value>
   </data>
   <data name="Onboarding_Detect" xml:space="preserve">
-    <value>W bibliotekach Steam, GOG Galaxy, Epic Games i Heroic.</value>
+    <value>{system, select, linux {W bibliotekach Steam i Heroic (GOG, Epic Games).} other {W bibliotekach Steam, GOG Galaxy, Epic Games i Heroic.}}</value>
   </data>
   <data name="Onboarding_MatchTitle" xml:space="preserve">
     <value>Dobór projektów</value>
@@ -776,6 +776,9 @@
   </data>
   <data name="Onboarding_StoreFound" xml:space="preserve">
     <value>{libraries, plural, one {# biblioteka} few {# biblioteki} many {# bibliotek} other {# biblioteki}}, {games, plural, one {# gra} few {# gry} many {# gier} other {# gry}}</value>
+  </data>
+  <data name="Onboarding_StoreFoundIn" xml:space="preserve">
+    <value>w {launcher}: {libraries, plural, one {# biblioteka} few {# biblioteki} many {# bibliotek} other {# biblioteki}}, {games, plural, one {# gra} few {# gry} many {# gier} other {# gry}}</value>
   </data>
   <data name="Onboarding_StoreMissing" xml:space="preserve">
     <value>nie znaleziono</value>
@@ -2053,7 +2056,7 @@
     <value>Folder gry</value>
   </data>
   <data name="Settings_BackupGameFolderDescription" xml:space="preserve">
-    <value>Ukryty folder obok plików gry, na tym samym dysku. Nawet duże pliki są odkładane od razu, a na dysk systemowy nic nie trafia.</value>
+    <value>Ukryty folder obok plików gry, na tym samym dysku. Nawet duże pliki są odkładane od razu i nie zajmują miejsca na innych dyskach.</value>
   </data>
   <data name="Settings_BackupAppData" xml:space="preserve">
     <value>Dane aplikacji</value>
@@ -2182,7 +2185,7 @@
     <value>Miejsce na dysku</value>
   </data>
   <data name="Settings_DiskUsageText" xml:space="preserve">
-    <value>Folder danych aplikacji na dysku {volume, select, home {z folderem domowym} other {{drive}}} zajmuje {size}.</value>
+    <value>{folders, select, one {Folder danych aplikacji na dysku {drive} zajmuje {size}.} other {Dane aplikacji zajmują {size}.}}</value>
   </data>
   <data name="Settings_DiskUsageMeasuring" xml:space="preserve">
     <value>Trwa liczenie miejsca zajętego przez folder danych aplikacji…</value>

@@ -123,4 +123,7 @@ public sealed record GetAppDataUsage : Query;
 /// <param name="Downloads">The downloaded packages, partial ones included.</param>
 /// <param name="ImagesAndCatalogue">The window's images and the saved catalogue with its project pages.</param>
 /// <param name="Logs">The logs.</param>
-public sealed record AppDataUsage(string DataFolder, long Total, long Downloads, long ImagesAndCatalogue, long Logs) : Message;
+/// <param name="CacheFolder">The folder of the packages, the images and the saved catalogue; null from an agent that does not say.</param>
+/// <param name="LogsFolder">The logs' folder; null from an agent that does not say.</param>
+public sealed record AppDataUsage(string DataFolder, long Total, long Downloads, long ImagesAndCatalogue, long Logs,
+    string? CacheFolder = null, string? LogsFolder = null) : Message;
