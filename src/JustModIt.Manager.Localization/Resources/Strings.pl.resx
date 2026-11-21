@@ -840,6 +840,33 @@
   <data name="Onboarding_ExitHint" xml:space="preserve">
     <value>{return, select, Tray {Aplikację można całkiem zamknąć z menu jej ikony w zasobniku: prawy przycisk myszy → {exit}.} AppMenu {Ten pulpit nie ma zasobnika systemowego, więc aplikację można całkiem zamknąć z menu jej ikony na liście aplikacji systemu: prawy przycisk myszy → {exit}.} other {W trybie gry aplikację całkiem zamyka wybór „{exitTile}” przy zamykaniu okna.}}</value>
   </data>
+  <data name="Onboarding_SteamTitle" xml:space="preserve">
+    <value>Tryb gry w Steamie</value>
+  </data>
+  <data name="Onboarding_SteamLead" xml:space="preserve">
+    <value>W trybie gry, na przykład na Steam Decku, Steam pokazuje tylko okna programów uruchomionych z jego biblioteki. Skrót w bibliotece Steama pozwoli otwierać tam okno aplikacji {product}.</value>
+  </data>
+  <data name="Onboarding_SteamBackgroundTitle" xml:space="preserve">
+    <value>Praca w tle</value>
+  </data>
+  <data name="Onboarding_SteamBackground" xml:space="preserve">
+    <value>Instalacje i aktualizacje trwają w obu trybach, także bez otwartego okna.</value>
+  </data>
+  <data name="Onboarding_SteamWindowTitle" xml:space="preserve">
+    <value>Okno ze Steama</value>
+  </data>
+  <data name="Onboarding_SteamWindow" xml:space="preserve">
+    <value>W trybie gry okno otwiera się ze skrótu, jak gra z biblioteki.</value>
+  </data>
+  <data name="Onboarding_SteamControls" xml:space="preserve">
+    <value>Okno obsługuje się klawiaturą i myszą; przyciski kontrolera przypisuje się do klawiszy w Steamie.</value>
+  </data>
+  <data name="Onboarding_SteamHeading" xml:space="preserve">
+    <value>Biblioteka Steama</value>
+  </data>
+  <data name="Onboarding_SteamHint" xml:space="preserve">
+    <value>Skrót można dodać także później w Ustawieniach, a usunąć w samym Steamie.</value>
+  </data>
   <data name="Onboarding_CreatorTitle" xml:space="preserve">
     <value>Tryb twórcy</value>
   </data>
@@ -917,6 +944,15 @@
   </data>
   <data name="Onboarding_SummaryBackups" xml:space="preserve">
     <value>Kopie oryginalnych plików</value>
+  </data>
+  <data name="Onboarding_SummaryGameMode" xml:space="preserve">
+    <value>Tryb gry</value>
+  </data>
+  <data name="Onboarding_InSteamLibrary" xml:space="preserve">
+    <value>W bibliotece Steama</value>
+  </data>
+  <data name="Onboarding_NoSteamShortcut" xml:space="preserve">
+    <value>Bez skrótu w Steamie</value>
   </data>
   <data name="Onboarding_On" xml:space="preserve">
     <value>Włączony</value>
@@ -2075,6 +2111,15 @@
   </data>
   <data name="SteamShortcut_Title" xml:space="preserve">
     <value>Skrót w bibliotece Steama</value>
+  </data>
+  <data name="SteamShortcut_Missing" xml:space="preserve">
+    <value>Aplikacji {product} nie ma jeszcze w bibliotece Steama.</value>
+  </data>
+  <data name="SteamShortcut_AddedInSetup" xml:space="preserve">
+    <value>{product} jest w bibliotece Steama.</value>
+  </data>
+  <data name="SteamShortcut_AddedInSetupDetail" xml:space="preserve">
+    <value>W trybie gry okno otworzy się z biblioteki, jak gra.</value>
   </data>
   <data name="SteamShortcut_Description" xml:space="preserve">
     <value>{session, select, true {W trybie gry okno otwiera się tylko ze skrótu w bibliotece Steama.} other {Skrót otwiera okno z biblioteki Steama, także w trybie Big Picture.}}</value>

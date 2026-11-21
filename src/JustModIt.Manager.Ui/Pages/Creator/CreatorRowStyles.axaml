@@ -116,14 +116,6 @@
     <Setter Property="BorderBrush" Value="#4022C55E" />
   </Style>
 
-  <!-- The rules' chip turns green once the package meets them. -->
-  <Style Selector="Border.iconChip.success">
-    <Setter Property="Background" Value="#2922C55E" />
-  </Style>
-  <Style Selector="Border.iconChip.success > ui|Icon">
-    <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
-  </Style>
-
   <!-- Lists of operations, steps and rules: rows split by faint lines. -->
   <Style Selector="ItemsControl.rows > ContentPresenter">
     <Setter Property="BorderBrush" Value="#0FFFFFFF" />

@@ -135,15 +135,7 @@
                                  IsVisible="{Binding SteamShortcut.Status, Converter={x:Static ObjectConverters.IsNotNull}}" />
                   <settings:SteamShortcutSteps x:Name="SteamShortcutSteps" DataContext="{Binding SteamShortcut}" Margin="0,8,0,0" IsVisible="{Binding HasManual}" />
                 </StackPanel>
-                <Button x:Name="SteamShortcutAction" Grid.Column="2" Classes="outline" VerticalAlignment="Center"
-                        Command="{Binding SteamShortcut.ActCommand}" IsVisible="{Binding SteamShortcut.HasAction}"
-                        AutomationProperties.Name="{Binding SteamShortcut.ActionText}" AutomationProperties.HelpText="{Binding SteamShortcut.Description}">
-                  <StackPanel Classes="buttonContent" Orientation="Horizontal">
-                    <ui:Icon Classes="buttonIcon" Classes.spin="{Binding SteamShortcut.IsAdding}" Data="{Binding SteamShortcut.ActionIcon}"
-                             IsVisible="{Binding SteamShortcut.ActionIcon, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                    <TextBlock Text="{Binding SteamShortcut.ActionText}" VerticalAlignment="Center" />
-                  </StackPanel>
-                </Button>
+                <settings:SteamShortcutButton Grid.Column="2" DataContext="{Binding SteamShortcut}" />
               </Grid>
             </Border>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.EyeOff}" Title="{x:Static loc:Strings.Settings_BlurAdult}"

@@ -8,16 +8,24 @@ using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
+using JustModIt.Manager.Ui.Pages.Settings;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Onboarding;
 
 /// <summary>A step of the first-run setup, shown by the view registered for its type; the choices live in the setup.</summary>
 /// <param name="setup">The setup the step belongs to.</param>
+/// <param name="id">The number the settings keep the step by.</param>
 /// <param name="title">The step's name, for the progress dots and screen readers.</param>
-public abstract partial class OnboardingStep(OnboardingViewModel setup, string title) : ObservableObject
+public abstract partial class OnboardingStep(OnboardingViewModel setup, int id, string title) : ObservableObject
 {
     public OnboardingViewModel Setup { get; } = setup;
+
+    /// <summary>
+    /// The number the settings keep the step by, so a setup left on it opens there again: the step's place in the setup as
+    /// earlier versions saved it, and a new number for a step added since.
+    /// </summary>
+    public int Id { get; } = id;
 
     public string Title { get; } = title;
 
@@ -35,7 +43,7 @@ public abstract partial class OnboardingStep(OnboardingViewModel setup, string t
 
 /// <summary>The welcome: the app's art and what the app does.</summary>
 /// <param name="setup">The setup the step belongs to.</param>
-public sealed class WelcomeStep(OnboardingViewModel setup) : OnboardingStep(setup, Strings.Onboarding_WelcomeStep)
+public sealed class WelcomeStep(OnboardingViewModel setup) : OnboardingStep(setup, 0, Strings.Onboarding_WelcomeStep)
 {
     /// <summary>The app's name as the welcome's second line says it.</summary>
     public string Name { get; } = Text.Format(Strings.Onboarding_WelcomeName, ("product", setup.ProductName));
@@ -45,7 +53,7 @@ public sealed class WelcomeStep(OnboardingViewModel setup) : OnboardingStep(setu
 
 /// <summary>How the app works, and what it does without asking.</summary>
 /// <param name="setup">The setup the step belongs to.</param>
-public sealed class AutomationStep(OnboardingViewModel setup) : OnboardingStep(setup, Strings.Onboarding_AutomationTitle)
+public sealed class AutomationStep(OnboardingViewModel setup) : OnboardingStep(setup, 1, Strings.Onboarding_AutomationTitle)
 {
     public string Lead { get; } = Text.Format(Strings.Onboarding_AutomationLead, ("product", setup.ProductName));
 
@@ -57,7 +65,7 @@ public sealed class AutomationStep(OnboardingViewModel setup) : OnboardingStep(s
 
 /// <summary>Starting with the system and what closing the window does.</summary>
 /// <param name="setup">The setup the step belongs to.</param>
-public sealed partial class BackgroundStep(OnboardingViewModel setup) : OnboardingStep(setup, Strings.Onboarding_BackgroundTitle)
+public sealed partial class BackgroundStep(OnboardingViewModel setup) : OnboardingStep(setup, 2, Strings.Onboarding_BackgroundTitle)
 {
     [ObservableProperty]
     public partial string Lead { get; private set; } = "";
@@ -77,9 +85,20 @@ public sealed partial class BackgroundStep(OnboardingViewModel setup) : Onboardi
     }
 }
 
+/// <summary>The app's shortcut in Steam's library, from which Game Mode opens the window.</summary>
+/// <param name="setup">The setup the step belongs to.</param>
+public sealed class SteamShortcutStep(OnboardingViewModel setup) : OnboardingStep(setup, 5, Strings.Onboarding_SteamTitle)
+{
+    public string Lead { get; } = Text.Format(Strings.Onboarding_SteamLead, ("product", setup.ProductName));
+
+    public string Heading { get; } = Overline(Strings.Onboarding_SteamHeading);
+
+    public SteamShortcutViewModel Shortcut => Setup.SteamShortcut;
+}
+
 /// <summary>Whether the package creator joins the sidebar.</summary>
 /// <param name="setup">The setup the step belongs to.</param>
-public sealed class CreatorStep(OnboardingViewModel setup) : OnboardingStep(setup, Strings.Onboarding_CreatorTitle)
+public sealed class CreatorStep(OnboardingViewModel setup) : OnboardingStep(setup, 3, Strings.Onboarding_CreatorTitle)
 {
     public string Lead { get; } = Text.Format(Strings.Onboarding_CreatorLead, ("creator", Strings.Shell_Creator));
 
@@ -144,7 +163,7 @@ public sealed partial class ReadyStep : OnboardingStep
     /// <param name="setup">The setup the step belongs to.</param>
     /// <param name="agent">The agent whose state and detection report the step shows.</param>
     public ReadyStep(OnboardingViewModel setup, IAgent agent)
-        : base(setup, Strings.Onboarding_ReadyTitle)
+        : base(setup, 4, Strings.Onboarding_ReadyTitle)
     {
         _agent = agent;
         Lead = Text.Format(Strings.Onboarding_ReadyLead, ("start", Strings.Onboarding_Start));
@@ -229,6 +248,10 @@ public sealed partial class ReadyStep : OnboardingStep
             new(Icons.Sunrise, Strings.Onboarding_SummaryStart, setup.StartWithSystem ? Strings.Onboarding_On : Strings.Onboarding_Off,
                 setup.StartWithSystem),
             new(close.Item1, Strings.Onboarding_CloseHeading, close.Item2, true),
+            .. setup.SteamShortcut is { IsOffered: true, HasGameSession: true } shortcut
+                ? [new SummaryItem(Icons.Gamepad, Strings.Onboarding_SummaryGameMode,
+                    shortcut.IsAdded ? Strings.Onboarding_InSteamLibrary : Strings.Onboarding_NoSteamShortcut, shortcut.IsAdded)]
+                : Array.Empty<SummaryItem>(),
             new(Icons.WandSparkles, Strings.Onboarding_CreatorTitle, setup.CreatorMode ? Strings.Onboarding_On : Strings.Onboarding_Off,
                 setup.CreatorMode),
             new(Icons.Folder, Strings.Onboarding_SummaryBackups, backups, false),

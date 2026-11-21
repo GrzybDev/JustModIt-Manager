@@ -856,6 +856,33 @@
     <value>{return, select, Tray {The app quits completely from its icon's menu in the tray (right-click, then {exit}).} AppMenu {This desktop has no system tray, so the app quits completely from its icon's menu in the system's app list (right-click, then {exit}).} other {In Game Mode the app quits completely through “{exitTile}” when the window closes.}}</value>
     <comment>return is how the window comes back: Tray from the system tray's icon, AppMenu from the system's app list on a desktop without a tray, otherwise from the shortcut in Steam's library in Game Mode. exit is the menu entry that exits the app, exitTile the close choice that does.</comment>
   </data>
+  <data name="Onboarding_SteamTitle" xml:space="preserve">
+    <value>Game Mode in Steam</value>
+  </data>
+  <data name="Onboarding_SteamLead" xml:space="preserve">
+    <value>In Game Mode, as on the Steam Deck, Steam shows only the windows of programs started from its library. A shortcut in Steam's library lets the window of {product} open there.</value>
+  </data>
+  <data name="Onboarding_SteamBackgroundTitle" xml:space="preserve">
+    <value>Background work</value>
+  </data>
+  <data name="Onboarding_SteamBackground" xml:space="preserve">
+    <value>Installs and updates go on in both modes, also with the window closed.</value>
+  </data>
+  <data name="Onboarding_SteamWindowTitle" xml:space="preserve">
+    <value>The window from Steam</value>
+  </data>
+  <data name="Onboarding_SteamWindow" xml:space="preserve">
+    <value>In Game Mode the window opens from the shortcut, like a game from the library.</value>
+  </data>
+  <data name="Onboarding_SteamControls" xml:space="preserve">
+    <value>The window works with a keyboard and mouse; the controller's buttons are mapped to keys in Steam.</value>
+  </data>
+  <data name="Onboarding_SteamHeading" xml:space="preserve">
+    <value>Steam's library</value>
+  </data>
+  <data name="Onboarding_SteamHint" xml:space="preserve">
+    <value>The shortcut can also be added later in Settings, and removed in Steam itself.</value>
+  </data>
   <data name="Onboarding_CreatorTitle" xml:space="preserve">
     <value>Creator mode</value>
   </data>
@@ -933,6 +960,15 @@
   </data>
   <data name="Onboarding_SummaryBackups" xml:space="preserve">
     <value>Backups of original files</value>
+  </data>
+  <data name="Onboarding_SummaryGameMode" xml:space="preserve">
+    <value>Game Mode</value>
+  </data>
+  <data name="Onboarding_InSteamLibrary" xml:space="preserve">
+    <value>In Steam's library</value>
+  </data>
+  <data name="Onboarding_NoSteamShortcut" xml:space="preserve">
+    <value>No shortcut in Steam</value>
   </data>
   <data name="Onboarding_On" xml:space="preserve">
     <value>On</value>
@@ -2092,6 +2128,15 @@
   </data>
   <data name="SteamShortcut_Title" xml:space="preserve">
     <value>Shortcut in Steam's library</value>
+  </data>
+  <data name="SteamShortcut_Missing" xml:space="preserve">
+    <value>{product} is not in Steam's library yet.</value>
+  </data>
+  <data name="SteamShortcut_AddedInSetup" xml:space="preserve">
+    <value>{product} is in Steam's library.</value>
+  </data>
+  <data name="SteamShortcut_AddedInSetupDetail" xml:space="preserve">
+    <value>In Game Mode the window will open from the library, like a game.</value>
   </data>
   <data name="SteamShortcut_Description" xml:space="preserve">
     <value>{session, select, true {In Game Mode the window opens only from the shortcut in Steam's library.} other {The shortcut opens the window from Steam's library, in Big Picture mode too.}}</value>

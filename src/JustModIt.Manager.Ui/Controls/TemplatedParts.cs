@@ -48,6 +48,9 @@ public sealed class EmptyState : IconTextControl;
 /// <summary>The head of a step of the first-run setup: its title, its lead under it and its icon beside them.</summary>
 public sealed class StepHeader : IconTextControl;
 
+/// <summary>One of the facts a step of the first-run setup lists side by side: an icon in a square, a title and a text under it.</summary>
+public sealed class StepFact : IconTextControl;
+
 /// <summary>The head of a page: its title, an optional subtitle under it and, as content, the actions beside the title.</summary>
 public sealed class PageHeader : ContentControl
 {

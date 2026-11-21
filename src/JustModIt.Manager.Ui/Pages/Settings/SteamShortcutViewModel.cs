@@ -21,11 +21,15 @@ public sealed partial class SteamShortcutViewModel(UiServices services) : Observ
 {
     /// <summary>How the shortcut stands; null where the app offers none.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOffered), nameof(HasAction), nameof(IsAdding))]
+    [NotifyPropertyChangedFor(nameof(IsOffered), nameof(HasAction), nameof(IsAdding), nameof(IsAdded), nameof(ShowsSteamMark))]
     [NotifyCanExecuteChangedFor(nameof(ActCommand))]
     public partial SteamShortcutState? State { get; private set; }
 
     public bool IsOffered => State is not null;
+
+    /// <summary>The system offers a gamescope session, where the window opens only from the shortcut.</summary>
+    [ObservableProperty]
+    public partial bool HasGameSession { get; private set; }
 
     /// <summary>What the shortcut is for, by whether the system offers a gamescope session.</summary>
     [ObservableProperty]
@@ -52,6 +56,19 @@ public sealed partial class SteamShortcutViewModel(UiServices services) : Observ
 
     /// <summary>Steam is adding the shortcut, so the button waits.</summary>
     public bool IsAdding => State == SteamShortcutState.Adding;
+
+    public bool IsAdded => State == SteamShortcutState.Added;
+
+    /// <summary>The first-run setup shows Steam's mark beside the shortcut, while nothing happened to it yet or Steam adds it.</summary>
+    public bool ShowsSteamMark => State is SteamShortcutState.Missing or SteamShortcutState.Adding;
+
+    /// <summary>How the shortcut stands, as the first-run setup words it beside the shortcut's title.</summary>
+    [ObservableProperty]
+    public partial string Message { get; private set; } = "";
+
+    /// <summary>What the added shortcut does, after <see cref="Message"/>; empty for none.</summary>
+    [ObservableProperty]
+    public partial string MessageDetail { get; private set; } = "";
 
     /// <summary>The steps to add the shortcut by hand are offered, after a failure or where no gamescope session waits for it.</summary>
     [ObservableProperty]
@@ -86,6 +103,7 @@ public sealed partial class SteamShortcutViewModel(UiServices services) : Observ
             return;
         }
 
+        HasGameSession = shortcut.HasGameSession;
         Description = Text.Format(Strings.SteamShortcut_Description, ("session", shortcut.HasGameSession ? "true" : "false"));
         (StatusIcon, StatusTone, Status) = State switch
         {
@@ -108,6 +126,14 @@ public sealed partial class SteamShortcutViewModel(UiServices services) : Observ
             SteamShortcutState.Missing => (Strings.SteamShortcut_Add, Icons.Plus),
             _ => ("", (Geometry?)null),
         };
+        var product = ("product", (object?)services.Context.ProductName);
+        Message = State switch
+        {
+            SteamShortcutState.Missing => Text.Format(Strings.SteamShortcut_Missing, product),
+            SteamShortcutState.Added => Text.Format(Strings.SteamShortcut_AddedInSetup, product),
+            _ => Status ?? "",
+        };
+        MessageDetail = IsAdded ? Strings.SteamShortcut_AddedInSetupDetail : "";
         HasManual = State == SteamShortcutState.Failed || (State == SteamShortcutState.Missing && !shortcut.HasGameSession);
         // Pasted into Steam's file dialog, so unlike a sentence's path it carries no invisible places to break the line.
         ManualFile = GameWording.FromHome(shortcut.Program);

@@ -13,6 +13,7 @@ internal static class OnboardingScreen
         ui.Views.Register<WelcomeStep>(() => new WelcomeStepView());
         ui.Views.Register<AutomationStep>(() => new AutomationStepView());
         ui.Views.Register<BackgroundStep>(() => new BackgroundStepView());
+        ui.Views.Register<SteamShortcutStep>(() => new SteamShortcutStepView());
         ui.Views.Register<CreatorStep>(() => new CreatorStepView());
         ui.Views.Register<ReadyStep>(() => new ReadyStepView());
     }

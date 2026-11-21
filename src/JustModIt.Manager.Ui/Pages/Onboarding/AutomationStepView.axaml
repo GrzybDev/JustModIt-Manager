@@ -12,33 +12,11 @@
 
       <Border Classes="facts">
         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="20">
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-            <Border Classes="iconChip" VerticalAlignment="Top">
-              <ui:Icon Data="{x:Static theme:Icons.Search}" />
-            </Border>
-            <StackPanel Grid.Column="1" Spacing="2">
-              <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_DetectTitle}" />
-              <TextBlock Classes="caption" Text="{Binding Detect}" />
-            </StackPanel>
-          </Grid>
-          <Grid Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="12">
-            <Border Classes="iconChip" VerticalAlignment="Top">
-              <ui:Icon Data="{x:Static theme:Icons.Languages}" />
-            </Border>
-            <StackPanel Grid.Column="1" Spacing="2">
-              <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_MatchTitle}" />
-              <TextBlock Classes="caption" Text="{x:Static loc:Strings.Onboarding_Match}" />
-            </StackPanel>
-          </Grid>
-          <Grid Grid.Column="2" ColumnDefinitions="Auto,*" ColumnSpacing="12">
-            <Border Classes="iconChip" VerticalAlignment="Top">
-              <ui:Icon Data="{x:Static theme:Icons.ShieldCheck}" />
-            </Border>
-            <StackPanel Grid.Column="1" Spacing="2">
-              <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_SafetyTitle}" />
-              <TextBlock Classes="caption" Text="{x:Static loc:Strings.Onboarding_Safety}" />
-            </StackPanel>
-          </Grid>
+          <ui:StepFact Icon="{x:Static theme:Icons.Search}" Title="{x:Static loc:Strings.Onboarding_DetectTitle}" Message="{Binding Detect}" />
+          <ui:StepFact Grid.Column="1" Icon="{x:Static theme:Icons.Languages}" Title="{x:Static loc:Strings.Onboarding_MatchTitle}"
+                       Message="{x:Static loc:Strings.Onboarding_Match}" />
+          <ui:StepFact Grid.Column="2" Icon="{x:Static theme:Icons.ShieldCheck}" Title="{x:Static loc:Strings.Onboarding_SafetyTitle}"
+                       Message="{x:Static loc:Strings.Onboarding_Safety}" />
         </Grid>
       </Border>
 

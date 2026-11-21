@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.VisualTree;
@@ -240,6 +241,90 @@ public sealed class OnboardingTests
             + "liście aplikacji systemu: prawy przycisk myszy → Zamknij.");
         ui.Render("onboarding-3-background-without-tray");
     }
+
+    [AvaloniaFact]
+    public async Task The_setup_has_the_Steam_step_after_running_in_the_background_where_a_Game_Mode_session_is_installed()
+    {
+        // A setup an earlier version saved on the creator's step, before the agent has looked at Steam.
+        using var ui = new UiHarness(FirstRun(settings => settings with { OnboardingStep = 3 }));
+        AgentAppliesSettings(ui);
+        await Settle();
+        Setup(ui).Steps.Should().HaveCount(5);
+
+        Shortcut(ui, SteamShortcutState.Missing);
+        await Settle();
+        Setup(ui).CurrentStep.Should().BeOfType<CreatorStep>("the step saved by number opens where it was left");
+        Setup(ui).Steps.Select(step => step.IsDone).Should().Equal(true, true, true, true, false, false);
+        ui.Press(Key.Left, RawInputModifiers.Alt);
+        await Settle();
+        var step = Setup(ui).CurrentStep.Should().BeOfType<SteamShortcutStep>().Subject;
+        Saved(ui).OnboardingStep.Should().Be(5, "a step added later takes a number of its own");
+        Message(ui).Should().Be("Aplikacji Example App nie ma jeszcze w bibliotece Steama.");
+        NamesOfTheControls(ui).Should().NotContain(string.Empty);
+        ui.Render("onboarding-steam-1-missing");
+
+        ui.Click(Button(ui, "Dodaj do Steama"));
+        ui.Agent.Requests.OfType<AddToSteam>().Should().ContainSingle();
+        Shortcut(ui, SteamShortcutState.Adding);
+        ui.Find<Button>("SteamShortcutAction").IsEffectivelyEnabled.Should().BeFalse();
+        ui.Render("onboarding-steam-2-adding");
+
+        Shortcut(ui, SteamShortcutState.SteamNotRunning);
+        ui.Click(Button(ui, "Uruchom Steam"));
+        ui.Links.Clients.Select(client => client.Address).Should().Equal("steam://open/games");
+        ui.Render("onboarding-steam-4-steam-not-running");
+
+        Shortcut(ui, SteamShortcutState.Failed);
+        ui.Click(ui.Find<Button>("SteamShortcutManual"));
+        await Settle();
+        ui.Render("onboarding-steam-5-failed");
+
+        Shortcut(ui, SteamShortcutState.Added);
+        Message(ui).Should().Be("Example App jest w bibliotece Steama. W trybie gry okno otworzy się z biblioteki, jak gra.");
+        step.Shortcut.HasAction.Should().BeFalse("the shortcut is removed in Steam");
+        ui.Render("onboarding-steam-3-added");
+
+        ui.Click(Button(ui, Strings.Onboarding_Next));
+        ui.Click(Button(ui, Strings.Onboarding_Next));
+        await Settle();
+        Setup(ui).Ready.Summary.Select(item => (item.Label, item.Value)).Should().Contain(("Tryb gry", "W bibliotece Steama"));
+        ui.Render("onboarding-steam-7-ready");
+        Shortcut(ui, SteamShortcutState.Missing);
+        Setup(ui).Ready.Summary.Single(item => item.Label == "Tryb gry").Should().Match<SummaryItem>(item =>
+            item.Value == "Bez skrótu w Steamie" && !item.IsActive);
+    }
+
+    [AvaloniaFact]
+    public async Task In_Game_Mode_the_setup_has_four_steps()
+    {
+        var state = FirstRun(settings => settings with { OnboardingStep = 5 }) with
+        {
+            Activity = new ActivityView { WindowReturn = WindowReturn.StoreLibrary },
+            SteamShortcut = new SteamShortcutView(SteamShortcutState.Missing, HasGameSession: true, "/home/player/Applications/ExampleApp.AppImage"),
+        };
+        using var ui = new UiHarness(state, context: context => context with { Frame = WindowFrame.Screen, StartedBySteam = true });
+        ui.SizeToDeck();
+        await Settle();
+
+        Setup(ui).Steps.Select(step => step.GetType()).Should().Equal(typeof(WelcomeStep), typeof(AutomationStep), typeof(BackgroundStep),
+            typeof(ReadyStep));
+        Setup(ui).CurrentStep.Should().BeOfType<ReadyStep>("the Steam step it was left on has its shortcut there already");
+        Setup(ui).Ready.Summary.Single(item => item.Label == "Tryb gry").Value.Should().Be("W bibliotece Steama");
+
+        ui.Press(Key.Left, RawInputModifiers.Alt);
+        await Settle();
+        Setup(ui).CurrentStep.Should().BeOfType<BackgroundStep>("Game Mode hides the package creator");
+        ui.Render("onboarding-game-mode-background");
+    }
+
+    private static void Shortcut(UiHarness ui, SteamShortcutState state) => ui.Push(ui.Agent.State with
+    {
+        Version = ui.Agent.State.Version + 1,
+        SteamShortcut = new SteamShortcutView(state, HasGameSession: true, "/home/player/Applications/ExampleApp.AppImage"),
+    });
+
+    private static string Message(UiHarness ui) =>
+        string.Concat(ui.Find<TextBlock>("SteamShortcutMessage").Inlines!.OfType<Run>().Select(run => run.Text)).Trim();
 
     private static AppStateView FirstRun(Func<SettingsView, SettingsView>? change = null) => TestStates.Idle() with
     {

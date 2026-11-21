@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:onboarding="using:JustModIt.Manager.Ui.Pages.Onboarding"
+             xmlns:settings="using:JustModIt.Manager.Ui.Pages.Settings"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Onboarding.SteamShortcutStepView"
+             x:DataType="onboarding:SteamShortcutStep">
+  <UserControl.Styles>
+    <Style Selector="Border.iconChip > ui|StoreIcon">
+      <Setter Property="Width" Value="18" />
+      <Setter Property="Height" Value="18" />
+      <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+    </Style>
+    <Style Selector="Border.iconChip.accent > ui|StoreIcon">
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    </Style>
+    <Style Selector="Run.added">
+      <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer Classes="setupStep">
+    <StackPanel Classes="setupStep" theme:Motion.Stagger="True">
+      <ui:StepHeader Icon="{x:Static theme:Icons.Gamepad}" Title="{Binding Title}" Message="{Binding Lead}" />
+
+      <Border Classes="facts">
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="20">
+          <ui:StepFact Icon="{x:Static theme:Icons.RefreshCw}" Title="{x:Static loc:Strings.Onboarding_SteamBackgroundTitle}"
+                       Message="{x:Static loc:Strings.Onboarding_SteamBackground}" />
+          <ui:StepFact Grid.Column="1" Icon="{x:Static theme:Icons.AppWindow}" Title="{x:Static loc:Strings.Onboarding_SteamWindowTitle}"
+                       Message="{x:Static loc:Strings.Onboarding_SteamWindow}" />
+          <ui:StepFact Grid.Column="2" Icon="{x:Static theme:Icons.Keyboard}" Title="{x:Static loc:Strings.Shell_Controls}"
+                       Message="{x:Static loc:Strings.Onboarding_SteamControls}" />
+        </Grid>
+      </Border>
+
+      <StackPanel Spacing="10">
+        <TextBlock Classes="overline" Text="{Binding Heading}" />
+        <Border x:Name="SteamShortcutInset" Classes="inset">
+          <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+              <!-- The shortcut's mark: Steam's until something happened to it, then how it went, in its tone. -->
+              <Panel>
+                <Border Classes="iconChip" Classes.accent="{Binding Shortcut.IsAdding}" IsVisible="{Binding Shortcut.ShowsSteamMark}">
+                  <ui:StoreIcon Store="steam" />
+                </Border>
+                <Border Classes="iconChip" IsVisible="{Binding !Shortcut.ShowsSteamMark}"
+                        Classes.success="{Binding Shortcut.StatusTone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Success}}"
+                        Classes.warning="{Binding Shortcut.StatusTone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Warning}}"
+                        Classes.danger="{Binding Shortcut.StatusTone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Danger}}">
+                  <ui:Icon Data="{Binding Shortcut.StatusIcon}" />
+                </Border>
+              </Panel>
+              <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.SteamShortcut_Title}" />
+                <TextBlock x:Name="SteamShortcutMessage" Classes="caption" AutomationProperties.LiveSetting="Polite">
+                  <Run Classes.added="{Binding Shortcut.IsAdded}" Text="{Binding Shortcut.Message}" />
+                  <Run Text="{Binding Shortcut.MessageDetail}" />
+                </TextBlock>
+              </StackPanel>
+              <settings:SteamShortcutButton Grid.Column="2" DataContext="{Binding Shortcut}" />
+            </Grid>
+            <settings:SteamShortcutSteps DataContext="{Binding Shortcut}" Margin="50,0,0,0" IsVisible="{Binding HasManual}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <Grid Classes="hint" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <ui:Icon Data="{x:Static theme:Icons.Info}" />
+        <TextBlock Grid.Column="1" Text="{x:Static loc:Strings.Onboarding_SteamHint}" />
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

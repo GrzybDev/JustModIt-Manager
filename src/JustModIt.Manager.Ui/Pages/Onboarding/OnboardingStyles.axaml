@@ -122,6 +122,21 @@
     <Setter Property="BorderBrush" Value="{StaticResource FillBrush}" />
     <Setter Property="BorderThickness" Value="0,1" />
   </Style>
+  <Style Selector="ui|StepFact">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <Border Classes="iconChip" VerticalAlignment="Top">
+            <ui:Icon Data="{TemplateBinding Icon}" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="2">
+            <TextBlock Classes="itemTitle" Text="{TemplateBinding Title}" />
+            <TextBlock Classes="caption" Text="{TemplateBinding Message}" />
+          </StackPanel>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
   <!-- Three tiles share a row in the card, so theirs are a size smaller than the settings page's. -->
   <Style Selector="RadioButton.compact">
     <Setter Property="Padding" Value="14,16,14,14" />

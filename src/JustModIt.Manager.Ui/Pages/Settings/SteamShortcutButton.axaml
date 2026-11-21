@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:JustModIt.Manager.Ui.Pages.Settings"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             x:Class="JustModIt.Manager.Ui.Pages.Settings.SteamShortcutButton"
+             x:DataType="settings:SteamShortcutViewModel">
+  <Button x:Name="SteamShortcutAction" Classes="outline" VerticalAlignment="Center" Command="{Binding ActCommand}"
+          IsVisible="{Binding HasAction}" AutomationProperties.Name="{Binding ActionText}"
+          AutomationProperties.HelpText="{Binding Description}">
+    <StackPanel Classes="buttonContent" Orientation="Horizontal">
+      <ui:Icon Classes="buttonIcon" Classes.spin="{Binding IsAdding}" Data="{Binding ActionIcon}"
+               IsVisible="{Binding ActionIcon, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <TextBlock Text="{Binding ActionText}" VerticalAlignment="Center" />
+    </StackPanel>
+  </Button>
+</UserControl>

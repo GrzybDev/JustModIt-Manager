@@ -12,6 +12,7 @@ using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Pages.Library;
+using JustModIt.Manager.Ui.Pages.Settings;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Pages.Onboarding;
@@ -27,9 +28,10 @@ public enum AutomationChoice
 }
 
 /// <summary>
-/// The first-run setup: five steps in a card over the catalogue's covers. Every choice is saved at once, together with the
-/// step it was made on, so a setup left halfway opens there again; finishing or skipping it completes the setup with the
-/// choices made, the rest keeping their defaults.
+/// The first-run setup: its steps in a card over the catalogue's covers, with the Steam step where a gamescope session opens
+/// the window from Steam's library, and in Game Mode without the Steam and package creator's steps. Every choice is saved
+/// at once, together with the step it was made on, so a setup left halfway opens there again; finishing or skipping it
+/// completes the setup with the choices made, the rest keeping their defaults.
 /// </summary>
 public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
 {
@@ -37,23 +39,28 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
     private const int WallCovers = 40;
 
     private readonly UiServices _services;
+
+    // Every step in the order the setup shows them, whichever apply.
+    private readonly List<OnboardingStep> _all;
     private SettingsView? _sent;
     private bool _syncing;
     private DateTimeOffset? _coversFor;
-    private int _index;
 
     /// <summary>Creates the setup on the step it was left on, with the choices the agent's settings hold.</summary>
     /// <param name="services">What the setup talks to.</param>
     public OnboardingViewModel(UiServices services)
     {
         _services = services;
+        SteamShortcut = new SteamShortcutViewModel(services);
+        SteamShortcut.Refresh();
         Ready = new ReadyStep(this, services.Agent);
         Background = new BackgroundStep(this);
-        Steps = [new WelcomeStep(this), new AutomationStep(this), Background, new CreatorStep(this), Ready];
+        _all = [new WelcomeStep(this), new AutomationStep(this), Background, new SteamShortcutStep(this), new CreatorStep(this), Ready];
+        Steps = [.. _all.Where(IsShown)];
         Background.Refresh(Agent.State.Activity.WindowReturn);
         Sync(Agent.State.Settings);
-        _index = Math.Clamp(Agent.State.Settings.OnboardingStep, 0, Steps.Count - 1);
-        CurrentStep = Steps[_index];
+        var saved = _all.FindIndex(step => step.Id == Agent.State.Settings.OnboardingStep);
+        CurrentStep = ShownFrom(saved < 0 ? _all.Count - 1 : saved);
         MarkSteps();
         Ready.Refresh();
         Agent.PropertyChanged += OnAgentChanged;
@@ -62,11 +69,18 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
 
     public override string Title => Strings.Onboarding_Title;
 
-    public IReadOnlyList<OnboardingStep> Steps { get; }
+    /// <summary>The steps that apply, in order.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFirstStep), nameof(IsLastStep), nameof(NextText), nameof(NextTip), nameof(NextIcon),
+        nameof(Progress))]
+    public partial IReadOnlyList<OnboardingStep> Steps { get; private set; }
 
     public ReadyStep Ready { get; }
 
     public BackgroundStep Background { get; }
+
+    /// <summary>The app's shortcut in Steam's library, which the Steam step adds and the last step sums up.</summary>
+    public SteamShortcutViewModel SteamShortcut { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsFirstStep), nameof(IsLastStep), nameof(NextText), nameof(NextTip), nameof(NextIcon),
@@ -78,9 +92,9 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
     [ObservableProperty]
     public partial bool IsGoingBack { get; private set; }
 
-    public bool IsFirstStep => _index == 0;
+    public bool IsFirstStep => Index == 0;
 
-    public bool IsLastStep => _index == Steps.Count - 1;
+    public bool IsLastStep => Index == Steps.Count - 1;
 
     public string NextText => IsLastStep ? Strings.Onboarding_Start : Strings.Onboarding_Next;
 
@@ -89,7 +103,7 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
     public Geometry NextIcon => IsLastStep ? Icons.Rocket : Icons.ChevronRight;
 
     /// <summary>Where the setup is, for screen readers: "step 2 of 5".</summary>
-    public string Progress => Text.Format(Strings.Onboarding_StepOf, ("step", _index + 1), ("count", Steps.Count));
+    public string Progress => Text.Format(Strings.Onboarding_StepOf, ("step", Index + 1), ("count", Steps.Count));
 
     /// <summary>The setup was completed and waits for the agent to say so, which closes it.</summary>
     [ObservableProperty]
@@ -122,6 +136,8 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
 
     internal IAgent Agent => _services.Agent;
 
+    private int Index => Steps.TakeWhile(step => step != CurrentStep).Count();
+
     public void Dispose() => Agent.PropertyChanged -= OnAgentChanged;
 
     public override bool GoBackWithin()
@@ -153,19 +169,19 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
             return FinishAsync();
         }
 
-        GoTo(_index + 1);
+        GoTo(Index + 1);
         return Task.CompletedTask;
     }
 
     [RelayCommand(CanExecute = nameof(CanGoBack))]
-    private void Back() => GoTo(_index - 1);
+    private void Back() => GoTo(Index - 1);
 
     [RelayCommand(CanExecute = nameof(CanMoveOn))]
     private Task SkipAsync() => FinishAsync();
 
     private bool CanMoveOn() => !IsFinishing;
 
-    private bool CanGoBack() => _index > 0 && !IsFinishing;
+    private bool CanGoBack() => Index > 0 && !IsFinishing;
 
     // The shell closes the setup once the agent's settings say it is completed; until then nothing more can be chosen.
     private async Task FinishAsync()
@@ -179,8 +195,7 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
 
     private void GoTo(int index)
     {
-        IsGoingBack = index < _index;
-        _index = index;
+        IsGoingBack = index < Index;
         CurrentStep = Steps[index];
         MarkSteps();
         Ready.Refresh();
@@ -189,11 +204,39 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
 
     private void MarkSteps()
     {
+        var current = Index;
         for (var index = 0; index < Steps.Count; index++)
         {
-            Steps[index].IsCurrent = index == _index;
-            Steps[index].IsDone = index < _index;
+            Steps[index].IsCurrent = index == current;
+            Steps[index].IsDone = index < current;
         }
+    }
+
+    private bool IsShown(OnboardingStep step) => step switch
+    {
+        // Game Mode shows only the window its shortcut started, and hides the package creator.
+        SteamShortcutStep => SteamShortcut is { IsOffered: true, HasGameSession: true } && !_services.Context.StartedBySteam
+            && !_services.Context.InGameMode,
+        CreatorStep => !_services.Context.InGameMode,
+        _ => true,
+    };
+
+    // The first step shown from a step on, whichever apply now; the last always does.
+    private OnboardingStep ShownFrom(int position) => _all.Skip(position).First(Steps.Contains);
+
+    // The shortcut's view may arrive after the setup opened, which adds or takes away the Steam step.
+    private void ShowSteps()
+    {
+        List<OnboardingStep> shown = [.. _all.Where(IsShown)];
+        if (shown.SequenceEqual(Steps))
+        {
+            return;
+        }
+
+        var current = _all.IndexOf(CurrentStep);
+        Steps = shown;
+        CurrentStep = ShownFrom(current);
+        MarkSteps();
     }
 
     private void OnChosen()
@@ -252,7 +295,7 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
             StartWithSystem = StartWithSystem,
             CloseBehavior = CloseBehavior,
             CreatorMode = CreatorMode,
-            OnboardingStep = _index,
+            OnboardingStep = CurrentStep.Id,
         };
     }
 
@@ -298,6 +341,8 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
         }
 
         Background.Refresh(Agent.State.Activity.WindowReturn);
+        SteamShortcut.Refresh();
+        ShowSteps();
         Ready.Refresh();
         _ = LoadCoversAsync();
     }

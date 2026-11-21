@@ -375,6 +375,12 @@
   <Style Selector="Border.iconChip.warning > ui|Icon">
     <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}" />
   </Style>
+  <Style Selector="Border.iconChip.success">
+    <Setter Property="Background" Value="#2922C55E" />
+  </Style>
+  <Style Selector="Border.iconChip.success > ui|Icon">
+    <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+  </Style>
 
   <!-- A neutral chip: a label or a count, 24 px. -->
   <Style Selector="Border.chip">
