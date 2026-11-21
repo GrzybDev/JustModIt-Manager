@@ -4,15 +4,18 @@
     <PackageReference Include="Tmds.DBus.Generator" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- The fake peers on the tests' own bus answer the same interfaces the app calls. The generator writes its internal
-       handler base into every assembly it runs in, so the tests' own copy hides the one they see in Platform.Linux. -->
+  <!-- The fake peers on the tests' own bus answer the same interfaces the app calls and call the ones it serves. The
+       generator writes its internal handler base into every assembly it runs in, so the tests' own copy hides the one they
+       see in Platform.Linux, and names the proxy of dbusmenu as its interface does, in lower case. -->
   <PropertyGroup>
-    <NoWarn>$(NoWarn);CS0436</NoWarn>
+    <NoWarn>$(NoWarn);CS0436;CS8981</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <AdditionalFiles Include="..\..\src\JustModIt.Manager.Platform.Linux\DBus\*.xml" Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus"
                      DBusGeneratorMode="Handler" />
+    <AdditionalFiles Include="..\..\src\JustModIt.Manager.Platform.Linux\DBus\Served\*.xml"
+                     Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus" DBusGeneratorMode="Proxy" />
   </ItemGroup>
 
   <ItemGroup>

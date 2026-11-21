@@ -114,6 +114,10 @@ internal static partial class AgentPlatform
         services.AddSingleton<INotificationHost>(provider => new DesktopNotifications(options.ProductName, options.Identity.DesktopId,
             Text.Format(Strings.TrayOpen, ("product", options.ProductName)), provider.GetRequiredService<IconFile>().Path,
             DBusConnection.Session, provider.GetRequiredService<ILogger<DesktopNotifications>>()));
+        // The tray serves objects of its own, which a shared connection cannot.
+        services.AddSingleton<ITrayHost>(provider => new StatusNotifierTray(DBusAddress.Session, options.Identity.DesktopId,
+            options.ProductName, provider.GetRequiredService<IconFile>().Path is null ? null : icons,
+            provider.GetRequiredService<ILogger<StatusNotifierTray>>()));
     }
 
     // The desktop finds the logo the app embeds by its name in a theme folder of the app's cache, written once something shows

@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!-- The tray icon the app serves, with the members of the StatusNotifierItem specification that hosts read. -->
+<node>
+  <interface name="org.kde.StatusNotifierItem">
+    <property name="Category" type="s" access="read" />
+    <property name="Id" type="s" access="read" />
+    <property name="Title" type="s" access="read" />
+    <property name="Status" type="s" access="read" />
+    <property name="WindowId" type="i" access="read" />
+    <property name="IconThemePath" type="s" access="read" />
+    <property name="IconName" type="s" access="read" />
+    <property name="ToolTip" type="(sa(iiay)ss)" access="read" />
+    <property name="ItemIsMenu" type="b" access="read" />
+    <property name="Menu" type="o" access="read" />
+    <method name="ContextMenu">
+      <arg type="i" name="x" direction="in" />
+      <arg type="i" name="y" direction="in" />
+    </method>
+    <method name="Activate">
+      <arg type="i" name="x" direction="in" />
+      <arg type="i" name="y" direction="in" />
+    </method>
+    <method name="SecondaryActivate">
+      <arg type="i" name="x" direction="in" />
+      <arg type="i" name="y" direction="in" />
+    </method>
+    <method name="Scroll">
+      <arg type="i" name="delta" direction="in" />
+      <arg type="s" name="orientation" direction="in" />
+    </method>
+    <method name="ProvideXdgActivationToken">
+      <arg type="s" name="token" direction="in" />
+    </method>
+    <signal name="NewTitle" />
+    <signal name="NewIcon" />
+    <signal name="NewToolTip" />
+    <signal name="NewStatus">
+      <arg type="s" name="status" />
+    </signal>
+  </interface>
+</node>

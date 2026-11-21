@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!-- The members of the desktop's tray watcher the app uses, as the StatusNotifierItem specification defines them. -->
+<node>
+  <interface name="org.kde.StatusNotifierWatcher">
+    <method name="RegisterStatusNotifierItem">
+      <arg type="s" name="service" direction="in" />
+    </method>
+  </interface>
+</node>

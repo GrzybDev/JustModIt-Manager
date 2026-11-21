@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <AdditionalFiles Include="DBus/*.xml" Namespace="JustModIt.Manager.Platform.Linux.DBus" DBusGeneratorMode="Proxy" />
+    <!-- The objects the app serves itself, such as its tray icon. -->
+    <AdditionalFiles Include="DBus/Served/*.xml" Namespace="JustModIt.Manager.Platform.Linux.DBus" DBusGeneratorMode="Handler" />
   </ItemGroup>
 
   <ItemGroup>
