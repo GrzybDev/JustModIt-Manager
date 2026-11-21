@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!-- The member of the disks service's filesystems whose changes the app hears, as the UDisks2 API defines it. -->
+<node>
+  <interface name="org.freedesktop.UDisks2.Filesystem">
+    <property name="MountPoints" type="aay" access="read" />
+  </interface>
+</node>

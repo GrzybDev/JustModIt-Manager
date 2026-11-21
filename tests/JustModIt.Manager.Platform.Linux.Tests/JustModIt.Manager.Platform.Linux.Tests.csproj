@@ -14,12 +14,12 @@
   <ItemGroup>
     <AdditionalFiles Include="..\..\src\JustModIt.Manager.Platform.Linux\DBus\*.xml" Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus"
                      DBusGeneratorMode="Handler" />
+    <AdditionalFiles Update="..\..\src\JustModIt.Manager.Platform.Linux\DBus\org.freedesktop.login1.Manager.xml"
+                     Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus.Login" />
+    <!-- The disks service's changes, which the app hears by a match of its own. -->
+    <AdditionalFiles Include="DBus\*.xml" Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus" DBusGeneratorMode="Handler" />
     <AdditionalFiles Include="..\..\src\JustModIt.Manager.Platform.Linux\DBus\Served\*.xml"
                      Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus" DBusGeneratorMode="Proxy" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Shared\QuietSystemEvents.cs" Link="Shared\QuietSystemEvents.cs" />
   </ItemGroup>
 
   <!-- The games of this machine that the live tests use, named in a file that git leaves out. -->

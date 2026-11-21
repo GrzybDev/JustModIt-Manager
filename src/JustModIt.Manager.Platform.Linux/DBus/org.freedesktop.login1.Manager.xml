@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!-- The members of logind's manager the app uses, as systemd's D-Bus API (org.freedesktop.login1(5)) defines them. -->
+<node>
+  <interface name="org.freedesktop.login1.Manager">
+    <signal name="PrepareForSleep">
+      <arg type="b" name="start" />
+    </signal>
+  </interface>
+</node>

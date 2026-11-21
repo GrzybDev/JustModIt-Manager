@@ -13,10 +13,6 @@
     <ProjectReference Include="..\..\src\JustModIt.Manager.Host\JustModIt.Manager.Host.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\Shared\QuietSystemEvents.cs" Link="Shared\QuietSystemEvents.cs" />
-  </ItemGroup>
-
   <!-- The games of this machine that the live tests use, named in a file that git leaves out. -->
   <ItemGroup>
     <Compile Include="..\Shared\LiveGames.cs" Link="Shared\LiveGames.cs" />

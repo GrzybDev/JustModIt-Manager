@@ -15,7 +15,6 @@ using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Tests;
 using JustModIt.Manager.Ui;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Velopack.Locators;
 
@@ -76,7 +75,6 @@ public sealed class HostEnvironmentTests : IDisposable
                 TestContext.Current.CancellationToken);
             var services = new ServiceCollection().AddAgent(options, settings, NullLoggerFactory.Instance);
             AgentPlatform.Compose(services, options, app: null, configure: app => app.AddSingleton<IForegroundHandoff>(handoff));
-            services.TryAddSingleton<ISystemEvents>(QuietSystemEvents.Instance);
 
             // Building checks what every constructor takes, but not what a factory resolves, as the stores' providers do. Where
             // the agent refuses to start, the desktop's services are missing, so the engine is resolved alone.

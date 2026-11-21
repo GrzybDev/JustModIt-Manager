@@ -105,6 +105,8 @@ internal static partial class AgentPlatform
         services.AddSingleton<IRegistry>(NoWindowsRecords.Instance);
         services.AddSingleton<IRegistryWatcher>(NoWindowsRecords.Instance);
         services.AddSingleton<ISqliteReader>(NoWindowsRecords.Instance);
+        services.AddSingleton<ISystemEvents>(provider =>
+            new LinuxSystemEvents(DBusConnection.System, provider.GetRequiredService<ILogger<LinuxSystemEvents>>()));
         services.AddSingleton<IProcessSource>(LinuxProcessSource.Instance);
         services.AddSingleton<ILockHolderSource>(ProcLockHolders.Instance);
         services.AddSingleton<IAutostart>(Unit(options));

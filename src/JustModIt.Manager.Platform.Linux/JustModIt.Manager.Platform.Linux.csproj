@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <AdditionalFiles Include="DBus/*.xml" Namespace="JustModIt.Manager.Platform.Linux.DBus" DBusGeneratorMode="Proxy" />
+    <!-- logind's manager has the class name of systemd's. -->
+    <AdditionalFiles Update="DBus/org.freedesktop.login1.Manager.xml" Namespace="JustModIt.Manager.Platform.Linux.DBus.Login" />
     <!-- The objects the app serves itself, such as its tray icon. -->
     <AdditionalFiles Include="DBus/Served/*.xml" Namespace="JustModIt.Manager.Platform.Linux.DBus" DBusGeneratorMode="Handler" />
   </ItemGroup>

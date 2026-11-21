@@ -10,6 +10,7 @@ using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
+using Tmds.DBus.Protocol;
 
 namespace JustModIt.Manager.Platform.Linux.Tests;
 
@@ -72,9 +73,10 @@ public sealed class LiveLibraryTests
                 NullLogger<JsonDocumentStore<AppSettings>>.Instance),
             time, NullLogger<SettingsService>.Instance, Token);
         var before = SystemWatchers();
+        using var events = new LinuxSystemEvents(DBusConnection.System, NullLogger<LinuxSystemEvents>.Instance);
         await using var service = new LibraryService(providers, settings,
             new RunningGameDetector(LinuxProcessSource.Instance, PhysicalFileSystem.Instance, time), PhysicalFileSystem.Instance,
-            FileSystemFolderWatcher.Instance, NoWindowsRecords.Instance, QuietSystemEvents.Instance,
+            FileSystemFolderWatcher.Instance, NoWindowsRecords.Instance, events,
             new JsonDocumentStore<LibrarySnapshot>(Path.Combine(directory, "library.json"), LibrarySnapshotFormat.Instance, time,
                 NullLogger<JsonDocumentStore<LibrarySnapshot>>.Instance),
             time, NullLogger<LibraryService>.Instance);
