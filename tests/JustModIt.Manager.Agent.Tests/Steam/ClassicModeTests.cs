@@ -51,8 +51,8 @@ public sealed class ClassicModeTests : IAsyncDisposable
             ExecutablePath = Path.Combine(_root, "ExampleApp.exe"),
             InstallDirectory = _root,
         };
-        _service = new SteamUiService(_steam, _port, new FakeFolderWatcher(), _settings, options, TimeProvider.System,
-            NullLogger<SteamUiService>.Instance);
+        _service = new SteamUiService(_steam, new SteamProcess(_steam, TimeProvider.System), _port, new FakeFolderWatcher(), _settings,
+            options, TimeProvider.System, NullLogger<SteamUiService>.Instance);
     }
 
     private string SwitchFile => Path.Combine(_root, ".cef-enable-remote-debugging");

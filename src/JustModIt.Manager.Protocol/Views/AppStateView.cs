@@ -62,6 +62,9 @@ public sealed record AppStateView
     /// <summary>What uninstalling the app itself takes away and keeps; null where the system uninstalls the app instead.</summary>
     public AppUninstallView? AppUninstall { get; init; }
 
+    /// <summary>The app's shortcut in Steam's library; null where the app offers none.</summary>
+    public SteamShortcutView? SteamShortcut { get; init; }
+
     /// <summary>Makes the snapshot of the engine's state and the agent's own status.</summary>
     /// <param name="version">The snapshot's number among those the agent sent.</param>
     /// <param name="state">The engine's newest state.</param>

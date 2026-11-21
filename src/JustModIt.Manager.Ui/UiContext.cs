@@ -93,6 +93,9 @@ public sealed record UiContext
     /// </summary>
     public bool InGameMode => Frame == WindowFrame.Screen;
 
+    /// <summary>Steam started the window from its library, so the app's shortcut is there; told on Linux only.</summary>
+    public bool StartedBySteam { get; init; }
+
     /// <summary>The app's own views, pages, styles and resources, added after the shared ones so they win.</summary>
     public Action<UiComposition>? Compose { get; init; }
 

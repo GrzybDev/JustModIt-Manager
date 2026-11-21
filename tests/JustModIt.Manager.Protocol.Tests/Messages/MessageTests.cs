@@ -76,6 +76,7 @@ public sealed class MessageTests
         new UninstallApp(),
         new AppUninstallProgress(AppUninstallStep.Program, new AppUninstallFailure(AppUninstallProblem.AccessDenied, "/home/player/Applications",
             Restored: true)),
+        new AddToSteam(),
         new JobStarted(Job),
         new CancelJob(Job),
         new DismissFailure(FailedGame),
@@ -203,6 +204,11 @@ public sealed class MessageTests
             PendingRecoveries = [new RecoveredOperation(RecordId, RecoveryOutcome.Failed)],
             UncleanExit = new UncleanExitView("1.0.0"),
             Volumes = [new NamedVolume("/home", "home", HoldsHome: true), new NamedVolume("/run/media/player/Example Card")],
+            SteamShortcut = new SteamShortcutView(SteamShortcutState.Elsewhere, HasGameSession: true, "/home/player/Applications/ExampleApp.AppImage")
+            {
+                Other = "/home/player/Downloads/ExampleApp.AppImage",
+                OtherMissing = true,
+            },
         }),
     ];
 

@@ -9,6 +9,7 @@ using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Controls;
 using JustModIt.Manager.Ui.Pages.Creator;
 using JustModIt.Manager.Ui.Pages.Library;
+using JustModIt.Manager.Ui.Pages.Settings;
 using JustModIt.Manager.Ui.Theme;
 
 namespace JustModIt.Manager.Ui.Overlays;
@@ -82,6 +83,12 @@ public sealed partial class AppUninstallDialogViewModel : DialogViewModel<AppUni
                 Stays(Strings.Uninstall_KeptCache) with { Path = CreatorWording.Wrappable(GameWording.FromHome(offer.CacheFolder)) },
                 Stays(Strings.Settings_Logs) with { Path = CreatorWording.Wrappable(GameWording.FromHome(offer.LogsFolder)) },
             ];
+        // Steam's shortcuts belong to Steam, so a shortcut of the app stays there.
+        if (SteamShortcutViewModel.StateOf(state.SteamShortcut, services.Context) is SteamShortcutState.Added or SteamShortcutState.Elsewhere)
+        {
+            Kept = [.. Kept, Stays(Strings.Settings_UninstallKeepsShortcut)];
+        }
+
         Warning = Text.Format(Strings.Uninstall_Warning, ("uninstallAll", Strings.Settings_UninstallAll), ("appData", Strings.Settings_AppData));
         GoToAppDataText = Text.Format(Strings.Uninstall_GoToAppData, ("appData", Strings.Settings_AppData));
     }

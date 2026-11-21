@@ -37,6 +37,12 @@ public sealed record LibraryEnvironment
     /// <summary>The folders of <c>PATH</c> that are absolute, where a launcher's own program is looked for.</summary>
     public IReadOnlyList<string> ProgramFolders { get; init; } = [];
 
+    /// <summary>
+    /// The system's data folders on Linux, which hold what it installed for every user, such as its desktop sessions:
+    /// <c>XDG_DATA_DIRS</c>, else <c>/usr/local/share</c> and <c>/usr/share</c>; none elsewhere.
+    /// </summary>
+    public IReadOnlyList<string> SystemDataFolders { get; init; } = [];
+
     /// <summary>Reads the current user's folders and environment variables.</summary>
     public static LibraryEnvironment ForCurrentUser() => new()
     {
@@ -54,8 +60,14 @@ public sealed record LibraryEnvironment
         XdgConfigHome = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")),
         SnapUserData = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("SNAP_USER_DATA")),
         LegendaryConfigPath = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("LEGENDARY_CONFIG_PATH")),
-        ProgramFolders = [.. (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator).Where(Path.IsPathFullyQualified)],
+        ProgramFolders = FullyQualifiedFolders("PATH"),
+        SystemDataFolders = !OperatingSystem.IsLinux() ? []
+            : FullyQualifiedFolders("XDG_DATA_DIRS") is [_, ..] folders ? folders
+            : ["/usr/local/share", "/usr/share"],
     };
+
+    private static string[] FullyQualifiedFolders(string variable) =>
+        [.. (Environment.GetEnvironmentVariable(variable) ?? "").Split(Path.PathSeparator).Where(Path.IsPathFullyQualified)];
 
     // The XDG specification says to ignore relative values, which would otherwise resolve against the current folder.
     private static string? FullyQualifiedOrNull(string? path) =>

@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:JustModIt.Manager.Ui.Pages.Settings"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Pages.Settings.SteamShortcutSteps"
+             x:DataType="settings:SteamShortcutViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.manualSteps">
+      <Setter Property="Padding" Value="14,12" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="#80030712" />
+      <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Border.manualSteps TextBlock, Border.manualSteps SelectableTextBlock">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="LineHeight" Value="20" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    </Style>
+    <Style Selector="Border.manualSteps SelectableTextBlock.file">
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="LineHeight" Value="18" />
+      <Setter Property="Foreground" Value="{StaticResource TextEmphasisBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Spacing="10">
+    <Button x:Name="SteamShortcutManual" Classes="link" HorizontalAlignment="Left" FontSize="13" FontWeight="SemiBold"
+            Foreground="{StaticResource TextBrush}" Content="{x:Static loc:Strings.SteamShortcut_Manual}"
+            ui:ButtonAssist.Icon="{Binding ManualToggleIcon}" ui:ButtonAssist.IconAfter="True" Command="{Binding ToggleManualCommand}" />
+    <Border Classes="manualSteps" IsVisible="{Binding IsManualShown}" theme:Motion.Enter="True">
+      <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+        <TextBlock Text="1." />
+        <TextBlock Grid.Column="1" Text="{x:Static loc:Strings.SteamShortcut_ManualLibrary}" />
+        <TextBlock Grid.Row="1" Text="2." />
+        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
+          <TextBlock Text="{x:Static loc:Strings.SteamShortcut_ManualBrowse}" />
+          <SelectableTextBlock Classes="file" Text="{Binding ManualFile}" TextWrapping="Wrap" />
+        </StackPanel>
+        <TextBlock Grid.Row="2" Text="3." />
+        <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Static loc:Strings.SteamShortcut_ManualAdd}" />
+      </Grid>
+    </Border>
+  </StackPanel>
+</UserControl>

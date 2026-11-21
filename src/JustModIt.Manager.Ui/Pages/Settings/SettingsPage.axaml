@@ -117,6 +117,35 @@
                            IsVisible="{Binding IsInStoreSession}" />
               </StackPanel>
             </ui:SettingRow>
+            <!-- Laid out as a settings row, with the shortcut's status and steps under its description, where a SettingRow has no place. -->
+            <Border x:Name="SteamShortcutRow" Padding="20,16" BorderThickness="0,1,0,0" BorderBrush="{StaticResource FillBrush}"
+                    IsVisible="{Binding SteamShortcut.IsOffered}">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                <Border Classes="iconChip" VerticalAlignment="Top">
+                  <ui:Icon Data="{x:Static theme:Icons.Gamepad}" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static loc:Strings.SteamShortcut_Title}" FontSize="14" LineHeight="20" FontWeight="SemiBold"
+                             TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" />
+                  <TextBlock x:Name="SteamShortcutDescription" Classes="caption" Text="{Binding SteamShortcut.Description}" MaxWidth="640"
+                             HorizontalAlignment="Left" />
+                  <ui:StatusLine x:Name="SteamShortcutStatus" Margin="0,4,0,0" FontSize="13" LineHeight="18" MaxWidth="640"
+                                 HorizontalAlignment="Left" Icon="{Binding SteamShortcut.StatusIcon}" Tone="{Binding SteamShortcut.StatusTone}"
+                                 Label="{Binding SteamShortcut.Status}" IsBusy="{Binding SteamShortcut.IsAdding}"
+                                 IsVisible="{Binding SteamShortcut.Status, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  <settings:SteamShortcutSteps x:Name="SteamShortcutSteps" DataContext="{Binding SteamShortcut}" Margin="0,8,0,0" IsVisible="{Binding HasManual}" />
+                </StackPanel>
+                <Button x:Name="SteamShortcutAction" Grid.Column="2" Classes="outline" VerticalAlignment="Center"
+                        Command="{Binding SteamShortcut.ActCommand}" IsVisible="{Binding SteamShortcut.HasAction}"
+                        AutomationProperties.Name="{Binding SteamShortcut.ActionText}" AutomationProperties.HelpText="{Binding SteamShortcut.Description}">
+                  <StackPanel Classes="buttonContent" Orientation="Horizontal">
+                    <ui:Icon Classes="buttonIcon" Classes.spin="{Binding SteamShortcut.IsAdding}" Data="{Binding SteamShortcut.ActionIcon}"
+                             IsVisible="{Binding SteamShortcut.ActionIcon, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <TextBlock Text="{Binding SteamShortcut.ActionText}" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </Border>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.EyeOff}" Title="{x:Static loc:Strings.Settings_BlurAdult}"
                            Message="{x:Static loc:Strings.Settings_BlurAdultDescription}">
               <ToggleSwitch IsChecked="{Binding BlurAdultContent}" AutomationProperties.Name="{x:Static loc:Strings.Settings_BlurAdult}"

@@ -40,10 +40,15 @@ public sealed class DesktopEntry : ILinkRegistration
         _categories = categories;
         _actions = actions;
         _icon = icon;
-        _entry = Path.Join(dataDirectory, "applications", desktopId + ".desktop");
+        _entry = FileOf(desktopId, dataDirectory);
         _icons = Path.Join(dataDirectory, "icons");
         _defaults = Path.Join(configDirectory, "mimeapps.list");
     }
+
+    /// <summary>Where the entry of one app and build lies among the user's apps.</summary>
+    /// <param name="desktopId">Names the entry.</param>
+    /// <param name="dataDirectory">The user's data folder (<c>XDG_DATA_HOME</c>).</param>
+    public static string FileOf(string desktopId, string dataDirectory) => Path.Join(dataDirectory, "applications", desktopId + ".desktop");
 
     public void Register(string scheme, string displayName, string executable)
     {

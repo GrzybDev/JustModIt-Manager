@@ -10,4 +10,15 @@ public static class Gamescope
     /// <param name="desktop">The session's desktop names, separated by colons; null when it names none.</param>
     public static bool IsSession(string? desktop) =>
         desktop is not null && desktop.Split(':').Contains("gamescope", StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Tells whether the system offers a gamescope session, as SteamOS and the handheld images of other systems do: one of
+    /// the desktop sessions it installed is gamescope's.
+    /// </summary>
+    /// <param name="fileSystem">Lists the sessions.</param>
+    /// <param name="dataFolders">The system's data folders, whose <c>wayland-sessions</c> folders list the sessions.</param>
+    public static bool IsInstalled(IFileSystem fileSystem, IEnumerable<string> dataFolders) =>
+        dataFolders.Select(folder => Path.Join(folder, "wayland-sessions"))
+            .Where(fileSystem.DirectoryExists)
+            .Any(sessions => fileSystem.Enumerate(sessions, "gamescope*.desktop", new EnumerationOptions()).Any());
 }

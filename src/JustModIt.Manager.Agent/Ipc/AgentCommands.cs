@@ -41,6 +41,7 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="time">Dates the player's confirmation of being an adult.</param>
 /// <param name="steamUi">Starts Steam again; null where the app has no way into Steam's interface.</param>
 /// <param name="uninstaller">Uninstalls the app itself; null where the system uninstalls it instead.</param>
+/// <param name="steamShortcut">Adds the app to Steam's library; null where the app offers no shortcut there.</param>
 internal sealed class AgentCommands(
     StateCoordinator coordinator,
     JobRunner jobs,
@@ -59,7 +60,8 @@ internal sealed class AgentCommands(
     AppStorage storage,
     TimeProvider time,
     ISteamUi? steamUi = null,
-    AppUninstaller? uninstaller = null)
+    AppUninstaller? uninstaller = null,
+    SteamShortcutService? steamShortcut = null)
 {
     /// <summary>Carries out one of the window's commands.</summary>
     /// <param name="request">A command, as opposed to a query.</param>
@@ -78,6 +80,7 @@ internal sealed class AgentCommands(
         UninstallEverything => Done(coordinator.UninstallEverything),
         ClearCache => await ClearCacheAsync(cancellationToken).ConfigureAwait(false),
         UninstallApp => StartUninstall(),
+        AddToSteam => await AddToSteamAsync(cancellationToken).ConfigureAwait(false),
         RemoveLeftoverBackups remove => await RemoveLeftoverBackupsAsync(remove.RecordIds, cancellationToken).ConfigureAwait(false),
         CancelJob cancel => Done(() => jobs.Cancel(cancel.Job)),
         DismissFailure dismiss => Done(() => coordinator.DismissFailure(dismiss.Game, dismiss.Install)),
@@ -253,6 +256,12 @@ internal sealed class AgentCommands(
         return await storage.ClearCacheAsync(installed, cancellationToken).ConfigureAwait(false)
             ? null
             : throw new RequestFailedException(ErrorCode.Failed, "A job is running.");
+    }
+
+    private async Task<Message?> AddToSteamAsync(CancellationToken cancellationToken)
+    {
+        await (steamShortcut ?? throw new RequestFailedException(ErrorCode.Unsupported)).AddAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+        return null;
     }
 
     // The agent leaves once the app is gone, which cancels a running job, undoing what it did, and drops the uninstalls and

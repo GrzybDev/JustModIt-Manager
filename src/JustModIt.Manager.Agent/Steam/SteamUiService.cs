@@ -52,18 +52,18 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
 
     /// <summary>Follows Steam with nothing changed in its folder until the first demand.</summary>
     /// <param name="steam">The Steam client on this computer.</param>
+    /// <param name="process">Follows Steam's process, which the app's other services follow too.</param>
     /// <param name="devTools">Reaches Steam's debug port in the classic mode.</param>
     /// <param name="folders">Reports the plugin's reports.</param>
     /// <param name="settings">Whether the first-run setup is done and which ways into Steam the player allows.</param>
     /// <param name="options">The app's names and version, which name the plugin and the classic mode's switch.</param>
     /// <param name="time">The clock that bounds waits for Steam.</param>
     /// <param name="logger">Receives what could not be done.</param>
-    public SteamUiService(ISteamClient steam, ISteamDevTools devTools, IFolderWatcher folders, ISettingsService settings,
-        AgentOptions options, TimeProvider time, ILogger<SteamUiService> logger)
+    public SteamUiService(ISteamClient steam, SteamProcess process, ISteamDevTools devTools, IFolderWatcher folders,
+        ISettingsService settings, AgentOptions options, TimeProvider time, ILogger<SteamUiService> logger)
     {
-        (_steam, _devTools, _settings, _options, _time, _logger) = (steam, devTools, settings, options, time, logger);
+        (_steam, _process, _devTools, _settings, _options, _time, _logger) = (steam, process, devTools, settings, options, time, logger);
         _millennium = new MillenniumDelivery(folders, options, time, Wake, logger);
-        _process = new SteamProcess(steam, time, Wake);
     }
 
     public event EventHandler<SteamUiStatus>? Changed;
@@ -97,6 +97,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
     {
         _stopping = cancellationToken;
         _settings.Changed += OnSettingsChanged;
+        _process.Exited += OnSteamExited;
         using var watch = _steam.Watch(Wake);
         try
         {
@@ -109,6 +110,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
         finally
         {
             _settings.Changed -= OnSettingsChanged;
+            _process.Exited -= OnSteamExited;
             _millennium.Stop();
             await StopClassicAsync(SteamUiDemand.None, clear: false, CancellationToken.None).ConfigureAwait(false);
         }
@@ -207,7 +209,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
                     return;
                 }
 
-                _process.Exited(process);
+                _process.MarkExited(process);
             }
 
             // What waits for Steam to be closed goes in before it starts again.
@@ -411,6 +413,8 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
     private void Wake() => _wake.Writer.TryWrite(true);
 
     private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e) => Wake();
+
+    private void OnSteamExited(object? sender, EventArgs e) => Wake();
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Steam's interface could not be brought up to date: {Error}")]
     private partial void LogNotBroughtUpToDate(string error);

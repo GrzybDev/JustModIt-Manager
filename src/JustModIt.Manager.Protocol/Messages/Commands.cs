@@ -75,6 +75,12 @@ public sealed record UninstallApp : Message
     public static readonly TimeSpan SystemTimeLimit = TimeSpan.FromSeconds(15);
 }
 
+/// <summary>
+/// Asks Steam to add the app to its library where the app offers a shortcut there (<see cref="AppStateView.SteamShortcut"/>),
+/// answered once the agent has looked at Steam again; how it goes arrives with the state.
+/// </summary>
+public sealed record AddToSteam : Message;
+
 /// <summary>The answer to a job request, naming the queued job.</summary>
 /// <param name="JobId">The id that <see cref="JobView.Id"/> and <see cref="CancelJob"/> use.</param>
 public sealed record JobStarted(Guid JobId) : Message;

@@ -47,6 +47,17 @@ internal interface ISteamClient
     /// <param name="link">The link, such as <c>steam://exit</c>.</param>
     /// <returns>False when the system could not open it.</returns>
     bool Open(string link);
+
+    /// <summary>
+    /// Asks a running Steam to add a program to its library, as SteamOS's own tool does, which a closed Steam never gets;
+    /// on Linux only, through Steam's own program.
+    /// </summary>
+    /// <param name="program">The program the shortcut starts, or a menu entry, whose name, icon and program the shortcut takes.</param>
+    /// <returns>False when Steam's program could not be started.</returns>
+    bool AddToLibrary(string program);
+
+    /// <summary>Closes what lets Steam take a program to add, once <see cref="AddToLibrary"/> needs it no more.</summary>
+    void CloseLibraryGate();
 }
 
 /// <summary>
@@ -66,10 +77,19 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
     private const string SteamKey = @"Software\Valve\Steam";
     private const string ProcessKey = SteamKey + @"\ActiveProcess";
     private const string ProcessName = "steam";
+    private const string AddLink = "steam://addnonsteamgame/";
+
+    private int _gateMade;
 
     private readonly ClientFiles? _files = SteamInstallation.ClientFolder(environment) is { } folder
         ? new ClientFiles(fileSystem, folders, processes, environment, folder)
         : null;
+
+    /// <summary>
+    /// The file whose presence lets Steam's Linux client take the link to add a program, so no web page can add one; Steam
+    /// looks for it at this path alone, so only tests change it.
+    /// </summary>
+    public string LibraryGate { get; init; } = "/tmp/addnonsteamgamefile";
 
     public SteamFolders? Find() => SteamInstallation.FindRoot(fileSystem, registry, environment) is { } root
         ? new SteamFolders(root, MillenniumFolders.For(root, environment))
@@ -139,6 +159,44 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
     public bool Open(string link) => SteamInstallation.ClientProgram(fileSystem, environment) is { } program
         ? shell.Run(program, [link]) is not null
         : shell.Open(link);
+
+    public bool AddToLibrary(string program)
+    {
+        if (SteamInstallation.ClientProgram(fileSystem, environment) is not { } steam)
+        {
+            return false;
+        }
+
+        try
+        {
+            using (File.Open(LibraryGate, FileMode.CreateNew, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+            {
+                Volatile.Write(ref _gateMade, 1);
+            }
+        }
+        // A gate that is there already, perhaps another user's, stays theirs; without one Steam refuses the link.
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+        }
+
+        return shell.Run(steam, ["-ifrunning", AddLink + Uri.EscapeDataString(program)]) is not null;
+    }
+
+    public void CloseLibraryGate()
+    {
+        if (Interlocked.Exchange(ref _gateMade, 0) == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(LibraryGate);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
 
     private sealed class Watches(IDisposable first, IDisposable second) : IDisposable
     {

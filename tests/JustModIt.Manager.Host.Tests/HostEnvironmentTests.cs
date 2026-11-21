@@ -34,6 +34,9 @@ public sealed class HostEnvironmentTests : IDisposable
         IsDevelopmentBuild = true,
     };
 
+    private static string MenuEntry =>
+        Path.Join(LibraryEnvironment.ForCurrentUser().DataDirectory, "applications", "com.example.ExampleApp.desktop");
+
     private readonly string? _runtimeDirectory = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
 
     public HostEnvironmentTests()
@@ -106,6 +109,7 @@ public sealed class HostEnvironmentTests : IDisposable
         HostEnvironment.Create(Product, Build).AgentOptions().IntegratesWithShell.Should().BeFalse();
         HostEnvironment.Create(Product with { DevelopmentShellIntegration = true }, Build).AgentOptions().IntegratesWithShell.Should().BeTrue();
         HostEnvironment.Create(Product with { IsDevelopmentBuild = false }, Build).AgentOptions().IntegratesWithShell.Should().BeFalse();
+        HostEnvironment.Create(Product, Build).AgentOptions().SteamShortcutTarget.Should().BeNull("nor does it add itself to Steam's library");
     }
 
     [Fact]
@@ -116,6 +120,8 @@ public sealed class HostEnvironmentTests : IDisposable
         options.IntegratesWithShell.Should().BeTrue();
         options.ExecutablePath.Should().Be(Installed.ExecutablePath);
         options.InstallDirectory.Should().Be(Installed.Directory);
+        options.SteamShortcutTarget.Should().Be(OperatingSystem.IsLinux() ? MenuEntry : null,
+            "only Steam's Linux client takes the app's shortcut, from the menu entry, whose name and icon it gives the shortcut");
     }
 
     [Fact]
@@ -151,7 +157,8 @@ public sealed class HostEnvironmentTests : IDisposable
             var options = HostEnvironment.Create(Product with { IsDevelopmentBuild = false }, location).AgentOptions();
 
             location.Should().Be(new InstallLocation(image, Directory: null, IsInstalled: true));
-            (options.ExecutablePath, options.InstallDirectory, options.IntegratesWithShell).Should().Be((image, null, true));
+            (options.ExecutablePath, options.InstallDirectory, options.IntegratesWithShell, options.SteamShortcutTarget)
+                .Should().Be((image, null, true, MenuEntry), "the menu entry starts the AppImage, which outlasts its mount");
         }
         finally
         {

@@ -42,8 +42,8 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
         File.WriteAllText(Path.Combine(_root, "millennium", "config", "config.json"),
             """{"general": {"accentColor": "#123456"}, "plugins": {"enabledPlugins": ["another-plugin"]}}""");
         _steam.Root = _root;
-        _service = new SteamUiService(_steam, new FakeDevTools(), _folders, _settings, Options, TimeProvider.System,
-            NullLogger<SteamUiService>.Instance);
+        _service = new SteamUiService(_steam, new SteamProcess(_steam, TimeProvider.System), new FakeDevTools(), _folders, _settings,
+            Options, TimeProvider.System, NullLogger<SteamUiService>.Instance);
     }
 
     private static AgentOptions Options { get; } = new()
@@ -150,7 +150,8 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
     public async Task A_plugin_millennium_did_not_load_is_told_as_blocked_once_it_had_its_time()
     {
         var time = new FakeTimeProvider(DateTimeOffset.UtcNow);
-        using var service = new SteamUiService(_steam, new FakeDevTools(), _folders, _settings, Options, time, NullLogger<SteamUiService>.Instance);
+        using var service = new SteamUiService(_steam, new SteamProcess(_steam, time), new FakeDevTools(), _folders, _settings, Options, time,
+            NullLogger<SteamUiService>.Instance);
         service.Demand(SteamUiDemand.From([Texts], []));
         _run = service.RunAsync(new LaunchArguments(ProcessRole.Agent, Background: false, Target: null), _stop.Token);
         await Eventually.HoldsAsync(() => service.Status.PluginVersion == "1.4.0");

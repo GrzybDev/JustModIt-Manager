@@ -2,22 +2,45 @@ namespace JustModIt.Manager.Agent.Steam;
 
 /// <summary>
 /// Follows Steam's process from the one Steam recorded of itself, which stays recorded when Steam was stopped from outside,
-/// and reports its exit. One caller at a time follows it.
+/// and reports its exit. The services that look at Steam share it, so each process's exit is awaited once.
 /// </summary>
 /// <param name="steam">Tells whether a process is Steam's and when it exits.</param>
 /// <param name="time">Dates when the process was first seen.</param>
-/// <param name="exited">Called, on any thread, once the followed process exits.</param>
-internal sealed class SteamProcess(ISteamClient steam, TimeProvider time, Action exited)
+internal sealed class SteamProcess(ISteamClient steam, TimeProvider time)
 {
+    private readonly Lock _gate = new();
     private int? _process;
+    private int? _awaited;
     private int _exitedProcess;
     private int _staleProcess;
+    private SteamRun? _run;
 
-    /// <summary>The process followed now; null while Steam does not run.</summary>
-    public int? Id => _process;
+    /// <summary>Raised, on any thread, once the followed process exits.</summary>
+    public event EventHandler? Exited;
+
+    /// <summary>The process the latest look found; null while Steam does not run.</summary>
+    public int? Id
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _process;
+            }
+        }
+    }
 
     /// <summary>When the followed process started and was first seen; null before any.</summary>
-    public SteamRun? Run { get; private set; }
+    public SteamRun? Run
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _run;
+            }
+        }
+    }
 
     /// <summary>Follows the process Steam recorded now.</summary>
     /// <param name="processId">The process Steam recorded; null when it recorded none.</param>
@@ -25,34 +48,45 @@ internal sealed class SteamProcess(ISteamClient steam, TimeProvider time, Action
     /// <returns>Whether Steam runs.</returns>
     public bool Follow(int? processId, CancellationToken stopping)
     {
-        if (processId is not { } id || id == Volatile.Read(ref _exitedProcess) || id == _staleProcess)
+        lock (_gate)
         {
-            _process = null;
-            return false;
+            if (processId is not { } id || id == _exitedProcess || id == _staleProcess)
+            {
+                _process = null;
+                return false;
+            }
+
+            if (id == _awaited)
+            {
+                _process = id;
+                return true;
+            }
+
+            // Ids are reused, so a recorded process may be another program's by now.
+            if (!steam.IsRunning(id))
+            {
+                _staleProcess = id;
+                _process = null;
+                return false;
+            }
+
+            _process = _awaited = id;
+            _run = new SteamRun(steam.StartedAt(id), time.GetUtcNow());
         }
 
-        if (id == _process)
-        {
-            return true;
-        }
-
-        // Ids are reused, so a recorded process may be another program's by now.
-        if (!steam.IsRunning(id))
-        {
-            _staleProcess = id;
-            _process = null;
-            return false;
-        }
-
-        _process = id;
-        Run = new SteamRun(steam.StartedAt(id), time.GetUtcNow());
-        _ = WaitForExitAsync(id, stopping);
+        _ = WaitForExitAsync(processId.Value, stopping);
         return true;
     }
 
     /// <summary>Takes a process for gone, once someone else saw it exit.</summary>
     /// <param name="processId">The process that exited.</param>
-    public void Exited(int processId) => Volatile.Write(ref _exitedProcess, processId);
+    public void MarkExited(int processId)
+    {
+        lock (_gate)
+        {
+            _exitedProcess = processId;
+        }
+    }
 
     private async Task WaitForExitAsync(int processId, CancellationToken stopping)
     {
@@ -60,8 +94,8 @@ internal sealed class SteamProcess(ISteamClient steam, TimeProvider time, Action
         {
             if (await steam.WaitForExitAsync(processId, stopping).ConfigureAwait(false))
             {
-                Exited(processId);
-                exited();
+                MarkExited(processId);
+                Exited?.Invoke(this, EventArgs.Empty);
             }
         }
         catch (OperationCanceledException)

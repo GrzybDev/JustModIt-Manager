@@ -2090,6 +2090,51 @@
   <data name="Settings_CloseInGameMode" xml:space="preserve">
     <value>“Exit game” in Steam's menu closes the window without asking, and the app keeps working in the background. This choice is for the Close button in the window's bar.</value>
   </data>
+  <data name="SteamShortcut_Title" xml:space="preserve">
+    <value>Shortcut in Steam's library</value>
+  </data>
+  <data name="SteamShortcut_Description" xml:space="preserve">
+    <value>{session, select, true {In Game Mode the window opens only from the shortcut in Steam's library.} other {The shortcut opens the window from Steam's library, in Big Picture mode too.}}</value>
+  </data>
+  <data name="SteamShortcut_Adding" xml:space="preserve">
+    <value>Steam is adding the shortcut…</value>
+  </data>
+  <data name="SteamShortcut_AddingButton" xml:space="preserve">
+    <value>Adding…</value>
+  </data>
+  <data name="SteamShortcut_Added" xml:space="preserve">
+    <value>It is in Steam's library and can be removed in Steam.</value>
+  </data>
+  <data name="SteamShortcut_SteamNotRunning" xml:space="preserve">
+    <value>Steam is not running, and the shortcut is added by Steam itself.</value>
+  </data>
+  <data name="SteamShortcut_Failed" xml:space="preserve">
+    <value>The shortcut did not appear in Steam's library within {seconds, plural, one {# second} other {# seconds}}.</value>
+  </data>
+  <data name="SteamShortcut_Elsewhere" xml:space="preserve">
+    <value>{copy, select, missing {The shortcut in Steam starts a file that is no longer there: {file}.} other {The shortcut in Steam starts another copy of the app: {file}.}} The old shortcut can be removed in Steam.</value>
+  </data>
+  <data name="SteamShortcut_Add" xml:space="preserve">
+    <value>Add to Steam</value>
+  </data>
+  <data name="SteamShortcut_AddAgain" xml:space="preserve">
+    <value>Add again</value>
+  </data>
+  <data name="SteamShortcut_StartSteam" xml:space="preserve">
+    <value>Start Steam</value>
+  </data>
+  <data name="SteamShortcut_Manual" xml:space="preserve">
+    <value>How to add the shortcut by hand</value>
+  </data>
+  <data name="SteamShortcut_ManualLibrary" xml:space="preserve">
+    <value>In Steam's library: “Add a Game” › “Add a Non-Steam Game…”.</value>
+  </data>
+  <data name="SteamShortcut_ManualBrowse" xml:space="preserve">
+    <value>“Browse…” and the file</value>
+  </data>
+  <data name="SteamShortcut_ManualAdd" xml:space="preserve">
+    <value>“Add Selected Programs”.</value>
+  </data>
   <data name="Settings_BlurAdult" xml:space="preserve">
     <value>Blur pictures of adult games</value>
   </data>
@@ -2407,6 +2452,9 @@
   </data>
   <data name="Uninstall_KeptCache" xml:space="preserve">
     <value>Downloaded packages, images and catalogue data</value>
+  </data>
+  <data name="Settings_UninstallKeepsShortcut" xml:space="preserve">
+    <value>The shortcut in Steam's library, which can be removed in Steam</value>
   </data>
   <data name="Uninstall_Warning" xml:space="preserve">
     <value>Without the app the projects stay in the games, and the copies of original files do not go back by themselves. “{uninstallAll}” in the “{appData}” section puts the original files back before the app is uninstalled.</value>

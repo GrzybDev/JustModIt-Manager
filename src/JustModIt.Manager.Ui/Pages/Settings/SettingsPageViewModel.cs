@@ -38,6 +38,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         Folders = new AddedFoldersViewModel(services);
         Data = new AppDataViewModel(services);
         Steam = new SteamDeliveryViewModel(services);
+        SteamShortcut = new SteamShortcutViewModel(services);
         Sync();
         _services.Agent.PropertyChanged += OnAgentChanged;
         _services.Agent.JobsProgressed += OnJobsProgressed;
@@ -55,6 +56,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     /// <summary>How achievement texts reach Steam's interface.</summary>
     public SteamDeliveryViewModel Steam { get; }
+
+    /// <summary>The app's shortcut in Steam's library, which Game Mode opens the window from.</summary>
+    public SteamShortcutViewModel SteamShortcut { get; }
 
     public string GeneralHeading { get; } = Overline(Strings.Settings_General);
 
@@ -338,6 +342,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         Teams.Refresh();
         Data.Refresh();
         Steam.Refresh();
+        SteamShortcut.Refresh();
         ShowUpdate();
         ShowWindowReturn();
         ShowUninstall();
@@ -389,6 +394,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
             Backups.Refresh();
             Data.Refresh();
             Steam.Refresh();
+            SteamShortcut.Refresh();
             ShowUpdate();
             ShowWindowReturn();
             ShowUninstall();

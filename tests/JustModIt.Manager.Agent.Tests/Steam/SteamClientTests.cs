@@ -23,10 +23,15 @@ public sealed class SteamClientTests : IDisposable
     {
         Directory.CreateDirectory(_home);
         _client = new SteamClient(PhysicalFileSystem.Instance, QuietSystem.Instance, QuietSystem.Instance, _folders, _processes, _shell,
-            new LibraryEnvironment { Platform = AppPlatform.Linux, HomeDirectory = _home, ProgramFolders = [ProgramFolder] });
+            new LibraryEnvironment { Platform = AppPlatform.Linux, HomeDirectory = _home, ProgramFolders = [ProgramFolder] })
+        {
+            LibraryGate = Gate,
+        };
     }
 
     private string ClientFolder => Path.Combine(_home, ".steam");
+
+    private string Gate => Path.Combine(Path.GetDirectoryName(_home)!, "addnonsteamgamefile");
 
     private string ProgramFolder => Path.Combine(Path.GetDirectoryName(_home)!, "bin");
 
@@ -47,6 +52,34 @@ public sealed class SteamClientTests : IDisposable
             $"{Path.Combine(ProgramFolder, "steam")} steam://rungameid/1000",
             $"{Path.Combine(ClientFolder, "root", "steam.sh")} steam://rungameid/1001");
         _shell.Opened.Should().ContainSingle("Steam's program hands the link over without a display, which the system's opener needs");
+    }
+
+    [Fact]
+    public void A_program_goes_to_a_running_Steam_through_its_own_program_and_only_the_gate_the_app_opened_closes()
+    {
+        const string Program = "/home/player/My Apps/Example App.AppImage";
+        Directory.CreateDirectory(ClientFolder);
+        _client.AddToLibrary(Program).Should().BeFalse("without Steam's program nothing takes the link");
+        File.Exists(Gate).Should().BeFalse();
+
+        Directory.CreateDirectory(ProgramFolder);
+        File.WriteAllText(Path.Combine(ProgramFolder, "steam"), "");
+        _client.AddToLibrary(Program).Should().BeTrue();
+        File.Exists(Gate).Should().BeTrue("Steam takes the link only while the gate is there");
+        _client.CloseLibraryGate();
+        File.Exists(Gate).Should().BeFalse();
+
+        File.WriteAllText(Gate, "");
+        _client.AddToLibrary(Program).Should().BeTrue();
+        _client.CloseLibraryGate();
+        File.Exists(Gate).Should().BeTrue("a gate someone else opened stays theirs");
+
+        // The path goes as one escaped word, and a closed Steam is not started for it.
+        _shell.Ran.Should().HaveCount(2).And.AllSatisfy(run =>
+        {
+            run.Executable.Should().Be(Path.Combine(ProgramFolder, "steam"));
+            run.Arguments.Should().Equal("-ifrunning", "steam://addnonsteamgame/%2Fhome%2Fplayer%2FMy%20Apps%2FExample%20App.AppImage");
+        });
     }
 
     [Fact]

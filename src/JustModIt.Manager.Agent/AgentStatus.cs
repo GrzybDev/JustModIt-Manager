@@ -3,8 +3,8 @@ using JustModIt.Manager.Protocol.Views;
 namespace JustModIt.Manager.Agent;
 
 /// <summary>
-/// What the agent itself is busy with, beyond the engine's state: checks, a pending exit, its own updates and how its
-/// previous run ended; it starts with nothing going on and no update found.
+/// What the agent itself is busy with, beyond the engine's state: checks, a pending exit, its own updates, the app's
+/// shortcut in Steam's library and how its previous run ended; it starts with nothing going on and no update found.
 /// </summary>
 /// <param name="options">The app's options, for its current version and how its previous run ended.</param>
 public sealed class AgentStatus(AgentOptions options)
@@ -13,6 +13,7 @@ public sealed class AgentStatus(AgentOptions options)
     private ActivityView _activity = new();
     private AppUpdateView _update = new() { CurrentVersion = options.Version };
     private UncleanExitView? _uncleanExit = options.PreviousExit?.View;
+    private SteamShortcutView? _steamShortcut;
 
     /// <summary>Raised after every change, outside the lock; handlers must return quickly.</summary>
     public event EventHandler? Changed;
@@ -23,6 +24,13 @@ public sealed class AgentStatus(AgentOptions options)
 
     /// <summary>How the previous run ended when it did not exit cleanly, until the window has told the player.</summary>
     public UncleanExitView? UncleanExit => Volatile.Read(ref _uncleanExit);
+
+    /// <summary>The app's shortcut in Steam's library; null where the app offers none.</summary>
+    public SteamShortcutView? SteamShortcut => Volatile.Read(ref _steamShortcut);
+
+    /// <summary>Shows how the app's shortcut in Steam's library stands, raising <see cref="Changed"/> when it differs.</summary>
+    /// <param name="shortcut">How it stands; null where the app offers none.</param>
+    public void ShowSteamShortcut(SteamShortcutView? shortcut) => Change(ref _steamShortcut, _ => shortcut);
 
     /// <summary>Forgets how the previous run ended, once the window has told the player.</summary>
     public void ForgetUncleanExit() => Change(ref _uncleanExit, _ => null);

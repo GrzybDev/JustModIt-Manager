@@ -147,6 +147,9 @@ public static class PageLinks
     /// <summary>The scheme of the Steam client's links.</summary>
     public const string SteamScheme = "steam";
 
+    /// <summary>The Steam client, opened on its library, which starts it when it does not run.</summary>
+    public static ClientLink SteamClient => new(Strings.Library_StoreSteam, $"{SteamScheme}://open/games");
+
     /// <summary>Millennium's own site, which says what it is and how to install it.</summary>
     public static Uri Millennium { get; } = new("https://steambrew.app/");
 
@@ -175,7 +178,7 @@ public static class PageLinks
 
         if (store.Store == Core.Games.StoreId.Steam.Value)
         {
-            return new ClientLink(Strings.Library_StoreSteam, $"{SteamScheme}://open/games");
+            return SteamClient;
         }
 
         bool Has(string source) => store.Libraries.Any(library => library.Source == source);

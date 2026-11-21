@@ -13,6 +13,7 @@ internal sealed class FakeSteamClient : ISteamClient
     private readonly ConcurrentDictionary<int, TaskCompletionSource> _processes = new();
     private readonly ConcurrentDictionary<int, DateTimeOffset> _started = new();
     private Action? _changed;
+    private int _waits;
 
     public string? Root { get; set; }
 
@@ -32,8 +33,12 @@ internal sealed class FakeSteamClient : ISteamClient
 
     public DateTimeOffset? StartedAt(int processId) => _started.TryGetValue(processId, out var started) ? started : null;
 
+    /// <summary>How many times a process's exit was awaited.</summary>
+    public int Waits => Volatile.Read(ref _waits);
+
     public async Task<bool> WaitForExitAsync(int processId, CancellationToken cancellationToken)
     {
+        Interlocked.Increment(ref _waits);
         if (_processes.TryGetValue(processId, out var process))
         {
             await process.Task.WaitAsync(cancellationToken);
@@ -53,6 +58,21 @@ internal sealed class FakeSteamClient : ISteamClient
         Opened.Enqueue(link);
         return true;
     }
+
+    /// <summary>The programs handed to Steam to add to its library.</summary>
+    public ConcurrentQueue<string> Added { get; } = new();
+
+    /// <summary>Steam would take a program to add now.</summary>
+    public bool IsGateOpen { get; private set; }
+
+    public bool AddToLibrary(string program)
+    {
+        IsGateOpen = true;
+        Added.Enqueue(program);
+        return true;
+    }
+
+    public void CloseLibraryGate() => IsGateOpen = false;
 
     public void Start(int processId, string language = "polish")
     {

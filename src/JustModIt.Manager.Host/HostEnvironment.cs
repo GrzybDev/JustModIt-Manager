@@ -4,6 +4,7 @@ using JustModIt.Manager.Agent;
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
+using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Platform.Linux;
@@ -126,6 +127,11 @@ internal sealed record HostEnvironment
         InstallDirectory = Install.Directory,
         IntegratesWithShell = IntegratesWithShell,
         LaunchesBecomeWindows = RunsAgentAsUnit,
+        // The app's menu entry, from which Steam takes the shortcut's name and icon, while a file added itself names the
+        // shortcut after the file, with no icon; a copy that leaves the system alone leaves Steam alone too.
+        SteamShortcutTarget = OperatingSystem.IsLinux() && IntegratesWithShell
+            ? DesktopEntry.FileOf(Identity.DesktopId, LibraryEnvironment.ForCurrentUser().DataDirectory)
+            : null,
         Updates = Product.UpdateUrl.Length > 0
             ? new UpdateFeed(Product.UpdateUrl, Product.UpdateChannel.Length > 0 ? Product.UpdateChannel : null)
             : null,
@@ -170,6 +176,7 @@ internal sealed record HostEnvironment
                 : null,
             WindowFrames = OperatingSystem.IsWindows() ? new WindowsWindowFrames() : null,
             Frame = FrameFor(Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")),
+            StartedBySteam = StartedBySteam,
             Compose = options.ConfigureUi,
             // Restarting the unit also brings back an agent that runs but no longer answers.
             StartAgent = RunsAgentAsUnit

@@ -105,7 +105,13 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
             }
 
             var state = AppStateView.From(++version, current, settings.Current, catalogue.Current.Site, status.Activity,
-                status.Update) with { UncleanExit = status.UncleanExit, Volumes = volumes, AppUninstall = uninstall };
+                status.Update) with
+            {
+                UncleanExit = status.UncleanExit,
+                Volumes = volumes,
+                AppUninstall = uninstall,
+                SteamShortcut = status.SteamShortcut,
+            };
             Volatile.Write(ref _latest, state);
             EventRaising.RaiseEach(Published, this, state, LogListenerFailed);
         }

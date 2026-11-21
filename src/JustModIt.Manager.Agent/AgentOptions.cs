@@ -38,6 +38,12 @@ public sealed record AgentOptions
     /// </summary>
     public required string? InstallDirectory { get; init; }
 
+    /// <summary>
+    /// The file Steam makes the app's shortcut in its library from, which the agent offers to add: the app's menu entry,
+    /// whose name, icon and program the shortcut takes; null where the app offers no shortcut there.
+    /// </summary>
+    public string? SteamShortcutTarget { get; init; }
+
     /// <summary>Registers autostart and the link scheme, which a development build does only when asked to.</summary>
     public bool IntegratesWithShell { get; init; }
 

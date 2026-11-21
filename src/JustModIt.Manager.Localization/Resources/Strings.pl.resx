@@ -2073,6 +2073,51 @@
   <data name="Settings_CloseInGameMode" xml:space="preserve">
     <value>„Zakończ grę” w menu Steama zamyka okno bez pytania, a praca w tle trwa dalej. Ten wybór dotyczy przycisku „Zamknij” na pasku okna.</value>
   </data>
+  <data name="SteamShortcut_Title" xml:space="preserve">
+    <value>Skrót w bibliotece Steama</value>
+  </data>
+  <data name="SteamShortcut_Description" xml:space="preserve">
+    <value>{session, select, true {W trybie gry okno otwiera się tylko ze skrótu w bibliotece Steama.} other {Skrót otwiera okno z biblioteki Steama, także w trybie Big Picture.}}</value>
+  </data>
+  <data name="SteamShortcut_Adding" xml:space="preserve">
+    <value>Steam dodaje skrót…</value>
+  </data>
+  <data name="SteamShortcut_AddingButton" xml:space="preserve">
+    <value>Dodawanie…</value>
+  </data>
+  <data name="SteamShortcut_Added" xml:space="preserve">
+    <value>Jest w bibliotece Steama. Usuwa się go w Steamie.</value>
+  </data>
+  <data name="SteamShortcut_SteamNotRunning" xml:space="preserve">
+    <value>Steam nie jest uruchomiony, a skrót dodaje sam Steam.</value>
+  </data>
+  <data name="SteamShortcut_Failed" xml:space="preserve">
+    <value>Skrót nie pojawił się w bibliotece Steama w ciągu {seconds, plural, one {# sekundy} few {# sekund} many {# sekund} other {# sekundy}}.</value>
+  </data>
+  <data name="SteamShortcut_Elsewhere" xml:space="preserve">
+    <value>{copy, select, missing {Skrót w Steamie uruchamia plik, którego już nie ma: {file}.} other {Skrót w Steamie uruchamia inną kopię aplikacji: {file}.}} Stary skrót usuwa się w Steamie.</value>
+  </data>
+  <data name="SteamShortcut_Add" xml:space="preserve">
+    <value>Dodaj do Steama</value>
+  </data>
+  <data name="SteamShortcut_AddAgain" xml:space="preserve">
+    <value>Dodaj ponownie</value>
+  </data>
+  <data name="SteamShortcut_StartSteam" xml:space="preserve">
+    <value>Uruchom Steam</value>
+  </data>
+  <data name="SteamShortcut_Manual" xml:space="preserve">
+    <value>Jak dodać skrót ręcznie</value>
+  </data>
+  <data name="SteamShortcut_ManualLibrary" xml:space="preserve">
+    <value>W bibliotece Steama: „Dodaj grę” › „Dodaj grę spoza Steam…”.</value>
+  </data>
+  <data name="SteamShortcut_ManualBrowse" xml:space="preserve">
+    <value>„Przeglądaj…” i plik</value>
+  </data>
+  <data name="SteamShortcut_ManualAdd" xml:space="preserve">
+    <value>„Dodaj wybrane programy”.</value>
+  </data>
   <data name="Settings_BlurAdult" xml:space="preserve">
     <value>Rozmywaj grafiki gier dla dorosłych</value>
   </data>
@@ -2390,6 +2435,9 @@
   </data>
   <data name="Uninstall_KeptCache" xml:space="preserve">
     <value>Pobrane paczki, obrazy i dane katalogu</value>
+  </data>
+  <data name="Settings_UninstallKeepsShortcut" xml:space="preserve">
+    <value>Skrót w bibliotece Steama; usuwa się go w Steamie</value>
   </data>
   <data name="Uninstall_Warning" xml:space="preserve">
     <value>Bez aplikacji projekty zostaną w grach, a kopie oryginalnych plików nie wrócą na miejsce same. Oryginalne pliki przywraca przed odinstalowaniem aplikacji „{uninstallAll}” w sekcji „{appData}”.</value>
