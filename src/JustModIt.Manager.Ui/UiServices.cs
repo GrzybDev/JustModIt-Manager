@@ -42,6 +42,9 @@ public sealed class UiServices
 
     /// <summary>The time now and the local time zone, which dates on the pages are told against.</summary>
     public TimeProvider Clock { get; init; } = TimeProvider.System;
+
+    /// <summary>Uninstalling the app itself, which the settings and the app's menu entry start and the shell shows the end of.</summary>
+    public AppUninstall Uninstall => field ??= new AppUninstall(this);
 }
 
 /// <summary>

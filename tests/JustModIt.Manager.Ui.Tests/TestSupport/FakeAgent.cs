@@ -25,6 +25,8 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
 
     public event EventHandler? BringToFrontRequested;
 
+    public event EventHandler<AppUninstallProgress>? AppUninstallProgressed;
+
     [ObservableProperty]
     public partial AgentLink Link { get; set; } = AgentLink.Connected;
 
@@ -86,6 +88,8 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
         Sent(new BringToFront());
         BringToFrontRequested?.Invoke(this, EventArgs.Empty);
     }
+
+    public void UninstallProgress(AppUninstallProgress progress) => AppUninstallProgressed?.Invoke(this, Sent(progress));
 
     public async Task<Message?> RequestAsync(Message request, CancellationToken cancellationToken = default)
     {

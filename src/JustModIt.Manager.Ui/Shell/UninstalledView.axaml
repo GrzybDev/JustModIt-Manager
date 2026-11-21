@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:JustModIt.Manager.Ui.Shell"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Shell.UninstalledView"
+             x:DataType="shell:ShellViewModel"
+             Classes.shown="{Binding IsUninstalled}" IsHitTestVisible="{Binding IsUninstalled}" theme:Motion.Shown="{Binding IsUninstalled}">
+  <UserControl.Styles>
+    <Style Selector="shell|UninstalledView">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.4" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="shell|UninstalledView.shown">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Border.doneChip">
+      <Setter Property="Width" Value="56" />
+      <Setter Property="Height" Value="56" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="Background" Value="{StaticResource SuccessSoftBrush}" />
+    </Style>
+    <Style Selector="TextBlock.folder">
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="LineHeight" Value="21" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="Foreground" Value="{StaticResource TextBodyBrush}" />
+    </Style>
+  </UserControl.Styles>
+  <Border Classes="connectingBackdrop">
+    <StackPanel x:Name="Uninstalled" Classes="connectingContent" MaxWidth="560" AutomationProperties.LiveSetting="Polite">
+      <Border Classes="doneChip">
+        <ui:Icon Data="{x:Static theme:Icons.Check}" Width="26" Height="26" Foreground="{StaticResource SuccessTextBrush}" />
+      </Border>
+      <StackPanel Spacing="10">
+        <TextBlock x:Name="UninstalledTitle" Classes="h2" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding Uninstall.Uninstalled.Title}" />
+        <TextBlock Classes="bodyL" TextAlignment="Center" Text="{x:Static loc:Strings.Uninstalled_DataKept}" />
+        <!-- A line each, so a path never breaks in its middle. -->
+        <ItemsControl x:Name="UninstalledFolders" ItemsSource="{Binding Uninstall.Uninstalled.Folders}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="folder" Text="{Binding}" ToolTip.Tip="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+      <TextBlock x:Name="UninstalledInstalls" Classes="bodyL" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding Uninstall.Uninstalled.Installs}"
+                 IsVisible="{Binding Uninstall.Uninstalled.Installs, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <Button x:Name="CloseUninstalled" Classes="primary" HorizontalAlignment="Center" Content="{x:Static loc:Strings.Uninstalled_Close}"
+              Click="OnClose" />
+    </StackPanel>
+  </Border>
+</UserControl>

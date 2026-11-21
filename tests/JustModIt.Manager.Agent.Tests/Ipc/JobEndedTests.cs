@@ -137,5 +137,7 @@ public sealed class JobEndedTests : IAsyncDisposable
 
         public Task<LaunchOptionsResult> ChangeLaunchOptionsAsync(GameKey game, IReadOnlyList<string> add, IReadOnlyList<string> remove,
             CancellationToken cancellationToken) => Task.FromResult(new LaunchOptionsResult(null, LaunchOptionsFailure.Failed));
+
+        public Task WithdrawAsync() => Task.CompletedTask;
     }
 }

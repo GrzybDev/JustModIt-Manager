@@ -57,6 +57,9 @@ public interface IAgent : INotifyPropertyChanged
     /// <summary>The agent asks the window to come to the front.</summary>
     event EventHandler? BringToFrontRequested;
 
+    /// <summary>A step of uninstalling the app ended, which the window asked for.</summary>
+    event EventHandler<AppUninstallProgress>? AppUninstallProgressed;
+
     /// <summary>Sends a command or a query and waits for the answer.</summary>
     /// <param name="request">A message of <c>Protocol.Messages</c>.</param>
     /// <param name="cancellationToken">Stops waiting; the agent may still act on a request already sent.</param>

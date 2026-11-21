@@ -579,6 +579,21 @@
   <data name="Settings_UninstallAllSkipped" xml:space="preserve">
     <value>{count, plural, one {# gra zachowa spolszczenie, bo jej oryginalne pliki są teraz niedostępne.} few {# gry zachowają spolszczenia, bo ich oryginalne pliki są teraz niedostępne.} many {# gier zachowa spolszczenia, bo ich oryginalne pliki są teraz niedostępne.} other {# gry zachowają spolszczenia, bo ich oryginalne pliki są teraz niedostępne.}}</value>
   </data>
+  <data name="Settings_UninstallAppDescription" xml:space="preserve">
+    <value>Usuwa program, jego wpis w menu, uruchamianie z systemem i obsługę linków. Dane aplikacji i zainstalowane spolszczenia zostają.</value>
+  </data>
+  <data name="Uninstall_Message" xml:space="preserve">
+    <value>{installs, select, true {Program zniknie z tego komputera. Dane aplikacji i spolszczenia w grach zostaną, więc ponownie zainstalowana aplikacja zajmie się nimi jak dotąd.} other {Program zniknie z tego komputera. Dane aplikacji zostaną, więc ponownie zainstalowana aplikacja zachowa ustawienia.}}</value>
+  </data>
+  <data name="Uninstall_KeptInstalls" xml:space="preserve">
+    <value>Spolszczenia w {count, plural, one {# grze} few {# grach} many {# grach} other {# grach}} i kopie oryginalnych plików</value>
+  </data>
+  <data name="Uninstall_Warning" xml:space="preserve">
+    <value>Bez aplikacji spolszczenia zostaną w grach, a kopie oryginalnych plików nie wrócą na miejsce same. Oryginalne pliki przywraca przed odinstalowaniem aplikacji „{uninstallAll}” w sekcji „{appData}”.</value>
+  </data>
+  <data name="Uninstalled_InstallsKept" xml:space="preserve">
+    <value>Spolszczenia w {count, plural, one {# grze} few {# grach} many {# grach} other {# grach}} też zostały. Po ponownej instalacji aplikacja zajmie się nimi jak dotąd.</value>
+  </data>
   <data name="Settings_AboutText" xml:space="preserve">
     <value>Otwartoźródłowa aplikacja Bazy Spolszczeń. Wykrywa gry na tym komputerze i instaluje do nich fanowskie spolszczenia – stworzone przez graczy, dla graczy.</value>
   </data>

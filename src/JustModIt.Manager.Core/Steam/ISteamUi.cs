@@ -59,4 +59,10 @@ public interface ISteamUi
     /// <param name="cancellationToken">Stops the change.</param>
     Task<LaunchOptionsResult> ChangeLaunchOptionsAsync(GameKey game, IReadOnlyList<string> add, IReadOnlyList<string> remove,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Stops changing Steam's folder and interface for good, once a change under way has ended, and takes out of Steam's folder
+    /// what the app put there, as uninstalling the app does.
+    /// </summary>
+    Task WithdrawAsync();
 }

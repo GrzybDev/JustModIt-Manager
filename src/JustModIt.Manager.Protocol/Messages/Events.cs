@@ -73,3 +73,42 @@ public sealed record WindowActivity(bool IsActive) : Message;
 /// <summary>The window's answer to <see cref="ShutdownRequested"/>; it refuses while the player has unsaved work.</summary>
 /// <param name="Accepted">Whether the window closes.</param>
 public sealed record ShutdownAnswer(bool Accepted) : Message;
+
+/// <summary>A step of uninstalling the app itself, in the order they run; the program goes last.</summary>
+public enum AppUninstallStep
+{
+    /// <summary>Starting with the system, which also runs the agent: its registration goes.</summary>
+    Autostart,
+
+    /// <summary>The app's entry among the system's apps, its icons and its link scheme.</summary>
+    Integration,
+
+    /// <summary>The program file, then what its runs left outside the app's data.</summary>
+    Program,
+}
+
+public enum AppUninstallProblem
+{
+    /// <summary>The system did not answer within <see cref="UninstallApp.SystemTimeLimit"/>.</summary>
+    NoAnswer,
+
+    /// <summary>The system's service manager refused the change.</summary>
+    Refused,
+
+    /// <summary>The user may not change the files.</summary>
+    AccessDenied,
+
+    /// <summary>The files could not be changed for another reason.</summary>
+    Failed,
+}
+
+/// <summary>Why a step of uninstalling the app failed, and whether what the steps before it took away came back.</summary>
+/// <param name="Problem">What went wrong.</param>
+/// <param name="Folder">The folder whose files could not be changed, when the step names one; null otherwise.</param>
+/// <param name="Restored">Everything the steps before took away came back, so the app runs as before.</param>
+public sealed record AppUninstallFailure(AppUninstallProblem Problem, string? Folder = null, bool Restored = false);
+
+/// <summary>A step of uninstalling the app ended, done or failed with what came back, the last one before the agent exits.</summary>
+/// <param name="Step">The step that ended.</param>
+/// <param name="Failure">Why it failed; null once it is done.</param>
+public sealed record AppUninstallProgress(AppUninstallStep Step, AppUninstallFailure? Failure = null) : Message;

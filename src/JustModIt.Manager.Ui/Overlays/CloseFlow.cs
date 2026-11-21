@@ -16,7 +16,8 @@ namespace JustModIt.Manager.Ui.Overlays;
 /// <param name="agent">The agent, told to exit when the app should.</param>
 /// <param name="navigator">The pages, any of which may keep unsaved work.</param>
 /// <param name="dialogs">Where the questions are asked.</param>
-public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dialogs)
+/// <param name="uninstall">Uninstalling the app, which closing waits for and after which the window closes at once.</param>
+public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dialogs, AppUninstall uninstall)
 {
     private const string KeepRunning = "keep-running";
     private const string Exit = "exit";
@@ -31,12 +32,13 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
     /// <returns>False when the player cancelled or a page keeps unsaved work.</returns>
     public async Task<bool> DecideAsync()
     {
+        var uninstalled = await uninstall.WhenSettledAsync().ConfigureAwait(true);
         if (!await navigator.CanCloseAsync().ConfigureAwait(true))
         {
             return false;
         }
 
-        if (agent.Link != AgentLink.Connected || !agent.HasState)
+        if (uninstalled || agent.Link != AgentLink.Connected || !agent.HasState)
         {
             return true;
         }

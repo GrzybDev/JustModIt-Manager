@@ -514,6 +514,12 @@
             <Button x:Name="ErrorReportExample" Classes="link" FontSize="13" FontWeight="SemiBold" Margin="72,-8,20,16" HorizontalAlignment="Left"
                     Foreground="{StaticResource TextBrush}" Content="{x:Static loc:Strings.Settings_ErrorReportsWhat}"
                     Command="{Binding ShowErrorReportExampleCommand}" IsVisible="{Binding CanSendErrorReports}" />
+            <ui:SettingRow x:Name="UninstallAppRow" Classes="divided" Icon="{x:Static theme:Icons.PackageX}"
+                           Title="{x:Static loc:Strings.Settings_UninstallApp}" Message="{Binding UninstallAppText}" IsVisible="{Binding OffersUninstall}">
+              <Button x:Name="UninstallApp" Classes="danger" ui:ButtonAssist.Icon="{x:Static theme:Icons.PackageX}"
+                      Content="{x:Static loc:Strings.Settings_UninstallAppButton}" Command="{Binding UninstallAppCommand}"
+                      AutomationProperties.Name="{x:Static loc:Strings.Settings_UninstallApp}" AutomationProperties.HelpText="{Binding UninstallAppText}" />
+            </ui:SettingRow>
             <Border Classes="divider" />
             <StackPanel Margin="20,18,20,20" Spacing="12">
               <TextBlock x:Name="AboutApp" Classes="bodyText" LineHeight="22" MaxWidth="760" HorizontalAlignment="Left"

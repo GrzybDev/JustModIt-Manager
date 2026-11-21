@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
+             xmlns:ui="using:JustModIt.Manager.Ui.Controls"
+             xmlns:theme="using:JustModIt.Manager.Ui.Theme"
+             xmlns:loc="using:JustModIt.Manager.Localization"
+             x:Class="JustModIt.Manager.Ui.Overlays.AppUninstallDialogView"
+             x:DataType="overlays:AppUninstallDialogViewModel">
+  <UserControl.Styles>
+    <Style Selector="ui|Icon.line">
+      <Setter Property="Width" Value="18" />
+      <Setter Property="Height" Value="18" />
+      <Setter Property="Margin" Value="0,1,0,0" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    </Style>
+    <Style Selector="ui|Icon.line.success">
+      <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+    </Style>
+    <Style Selector="ui|Icon.line.danger">
+      <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+    </Style>
+    <Style Selector="ui|Icon.line.accent">
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    </Style>
+    <Style Selector="ui|Icon.line.info">
+      <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.lineText">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="LineHeight" Value="20" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.lineText.pending">
+      <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    </Style>
+    <Style Selector="TextBlock.linePath">
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="LineHeight" Value="17" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    </Style>
+    <Style Selector="TextBlock.lineReason">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="LineHeight" Value="18" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+    </Style>
+  </UserControl.Styles>
+  <UserControl.DataTemplates>
+    <DataTemplate x:DataType="overlays:AppUninstallLine">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <ui:Icon Classes="line" Data="{Binding Icon}" Classes.spin="{Binding IsBusy}"
+                 Classes.success="{Binding Tone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Success}}"
+                 Classes.danger="{Binding Tone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Danger}}"
+                 Classes.accent="{Binding Tone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Accent}}"
+                 Classes.info="{Binding Tone, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static ui:Tone.Info}}" />
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock Classes="lineText" Classes.pending="{Binding IsPending}" Text="{Binding Text}" />
+          <TextBlock Classes="linePath" Text="{Binding Path}" IsVisible="{Binding Path, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <TextBlock Classes="lineReason" Text="{Binding Reason}" IsVisible="{Binding Reason, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+  <Border Classes="dialog" Width="600" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Message}">
+    <!-- The way out comes first, so the dialog's focus starts on it, and the lists scroll above buttons that stay in sight. -->
+    <Grid RowDefinitions="*,Auto" RowSpacing="20">
+      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" IsVisible="{Binding !IsRunning}">
+        <Button x:Name="UninstallCancel" Classes="quiet" Content="{Binding CancelText}" Command="{Binding CancelCommand}" />
+        <Button x:Name="UninstallShowFolder" Classes="outline" Content="{x:Static loc:Strings.Creator_Reveal}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}" Command="{Binding ShowFolderCommand}" IsVisible="{Binding CanShowFolder}" />
+        <Button x:Name="UninstallConfirm" Classes="outline dangerTint" Content="{x:Static loc:Strings.Settings_UninstallApp}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.PackageX}" Command="{Binding UninstallCommand}" IsVisible="{Binding IsAsking}" />
+        <Button x:Name="UninstallRetry" Classes="outline" Content="{x:Static loc:Strings.Library_Retry}"
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.RefreshCw}" Command="{Binding UninstallCommand}" IsVisible="{Binding IsFailed}" />
+      </StackPanel>
+      <ScrollViewer x:Name="UninstallBody" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="20">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+            <Border Classes="iconChip" Classes.danger="{Binding !IsFailed}" Classes.warning="{Binding IsFailed}" VerticalAlignment="Top">
+              <ui:Icon Data="{Binding ChipIcon}" Classes.spin="{Binding IsRunning}" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="6" AutomationProperties.LiveSetting="Polite">
+              <TextBlock x:Name="UninstallTitle" Classes="dialogTitle" Text="{Binding Title}" />
+              <TextBlock x:Name="UninstallMessage" Classes="bodyText" Text="{Binding Message}" />
+            </StackPanel>
+          </Grid>
+          <Grid x:Name="UninstallLists" ColumnDefinitions="*,*" ColumnSpacing="24" IsVisible="{Binding IsAsking}">
+            <StackPanel Spacing="12">
+              <TextBlock Classes="overline" Text="{x:Static loc:Strings.Uninstall_Removed}" />
+              <ItemsControl ItemsSource="{Binding Removed}" ItemsPanel="{StaticResource StackItems12}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="12">
+              <TextBlock Classes="overline" Text="{x:Static loc:Strings.Uninstall_Kept}" />
+              <ItemsControl ItemsSource="{Binding Kept}" ItemsPanel="{StaticResource StackItems12}" />
+            </StackPanel>
+          </Grid>
+          <ui:Callout x:Name="UninstallWarning" Classes="warning" MaxWidth="Infinity" HorizontalAlignment="Stretch"
+                      Icon="{x:Static theme:Icons.TriangleAlert}" Message="{Binding Warning}">
+            <ui:Callout.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="IsAsking" />
+                <Binding Path="HasInstalls" />
+              </MultiBinding>
+            </ui:Callout.IsVisible>
+            <Button x:Name="UninstallGoToAppData" Classes="link" HorizontalAlignment="Left" FontWeight="SemiBold"
+                    Foreground="{StaticResource TextStrongBrush}" Content="{Binding GoToAppDataText}" Command="{Binding GoToAppDataCommand}" />
+          </ui:Callout>
+          <ItemsControl x:Name="UninstallSteps" ItemsSource="{Binding Steps}" ItemsPanel="{StaticResource StackItems12}"
+                        IsVisible="{Binding !IsAsking}" AutomationProperties.LiveSetting="Polite" />
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

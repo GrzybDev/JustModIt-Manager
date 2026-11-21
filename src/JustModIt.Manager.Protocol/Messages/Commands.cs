@@ -65,6 +65,16 @@ public sealed record UninstallEverything : Message;
 /// </summary>
 public sealed record ClearCache : Message;
 
+/// <summary>
+/// Uninstalls the app itself where its copy offers it (<see cref="AppStateView.AppUninstall"/>), answered once it started and
+/// refused with <see cref="Transport.ErrorCode.Failed"/> while a job runs or waits.
+/// </summary>
+public sealed record UninstallApp : Message
+{
+    /// <summary>How long a step waits for the system, such as its service manager, before it fails.</summary>
+    public static readonly TimeSpan SystemTimeLimit = TimeSpan.FromSeconds(15);
+}
+
 /// <summary>The answer to a job request, naming the queued job.</summary>
 /// <param name="JobId">The id that <see cref="JobView.Id"/> and <see cref="CancelJob"/> use.</param>
 public sealed record JobStarted(Guid JobId) : Message;

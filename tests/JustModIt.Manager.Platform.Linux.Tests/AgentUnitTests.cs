@@ -153,6 +153,25 @@ public sealed class AgentUnitTests : IDisposable
     }
 
     [Fact]
+    public async Task Removing_the_unit_disables_it_and_deletes_its_file_without_a_reload_so_the_running_agent_keeps_its_stop()
+    {
+        await using var bus = await PrivateBus.StartAsync(Token);
+        var systemd = await FakeSystemd.StartAsync(bus);
+        IAutostart unit = new AgentUnit(DesktopId, "Example App", "/home/player/Applications/ExampleApp.AppImage", ["--agent", "--background"],
+            _folder, await bus.ConnectAsync());
+        unit.Enable();
+        Drain(systemd);
+
+        unit.Remove();
+
+        File.Exists(UnitFile).Should().BeFalse();
+        Drain(systemd).Should().Equal($"DisableUnitFiles {Name}");
+        unit.GetState().Should().Be(AutostartState.Disabled);
+        unit.Remove();
+        Drain(systemd).Should().BeEmpty("a unit without its file is neither asked about nor removed again");
+    }
+
+    [Fact]
     public async Task Restarting_the_agent_resets_a_failed_unit_and_restarts_it()
     {
         await using var bus = await PrivateBus.StartAsync(Token);
@@ -199,15 +218,17 @@ public sealed class AgentUnitTests : IDisposable
     }
 
     [Fact]
-    public async Task A_systemd_that_refuses_fails_as_a_file_error_would()
+    public async Task A_systemd_that_refuses_fails_as_a_refusal_which_is_a_file_error()
     {
         await using var bus = await PrivateBus.StartAsync(Token);
         var systemd = await FakeSystemd.StartAsync(bus);
         systemd.Error = "org.freedesktop.DBus.Error.AccessDenied";
         var unit = new AgentUnit(DesktopId, "Example App", "/home/player/ExampleApp.AppImage", [], _folder, await bus.ConnectAsync());
 
-        unit.Invoking(autostart => autostart.Enable()).Should().Throw<IOException>();
-        unit.Invoking(autostart => autostart.GetState()).Should().Throw<IOException>();
+        unit.Invoking(autostart => autostart.Enable()).Should().Throw<ServiceRefusedException>();
+        unit.Invoking(autostart => autostart.GetState()).Should().Throw<ServiceRefusedException>();
+        unit.Invoking(autostart => autostart.Remove()).Should().Throw<ServiceRefusedException>();
+        File.Exists(UnitFile).Should().BeTrue("the file stays while systemd refuses to disable the unit");
     }
 
     [Fact]
@@ -217,9 +238,13 @@ public sealed class AgentUnitTests : IDisposable
         using var nowhere = new DBusConnection(new DBusConnectionOptions("unix:path=/nonexistent") { AutoConnect = true });
         var unit = new AgentUnit(DesktopId, "Example App", "/home/player/ExampleApp.AppImage", [], _folder, nowhere);
 
-        unit.Invoking(autostart => autostart.Enable()).Should().Throw<IOException>();
+        unit.Invoking(autostart => autostart.Enable()).Should().Throw<IOException>().Which.Should().NotBeOfType<ServiceRefusedException>();
         unit.GetState().Should().Be(AutostartState.Disabled, "with no systemd to ask, nothing could have enabled the unit");
         unit.Start().Should().BeFalse("a launch then runs the agent itself");
+
+        unit.Remove();
+
+        File.Exists(UnitFile).Should().BeFalse("nothing enabled the unit a launch wrote, so uninstalling the app takes its file alone");
     }
 
     public void Dispose()

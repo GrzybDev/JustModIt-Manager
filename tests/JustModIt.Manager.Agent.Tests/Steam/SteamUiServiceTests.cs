@@ -4,7 +4,6 @@ using JustModIt.Manager.Agent.Tests.TestSupport;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
-using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Protocol.Activation;
@@ -224,15 +223,19 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Uninstalling_the_app_takes_its_plugin_and_its_share_of_the_switch_out_of_steam_s_folder()
+    public async Task Uninstalling_the_app_takes_its_plugin_and_its_share_of_the_switch_out_of_steam_s_folder_for_good()
     {
         Start(SteamUiDemand.From([Texts], []));
         await Eventually.HoldsAsync(() => _service.Status.PluginVersion == "1.4.0");
-        await _stop.CancelAsync();
-        await _run.ContinueWith(_ => { }, TaskScheduler.Default);
         File.WriteAllLines(Path.Combine(_root, ".cef-enable-remote-debugging"), [ClassicSwitch.OwnerOf(Options.Identity), "AnotherApp"]);
 
-        SteamCleanup.Remove(_root, new LibraryEnvironment { Platform = AppPlatform.Windows, HomeDirectory = _root }, Options.Identity);
+        await _service.WithdrawAsync();
+        // The uninstall forgets the installation's id next, a change of the settings that wakes the service.
+        _settings.Update(settings => settings with { InstallationId = null });
+        _service.Demand(SteamUiDemand.From([Texts], [Game]));
+        (await _service.ChangeLaunchOptionsAsync(Game, ["-examplelog"], [], AgentHarness.Token)).Failure.Should().Be(LaunchOptionsFailure.Unreachable);
+        // Gives the service's loop the turn in which it would put the plugin back.
+        await Task.Delay(TimeSpan.FromMilliseconds(300), AgentHarness.Token);
 
         Directory.Exists(PluginFolder).Should().BeFalse();
         using var config = JsonDocument.Parse(File.ReadAllText(Path.Combine(_root, "millennium", "config", "config.json")));

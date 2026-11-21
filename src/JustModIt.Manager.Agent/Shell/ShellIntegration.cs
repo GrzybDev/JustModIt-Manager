@@ -23,6 +23,17 @@ public static class ShellRegistration
         bool startWithSystem)
     {
         links.Register(scheme, productName, executable);
+        RegisterAutostart(autostart, startWithSystem);
+    }
+
+    /// <summary>
+    /// Brings autostart in line with the saved setting, except that autostart the player turned off among the system's startup
+    /// apps stays off.
+    /// </summary>
+    /// <param name="autostart">The system's autostart entry.</param>
+    /// <param name="startWithSystem">The saved setting.</param>
+    public static void RegisterAutostart(IAutostart autostart, bool startWithSystem)
+    {
         if (!startWithSystem || autostart.GetState() != AutostartState.DisabledBySystem)
         {
             ApplyAutostart(autostart, startWithSystem);
@@ -36,7 +47,7 @@ public static class ShellRegistration
     public static void Unregister(ILinkRegistration links, IAutostart autostart, string scheme)
     {
         links.Unregister(scheme);
-        autostart.Disable();
+        autostart.Remove();
     }
 
     /// <summary>Follows a change of the setting, which overrides the system's switch.</summary>

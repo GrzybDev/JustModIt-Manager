@@ -2261,6 +2261,114 @@
   <data name="Settings_UninstallAllSkipped" xml:space="preserve">
     <value>{count, plural, one {# game keeps its project, since its original files cannot be reached now.} other {# games keep their projects, since their original files cannot be reached now.}}</value>
   </data>
+  <data name="Settings_UninstallApp" xml:space="preserve">
+    <value>Uninstall the app</value>
+  </data>
+  <data name="Settings_UninstallAppDescription" xml:space="preserve">
+    <value>Removes the program, its menu entry, starting with the system and the handling of links. The app's data and the installed projects stay.</value>
+  </data>
+  <data name="Settings_UninstallAppBusy" xml:space="preserve">
+    <value>The app can be uninstalled once no job is running.</value>
+  </data>
+  <data name="Settings_UninstallAppButton" xml:space="preserve">
+    <value>Uninstall</value>
+  </data>
+  <data name="Uninstall_Title" xml:space="preserve">
+    <value>Uninstall {product}?</value>
+  </data>
+  <data name="Uninstall_Message" xml:space="preserve">
+    <value>{installs, select, true {The program leaves this computer. The app's data and the projects in games stay, so the app, installed again, looks after them as before.} other {The program leaves this computer. The app's data stays, so the app, installed again, keeps its settings.}}</value>
+  </data>
+  <data name="Uninstall_Removed" xml:space="preserve">
+    <value>Removed</value>
+  </data>
+  <data name="Uninstall_Kept" xml:space="preserve">
+    <value>Kept</value>
+  </data>
+  <data name="Uninstall_Program" xml:space="preserve">
+    <value>Program</value>
+  </data>
+  <data name="Uninstall_Entry" xml:space="preserve">
+    <value>The app's menu entry and icons</value>
+  </data>
+  <data name="Uninstall_Autostart" xml:space="preserve">
+    <value>Starting with the system</value>
+  </data>
+  <data name="Uninstall_Links" xml:space="preserve">
+    <value>Opening the site's links in the app</value>
+  </data>
+  <data name="Uninstall_KeptData" xml:space="preserve">
+    <value>The app's data: settings, install records, downloaded packages and logs</value>
+  </data>
+  <data name="Uninstall_KeptInstalls" xml:space="preserve">
+    <value>Projects in {count, plural, one {# game} other {# games}} and the copies of original files</value>
+  </data>
+  <data name="Uninstall_KeptSettings" xml:space="preserve">
+    <value>Settings and install records</value>
+  </data>
+  <data name="Uninstall_KeptCache" xml:space="preserve">
+    <value>Downloaded packages, images and catalogue data</value>
+  </data>
+  <data name="Uninstall_Warning" xml:space="preserve">
+    <value>Without the app the projects stay in the games, and the copies of original files do not go back by themselves. “{uninstallAll}” in the “{appData}” section puts the original files back before the app is uninstalled.</value>
+  </data>
+  <data name="Uninstall_GoToAppData" xml:space="preserve">
+    <value>Go to the “{appData}” section</value>
+  </data>
+  <data name="Uninstall_RunningTitle" xml:space="preserve">
+    <value>Uninstalling…</value>
+  </data>
+  <data name="Uninstall_RunningMessage" xml:space="preserve">
+    <value>This takes a few seconds.</value>
+  </data>
+  <data name="Uninstall_StepAutostart" xml:space="preserve">
+    <value>{state, select, done {Starting with the system is off} failed {Starting with the system could not be turned off} other {Turning off starting with the system}}</value>
+  </data>
+  <data name="Uninstall_StepIntegration" xml:space="preserve">
+    <value>{state, select, done {The menu entry, icons and link handling are removed} failed {The menu entry, icons and link handling could not be removed} other {Removing the menu entry, icons and link handling}}</value>
+  </data>
+  <data name="Uninstall_StepProgram" xml:space="preserve">
+    <value>{state, select, failed {The program could not be removed} other {Removing the program}}</value>
+  </data>
+  <data name="Uninstall_StepExit" xml:space="preserve">
+    <value>Ending the background work</value>
+  </data>
+  <data name="Uninstall_Restored" xml:space="preserve">
+    <value>{autostart, select, true {The menu entry, icons, link handling and starting with the system are back} other {The menu entry, icons and link handling are back}}</value>
+  </data>
+  <data name="Uninstall_FailedTitle" xml:space="preserve">
+    <value>The app could not be uninstalled</value>
+  </data>
+  <data name="Uninstall_FailedMessage" xml:space="preserve">
+    <value>{step, select, Autostart {Starting with the system could not be turned off, so nothing was removed.} Integration {The menu entry, icons and link handling could not be removed, so everything is back in place.} other {The program file could not be removed, so everything is back in place.}} The app keeps running.</value>
+  </data>
+  <data name="Uninstall_FailedUnrestored" xml:space="preserve">
+    <value>The app could not be uninstalled, and not everything it removed meanwhile came back. The app keeps running, and its next start puts the rest back.</value>
+  </data>
+  <data name="Uninstall_ProblemNoAnswer" xml:space="preserve">
+    <value>{step, select, Autostart {The system's service manager (systemd) did not answer within {seconds, plural, one {# second} other {# seconds}}.} other {The drive holding these files did not answer within {seconds, plural, one {# second} other {# seconds}}.}}</value>
+  </data>
+  <data name="Uninstall_ProblemRefused" xml:space="preserve">
+    <value>The system's service manager (systemd) refused the change.</value>
+  </data>
+  <data name="Uninstall_ProblemAccessDenied" xml:space="preserve">
+    <value>{place, select, folder {There is no permission to write to the folder {folder}.} other {There is no permission to change these files.}}</value>
+  </data>
+  <data name="Uninstall_ProblemFailed" xml:space="preserve">
+    <value>{place, select, folder {The files in the folder {folder} could not be changed.} other {These files could not be changed.}}</value>
+  </data>
+  <data name="Uninstalled_Title" xml:space="preserve">
+    <value>{product} is uninstalled</value>
+  </data>
+  <data name="Uninstalled_DataKept" xml:space="preserve">
+    <value>The app's data stayed in the folders</value>
+  </data>
+  <data name="Uninstalled_InstallsKept" xml:space="preserve">
+    <value>The projects in {count, plural, one {# game} other {# games}} stayed too. Installed again, the app looks after them as before.</value>
+  </data>
+  <data name="Uninstalled_Close" xml:space="preserve">
+    <value>Close the window</value>
+  </data>
   <data name="Settings_UpdateChecked" xml:space="preserve">
     <value>Updates are looked for every 4 hours, last {time}.</value>
   </data>

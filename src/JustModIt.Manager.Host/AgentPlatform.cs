@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using JustModIt.Manager.Agent;
 using JustModIt.Manager.Agent.Lifetime;
+using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Watching;
@@ -11,10 +12,12 @@ using JustModIt.Manager.Localization;
 using JustModIt.Manager.Platform.Linux;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
+using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Tmds.DBus.Protocol;
+using Velopack.Locators;
 
 namespace JustModIt.Manager.Host;
 
@@ -114,6 +117,17 @@ internal static partial class AgentPlatform
         services.AddSingleton<IProcessSource>(LinuxProcessSource.Instance);
         services.AddSingleton<ILockHolderSource>(ProcLockHolders.Instance);
         services.AddSingleton<IAutostart>(Unit(options));
+        // An AppImage is a file that no list of the system's installed apps knows, so the app uninstalls itself.
+        if (options.InstallDirectory is null)
+        {
+            var program = new AppImageProgram(options.ExecutablePath,
+                (VelopackLocator.IsCurrentSet ? VelopackLocator.Current as LinuxVelopackLocator : null)?.PersistentTempDir, user.HomeDirectory);
+            services.AddSingleton<IAppProgram>(program);
+            services.AddSingleton(new AppUninstallView(program.File, options.Locations.DataDirectory, options.Locations.CacheDirectory,
+                options.Locations.LogsDirectory));
+            services.AddSingleton<AppUninstaller>();
+        }
+
         services.AddSingleton<IDesktopShell>(provider => Shell(options.Identity, provider.GetRequiredService<ILogger<ScopedDesktopShell>>()));
         // Windows tells the agent of a logout or a shutdown through the tray's window instead.
         services.AddSingleton<IAgentService, StopSignal>();

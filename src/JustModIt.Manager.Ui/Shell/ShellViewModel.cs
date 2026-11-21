@@ -77,7 +77,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Agent.PropertyChanged += OnAgentChanged;
         Agent.NavigationRequested += OnNavigationRequested;
         Agent.Noticed += OnNoticed;
-        CloseFlow = new CloseFlow(services.Agent, services.Navigator, services.Dialogs);
+        Uninstall.PropertyChanged += OnUninstalled;
+        CloseFlow = new CloseFlow(services.Agent, services.Navigator, services.Dialogs, services.Uninstall);
         _pendingLink = services.Context.Launch.Target;
         Navigator.Open([new LibraryRoute()]);
         ApplyLink();
@@ -93,6 +94,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public ToastHost Toasts => _services.Toasts;
 
     public IImageLoader Images => _services.Images;
+
+    /// <summary>Uninstalling the app, whose end takes the place of the sidebar and the pages.</summary>
+    public AppUninstall Uninstall => _services.Uninstall;
 
     /// <summary>What closing the window means, by the player's setting.</summary>
     public CloseFlow CloseFlow { get; }
@@ -158,7 +162,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(ShowsPages))]
     public partial PageViewModel? FirstRun { get; private set; }
 
-    public bool ShowsPages => !IsConnecting && FirstRun is null;
+    public bool ShowsPages => !IsConnecting && FirstRun is null && !IsUninstalled;
+
+    /// <summary>The app is uninstalled, so the window says so in place of everything else and waits for it to be closed.</summary>
+    public bool IsUninstalled => Uninstall.Uninstalled is not null;
 
     public void Dispose()
     {
@@ -166,6 +173,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Agent.PropertyChanged -= OnAgentChanged;
         Agent.NavigationRequested -= OnNavigationRequested;
         Agent.Noticed -= OnNoticed;
+        Uninstall.PropertyChanged -= OnUninstalled;
         Status.Dispose();
         (FirstRun as IDisposable)?.Dispose();
     }
@@ -257,6 +265,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
     }
 
+    // The agent leaves once the app is gone, which is no reason to wait for it.
+    private void OnUninstalled(object? sender, PropertyChangedEventArgs e)
+    {
+        ApplyLink();
+        OnPropertyChanged(nameof(IsUninstalled));
+        OnPropertyChanged(nameof(ShowsPages));
+    }
+
     private void OnNavigationRequested(object? sender, NavigationTarget target)
     {
         _pendingLink = target;
@@ -295,7 +311,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private void ApplyLink()
     {
         var connected = Agent.Link == AgentLink.Connected && Agent.HasState;
-        IsConnecting = !connected;
+        IsConnecting = !connected && !IsUninstalled;
         IsUpdating = Agent.Link == AgentLink.Incompatible;
         if (connected)
         {

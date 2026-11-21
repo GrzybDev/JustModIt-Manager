@@ -64,6 +64,12 @@ public sealed partial class AgentUnit : IAutostart
     public void Disable() => Wait(DisableAsync());
 
     /// <summary>
+    /// Disables the unit and deletes its file, without the reload that would read the unit as missing: the agent it runs keeps
+    /// it as systemd loaded it, with its way of stopping, until it exits, and nothing starts it again afterwards.
+    /// </summary>
+    public void Remove() => Wait(RemoveAsync());
+
+    /// <summary>
     /// Starts the agent for a launch, writing the unit first when it is missing or its executable is gone, and giving a
     /// unit that ran into systemd's start limit another chance.
     /// </summary>
@@ -156,6 +162,10 @@ public sealed partial class AgentUnit : IAutostart
         {
             task.GetAwaiter().GetResult();
         }
+        catch (DBusErrorReplyException exception)
+        {
+            throw new ServiceRefusedException(exception.Message, exception);
+        }
         catch (DBusExceptionBase exception)
         {
             throw new IOException(exception.Message, exception);
@@ -207,6 +217,24 @@ public sealed partial class AgentUnit : IAutostart
         var current = await ReadAsync().ConfigureAwait(false);
         var changes = current is not null ? await _systemd.DisableUnitFilesAsync([_name], runtime: false).ConfigureAwait(false) : [];
         await ReloadAsync(await WriteAsync(current, install: false).ConfigureAwait(false) || changes.Length > 0).ConfigureAwait(false);
+    }
+
+    private async Task RemoveAsync()
+    {
+        if (!File.Exists(_path))
+        {
+            return;
+        }
+
+        try
+        {
+            await _systemd.DisableUnitFilesAsync([_name], runtime: false).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (HasNoSystemd(exception))
+        {
+        }
+
+        File.Delete(_path);
     }
 
     private async Task StartAsync(bool restart)

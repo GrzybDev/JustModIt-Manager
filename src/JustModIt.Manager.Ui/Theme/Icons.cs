@@ -44,6 +44,8 @@ public static class Icons
 
     public static Geometry ChevronRight => field ??= Parse("M9 18l6-6-6-6");
 
+    public static Geometry Circle => field ??= Parse("M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0z");
+
     public static Geometry ChevronUp => field ??= Parse("M18 15l-6-6-6 6");
 
     public static Geometry CircleArrowUp => field ??= Parse("M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0z M16 12l-4-4-4 4 M12 16V8");
@@ -137,6 +139,8 @@ public static class Icons
     public static Geometry MonitorDown => field ??= Parse("M12 13V7 M15 10l-3 3-3-3 M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M12 17v4 M8 21h8");
 
     public static Geometry Package => field ??= Parse("M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z M12 22V12 M3.3 7l7.703 4.734a2 2 0 0 0 1.994 0L20.7 7 M7.5 4.27l9 5.15");
+
+    public static Geometry PackageX => field ??= Parse("M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14 M7.5 4.27l9 5.15 M3.29 7L12 12l8.71-5 M12 22V12 M17 13l5 5 M17 18l5-5");
 
     public static Geometry PanelBottomClose => field ??= Parse("M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z M3 15h18 M15 8l-3 3-3-3");
 

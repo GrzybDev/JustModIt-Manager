@@ -49,6 +49,9 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
     private int _staleProcess;
     private int _restarting;
 
+    // Read and written only while holding _work.
+    private bool _withdrawn;
+
     private ClassicConnection? _classic;
 
     /// <summary>Follows Steam with nothing changed in its folder until the first demand.</summary>
@@ -147,10 +150,11 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
         try
         {
             var status = Status;
-            // Before the first demand the plugin's texts file would lose the texts it holds.
+            // Before the first demand the plugin's texts file would lose the texts it holds, and once the app is uninstalled
+            // nothing goes into Steam's folder again.
             var result = status is { Reachable: true, Delivery: SteamUiDelivery.Classic } && _classic is { } classic
                 ? await ChangeThroughPortAsync(classic, game, add, remove, cancellationToken).ConfigureAwait(false)
-                : Volatile.Read(ref _demand) is not { } demand ? new LaunchOptionsResult(null, LaunchOptionsFailure.Unreachable)
+                : _withdrawn || Volatile.Read(ref _demand) is not { } demand ? new LaunchOptionsResult(null, LaunchOptionsFailure.Unreachable)
                 : await _millennium.ChangeLaunchOptionsAsync(status, demand, game, add, remove, cancellationToken).ConfigureAwait(false);
             if (result.Options is { } changed)
             {
@@ -158,6 +162,25 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
             }
 
             return result;
+        }
+        finally
+        {
+            _work.Release();
+        }
+    }
+
+    public async Task WithdrawAsync()
+    {
+        await _work.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            _withdrawn = true;
+            _millennium.Stop();
+            await StopClassicAsync(SteamUiDemand.None, clear: false, CancellationToken.None).ConfigureAwait(false);
+            if (_steam.Find() is { } steam)
+            {
+                SteamCleanup.Remove(steam, _options.Identity);
+            }
         }
         finally
         {
@@ -211,7 +234,11 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
         await _work.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await ReconcileAsync(cancellationToken).ConfigureAwait(false);
+            // Once the app is uninstalled, nothing goes into Steam's folder again.
+            if (!_withdrawn)
+            {
+                await ReconcileAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
         // Steam's folder may be locked down or on a drive that went away; the next change tries again.
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)

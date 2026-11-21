@@ -2244,6 +2244,114 @@
   <data name="Settings_UninstallAllSkipped" xml:space="preserve">
     <value>{count, plural, one {# gra zachowa projekt, bo jej oryginalne pliki są teraz niedostępne.} few {# gry zachowają projekty, bo ich oryginalne pliki są teraz niedostępne.} many {# gier zachowa projekty, bo ich oryginalne pliki są teraz niedostępne.} other {# gry zachowają projekty, bo ich oryginalne pliki są teraz niedostępne.}}</value>
   </data>
+  <data name="Settings_UninstallApp" xml:space="preserve">
+    <value>Odinstaluj aplikację</value>
+  </data>
+  <data name="Settings_UninstallAppDescription" xml:space="preserve">
+    <value>Usuwa program, jego wpis w menu, uruchamianie z systemem i obsługę linków. Dane aplikacji i zainstalowane projekty zostają.</value>
+  </data>
+  <data name="Settings_UninstallAppBusy" xml:space="preserve">
+    <value>Aplikację można odinstalować, gdy nie trwa żadne zadanie.</value>
+  </data>
+  <data name="Settings_UninstallAppButton" xml:space="preserve">
+    <value>Odinstaluj</value>
+  </data>
+  <data name="Uninstall_Title" xml:space="preserve">
+    <value>Odinstalować aplikację {product}?</value>
+  </data>
+  <data name="Uninstall_Message" xml:space="preserve">
+    <value>{installs, select, true {Program zniknie z tego komputera. Dane aplikacji i projekty w grach zostaną, więc ponownie zainstalowana aplikacja zajmie się nimi jak dotąd.} other {Program zniknie z tego komputera. Dane aplikacji zostaną, więc ponownie zainstalowana aplikacja zachowa ustawienia.}}</value>
+  </data>
+  <data name="Uninstall_Removed" xml:space="preserve">
+    <value>Zostanie usunięte</value>
+  </data>
+  <data name="Uninstall_Kept" xml:space="preserve">
+    <value>Zostanie</value>
+  </data>
+  <data name="Uninstall_Program" xml:space="preserve">
+    <value>Program</value>
+  </data>
+  <data name="Uninstall_Entry" xml:space="preserve">
+    <value>Wpis w menu aplikacji i ikony</value>
+  </data>
+  <data name="Uninstall_Autostart" xml:space="preserve">
+    <value>Uruchamianie razem z systemem</value>
+  </data>
+  <data name="Uninstall_Links" xml:space="preserve">
+    <value>Otwieranie linków ze strony w aplikacji</value>
+  </data>
+  <data name="Uninstall_KeptData" xml:space="preserve">
+    <value>Dane aplikacji: ustawienia, zapisy instalacji, pobrane paczki i logi</value>
+  </data>
+  <data name="Uninstall_KeptInstalls" xml:space="preserve">
+    <value>Projekty w {count, plural, one {# grze} few {# grach} many {# grach} other {# grach}} i kopie oryginalnych plików</value>
+  </data>
+  <data name="Uninstall_KeptSettings" xml:space="preserve">
+    <value>Ustawienia i zapisy instalacji</value>
+  </data>
+  <data name="Uninstall_KeptCache" xml:space="preserve">
+    <value>Pobrane paczki, obrazy i dane katalogu</value>
+  </data>
+  <data name="Uninstall_Warning" xml:space="preserve">
+    <value>Bez aplikacji projekty zostaną w grach, a kopie oryginalnych plików nie wrócą na miejsce same. Oryginalne pliki przywraca przed odinstalowaniem aplikacji „{uninstallAll}” w sekcji „{appData}”.</value>
+  </data>
+  <data name="Uninstall_GoToAppData" xml:space="preserve">
+    <value>Przejdź do sekcji „{appData}”</value>
+  </data>
+  <data name="Uninstall_RunningTitle" xml:space="preserve">
+    <value>Odinstalowywanie…</value>
+  </data>
+  <data name="Uninstall_RunningMessage" xml:space="preserve">
+    <value>To potrwa kilka sekund.</value>
+  </data>
+  <data name="Uninstall_StepAutostart" xml:space="preserve">
+    <value>{state, select, done {Wyłączono uruchamianie razem z systemem} failed {Nie udało się wyłączyć uruchamiania razem z systemem} other {Wyłączanie uruchamiania razem z systemem}}</value>
+  </data>
+  <data name="Uninstall_StepIntegration" xml:space="preserve">
+    <value>{state, select, done {Usunięto wpis w menu, ikony i obsługę linków} failed {Nie udało się usunąć wpisu w menu, ikon i obsługi linków} other {Usuwanie wpisu w menu, ikon i obsługi linków}}</value>
+  </data>
+  <data name="Uninstall_StepProgram" xml:space="preserve">
+    <value>{state, select, failed {Nie udało się usunąć programu} other {Usuwanie programu}}</value>
+  </data>
+  <data name="Uninstall_StepExit" xml:space="preserve">
+    <value>Kończenie pracy w tle</value>
+  </data>
+  <data name="Uninstall_Restored" xml:space="preserve">
+    <value>{autostart, select, true {Przywrócono wpis w menu, ikony, obsługę linków i uruchamianie razem z systemem} other {Przywrócono wpis w menu, ikony i obsługę linków}}</value>
+  </data>
+  <data name="Uninstall_FailedTitle" xml:space="preserve">
+    <value>Nie udało się odinstalować aplikacji</value>
+  </data>
+  <data name="Uninstall_FailedMessage" xml:space="preserve">
+    <value>{step, select, Autostart {Nie udało się wyłączyć uruchamiania razem z systemem, więc nic nie zostało usunięte.} Integration {Nie udało się usunąć wpisu w menu, ikon i obsługi linków, więc wszystko wróciło na miejsce.} other {Nie udało się usunąć pliku programu, więc wszystko wróciło na miejsce.}} Aplikacja działa dalej.</value>
+  </data>
+  <data name="Uninstall_FailedUnrestored" xml:space="preserve">
+    <value>Nie udało się odinstalować aplikacji ani przywrócić wszystkiego, co w tym czasie zniknęło. Aplikacja działa dalej, a jej następne uruchomienie przywróci resztę.</value>
+  </data>
+  <data name="Uninstall_ProblemNoAnswer" xml:space="preserve">
+    <value>{step, select, Autostart {Menedżer usług systemu (systemd) nie odpowiedział w ciągu {seconds, plural, one {# sekundy} few {# sekund} many {# sekund} other {# sekundy}}.} other {Dysk z tymi plikami nie odpowiedział w ciągu {seconds, plural, one {# sekundy} few {# sekund} many {# sekund} other {# sekundy}}.}}</value>
+  </data>
+  <data name="Uninstall_ProblemRefused" xml:space="preserve">
+    <value>Menedżer usług systemu (systemd) odmówił tej zmiany.</value>
+  </data>
+  <data name="Uninstall_ProblemAccessDenied" xml:space="preserve">
+    <value>{place, select, folder {Brak uprawnień do zapisu w folderze {folder}.} other {Brak uprawnień do zmiany tych plików.}}</value>
+  </data>
+  <data name="Uninstall_ProblemFailed" xml:space="preserve">
+    <value>{place, select, folder {Nie udało się zmienić plików w folderze {folder}.} other {Nie udało się zmienić tych plików.}}</value>
+  </data>
+  <data name="Uninstalled_Title" xml:space="preserve">
+    <value>Odinstalowano aplikację {product}</value>
+  </data>
+  <data name="Uninstalled_DataKept" xml:space="preserve">
+    <value>Dane aplikacji zostały w folderach</value>
+  </data>
+  <data name="Uninstalled_InstallsKept" xml:space="preserve">
+    <value>Projekty w {count, plural, one {# grze} few {# grach} many {# grach} other {# grach}} też zostały. Po ponownej instalacji aplikacja zajmie się nimi jak dotąd.</value>
+  </data>
+  <data name="Uninstalled_Close" xml:space="preserve">
+    <value>Zamknij okno</value>
+  </data>
   <data name="Settings_UpdateChecked" xml:space="preserve">
     <value>Aktualizacje są sprawdzane co 4 godziny, ostatnio {time}.</value>
   </data>

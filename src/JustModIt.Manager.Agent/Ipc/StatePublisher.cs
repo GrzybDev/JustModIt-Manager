@@ -23,8 +23,9 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="jobs">Reports the jobs' progress and ends.</param>
 /// <param name="time">Spaces the progress reports.</param>
 /// <param name="logger">Receives failed listeners.</param>
+/// <param name="uninstall">What uninstalling the app itself takes away and keeps; null where the system uninstalls it instead.</param>
 public sealed partial class StatePublisher(StateCoordinator coordinator, ISettingsService settings, ICatalogue catalogue,
-    AgentStatus status, JobRunner jobs, TimeProvider time, ILogger<StatePublisher> logger)
+    AgentStatus status, JobRunner jobs, TimeProvider time, ILogger<StatePublisher> logger, AppUninstallView? uninstall = null)
 {
     public static readonly TimeSpan ProgressInterval = TimeSpan.FromMilliseconds(100);
 
@@ -104,7 +105,7 @@ public sealed partial class StatePublisher(StateCoordinator coordinator, ISettin
             }
 
             var state = AppStateView.From(++version, current, settings.Current, catalogue.Current.Site, status.Activity,
-                status.Update) with { UncleanExit = status.UncleanExit, Volumes = volumes };
+                status.Update) with { UncleanExit = status.UncleanExit, Volumes = volumes, AppUninstall = uninstall };
             Volatile.Write(ref _latest, state);
             EventRaising.RaiseEach(Published, this, state, LogListenerFailed);
         }

@@ -204,6 +204,21 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     public string BrandingLine => Text.Format(Strings.Settings_BrandingLine, ("product", _services.Context.ProductName));
 
+    /// <summary>The app uninstalls itself here, so the about card offers it.</summary>
+    [ObservableProperty]
+    public partial bool OffersUninstall { get; private set; }
+
+    /// <summary>What uninstalling the app takes away and keeps, or that it waits for the jobs.</summary>
+    [ObservableProperty]
+    public partial string UninstallAppText { get; private set; } = Strings.Settings_UninstallAppDescription;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UninstallAppCommand))]
+    public partial bool CanUninstallApp { get; private set; }
+
+    /// <summary>Uninstalling the app, whose question may lead to this page's section that uninstalls every project.</summary>
+    public AppUninstall Uninstall => _services.Uninstall;
+
     public override void OnShown()
     {
         Backups.Load();
@@ -262,6 +277,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
             await _services.Dialogs.ShowAsync(new ReleaseNotesDialogViewModel(WhatsNewText, notes, _services.Links)).ConfigureAwait(true);
         }
     }
+
+    [RelayCommand(CanExecute = nameof(CanUninstallApp))]
+    private async Task UninstallAppAsync() => await _services.Uninstall.ConfirmAsync().ConfigureAwait(true);
 
     [RelayCommand]
     private void OpenSite() => _services.Links.Open(_services.Context.Site.SiteAddress);
@@ -322,6 +340,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         Steam.Refresh();
         ShowUpdate();
         ShowWindowReturn();
+        ShowUninstall();
         var state = _services.Agent.State;
         SiteName = state.Catalogue.SiteName is { Length: > 0 } name ? name : _services.Context.Site.SiteAddress?.Host ?? "";
         Folders.Refresh();
@@ -372,6 +391,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
             Steam.Refresh();
             ShowUpdate();
             ShowWindowReturn();
+            ShowUninstall();
             Folders.Refresh();
         }
     }
@@ -382,6 +402,15 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         CloseBehaviorDescription = Text.Format(Strings.Settings_CloseBehaviorDescription, ("return", windowReturn.ToString()),
             ("exitTile", Strings.Shell_CloseExit));
         IsInStoreSession = windowReturn == WindowReturn.StoreLibrary;
+    }
+
+    // Leaving the agent stops what runs halfway, so the uninstall waits for the jobs, the uninstalls and the backup moves.
+    private void ShowUninstall()
+    {
+        var state = _services.Agent.State;
+        OffersUninstall = AppUninstall.IsOffered(state);
+        CanUninstallApp = state is { Jobs.Count: 0, PendingUninstalls: 0, PendingBackupMoves: 0 };
+        UninstallAppText = CanUninstallApp ? Strings.Settings_UninstallAppDescription : Strings.Settings_UninstallAppBusy;
     }
 
     private void OnJobsProgressed(object? sender, IReadOnlyList<JobView> jobs) => Backups.Progress(jobs);

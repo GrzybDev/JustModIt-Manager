@@ -96,5 +96,7 @@ public sealed class SteamRequestsTests : IAsyncDisposable
 
         public Task<LaunchOptionsResult> ChangeLaunchOptionsAsync(GameKey game, IReadOnlyList<string> add, IReadOnlyList<string> remove,
             CancellationToken cancellationToken) => Task.FromResult(new LaunchOptionsResult(null, LaunchOptionsFailure.Unreachable));
+
+        public Task WithdrawAsync() => Task.CompletedTask;
     }
 }

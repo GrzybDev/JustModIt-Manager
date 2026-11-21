@@ -13,11 +13,16 @@ public static class SteamCleanup
     /// <param name="steamRoot">The folder Steam is installed in.</param>
     /// <param name="environment">The user's folders, where Millennium keeps its plugins on Linux.</param>
     /// <param name="identity">The app's names, which name its plugin and its line in the switch.</param>
-    public static void Remove(string steamRoot, LibraryEnvironment environment, AppIdentity identity)
+    public static void Remove(string steamRoot, LibraryEnvironment environment, AppIdentity identity) =>
+        Remove(new SteamFolders(steamRoot, MillenniumFolders.For(steamRoot, environment)), identity);
+
+    /// <summary>Removes the app's Millennium plugin and its name from the classic mode's switch, each on its own.</summary>
+    /// <param name="steam">The folder Steam is installed in and where Millennium works for it.</param>
+    /// <param name="identity">The app's names, which name its plugin and its line in the switch.</param>
+    internal static void Remove(SteamFolders steam, AppIdentity identity)
     {
-        Try(() => ClassicSwitch.TurnOff(steamRoot, ClassicSwitch.OwnerOf(identity)));
-        Try(() => new MillenniumPlugin(MillenniumFolders.For(steamRoot, environment), identity.Slug).RemoveAsync(CancellationToken.None)
-            .GetAwaiter().GetResult());
+        Try(() => ClassicSwitch.TurnOff(steam.Root, ClassicSwitch.OwnerOf(identity)));
+        Try(() => new MillenniumPlugin(steam.Millennium, identity.Slug).RemoveAsync(CancellationToken.None).GetAwaiter().GetResult());
     }
 
     // An uninstall must go on whatever Steam's folder allows.

@@ -115,6 +115,15 @@ internal static class GameWording
         return (volume.HoldsHome ? "home" : "other", volume.Label ?? point);
     }
 
+    /// <summary>A path under the user's home folder written from <c>~</c>, as Linux users write it; any other path as it is.</summary>
+    /// <param name="path">A full path.</param>
+    public static string FromHome(string path)
+    {
+        var home = Path.TrimEndingDirectorySeparator(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile,
+            Environment.SpecialFolderOption.DoNotVerify));
+        return home.Length > 0 && path.Length > home.Length && PathComparison.IsWithin(home, path) ? "~" + path[home.Length..] : path;
+    }
+
     /// <summary>What a job is doing now, e.g. "Downloading".</summary>
     public static string Stage(JobView job) => Text.Format(Strings.Library_JobStage, ("stage", job.Stage.ToString()), ("kind", job.Kind.ToString()));
 

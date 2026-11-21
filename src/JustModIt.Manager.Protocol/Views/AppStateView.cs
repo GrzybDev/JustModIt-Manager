@@ -59,6 +59,9 @@ public sealed record AppStateView
     /// <summary>The system's drives and shares, which the texts name a Linux path's drive by; none on Windows.</summary>
     public IReadOnlyList<NamedVolume> Volumes { get; init; } = [];
 
+    /// <summary>What uninstalling the app itself takes away and keeps; null where the system uninstalls the app instead.</summary>
+    public AppUninstallView? AppUninstall { get; init; }
+
     /// <summary>Makes the snapshot of the engine's state and the agent's own status.</summary>
     /// <param name="version">The snapshot's number among those the agent sent.</param>
     /// <param name="state">The engine's newest state.</param>
@@ -97,6 +100,16 @@ public sealed record AppStateView
         };
     }
 }
+
+/// <summary>
+/// Uninstalling the app itself, which a copy offers where the system lists it among no installed apps: the program goes, and
+/// the app's data stays where it is.
+/// </summary>
+/// <param name="ProgramFile">The app's program, which the uninstall removes last.</param>
+/// <param name="DataFolder">The settings, the install records and the originals kept with the app's data.</param>
+/// <param name="CacheFolder">The downloaded packages, the images and the saved catalogue.</param>
+/// <param name="LogsFolder">The logs.</param>
+public sealed record AppUninstallView(string ProgramFile, string DataFolder, string CacheFolder, string LogsFolder);
 
 /// <summary>How fresh the catalogue is, and what the site says about itself.</summary>
 public sealed record CatalogueView

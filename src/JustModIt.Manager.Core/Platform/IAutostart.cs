@@ -20,4 +20,15 @@ public interface IAutostart
 
     /// <summary>Removes the registration.</summary>
     void Disable();
+
+    /// <summary>
+    /// Takes the registration away for good, as uninstalling the app does; where removing the registration leaves nothing
+    /// behind, that is all it does.
+    /// </summary>
+    void Remove() => Disable();
 }
+
+/// <summary>The system's service manager refused a request, such as one to stop starting the app with the system.</summary>
+/// <param name="message">The service manager's words.</param>
+/// <param name="innerException">The refusal as it arrived.</param>
+public sealed class ServiceRefusedException(string message, Exception innerException) : IOException(message, innerException);

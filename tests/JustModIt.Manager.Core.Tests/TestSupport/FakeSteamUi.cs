@@ -62,4 +62,6 @@ internal sealed class FakeSteamUi : ISteamUi
         Changed?.Invoke(this, changed);
         return Task.FromResult(new LaunchOptionsResult(changed.LaunchOptions[game]));
     }
+
+    public Task WithdrawAsync() => Task.CompletedTask;
 }

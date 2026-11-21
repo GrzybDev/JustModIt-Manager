@@ -93,6 +93,7 @@
       </TransitioningContentControl>
 
       <shell:ConnectingView Grid.Row="1" Grid.ColumnSpan="2" />
+      <shell:UninstalledView Grid.Row="1" Grid.ColumnSpan="2" />
 
       <overlays:ToastLayer Grid.Row="1" Grid.ColumnSpan="2" DataContext="{Binding Toasts}" />
       <!-- Over the sidebar and the pages, under the title bar, whose buttons keep working. -->

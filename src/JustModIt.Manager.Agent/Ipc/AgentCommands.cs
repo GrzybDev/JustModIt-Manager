@@ -1,5 +1,6 @@
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Agent.Lifetime;
+using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Agent.Storage;
 using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Catalog;
@@ -37,6 +38,7 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="storage">Clears the app's cache.</param>
 /// <param name="time">Dates the player's confirmation of being an adult.</param>
 /// <param name="steamUi">Starts Steam again; null where the app has no way into Steam's interface.</param>
+/// <param name="uninstaller">Uninstalls the app itself; null where the system uninstalls it instead.</param>
 public sealed class AgentCommands(
     StateCoordinator coordinator,
     JobRunner jobs,
@@ -53,7 +55,8 @@ public sealed class AgentCommands(
     AgentOptions options,
     AppStorage storage,
     TimeProvider time,
-    ISteamUi? steamUi = null)
+    ISteamUi? steamUi = null,
+    AppUninstaller? uninstaller = null)
 {
     /// <summary>Carries out one of the window's commands.</summary>
     /// <param name="request">A command, as opposed to a query.</param>
@@ -71,6 +74,7 @@ public sealed class AgentCommands(
         StopMovingBackups => Done(coordinator.StopMovingBackups),
         UninstallEverything => Done(coordinator.UninstallEverything),
         ClearCache => await ClearCacheAsync(cancellationToken).ConfigureAwait(false),
+        UninstallApp => StartUninstall(),
         RemoveLeftoverBackups remove => await RemoveLeftoverBackupsAsync(remove.RecordIds, cancellationToken).ConfigureAwait(false),
         CancelJob cancel => Done(() => jobs.Cancel(cancel.Job)),
         DismissFailure dismiss => Done(() => coordinator.DismissFailure(dismiss.Game, dismiss.Install)),
@@ -246,6 +250,23 @@ public sealed class AgentCommands(
         return await storage.ClearCacheAsync(installed, cancellationToken).ConfigureAwait(false)
             ? null
             : throw new RequestFailedException(ErrorCode.Failed, "A job is running.");
+    }
+
+    // The agent leaves once the app is gone, which cancels a running job, undoing what it did, and drops the uninstalls and
+    // moves of backups that wait.
+    private Message? StartUninstall()
+    {
+        if (uninstaller is null)
+        {
+            throw new RequestFailedException(ErrorCode.Unsupported);
+        }
+
+        if (jobs.IsBusy || coordinator.Current is { PendingUninstalls: > 0 } or { PendingBackupMoves: > 0 })
+        {
+            throw new RequestFailedException(ErrorCode.Failed, "A job is running.");
+        }
+
+        return uninstaller.Start() ? null : throw new RequestFailedException(ErrorCode.Failed, "The app is being uninstalled.");
     }
 
     private Message? ChangeSettings(SettingsView view)
