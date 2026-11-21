@@ -232,15 +232,20 @@ public sealed class UpdateServiceTests : IAsyncDisposable
         await window.StateAsync(state => state.Update.State == AppUpdateState.UpToDate);
     }
 
-    [Fact]
-    public async Task An_update_downloaded_earlier_is_applied_before_anything_starts_with_the_same_command_line()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task An_update_downloaded_earlier_is_applied_before_anything_starts_and_the_app_comes_back_as_it_was_launched(bool unit)
     {
         _updater.PendingVersion = "1.1.0";
 
-        _agent.Start(new LaunchArguments(ProcessRole.Launcher, Background: false, new SettingsTarget()));
+        _agent.Start(unit
+            ? new LaunchArguments(ProcessRole.Agent, Background: true, Target: null)
+            : new LaunchArguments(ProcessRole.Launcher, Background: false, new SettingsTarget()));
 
         await _agent.Run.WaitAsync(Timeout, AgentHarness.Token);
-        (await _updater.Applied.Task).Should().Equal("example-app://settings");
+        (await _updater.Applied.Task).Should().Equal(unit ? ["--background"] : ["example-app://settings"],
+            "the updater starts a launch, which starts the agent's unit again where the agent runs as one");
         File.ReadAllText(_agent.Options.Locations.UpdateAttemptFile).Should().Be("1.1.0");
         _agent.Shell.WindowStarts.Should().Be(0);
     }

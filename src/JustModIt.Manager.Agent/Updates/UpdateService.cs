@@ -58,8 +58,8 @@ public sealed partial class UpdateService(
     private volatile string? _failedVersion;
 
     /// <summary>
-    /// Applies an update downloaded by an earlier run before this one starts anything, restarting with the same command
-    /// line, since nothing needs the app yet.
+    /// Applies an update downloaded by an earlier run before this one starts anything, restarting as a launch with the same
+    /// command line otherwise, since nothing needs the app yet.
     /// </summary>
     /// <param name="start">The command line this process started with.</param>
     /// <returns>Whether the app now exits to be updated.</returns>
@@ -76,8 +76,8 @@ public sealed partial class UpdateService(
             return false;
         }
 
-        // The updater starts the old version again when applying fails, so applying at every start would never end; a version
-        // the last run tried waits for the player.
+        // The updater starts the old version again when applying fails, and on Linux the agent's unit does, so applying at
+        // every start would never end; a version the last run tried waits for the player.
         if (pending.Version == attempted)
         {
             LogPendingAfterAttempt(pending.Version);
@@ -86,7 +86,9 @@ public sealed partial class UpdateService(
         }
 
         LogApplyingPending(pending.Version);
-        return Apply(start.ToArgs(links));
+        // A launch rather than the agent, since on Linux it starts the agent's unit, and an agent the updater started would run
+        // outside it.
+        return Apply((start with { Role = ProcessRole.Launcher }).ToArgs(links));
     }
 
     public async Task RunAsync(LaunchArguments start, CancellationToken cancellationToken)

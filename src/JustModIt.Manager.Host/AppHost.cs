@@ -1,7 +1,9 @@
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Localization;
+using JustModIt.Manager.Platform.Linux;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
+using Microsoft.Extensions.Logging.Abstractions;
 using Velopack;
 
 namespace JustModIt.Manager.Host;
@@ -25,6 +27,12 @@ public static class AppHost
                 .OnAfterInstallFastCallback(_ => AfterInstall(product))
                 .OnAfterUpdateFastCallback(_ => AfterInstall(product))
                 .OnBeforeUninstallFastCallback(_ => UnregisterShell(product));
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            // The shell logs nothing here: its failures fail the update, which the agent logs.
+            velopack = velopack.SetLocator(
+                ScopedUpdaterProcesses.Locator(AgentPlatform.Shell(product.Identity, NullLogger<ScopedDesktopShell>.Instance)));
         }
 
         velopack.Run();
