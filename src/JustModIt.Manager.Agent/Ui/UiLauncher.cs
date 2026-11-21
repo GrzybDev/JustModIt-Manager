@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Diagnostics;
 using JustModIt.Manager.Agent.Ipc;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Protocol.Activation;
@@ -9,27 +7,6 @@ using JustModIt.Manager.Protocol.Views;
 using Microsoft.Extensions.Logging;
 
 namespace JustModIt.Manager.Agent.Ui;
-
-/// <summary>Starts the window's process, which the agent does only when the player asks for the window.</summary>
-public interface IUiStarter
-{
-    /// <summary>Starts the window's process.</summary>
-    /// <returns>The id of the started process.</returns>
-    int Start();
-}
-
-/// <summary>Starts this app's executable in the window's role.</summary>
-/// <param name="options">The executable to start.</param>
-internal sealed class UiProcessStarter(AgentOptions options) : IUiStarter
-{
-    public int Start()
-    {
-        var start = new ProcessStartInfo(options.ExecutablePath) { UseShellExecute = false };
-        start.ArgumentList.Add(LaunchArguments.UiSwitch);
-        using var process = Process.Start(start)!;
-        return process.Id;
-    }
-}
 
 /// <summary>
 /// The window: brings the running one to the front, or starts its process, and keeps it up to date; the window's own
@@ -44,10 +21,11 @@ public sealed partial class UiLauncher : IDisposable
     // A window that agreed to close gets this long to go before the agent carries on without it.
     private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(30);
 
-    private readonly IUiStarter _starter;
+    private readonly IDesktopShell _shell;
+    private readonly string _executable;
     private readonly string _uiLock;
     private readonly bool _launchesBecomeWindows;
-    private readonly IForegroundHandoff _foreground;
+    private readonly IForegroundHandoff? _foreground;
     private readonly StatePublisher _publisher;
     private readonly TimeProvider _time;
     private readonly ILogger<UiLauncher> _logger;
@@ -61,16 +39,19 @@ public sealed partial class UiLauncher : IDisposable
     private bool _isActive;
 
     /// <summary>Creates the launcher, which forwards every snapshot, job progress and job end to the window from then on.</summary>
-    /// <param name="starter">Starts the window's process.</param>
-    /// <param name="options">Names the lock the window's process holds, and tells whether launches become the window.</param>
-    /// <param name="foreground">Lets the window take the foreground.</param>
+    /// <param name="shell">Starts the window's process.</param>
+    /// <param name="options">
+    /// The executable the window runs, the lock its process holds, and whether launches become the window.
+    /// </param>
     /// <param name="publisher">The snapshots, job progress and job ends to forward.</param>
     /// <param name="time">Times how long a started window has to connect.</param>
     /// <param name="logger">Receives the window's starts, connections and closes.</param>
-    public UiLauncher(IUiStarter starter, AgentOptions options, IForegroundHandoff foreground, StatePublisher publisher, TimeProvider time,
-        ILogger<UiLauncher> logger)
+    /// <param name="foreground">Lets the window take the foreground, where the system asks for that; null elsewhere.</param>
+    public UiLauncher(IDesktopShell shell, AgentOptions options, StatePublisher publisher, TimeProvider time, ILogger<UiLauncher> logger,
+        IForegroundHandoff? foreground = null)
     {
-        _starter = starter;
+        _shell = shell;
+        _executable = options.ExecutablePath;
         _uiLock = options.Names.UiLock;
         _launchesBecomeWindows = options.LaunchesBecomeWindows;
         _foreground = foreground;
@@ -135,7 +116,7 @@ public sealed partial class UiLauncher : IDisposable
 
         if (window is not null)
         {
-            _foreground.Allow(window.Peer.ProcessId);
+            _foreground?.Allow(window.Peer.ProcessId);
             if (target is not null)
             {
                 window.Post(new Navigate(target));
@@ -204,7 +185,7 @@ public sealed partial class UiLauncher : IDisposable
     internal void OnConnected(PipeConnection window)
     {
         LogConnected(window.Peer.ProcessId);
-        _foreground.Allow(window.Peer.ProcessId);
+        _foreground?.Allow(window.Peer.ProcessId);
         lock (_gate)
         {
             _window = window;
@@ -273,21 +254,19 @@ public sealed partial class UiLauncher : IDisposable
             return;
         }
 
-        try
+        if (_shell.Run(_executable, [LaunchArguments.UiSwitch]) is { } processId)
         {
-            var processId = _starter.Start();
-            _foreground.Allow(processId);
+            _foreground?.Allow(processId);
             LogStarted(processId);
+            return;
         }
-        catch (Exception exception) when (exception is Win32Exception or InvalidOperationException or IOException)
-        {
-            lock (_gate)
-            {
-                _startedAt = null;
-            }
 
-            LogStartFailed(exception);
+        lock (_gate)
+        {
+            _startedAt = null;
         }
+
+        LogStartFailed();
     }
 
     private void OnPublished(object? sender, AppStateView state) => SendToWindow(new StateChanged(state));
@@ -324,7 +303,7 @@ public sealed partial class UiLauncher : IDisposable
     private partial void LogWindowOnItsWay();
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The window could not be started")]
-    private partial void LogStartFailed(Exception exception);
+    private partial void LogStartFailed();
 
     [LoggerMessage(Level = LogLevel.Information, Message = "The window {ProcessId} connected")]
     private partial void LogConnected(int processId);

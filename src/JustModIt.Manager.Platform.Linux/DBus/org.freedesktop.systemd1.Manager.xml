@@ -32,5 +32,6 @@
       <arg type="b" name="runtime" direction="in" />
       <arg type="a(sss)" name="changes" direction="out" />
     </method>
+    <property name="Environment" type="as" access="read" />
   </interface>
 </node>

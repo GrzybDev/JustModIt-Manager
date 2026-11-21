@@ -8,10 +8,12 @@ namespace JustModIt.Manager.Platform.Linux.Tests.TestSupport;
 internal sealed class PrivateBus : IAsyncDisposable
 {
     private readonly Process _daemon;
-    private readonly string _address;
     private readonly List<DBusConnection> _connections = [];
 
-    private PrivateBus(Process daemon, string address) => (_daemon, _address) = (daemon, address);
+    private PrivateBus(Process daemon, string address) => (_daemon, Address) = (daemon, address);
+
+    /// <summary>Where the bus listens, for the app's services that connect by an address of their own.</summary>
+    public string Address { get; }
 
     /// <summary>Starts the daemon, or skips the test where there is none to start.</summary>
     /// <param name="cancellationToken">Stops waiting for the daemon's address.</param>
@@ -39,7 +41,7 @@ internal sealed class PrivateBus : IAsyncDisposable
     /// <summary>Opens a connection of its own to the bus, as another process would.</summary>
     public async Task<DBusConnection> ConnectAsync()
     {
-        var connection = new DBusConnection(_address);
+        var connection = new DBusConnection(Address);
         _connections.Add(connection);
         await connection.ConnectAsync();
         await LeaveReaderAsync();

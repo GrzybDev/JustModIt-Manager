@@ -119,13 +119,11 @@ public static class AgentServices
     private static void AddAgentParts(IServiceCollection services, AgentOptions options)
     {
         services.AddSingleton<AgentStatus>();
-        services.AddSingleton<IUiStarter, UiProcessStarter>();
         services.AddSingleton<UiLauncher>();
         services.AddSingleton<StatePublisher>();
         services.AddSingleton<AgentLifetime>();
         services.AddSingleton<ActivationHandler>();
         services.AddSingleton<Checks>();
-        services.AddSingleton<IDesktopShell, DesktopShell>();
         services.AddSingleton(provider => new AppStorage(options.Locations, provider.GetRequiredService<CatalogueCache>(),
             provider.GetRequiredService<JobRunner>(), provider.GetRequiredService<ILogger<AppStorage>>()));
         services.AddSingleton<AgentCommands>();

@@ -18,8 +18,12 @@ public sealed class ActivationHandlerTests
         ActivationHandler.ShowsWindow(new LaunchArguments(role, background, null), SetUp).Should().Be(shows);
 
     [Fact]
-    public void A_start_with_the_system_opens_the_window_while_the_setup_waits() =>
+    public void A_start_with_the_system_opens_the_window_while_the_setup_waits_unless_the_agents_unit_started_it()
+    {
         ActivationHandler.ShowsWindow(new LaunchArguments(ProcessRole.Launcher, true, null), AppSettings.Default).Should().BeTrue();
+        ActivationHandler.ShowsWindow(new LaunchArguments(ProcessRole.Agent, true, null), AppSettings.Default)
+            .Should().BeFalse("the session may show no window yet when its systemd starts the unit, and Game Mode shows none");
+    }
 
     [Fact]
     public void A_link_always_opens_the_window() =>

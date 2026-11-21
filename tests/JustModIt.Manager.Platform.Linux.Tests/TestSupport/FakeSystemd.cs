@@ -5,7 +5,7 @@ using Tmds.DBus.Protocol;
 namespace JustModIt.Manager.Platform.Linux.Tests.TestSupport;
 
 /// <summary>The user's systemd manager on a private bus, answering what a test sets and recording what it was asked.</summary>
-internal sealed class FakeSystemd : DBusHandler, IManagerHandler
+internal sealed class FakeSystemd : DBusHandler, IManagerHandler, IManagerProperties
 {
     private bool _enabled;
 
@@ -19,6 +19,9 @@ internal sealed class FakeSystemd : DBusHandler, IManagerHandler
 
     /// <summary>What <c>GetUnitFileState</c> answers.</summary>
     public string State { get; set; } = "static";
+
+    /// <summary>The user's systemd environment, as <c>NAME=value</c> lines.</summary>
+    public string[] Environment { get; set; } = [];
 
     /// <summary>The error every call answers with; null answers.</summary>
     public string? Error { get; set; }
@@ -74,6 +77,10 @@ internal sealed class FakeSystemd : DBusHandler, IManagerHandler
         _enabled = false;
         return ValueTask.FromResult(changes);
     }
+
+    public ValueTask HandleGetPropertyAsync(IManagerHandler.GetPropertyContext context) => context.Handle(this);
+
+    public ValueTask HandleGetAllPropertiesAsync(IManagerHandler.GetAllPropertiesContext context) => context.Handle(this);
 
     private ValueTask<ObjectPath> Job(string call, string name)
     {

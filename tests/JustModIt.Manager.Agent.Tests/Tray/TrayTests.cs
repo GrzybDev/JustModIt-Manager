@@ -31,7 +31,7 @@ public sealed class TrayTests : IAsyncDisposable
 
         _agent.Tray.Click();
 
-        await Eventually.HoldsAsync(() => _agent.Starter.Starts == 1);
+        await Eventually.HoldsAsync(() => _agent.Shell.WindowStarts == 1);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public sealed class TrayTests : IAsyncDisposable
         shown.Should().Be(("Installed for Example Game", "The project is ready. Have fun!", "example-app://game/gog/1100000001"));
 
         _agent.Tray.ClickNotification(shown.Tag);
-        await Eventually.HoldsAsync(() => _agent.Starter.Starts == 1);
+        await Eventually.HoldsAsync(() => _agent.Shell.WindowStarts == 1);
         var window = await _agent.ConnectWindowAsync();
         (await window.NextAsync<Navigate>()).Target.Should().Be(new GameTarget("gog", "1100000001"));
     }

@@ -1,6 +1,5 @@
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Agent.Lifetime;
-using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Agent.Storage;
 using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Catalog;

@@ -30,7 +30,7 @@ public sealed class ExitTests : IAsyncDisposable
         var launcher = await _agent.ConnectLauncherAsync();
         await launcher.RequestAsync(new Activate(["example-app://settings"]), cancellationToken: AgentHarness.Token);
 
-        _agent.Starter.Starts.Should().Be(1);
+        _agent.Shell.WindowStarts.Should().Be(1);
         var second = await _agent.ConnectWindowAsync();
         await second.StateAsync(state => state.Activity.IsExitPending);
         (await second.NextAsync<Navigate>()).Target.Should().Be(new SettingsTarget());

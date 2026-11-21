@@ -108,7 +108,7 @@ public sealed class UpdateServiceTests : IAsyncDisposable
         agent.Start();
         await agent.ServiceAsync<UiLauncher>();
         agent.Tray.Click();
-        await Eventually.HoldsAsync(() => agent.Starter.Starts == 1);
+        await Eventually.HoldsAsync(() => agent.Shell.WindowStarts == 1);
 
         agent.Tray.Pick(TrayCommands.CheckNow);
 
@@ -241,7 +241,7 @@ public sealed class UpdateServiceTests : IAsyncDisposable
 
         await _agent.Run.WaitAsync(Timeout, AgentHarness.Token);
         (await _updater.Applied.Task).Should().Equal("example-app://settings");
-        _agent.Starter.Starts.Should().Be(0);
+        _agent.Shell.WindowStarts.Should().Be(0);
     }
 
     [Fact]

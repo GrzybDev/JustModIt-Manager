@@ -219,6 +219,12 @@ internal static partial class Roles
         var logger = log.Loggers.CreateLogger(typeof(Roles).FullName!);
         LogStarting(logger, role, environment.Version, environment.System, RuntimeInformation.ProcessArchitecture,
             environment.Install.IsInstalled, Environment.IsPrivilegedProcess);
+        // Before the role starts any program, every one of which would otherwise keep what this process inherited open.
+        if (OperatingSystem.IsLinux() && ProcessDescriptors.KeepFromChildren() is { } error)
+        {
+            LogDescriptorsInherited(logger, error);
+        }
+
         var session = new SessionMarker(environment.Locations.StateDirectory, role, environment.Version, TimeProvider.System, log.Redactor);
         var previous = session.Begin();
         CrashHandlers.Report(logger, previous);
@@ -237,6 +243,10 @@ internal static partial class Roles
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The agent's systemd unit could not be started")]
     private static partial void LogUnitNotStarted(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "The descriptors this process inherited could not be kept from the programs it starts (error {Error})")]
+    private static partial void LogDescriptorsInherited(ILogger logger, int error);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The agent does not run on {System} yet")]
     private static partial void LogUnsupported(ILogger logger, SystemRelease system);

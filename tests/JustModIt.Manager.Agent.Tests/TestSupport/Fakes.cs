@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
-using JustModIt.Manager.Agent.Shell;
-using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
@@ -13,17 +11,6 @@ using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 
 namespace JustModIt.Manager.Agent.Tests.TestSupport;
-
-internal sealed class FakeUiStarter(AgentHarness harness) : IUiStarter
-{
-    private int _starts;
-
-    public int Starts => Volatile.Read(ref _starts);
-
-    public AgentHarness Harness { get; } = harness;
-
-    public int Start() => 50_000 + Interlocked.Increment(ref _starts);
-}
 
 internal sealed class FakeForeground : IForegroundHandoff
 {
@@ -38,6 +25,11 @@ internal sealed class FakeShell : IDesktopShell
 
     public ConcurrentQueue<ProgramStart> Started { get; } = new();
 
+    public ConcurrentQueue<(string Executable, IReadOnlyList<string> Arguments)> Ran { get; } = new();
+
+    /// <summary>How many times the agent started its window's process.</summary>
+    public int WindowStarts => Ran.Count(run => run.Arguments is ["--ui"]);
+
     public bool Succeeds { get; set; } = true;
 
     public bool Open(string target)
@@ -50,6 +42,13 @@ internal sealed class FakeShell : IDesktopShell
     {
         Started.Enqueue(program);
         return Succeeds;
+    }
+
+    // Ids the test's own processes cannot have, numbered in the order of the starts.
+    public int? Run(string executable, IReadOnlyList<string> arguments, string? workingDirectory = null)
+    {
+        Ran.Enqueue((executable, arguments));
+        return Succeeds ? 50_000 + Ran.Count : null;
     }
 }
 

@@ -64,6 +64,15 @@ internal static class AgentPlatform
         options.ProductName, options.ExecutablePath, UnitArguments,
         Path.Join(LibraryEnvironment.ForCurrentUser().ConfigDirectory, "systemd", "user"), DBusConnection.Session, logger);
 
+    /// <summary>
+    /// What the agent starts on Linux, each in a scope of its own outside the agent's systemd unit, with the user's systemd
+    /// environment of that moment.
+    /// </summary>
+    /// <param name="identity">Names the scopes.</param>
+    /// <param name="logger">Receives failures.</param>
+    public static ScopedDesktopShell Shell(AppIdentity identity, ILogger<ScopedDesktopShell> logger) =>
+        new(identity.DesktopId, DBusAddress.Session, logger);
+
     [SupportedOSPlatform("windows")]
     private static void AddWindows(IServiceCollection services, AgentOptions options)
     {
@@ -76,6 +85,7 @@ internal static class AgentPlatform
         services.AddSingleton<IAutostart>(WindowsRunEntry(options.Identity, options.ExecutablePath));
         services.AddSingleton<ILinkRegistration>(WindowsLinkRegistration.Instance);
         services.AddSingleton<IForegroundHandoff>(WindowsForegroundHandoff.Instance);
+        services.AddSingleton<IDesktopShell, WindowsDesktopShell>();
         services.AddSingleton<ITrayHost>(provider =>
             new WindowsTrayHost(options.ExecutablePath, provider.GetRequiredService<ILogger<WindowsTrayHost>>()));
     }
@@ -89,6 +99,7 @@ internal static class AgentPlatform
         services.AddSingleton<IProcessSource>(LinuxProcessSource.Instance);
         services.AddSingleton<ILockHolderSource>(ProcLockHolders.Instance);
         services.AddSingleton<IAutostart>(Unit(options));
+        services.AddSingleton<IDesktopShell>(provider => Shell(options.Identity, provider.GetRequiredService<ILogger<ScopedDesktopShell>>()));
         // Windows tells the agent of a logout or a shutdown through the tray's window instead.
         services.AddSingleton<IAgentService, StopSignal>();
     }

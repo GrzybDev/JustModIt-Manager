@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Steam;

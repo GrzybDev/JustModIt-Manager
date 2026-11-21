@@ -43,7 +43,7 @@ public sealed class AgentIpcTests : IAsyncDisposable
 
         await launcher.RequestAsync(new Activate(["--background"]), cancellationToken: AgentHarness.Token);
 
-        _agent.Starter.Starts.Should().Be(0);
+        _agent.Shell.WindowStarts.Should().Be(0);
     }
 
     [Fact]
@@ -55,7 +55,8 @@ public sealed class AgentIpcTests : IAsyncDisposable
         await launcher.RequestAsync(new Activate(["example-app://game/steam/1000"]), cancellationToken: AgentHarness.Token);
         await launcher.RequestAsync(new Activate(["example-app://settings"]), cancellationToken: AgentHarness.Token);
 
-        _agent.Starter.Starts.Should().Be(1, "a second launch while the window starts does not start another");
+        _agent.Shell.WindowStarts.Should().Be(1, "a second launch while the window starts does not start another");
+        _agent.Shell.Ran.Single().Executable.Should().Be(_agent.Options.ExecutablePath);
         _agent.Foreground.Allowed.Should().Contain(50_001);
 
         var window = await _agent.ConnectWindowAsync();
@@ -79,7 +80,7 @@ public sealed class AgentIpcTests : IAsyncDisposable
             var window = await _agent.ConnectWindowAsync();
 
             (await window.NextAsync<Navigate>()).Target.Should().Be(new SettingsTarget());
-            _agent.Starter.Starts.Should().Be(starts);
+            _agent.Shell.WindowStarts.Should().Be(starts);
         }
 
         if (!OperatingSystem.IsWindows())
@@ -112,7 +113,7 @@ public sealed class AgentIpcTests : IAsyncDisposable
 
         (await window.NextAsync<Navigate>()).Target.Should().Be(new CatalogueTarget("example-game"));
         await window.NextAsync<BringToFront>();
-        _agent.Starter.Starts.Should().Be(0);
+        _agent.Shell.WindowStarts.Should().Be(0);
         _agent.Foreground.Allowed.Should().Contain(Environment.ProcessId);
     }
 

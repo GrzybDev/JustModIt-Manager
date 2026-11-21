@@ -117,6 +117,36 @@ public sealed class NavigationTests
         }
     }
 
+    [Fact]
+    public void A_link_the_window_opens_on_linux_leaves_the_appimages_own_variables_and_mount_behind()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Only Linux runs the window from an AppImage, whose mount goes when it exits.");
+        string[] names = ["APPIMAGE", "APPDIR", "ARGV0", "OWD", "PATH"];
+        var saved = names.ToDictionary(name => name, Environment.GetEnvironmentVariable);
+        // What the AppImage's runtime exports for the window's own process.
+        Environment.SetEnvironmentVariable("APPIMAGE", "/home/player/Applications/Example App.AppImage");
+        Environment.SetEnvironmentVariable("APPDIR", "/tmp/.mount_ExampleAbc123");
+        Environment.SetEnvironmentVariable("ARGV0", "/home/player/Applications/Example App.AppImage");
+        Environment.SetEnvironmentVariable("OWD", "/home/player");
+        Environment.SetEnvironmentVariable("PATH", "/tmp/.mount_ExampleAbc123/usr/bin/:/usr/bin::/bin");
+        try
+        {
+            var start = ShellLinks.StartOf("https://example.com/games");
+
+            (start.FileName, start.UseShellExecute).Should().Be(("xdg-open", false));
+            start.ArgumentList.Should().Equal("https://example.com/games");
+            start.Environment.Keys.Should().NotContain(["APPIMAGE", "APPDIR", "ARGV0", "OWD"]);
+            start.Environment["PATH"].Should().Be("/usr/bin::/bin", "a program found on the mount fails once the window exits");
+        }
+        finally
+        {
+            foreach (var (name, value) in saved)
+            {
+                Environment.SetEnvironmentVariable(name, value);
+            }
+        }
+    }
+
     private sealed class OwnLibrary : PageViewModel
     {
         public override string Title => "Own";

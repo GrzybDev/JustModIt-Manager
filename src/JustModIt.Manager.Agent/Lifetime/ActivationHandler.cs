@@ -22,7 +22,9 @@ public sealed class ActivationHandler(UiLauncher ui, ISettingsService settings)
 
     /// <summary>
     /// Whether a launch opens the window; a start with the system does not unless the first-run setup still waits, since
-    /// until the player finishes it the app does nothing for them, so it asks again at every sign-in.
+    /// until the player finishes it the app does nothing for them, so it asks again at every sign-in. Where the agent runs
+    /// as the user's systemd unit, the unit starts the agent role itself, which opens no window even then, since the
+    /// session may not show one yet and a store's game session shows none.
     /// </summary>
     /// <param name="launch">The launch's command line.</param>
     /// <param name="settings">The current settings.</param>

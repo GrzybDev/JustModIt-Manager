@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Views;
 using Microsoft.Extensions.Logging;
@@ -88,11 +89,28 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
         return address.IsAbsoluteUri && (address.Scheme == Uri.UriSchemeHttps || address.Scheme == PageLinks.SteamScheme);
     }
 
+    /// <summary>
+    /// How the system opens an address or a folder: through the shell, and on Linux through xdg-open without what the
+    /// AppImage's runtime set up for the window, since the window may be its process, whose mount goes when it exits.
+    /// </summary>
+    /// <param name="target">The address or the folder's path.</param>
+    internal static ProcessStartInfo StartOf(string target)
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return new ProcessStartInfo(target) { UseShellExecute = true };
+        }
+
+        var start = new ProcessStartInfo("xdg-open") { ArgumentList = { target } };
+        ChildEnvironment.LeaveAppImage(start.Environment);
+        return start;
+    }
+
     private void Start(string target) => _ = Task.Run(() =>
     {
         try
         {
-            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+            Process.Start(StartOf(target))?.Dispose();
         }
         catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
         {
