@@ -29,17 +29,13 @@ public sealed class InstallerHookTests : IDisposable
     [Fact]
     public async Task Uninstalling_forgets_the_installations_id_and_keeps_every_other_setting()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "The installer's hooks run only on Windows.");
         var data = Path.GetDirectoryName(_state)!;
         var locations = new AppDataLocations(data, Path.Combine(data, "cache"), Path.Combine(data, "logs"));
         var store = new JsonDocumentStore<AppSettings>(locations.SettingsFile, SettingsFormat.Instance, TimeProvider.System,
             NullLogger.Instance);
         await store.SaveAsync(AppSettings.Default with { InstallationId = Guid.NewGuid(), CreatorMode = true }, TestContext.Current.CancellationToken);
 
-        if (OperatingSystem.IsWindows())
-        {
-            ShellHooks.ForgetInstallation(locations);
-        }
+        AppRemoval.ForgetInstallation(locations);
 
         (await store.LoadAsync(TestContext.Current.CancellationToken)).Should().Be(AppSettings.Default with { CreatorMode = true });
     }

@@ -1,15 +1,9 @@
 using System.Runtime.Versioning;
 using System.Security;
 using JustModIt.Manager.Agent.Shell;
-using JustModIt.Manager.Agent.Steam;
 using JustModIt.Manager.Core;
-using JustModIt.Manager.Core.IO;
-using JustModIt.Manager.Core.Library;
-using JustModIt.Manager.Core.Library.Steam;
-using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Platform.Windows;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Host;
 
@@ -47,27 +41,9 @@ internal static class ShellHooks
         {
             ShellRegistration.Unregister(WindowsLinkRegistration.Instance,
                 AgentPlatform.WindowsRunEntry(environment.Identity, environment.Install.ExecutablePath), environment.Identity.Slug);
-            ForgetInstallation(environment.Locations);
+            AppRemoval.ForgetInstallation(environment.Locations);
         });
-        Apply(product, environment =>
-        {
-            var user = LibraryEnvironment.ForCurrentUser();
-            if (SteamInstallation.FindRoot(PhysicalFileSystem.Instance, WindowsRegistry.Instance, user) is { } steam)
-            {
-                SteamCleanup.Remove(steam, user, environment.Identity);
-            }
-        });
-    }
-
-    /// <summary>Drops the installation's id from the settings, which outlive the app's files.</summary>
-    /// <param name="locations">The app's data folders.</param>
-    internal static void ForgetInstallation(AppDataLocations locations)
-    {
-        var store = SettingsStore(locations);
-        if (store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult() is { InstallationId: not null } settings)
-        {
-            store.SaveAsync(settings with { InstallationId = null }, CancellationToken.None).GetAwaiter().GetResult();
-        }
+        Apply(product, environment => AppRemoval.RemoveSteamAdditions(environment.Identity, WindowsRegistry.Instance));
     }
 
     private static void Apply(ProductSettings product, Action<HostEnvironment> change)
@@ -82,10 +58,6 @@ internal static class ShellHooks
         }
     }
 
-    // A hook has no loop to wait in, and the settings file is small.
     private static AppSettings ReadSettings(AppDataLocations locations) =>
-        SettingsStore(locations).LoadAsync(CancellationToken.None).GetAwaiter().GetResult() ?? AppSettings.Default;
-
-    private static JsonDocumentStore<AppSettings> SettingsStore(AppDataLocations locations) =>
-        new(locations.SettingsFile, SettingsFormat.Instance, TimeProvider.System, NullLogger.Instance);
+        AppRemoval.SettingsStore(locations).LoadAsync(CancellationToken.None).GetAwaiter().GetResult() ?? AppSettings.Default;
 }
