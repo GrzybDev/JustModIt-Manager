@@ -124,6 +124,8 @@ public static class Icons
 
     public static Geometry Library => field ??= Parse("M16 6l4 14 M12 6v14 M8 8v12 M4 4v16");
 
+    public static Geometry Link => field ??= Parse("M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71");
+
     public static Geometry ListChecks => field ??= Parse("M13 5h8 M13 12h8 M13 19h8 M3 17l2 2 4-4 M3 7l2 2 4-4");
 
     public static Geometry ListOrdered => field ??= Parse("M10 12h11 M10 18h11 M10 6h11 M4 10h2 M4 6h1v4 M6 18H4c0-1 2-2 2-3s-1-1.5-2-1");

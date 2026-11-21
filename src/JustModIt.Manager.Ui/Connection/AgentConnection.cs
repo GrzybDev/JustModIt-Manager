@@ -43,7 +43,7 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
             _client.Subscribe<JobProgress>(OnJobProgress),
             _client.Subscribe<JobEnded>(ended => Dispatcher.UIThread.Post(() => JobEnded?.Invoke(this, ended))),
             _client.Subscribe<Notify>(notify => Dispatcher.UIThread.Post(() => Noticed?.Invoke(this, notify.Notice))),
-            _client.Subscribe<Navigate>(navigate => Dispatcher.UIThread.Post(() => NavigationRequested?.Invoke(this, navigate.Target))),
+            _client.Subscribe<Navigate>(navigate => Dispatcher.UIThread.Post(() => NavigationRequested?.Invoke(this, navigate))),
             _client.Subscribe<BringToFront>(_ => Dispatcher.UIThread.Post(() => BringToFrontRequested?.Invoke(this, EventArgs.Empty))),
             _client.Subscribe<AppUninstallProgress>(progress => Dispatcher.UIThread.Post(() => AppUninstallProgressed?.Invoke(this, progress))),
         ];
@@ -56,7 +56,7 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
 
     public event EventHandler<NoticeView>? Noticed;
 
-    public event EventHandler<NavigationTarget>? NavigationRequested;
+    public event EventHandler<Navigate>? NavigationRequested;
 
     public event EventHandler? BringToFrontRequested;
 

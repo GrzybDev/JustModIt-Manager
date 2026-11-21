@@ -109,9 +109,22 @@ public sealed class StatusNotifierTrayTests
     }
 
     [Fact]
+    public async Task A_tray_started_in_gamescope_brings_the_window_back_from_Steam_from_its_start()
+    {
+        await using var bus = await PrivateBus.StartAsync(Token);
+        await FakeLogind.StartAsync(bus, ("3", "gamescope"));
+
+        using var tray = new StatusNotifierTray(bus.Address, bus.Shared(), DesktopId, "Example App", IconThemes,
+            NullLogger<StatusNotifierTray>.Instance);
+
+        tray.WindowReturn.Should().Be(WindowReturn.StoreLibrary, "the agent serves launches as soon as it starts, and Game Mode shows no window it starts");
+    }
+
+    [Fact]
     public async Task A_session_without_a_bus_shows_no_icon_and_brings_the_window_back_from_the_app_list()
     {
-        using var system = new DBusConnection("");
+        // As the shared system bus, which connects on its first call, does where there is none.
+        using var system = new DBusConnection(new DBusConnectionOptions("unix:path=/nonexistent") { AutoConnect = true });
         using var tray = new StatusNotifierTray(address: null, system, DesktopId, "Example App", IconThemes,
             NullLogger<StatusNotifierTray>.Instance);
 

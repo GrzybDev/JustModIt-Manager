@@ -35,6 +35,7 @@ public sealed partial class UiLauncher : IDisposable
     // Taking the window and sending to it share this lock, so a new window gets every snapshot from the newest on.
     private readonly Lock _gate = new();
     private NavigationTarget? _pendingTarget;
+    private bool _pendingTargetWaited;
     private PipeConnection? _window;
     private PipeConnection? _closing;
     private DateTimeOffset? _startedAt;
@@ -110,6 +111,7 @@ public sealed partial class UiLauncher : IDisposable
             if (window is null)
             {
                 _pendingTarget = target ?? _pendingTarget;
+                _pendingTargetWaited &= target is null;
                 var now = _time.GetUtcNow();
                 start = _startedAt is not { } started || now - started > StartGrace;
                 if (start)
@@ -199,7 +201,7 @@ public sealed partial class UiLauncher : IDisposable
             window.Post(new StateChanged(_publisher.Latest));
             if (_pendingTarget is { } target)
             {
-                window.Post(new Navigate(target));
+                window.Post(new Navigate(target) { Waited = _pendingTargetWaited });
                 _pendingTarget = null;
             }
         }
@@ -253,6 +255,8 @@ public sealed partial class UiLauncher : IDisposable
             lock (_gate)
             {
                 _startedAt = null;
+                // The window that the store's library opens says that the page waited for it.
+                _pendingTargetWaited = _pendingTarget is not null;
             }
 
             if (Interlocked.Exchange(ref _toldStoreSession, 1) == 0)

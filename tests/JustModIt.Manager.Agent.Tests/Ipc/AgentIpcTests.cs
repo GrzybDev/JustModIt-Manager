@@ -2,6 +2,7 @@ using JustModIt.Manager.Agent.Tests.TestSupport;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -61,6 +62,23 @@ public sealed class AgentIpcTests : IAsyncDisposable
 
         var window = await _agent.ConnectWindowAsync();
         (await window.NextAsync<Navigate>()).Target.Should().Be(new SettingsTarget());
+    }
+
+    [Fact]
+    public async Task A_page_asked_for_where_no_window_can_show_waits_and_is_marked()
+    {
+        await _agent.SaveSettingsAsync(AppSettings.Default with { OnboardingCompleted = true });
+        _agent.Tray.ReturnBy(WindowReturn.StoreLibrary);
+        _agent.Start(new LaunchArguments(ProcessRole.Agent, Background: true, Target: null));
+        var launcher = await _agent.ConnectLauncherAsync();
+
+        await launcher.RequestAsync(new Activate(["example-app://settings"]), cancellationToken: AgentHarness.Token);
+
+        _agent.Shell.WindowStarts.Should().Be(0, "the session shows only the window its store's library starts");
+        var window = await _agent.ConnectWindowAsync();
+        (await window.NextAsync<Navigate>()).Should().Be(new Navigate(new SettingsTarget()) { Waited = true });
+        await launcher.RequestAsync(new Activate(["example-app://library"]), cancellationToken: AgentHarness.Token);
+        (await window.NextAsync<Navigate>()).Should().Be(new Navigate(new LibraryTarget()), "a window that runs gets the page at once");
     }
 
     [Theory]

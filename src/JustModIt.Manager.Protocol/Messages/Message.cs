@@ -113,7 +113,12 @@ public sealed record BringToFront : Message;
 
 /// <summary>Asks the window to show a place.</summary>
 /// <param name="Target">The place to show.</param>
-public sealed record Navigate(NavigationTarget Target) : Message;
+public sealed record Navigate(NavigationTarget Target) : Message
+{
+    /// <summary>The place was asked for while the session showed no window of the agent's, so it waited for this one.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Waited { get; init; }
+}
 
 /// <summary>Asks the window to close; it answers with <see cref="ShutdownAnswer"/>.</summary>
 /// <param name="Reason">Why the agent asks.</param>

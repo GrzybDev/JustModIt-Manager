@@ -1,10 +1,8 @@
 using System.Threading.Channels;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Platform.Linux.DBus;
-using JustModIt.Manager.Platform.Linux.DBus.Login;
 using Microsoft.Extensions.Logging;
 using Tmds.DBus.Protocol;
-using Logind = JustModIt.Manager.Platform.Linux.DBus.Login.Manager;
 
 namespace JustModIt.Manager.Platform.Linux;
 
@@ -18,7 +16,6 @@ namespace JustModIt.Manager.Platform.Linux;
 public sealed partial class StatusNotifierTray : ITrayHost
 {
     private const string Watcher = "org.kde.StatusNotifierWatcher";
-    private const string Login = "org.freedesktop.login1";
 
     private readonly string _name = $"org.kde.StatusNotifierItem-{Environment.ProcessId}-1";
     private readonly DBusConnection _connection;
@@ -38,7 +35,10 @@ public sealed partial class StatusNotifierTray : ITrayHost
     private bool _hasHost = true;
     private bool _inGamescope;
 
-    /// <summary>Connects to the buses off the calling thread; the icon appears with the first <see cref="Show"/>.</summary>
+    /// <summary>
+    /// Reads whether the user's display session is gamescope's and connects to the buses off the calling thread; the icon
+    /// appears with the first <see cref="Show"/>.
+    /// </summary>
     /// <param name="address">The session bus's address; null where the session has no bus.</param>
     /// <param name="system">The system bus, on which logind tells the user's display session.</param>
     /// <param name="desktopId">The app's desktop entry, by which the desktop knows the app.</param>
@@ -54,6 +54,8 @@ public sealed partial class StatusNotifierTray : ITrayHost
         _item = new Item(this, desktopId, title, iconThemes);
         _menu = new TrayMenu(_connection, command => CommandInvoked?.Invoke(this, command));
         _logger = logger;
+        // Known before the agent serves its first launch, which in Game Mode must not start a window that gamescope never shows.
+        _inGamescope = DisplaySession.IsGamescope(system, DisplaySession.TimeLimit);
         _ = Task.Run(FollowAsync);
         _ = Task.Run(FollowDisplayAsync);
     }
@@ -193,15 +195,14 @@ public sealed partial class StatusNotifierTray : ITrayHost
     {
         try
         {
-            var logind = new Logind(_system, Login, "/org/freedesktop/login1");
+            var logind = DisplaySession.Manager(_system);
             using var added = await logind.WatchSessionNewAsync(_ => _sessionsChanged.Writer.TryWrite(true), emitOnCapturedContext: false)
                 .ConfigureAwait(false);
             using var removed = await logind.WatchSessionRemovedAsync(_ => _sessionsChanged.Writer.TryWrite(true), emitOnCapturedContext: false)
                 .ConfigureAwait(false);
-            var user = new User(_system, Login, await logind.GetUserByPIDAsync((uint)Environment.ProcessId).ConfigureAwait(false));
             while (true)
             {
-                Change(ref _inGamescope, Gamescope.IsSession(await DisplayDesktopAsync(user).ConfigureAwait(false)));
+                Change(ref _inGamescope, Gamescope.IsSession(await DisplaySession.DesktopAsync(_system).ConfigureAwait(false)));
                 await _sessionsChanged.Reader.ReadAsync(_stop.Token).ConfigureAwait(false);
             }
         }
@@ -212,22 +213,6 @@ public sealed partial class StatusNotifierTray : ITrayHost
         catch (Exception exception)
         {
             LogNoDisplaySession(exception);
-        }
-    }
-
-    private async Task<string?> DisplayDesktopAsync(User user)
-    {
-        try
-        {
-            var (_, session) = await user.GetDisplayAsync().ConfigureAwait(false);
-            return session.ToString() == "/"
-                ? null
-                : await new Session(_system, Login, session).GetDesktopAsync().ConfigureAwait(false);
-        }
-        // The display or its session may end while they are read, as at a switch to Game Mode, which a session's signal tells.
-        catch (DBusErrorReplyException)
-        {
-            return null;
         }
     }
 

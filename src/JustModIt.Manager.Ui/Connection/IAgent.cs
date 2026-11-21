@@ -52,7 +52,7 @@ public interface IAgent : INotifyPropertyChanged
     event EventHandler<NoticeView>? Noticed;
 
     /// <summary>The agent asks the window to show a place, e.g. for a link the player opened.</summary>
-    event EventHandler<NavigationTarget>? NavigationRequested;
+    event EventHandler<Navigate>? NavigationRequested;
 
     /// <summary>The agent asks the window to come to the front.</summary>
     event EventHandler? BringToFrontRequested;

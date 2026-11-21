@@ -11,6 +11,27 @@ public sealed class LaunchTests : IDisposable
     private readonly List<string> _steps = [];
 
     [Fact]
+    public void Launch_routes_follow_the_session_and_who_started_the_launch()
+    {
+        var asked = 0;
+        Func<bool> InGamescope(bool session) => () =>
+        {
+            asked++;
+            return session;
+        };
+
+        Roles.RouteOf(background: true, startedBySteam: false, InGamescope(true)).Should().Be(LaunchRoute.Background);
+        Roles.RouteOf(background: true, startedBySteam: true, InGamescope(false)).Should().Be(LaunchRoute.Background);
+        Roles.RouteOf(background: false, startedBySteam: true, InGamescope(true)).Should().Be(LaunchRoute.Window,
+            "Steam shows the windows of the programs it starts");
+        asked.Should().Be(0, "only a launch whose way depends on the session asks logind, which may take a second");
+        // A Steam id of 0 is that of a program Steam did not start, such as a link from its browser.
+        Roles.RouteOf(background: false, HostEnvironment.IsSteamLaunch("0"), InGamescope(true)).Should().Be(LaunchRoute.HandOver);
+        Roles.RouteOf(background: false, startedBySteam: false, InGamescope(false)).Should().Be(LaunchRoute.Window);
+        asked.Should().Be(2);
+    }
+
+    [Fact]
     public void A_launch_holds_the_windows_lock_before_the_agent_starts()
     {
         Launch(startedBySteam: false, unitStarts: true).Should().Be(0);

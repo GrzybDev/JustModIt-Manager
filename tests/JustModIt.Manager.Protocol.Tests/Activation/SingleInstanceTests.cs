@@ -81,6 +81,18 @@ public sealed class SingleInstanceTests : IDisposable
     }
 
     [Fact]
+    public async Task A_hand_over_without_a_lock_waits_for_the_agent_its_launch_started_and_forwards_to_it()
+    {
+        var claiming = SingleInstance.ClaimOrForwardAsync(null, _pipe, TestPipes.LauncherHello, ["example-app://settings"],
+            TimeSpan.FromSeconds(10), options: TestPipes.Options, cancellationToken: TestContext.Current.CancellationToken);
+        await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+
+        await using var server = TestPipes.StartServer(_pipe, new TestHandler());
+
+        (await claiming).Should().Be(new Forwarded(TestPipes.AgentHello));
+    }
+
+    [Fact]
     public async Task Launch_after_the_agent_stopped_listening_takes_over_once_it_lets_go()
     {
         var running = InstanceLock.TryAcquire(_lock)!;

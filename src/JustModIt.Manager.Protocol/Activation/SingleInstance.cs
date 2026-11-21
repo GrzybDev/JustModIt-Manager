@@ -25,9 +25,10 @@ public sealed record Unreachable(Exception Error) : InstanceClaim;
 public static partial class SingleInstance
 {
     /// <summary>
-    /// Takes the role's lock or, when another process holds it, hands the command line to the running agent.
+    /// Takes the role's lock or, when another process holds it or the caller takes none, hands the command line to the
+    /// running agent.
     /// </summary>
-    /// <param name="lockName">The role's lock from <see cref="InstanceNames"/>.</param>
+    /// <param name="lockName">The role's lock from <see cref="InstanceNames"/>; null only hands the command line over.</param>
     /// <param name="pipeName">The agent's pipe.</param>
     /// <param name="hello">This process's hello.</param>
     /// <param name="args">The command line to hand over.</param>
@@ -42,7 +43,7 @@ public static partial class SingleInstance
     /// <param name="logger">Null logs nothing.</param>
     /// <param name="cancellationToken">Gives up the claim.</param>
     public static async Task<InstanceClaim> ClaimOrForwardAsync(
-        string lockName,
+        string? lockName,
         string pipeName,
         Hello hello,
         IReadOnlyList<string> args,
@@ -58,7 +59,7 @@ public static partial class SingleInstance
         var backoff = new Backoff(options.RetryDelay, options.MaxRetryDelay);
         while (true)
         {
-            if (InstanceLock.TryAcquire(lockName) is { } instanceLock)
+            if (lockName is not null && InstanceLock.TryAcquire(lockName) is { } instanceLock)
             {
                 return new Claimed(instanceLock);
             }

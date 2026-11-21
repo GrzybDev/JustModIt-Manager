@@ -54,7 +54,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private ITimer? _slowConnection;
     private bool _toldUncleanExit;
     private bool _toldWindowCrash;
-    private NavigationTarget? _pendingLink;
+    private Navigate? _pendingLink;
 
     /// <summary>Creates the shell, which opens the player's games or the place the window was started for.</summary>
     /// <param name="services">What the shell and its pages talk to.</param>
@@ -79,7 +79,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Agent.Noticed += OnNoticed;
         Uninstall.PropertyChanged += OnUninstalled;
         CloseFlow = new CloseFlow(services.Agent, services.Navigator, services.Dialogs, services.Uninstall);
-        _pendingLink = services.Context.Launch.Target;
+        _pendingLink = services.Context.Launch.Target is { } launched ? new Navigate(launched) : null;
         Navigator.Open([new LibraryRoute()]);
         ApplyLink();
         ApplyState();
@@ -273,9 +273,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShowsPages));
     }
 
-    private void OnNavigationRequested(object? sender, NavigationTarget target)
+    private void OnNavigationRequested(object? sender, Navigate navigate)
     {
-        _pendingLink = target;
+        _pendingLink = navigate;
         OpenPendingLink();
     }
 
@@ -283,13 +283,23 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     // project link waits for the state that holds them, which an agent just started sends after its first.
     private void OpenPendingLink()
     {
-        if (_pendingLink is { } link && Agent.HasState && (link is not InstallTarget || Agent.State.IsLoaded))
+        if (_pendingLink is { Target: var link } navigate && Agent.HasState && (link is not InstallTarget || Agent.State.IsLoaded))
         {
             _pendingLink = null;
             Navigator.Open(AgentLinks.RoutesFor(link, Agent.State));
             if (link is UninstallAppTarget)
             {
                 _ = Uninstall.ConfirmAsync();
+            }
+
+            // Only the store's library could open the window, so the page opens later than the link asked for it.
+            if (navigate.Waited)
+            {
+                var game = Navigator.CurrentRoute is GameRoute shown
+                    ? Agent.State.Games.FirstOrDefault(view => view.Key == shown.Game)?.Name
+                    : null;
+                Toasts.Show(new ToastViewModel(ToastTone.Info, Icons.Link, Strings.Shell_LinkWaitedTitle,
+                    Text.Format(Strings.Shell_LinkWaited, ("named", game is null ? "false" : "true"), ("game", game ?? ""))));
             }
         }
     }

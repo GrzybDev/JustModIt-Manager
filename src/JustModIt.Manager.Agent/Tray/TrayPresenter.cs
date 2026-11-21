@@ -67,11 +67,12 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
         _tray.WindowReturnChanged += OnWindowReturnChanged;
         _notifications.Clicked += OnNotificationClicked;
         _publisher.Published += OnPublished;
+        // Before the agent listens, so no launch finds the window's way back unknown.
+        OnWindowReturnChanged(this, EventArgs.Empty);
     }
 
     public Task RunAsync(LaunchArguments start, CancellationToken cancellationToken)
     {
-        OnWindowReturnChanged(this, EventArgs.Empty);
         Show(_publisher.Latest);
         return Task.CompletedTask;
     }

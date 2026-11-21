@@ -486,6 +486,12 @@
   <data name="Shell_PageLicenses" xml:space="preserve">
     <value>Licencje</value>
   </data>
+  <data name="Shell_LinkWaitedTitle" xml:space="preserve">
+    <value>Otwarto link ze strony</value>
+  </data>
+  <data name="Shell_LinkWaited" xml:space="preserve">
+    <value>{named, select, true {Link do gry {game} czekał na otwarcie okna.} other {Link czekał na otwarcie okna.}}</value>
+  </data>
   <data name="Dialog_Cancel" xml:space="preserve">
     <value>Anuluj</value>
   </data>

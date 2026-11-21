@@ -21,7 +21,7 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
 
     public event EventHandler<NoticeView>? Noticed;
 
-    public event EventHandler<NavigationTarget>? NavigationRequested;
+    public event EventHandler<Navigate>? NavigationRequested;
 
     public event EventHandler? BringToFrontRequested;
 
@@ -77,10 +77,10 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
         Noticed?.Invoke(this, notify.Notice);
     }
 
-    public void Navigate(NavigationTarget target)
+    public void Navigate(NavigationTarget target, bool waited = false)
     {
-        var navigate = Sent(new Navigate(target));
-        NavigationRequested?.Invoke(this, navigate.Target);
+        var navigate = Sent(new Navigate(target) { Waited = waited });
+        NavigationRequested?.Invoke(this, navigate);
     }
 
     public void BringToFront()

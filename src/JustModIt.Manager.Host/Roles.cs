@@ -13,13 +13,14 @@ using JustModIt.Manager.Ui;
 using Microsoft.Extensions.Logging;
 using Serilog.Core;
 using Serilog.Extensions.Logging;
+using Tmds.DBus.Protocol;
 
 namespace JustModIt.Manager.Host;
 
 /// <summary>
 /// The roles one executable plays: a launch that finds its role taken hands its command line to the agent and ends, and
 /// a launcher that finds no agent becomes the agent itself, so no second process starts; where the agent runs as the
-/// user's systemd unit, a launcher starts the unit and becomes the window instead.
+/// user's systemd unit, a launcher starts the unit and becomes the window instead, unless the session would not show it.
 /// </summary>
 internal static partial class Roles
 {
@@ -78,17 +79,32 @@ internal static partial class Roles
         }
 
         var unit = AgentPlatform.Unit(environment.AgentOptions());
-        if (launch.Background)
+        return RouteOf(launch.Background, environment.StartedBySteam, InGamescope) switch
         {
-            return StartUnit(environment, unit) ? 0 : RunAgent(environment, options, launch, args);
-        }
-
-        // The launch becomes the window itself, so the window takes the desktop's activation, and in a store's game session it
-        // is the program the store started, which the session shows.
-        return LaunchWindow(environment.StartedBySteam, () => InstanceLock.TryAcquire(environment.Names.UiLock),
-            () => StartUnit(environment, unit), windowLock => RunHolding(environment, windowLock, UiRole, Window(environment, options, launch)),
-            () => RunUi(environment, options, launch, args), () => RunAgent(environment, options, launch, args));
+            LaunchRoute.Background => StartUnit(environment, unit) ? 0 : RunAgent(environment, options, launch, args),
+            LaunchRoute.HandOver => !StartUnit(environment, unit) ? RunAgent(environment, options, launch, args)
+                : Claim(environment, lockName: null, args) is Forwarded ? 0
+                : 1,
+            // The launch becomes the window itself, so the window takes the desktop's activation, and in a store's game session it
+            // is the program the store started, which the session shows.
+            _ => LaunchWindow(environment.StartedBySteam, () => InstanceLock.TryAcquire(environment.Names.UiLock),
+                () => StartUnit(environment, unit), windowLock => RunHolding(environment, windowLock, UiRole, Window(environment, options, launch)),
+                () => RunUi(environment, options, launch, args), () => RunAgent(environment, options, launch, args)),
+        };
     }
+
+    /// <summary>
+    /// Tells the way of a launch where the agent runs as the user's systemd unit: one that Steam did not start in a gamescope
+    /// session, such as a link from Steam's browser, hands its command line over, since a window it became would never show
+    /// and would hold the window's lock against the one Steam starts.
+    /// </summary>
+    /// <param name="background">Whether the launch only starts the agent.</param>
+    /// <param name="startedBySteam">Whether Steam started the launch from its library.</param>
+    /// <param name="inGamescope">Tells whether the user's session is gamescope's, asked only when the way depends on it.</param>
+    internal static LaunchRoute RouteOf(bool background, bool startedBySteam, Func<bool> inGamescope) =>
+        background ? LaunchRoute.Background
+        : !startedBySteam && inGamescope() ? LaunchRoute.HandOver
+        : LaunchRoute.Window;
 
     /// <summary>
     /// Carries out a launch that becomes the window where the agent runs as the user's systemd unit, taking the window's lock
@@ -183,6 +199,12 @@ internal static partial class Roles
         LaunchArguments launch) =>
         (loggers, _, previous) => WindowHost.Run(environment.WindowContext(options, launch, loggers, previous));
 
+    // A launch from a terminal or a handler that started earlier may carry another session's variables, or none, so logind
+    // tells the session the user sees.
+    private static bool InGamescope() =>
+        Gamescope.IsSession(Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))
+        || DisplaySession.IsGamescope(DBusConnection.System, DisplaySession.TimeLimit);
+
     private static bool StartUnit(HostEnvironment environment, AgentUnit unit)
     {
         if (unit.Start())
@@ -203,7 +225,7 @@ internal static partial class Roles
         return claim is Unreachable ? 1 : 0;
     }
 
-    private static InstanceClaim Claim(HostEnvironment environment, string lockName, string[] args)
+    private static InstanceClaim Claim(HostEnvironment environment, string? lockName, string[] args)
     {
         using var log = new RoleLog(environment, LauncherRole);
         return SingleInstance.ClaimOrForwardAsync(lockName, environment.Names.PipeName,

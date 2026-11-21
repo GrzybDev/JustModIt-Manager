@@ -87,6 +87,33 @@ public sealed class NavigationTests
     }
 
     [AvaloniaFact]
+    public async Task A_link_that_waited_for_the_window_opens_its_page_and_says_so()
+    {
+        // Only Game Mode, whose window Steam starts, makes a link wait for the window.
+        using var ui = new UiHarness(TestStates.Idle() with { Games = [TestGames.Available("Ember Hollow", TestStates.Ember.StoreGameId)] },
+            context: context => context with { Frame = WindowFrame.Screen });
+        ui.SizeToDeck();
+
+        ui.Agent.Navigate(new GameTarget("steam", TestStates.Ember.StoreGameId), waited: true);
+        UiHarness.Settle();
+
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new GameRoute(TestStates.Ember));
+        ui.Shell.Toasts.Items.Should().ContainSingle().Which.Message.Should().Be("Link do gry Ember Hollow czekał na otwarcie okna.");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("link-waited-game");
+
+        ui.Agent.Navigate(new SettingsTarget(), waited: true);
+        ui.Agent.Navigate(new CatalogueTarget());
+        UiHarness.Settle();
+
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new CatalogueRoute());
+        ui.Shell.Toasts.Items.Select(toast => toast.Message).Should().Equal("Link do gry Ember Hollow czekał na otwarcie okna.",
+            "Link czekał na otwarcie okna.");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("link-waited");
+    }
+
+    [AvaloniaFact]
     public void An_app_puts_its_own_page_and_view_in_place_of_a_shared_screens()
     {
         using var ui = new UiHarness(TestStates.Idle(), compose: app =>

@@ -26,6 +26,7 @@ public sealed class MessageTests
         new Activate(["--background"]),
         new BringToFront(),
         new Navigate(new GameTarget("steam", "1000")),
+        new Navigate(new SettingsTarget()) { Waited = true },
         new ShutdownRequested(ShutdownReason.Update),
         new ShutdownAnswer(Accepted: false),
         new StateChanged(AppStateView.From(3, State, Settings, new SiteConfiguration { Name = "Example Site" }, new ActivityView(),
