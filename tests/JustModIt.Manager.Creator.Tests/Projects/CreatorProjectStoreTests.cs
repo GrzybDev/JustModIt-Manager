@@ -8,7 +8,6 @@ using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Creator.Comparison;
 using JustModIt.Manager.Creator.Projects;
 using JustModIt.Manager.Creator.Tests.TestSupport;
-using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.Creator.Tests.Projects;
 

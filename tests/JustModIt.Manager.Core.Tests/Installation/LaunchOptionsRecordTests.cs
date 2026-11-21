@@ -3,7 +3,6 @@ using System.Text.Json.Nodes;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Tests.TestSupport;
-using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.Core.Tests.Installation;
 

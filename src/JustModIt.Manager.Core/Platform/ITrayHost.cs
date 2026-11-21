@@ -16,8 +16,8 @@ public sealed record TrayMenuItem(string Command, string Text)
 }
 
 /// <summary>
-/// The app's icon in the notification area with its tooltip, menu and notifications, whose events are raised on the
-/// tray's own thread, so handlers must return at once.
+/// The app's icon in the notification area with its tooltip and menu, whose events are raised on the tray's own thread, so
+/// handlers must return at once.
 /// </summary>
 public interface ITrayHost : IDisposable
 {
@@ -26,9 +26,6 @@ public interface ITrayHost : IDisposable
 
     /// <summary>The player picked a menu entry; carries its command.</summary>
     event EventHandler<string>? CommandInvoked;
-
-    /// <summary>The player clicked a notification; carries the tag it was shown with.</summary>
-    event EventHandler<string?>? NotificationClicked;
 
     /// <summary>
     /// The system's session ends, by shutting down, restarting or signing out, and the process is stopped once the
@@ -40,10 +37,4 @@ public interface ITrayHost : IDisposable
     /// <param name="tooltip">The product name and the status, shown when the pointer rests on the icon.</param>
     /// <param name="menu">The entries of the icon's menu, in order.</param>
     void Show(string tooltip, IReadOnlyList<TrayMenuItem> menu);
-
-    /// <summary>Shows a notification from the icon once the icon is shown, cut like the tooltip.</summary>
-    /// <param name="title">The notification's first line.</param>
-    /// <param name="message">The notification's text.</param>
-    /// <param name="tag">What <see cref="NotificationClicked"/> carries when the player clicks it.</param>
-    void ShowNotification(string title, string message, string? tag);
 }

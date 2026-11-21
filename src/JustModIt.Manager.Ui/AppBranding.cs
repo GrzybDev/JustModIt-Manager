@@ -9,7 +9,9 @@ namespace JustModIt.Manager.Ui;
 /// <param name="app">The app's own assembly; null for none, e.g. in tests.</param>
 public sealed class AppBranding(Assembly? app)
 {
-    private const string LogoResource = "JustModIt.Manager.Logo.png";
+    /// <summary>The resource of the app's own assembly that holds its logo.</summary>
+    public const string LogoResource = "JustModIt.Manager.Logo.png";
+
     private const string IconResource = "JustModIt.Manager.Icon.ico";
 
     // The logo is drawn at 30 px in the title bar and 132 px in the first-run setup, twice that on high-DPI screens.

@@ -15,7 +15,7 @@ public sealed class WindowsTrayHostTests
     {
         var host = new WindowsTrayHost(Environment.ProcessPath!, NullLogger<WindowsTrayHost>.Instance);
 
-        host.ShowNotification("Title", "Waits until the icon is shown.", "tag");
+        host.Notify("Title", "Waits until the icon is shown.", "tag");
         FluentActions.Invoking(host.Dispose).ExecutionTime().Should().BeLessThan(TimeSpan.FromSeconds(5));
         host.Invoking(tray => tray.Dispose()).Should().NotThrow();
     }

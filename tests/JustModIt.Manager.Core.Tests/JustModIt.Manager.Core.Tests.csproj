@@ -12,7 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\Eventually.cs" Link="Shared\Eventually.cs" />
     <Compile Include="..\Shared\JsonContracts.cs" Link="Shared\JsonContracts.cs" />
     <Compile Include="..\Shared\RepositoryFiles.cs" Link="Shared\RepositoryFiles.cs" />
+    <Using Include="JustModIt.Manager.Tests" />
   </ItemGroup>
 </Project>

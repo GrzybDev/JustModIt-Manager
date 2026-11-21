@@ -139,10 +139,10 @@
     <value>Spolszczenie „{project}” ({game}) nie jest już zainstalowane</value>
   </data>
   <data name="WindowClosed" xml:space="preserve">
-    <value>Aplikacja nadal dba o Twoje spolszczenia. Kliknij ikonę w zasobniku systemowym, aby ją otworzyć.</value>
+    <value>Aplikacja nadal sprawdza gry i spolszczenia w tle. Ponowne uruchomienie otwiera jej okno.</value>
   </data>
   <data name="SetupPending" xml:space="preserve">
-    <value>Do tego czasu aplikacja nie zajmie się spolszczeniami. Kliknij, aby do niej wrócić.</value>
+    <value>{clickable, select, true {Do tego czasu aplikacja nie zajmie się spolszczeniami. Kliknięcie powiadomienia otwiera konfigurację.} other {Do tego czasu aplikacja nie zajmie się spolszczeniami.}}</value>
   </data>
   <data name="Shell_Creator" xml:space="preserve">
     <value>Kreator spolszczeń</value>

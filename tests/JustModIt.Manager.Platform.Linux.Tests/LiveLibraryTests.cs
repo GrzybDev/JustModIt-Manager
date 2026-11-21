@@ -9,7 +9,6 @@ using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
 using JustModIt.Manager.Core.Settings;
-using JustModIt.Manager.Tests;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Platform.Linux.Tests;

@@ -1,5 +1,4 @@
 using JustModIt.Manager.Agent.Steam;
-using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.Agent.Tests.Steam;
 

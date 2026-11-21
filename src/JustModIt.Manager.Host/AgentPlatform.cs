@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.Versioning;
 using JustModIt.Manager.Agent;
 using JustModIt.Manager.Agent.Lifetime;
@@ -6,9 +7,11 @@ using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Safety;
+using JustModIt.Manager.Localization;
 using JustModIt.Manager.Platform.Linux;
 using JustModIt.Manager.Platform.Windows;
 using JustModIt.Manager.Protocol.Activation;
+using JustModIt.Manager.Ui;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Tmds.DBus.Protocol;
@@ -16,7 +19,7 @@ using Tmds.DBus.Protocol;
 namespace JustModIt.Manager.Host;
 
 /// <summary>The services of the system the agent runs on, which the agent knows only by Core's interfaces.</summary>
-internal static class AgentPlatform
+internal static partial class AgentPlatform
 {
     /// <summary>Whether the agent runs on this system yet.</summary>
     [SupportedOSPlatformGuard("windows")]
@@ -25,8 +28,9 @@ internal static class AgentPlatform
     /// <summary>Registers the system's services and then the app's, so the app can still replace one of the system's.</summary>
     /// <param name="services">The agent's shared services.</param>
     /// <param name="options">The app's identity and executable.</param>
-    /// <param name="app">The app's own registrations.</param>
-    public static void Compose(IServiceCollection services, AgentOptions options, Action<IServiceCollection>? app)
+    /// <param name="app">The app's own assembly, whose logo the system's tray and notifications show; null for none.</param>
+    /// <param name="configure">The app's own registrations.</param>
+    public static void Compose(IServiceCollection services, AgentOptions options, Assembly? app, Action<IServiceCollection>? configure)
     {
         if (OperatingSystem.IsWindows())
         {
@@ -34,10 +38,10 @@ internal static class AgentPlatform
         }
         else if (OperatingSystem.IsLinux())
         {
-            AddLinux(services, options);
+            AddLinux(services, options, app);
         }
 
-        app?.Invoke(services);
+        configure?.Invoke(services);
     }
 
     /// <summary>The app's entry among the current user's startup apps on Windows, which starts it quietly into the tray.</summary>
@@ -86,13 +90,18 @@ internal static class AgentPlatform
         services.AddSingleton<ILinkRegistration>(WindowsLinkRegistration.Instance);
         services.AddSingleton<IForegroundHandoff>(WindowsForegroundHandoff.Instance);
         services.AddSingleton<IDesktopShell, WindowsDesktopShell>();
-        services.AddSingleton<ITrayHost>(provider =>
-            new WindowsTrayHost(options.ExecutablePath, provider.GetRequiredService<ILogger<WindowsTrayHost>>()));
+        // Windows shows notifications from the tray's icon.
+        services.AddSingleton(provider => new WindowsTrayHost(options.ExecutablePath, provider.GetRequiredService<ILogger<WindowsTrayHost>>()));
+        services.AddSingleton<ITrayHost>(provider => provider.GetRequiredService<WindowsTrayHost>());
+        services.AddSingleton<INotificationHost>(provider => provider.GetRequiredService<WindowsTrayHost>());
     }
 
     [SupportedOSPlatform("linux")]
-    private static void AddLinux(IServiceCollection services, AgentOptions options)
+    private static void AddLinux(IServiceCollection services, AgentOptions options, Assembly? app)
     {
+        var icons = Path.Join(options.Locations.CacheDirectory, "icons");
+        services.AddSingleton(provider => new IconFile(Icon(icons, options.Identity.DesktopId, app,
+            provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(AgentPlatform).FullName!))));
         services.AddSingleton<IRegistry>(NoWindowsRecords.Instance);
         services.AddSingleton<IRegistryWatcher>(NoWindowsRecords.Instance);
         services.AddSingleton<ISqliteReader>(NoWindowsRecords.Instance);
@@ -102,5 +111,38 @@ internal static class AgentPlatform
         services.AddSingleton<IDesktopShell>(provider => Shell(options.Identity, provider.GetRequiredService<ILogger<ScopedDesktopShell>>()));
         // Windows tells the agent of a logout or a shutdown through the tray's window instead.
         services.AddSingleton<IAgentService, StopSignal>();
+        services.AddSingleton<INotificationHost>(provider => new DesktopNotifications(options.ProductName, options.Identity.DesktopId,
+            Text.Format(Strings.TrayOpen, ("product", options.ProductName)), provider.GetRequiredService<IconFile>().Path,
+            DBusConnection.Session, provider.GetRequiredService<ILogger<DesktopNotifications>>()));
     }
+
+    // The desktop finds the logo the app embeds by its name in a theme folder of the app's cache, written once something shows
+    // it; a disk that takes no file, such as a full one, leaves the system without the icon rather than the agent without a start.
+    private static string? Icon(string icons, string desktopId, Assembly? app, ILogger logger)
+    {
+        using var logo = app?.GetManifestResourceStream(AppBranding.LogoResource);
+        if (logo is null)
+        {
+            return null;
+        }
+
+        using var png = new MemoryStream();
+        logo.CopyTo(png);
+        try
+        {
+            return AppIcon.Write(icons, desktopId, png.ToArray());
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            LogIconUnwritten(logger, exception);
+            return null;
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The app's icon could not be written, so the system shows none")]
+    private static partial void LogIconUnwritten(ILogger logger, Exception exception);
+
+    /// <summary>The app's icon, written once for everything of the system's that shows it.</summary>
+    /// <param name="Path">The icon's file; null when the app has none or it could not be written.</param>
+    private sealed record IconFile(string? Path);
 }

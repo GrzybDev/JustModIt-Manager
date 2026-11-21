@@ -11,11 +11,12 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace JustModIt.Manager.Platform.Windows;
 
 /// <summary>
-/// The notification area icon, drawn by a hidden window on a thread of its own so the agent needs no UI framework, which
-/// is top-level rather than message-only, since only those hear that Explorer restarted and the icon must be added again.
+/// The notification area icon and its notifications, drawn by a hidden window on a thread of its own so the agent needs no
+/// UI framework, which is top-level rather than message-only, since only those hear that Explorer restarted and the icon
+/// must be added again.
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed partial class WindowsTrayHost : ITrayHost
+public sealed partial class WindowsTrayHost : ITrayHost, INotificationHost
 {
     private const uint IconId = 1;
     private const uint CallbackMessage = PInvoke.WM_APP + 1;
@@ -72,7 +73,7 @@ public sealed partial class WindowsTrayHost : ITrayHost
 
     public event EventHandler<string>? CommandInvoked;
 
-    public event EventHandler<string?>? NotificationClicked;
+    public event EventHandler<string?>? Clicked;
 
     public event EventHandler? SessionEnding;
 
@@ -88,7 +89,10 @@ public sealed partial class WindowsTrayHost : ITrayHost
         Refresh();
     }
 
-    public void ShowNotification(string title, string message, string? tag)
+    public bool IsClickable => true;
+
+    // A notification waits for the icon, which the agent always shows.
+    public bool Notify(string title, string message, string? tag)
     {
         lock (_gate)
         {
@@ -96,6 +100,7 @@ public sealed partial class WindowsTrayHost : ITrayHost
         }
 
         Refresh();
+        return true;
     }
 
     public void Dispose()
@@ -298,7 +303,7 @@ public sealed partial class WindowsTrayHost : ITrayHost
 
                 break;
             case PInvoke.NIN_BALLOONUSERCLICK:
-                NotificationClicked?.Invoke(this, _notificationTag);
+                Clicked?.Invoke(this, _notificationTag);
                 break;
         }
     }

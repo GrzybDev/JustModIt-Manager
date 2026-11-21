@@ -3,7 +3,6 @@ using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Downloads;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Packages;
-using JustModIt.Manager.Tests;
 
 namespace JustModIt.Manager.Core.Tests;
 

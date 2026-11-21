@@ -12,14 +12,14 @@ using JustModIt.Manager.Protocol.Views;
 namespace JustModIt.Manager.Agent.Notifications;
 
 /// <summary>
-/// Tells the player what the automation did or found, either in the window while it is in front or from the tray, whose
-/// notification opens the game it is about.
+/// Tells the player what the automation did or found, either in the window while it is in front or in a notification of
+/// the system's, which opens the game it is about.
 /// </summary>
 public sealed class Notifier : IAgentService, IDisposable
 {
     private readonly StateCoordinator _coordinator;
     private readonly UiLauncher _ui;
-    private readonly ITrayHost _tray;
+    private readonly INotificationHost _notifications;
     private readonly ISettingsService _settings;
     private readonly AgentLifetime _lifetime;
     private readonly AppLinks _links;
@@ -29,17 +29,17 @@ public sealed class Notifier : IAgentService, IDisposable
     /// <summary>Creates the notifier, which follows the window's closing from then on.</summary>
     /// <param name="coordinator">Hands out the automation's notices.</param>
     /// <param name="ui">The window, whether it is in front, and its closing.</param>
-    /// <param name="tray">Shows notifications while the window is not in front.</param>
+    /// <param name="notifications">Shows notifications while the window is not in front.</param>
     /// <param name="settings">Whether notifications are on, and whether the player heard about the tray.</param>
     /// <param name="lifetime">Tells whether the agent is exiting.</param>
     /// <param name="links">Makes the link a notification opens.</param>
     /// <param name="options">The product name the notices use.</param>
-    public Notifier(StateCoordinator coordinator, UiLauncher ui, ITrayHost tray, ISettingsService settings, AgentLifetime lifetime,
-        AppLinks links, AgentOptions options)
+    public Notifier(StateCoordinator coordinator, UiLauncher ui, INotificationHost notifications, ISettingsService settings,
+        AgentLifetime lifetime, AppLinks links, AgentOptions options)
     {
         _coordinator = coordinator;
         _ui = ui;
-        _tray = tray;
+        _notifications = notifications;
         _settings = settings;
         _lifetime = lifetime;
         _links = links;
@@ -56,7 +56,7 @@ public sealed class Notifier : IAgentService, IDisposable
         }
     }
 
-    /// <summary>Shows a notice in the window while it is in front, otherwise from the tray.</summary>
+    /// <summary>Shows a notice in the window while it is in front, otherwise in a notification.</summary>
     /// <param name="notice">A typed notice of the automation.</param>
     public void Notify(AutomationNotice notice)
     {
@@ -67,24 +67,16 @@ public sealed class Notifier : IAgentService, IDisposable
         }
 
         var (title, message) = NoticeTexts.For(notice);
-        ShowFromTray(title, message, notice.Game is { } game
+        Show(title, message, notice.Game is { } game
             ? _links.For(new GameTarget(game.Store.Value, game.StoreGameId))
             : _links.For(new LibraryTarget()));
     }
 
     public void Dispose() => _ui.Closed -= OnWindowClosed;
 
-    // False when the player turned system notifications off.
-    private bool ShowFromTray(string title, string message, string link)
-    {
-        if (!_settings.Current.ShowNotifications)
-        {
-            return false;
-        }
-
-        _tray.ShowNotification(title, message, link);
-        return true;
-    }
+    // False when the player turned system notifications off or the session shows none.
+    private bool Show(string title, string message, string link) =>
+        _settings.Current.ShowNotifications && _notifications.Notify(title, message, link);
 
     // Closing the window keeps the app in the tray, which the player hears once; before the first-run setup is done, at
     // every close, since until then the app does nothing for them.
@@ -102,10 +94,12 @@ public sealed class Notifier : IAgentService, IDisposable
             var current = _settings.Current;
             if (!current.OnboardingCompleted)
             {
-                ShowFromTray(Text.Format(Strings.SetupPendingTitle, product), Strings.SetupPending, _links.Open);
+                // A notification that no click reaches does not ask for one.
+                Show(Text.Format(Strings.SetupPendingTitle, product),
+                    Text.Format(Strings.SetupPending, ("clickable", _notifications.IsClickable ? "true" : "false")), _links.Open);
             }
             else if (!current.TrayNoticeShown
-                && ShowFromTray(Text.Format(Strings.WindowClosedTitle, product), Strings.WindowClosed, _links.Open))
+                && Show(Text.Format(Strings.WindowClosedTitle, product), Strings.WindowClosed, _links.Open))
             {
                 _settings.Update(updated => updated with { TrayNoticeShown = true });
             }

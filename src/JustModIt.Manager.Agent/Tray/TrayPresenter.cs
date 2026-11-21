@@ -11,12 +11,13 @@ using Microsoft.Extensions.Logging;
 namespace JustModIt.Manager.Agent.Tray;
 
 /// <summary>
-/// Keeps the tray icon in step with the state and carries out what the player picks there, on the thread pool, since
-/// the tray's events arrive on its own thread.
+/// Keeps the tray icon in step with the state and carries out what the player picks there or in a notification, on the
+/// thread pool, since the tray's and the notifications' events arrive on threads of the system's.
 /// </summary>
 public sealed partial class TrayPresenter : IAgentService, IDisposable
 {
     private readonly ITrayHost _tray;
+    private readonly INotificationHost _notifications;
     private readonly StatePublisher _publisher;
     private readonly UiLauncher _ui;
     private readonly AgentLifetime _lifetime;
@@ -31,6 +32,7 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
 
     /// <summary>Creates the presenter, which follows the tray and the state from then on.</summary>
     /// <param name="tray">The tray icon.</param>
+    /// <param name="notifications">The system's notifications, whose clicks open what they link to.</param>
     /// <param name="publisher">Announces every new snapshot.</param>
     /// <param name="ui">Shows the window.</param>
     /// <param name="lifetime">Exits the app, and tells whether it is leaving.</param>
@@ -40,10 +42,12 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
     /// <param name="links">Reads a notification's link.</param>
     /// <param name="options">The app's name as players see it.</param>
     /// <param name="logger">Receives failed commands.</param>
-    public TrayPresenter(ITrayHost tray, StatePublisher publisher, UiLauncher ui, AgentLifetime lifetime, Checks checks, UpdateService updates,
-        ActivationHandler activation, AppLinks links, AgentOptions options, ILogger<TrayPresenter> logger)
+    public TrayPresenter(ITrayHost tray, INotificationHost notifications, StatePublisher publisher, UiLauncher ui, AgentLifetime lifetime,
+        Checks checks, UpdateService updates, ActivationHandler activation, AppLinks links, AgentOptions options,
+        ILogger<TrayPresenter> logger)
     {
         _tray = tray;
+        _notifications = notifications;
         _publisher = publisher;
         _ui = ui;
         _lifetime = lifetime;
@@ -56,7 +60,7 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
         // Subscribed from the start, so nothing the player does while the agent starts is lost.
         _tray.Activated += OnActivated;
         _tray.CommandInvoked += OnCommand;
-        _tray.NotificationClicked += OnNotificationClicked;
+        _notifications.Clicked += OnNotificationClicked;
         _publisher.Published += OnPublished;
     }
 
@@ -69,7 +73,7 @@ public sealed partial class TrayPresenter : IAgentService, IDisposable
     public void Dispose()
     {
         _publisher.Published -= OnPublished;
-        _tray.NotificationClicked -= OnNotificationClicked;
+        _notifications.Clicked -= OnNotificationClicked;
         _tray.CommandInvoked -= OnCommand;
         _tray.Activated -= OnActivated;
     }

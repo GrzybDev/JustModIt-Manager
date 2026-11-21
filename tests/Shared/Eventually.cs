@@ -1,14 +1,14 @@
 using System.Diagnostics;
 
-namespace JustModIt.Manager.Core.Tests.TestSupport;
+namespace JustModIt.Manager.Tests;
 
 internal static class Eventually
 {
-    /// <summary>Waits for work running on the thread pool to reach a state the test can observe.</summary>
+    /// <summary>Waits for work running on a thread of its own to reach a state the test can observe.</summary>
     /// <param name="condition">Checked every few milliseconds, for at most thirty seconds.</param>
     /// <param name="because">What the test waits for, as the timeout's message says it.</param>
     /// <param name="nudge">Runs between checks, e.g. to move a fake clock for work that started waiting late.</param>
-    public static async Task HoldsAsync(Func<bool> condition, string because, Action? nudge = null)
+    public static async Task HoldsAsync(Func<bool> condition, string because = "the condition holds", Action? nudge = null)
     {
         var clock = Stopwatch.StartNew();
         while (!condition())

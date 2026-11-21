@@ -18,10 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\Eventually.cs" Link="Shared\Eventually.cs" />
     <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\CountingTimeProvider.cs" Link="TestSupport\CountingTimeProvider.cs" />
-    <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\Eventually.cs" Link="TestSupport\Eventually.cs" />
     <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\HangingFileSystem.cs" Link="TestSupport\HangingFileSystem.cs" />
     <Compile Include="..\JustModIt.Manager.Core.Tests\TestSupport\TestPaths.cs" Link="TestSupport\TestPaths.cs" />
+    <Using Include="JustModIt.Manager.Tests" />
   </ItemGroup>
 
   <ItemGroup>

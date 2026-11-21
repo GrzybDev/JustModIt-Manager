@@ -49,7 +49,7 @@ internal static partial class Roles
                 Session = session,
                 PreviousExit = UntoldExit.Carry(environment.Locations.StateDirectory, previous),
             };
-            AgentHost.RunAsync(agent, launch, loggers, services => AgentPlatform.Compose(services, agent, options.ConfigureAgent))
+            AgentHost.RunAsync(agent, launch, loggers, services => AgentPlatform.Compose(services, agent, options.App, options.ConfigureAgent))
                 .GetAwaiter().GetResult();
             return 0;
         });

@@ -105,16 +105,38 @@ public sealed class TrayTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Closing_the_window_before_the_setup_is_done_asks_to_finish_it_every_time()
+    public async Task A_closed_window_in_a_session_without_notifications_is_told_at_a_close_that_shows_one()
+    {
+        await _agent.SaveSettingsAsync(AppSettings.Default with { OnboardingCompleted = true });
+        _agent.Tray.ShowsNotifications = false;
+        _agent.Start();
+        var settings = await _agent.ServiceAsync<ISettingsService>();
+
+        await (await _agent.ConnectWindowAsync()).Connection.DisposeAsync();
+        (await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token)).Title.Should().Be("Example App keeps running");
+        settings.Current.TrayNoticeShown.Should().BeFalse("no notification showed it");
+        _agent.Tray.ShowsNotifications = true;
+        await (await _agent.ConnectWindowAsync()).Connection.DisposeAsync();
+
+        (await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token)).Title.Should().Be("Example App keeps running");
+        await Eventually.HoldsAsync(() => settings.Current.TrayNoticeShown);
+    }
+
+    [Fact]
+    public async Task Closing_the_window_before_the_setup_is_done_asks_to_finish_it_every_time_by_a_click_where_clicks_reach_the_app()
     {
         _agent.Start();
 
-        for (var close = 0; close < 2; close++)
+        foreach (var (clickable, message) in new[]
         {
+            (true, "Until then, the app changes no game. Clicking the notification opens the setup."),
+            (false, "Until then, the app changes no game."),
+        })
+        {
+            _agent.Tray.IsClickable = clickable;
             await (await _agent.ConnectWindowAsync()).Connection.DisposeAsync();
-            var shown = await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token);
-            shown.Title.Should().Be("Finish setting up Example App");
-            shown.Tag.Should().Be("example-app://open");
+            (await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token)).Should()
+                .Be(("Finish setting up Example App", message, "example-app://open"));
         }
     }
 

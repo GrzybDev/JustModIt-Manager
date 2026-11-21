@@ -25,7 +25,7 @@ public sealed class TrayContentTests
     {
         TrayContent.Status(Loaded).Should().Be("Everything is up to date");
         TrayContent.Status(Loaded with { Games = [Attention(hidden: true)] }).Should().Be("Everything is up to date");
-        TrayContent.Status(Loaded with { Games = [Attention(), Attention()] }).Should().Be("2 games need your attention");
+        TrayContent.Status(Loaded with { Games = [Attention(), Attention()] }).Should().Be("2 games need attention");
     }
 
     [Theory]
@@ -55,7 +55,7 @@ public sealed class TrayContentTests
         };
 
         TrayContent.Status(busy).Should().Be("2 jobs in progress");
-        TrayContent.Status(busy with { Jobs = [] }).Should().Be("Checking your games…");
+        TrayContent.Status(busy with { Jobs = [] }).Should().Be("Checking games…");
         TrayContent.Status(busy with { Activity = new ActivityView { IsExitPending = true } }).Should().Be("Exits once the running jobs are done");
     }
 
@@ -90,7 +90,7 @@ public sealed class TrayContentTests
     [InlineData(NoticeKind.Installed, "Installed for Example Game", "The project is ready. Have fun!")]
     [InlineData(NoticeKind.Repaired, "Installed again for Example Game", "The store changed the game's files, so the project was installed again.")]
     [InlineData(NoticeKind.PreviousReleaseLost, "The update for Example Game failed",
-        "The previous release could not be put back, so the game has its original files. You can install the project again.")]
+        "The previous release could not be put back, so the game has its original files. The project can be installed again.")]
     [InlineData(NoticeKind.RepairNeeded, "Repair needed for Example Game",
         "The store changed the game's files, so the project needs to be installed again.")]
     [InlineData(NoticeKind.ChoiceNeeded, "Several projects for Example Game",
@@ -104,7 +104,7 @@ public sealed class TrayContentTests
         "The store changed the game's files, so the project was installed again.")]
     [InlineData(NoticeKind.Failed, JobKind.Update, "Could not update Example Project (Example Game)", "Open the app to see what went wrong.")]
     [InlineData(NoticeKind.PreviousReleaseLost, JobKind.Update, "The update of Example Project (Example Game) failed",
-        "The previous release could not be put back, so the files it had changed are original again. You can install the project again.")]
+        "The previous release could not be put back, so the files it had changed are original again. The project can be installed again.")]
     [InlineData(NoticeKind.Forgotten, null, "Example Project (Example Game) is no longer installed",
         "The game's folder is gone, so the project installed in it was removed from the list.")]
     public void A_notice_about_one_of_several_installs_on_a_game_names_its_project(NoticeKind kind, JobKind? job, string title,
@@ -131,12 +131,12 @@ public sealed class TrayContentTests
     {
         var notice = new AutomationNotice(NoticeKind.Available) { Game = Game, GameName = "Example Game", TeamName = "Lantern Team" };
 
-        NoticeTexts.For(notice).Should().Be(("New for Example Game", "Lantern Team made a project for it that you can install."));
-        NoticeTexts.For(notice with { TeamName = null }).Message.Should().Be("There is a project for it that you can install.");
+        NoticeTexts.For(notice).Should().Be(("New for Example Game", "Lantern Team's project for it can be installed."));
+        NoticeTexts.For(notice with { TeamName = null }).Message.Should().Be("A project for it can be installed.");
         NoticeTexts.For(notice with { OffersTargetLanguage = true }).Message
-            .Should().Be("It already comes in your language, but you can also install a project for it.");
+            .Should().Be("The game is officially in this language, but a project can be installed too.");
         NoticeTexts.For(new AutomationNotice(NoticeKind.AvailableSummary) { Games = [Game, Game] })
-            .Should().Be(("New for your games", "2 games have a project you can install."));
+            .Should().Be(("New for games on this computer", "2 games have a project to install."));
     }
 
     [Fact]
@@ -164,12 +164,12 @@ public sealed class TrayContentTests
         GameKey updated = new(StoreId.Steam, "2000"), broken = new(StoreId.Gog, "3000");
         var notice = new AutomationNotice(NoticeKind.AvailableSummary) { Games = [Game, updated, broken], Updates = [updated], Repairs = [broken] };
 
-        NoticeTexts.For(notice).Message.Should().Be("1 game has a project you can install. 1 game has an update ready to install. "
+        NoticeTexts.For(notice).Message.Should().Be("1 game has a project to install. 1 game has an update ready to install. "
             + "1 game needs its project installed again.");
         NoticeTexts.For(notice with { Games = [updated, broken] }).Message.Should().Be("1 game has an update ready to install. "
             + "1 game needs its project installed again.");
-        NoticeTexts.For(notice with { Games = [Game, broken], Updates = [broken] }).Message.Should().Be("1 game has a project you can "
-            + "install. 1 game has an update ready to install. 1 game needs its project installed again.",
+        NoticeTexts.For(notice with { Games = [Game, broken], Updates = [broken] }).Message.Should().Be("1 game has a project to install. "
+            + "1 game has an update ready to install. 1 game needs its project installed again.",
             "one install on a game may have an update while another needs a repair");
     }
 

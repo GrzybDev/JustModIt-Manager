@@ -89,7 +89,7 @@ internal sealed class FakeShellRegistration : IAutostart, ILinkRegistration
     public void Unregister(string scheme) => Schemes.TryRemove(scheme, out _);
 }
 
-internal sealed class FakeTray : ITrayHost
+internal sealed class FakeTray : ITrayHost, INotificationHost
 {
     private readonly Lock _gate = new();
 
@@ -97,7 +97,7 @@ internal sealed class FakeTray : ITrayHost
 
     public event EventHandler<string>? CommandInvoked;
 
-    public event EventHandler<string?>? NotificationClicked;
+    public event EventHandler<string?>? Clicked;
 
     public event EventHandler? SessionEnding;
 
@@ -105,7 +105,13 @@ internal sealed class FakeTray : ITrayHost
 
     public IReadOnlyList<TrayMenuItem> Menu { get; private set; } = [];
 
+    /// <summary>Every notification the agent asked for, also those a session without notifications did not show.</summary>
     public Channel<(string Title, string Message, string? Tag)> Notifications { get; } = Channel.CreateUnbounded<(string, string, string?)>();
+
+    /// <summary>Whether the session shows notifications.</summary>
+    public bool ShowsNotifications { get; set; } = true;
+
+    public bool IsClickable { get; set; } = true;
 
     public Channel<string> Tooltips { get; } = Channel.CreateUnbounded<string>();
 
@@ -122,13 +128,13 @@ internal sealed class FakeTray : ITrayHost
         Tooltips.Writer.TryWrite(tooltip);
     }
 
-    public void ShowNotification(string title, string message, string? tag) => Notifications.Writer.TryWrite((title, message, tag));
+    public bool Notify(string title, string message, string? tag) => Notifications.Writer.TryWrite((title, message, tag)) && ShowsNotifications;
 
     public void Click() => Activated?.Invoke(this, EventArgs.Empty);
 
     public void Pick(string command) => CommandInvoked?.Invoke(this, command);
 
-    public void ClickNotification(string? tag) => NotificationClicked?.Invoke(this, tag);
+    public void ClickNotification(string? tag) => Clicked?.Invoke(this, tag);
 
     public void EndSession() => SessionEnding?.Invoke(this, EventArgs.Empty);
 

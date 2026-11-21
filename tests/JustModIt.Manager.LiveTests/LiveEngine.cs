@@ -173,7 +173,7 @@ internal sealed partial class LiveEngine : IAsyncDisposable
         var settings = await SettingsService.LoadAsync(locations, TimeProvider.System, loggers, cancellationToken);
         var options = LiveApp.ThisProcess().AgentOptions() with { Locations = locations };
         var services = new ServiceCollection().AddAgent(options, settings, loggers);
-        AgentPlatform.Compose(services, options, app: null);
+        AgentPlatform.Compose(services, options, app: null, configure: null);
         services.TryAddSingleton<ISystemEvents>(QuietSystemEvents.Instance);
         var downloader = services.Single(service => service.ServiceType == typeof(IPackageDownloader)).ImplementationFactory!;
         services.AddSingleton(provider => new CountingDownloader((IPackageDownloader)downloader(provider)));

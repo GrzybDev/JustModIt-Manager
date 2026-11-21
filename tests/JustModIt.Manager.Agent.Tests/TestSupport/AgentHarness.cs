@@ -94,6 +94,7 @@ internal sealed class AgentHarness : IAsyncDisposable
                 services.AddSingleton<ICatalogueApi>(new OfflineCatalogueApi());
                 services.AddSingleton<IForegroundHandoff>(Foreground);
                 services.AddSingleton<ITrayHost>(Tray);
+                services.AddSingleton<INotificationHost>(Tray);
                 services.AddSingleton<IDesktopShell>(Shell);
                 services.AddSingleton<IAutostart>(Registration);
                 services.AddSingleton<ILinkRegistration>(Registration);

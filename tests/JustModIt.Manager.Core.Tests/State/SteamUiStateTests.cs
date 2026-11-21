@@ -8,7 +8,6 @@ using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Core.Steam;
 using JustModIt.Manager.Core.Tests.Jobs;
-using JustModIt.Manager.Core.Tests.TestSupport;
 using static JustModIt.Manager.Core.Tests.TestSupport.TestProjects;
 
 namespace JustModIt.Manager.Core.Tests.State;

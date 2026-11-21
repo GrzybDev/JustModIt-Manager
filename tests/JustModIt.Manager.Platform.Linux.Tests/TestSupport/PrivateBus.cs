@@ -48,6 +48,14 @@ internal sealed class PrivateBus : IAsyncDisposable
         return connection;
     }
 
+    /// <summary>A connection that connects once it is used, as the shared connections to the session and the system bus do.</summary>
+    public DBusConnection Shared()
+    {
+        var connection = new DBusConnection(new DBusConnectionOptions(Address) { AutoConnect = true });
+        _connections.Add(connection);
+        return connection;
+    }
+
     /// <summary>
     /// Goes on off the thread that reads a connection's messages, on which a call's answer resumes the awaiting code: a
     /// test that then waits for an answer of that connection would block the one thread that could bring it.
