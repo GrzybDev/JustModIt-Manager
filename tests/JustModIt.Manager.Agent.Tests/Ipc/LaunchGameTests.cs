@@ -38,7 +38,8 @@ public sealed class LaunchGameTests : IAsyncDisposable
         var refused = () => window.RequestAsync(new LaunchGame(WithoutLaunch));
 
         (await refused.Should().ThrowAsync<RequestFailedException>()).Which.Code.Should().Be(ErrorCode.Unsupported);
-        _agent.Shell.Opened.Should().Equal("steam://rungameid/1000");
+        _agent.Steam.Opened.Should().Equal("steam://rungameid/1000");
+        _agent.Shell.Opened.Should().BeEmpty("a Steam game starts through Steam, which hands its link on without a display");
         var folder = PathCanonicalizer.Canonicalize(GameFolder);
         _agent.Shell.Started.Should().Equal(new ProgramStart(Path.Combine(folder, "bin", "game.exe"), "-windowed", Path.Combine(folder, "bin")));
     }

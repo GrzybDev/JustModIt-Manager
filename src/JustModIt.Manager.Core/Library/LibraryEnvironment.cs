@@ -34,6 +34,9 @@ public sealed record LibraryEnvironment
     /// <summary><c>LEGENDARY_CONFIG_PATH</c>, when it is set to an absolute path.</summary>
     public string? LegendaryConfigPath { get; init; }
 
+    /// <summary>The folders of <c>PATH</c> that are absolute, where a launcher's own program is looked for.</summary>
+    public IReadOnlyList<string> ProgramFolders { get; init; } = [];
+
     /// <summary>Reads the current user's folders and environment variables.</summary>
     public static LibraryEnvironment ForCurrentUser() => new()
     {
@@ -51,6 +54,7 @@ public sealed record LibraryEnvironment
         XdgConfigHome = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")),
         SnapUserData = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("SNAP_USER_DATA")),
         LegendaryConfigPath = FullyQualifiedOrNull(Environment.GetEnvironmentVariable("LEGENDARY_CONFIG_PATH")),
+        ProgramFolders = [.. (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator).Where(Path.IsPathFullyQualified)],
     };
 
     // The XDG specification says to ignore relative values, which would otherwise resolve against the current folder.

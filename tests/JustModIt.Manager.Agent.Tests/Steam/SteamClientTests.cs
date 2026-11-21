@@ -16,16 +16,38 @@ public sealed class SteamClientTests : IDisposable
     private readonly string _home = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"), "home");
     private readonly FakeFolderWatcher _folders = new();
     private readonly FakeProcesses _processes = new();
+    private readonly FakeShell _shell = new();
     private readonly SteamClient _client;
 
     public SteamClientTests()
     {
         Directory.CreateDirectory(_home);
-        _client = new SteamClient(PhysicalFileSystem.Instance, QuietSystem.Instance, QuietSystem.Instance, _folders, _processes, new FakeShell(),
-            new LibraryEnvironment { Platform = AppPlatform.Linux, HomeDirectory = _home });
+        _client = new SteamClient(PhysicalFileSystem.Instance, QuietSystem.Instance, QuietSystem.Instance, _folders, _processes, _shell,
+            new LibraryEnvironment { Platform = AppPlatform.Linux, HomeDirectory = _home, ProgramFolders = [ProgramFolder] });
     }
 
     private string ClientFolder => Path.Combine(_home, ".steam");
+
+    private string ProgramFolder => Path.Combine(Path.GetDirectoryName(_home)!, "bin");
+
+    [Fact]
+    public void Steam_games_start_through_Steams_own_program_on_Linux()
+    {
+        Directory.CreateDirectory(ProgramFolder);
+        File.WriteAllText(Path.Combine(ProgramFolder, "steam"), "");
+        _client.Open("steam://rungameid/1000");
+        _shell.Opened.Should().Equal(["steam://rungameid/1000"], "only the client behind the home folder takes the program's links");
+
+        Write(Path.Combine("root", "steam.sh"), "");
+        _client.Open("steam://rungameid/1000");
+        File.Delete(Path.Combine(ProgramFolder, "steam"));
+        _client.Open("steam://rungameid/1001");
+
+        _shell.Ran.Select(run => $"{run.Executable} {string.Join(' ', run.Arguments)}").Should().Equal(
+            $"{Path.Combine(ProgramFolder, "steam")} steam://rungameid/1000",
+            $"{Path.Combine(ClientFolder, "root", "steam.sh")} steam://rungameid/1001");
+        _shell.Opened.Should().ContainSingle("Steam's program hands the link over without a display, which the system's opener needs");
+    }
 
     [Fact]
     public void The_linux_session_comes_from_steam_s_files_and_from_the_processes_a_steam_game_s_launch_started()
@@ -82,8 +104,9 @@ public sealed class SteamClientTests : IDisposable
 
     private void Write(string name, string content)
     {
-        Directory.CreateDirectory(ClientFolder);
-        File.WriteAllText(Path.Combine(ClientFolder, name), content);
+        var path = Path.Combine(ClientFolder, name);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, content);
     }
 
     private sealed class FakeProcesses : IProcessSource

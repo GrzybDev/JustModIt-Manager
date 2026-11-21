@@ -1,6 +1,7 @@
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Shell;
+using JustModIt.Manager.Agent.Steam;
 using JustModIt.Manager.Agent.Storage;
 using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Catalog;
@@ -34,12 +35,13 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="status">Tells whether an update is ready, and forgets how the previous run ended once the window told the player.</param>
 /// <param name="lifetime">Exits the app.</param>
 /// <param name="shell">Opens folders and links and starts programs.</param>
+/// <param name="steam">Starts Steam's games through Steam.</param>
 /// <param name="options">The app's folders, the logs among them, the folder it is installed in and its last unclean exit.</param>
 /// <param name="storage">Clears the app's cache.</param>
 /// <param name="time">Dates the player's confirmation of being an adult.</param>
 /// <param name="steamUi">Starts Steam again; null where the app has no way into Steam's interface.</param>
 /// <param name="uninstaller">Uninstalls the app itself; null where the system uninstalls it instead.</param>
-public sealed class AgentCommands(
+internal sealed class AgentCommands(
     StateCoordinator coordinator,
     JobRunner jobs,
     IInstallEngine engine,
@@ -52,6 +54,7 @@ public sealed class AgentCommands(
     AgentStatus status,
     AgentLifetime lifetime,
     IDesktopShell shell,
+    ISteamClient steam,
     AgentOptions options,
     AppStorage storage,
     TimeProvider time,
@@ -375,6 +378,9 @@ public sealed class AgentCommands(
 
     private Message? Launch(InstalledGame? game) => game?.Launch switch
     {
+        LaunchLink link when link.Uri.StartsWith("steam:", StringComparison.OrdinalIgnoreCase) => steam.Open(link.Uri)
+            ? null
+            : throw new RequestFailedException(ErrorCode.Failed, "Steam could not be asked to start it."),
         LaunchLink link => Open(link.Uri),
         LaunchProgram program => StartProgram(program.Resolve(fileSystem, game.InstallDirectory)
             ?? throw new RequestFailedException(ErrorCode.Failed, "The game's program is missing or leads out of its folder.")),

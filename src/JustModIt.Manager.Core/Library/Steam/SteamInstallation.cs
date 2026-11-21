@@ -38,6 +38,25 @@ public static class SteamInstallation
     public static string? ClientFolder(LibraryEnvironment environment) =>
         environment.Platform == AppPlatform.Linux ? Path.Join(environment.HomeDirectory, ".steam") : null;
 
+    /// <summary>
+    /// The Linux client's own program, which hands a link to the running client and starts a closed one with it, and needs
+    /// no display for either: <c>steam</c> on <c>PATH</c>, as SteamOS's own tools call it, else the client's
+    /// <c>steam.sh</c>; null on other systems and without the client behind <c>~/.steam</c>.
+    /// </summary>
+    /// <param name="fileSystem">Looks for the program.</param>
+    /// <param name="environment">The user's folders and the program folders.</param>
+    public static string? ClientProgram(IFileSystem fileSystem, LibraryEnvironment environment)
+    {
+        if (ClientFolder(environment) is not { } folder || !fileSystem.DirectoryExists(folder))
+        {
+            return null;
+        }
+
+        return environment.ProgramFolders.Select(programs => Path.Join(programs, "steam"))
+            .Concat([Path.Join(folder, "root", "steam.sh"), Path.Join(folder, "steam", "steam.sh")])
+            .FirstOrDefault(fileSystem.FileExists);
+    }
+
     /// <summary>Reads what the Linux client keeps of itself in its folder.</summary>
     /// <param name="fileSystem">Reads the files.</param>
     /// <param name="environment">The user's folders.</param>

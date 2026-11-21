@@ -15,7 +15,7 @@ namespace JustModIt.Manager.Agent.Ipc;
 /// <param name="ui">Follows the window's connection.</param>
 /// <param name="catalogue">Refreshes at once when a window connects while a start with the system waits.</param>
 /// <param name="links">Reads links in a later launch's command line.</param>
-public sealed class AgentRequestHandler(
+internal sealed class AgentRequestHandler(
     AgentCommands commands,
     AgentQueries queries,
     ActivationHandler activation,

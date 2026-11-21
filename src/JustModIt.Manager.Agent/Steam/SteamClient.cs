@@ -43,7 +43,7 @@ internal interface ISteamClient
     /// <returns>Stops watching when disposed.</returns>
     IDisposable Watch(Action changed);
 
-    /// <summary>Hands Steam one of its own links, which starts Steam when it is closed.</summary>
+    /// <summary>Hands Steam one of its own links, which starts Steam when it is closed; on Linux through Steam's own program.</summary>
     /// <param name="link">The link, such as <c>steam://exit</c>.</param>
     /// <returns>False when the system could not open it.</returns>
     bool Open(string link);
@@ -134,7 +134,11 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
         }
     }
 
-    public bool Open(string link) => shell.Open(link);
+    // The system's opener runs a link's program only with a display, which the agent lacks in Game Mode, while Steam's own
+    // program hands the link over without one.
+    public bool Open(string link) => SteamInstallation.ClientProgram(fileSystem, environment) is { } program
+        ? shell.Run(program, [link]) is not null
+        : shell.Open(link);
 
     private sealed class Watches(IDisposable first, IDisposable second) : IDisposable
     {

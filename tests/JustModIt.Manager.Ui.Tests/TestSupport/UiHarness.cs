@@ -52,7 +52,7 @@ public sealed class UiHarness : IDisposable
         _ownCreatorDirectory = built.CreatorDirectory;
         var used = context is null ? built : context(built);
         CreatorDirectory = used.CreatorDirectory;
-        Session = UiSession.Create(Application.Current!, used, Agent, Images, Links, Clock, Pickers, Reports, Clipboard);
+        Session = UiSession.Create(Application.Current!, used, Agent, Images, Links, Clock, Pickers, Reports, Clipboard, Steam);
         Window = Session.CreateWindow();
         // A click here moves, presses and releases, each after running the dispatcher and a frame; under load that takes
         // longer than a tooltip's delay, and the tooltip, which opens inside the window here, can slide over the pointer
@@ -75,6 +75,9 @@ public sealed class UiHarness : IDisposable
 
     /// <summary>The addresses the window asked to open outside itself.</summary>
     public RecordingLinks Links { get; } = new();
+
+    /// <summary>The links a window in Game Mode handed to Steam.</summary>
+    public RecordingSteam Steam { get; } = new();
 
     /// <summary>Answers the window's pickers with what the test chose.</summary>
     public FakePickers Pickers { get; } = new();
@@ -388,6 +391,14 @@ public sealed class RecordingLinks : IExternalLinks
     }
 
     public void OpenFolder(string folder) => Folders.Add(folder);
+}
+
+/// <summary>Records the links a window in Game Mode hands to Steam instead of starting Steam's program.</summary>
+public sealed class RecordingSteam : IRunningSteam
+{
+    public List<string> Sent { get; } = [];
+
+    public void Send(string link) => Sent.Add(link);
 }
 
 /// <summary>Answers the window's pickers with what the test chose, as if the player picked it, and records what they asked.</summary>

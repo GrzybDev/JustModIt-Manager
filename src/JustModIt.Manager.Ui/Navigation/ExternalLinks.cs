@@ -89,28 +89,45 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
         return address.IsAbsoluteUri && (address.Scheme == Uri.UriSchemeHttps || address.Scheme == PageLinks.SteamScheme);
     }
 
-    /// <summary>
-    /// How the system opens an address or a folder: through the shell, and on Linux through xdg-open without what the
-    /// AppImage's runtime set up for the window, since the window may be its process, whose mount goes when it exits.
-    /// </summary>
+    /// <summary>How the system opens an address or a folder: through the shell, and on Linux through xdg-open.</summary>
     /// <param name="target">The address or the folder's path.</param>
-    internal static ProcessStartInfo StartOf(string target)
+    internal static ProcessStartInfo StartOf(string target) =>
+        OperatingSystem.IsLinux() ? StartOfProgram("xdg-open", target) : new ProcessStartInfo(target) { UseShellExecute = true };
+
+    /// <summary>
+    /// How the window starts a program on Linux: directly, without what the AppImage's runtime set up for the window, since
+    /// the window may be its process, whose mount goes when it exits.
+    /// </summary>
+    /// <param name="program">The program's name or path.</param>
+    /// <param name="arguments">Its arguments, each one word.</param>
+    internal static ProcessStartInfo StartOfProgram(string program, params ReadOnlySpan<string> arguments)
     {
-        if (!OperatingSystem.IsLinux())
+        var start = new ProcessStartInfo(program);
+        foreach (var argument in arguments)
         {
-            return new ProcessStartInfo(target) { UseShellExecute = true };
+            start.ArgumentList.Add(argument);
         }
 
-        var start = new ProcessStartInfo("xdg-open") { ArgumentList = { target } };
         ChildEnvironment.LeaveAppImage(start.Environment);
         return start;
     }
 
-    private void Start(string target) => _ = Task.Run(() =>
+    /// <summary>Starts a program on the thread pool; one that cannot be started is logged.</summary>
+    /// <param name="target">What the program opens, which the log names.</param>
+    /// <param name="start">Makes the program's start, off the UI thread; null when nothing can open the target.</param>
+    /// <param name="logger">Where a failure is logged.</param>
+    internal static void Start(string target, Func<ProcessStartInfo?> start, ILogger logger) => _ = Task.Run(() =>
     {
         try
         {
-            Process.Start(StartOf(target))?.Dispose();
+            if (start() is { } program)
+            {
+                Process.Start(program)?.Dispose();
+            }
+            else
+            {
+                LogFailed(logger, target, null);
+            }
         }
         catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
         {
@@ -118,8 +135,10 @@ public sealed partial class ShellLinks(ILogger<ShellLinks> logger) : IExternalLi
         }
     });
 
+    private void Start(string target) => Start(target, () => StartOf(target), logger);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "{Target} could not be opened")]
-    private static partial void LogFailed(ILogger logger, string target, Exception exception);
+    private static partial void LogFailed(ILogger logger, string target, Exception? exception);
 }
 
 /// <summary>The site's pages, the stores' pages and the pages of tools the app works with that the window links to.</summary>
