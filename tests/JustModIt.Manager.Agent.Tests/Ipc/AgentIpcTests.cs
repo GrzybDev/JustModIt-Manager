@@ -1,4 +1,5 @@
 using JustModIt.Manager.Agent.Tests.TestSupport;
+using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Games;
 using JustModIt.Manager.Core.Installation;
@@ -79,6 +80,29 @@ public sealed class AgentIpcTests : IAsyncDisposable
         (await window.NextAsync<Navigate>()).Should().Be(new Navigate(new SettingsTarget()) { Waited = true });
         await launcher.RequestAsync(new Activate(["example-app://library"]), cancellationToken: AgentHarness.Token);
         (await window.NextAsync<Navigate>()).Should().Be(new Navigate(new LibraryTarget()), "a window that runs gets the page at once");
+    }
+
+    [Fact]
+    public async Task A_window_that_says_it_starts_anew_is_no_players_close_and_its_page_waits_for_the_window_it_becomes()
+    {
+        _agent.Start();
+        var launcher = await _agent.ConnectLauncherAsync();
+        await launcher.RequestAsync(new Activate(["example-app://settings"]), cancellationToken: AgentHarness.Token);
+        var older = await _agent.ConnectWindowAsync(version: "0.9.0");
+        (await older.NextAsync<Navigate>()).Target.Should().Be(new SettingsTarget());
+
+        var ui = await _agent.ServiceAsync<UiLauncher>();
+        older.Connection.Post(new WindowRestarting());
+        await older.Connection.DisposeAsync();
+        await Eventually.HoldsAsync(() => ui.Window is null);
+        // The process started anew from a file that still holds the older version, so it works on in it.
+        var restarted = await _agent.ConnectWindowAsync(version: "0.9.0");
+
+        (await restarted.NextAsync<Navigate>()).Target.Should().Be(new SettingsTarget());
+        _agent.Tray.Notifications.Reader.TryRead(out _).Should().BeFalse("the window was not closed by the player");
+        // Its version is no word of a restart: its close is the player's, which says that the setup is not done.
+        await restarted.Connection.DisposeAsync();
+        await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token);
     }
 
     [Theory]

@@ -70,6 +70,12 @@ public sealed record Notify(NoticeView Notice) : Message;
 /// <param name="IsActive">Whether the window is now in front.</param>
 public sealed record WindowActivity(bool IsActive) : Message;
 
+/// <summary>
+/// The window closes to start anew in the agent's version in the same process, so its going is no close of the player's, and
+/// the page it was given as it connected goes to the window it becomes.
+/// </summary>
+public sealed record WindowRestarting : Message;
+
 /// <summary>The window's answer to <see cref="ShutdownRequested"/>; it refuses while the player has unsaved work.</summary>
 /// <param name="Accepted">Whether the window closes.</param>
 public sealed record ShutdownAnswer(bool Accepted) : Message;

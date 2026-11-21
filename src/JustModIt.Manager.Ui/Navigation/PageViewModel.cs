@@ -26,6 +26,12 @@ public abstract class PageViewModel : ObservableObject
     {
     }
 
+    /// <summary>
+    /// The page does work that closing the window would cut short, such as building a package, and says when that ends by a
+    /// change of this property.
+    /// </summary>
+    public virtual bool IsWorking => false;
+
     /// <summary>Whether the window may close now; a page with the player's unsaved work asks first and may say no.</summary>
     public virtual Task<bool> CanCloseAsync() => Task.FromResult(true);
 

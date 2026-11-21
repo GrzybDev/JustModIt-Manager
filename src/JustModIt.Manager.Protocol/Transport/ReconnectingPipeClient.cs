@@ -11,7 +11,10 @@ public enum ConnectionState
     Connecting,
     Connected,
 
-    /// <summary>The peer speaks another protocol version; it is being updated, so reconnecting continues.</summary>
+    /// <summary>
+    /// The peer speaks another protocol version, as during an update or from another copy of the app, so reconnecting
+    /// continues.
+    /// </summary>
     Incompatible,
 }
 
@@ -29,6 +32,7 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
     private readonly CancellationTokenSource _stopping = new();
     private ImmutableArray<Subscription> _subscriptions = [];
     private volatile PipeConnection? _connection;
+    private volatile Hello? _peer;
     private volatile ConnectionState _state = ConnectionState.Stopped;
     private Task _loop = Task.CompletedTask;
     private int _disposed;
@@ -61,7 +65,11 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
 
     public ConnectionState State => _state;
 
-    public Hello? Peer => _connection?.Peer;
+    /// <summary>
+    /// The agent's hello: on the current connection, or while it speaks another protocol, the one it answered with last; null
+    /// while none answers.
+    /// </summary>
+    public Hello? Peer => _peer;
 
     /// <summary>Starts connecting in the background, and again whenever the connection drops.</summary>
     public void Start()
@@ -152,7 +160,10 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
                 }
                 catch (ProtocolMismatchException ex)
                 {
-                    if (SetState(ConnectionState.Incompatible))
+                    // Another version answering is news even while the state stays, e.g. once the agent was restarted.
+                    var another = _peer?.AppVersion != ex.Peer.AppVersion;
+                    _peer = ex.Peer;
+                    if (SetState(ConnectionState.Incompatible, another))
                     {
                         LogIncompatible(ex.Peer.Role, ex.Peer.ProcessId, ex.Peer.ProtocolVersion, ex.Peer.AppVersion);
                     }
@@ -160,6 +171,9 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
                 catch (Exception ex) when (ex is not OperationCanceledException || !stopping.IsCancellationRequested)
                 {
                     LogConnectFailed(ex);
+                    // An agent of another protocol that no longer answers is gone, not updating.
+                    _peer = null;
+                    SetState(ConnectionState.Connecting);
                 }
 
                 await Task.Delay(backoff.Next(), stopping).ConfigureAwait(false);
@@ -179,6 +193,7 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
         try
         {
             _connection = connection;
+            _peer = connection.Peer;
             LogConnected(connection.Peer.Role, connection.Peer.ProcessId, connection.Peer.AppVersion);
             SetState(ConnectionState.Connected);
             await connection.Completion.WaitAsync(stopping).ConfigureAwait(false);
@@ -194,6 +209,7 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
         finally
         {
             _connection = null;
+            _peer = null;
             await connection.DisposeAsync().ConfigureAwait(false);
             if (!stopping.IsCancellationRequested)
             {
@@ -202,9 +218,9 @@ public sealed partial class ReconnectingPipeClient : IConnectionHandler, IAsyncD
         }
     }
 
-    private bool SetState(ConnectionState state)
+    private bool SetState(ConnectionState state, bool peerChanged = false)
     {
-        if (_state == state)
+        if (_state == state && !peerChanged)
         {
             return false;
         }

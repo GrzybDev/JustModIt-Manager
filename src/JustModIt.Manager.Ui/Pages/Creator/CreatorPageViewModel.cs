@@ -90,6 +90,8 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
 
     public override Task<bool> CanCloseAsync() => OpenPage?.LeaveAsync() ?? Task.FromResult(true);
 
+    public override bool IsWorking => OpenPage?.Work == ProjectWork.Building;
+
     public void Dispose()
     {
         Services.Agent.PropertyChanged -= OnAgentChanged;
@@ -287,6 +289,7 @@ public sealed partial class CreatorPageViewModel : PageViewModel, IDisposable
     {
         if (e.PropertyName == nameof(ProjectPageViewModel.Work))
         {
+            OnPropertyChanged(nameof(IsWorking));
             // A build that ended has written the package's row, which the card names.
             _ = Cards.FirstOrDefault(card => card.Id == ((ProjectPageViewModel)sender!).ProjectId)?.RefreshAsync(_refreshing.Token);
             ShowStates();

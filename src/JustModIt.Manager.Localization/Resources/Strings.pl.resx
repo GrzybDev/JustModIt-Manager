@@ -553,7 +553,10 @@
     <value>Kończenie aktualizacji</value>
   </data>
   <data name="Shell_UpdatingMessage" xml:space="preserve">
-    <value>Aplikacja się aktualizuje. Okno połączy się ponownie, gdy tylko skończy.</value>
+    <value>{mode, select, inplace {Aplikacja się aktualizuje. Okno uruchomi się ponownie, gdy tylko skończy.} other {Aplikacja się aktualizuje. Okno połączy się ponownie, gdy tylko skończy.}}</value>
+  </data>
+  <data name="Shell_UpdatingAfterBuild" xml:space="preserve">
+    <value>Okno uruchomi się ponownie po zbudowaniu paczki.</value>
   </data>
   <data name="Shell_ConnectingSlow" xml:space="preserve">
     <value>Część aplikacji działająca w tle nie odpowiada.</value>
@@ -566,6 +569,21 @@
   </data>
   <data name="Shell_StartAgentFailed" xml:space="preserve">
     <value>System nie uruchomił części aplikacji działającej w tle.</value>
+  </data>
+  <data name="Shell_VersionMismatchTitle" xml:space="preserve">
+    <value>Różne wersje aplikacji</value>
+  </data>
+  <data name="Shell_VersionMismatch" xml:space="preserve">
+    <value>To okno ma wersję {window}, a część aplikacji działająca w tle – wersję {agent}. Te wersje nie współpracują ze sobą.</value>
+  </data>
+  <data name="Shell_VersionMismatchCopy" xml:space="preserve">
+    <value>{age, select, older {To okno uruchomiono ze starszej kopii aplikacji: {file}.} other {To okno uruchomiono z nowszej kopii aplikacji: {file}.}}</value>
+  </data>
+  <data name="Shell_VersionMismatchShortcut" xml:space="preserve">
+    <value>Skrót w Steamie można poprawić w trybie pulpitu, w Ustawieniach.</value>
+  </data>
+  <data name="Shell_WindowRestarted" xml:space="preserve">
+    <value>Okno uruchomiło się ponownie w wersji {version}.</value>
   </data>
   <data name="Shell_PageGame" xml:space="preserve">
     <value>Gra</value>

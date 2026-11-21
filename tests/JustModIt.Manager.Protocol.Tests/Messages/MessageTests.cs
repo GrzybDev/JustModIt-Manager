@@ -64,6 +64,7 @@ public sealed class MessageTests
             Kept = KeptReason.GameUpdatedSinceInstall,
         })),
         new WindowActivity(IsActive: true),
+        new WindowRestarting(),
         new InstallProject(Game, Project),
         new UpdateProject(RecordId),
         new RepairProject(RecordId),

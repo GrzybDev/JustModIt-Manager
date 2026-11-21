@@ -110,4 +110,19 @@ public sealed record UiContext
 
     /// <summary>Where the app writes its logs, which the window opens when the system refused to start the agent, since only they say why.</summary>
     public required string LogsDirectory { get; init; }
+
+    /// <summary>The agent runs as the user's systemd unit, whose restart also replaces an agent that answers, as one of another version.</summary>
+    public bool AgentRunsAsUnit { get; init; }
+
+    /// <summary>The file this copy of the app runs from, such as its AppImage, which the window names when the agent runs another version.</summary>
+    public string ProgramFile { get; init; } = "";
+
+    /// <summary>
+    /// Starts the window's process anew from the app's file once the window closed, so it runs the version an update put in the
+    /// file's place; null where the file brings no other version, as anywhere but in an AppImage.
+    /// </summary>
+    public Action<WindowRestart>? RestartWindow { get; init; }
+
+    /// <summary>How this process started anew in the agent's version; null when it did not.</summary>
+    public WindowRestart? Restarted { get; init; }
 }

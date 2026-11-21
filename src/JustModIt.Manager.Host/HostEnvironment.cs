@@ -183,6 +183,8 @@ internal sealed record HostEnvironment
                 ? () => AgentPlatform.Unit(AgentOptions(), loggers.CreateLogger<AgentUnit>()).Restart()
                 : () => Roles.StartAgentProcess(Install.ExecutablePath, loggers.CreateLogger(typeof(Roles).FullName!)),
             LogsDirectory = Locations.LogsDirectory,
+            ProgramFile = Install.ExecutablePath,
+            AgentRunsAsUnit = RunsAgentAsUnit,
         };
     }
 

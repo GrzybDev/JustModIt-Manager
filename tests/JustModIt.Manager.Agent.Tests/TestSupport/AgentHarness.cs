@@ -111,10 +111,11 @@ internal sealed class AgentHarness : IAsyncDisposable
 
     /// <summary>Connects as the window, which the agent then treats as its one window.</summary>
     /// <param name="acceptsShutdown">Whether the window agrees to close when the agent asks; false acts like unsaved work.</param>
-    public async Task<FakeWindow> ConnectWindowAsync(bool acceptsShutdown = true)
+    /// <param name="version">The window's version, by default the agent's.</param>
+    public async Task<FakeWindow> ConnectWindowAsync(bool acceptsShutdown = true, string version = "1.0.0")
     {
         var window = new FakeWindow { AcceptsShutdown = acceptsShutdown };
-        window.Connection = await Connect(ProcessRole.Ui, window);
+        window.Connection = await Connect(ProcessRole.Ui, window, version);
         return window;
     }
 
@@ -148,9 +149,9 @@ internal sealed class AgentHarness : IAsyncDisposable
         public Task RunAsync(LaunchArguments start, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
-    private async Task<PipeConnection> Connect(ProcessRole role, IConnectionHandler? handler)
+    private async Task<PipeConnection> Connect(ProcessRole role, IConnectionHandler? handler, string version = "1.0.0")
     {
-        var hello = new Hello(Hello.CurrentProtocolVersion, "1.0.0", role, Environment.ProcessId);
+        var hello = new Hello(Hello.CurrentProtocolVersion, version, role, Environment.ProcessId);
         // The agent listens a moment after it starts, and a client connects only to a pipe that listens. Its start and these
         // attempts share the thread pool with the other tests' agents, so the wait is counted in attempts, which a busy
         // machine holds up as much as the start, rather than in time the machine may spend on other work.

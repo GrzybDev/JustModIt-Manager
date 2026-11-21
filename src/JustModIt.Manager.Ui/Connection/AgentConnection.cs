@@ -36,7 +36,11 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
     {
         _client = new ReconnectingPipeClient(pipeName, Hello.ForCurrentProcess(ProcessRole.Ui, version),
             loggers.CreateLogger<ReconnectingPipeClient>(), options, HandleRequestAsync);
-        _client.StateChanged += (_, state) => Dispatcher.UIThread.Post(() => OnLinkChanged(state));
+        _client.StateChanged += (_, state) =>
+        {
+            var peer = _client.Peer;
+            Dispatcher.UIThread.Post(() => OnLinkChanged(state, peer));
+        };
         _subscriptions =
         [
             _client.Subscribe<StateChanged>(OnStateChanged),
@@ -65,6 +69,9 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
     [ObservableProperty]
     public partial AgentLink Link { get; private set; }
 
+    [ObservableProperty]
+    public partial string? AgentVersion { get; private set; }
+
     // Built on the first read after a state or a report: reports come ten times a second, and a change raised for each
     // would make every page lay itself out again.
     public AppStateView State => _state ??= WithNewestJobs(_received);
@@ -83,6 +90,8 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
         _client.Post(new WindowActivity(isActive));
     }
 
+    public void ReportRestarting() => _client.Post(new WindowRestarting());
+
     public void AcceptShutdown() => _shutdownAccepted = true;
 
     public async ValueTask DisposeAsync()
@@ -95,8 +104,10 @@ public sealed partial class AgentConnection : ObservableObject, IAgent, IAsyncDi
         await _client.DisposeAsync().ConfigureAwait(false);
     }
 
-    private void OnLinkChanged(ConnectionState state)
+    // The version first, so whoever follows the link sees whom it leads to.
+    private void OnLinkChanged(ConnectionState state, Hello? peer)
     {
+        AgentVersion = peer?.AppVersion;
         Link = state switch
         {
             ConnectionState.Connected => AgentLink.Connected,

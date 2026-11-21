@@ -12,6 +12,7 @@ public sealed partial class ConnectingView : UserControl
 {
     private ShellViewModel? _shell;
     private string? _title;
+    private bool _startAgentShown;
 
     /// <summary>Creates the view, which shows the shell it is given as its data.</summary>
     public ConnectingView() => InitializeComponent();
@@ -31,9 +32,13 @@ public sealed partial class ConnectingView : UserControl
         {
             ShowTitle();
         }
-        else if (e.PropertyName == nameof(ShellViewModel.IsSlowToConnect) && _shell?.IsSlowToConnect == true)
+        else if (e.PropertyName == nameof(ShellViewModel.ShowsStartAgent) && _shell is not null && _shell.ShowsStartAgent != _startAgentShown)
         {
-            FocusStartAgent();
+            _startAgentShown = _shell.ShowsStartAgent;
+            if (_startAgentShown)
+            {
+                FocusStartAgent();
+            }
         }
     }
 

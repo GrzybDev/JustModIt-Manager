@@ -566,7 +566,10 @@
     <value>Finishing the update</value>
   </data>
   <data name="Shell_UpdatingMessage" xml:space="preserve">
-    <value>The app is updating itself. The window reconnects as soon as it is done.</value>
+    <value>{mode, select, inplace {The app is updating itself. The window starts again as soon as it is done.} other {The app is updating itself. The window reconnects as soon as it is done.}}</value>
+  </data>
+  <data name="Shell_UpdatingAfterBuild" xml:space="preserve">
+    <value>The window starts again once the package is built.</value>
   </data>
   <data name="Shell_ConnectingSlow" xml:space="preserve">
     <value>The part of the app that runs in the background does not answer.</value>
@@ -579,6 +582,21 @@
   </data>
   <data name="Shell_StartAgentFailed" xml:space="preserve">
     <value>The system did not start the part of the app that runs in the background.</value>
+  </data>
+  <data name="Shell_VersionMismatchTitle" xml:space="preserve">
+    <value>Different versions of the app</value>
+  </data>
+  <data name="Shell_VersionMismatch" xml:space="preserve">
+    <value>This window has version {window}, and the part of the app that runs in the background has version {agent}. These versions do not work together.</value>
+  </data>
+  <data name="Shell_VersionMismatchCopy" xml:space="preserve">
+    <value>{age, select, older {This window was started from an older copy of the app: {file}.} other {This window was started from a newer copy of the app: {file}.}}</value>
+  </data>
+  <data name="Shell_VersionMismatchShortcut" xml:space="preserve">
+    <value>The shortcut in Steam can be fixed in Desktop Mode, in Settings.</value>
+  </data>
+  <data name="Shell_WindowRestarted" xml:space="preserve">
+    <value>The window started again in version {version}.</value>
   </data>
   <data name="Shell_PageGame" xml:space="preserve">
     <value>Game</value>

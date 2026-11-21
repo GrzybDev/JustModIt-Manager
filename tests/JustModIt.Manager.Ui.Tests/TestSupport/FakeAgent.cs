@@ -30,6 +30,10 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
     [ObservableProperty]
     public partial AgentLink Link { get; set; } = AgentLink.Connected;
 
+    /// <summary>The agent's version; by default the test window's own.</summary>
+    [ObservableProperty]
+    public partial string? AgentVersion { get; set; } = "0.1.0";
+
     [ObservableProperty]
     public partial AppStateView State { get; private set; } = new();
 
@@ -46,6 +50,9 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
 
     /// <summary>The window closes for an exit it asked for and accepts the agent's request to close at once.</summary>
     public bool ShutdownAccepted { get; private set; }
+
+    /// <summary>The window told the agent it closes to start anew in the agent's version.</summary>
+    public bool SaidRestarting { get; private set; }
 
     /// <summary>Answers a request; by default with an empty answer.</summary>
     public Func<Message, Message?> Answer { get; set; } = _ => null;
@@ -116,6 +123,12 @@ public sealed partial class FakeAgent : ObservableObject, IAgent
     }
 
     public void ReportActivity(bool isActive) => Activity.Add(Sent(new WindowActivity(isActive)).IsActive);
+
+    public void ReportRestarting()
+    {
+        Sent(new WindowRestarting());
+        SaidRestarting = true;
+    }
 
     public void AcceptShutdown() => ShutdownAccepted = true;
 

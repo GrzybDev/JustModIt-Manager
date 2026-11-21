@@ -42,6 +42,12 @@ public sealed partial class UiLauncher : IDisposable
     private bool _isActive;
     private int _toldStoreSession;
 
+    // The page the window got as it connected, which goes to the window it becomes when it starts anew in the agent's version.
+    private Navigate? _handedTarget;
+
+    // The window said it closes to start anew, so its going is no close of the player's.
+    private PipeConnection? _restarting;
+
     /// <summary>Creates the launcher, which forwards every snapshot, job progress and job end to the window from then on.</summary>
     /// <param name="shell">Starts the window's process.</param>
     /// <param name="options">
@@ -69,7 +75,10 @@ public sealed partial class UiLauncher : IDisposable
         _publisher.JobEnded += OnJobEnded;
     }
 
-    /// <summary>The player closed the window; not raised when the agent asked it to close.</summary>
+    /// <summary>
+    /// The player closed the window; not raised when the agent asked it to close, nor for a window that said it starts anew in
+    /// the agent's version.
+    /// </summary>
     public event EventHandler? Closed;
 
     /// <summary>The connection of the running window; null while none runs.</summary>
@@ -199,15 +208,16 @@ public sealed partial class UiLauncher : IDisposable
             _startedAt = null;
             _isActive = false;
             window.Post(new StateChanged(_publisher.Latest));
-            if (_pendingTarget is { } target)
+            _handedTarget = _pendingTarget is { } target ? new Navigate(target) { Waited = _pendingTargetWaited } : null;
+            _pendingTarget = null;
+            if (_handedTarget is not null)
             {
-                window.Post(new Navigate(target) { Waited = _pendingTargetWaited });
-                _pendingTarget = null;
+                window.Post(_handedTarget);
             }
         }
     }
 
-    /// <summary>Forgets a window that closed, raising <see cref="Closed"/> unless the agent asked it to close.</summary>
+    /// <summary>Forgets a window that closed, raising <see cref="Closed"/> when the player closed it.</summary>
     /// <param name="window">The connection that closed; one other than the current window's is ignored.</param>
     internal void OnDisconnected(PipeConnection window)
     {
@@ -221,14 +231,35 @@ public sealed partial class UiLauncher : IDisposable
 
             _window = null;
             _isActive = false;
-            closedByPlayer = _closing != window;
+            closedByPlayer = _closing != window && _restarting != window;
             _closing = null;
+            _restarting = null;
         }
 
         LogDisconnected(window.Peer.ProcessId);
         if (closedByPlayer)
         {
             Closed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>Takes the window's word that it closes to start anew in the agent's version.</summary>
+    /// <param name="window">The window's connection; one other than the current window's is ignored.</param>
+    internal void OnRestarting(PipeConnection window)
+    {
+        lock (_gate)
+        {
+            if (_window != window)
+            {
+                return;
+            }
+
+            _restarting = window;
+            if (_handedTarget is { } handed && _pendingTarget is null)
+            {
+                _pendingTarget = handed.Target;
+                _pendingTargetWaited = handed.Waited;
+            }
         }
     }
 

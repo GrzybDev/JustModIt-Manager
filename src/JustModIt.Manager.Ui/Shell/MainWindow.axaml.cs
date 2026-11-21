@@ -54,6 +54,11 @@ public sealed partial class MainWindow : Window
         RemoteImage.SetLoader(this, shell.Images);
         shell.Agent.BringToFrontRequested += OnBringToFront;
         shell.Agent.ShutdownHandler = CloseForAgentAsync;
+        shell.Restarting += OnRestarting;
+        if (shell.Context.Restarted?.Placement is { } placement && shell.Frame != WindowFrame.Screen)
+        {
+            Place(placement);
+        }
         Motion.ReducedChanged += OnReducedChanged;
         // A window the system maps behind another, as focus-stealing prevention does, hears nothing until it gets the focus.
         Classes.Add("inactive");
@@ -126,6 +131,7 @@ public sealed partial class MainWindow : Window
             _shell.PropertyChanged -= OnShellChanged;
             _shell.Agent.BringToFrontRequested -= OnBringToFront;
             _shell.Agent.ShutdownHandler = null;
+            _shell.Restarting -= OnRestarting;
         }
 
         base.OnClosed(e);
@@ -182,7 +188,7 @@ public sealed partial class MainWindow : Window
         // The system setting may have changed while the window was in the background.
         Motion.SetReduced(_systemMotion?.IsReduced() == true);
         _shell?.Agent.ReportActivity(true);
-        _shell?.Navigator.Current?.OnWindowActivated();
+        _shell?.OnWindowActivated();
     }
 
     private void OnDeactivated(object? sender, EventArgs e)
@@ -202,6 +208,31 @@ public sealed partial class MainWindow : Window
     }
 
     private void OnReducedChanged(object? sender, EventArgs e) => UpdateMotion();
+
+    // The window closes as when the agent asks, without the close question, and opens where it stood once the process started
+    // anew; Game Mode's screen is the session's, not the window's.
+    private void OnRestarting(object? sender, WindowRestart restart)
+    {
+        _shell!.Context.RestartWindow?.Invoke(restart with
+        {
+            Placement = _frame == WindowFrame.Screen ? null
+                : new WindowPlacement(Position.X, Position.Y, ClientSize.Width, ClientSize.Height, WindowState == WindowState.Maximized),
+        });
+        _closeDecided = true;
+        Close();
+    }
+
+    private void Place(WindowPlacement placement)
+    {
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Position = new PixelPoint(placement.X, placement.Y);
+        Width = placement.Width;
+        Height = placement.Height;
+        if (placement.Maximized)
+        {
+            WindowState = WindowState.Maximized;
+        }
+    }
 
     // Loops cost nothing while nobody sees them, so they run only in a visible, unminimised window.
     private void UpdateMotion()

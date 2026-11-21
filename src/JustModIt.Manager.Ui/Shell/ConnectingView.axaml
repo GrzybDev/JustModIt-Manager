@@ -18,11 +18,17 @@
         <TextBlock x:Name="TitleText" Classes="h2" TextAlignment="Center" Text="{Binding ConnectingTitle}" />
         <TextBlock Classes="bodyL" TextAlignment="Center" Text="{Binding ConnectingMessage}" />
       </StackPanel>
+      <StackPanel Classes="connectingLine" Classes.shown="{Binding MismatchCopy, Converter={x:Static ObjectConverters.IsNotNull}}" Spacing="8"
+                  IsVisible="{Binding MismatchCopy, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <TextBlock Classes="caption" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding MismatchCopy}" />
+        <TextBlock Classes="caption" TextAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding ShowsShortcutHint}"
+                   Text="{x:Static loc:Strings.Shell_VersionMismatchShortcut}" />
+      </StackPanel>
       <ProgressBar Classes="thin connectingBar" Classes.shown="{Binding IsWaiting}" Width="160" IsIndeterminate="True"
                    theme:Motion.Shown="{Binding IsWaiting}" AutomationProperties.Name="{Binding ConnectingTitle}" />
-      <StackPanel Spacing="12" IsVisible="{Binding IsSlowToConnect}">
+      <StackPanel Spacing="12" IsVisible="{Binding ShowsStartAgent}">
         <TextBlock Classes="caption" TextAlignment="Center" Text="{x:Static loc:Strings.Shell_ConnectingSlow}"
-                   IsVisible="{Binding !StartRefused}" />
+                   IsVisible="{Binding ShowsNoAnswer}" />
         <Grid Classes="connectingLine" Classes.shown="{Binding ShowsRefusal}" ColumnDefinitions="Auto,*" ColumnSpacing="8"
               HorizontalAlignment="Center" IsVisible="{Binding ShowsRefusal}">
           <ui:Icon Classes="warningText" Data="{x:Static theme:Icons.TriangleAlert}" Width="15" Height="15" Margin="0,2,0,0"

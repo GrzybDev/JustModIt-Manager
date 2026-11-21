@@ -43,9 +43,14 @@ internal sealed class AgentRequestHandler(
 
     public void OnEvent(PipeConnection connection, Message message)
     {
-        if (message is WindowActivity activity)
+        switch (message)
         {
-            ui.OnActivity(connection, activity.IsActive);
+            case WindowActivity activity:
+                ui.OnActivity(connection, activity.IsActive);
+                break;
+            case WindowRestarting:
+                ui.OnRestarting(connection);
+                break;
         }
     }
 

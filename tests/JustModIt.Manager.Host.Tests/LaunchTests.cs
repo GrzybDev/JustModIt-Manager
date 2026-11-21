@@ -1,3 +1,4 @@
+using System.Globalization;
 using JustModIt.Manager.Protocol.Activation;
 
 namespace JustModIt.Manager.Host.Tests;
@@ -29,6 +30,29 @@ public sealed class LaunchTests : IDisposable
         Roles.RouteOf(background: false, HostEnvironment.IsSteamLaunch("0"), InGamescope(true)).Should().Be(LaunchRoute.HandOver);
         Roles.RouteOf(background: false, startedBySteam: false, InGamescope(false)).Should().Be(LaunchRoute.Window);
         asked.Should().Be(2);
+    }
+
+    // Swedish writes the minus of a window dragged past the screen's left edge as one that an invariant reader refuses.
+    [Fact]
+    public void A_restart_carries_the_agents_version_and_the_windows_place_to_the_window_it_becomes()
+    {
+        var culture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("sv-SE");
+        try
+        {
+            var restart = new Ui.WindowRestart("1.1.0-beta.2", new Ui.WindowPlacement(-1280, 40, 1366.5, 768, Maximized: true));
+            Environment.SetEnvironmentVariable("MANAGER_WINDOW_RESTARTED_FOR",
+                WindowRestarts.EnvironmentFor(restart)["MANAGER_WINDOW_RESTARTED_FOR"]);
+
+            WindowRestarts.Take().Should().Be(restart);
+            Environment.GetEnvironmentVariable("MANAGER_WINDOW_RESTARTED_FOR").Should().BeNull("no program the window starts inherits it");
+            WindowRestarts.Take().Should().BeNull();
+            WindowRestarts.Parse(WindowRestarts.Format(restart with { Placement = null })).Should().Be(restart with { Placement = null });
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]

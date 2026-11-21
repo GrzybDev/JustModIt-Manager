@@ -24,6 +24,9 @@ public interface IAgent : INotifyPropertyChanged
 {
     AgentLink Link { get; }
 
+    /// <summary>The agent's version, as it said when the window last reached it, also in another protocol; null while none answers.</summary>
+    string? AgentVersion { get; }
+
     /// <summary>
     /// The newest state, each job in it as the newest report has it; an empty one until the agent sent the first. A change is
     /// raised for a new state only: a report moves its job on here quietly, and <see cref="JobsProgressed"/> announces it.
@@ -72,6 +75,12 @@ public interface IAgent : INotifyPropertyChanged
     /// <summary>Tells the agent whether the window is in front, which decides where notices go.</summary>
     /// <param name="isActive">Whether the window is in front.</param>
     void ReportActivity(bool isActive);
+
+    /// <summary>
+    /// Tells the agent that the window closes to start anew in its version, so the agent takes its going for no close of the
+    /// player's and keeps the page it gave the window for the window it becomes.
+    /// </summary>
+    void ReportRestarting();
 
     /// <summary>
     /// Accepts the agent's requests to close from now on without asking the window, which is closing for an exit it asked

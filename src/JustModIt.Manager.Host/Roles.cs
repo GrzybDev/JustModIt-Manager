@@ -89,7 +89,8 @@ internal static partial class Roles
             // The launch becomes the window itself, so the window takes the desktop's activation, and in a store's game session it
             // is the program the store started, which the session shows.
             _ => LaunchWindow(environment.StartedBySteam, () => InstanceLock.TryAcquire(environment.Names.UiLock),
-                () => StartUnit(environment, unit), windowLock => RunHolding(environment, windowLock, UiRole, Window(environment, options, launch)),
+                () => StartUnit(environment, unit),
+                windowLock => RunWindow(environment, options, launch, window => RunHolding(environment, windowLock, UiRole, window)),
                 () => RunUi(environment, options, launch, args), () => RunAgent(environment, options, launch, args)),
         };
     }
@@ -142,7 +143,7 @@ internal static partial class Roles
     /// <param name="launch">The command line, parsed.</param>
     /// <param name="args">The command line as given, for a hand-over.</param>
     public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
-        RunClaimed(environment, environment.Names.UiLock, UiRole, args, Window(environment, options, launch));
+        RunWindow(environment, options, launch, window => RunClaimed(environment, environment.Names.UiLock, UiRole, args, window));
 
     /// <summary>
     /// Ends the session markers of the runs that the installer stopped to replace the app, so the next start does not take
@@ -196,9 +197,28 @@ internal static partial class Roles
         }
     }
 
-    private static Func<ILoggerFactory, SessionMarker, UncleanExit?, int> Window(HostEnvironment environment, AppOptions options,
-        LaunchArguments launch) =>
-        (loggers, _, previous) => WindowHost.Run(environment.WindowContext(options, launch, loggers, previous));
+    // A window that closed to start anew in the agent's version has ended its session and let go of its lock by then, so the
+    // process runs the app's file again as the window it becomes.
+    private static int RunWindow(HostEnvironment environment, AppOptions options, LaunchArguments launch,
+        Func<Func<ILoggerFactory, SessionMarker, UncleanExit?, int>, int> run)
+    {
+        WindowRestart? restart = null;
+        var exitCode = run((loggers, _, previous) => WindowHost.Run(environment.WindowContext(options, launch, loggers, previous) with
+        {
+            // Only an AppImage, which an update replaces in place, brings another version when it starts anew.
+            RestartWindow = OperatingSystem.IsLinux() && environment.Install.Directory is null ? asked => restart = asked : null,
+            Restarted = WindowRestarts.Take(),
+        }));
+        if (!OperatingSystem.IsLinux() || restart is null)
+        {
+            return exitCode;
+        }
+
+        var error = ProcessImage.Replace(environment.Install.ExecutablePath, [LaunchArguments.UiSwitch], WindowRestarts.EnvironmentFor(restart));
+        using var log = new RoleLog(environment, UiRole);
+        LogWindowNotRestarted(log.Loggers.CreateLogger(typeof(Roles).FullName!), error);
+        return 1;
+    }
 
     // A launch from a terminal or a handler that started earlier may carry another session's variables, or none, so logind
     // tells the session the user sees.
@@ -290,6 +310,9 @@ internal static partial class Roles
         session.End();
         return exitCode;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The window could not start anew from the app's file (error {Error})")]
+    private static partial void LogWindowNotRestarted(ILogger logger, int error);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The agent's process could not be started")]
     private static partial void LogAgentNotStarted(ILogger logger, Exception exception);

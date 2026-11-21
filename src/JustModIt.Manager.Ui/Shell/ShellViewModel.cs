@@ -92,6 +92,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public ToastHost Toasts => _services.Toasts;
 
+    /// <summary>What the window's process knows of the app, such as how it started anew.</summary>
+    public UiContext Context => _services.Context;
+
     public IImageLoader Images => _services.Images;
 
     /// <summary>Uninstalling the app, whose end takes the place of the sidebar and the pages.</summary>
@@ -131,6 +134,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _slowConnection?.Dispose();
+        _busyPage?.PropertyChanged -= OnBusyPageChanged;
         Agent.PropertyChanged -= OnAgentChanged;
         Agent.NavigationRequested -= OnNavigationRequested;
         Agent.Noticed -= OnNoticed;
@@ -193,7 +197,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         switch (e.PropertyName)
         {
-            case nameof(IAgent.Link):
+            case nameof(IAgent.Link) or nameof(IAgent.AgentVersion):
                 ApplyLink();
                 break;
             case nameof(IAgent.State) or nameof(IAgent.HasState):
@@ -329,6 +333,21 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         if (window is not null)
         {
             await Dialogs.ShowAsync(new UncleanExitDialogViewModel(_services, window)).ConfigureAwait(true);
+        }
+    }
+
+    // The window's own crash is told here when no state of the agent's told it yet, and a word being told is waited for.
+    private async Task TellUntoldExitsAsync()
+    {
+        if (!_toldWindowCrash && _services.Context.PreviousCrash is { } crash)
+        {
+            _toldWindowCrash = true;
+            _toldUncleanExits = Dialogs.ShowAsync(new UncleanExitDialogViewModel(_services, crash));
+        }
+
+        while (!_toldUncleanExits.IsCompleted)
+        {
+            await _toldUncleanExits.ConfigureAwait(true);
         }
     }
 
