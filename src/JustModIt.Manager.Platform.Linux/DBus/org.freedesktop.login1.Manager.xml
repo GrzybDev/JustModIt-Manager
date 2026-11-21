@@ -2,6 +2,18 @@
 <!-- The members of logind's manager the app uses, as systemd's D-Bus API (org.freedesktop.login1(5)) defines them. -->
 <node>
   <interface name="org.freedesktop.login1.Manager">
+    <method name="GetUserByPID">
+      <arg type="u" name="pid" direction="in" />
+      <arg type="o" name="object_path" direction="out" />
+    </method>
+    <signal name="SessionNew">
+      <arg type="s" name="session_id" />
+      <arg type="o" name="object_path" />
+    </signal>
+    <signal name="SessionRemoved">
+      <arg type="s" name="session_id" />
+      <arg type="o" name="object_path" />
+    </signal>
     <signal name="PrepareForSleep">
       <arg type="b" name="start" />
     </signal>

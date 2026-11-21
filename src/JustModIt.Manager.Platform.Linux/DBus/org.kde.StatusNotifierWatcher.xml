@@ -5,5 +5,8 @@
     <method name="RegisterStatusNotifierItem">
       <arg type="s" name="service" direction="in" />
     </method>
+    <property name="IsStatusNotifierHostRegistered" type="b" access="read" />
+    <signal name="StatusNotifierHostRegistered" />
+    <signal name="StatusNotifierHostUnregistered" />
   </interface>
 </node>

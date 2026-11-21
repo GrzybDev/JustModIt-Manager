@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!-- The members of a user of logind the app uses, as systemd's D-Bus API (org.freedesktop.login1(5)) defines them. -->
+<node>
+  <interface name="org.freedesktop.login1.User">
+    <property name="Display" type="(so)" access="read" />
+  </interface>
+</node>

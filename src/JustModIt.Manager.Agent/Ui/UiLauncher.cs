@@ -11,7 +11,8 @@ namespace JustModIt.Manager.Agent.Ui;
 /// <summary>
 /// The window: brings the running one to the front, or starts its process, and keeps it up to date; the window's own
 /// lock keeps it to one process, so a start while another is on its way only makes the new process hand over and end, and
-/// where launches become the window, none is started while another process holds that lock.
+/// where launches become the window, none is started while another process holds that lock; in a store's game session,
+/// which shows only the programs the store starts, the agent starts none.
 /// </summary>
 public sealed partial class UiLauncher : IDisposable
 {
@@ -27,6 +28,7 @@ public sealed partial class UiLauncher : IDisposable
     private readonly bool _launchesBecomeWindows;
     private readonly IForegroundHandoff? _foreground;
     private readonly StatePublisher _publisher;
+    private readonly AgentStatus _status;
     private readonly TimeProvider _time;
     private readonly ILogger<UiLauncher> _logger;
 
@@ -37,6 +39,7 @@ public sealed partial class UiLauncher : IDisposable
     private PipeConnection? _closing;
     private DateTimeOffset? _startedAt;
     private bool _isActive;
+    private int _toldStoreSession;
 
     /// <summary>Creates the launcher, which forwards every snapshot, job progress and job end to the window from then on.</summary>
     /// <param name="shell">Starts the window's process.</param>
@@ -44,11 +47,12 @@ public sealed partial class UiLauncher : IDisposable
     /// The executable the window runs, the lock its process holds, and whether launches become the window.
     /// </param>
     /// <param name="publisher">The snapshots, job progress and job ends to forward.</param>
+    /// <param name="status">Tells how the session brings the window back.</param>
     /// <param name="time">Times how long a started window has to connect.</param>
     /// <param name="logger">Receives the window's starts, connections and closes.</param>
     /// <param name="foreground">Lets the window take the foreground, where the system asks for that; null elsewhere.</param>
-    public UiLauncher(IDesktopShell shell, AgentOptions options, StatePublisher publisher, TimeProvider time, ILogger<UiLauncher> logger,
-        IForegroundHandoff? foreground = null)
+    public UiLauncher(IDesktopShell shell, AgentOptions options, StatePublisher publisher, AgentStatus status, TimeProvider time,
+        ILogger<UiLauncher> logger, IForegroundHandoff? foreground = null)
     {
         _shell = shell;
         _executable = options.ExecutablePath;
@@ -56,6 +60,7 @@ public sealed partial class UiLauncher : IDisposable
         _launchesBecomeWindows = options.LaunchesBecomeWindows;
         _foreground = foreground;
         _publisher = publisher;
+        _status = status;
         _time = time;
         _logger = logger;
         _publisher.Published += OnPublished;
@@ -241,6 +246,23 @@ public sealed partial class UiLauncher : IDisposable
 
     private void StartWindow()
     {
+        // The session would not show the window, which would then hold the window's lock against the launch from the store's
+        // library that the session does show.
+        if (_status.Activity.WindowReturn == WindowReturn.StoreLibrary)
+        {
+            lock (_gate)
+            {
+                _startedAt = null;
+            }
+
+            if (Interlocked.Exchange(ref _toldStoreSession, 1) == 0)
+            {
+                LogNoWindowInStoreSession();
+            }
+
+            return;
+        }
+
         // A launch that becomes the window holds its lock before it connects, and then gets the page that waits for it. A
         // window that is closing holds it too, so the next activation looks again.
         if (_launchesBecomeWindows && InstanceLock.IsHeld(_uiLock))
@@ -301,6 +323,10 @@ public sealed partial class UiLauncher : IDisposable
 
     [LoggerMessage(Level = LogLevel.Information, Message = "A window's process is on its way, so no other is started")]
     private partial void LogWindowOnItsWay();
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "The session shows only the programs its store starts, so the window opens from the store's library alone")]
+    private partial void LogNoWindowInStoreSession();
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The window could not be started")]
     private partial void LogStartFailed();

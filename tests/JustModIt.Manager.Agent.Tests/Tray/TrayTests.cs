@@ -1,8 +1,10 @@
 using JustModIt.Manager.Agent.Notifications;
 using JustModIt.Manager.Agent.Tests.TestSupport;
 using JustModIt.Manager.Agent.Tray;
+using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core.Automation;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Messages;
 
@@ -32,6 +34,23 @@ public sealed class TrayTests : IAsyncDisposable
         _agent.Tray.Click();
 
         await Eventually.HoldsAsync(() => _agent.Shell.WindowStarts == 1);
+    }
+
+    [Fact]
+    public async Task The_window_hears_how_it_comes_back_and_the_agent_starts_none_where_only_the_stores_library_shows_it()
+    {
+        _agent.Start();
+        var ui = await _agent.ServiceAsync<UiLauncher>();
+        await Tooltip(_ => true);
+
+        _agent.Tray.ReturnBy(WindowReturn.StoreLibrary);
+        ui.Show();
+        _agent.Shell.WindowStarts.Should().Be(0, "the session would not show a window the agent starts");
+        var window = await _agent.ConnectWindowAsync();
+        await window.StateAsync(state => state.Activity.WindowReturn == WindowReturn.StoreLibrary);
+
+        _agent.Tray.ReturnBy(WindowReturn.AppMenu);
+        await window.StateAsync(state => state.Activity.WindowReturn == WindowReturn.AppMenu);
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -149,8 +150,9 @@ public sealed partial class UpdateService(
             return false;
         }
 
-        // The player is waiting for the app, so it comes back with its window.
-        return Apply([]);
+        // The player is waiting for the app, so it comes back with its window, except in a store's game session, which shows
+        // only a window the store starts.
+        return Apply(status.Activity.WindowReturn == WindowReturn.StoreLibrary ? [LaunchArguments.BackgroundSwitch] : []);
     }
 
     // The container disposes it once for each service it is registered as.

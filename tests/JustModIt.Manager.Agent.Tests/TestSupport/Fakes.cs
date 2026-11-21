@@ -101,6 +101,10 @@ internal sealed class FakeTray : ITrayHost, INotificationHost
 
     public event EventHandler? SessionEnding;
 
+    public event EventHandler? WindowReturnChanged;
+
+    public WindowReturn WindowReturn { get; private set; }
+
     public string? Tooltip { get; private set; }
 
     public IReadOnlyList<TrayMenuItem> Menu { get; private set; } = [];
@@ -137,6 +141,14 @@ internal sealed class FakeTray : ITrayHost, INotificationHost
     public void ClickNotification(string? tag) => Clicked?.Invoke(this, tag);
 
     public void EndSession() => SessionEnding?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Changes how the window comes back, as a session does when its tray comes or goes.</summary>
+    /// <param name="windowReturn">The new way back.</param>
+    public void ReturnBy(WindowReturn windowReturn)
+    {
+        WindowReturn = windowReturn;
+        WindowReturnChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     public void Dispose() => IsDisposed = true;
 }

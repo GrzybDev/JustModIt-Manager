@@ -3,6 +3,7 @@ using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Agent.Ui;
 using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.Installation;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
@@ -150,20 +151,25 @@ public sealed class UpdateServiceTests : IAsyncDisposable
         (await window.StateAsync(state => state.Update.State == AppUpdateState.Ready)).Update.Version.Should().Be("1.1.0");
     }
 
-    [Fact]
-    public async Task Restarting_from_the_window_closes_it_first_and_brings_it_back_after_the_update()
+    [Theory]
+    [InlineData(WindowReturn.Tray)]
+    [InlineData(WindowReturn.StoreLibrary)]
+    public async Task Restarting_from_the_window_closes_it_first_and_brings_it_back_after_the_update_unless_only_the_stores_library_shows_it(
+        WindowReturn windowReturn)
     {
         await _agent.SaveSettingsAsync(AppSettings.Default with { AutoUpdateApp = false });
         _updater.Newest = "1.1.0";
+        _agent.Tray.ReturnBy(windowReturn);
         _agent.Start();
         var window = await _agent.ConnectWindowAsync();
         await window.RequestAsync(new CheckNow());
-        await window.StateAsync(state => state.Update.State == AppUpdateState.Ready);
+        await window.StateAsync(state => state.Update.State == AppUpdateState.Ready && state.Activity.WindowReturn == windowReturn);
 
         await window.RequestAsync(new ApplyAppUpdate());
 
         (await window.ShutdownRequests.Reader.ReadAsync(AgentHarness.Token)).Should().Be(ShutdownReason.Update);
-        (await _updater.Applied.Task.WaitAsync(Timeout, AgentHarness.Token)).Should().BeEmpty();
+        (await _updater.Applied.Task.WaitAsync(Timeout, AgentHarness.Token)).Should()
+            .Equal(windowReturn == WindowReturn.StoreLibrary ? [LaunchArguments.BackgroundSwitch] : []);
         await _agent.Run.WaitAsync(Timeout, AgentHarness.Token);
     }
 

@@ -117,8 +117,8 @@ internal static partial class AgentPlatform
             Text.Format(Strings.TrayOpen, ("product", options.ProductName)), provider.GetRequiredService<IconFile>().Path,
             DBusConnection.Session, provider.GetRequiredService<ILogger<DesktopNotifications>>()));
         // The tray serves objects of its own, which a shared connection cannot.
-        services.AddSingleton<ITrayHost>(provider => new StatusNotifierTray(DBusAddress.Session, options.Identity.DesktopId,
-            options.ProductName, provider.GetRequiredService<IconFile>().Path is null ? null : icons,
+        services.AddSingleton<ITrayHost>(provider => new StatusNotifierTray(DBusAddress.Session, DBusConnection.System,
+            options.Identity.DesktopId, options.ProductName, provider.GetRequiredService<IconFile>().Path is null ? null : icons,
             provider.GetRequiredService<ILogger<StatusNotifierTray>>()));
     }
 

@@ -18,7 +18,8 @@ public sealed class StatusNotifierTrayTests
     public async Task The_icon_registers_with_each_watcher_that_comes_and_serves_its_tooltip_menu_and_clicks()
     {
         await using var bus = await PrivateBus.StartAsync(Token);
-        using var tray = new StatusNotifierTray(bus.Address, DesktopId, "Example App", IconThemes, NullLogger<StatusNotifierTray>.Instance);
+        using var tray = new StatusNotifierTray(bus.Address, bus.Shared(), DesktopId, "Example App", IconThemes,
+            NullLogger<StatusNotifierTray>.Instance);
         var activations = 0;
         var commands = new ConcurrentQueue<string>();
         tray.Activated += (_, _) => Interlocked.Increment(ref activations);
@@ -79,11 +80,43 @@ public sealed class StatusNotifierTrayTests
     }
 
     [Fact]
-    public void A_session_without_a_bus_shows_no_icon()
+    public async Task The_window_comes_back_from_the_tray_while_a_host_draws_it_from_the_app_list_without_one_and_from_Steam_in_gamescope()
     {
-        using var tray = new StatusNotifierTray(address: null, DesktopId, "Example App", IconThemes, NullLogger<StatusNotifierTray>.Instance);
+        await using var bus = await PrivateBus.StartAsync(Token);
+        var watcher = await FakeTrayWatcher.StartAsync(bus);
+        var logind = await FakeLogind.StartAsync(bus, ("2", "KDE"), ("3", "gamescope"));
+        // The first reads fail, as reads do while a mode switch stops the desktop's processes.
+        var refused = Task.WhenAll(watcher.Reads.RefuseNextAsync(), logind.DisplayReads.RefuseNextAsync());
+        using var tray = new StatusNotifierTray(bus.Address, bus.Shared(), DesktopId, "Example App", IconThemes,
+            NullLogger<StatusNotifierTray>.Instance);
+        var told = new ConcurrentQueue<WindowReturn>();
+        tray.WindowReturnChanged += (_, _) => told.Enqueue(tray.WindowReturn);
+        await refused.WaitAsync(Token);
+        tray.WindowReturn.Should().Be(WindowReturn.Tray, "a read that failed keeps what was known");
+
+        watcher.SetHost(registered: false);
+        await Eventually.HoldsAsync(() => tray.WindowReturn == WindowReturn.AppMenu);
+        logind.SwitchTo("3");
+        await Eventually.HoldsAsync(() => tray.WindowReturn == WindowReturn.StoreLibrary);
+        logind.SwitchTo("2");
+        await Eventually.HoldsAsync(() => tray.WindowReturn == WindowReturn.AppMenu);
+        watcher.SetHost(registered: true);
+        await Eventually.HoldsAsync(() => tray.WindowReturn == WindowReturn.Tray);
+        await watcher.LeaveAsync();
+        await Eventually.HoldsAsync(() => tray.WindowReturn == WindowReturn.AppMenu);
+
+        told.Should().Equal(WindowReturn.AppMenu, WindowReturn.StoreLibrary, WindowReturn.AppMenu, WindowReturn.Tray, WindowReturn.AppMenu);
+    }
+
+    [Fact]
+    public async Task A_session_without_a_bus_shows_no_icon_and_brings_the_window_back_from_the_app_list()
+    {
+        using var system = new DBusConnection("");
+        using var tray = new StatusNotifierTray(address: null, system, DesktopId, "Example App", IconThemes,
+            NullLogger<StatusNotifierTray>.Instance);
 
         tray.Invoking(icon => icon.Show("Example App", [new TrayMenuItem("open", "Open Example App")])).Should().NotThrow();
+        await Eventually.HoldsAsync(() => tray.WindowReturn == WindowReturn.AppMenu);
     }
 
     private static (int Id, string Text)[] Entries(VariantValue[] children) =>

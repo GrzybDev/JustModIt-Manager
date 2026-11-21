@@ -1,42 +1,61 @@
+using System.Threading.Channels;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Platform.Linux.DBus;
+using JustModIt.Manager.Platform.Linux.DBus.Login;
 using Microsoft.Extensions.Logging;
 using Tmds.DBus.Protocol;
+using Logind = JustModIt.Manager.Platform.Linux.DBus.Login.Manager;
 
 namespace JustModIt.Manager.Platform.Linux;
 
 /// <summary>
 /// The tray icon of Linux desktops: a StatusNotifierItem with a dbusmenu menu, served on a connection of its own and
 /// registered with the desktop's tray watcher whenever one appears, so a session without one, such as Game Mode, shows no
-/// tray; events arrive on the connection's reading thread.
+/// tray; events arrive on the connections' reading threads. The window comes back from the icon while the watcher has a
+/// host that draws it, from Steam's library in gamescope's session, which logind names as the user's display session, and
+/// otherwise from the system's list of apps.
 /// </summary>
 public sealed partial class StatusNotifierTray : ITrayHost
 {
     private const string Watcher = "org.kde.StatusNotifierWatcher";
+    private const string Login = "org.freedesktop.login1";
 
     private readonly string _name = $"org.kde.StatusNotifierItem-{Environment.ProcessId}-1";
     private readonly DBusConnection _connection;
+    private readonly DBusConnection _system;
     private readonly Item _item;
     private readonly TrayMenu _menu;
     private readonly ILogger _logger;
     private readonly CancellationTokenSource _stop = new();
     private readonly TaskCompletionSource _shown = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    // A signal only asks for another look, which reads the newest state, so the signals that come before it make one look.
+    private readonly Channel<bool> _hostsChanged = OneLook();
+    private readonly Channel<bool> _sessionsChanged = OneLook();
     private volatile bool _registered;
 
-    /// <summary>Connects to the session's bus off the calling thread; the icon appears with the first <see cref="Show"/>.</summary>
+    // Most desktops have a tray, so the window's texts start with it until the watcher tells.
+    private bool _hasHost = true;
+    private bool _inGamescope;
+
+    /// <summary>Connects to the buses off the calling thread; the icon appears with the first <see cref="Show"/>.</summary>
     /// <param name="address">The session bus's address; null where the session has no bus.</param>
+    /// <param name="system">The system bus, on which logind tells the user's display session.</param>
     /// <param name="desktopId">The app's desktop entry, by which the desktop knows the app.</param>
     /// <param name="title">The app's name.</param>
     /// <param name="iconThemes">The folder of icon themes that holds the app's icon by its desktop entry's name; null for no icon.</param>
-    /// <param name="logger">Hears of a session without a bus and of a watcher that refused the icon.</param>
-    public StatusNotifierTray(string? address, string desktopId, string title, string? iconThemes, ILogger<StatusNotifierTray> logger)
+    /// <param name="logger">Hears of a session without a bus or logind and of a watcher that refused the icon.</param>
+    public StatusNotifierTray(string? address, DBusConnection system, string desktopId, string title, string? iconThemes,
+        ILogger<StatusNotifierTray> logger)
     {
         // Without an address the connection fails to connect, which the tray takes for a session without a bus.
         _connection = new DBusConnection(address ?? "");
+        _system = system;
         _item = new Item(this, desktopId, title, iconThemes);
         _menu = new TrayMenu(_connection, command => CommandInvoked?.Invoke(this, command));
         _logger = logger;
         _ = Task.Run(FollowAsync);
+        _ = Task.Run(FollowDisplayAsync);
     }
 
     public event EventHandler? Activated;
@@ -49,6 +68,12 @@ public sealed partial class StatusNotifierTray : ITrayHost
         add { }
         remove { }
     }
+
+    public event EventHandler? WindowReturnChanged;
+
+    public WindowReturn WindowReturn => Volatile.Read(ref _inGamescope) ? WindowReturn.StoreLibrary
+        : Volatile.Read(ref _hasHost) ? WindowReturn.Tray
+        : WindowReturn.AppMenu;
 
     public void Show(string tooltip, IReadOnlyList<TrayMenuItem> menu)
     {
@@ -77,6 +102,9 @@ public sealed partial class StatusNotifierTray : ITrayHost
         _connection.Dispose();
     }
 
+    private static Channel<bool> OneLook() =>
+        Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropWrite });
+
     private async Task FollowAsync()
     {
         try
@@ -84,16 +112,21 @@ public sealed partial class StatusNotifierTray : ITrayHost
             await _connection.ConnectAsync().ConfigureAwait(false);
             _connection.AddMethodHandlers([_item, _menu]);
             await _connection.RequestNameAsync(_name).ConfigureAwait(false);
-            await _shown.Task.WaitAsync(_stop.Token).ConfigureAwait(false);
             var watcher = new StatusNotifierWatcher(_connection, Watcher, "/StatusNotifierWatcher");
             using var owner = await _connection.WatchNameOwnerAsync(Watcher).ConfigureAwait(false);
             while (true)
             {
+                if (owner.GetCurrentOwner() is null)
+                {
+                    Change(ref _hasHost, false);
+                }
+
                 var current = await owner.WaitForOwnerAsync(_stop.Token).ConfigureAwait(false);
-                await RegisterAsync(watcher).ConfigureAwait(false);
                 // A watcher that comes back, as when the desktop's shell restarts, knows no icon until each registers again.
                 using var gone = CancellationTokenSource.CreateLinkedTokenSource(owner.GetOwnerChangedCancellationToken(current), _stop.Token);
-                await Task.Delay(Timeout.Infinite, gone.Token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                var registering = RegisterAsync(watcher, gone.Token);
+                await FollowHostsAsync(watcher, gone.Token).ConfigureAwait(false);
+                await registering.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
                 _registered = false;
             }
         }
@@ -104,12 +137,14 @@ public sealed partial class StatusNotifierTray : ITrayHost
         // Any other failure, such as a session without a bus, means no desktop will show the icon.
         catch (Exception exception)
         {
+            Change(ref _hasHost, false);
             LogNoTray(exception);
         }
     }
 
-    private async Task RegisterAsync(StatusNotifierWatcher watcher)
+    private async Task RegisterAsync(StatusNotifierWatcher watcher, CancellationToken watching)
     {
+        await _shown.Task.WaitAsync(watching).ConfigureAwait(false);
         // Set before the call, since the desktop reads the icon before the watcher replies, and a change in between must
         // reach it; a change signalled to nobody does no harm.
         _registered = true;
@@ -124,11 +159,97 @@ public sealed partial class StatusNotifierTray : ITrayHost
         }
     }
 
+    // A watcher may run while no host draws its icons, as on a desktop whose panel lost its tray.
+    private async Task FollowHostsAsync(StatusNotifierWatcher watcher, CancellationToken watching)
+    {
+        using var registered = await watcher.WatchStatusNotifierHostRegisteredAsync(() => _hostsChanged.Writer.TryWrite(true),
+            emitOnCapturedContext: false).ConfigureAwait(false);
+        using var unregistered = await watcher.WatchStatusNotifierHostUnregisteredAsync(() => _hostsChanged.Writer.TryWrite(true),
+            emitOnCapturedContext: false).ConfigureAwait(false);
+        try
+        {
+            while (true)
+            {
+                try
+                {
+                    Change(ref _hasHost, await watcher.GetIsStatusNotifierHostRegisteredAsync().ConfigureAwait(false));
+                }
+                // A watcher that leaves while it is read, as when Game Mode stops the desktop, answers nothing; its owner's
+                // change ends this look, and a watcher that stays is read again at its next signal.
+                catch (DBusErrorReplyException)
+                {
+                }
+
+                await _hostsChanged.Reader.ReadAsync(watching).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (watching.IsCancellationRequested)
+        {
+        }
+    }
+
+    // A switch between the desktop and Game Mode ends one session and starts another, which becomes the user's display.
+    private async Task FollowDisplayAsync()
+    {
+        try
+        {
+            var logind = new Logind(_system, Login, "/org/freedesktop/login1");
+            using var added = await logind.WatchSessionNewAsync(_ => _sessionsChanged.Writer.TryWrite(true), emitOnCapturedContext: false)
+                .ConfigureAwait(false);
+            using var removed = await logind.WatchSessionRemovedAsync(_ => _sessionsChanged.Writer.TryWrite(true), emitOnCapturedContext: false)
+                .ConfigureAwait(false);
+            var user = new User(_system, Login, await logind.GetUserByPIDAsync((uint)Environment.ProcessId).ConfigureAwait(false));
+            while (true)
+            {
+                Change(ref _inGamescope, Gamescope.IsSession(await DisplayDesktopAsync(user).ConfigureAwait(false)));
+                await _sessionsChanged.Reader.ReadAsync(_stop.Token).ConfigureAwait(false);
+            }
+        }
+        catch (Exception) when (_stop.IsCancellationRequested)
+        {
+        }
+        // Any other failure, such as a system without logind, leaves the way back to the tray's watcher alone.
+        catch (Exception exception)
+        {
+            LogNoDisplaySession(exception);
+        }
+    }
+
+    private async Task<string?> DisplayDesktopAsync(User user)
+    {
+        try
+        {
+            var (_, session) = await user.GetDisplayAsync().ConfigureAwait(false);
+            return session.ToString() == "/"
+                ? null
+                : await new Session(_system, Login, session).GetDesktopAsync().ConfigureAwait(false);
+        }
+        // The display or its session may end while they are read, as at a switch to Game Mode, which a session's signal tells.
+        catch (DBusErrorReplyException)
+        {
+            return null;
+        }
+    }
+
+    // Each fact has one writer, which tells a change after it took effect, so the last change is always told.
+    private void Change(ref bool fact, bool value)
+    {
+        var before = WindowReturn;
+        Volatile.Write(ref fact, value);
+        if (WindowReturn != before)
+        {
+            WindowReturnChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     [LoggerMessage(Level = LogLevel.Information, Message = "The session has no bus to show the tray icon on")]
     private partial void LogNoTray(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The desktop's tray watcher did not take the tray icon")]
     private partial void LogNotRegistered(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "logind tells no display session, so no store's game session is told apart")]
+    private partial void LogNoDisplaySession(Exception exception);
 
     /// <summary>The icon as StatusNotifierItem hosts read it.</summary>
     private sealed class Item : DBusHandler, IStatusNotifierItemHandler, IStatusNotifierItemProperties

@@ -14,7 +14,7 @@
   <ItemGroup>
     <AdditionalFiles Include="..\..\src\JustModIt.Manager.Platform.Linux\DBus\*.xml" Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus"
                      DBusGeneratorMode="Handler" />
-    <AdditionalFiles Update="..\..\src\JustModIt.Manager.Platform.Linux\DBus\org.freedesktop.login1.Manager.xml"
+    <AdditionalFiles Update="..\..\src\JustModIt.Manager.Platform.Linux\DBus\org.freedesktop.login1.*.xml"
                      Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus.Login" />
     <!-- The disks service's changes, which the app hears by a match of its own. -->
     <AdditionalFiles Include="DBus\*.xml" Namespace="JustModIt.Manager.Platform.Linux.Tests.DBus" DBusGeneratorMode="Handler" />

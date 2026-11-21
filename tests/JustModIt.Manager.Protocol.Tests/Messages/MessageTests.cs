@@ -191,8 +191,8 @@ public sealed class MessageTests
                 Kept = new KeptFilesSummary(["data/list.dat"], 1, new DateTimeOffset(2026, 10, 12, 18, 0, 0, TimeSpan.Zero)),
             },
         ]),
-        new StateChanged(AppStateView.From(3, State, Settings, new SiteConfiguration { Name = "Example Site" }, new ActivityView(),
-            new AppUpdateView()) with
+        new StateChanged(AppStateView.From(3, State, Settings, new SiteConfiguration { Name = "Example Site" },
+            new ActivityView { WindowReturn = WindowReturn.StoreLibrary }, new AppUpdateView()) with
         {
             PendingRecoveries = [new RecoveredOperation(RecordId, RecoveryOutcome.Failed)],
             UncleanExit = new UncleanExitView("1.0.0"),

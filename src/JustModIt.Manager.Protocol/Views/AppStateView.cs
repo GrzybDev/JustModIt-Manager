@@ -126,6 +126,9 @@ public sealed record ActivityView
 
     /// <summary>The app exits once the running jobs are done, and starts no new ones.</summary>
     public bool IsExitPending { get; init; }
+
+    /// <summary>How the player gets the window back once it is closed, which the window's texts follow.</summary>
+    public WindowReturn WindowReturn { get; init; }
 }
 
 public enum AppUpdateState

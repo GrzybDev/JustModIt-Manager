@@ -77,6 +77,15 @@ public sealed partial class WindowsTrayHost : ITrayHost, INotificationHost
 
     public event EventHandler? SessionEnding;
 
+    // Every Windows session has the notification area, which Explorer brings back when it restarts.
+    public event EventHandler? WindowReturnChanged
+    {
+        add { }
+        remove { }
+    }
+
+    public WindowReturn WindowReturn => WindowReturn.Tray;
+
     public void Show(string tooltip, IReadOnlyList<TrayMenuItem> menu)
     {
         lock (_gate)

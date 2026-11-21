@@ -33,6 +33,12 @@ public interface ITrayHost : IDisposable
     /// </summary>
     event EventHandler? SessionEnding;
 
+    /// <summary><see cref="WindowReturn"/> changed, as when the desktop's tray comes or goes.</summary>
+    event EventHandler? WindowReturnChanged;
+
+    /// <summary>How the player gets the window back in the session the app runs in now.</summary>
+    WindowReturn WindowReturn { get; }
+
     /// <summary>Shows the icon, or updates it when it is shown, ending texts longer than the system shows in an ellipsis.</summary>
     /// <param name="tooltip">The product name and the status, shown when the pointer rests on the icon.</param>
     /// <param name="menu">The entries of the icon's menu, in order.</param>
