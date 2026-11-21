@@ -156,8 +156,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     /// <summary>The button's label: after a refusal it promises no start, only another try.</summary>
     public string StartAgentText => StartRefused ? Strings.Library_Retry : Strings.Shell_StartAgent;
 
-    /// <summary>The logs folder is offered after a refusal, whose reason only the logs know.</summary>
-    public bool OffersLogsFolder => StartRefused;
+    /// <summary>The logs folder is offered after a refusal, whose reason only the logs know, except in Game Mode, which opens no folders.</summary>
+    public bool OffersLogsFolder => StartRefused && !_services.Context.InGameMode;
 
     /// <summary>The first-run setup, shown instead of the sidebar and the pages until it is done; null once it is.</summary>
     [ObservableProperty]
@@ -350,7 +350,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             about => Navigator.Open(AgentLinks.RoutesFor(new GameTarget(about.Game!.Value.Store.Value, about.Game.Value.StoreGameId),
                 Agent.State, ShowsCreator(Agent.State.Settings))),
             () => Navigator.Navigate(new SettingsRoute()),
-            Agent.State.SteamUi.RunningGame is null
+            Agent.State.SteamUi.RunningGame is null && !_services.Context.InGameMode
                 ? () => _ = AgentRequests.SendAsync(_services, new RestartSteam(), Strings.GamePage_RestartSteamFailed)
                 : null,
             Agent.State.Volumes));

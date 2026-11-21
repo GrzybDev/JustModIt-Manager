@@ -54,7 +54,8 @@ internal static class LaunchOptionsLines
 
     /// <summary>What the player adds in Steam by hand, since nothing can set the options; null for any other state.</summary>
     /// <param name="options">What the install's project needs of the launch options.</param>
-    public static ManualLaunchOptions? Manual(LaunchOptionsView? options)
+    /// <param name="inGameMode">The window runs in Game Mode, whose Steam reaches a game's properties another way.</param>
+    public static ManualLaunchOptions? Manual(LaunchOptionsView? options, bool inGameMode)
     {
         if (options is not { State: LaunchOptionsState.Manual })
         {
@@ -69,7 +70,7 @@ internal static class LaunchOptionsLines
         var count = ("count", (object?)needed.Count);
         var place = ("place", (object?)(overrides.Count == 0 ? "end" : others.Count == 0 ? "start" : "around"));
         return new ManualLaunchOptions(Text.Format(Strings.GamePage_LaunchOptionsManualTitle, count),
-            Text.Format(Strings.GamePage_LaunchOptionsManual, count, place), string.Join(' ', line));
+            Text.Format(Strings.GamePage_LaunchOptionsManual, count, place, OptionsPath(inGameMode)), string.Join(' ', line));
     }
 
     /// <summary>What an uninstall's result says of the launch options it takes out of Steam.</summary>
@@ -78,9 +79,15 @@ internal static class LaunchOptionsLines
     /// The way into Steam's interface: reached, the options are out already; out of reach, they go at the next chance; with
     /// none, the player takes them out.
     /// </param>
-    public static string Removed(IReadOnlyList<string> options, SteamUiView steam) =>
+    /// <param name="inGameMode">The window runs in Game Mode, whose Steam reaches a game's properties another way.</param>
+    public static string Removed(IReadOnlyList<string> options, SteamUiView steam, bool inGameMode) =>
         Text.Format(Strings.GamePage_LaunchOptionsRemoved, ("count", options.Count), ("options", string.Join(' ', options)),
-            ("way", steam.Delivery == SteamUiDelivery.None || steam.PluginDisabled ? "manual" : steam.Reachable ? "reachable" : "waiting"));
+            ("way", steam.Delivery == SteamUiDelivery.None || steam.PluginDisabled ? "manual" : steam.Reachable ? "reachable" : "waiting"),
+            OptionsPath(inGameMode));
+
+    // Game Mode's Steam has no context menu on a game, only the cog button on its page.
+    private static (string, object?) OptionsPath(bool inGameMode) =>
+        ("path", Text.Format(Strings.GamePage_LaunchOptionsPath, ("session", inGameMode ? "game" : "desktop")));
 
     // Only those Steam lacks, once the player's options were read.
     private static IReadOnlyList<string> Needed(LaunchOptionsView options) => options.Missing.Count > 0 ? options.Missing : options.Options;

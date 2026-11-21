@@ -115,6 +115,10 @@ public sealed partial class BackupsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool ShowsFolder { get; private set; }
 
+    /// <summary>Another folder is offered: anywhere but Game Mode, which has no folder picker, unless it is chosen already.</summary>
+    [ObservableProperty]
+    public partial bool OffersFolder { get; private set; }
+
     /// <summary>The free space on the picked folder's drive; null while unknown.</summary>
     [ObservableProperty]
     public partial string? FreeSpace { get; private set; }
@@ -183,6 +187,7 @@ public sealed partial class BackupsViewModel : ObservableObject
         _syncing = false;
         CustomFolder = settings.CustomBackupFolder;
         ShowsFolder = settings.BackupLocation == BackupLocation.CustomFolder;
+        OffersFolder = ShowsFolder || !_services.Context.InGameMode;
 
         var installs = state.Games.SelectMany(game => game.Installs.Select(install => new GameInstall(game, install))).ToList();
         var unreachable = installs.Where(entry => entry.Install.BackupsUnavailable).ToList();

@@ -2271,6 +2271,9 @@
   <data name="Settings_FreeSpace" xml:space="preserve">
     <value>Wolne miejsce na dysku {volume, select, home {z folderem domowym} other {{drive}}} {space}</value>
   </data>
+  <data name="Settings_BackupFolderInGameMode" xml:space="preserve">
+    <value>Folder zmienia się w trybie pulpitu.</value>
+  </data>
   <data name="Settings_BackupFolderProblem" xml:space="preserve">
     <value>{problem, select, NotFullyQualified {To nie jest pełna ścieżka folderu.} Missing {Ten folder nie istnieje.} NetworkFolder {Folder sieciowy może zniknąć akurat wtedy, gdy grze trzeba przywrócić oryginały, dlatego kopie mogą trafić tylko na dysk lokalny.} NotWritable {Aplikacja nie może zapisywać w tym folderze.} InsideGameFolder {Sklep może usunąć albo sprawdzić folder gry, dlatego kopie nie mogą trafić do jego środka.} InsideAppFolder {Aktualizacje aplikacji zastępują jej folder, dlatego kopie nie mogą trafić do jego środka.} other {Ten folder nie może przechować kopii.}}</value>
   </data>
@@ -2366,6 +2369,9 @@
   </data>
   <data name="Settings_CreatorModeDescription" xml:space="preserve">
     <value>Pokazuje {creator} – narzędzie do tworzenia paczek z własnymi projektami do gier.</value>
+  </data>
+  <data name="Settings_CreatorModeInGameMode" xml:space="preserve">
+    <value>W trybie gry {creator} jest ukryty; działa w trybie pulpitu.</value>
   </data>
   <data name="Settings_DiskUsage" xml:space="preserve">
     <value>Miejsce na dysku</value>
@@ -2673,6 +2679,9 @@
   <data name="Undetected_AddGameText" xml:space="preserve">
     <value>Folder gry z GOG z plikiem goggame-….info, folder z takimi grami albo folder gry z Epic Games Store z folderem .egstore.</value>
   </data>
+  <data name="Undetected_FoldersInGameMode" xml:space="preserve">
+    <value>Foldery dodaje się w trybie pulpitu.</value>
+  </data>
   <data name="Undetected_PickLibraryTitle" xml:space="preserve">
     <value>Folder biblioteki sklepu</value>
   </data>
@@ -2863,7 +2872,10 @@
     <value>Aplikacja {product} została nieoczekiwanie zamknięta</value>
   </data>
   <data name="Shell_UncleanExitMessage" xml:space="preserve">
-    <value>Pliki gier są bezpieczne – niedokończone zmiany zostały cofnięte przy uruchomieniu aplikacji. Jeśli sytuacja się powtarza, warto zapisać raport diagnostyczny i dołączyć go do zgłoszenia problemu.</value>
+    <value>Pliki gier są bezpieczne – niedokończone zmiany zostały cofnięte przy uruchomieniu aplikacji.</value>
+  </data>
+  <data name="Shell_UncleanExitSaveHint" xml:space="preserve">
+    <value>Jeśli sytuacja się powtarza, warto zapisać raport diagnostyczny i dołączyć go do zgłoszenia problemu.</value>
   </data>
   <data name="Shell_UncleanExitCrash" xml:space="preserve">
     <value>Przyczyna: błąd {error} w wersji {version}.</value>
@@ -2893,7 +2905,7 @@
     <value>Okno aplikacji {product} zostało nieoczekiwanie zamknięte</value>
   </data>
   <data name="Shell_UncleanExitWindowMessage" xml:space="preserve">
-    <value>Pliki gier są bezpieczne – okno nie zmienia ich samo, a aplikacja działała dalej w tle. Jeśli sytuacja się powtarza, warto zapisać raport diagnostyczny i dołączyć go do zgłoszenia problemu.</value>
+    <value>Pliki gier są bezpieczne – okno nie zmienia ich samo, a aplikacja działała dalej w tle.</value>
   </data>
   <data name="Shell_ErrorReportTitle" xml:space="preserve">
     <value>Raport o błędzie</value>
@@ -4197,8 +4209,11 @@
   <data name="GamePage_LaunchOptionsManualTitle" xml:space="preserve">
     <value>{count, plural, one {Projekt wymaga parametru uruchamiania} other {Projekt wymaga parametrów uruchamiania}}</value>
   </data>
+  <data name="GamePage_LaunchOptionsPath" xml:space="preserve">
+    <value>{session, select, game {strona gry › przycisk z kołem zębatym › Właściwości › Opcje uruchamiania} other {prawy przycisk na grze › Właściwości › Opcje uruchamiania}}</value>
+  </data>
   <data name="GamePage_LaunchOptionsManual" xml:space="preserve">
-    <value>W bibliotece Steama: prawy przycisk na grze › Właściwości › Opcje uruchamiania. {place, select, start {Parametry dopisuje się na początku pola, bez %command%, jeśli pole już go zawiera. Jeśli pole już ustawia WINEDLLOVERRIDES, podaną tu wartość dopisuje się do tamtej po średniku, a całą wartość ujmuje w cudzysłów.} around {Parametry do %command% dopisuje się na początku pola, bez %command%, jeśli pole już go zawiera, a pozostałe na końcu. Jeśli pole już ustawia WINEDLLOVERRIDES, podaną tu wartość dopisuje się do tamtej po średniku, a całą wartość ujmuje w cudzysłów.} other {{count, plural, one {Parametr dopisuje się na końcu pola.} other {Parametry dopisuje się na końcu pola.}}}}</value>
+    <value>W bibliotece Steama: {path}. {place, select, start {Parametry dopisuje się na początku pola, bez %command%, jeśli pole już go zawiera. Jeśli pole już ustawia WINEDLLOVERRIDES, podaną tu wartość dopisuje się do tamtej po średniku, a całą wartość ujmuje w cudzysłów.} around {Parametry do %command% dopisuje się na początku pola, bez %command%, jeśli pole już go zawiera, a pozostałe na końcu. Jeśli pole już ustawia WINEDLLOVERRIDES, podaną tu wartość dopisuje się do tamtej po średniku, a całą wartość ujmuje w cudzysłów.} other {{count, plural, one {Parametr dopisuje się na końcu pola.} other {Parametry dopisuje się na końcu pola.}}}}</value>
   </data>
   <data name="GamePage_Copy" xml:space="preserve">
     <value>Kopiuj</value>
@@ -4210,7 +4225,7 @@
     <value>Skopiowano do schowka</value>
   </data>
   <data name="GamePage_LaunchOptionsRemoved" xml:space="preserve">
-    <value>{way, select, reachable {{count, plural, one {Usunięto parametr uruchamiania {options} dodany przy instalacji} other {Usunięto parametry uruchamiania {options} dodane przy instalacji}}} waiting {{count, plural, one {Parametr uruchamiania {options} dodany przy instalacji zniknie ze Steama przy najbliższej okazji, najpóźniej przy jego następnym uruchomieniu} other {Parametry uruchamiania {options} dodane przy instalacji znikną ze Steama przy najbliższej okazji, najpóźniej przy jego następnym uruchomieniu}}} other {{count, plural, one {Parametr uruchamiania {options} dodany przy instalacji został w Steamie; można go usunąć w bibliotece: prawy przycisk na grze › Właściwości › Opcje uruchamiania} other {Parametry uruchamiania {options} dodane przy instalacji zostały w Steamie; można je usunąć w bibliotece: prawy przycisk na grze › Właściwości › Opcje uruchamiania}}}}; pozostałe opcje uruchamiania zostały bez zmian.</value>
+    <value>{way, select, reachable {{count, plural, one {Usunięto parametr uruchamiania {options} dodany przy instalacji} other {Usunięto parametry uruchamiania {options} dodane przy instalacji}}} waiting {{count, plural, one {Parametr uruchamiania {options} dodany przy instalacji zniknie ze Steama przy najbliższej okazji, najpóźniej przy jego następnym uruchomieniu} other {Parametry uruchamiania {options} dodane przy instalacji znikną ze Steama przy najbliższej okazji, najpóźniej przy jego następnym uruchomieniu}}} other {{count, plural, one {Parametr uruchamiania {options} dodany przy instalacji został w Steamie; można go usunąć w bibliotece: {path}} other {Parametry uruchamiania {options} dodane przy instalacji zostały w Steamie; można je usunąć w bibliotece: {path}}}}}; pozostałe opcje uruchamiania zostały bez zmian.</value>
   </data>
   <data name="Settings_Achievements" xml:space="preserve">
     <value>Osiągnięcia Steam</value>

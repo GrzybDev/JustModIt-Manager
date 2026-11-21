@@ -2288,6 +2288,9 @@
   <data name="Settings_FreeSpace" xml:space="preserve">
     <value>{space} free on {volume, select, home {the home folder's disk} other {drive {drive}}}</value>
   </data>
+  <data name="Settings_BackupFolderInGameMode" xml:space="preserve">
+    <value>The folder is changed in Desktop Mode.</value>
+  </data>
   <data name="Settings_BackupFolderProblem" xml:space="preserve">
     <value>{problem, select, NotFullyQualified {This is not a whole path of a folder.} Missing {This folder does not exist.} NetworkFolder {A network folder may be gone exactly when a game needs its originals back, so only a local drive can hold the backups.} NotWritable {The app cannot write to this folder.} InsideGameFolder {A store may remove or check a game's folder, so the backups cannot go inside one.} InsideAppFolder {The app's updates replace its own folder, so the backups cannot go inside it.} other {This folder cannot hold the backups.}}</value>
   </data>
@@ -2383,6 +2386,9 @@
   </data>
   <data name="Settings_CreatorModeDescription" xml:space="preserve">
     <value>Shows {creator}, a tool for making packages of one's own projects for games.</value>
+  </data>
+  <data name="Settings_CreatorModeInGameMode" xml:space="preserve">
+    <value>In Game Mode {creator} is hidden; it works in Desktop Mode.</value>
   </data>
   <data name="Settings_DiskUsage" xml:space="preserve">
     <value>Disk space</value>
@@ -2690,6 +2696,9 @@
   <data name="Undetected_AddGameText" xml:space="preserve">
     <value>A GOG game folder with its goggame-….info file, a folder of such games, or an Epic Games Store game folder with its .egstore folder.</value>
   </data>
+  <data name="Undetected_FoldersInGameMode" xml:space="preserve">
+    <value>Folders are added in Desktop Mode.</value>
+  </data>
   <data name="Undetected_PickLibraryTitle" xml:space="preserve">
     <value>A store's library folder</value>
   </data>
@@ -2880,7 +2889,10 @@
     <value>{product} closed unexpectedly</value>
   </data>
   <data name="Shell_UncleanExitMessage" xml:space="preserve">
-    <value>The games' files are safe: changes left unfinished were undone when the app started. If this happens again, a diagnostic report saved here helps with a problem report.</value>
+    <value>The games' files are safe: changes left unfinished were undone when the app started.</value>
+  </data>
+  <data name="Shell_UncleanExitSaveHint" xml:space="preserve">
+    <value>If this happens again, a diagnostic report saved here helps with a problem report.</value>
   </data>
   <data name="Shell_UncleanExitCrash" xml:space="preserve">
     <value>Cause: the error {error} in version {version}.</value>
@@ -2910,7 +2922,7 @@
     <value>The {product} window closed unexpectedly</value>
   </data>
   <data name="Shell_UncleanExitWindowMessage" xml:space="preserve">
-    <value>The games' files are safe: the window never changes them itself, and the app kept running in the background. If this happens again, a diagnostic report saved here helps with a problem report.</value>
+    <value>The games' files are safe: the window never changes them itself, and the app kept running in the background.</value>
   </data>
   <data name="Shell_ErrorReportTitle" xml:space="preserve">
     <value>Error report</value>
@@ -4214,8 +4226,11 @@
   <data name="GamePage_LaunchOptionsManualTitle" xml:space="preserve">
     <value>{count, plural, one {The project needs a launch option} other {The project needs launch options}}</value>
   </data>
+  <data name="GamePage_LaunchOptionsPath" xml:space="preserve">
+    <value>{session, select, game {the game's page › the cog button › Properties › Launch options} other {right-click the game › Properties › Launch options}}</value>
+  </data>
   <data name="GamePage_LaunchOptionsManual" xml:space="preserve">
-    <value>In Steam's library: right-click the game › Properties › Launch options. {place, select, start {The options go at the start of the field, without %command% when the field holds it already. When the field already sets WINEDLLOVERRIDES, the value given here is added to that one instead, after a semicolon, with the whole value in quotes.} around {The options up to %command% go at the start of the field, without %command% when the field holds it already, and the others at the end. When the field already sets WINEDLLOVERRIDES, the value given here is added to that one instead, after a semicolon, with the whole value in quotes.} other {{count, plural, one {The option goes at the end of the field.} other {The options go at the end of the field.}}}}</value>
+    <value>In Steam's library: {path}. {place, select, start {The options go at the start of the field, without %command% when the field holds it already. When the field already sets WINEDLLOVERRIDES, the value given here is added to that one instead, after a semicolon, with the whole value in quotes.} around {The options up to %command% go at the start of the field, without %command% when the field holds it already, and the others at the end. When the field already sets WINEDLLOVERRIDES, the value given here is added to that one instead, after a semicolon, with the whole value in quotes.} other {{count, plural, one {The option goes at the end of the field.} other {The options go at the end of the field.}}}}</value>
   </data>
   <data name="GamePage_Copy" xml:space="preserve">
     <value>Copy</value>
@@ -4227,7 +4242,7 @@
     <value>Copied to the clipboard</value>
   </data>
   <data name="GamePage_LaunchOptionsRemoved" xml:space="preserve">
-    <value>{way, select, reachable {{count, plural, one {The launch option {options} added at the install was taken out of Steam} other {The launch options {options} added at the install were taken out of Steam}}} waiting {{count, plural, one {The launch option {options} added at the install leaves Steam at the next chance, at the latest when Steam next starts} other {The launch options {options} added at the install leave Steam at the next chance, at the latest when Steam next starts}}} other {{count, plural, one {The launch option {options} added at the install stays in Steam, where it can be taken out in the library: right-click the game › Properties › Launch options} other {The launch options {options} added at the install stay in Steam, where they can be taken out in the library: right-click the game › Properties › Launch options}}}}; the other launch options stay as they were.</value>
+    <value>{way, select, reachable {{count, plural, one {The launch option {options} added at the install was taken out of Steam} other {The launch options {options} added at the install were taken out of Steam}}} waiting {{count, plural, one {The launch option {options} added at the install leaves Steam at the next chance, at the latest when Steam next starts} other {The launch options {options} added at the install leave Steam at the next chance, at the latest when Steam next starts}}} other {{count, plural, one {The launch option {options} added at the install stays in Steam, where it can be taken out in the library: {path}} other {The launch options {options} added at the install stay in Steam, where they can be taken out in the library: {path}}}}}; the other launch options stay as they were.</value>
   </data>
   <data name="Settings_Achievements" xml:space="preserve">
     <value>Steam achievements</value>

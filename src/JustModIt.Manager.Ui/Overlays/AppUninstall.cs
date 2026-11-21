@@ -1,5 +1,4 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Pages.Library;
@@ -29,12 +28,11 @@ public sealed partial class AppUninstall(UiServices services) : ObservableObject
     public event EventHandler? AppDataRequested;
 
     /// <summary>
-    /// Whether the uninstall is offered: where the app uninstalls itself, outside a store's game session, which has no desktop
-    /// to uninstall from.
+    /// Whether the uninstall is offered: where the app uninstalls itself, outside Game Mode, which would be left with a shortcut
+    /// to nothing and a window with no way back.
     /// </summary>
     /// <param name="state">The agent's state.</param>
-    public static bool IsOffered(AppStateView state) =>
-        state.AppUninstall is not null && state.Activity.WindowReturn != WindowReturn.StoreLibrary;
+    public bool IsOffered(AppStateView state) => state.AppUninstall is not null && !services.Context.InGameMode;
 
     /// <summary>Asks, then uninstalls the app; nothing happens where it is not offered or while the question is open.</summary>
     public async Task ConfirmAsync()

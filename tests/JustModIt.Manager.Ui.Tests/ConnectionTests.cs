@@ -49,13 +49,17 @@ public sealed class ConnectionTests
         waiting.IsVisible.Should().BeFalse("a faded view and its loops would go on drawing under the pages, and a screen reader would read it");
     }
 
-    [AvaloniaFact]
-    public async Task A_refused_start_of_the_background_part_is_said_instead_of_no_answer()
+    // The same walk on the desktop and in Game Mode, which opens no folders.
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_refused_start_of_the_background_part_is_said_instead_of_no_answer(bool inGameMode)
     {
         var answers = Channel.CreateUnbounded<bool>();
         var (starts, onUiThread) = (0, false);
         using var ui = new UiHarness(context: context => context with
         {
+            Frame = inGameMode ? WindowFrame.Screen : context.Frame,
             StartAgent = () =>
             {
                 Interlocked.Increment(ref starts);
@@ -63,6 +67,12 @@ public sealed class ConnectionTests
                 return answers.Reader.ReadAsync().AsTask().GetAwaiter().GetResult();
             },
         });
+        var mode = inGameMode ? "-game-mode" : "";
+        if (inGameMode)
+        {
+            ui.SizeToDeck();
+        }
+
         ui.Agent.Link = AgentLink.Connecting;
         UiHarness.Settle();
         var button = ui.Find<Button>("StartAgentButton");
@@ -78,7 +88,7 @@ public sealed class ConnectionTests
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(200));
         (ui.Shell.IsStartingAgent, button.IsFocused, button.Classes.Contains("waiting")).Should().Be((true, true, true),
             "the button waits for the system where it stands");
-        ui.Render("connecting-start-waiting");
+        ui.Render("connecting-start-waiting" + mode);
 
         answers.Writer.TryWrite(false);
         await UiHarness.WaitUntilAsync(() => ui.Shell.ShowsRefusal);
@@ -86,9 +96,14 @@ public sealed class ConnectionTests
             .Be((Strings.Shell_StartAgentFailedTitle, Strings.Library_Retry, false));
         button.IsFocused.Should().BeTrue();
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
-        ui.Render("connecting-start-refused");
-        ui.Click(ui.Find<Button>().Single(found => Equals(found.Content, Strings.Settings_LogsFolder)));
-        ui.Links.Folders.Should().Equal(ui.Session.Services.Context.LogsDirectory);
+        ui.Render("connecting-start-refused" + mode);
+        var logs = ui.Find<Button>().Single(found => Equals(found.Content, Strings.Settings_LogsFolder));
+        logs.IsEffectivelyVisible.Should().Be(!inGameMode, "Game Mode opens no folders");
+        if (!inGameMode)
+        {
+            ui.Click(logs);
+            ui.Links.Folders.Should().Equal(ui.Session.Services.Context.LogsDirectory);
+        }
 
         // Started this time, the agent gets its usual time before the window offers to start it again.
         ui.Shell.StartAgentCommand.Execute(null);
@@ -101,7 +116,7 @@ public sealed class ConnectionTests
         (starts, onUiThread).Should().Be((2, false), "a press while the button waited started nothing, and none ran on the UI thread");
 
         ui.Agent.Link = AgentLink.Connected;
-        ui.Push(TestStates.Idle());
+        ui.Push(TestStates.Idle() with { Settings = TestStates.Idle().Settings with { ControlsHintShown = true } });
         (ui.Shell.ShowsPages, ui.Shell.IsSlowToConnect, ui.Shell.StartRefused).Should().Be((true, false, false));
     }
 

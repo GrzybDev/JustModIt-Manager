@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using JustModIt.Manager.Core.Jobs;
-using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
@@ -133,7 +132,7 @@ public sealed class AppUninstallTests
     }
 
     [AvaloniaFact]
-    public async Task The_row_waits_for_the_jobs_and_is_offered_neither_where_the_system_uninstalls_the_app_nor_in_game_mode()
+    public async Task The_row_waits_for_the_jobs_and_is_not_offered_where_the_system_uninstalls_the_app()
     {
         var game = Installed("Ember Hollow", "4100");
         var state = TestStates.Idle() with { AppUninstall = Offer, Games = [game] };
@@ -148,9 +147,7 @@ public sealed class AppUninstallTests
 
         ui.Push(state with { Version = 10 });
         ui.Find<Button>("UninstallApp").IsEffectivelyEnabled.Should().BeTrue();
-        ui.Push(state with { Version = 11, Activity = new ActivityView { WindowReturn = WindowReturn.StoreLibrary } });
-        ui.Find<SettingRow>("UninstallAppRow").IsVisible.Should().BeFalse("a store's game session has no desktop to uninstall from");
-        ui.Push(state with { Version = 12, AppUninstall = null });
+        ui.Push(state with { Version = 11, AppUninstall = null });
         ui.Find<SettingRow>("UninstallAppRow").IsVisible.Should().BeFalse();
     }
 
@@ -170,13 +167,6 @@ public sealed class AppUninstallTests
         ui.Shell.Navigator.CurrentRoute.Should().Be(new SettingsRoute());
         ui.Shell.Dialogs.Current.Should().BeOfType<AppUninstallDialogViewModel>();
         ui.Agent.Requests.OfType<UninstallApp>().Should().BeEmpty("the question still asks");
-
-        ui.Shell.Dialogs.CancelCurrent();
-        ui.Push(TestStates.Idle() with { Version = 2, AppUninstall = Offer, Activity = new ActivityView { WindowReturn = WindowReturn.StoreLibrary } });
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
-        ui.Agent.Navigate(new UninstallAppTarget());
-        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
-        ui.Shell.Dialogs.IsOpen.Should().BeFalse("a store's game session has no desktop to uninstall from");
     }
 
     private static async Task<UiHarness> OpenAsync(AppStateView state)

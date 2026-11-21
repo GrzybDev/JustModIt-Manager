@@ -21,7 +21,8 @@ public static class NoticeToasts
     /// <param name="showGame">Opens the game a notice is about.</param>
     /// <param name="showSettings">Opens the settings, where kept copies are listed.</param>
     /// <param name="restartSteam">
-    /// Starts Steam again, which shows achievement texts that wait for it; null while a Steam game runs, which a restart would close.
+    /// Starts Steam again, which shows achievement texts that wait for it; null while a Steam game runs, which a restart would close,
+    /// and in Game Mode, whose window it would close.
     /// </param>
     /// <param name="volumes">The system's drives and shares, which name the drive of a failure's place.</param>
     public static ToastViewModel Create(NoticeView notice, Action<NoticeView> showGame, Action showSettings, Action? restartSteam,

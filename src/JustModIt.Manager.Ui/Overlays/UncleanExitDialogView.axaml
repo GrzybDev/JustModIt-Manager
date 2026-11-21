@@ -93,7 +93,7 @@
       <!-- The way out comes first, so the dialog's focus starts on it; the tab order follows the buttons as they stand. -->
       <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
         <Button x:Name="SaveReport" Classes="quiet" KeyboardNavigation.TabIndex="1" Content="{x:Static loc:Strings.Shell_SaveReport}"
-                ui:ButtonAssist.Icon="{x:Static theme:Icons.Save}" Command="{Binding SaveReportCommand}" />
+                ui:ButtonAssist.Icon="{x:Static theme:Icons.Save}" Command="{Binding SaveReportCommand}" IsVisible="{Binding CanSaveReport}" />
         <Button x:Name="CloseDialog" Grid.Column="2" Classes="quiet" KeyboardNavigation.TabIndex="2" Content="{x:Static loc:Strings.Shell_Close}"
                 Command="{Binding CancelCommand}" />
         <Button x:Name="ReportProblem" Grid.Column="3" Classes="outline" KeyboardNavigation.TabIndex="3" IsVisible="{Binding CanReport}"

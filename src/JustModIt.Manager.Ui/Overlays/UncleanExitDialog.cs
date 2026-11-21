@@ -51,7 +51,9 @@ public sealed partial class UncleanExitDialogViewModel : DialogViewModel<bool>
         _report = ProblemReports.Address(services.Context);
         Title = Text.Format(exit.IsWindow ? Strings.Shell_UncleanExitWindowTitle : Strings.Shell_UncleanExitTitle,
             ("product", services.Context.ProductName));
-        Message = exit.IsWindow ? Strings.Shell_UncleanExitWindowMessage : Strings.Shell_UncleanExitMessage;
+        CanSaveReport = !services.Context.InGameMode;
+        Message = (exit.IsWindow ? Strings.Shell_UncleanExitWindowMessage : Strings.Shell_UncleanExitMessage)
+            + (CanSaveReport ? " " + Strings.Shell_UncleanExitSaveHint : "");
         Detail = exit.CrashType is { } crash ? Text.Format(Strings.Shell_UncleanExitCrash, ("error", crash), ("version", exit.Version))
             : exit.Version.Length > 0 ? Text.Format(Strings.Shell_UncleanExitKilled, ("version", exit.Version))
             : null;
@@ -75,6 +77,9 @@ public sealed partial class UncleanExitDialogViewModel : DialogViewModel<bool>
     public string? Detail { get; }
 
     public bool CanReport => _report is not null;
+
+    /// <summary>The logs can be saved as a diagnostic report, which needs a file picker that Game Mode lacks.</summary>
+    public bool CanSaveReport { get; }
 
     /// <summary>The crash's report can be sent: the run crashed, and the build has somewhere to send it.</summary>
     public bool CanSendReport => _errorReport is not null;

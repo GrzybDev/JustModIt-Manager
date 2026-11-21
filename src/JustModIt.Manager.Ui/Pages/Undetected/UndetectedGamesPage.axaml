@@ -52,8 +52,8 @@
               <ColumnDefinition Width="Auto" SharedSizeGroup="open" />
             </Grid.ColumnDefinitions>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="32">
-              <TextBlock Classes="overline" Text="{Binding FoundHeading}" />
-              <TextBlock Grid.Column="1" Classes="overline" Text="{Binding HowToHeading}" />
+              <TextBlock Classes="overline" Text="{Binding FoundHeading}" TextWrapping="Wrap" />
+              <TextBlock Grid.Column="1" Classes="overline" Text="{Binding HowToHeading}" TextWrapping="Wrap" />
             </Grid>
           </Grid>
 
@@ -114,17 +114,19 @@
             <Grid ColumnDefinitions="*,*" ColumnSpacing="32">
               <StackPanel Spacing="8">
                 <Button x:Name="AddLibrary" Classes="outline" HorizontalAlignment="Left" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderPlus}"
-                        Content="{x:Static loc:Strings.Undetected_AddLibrary}" Command="{Binding AddLibraryCommand}"
+                        Content="{x:Static loc:Strings.Undetected_AddLibrary}" Command="{Binding AddLibraryCommand}" IsVisible="{Binding !InGameMode}"
                         AutomationProperties.HelpText="{x:Static loc:Strings.Undetected_AddLibraryText}" />
                 <TextBlock Classes="caption" Text="{x:Static loc:Strings.Undetected_AddLibraryText}" />
               </StackPanel>
               <StackPanel Grid.Column="1" Spacing="8">
                 <Button x:Name="AddGame" Classes="outline" HorizontalAlignment="Left" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderSearch}"
-                        Content="{x:Static loc:Strings.Undetected_AddGame}" Command="{Binding AddGameCommand}"
+                        Content="{x:Static loc:Strings.Undetected_AddGame}" Command="{Binding AddGameCommand}" IsVisible="{Binding !InGameMode}"
                         AutomationProperties.HelpText="{x:Static loc:Strings.Undetected_AddGameText}" />
                 <TextBlock Classes="caption" Text="{x:Static loc:Strings.Undetected_AddGameText}" />
               </StackPanel>
             </Grid>
+            <ui:StatusLine x:Name="FoldersInGameMode" Icon="{x:Static theme:Icons.Monitor}" Detail="{x:Static loc:Strings.Undetected_FoldersInGameMode}"
+                           FontSize="13" Foreground="{StaticResource TextBodyBrush}" IsVisible="{Binding InGameMode}" />
             <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsAdding}">
               <ui:ProgressRing Width="16" Height="16" Thickness="2" />
               <TextBlock Classes="caption" Text="{x:Static loc:Strings.Undetected_Adding}" VerticalAlignment="Center" />

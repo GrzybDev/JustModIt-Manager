@@ -61,6 +61,9 @@ public sealed partial class UndetectedGamesViewModel : PageViewModel, IDisposabl
 
     public ObservableCollection<StoreSection> Stores { get; } = [];
 
+    /// <summary>The window runs in Game Mode, which has no folder picker and shows no store client but Steam.</summary>
+    public bool InGameMode => _services.Context.InGameMode;
+
     /// <summary>The report is being read for the first time.</summary>
     [ObservableProperty]
     public partial bool IsLoading { get; private set; } = true;
@@ -181,14 +184,15 @@ public sealed partial class UndetectedGamesViewModel : PageViewModel, IDisposabl
         Stores.Clear();
         for (var index = 0; index < _report.Stores.Count; index++)
         {
-            Stores.Add(Section(_report.Stores[index], hints[index], games));
+            Stores.Add(Section(_report.Stores[index], hints[index], games, InGameMode));
         }
 
         IsLoading = false;
         ShowResult();
     }
 
-    private static StoreSection Section(StoreDetectionView store, MarkdownDocument? hint, IReadOnlyList<GameView> games)
+    // Game Mode shows only the windows of what Steam starts, so of the clients only Steam's own comes to the front there.
+    private static StoreSection Section(StoreDetectionView store, MarkdownDocument? hint, IReadOnlyList<GameView> games, bool inGameMode)
     {
         var known = StoreId.TryParse(store.Store, out var id);
         var name = store.Launcher is { Length: > 0 } launcher ? launcher
@@ -221,7 +225,8 @@ public sealed partial class UndetectedGamesViewModel : PageViewModel, IDisposabl
             }
         }
 
-        return new StoreSection(store.Store, name, detail, warnings, hint, PageLinks.StoreClient(store));
+        var client = inGameMode && store.Store != StoreId.Steam.Value ? null : PageLinks.StoreClient(store);
+        return new StoreSection(store.Store, name, detail, warnings, hint, client);
     }
 
     private void ShowResult()

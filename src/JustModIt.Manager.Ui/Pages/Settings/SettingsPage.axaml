@@ -90,7 +90,7 @@
                            Title="{x:Static loc:Strings.Settings_CloseBehavior}"
                            Message="{Binding CloseBehaviorDescription}">
               <StackPanel Spacing="10">
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <ui:PixelUniformGrid Rows="1" ColumnSpacing="12">
                   <RadioButton x:Name="CloseAsk" Theme="{StaticResource ChoiceTile}"
                                IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Ask}}"
                                AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CloseAsk}"
@@ -98,21 +98,21 @@
                     <ui:TileContent Icon="{x:Static theme:Icons.CircleHelp}" Title="{x:Static loc:Strings.Onboarding_CloseAsk}"
                                     Message="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
                   </RadioButton>
-                  <RadioButton x:Name="CloseKeepRunning" Grid.Column="1" Theme="{StaticResource ChoiceTile}"
+                  <RadioButton x:Name="CloseKeepRunning" Theme="{StaticResource ChoiceTile}"
                                IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.KeepRunning}}"
                                AutomationProperties.Name="{x:Static overlays:CloseFlow.KeepRunningTitle}"
                                AutomationProperties.HelpText="{x:Static loc:Strings.Shell_KeepRunningDescription}">
                     <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static overlays:CloseFlow.KeepRunningTitle}"
                                     Message="{x:Static loc:Strings.Shell_KeepRunningDescription}" />
                   </RadioButton>
-                  <RadioButton x:Name="CloseExit" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
+                  <RadioButton x:Name="CloseExit" Theme="{StaticResource ChoiceTile}"
                                IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Exit}}"
                                AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseExit}"
                                AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseExitDescription}">
                     <ui:TileContent Icon="{x:Static theme:Icons.Power}" Title="{x:Static loc:Strings.Shell_CloseExit}"
                                     Message="{x:Static loc:Strings.Shell_CloseExitDescription}" />
                   </RadioButton>
-                </Grid>
+                </ui:PixelUniformGrid>
                 <TextBlock Classes="caption" LineHeight="20" TextWrapping="Wrap" Text="{x:Static loc:Strings.Settings_CloseInGameMode}"
                            IsVisible="{Binding IsInStoreSession}" />
               </StackPanel>
@@ -234,7 +234,7 @@
             <ui:SettingRow Classes="stacked" Icon="{x:Static theme:Icons.Archive}" Title="{x:Static loc:Strings.Settings_BackupLocation}"
                            Message="{x:Static loc:Strings.Settings_BackupLocationDescription}">
               <StackPanel Spacing="16">
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <ui:PixelUniformGrid Rows="1" ColumnSpacing="12">
                   <RadioButton x:Name="BackupsInGameFolder" Theme="{StaticResource ChoiceTile}"
                                IsChecked="{Binding Backups.Location, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.GameFolder}}"
                                AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupGameFolder}"
@@ -247,21 +247,21 @@
                       </Border>
                     </Panel>
                   </RadioButton>
-                  <RadioButton x:Name="BackupsInAppData" Grid.Column="1" Theme="{StaticResource ChoiceTile}"
+                  <RadioButton x:Name="BackupsInAppData" Theme="{StaticResource ChoiceTile}"
                                IsChecked="{Binding Backups.Location, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.AppData}}"
                                AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupAppData}"
                                AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupAppDataDescription}">
                     <ui:TileContent Icon="{x:Static theme:Icons.AppWindow}" Title="{x:Static loc:Strings.Settings_BackupAppData}"
                                     Message="{x:Static loc:Strings.Settings_BackupAppDataDescription}" />
                   </RadioButton>
-                  <RadioButton x:Name="BackupsInFolder" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
+                  <RadioButton x:Name="BackupsInFolder" Theme="{StaticResource ChoiceTile}" IsVisible="{Binding Backups.OffersFolder}"
                                IsChecked="{Binding Backups.Location, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:BackupLocation.CustomFolder}}"
                                AutomationProperties.Name="{x:Static loc:Strings.Settings_BackupCustom}"
                                AutomationProperties.HelpText="{x:Static loc:Strings.Settings_BackupCustomDescription}">
                     <ui:TileContent Icon="{x:Static theme:Icons.HardDrive}" Title="{x:Static loc:Strings.Settings_BackupCustom}"
                                     Message="{x:Static loc:Strings.Settings_BackupCustomDescription}" />
                   </RadioButton>
-                </Grid>
+                </ui:PixelUniformGrid>
 
                 <StackPanel Spacing="10" IsVisible="{Binding Backups.ShowsFolder}">
                   <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
@@ -275,10 +275,13 @@
                       </Grid>
                     </Border>
                     <Button x:Name="PickBackupFolder" Grid.Column="2" Classes="outline" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
-                            Content="{x:Static loc:Strings.Settings_PickFolder}" Command="{Binding Backups.PickFolderCommand}" />
+                            Content="{x:Static loc:Strings.Settings_PickFolder}" Command="{Binding Backups.PickFolderCommand}"
+                            IsVisible="{Binding !InGameMode}" />
                   </Grid>
                   <TextBlock Classes="caption" Text="{Binding Backups.FreeSpace}"
                              IsVisible="{Binding Backups.FreeSpace, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <TextBlock x:Name="BackupFolderInGameMode" Classes="caption" Text="{x:Static loc:Strings.Settings_BackupFolderInGameMode}"
+                             IsVisible="{Binding InGameMode}" />
                 </StackPanel>
                 <ui:Callout x:Name="FolderProblem" Classes="danger" MaxWidth="Infinity" HorizontalAlignment="Stretch" Icon="{x:Static theme:Icons.CircleX}"
                             Message="{Binding Backups.FolderProblem}"
@@ -446,7 +449,8 @@
           <StackPanel>
             <ui:SettingRow Icon="{x:Static theme:Icons.ChartPie}" Title="{x:Static loc:Strings.Settings_DiskUsage}" Message="{Binding Data.Usage}">
               <Button x:Name="OpenDataFolder" Classes="quiet" ui:ButtonAssist.Icon="{x:Static theme:Icons.FolderOpen}"
-                      Content="{x:Static loc:Strings.Settings_OpenDataFolder}" Command="{Binding Data.OpenFolderCommand}" />
+                      Content="{x:Static loc:Strings.Settings_OpenDataFolder}" Command="{Binding Data.OpenFolderCommand}"
+                      IsVisible="{Binding !InGameMode}" />
             </ui:SettingRow>
             <WrapPanel x:Name="DataSizes" Margin="72,0,20,20" ItemSpacing="40" LineSpacing="12" IsVisible="{Binding Data.IsMeasured}"
                        theme:Motion.Enter="True">
@@ -573,7 +577,7 @@
                     <ui:Icon Classes="trail" Data="{x:Static theme:Icons.ArrowUpRight}" />
                   </StackPanel>
                 </Button>
-                <Button x:Name="OpenLogs" Classes="quiet aboutLink" Command="{Binding OpenLogsCommand}"
+                <Button x:Name="OpenLogs" Classes="quiet aboutLink" Command="{Binding OpenLogsCommand}" IsVisible="{Binding !InGameMode}"
                         AutomationProperties.Name="{x:Static loc:Strings.Settings_LogsFolder}">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <ui:Icon Data="{x:Static theme:Icons.ScrollText}" />

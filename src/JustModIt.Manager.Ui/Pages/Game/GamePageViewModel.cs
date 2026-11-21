@@ -739,9 +739,11 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
         StoreName = store;
         StorePage = PageLinks.StorePage(game.Key);
         StoreLinkName = Text.Format(Strings.GamePage_OpenInStore, ("game", game.Name), ("store", store));
-        // Like uninstalling, starting the game waits for the job, which a running game would hold up.
-        CanLaunch = game.Detected is { CanLaunch: true } && _job is null;
-        HasFolder = game.Detected is not null;
+        // Like uninstalling, starting the game waits for the job, which a running game would hold up. Game Mode shows only what
+        // Steam starts, and no file manager.
+        var inGameMode = _services.Context.InGameMode;
+        CanLaunch = game.Detected is { CanLaunch: true } && _job is null && (!inGameMode || game.Key.Store == StoreId.Steam);
+        HasFolder = game.Detected is not null && !inGameMode;
         FolderPath = game.Detected?.InstallDirectory ?? "";
         Build = install?.Status.Update == UpdateState.NotForThisGame || game.Project?.Unavailable is SelectionUnavailability.OtherStores
             ? game.Detected?.BuildId ?? ""
@@ -829,7 +831,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
             Licenses = LicensesOf(install),
             Features = FeaturesOf(install, install.Project),
             LaunchOptions = LaunchOptionsLines.Line(install.LaunchOptions),
-            ManualLaunchOptions = LaunchOptionsLines.Manual(install.LaunchOptions),
+            ManualLaunchOptions = LaunchOptionsLines.Manual(install.LaunchOptions, _services.Context.InGameMode),
         };
     }
 
@@ -1312,7 +1314,7 @@ public sealed partial class GamePageViewModel : PageViewModel, IProjectCompariso
                 ("count", kept.Where(files => KeptReasons.CaseOf(files.Reason) == told).Sum(files => files.Count)));
         if (ended?.RemovedLaunchOptions is { Count: > 0 } options)
         {
-            text += " " + LaunchOptionsLines.Removed(options, _services.Agent.State.SteamUi);
+            text += " " + LaunchOptionsLines.Removed(options, _services.Agent.State.SteamUi, _services.Context.InGameMode);
         }
 
         if (!listed)

@@ -127,7 +127,7 @@ public sealed partial class AchievementTextsRow(UiServices services, GameKey key
         Title = Text.Format(Strings.GamePage_AchievementsTitle, ("on", ReachesSteam ? "true" : "false"));
         (Detail, DetailTone) = Describe(game, texts, state.SteamUi.Delivery, missing);
         CanSwitch = state.Settings.AchievementTexts && texts.State != AchievementTextsState.NoDelivery;
-        Notice = Explain(texts.State, state);
+        Notice = Explain(texts.State, state, services.Context.InGameMode);
         if (!ReachesSteam)
         {
             IsListShown = false;
@@ -162,7 +162,8 @@ public sealed partial class AchievementTextsRow(UiServices services, GameKey key
             : (Text.Format(Strings.GamePage_AchievementsVia, [.. counts, ("delivery", delivery.ToString())]), shown ? Tone.Success : Tone.Neutral);
     }
 
-    private static AchievementTextsNotice? Explain(AchievementTextsState textsState, AppStateView state)
+    // Restarting Steam in Game Mode ends the window with it, so there the row only says that Steam has to start again.
+    private static AchievementTextsNotice? Explain(AchievementTextsState textsState, AppStateView state, bool inGameMode)
     {
         var steam = state.SteamUi;
         if (!state.Settings.AchievementTexts)
@@ -173,6 +174,7 @@ public sealed partial class AchievementTextsRow(UiServices services, GameKey key
             };
         }
 
+        var blocked = textsState == AchievementTextsState.RestartBlocked && !inGameMode;
         return textsState switch
         {
             AchievementTextsState.NoDelivery when steam.PluginDisabled => new AchievementTextsNotice(Tone.Warning, Icons.TriangleAlert,
@@ -183,13 +185,13 @@ public sealed partial class AchievementTextsRow(UiServices services, GameKey key
                 : new AchievementTextsNotice(Tone.Warning, Icons.TriangleAlert, Strings.GamePage_AchievementsClassicOffTitle,
                     Strings.GamePage_AchievementsClassicOff) { OffersSettings = true },
             AchievementTextsState.WaitingForSteamRestart or AchievementTextsState.RestartBlocked => new AchievementTextsNotice(Tone.Info,
-                Icons.RotateCcw, Strings.GamePage_AchievementsRestartTitle, textsState == AchievementTextsState.RestartBlocked
+                Icons.RotateCcw, Strings.GamePage_AchievementsRestartTitle, blocked
                     ? Strings.GamePage_AchievementsRestartBlocked
                     : Text.Format(Strings.GamePage_AchievementsRestart, ("delivery", steam.Delivery.ToString())))
             {
-                OffersRestart = true,
+                OffersRestart = !inGameMode,
                 CanRestart = textsState == AchievementTextsState.WaitingForSteamRestart,
-                Running = steam.RunningGameName is { } running && textsState == AchievementTextsState.RestartBlocked
+                Running = steam.RunningGameName is { } running && blocked
                     ? Text.Format(Strings.GamePage_AchievementsRunning, ("game", running))
                     : "",
             },

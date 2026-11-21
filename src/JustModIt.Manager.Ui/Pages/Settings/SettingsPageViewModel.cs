@@ -93,7 +93,11 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     public string UpdatePrereleasesDescription =>
         Text.Format(Strings.Settings_UpdatePrereleasesDescription, ("product", _services.Context.ProductName));
 
-    public string CreatorModeDescription { get; } = Text.Format(Strings.Settings_CreatorModeDescription, ("creator", Strings.Shell_Creator));
+    public string CreatorModeDescription => Text.Format(Strings.Settings_CreatorModeDescription, ("creator", Strings.Shell_Creator))
+        + (InGameMode ? " " + Text.Format(Strings.Settings_CreatorModeInGameMode, ("creator", Strings.Shell_Creator)) : "");
+
+    /// <summary>The window runs in Game Mode, which has no file manager to open the app's folders in.</summary>
+    public bool InGameMode => _services.Context.InGameMode;
 
     [ObservableProperty]
     public partial bool StartWithSystem { get; set; }
@@ -414,7 +418,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     private void ShowUninstall()
     {
         var state = _services.Agent.State;
-        OffersUninstall = AppUninstall.IsOffered(state);
+        OffersUninstall = _services.Uninstall.IsOffered(state);
         CanUninstallApp = state is { Jobs.Count: 0, PendingUninstalls: 0, PendingBackupMoves: 0 };
         UninstallAppText = CanUninstallApp ? Strings.Settings_UninstallAppDescription : Strings.Settings_UninstallAppBusy;
     }
