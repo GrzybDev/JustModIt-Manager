@@ -181,6 +181,38 @@ public sealed class SingleInstanceTests : IDisposable
         claim.Should().BeOfType<Unreachable>().Which.Error.Should().BeOfType<TimeoutException>();
     }
 
+    [Fact]
+    public async Task Finding_the_agent_waits_for_it_to_listen_and_tells_its_hello_in_any_protocol_asking_for_nothing()
+    {
+        var requests = 0;
+        var handler = new TestHandler
+        {
+            OnRequest = (_, _, _) =>
+            {
+                Interlocked.Increment(ref requests);
+                return ValueTask.FromResult<Message?>(null);
+            },
+        };
+        var finding = FindAgentAsync(TimeSpan.FromSeconds(10));
+        await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+        await using (TestPipes.StartServer(_pipe, handler))
+        {
+            (await finding).Should().Be(TestPipes.AgentHello);
+        }
+
+        var older = TestPipes.AgentHello with { ProtocolVersion = Hello.CurrentProtocolVersion - 1, AppVersion = "0.9.0" };
+        await using (TestPipes.StartServer(_pipe, handler, hello: older))
+        {
+            (await FindAgentAsync(TimeSpan.FromSeconds(10))).Should().Be(older);
+        }
+
+        (await FindAgentAsync(TimeSpan.FromMilliseconds(300))).Should().BeNull("no agent answered in time");
+        requests.Should().Be(0);
+    }
+
+    private Task<Hello?> FindAgentAsync(TimeSpan timeout) =>
+        SingleInstance.FindAgentAsync(_pipe, TestPipes.LauncherHello, timeout, TestPipes.Options);
+
     private Task<InstanceClaim> ClaimAsync(
         IReadOnlyList<string> args,
         TimeSpan? timeout = null,

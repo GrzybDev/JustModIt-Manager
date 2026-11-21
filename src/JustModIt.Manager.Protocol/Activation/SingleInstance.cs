@@ -55,8 +55,7 @@ public static partial class SingleInstance
     {
         options ??= IpcOptions.Default;
         logger ??= NullLogger.Instance;
-        var started = Stopwatch.GetTimestamp();
-        var backoff = new Backoff(options.RetryDelay, options.MaxRetryDelay);
+        var attempts = new Attempts(timeout, options);
         while (true)
         {
             if (lockName is not null && InstanceLock.TryAcquire(lockName) is { } instanceLock)
@@ -74,12 +73,12 @@ public static partial class SingleInstance
                 {
                     agent = connection.Peer;
                     onAgentFound?.Invoke(agent);
-                    await connection.RequestAsync(new Activate(args), Remaining(), cancellationToken).ConfigureAwait(false);
+                    await connection.RequestAsync(new Activate(args), attempts.Remaining, cancellationToken).ConfigureAwait(false);
                 }
 
                 return new Forwarded(agent);
             }
-            catch (Exception ex) when (agent is null && ex is TimeoutException or IOException && Remaining() > TimeSpan.Zero)
+            catch (Exception ex) when (agent is null && ex is TimeoutException or IOException && attempts.Remaining > TimeSpan.Zero)
             {
                 LogAgentNotListening(logger, ex);
             }
@@ -99,13 +98,11 @@ public static partial class SingleInstance
             {
                 if (agent is null)
                 {
-                    var delay = backoff.Next();
-                    var remaining = Remaining();
-                    await Task.Delay(delay < remaining ? delay : remaining, cancellationToken).ConfigureAwait(false);
+                    await attempts.WaitAsync(cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    await WaitForExitAsync(agent.ProcessId, Remaining(), cancellationToken).ConfigureAwait(false);
+                    await WaitForExitAsync(agent.ProcessId, attempts.Remaining, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex) when (ex is TimeoutException or InvalidOperationException or Win32Exception)
@@ -114,12 +111,40 @@ public static partial class SingleInstance
                 return new Unreachable(ex);
             }
         }
+    }
 
-        TimeSpan Remaining()
+    /// <summary>Waits for the agent to answer on its pipe and tells its hello, sending it nothing.</summary>
+    /// <param name="pipeName">The agent's pipe.</param>
+    /// <param name="hello">This process's hello.</param>
+    /// <param name="timeout">How long to keep trying, with a backoff, while the agent starts.</param>
+    /// <param name="options">The transport's settings; null for the defaults.</param>
+    /// <returns>The agent's hello, also when it speaks another protocol; null when none answered in time.</returns>
+    public static async Task<Hello?> FindAgentAsync(string pipeName, Hello hello, TimeSpan timeout, IpcOptions? options = null)
+    {
+        options ??= IpcOptions.Default;
+        var attempts = new Attempts(timeout, options);
+        do
         {
-            var remaining = timeout - Stopwatch.GetElapsedTime(started);
-            return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+            try
+            {
+                var connection = await PipeClient.ConnectAsync(pipeName, hello, options: options).ConfigureAwait(false);
+                await using (connection.ConfigureAwait(false))
+                {
+                    return connection.Peer;
+                }
+            }
+            catch (ProtocolMismatchException exception)
+            {
+                return exception.Peer;
+            }
+            catch (Exception exception) when (exception is TimeoutException or IOException)
+            {
+                await attempts.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            }
         }
+        while (attempts.Remaining > TimeSpan.Zero);
+
+        return null;
     }
 
     private static async Task WaitForExitAsync(int processId, TimeSpan timeout, CancellationToken cancellationToken)
@@ -137,6 +162,29 @@ public static partial class SingleInstance
         using (process)
         {
             await process.WaitForExitAsync(cancellationToken).WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    // The tries of one launch to reach the agent: a backoff between them, cut short by the time the launch may take.
+    private sealed class Attempts(TimeSpan timeout, IpcOptions options)
+    {
+        private readonly long _started = Stopwatch.GetTimestamp();
+        private readonly Backoff _backoff = new(options.RetryDelay, options.MaxRetryDelay);
+
+        public TimeSpan Remaining
+        {
+            get
+            {
+                var remaining = timeout - Stopwatch.GetElapsedTime(_started);
+                return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+            }
+        }
+
+        public Task WaitAsync(CancellationToken cancellationToken)
+        {
+            var delay = _backoff.Next();
+            var remaining = Remaining;
+            return Task.Delay(delay < remaining ? delay : remaining, cancellationToken);
         }
     }
 

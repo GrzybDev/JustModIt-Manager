@@ -66,7 +66,7 @@ public sealed partial class UpdateService(
     /// <returns>Whether the app now exits to be updated.</returns>
     public bool ApplyPending(LaunchArguments start)
     {
-        var attempted = ReadAttempt();
+        var attempted = UpdateAttempt.Read(options.Locations);
         if (attempted == options.Version)
         {
             AtomicFile.TryDelete(options.Locations.UpdateAttemptFile);
@@ -83,6 +83,14 @@ public sealed partial class UpdateService(
         {
             LogPendingAfterAttempt(pending.Version);
             _failedVersion = pending.Version;
+            return false;
+        }
+
+        // A launch that becomes the window takes the window's lock before it starts the agent, and the window then waits for
+        // the update, which applies once it closes or the player asks.
+        if (InstanceLock.IsHeld(options.Names.UiLock))
+        {
+            LogPendingWhileWindow(pending.Version);
             return false;
         }
 
@@ -252,9 +260,11 @@ public sealed partial class UpdateService(
 
     private void OnJobFinished(object? sender, JobResult result) => ApplyWhenUnnoticed();
 
-    private void OnWindowClosed(object? sender, EventArgs e) => ApplyWhenUnnoticed();
+    private void OnWindowClosed(object? sender, EventArgs e) => ApplyWhenUnnoticed(windowClosed: true);
 
-    private void ApplyWhenUnnoticed()
+    // A launch that becomes the window holds the window's lock before it connects, so a held lock is a window on its way,
+    // except right after a window closed, whose process holds its lock until it ends.
+    private void ApplyWhenUnnoticed(bool windowClosed = false)
     {
         // An exit cancels or waits for the jobs, and the last one's end must not restart the app; the next start applies it.
         if (lifetime.IsExiting || status.Update.State != AppUpdateState.Ready || jobs.IsBusy)
@@ -266,21 +276,10 @@ public sealed partial class UpdateService(
         {
             _ = RestartToUpdateAsync();
         }
-        else if (settings.Current.AutoUpdateApp && !ui.IsOpenOrStarting && status.Update.Version != _failedVersion)
+        else if (settings.Current.AutoUpdateApp && !ui.IsOpenOrStarting && status.Update.Version != _failedVersion
+            && (windowClosed || !InstanceLock.IsHeld(options.Names.UiLock)))
         {
             Apply([LaunchArguments.BackgroundSwitch]);
-        }
-    }
-
-    private string? ReadAttempt()
-    {
-        try
-        {
-            return File.ReadAllText(options.Locations.UpdateAttemptFile);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return null;
         }
     }
 
@@ -338,6 +337,9 @@ public sealed partial class UpdateService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Version {Version} is still pending after the last run started the updater, so applying it failed")]
     private partial void LogPendingAfterAttempt(string version);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Version {Version} waits, since a window is open or on its way")]
+    private partial void LogPendingWhileWindow(string version);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The downloaded updates could not be read")]
     private partial void LogPendingUnreadable(Exception exception);

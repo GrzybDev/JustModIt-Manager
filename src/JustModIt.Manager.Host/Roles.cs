@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using JustModIt.Manager.Agent;
 using JustModIt.Manager.Agent.Diagnostics;
+using JustModIt.Manager.Agent.Updates;
 using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Platform.Linux;
@@ -205,16 +206,30 @@ internal static partial class Roles
         Gamescope.IsSession(Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))
         || DisplaySession.IsGamescope(DBusConnection.System, DisplaySession.TimeLimit);
 
+    // The updater's launch runs the version its record names, and an agent of the file before the update, which a launch
+    // started while the updater replaced the file, makes way for it. The record is read first, since an agent of this version
+    // deletes it as it starts.
     private static bool StartUnit(HostEnvironment environment, AgentUnit unit)
     {
-        if (unit.Start())
+        var attempted = UpdateAttempt.Read(environment.Locations);
+        if (!unit.Start())
         {
-            return true;
+            using var log = new RoleLog(environment, LauncherRole);
+            LogUnitNotStarted(log.Loggers.CreateLogger(typeof(Roles).FullName!));
+            return false;
         }
 
-        using var log = new RoleLog(environment, LauncherRole);
-        LogUnitNotStarted(log.Loggers.CreateLogger(typeof(Roles).FullName!));
-        return false;
+        var agent = attempted == environment.Version
+            ? SingleInstance.FindAgentAsync(environment.Names.PipeName, Hello.ForCurrentProcess(ProcessRole.Launcher, environment.Version),
+                HandOverTimeout).GetAwaiter().GetResult()
+            : null;
+        if (agent is not null && agent.AppVersion != environment.Version && !unit.Restart())
+        {
+            using var log = new RoleLog(environment, LauncherRole);
+            LogAgentNotRestarted(log.Loggers.CreateLogger(typeof(Roles).FullName!), agent.AppVersion);
+        }
+
+        return true;
     }
 
     // An exit is for the running agent alone: a launch that finds none has nothing to end, so it starts nothing.
@@ -281,6 +296,9 @@ internal static partial class Roles
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The agent's systemd unit could not be started")]
     private static partial void LogUnitNotStarted(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The agent of version {Version} could not be restarted after the update")]
+    private static partial void LogAgentNotRestarted(ILogger logger, string version);
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "The descriptors this process inherited could not be kept from the programs it starts (error {Error})")]

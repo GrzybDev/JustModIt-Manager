@@ -141,6 +141,30 @@ public sealed class UpdateServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task An_update_waits_while_a_windows_process_holds_its_lock_and_applies_once_the_window_closed()
+    {
+        var updater = new FakeUpdater { PendingVersion = "1.1.0" };
+        await using var agent = Harness(updater, Soon with { FirstCheck = _ => System.Threading.Timeout.InfiniteTimeSpan });
+        // A launch that becomes the window takes the window's lock before it starts the agent.
+        using (InstanceLock.TryAcquire(agent.Options.Names.UiLock))
+        {
+            agent.Start();
+            var window = await agent.ConnectWindowAsync();
+            await window.StateAsync(state => state.Update.State == AppUpdateState.Ready);
+            updater.Applied.Task.IsCompleted.Should().BeFalse();
+
+            // The window's process holds its lock until it ends, after the window closed.
+            await window.Connection.DisposeAsync();
+            (await updater.Applied.Task.WaitAsync(Timeout, AgentHarness.Token)).Should().Equal("--background");
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            File.Delete(agent.Options.Names.UiLock);
+        }
+    }
+
+    [Fact]
     public async Task Without_automatic_updates_a_new_version_is_only_announced_until_the_player_asks()
     {
         await _agent.SaveSettingsAsync(AppSettings.Default with { AutoUpdateApp = false });
