@@ -7,6 +7,7 @@
     <ManagerVendorId>ExampleVendor</ManagerVendorId>
     <ManagerAppSlug>example-app</ManagerAppSlug>
     <ManagerDesktopId>com.example.ExampleApp</ManagerDesktopId>
+    <ManagerDesktopCategories>Game;Utility;</ManagerDesktopCategories>
     <ManagerPackageExtension>.examplemod</ManagerPackageExtension>
     <ManagerCreatorProjectExtension>.exampleproj</ManagerCreatorProjectExtension>
     <ManagerApiUrl>https://api.example.com/</ManagerApiUrl>

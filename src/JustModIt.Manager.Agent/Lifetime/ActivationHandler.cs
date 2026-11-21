@@ -8,13 +8,21 @@ namespace JustModIt.Manager.Agent.Lifetime;
 /// <summary>Acts on what a start of the app asks for: this process's own, or a later launch's that it handed over.</summary>
 /// <param name="ui">Shows the window.</param>
 /// <param name="settings">Tells whether the first-run setup is finished.</param>
-public sealed class ActivationHandler(UiLauncher ui, ISettingsService settings)
+/// <param name="lifetime">Exits the app when a launch asks for it.</param>
+public sealed class ActivationHandler(UiLauncher ui, ISettingsService settings, AgentLifetime lifetime)
 {
-    /// <summary>Shows the window and goes where the launch leads, when the launch asks for the window.</summary>
+    /// <summary>
+    /// Shows the window and goes where the launch leads, when the launch asks for the window, or exits the app once its jobs
+    /// are done, when the launch asks for that.
+    /// </summary>
     /// <param name="launch">This process's command line, or one a later launch handed over.</param>
     public void Handle(LaunchArguments launch)
     {
-        if (ShowsWindow(launch, settings.Current))
+        if (launch.Exit)
+        {
+            _ = lifetime.RequestExitAsync(ExitMode.AfterJobs);
+        }
+        else if (ShowsWindow(launch, settings.Current))
         {
             ui.Show(launch.Target);
         }

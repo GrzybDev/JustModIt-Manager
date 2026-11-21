@@ -36,6 +36,7 @@ public sealed class LaunchArgumentsTests
     [InlineData("--agent", "--background")]
     [InlineData("--ui", "example-app://game/steam/1000")]
     [InlineData("--background", "example-app://settings")]
+    [InlineData("--exit")]
     public void Arguments_turn_back_into_the_command_line_they_came_from(params string[] args)
     {
         Parse(args).ToArgs(_links).Should().Equal(args);

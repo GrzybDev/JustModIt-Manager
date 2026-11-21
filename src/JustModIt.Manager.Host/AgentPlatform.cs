@@ -28,9 +28,11 @@ internal static partial class AgentPlatform
     /// <summary>Registers the system's services and then the app's, so the app can still replace one of the system's.</summary>
     /// <param name="services">The agent's shared services.</param>
     /// <param name="options">The app's identity and executable.</param>
-    /// <param name="app">The app's own assembly, whose logo the system's tray and notifications show; null for none.</param>
+    /// <param name="desktopCategories">The menu categories of the app's Linux desktop entry.</param>
+    /// <param name="app">The app's own assembly, whose logo the system's tray, notifications and menus show; null for none.</param>
     /// <param name="configure">The app's own registrations.</param>
-    public static void Compose(IServiceCollection services, AgentOptions options, Assembly? app, Action<IServiceCollection>? configure)
+    public static void Compose(IServiceCollection services, AgentOptions options, string desktopCategories, Assembly? app,
+        Action<IServiceCollection>? configure)
     {
         if (OperatingSystem.IsWindows())
         {
@@ -38,7 +40,7 @@ internal static partial class AgentPlatform
         }
         else if (OperatingSystem.IsLinux())
         {
-            AddLinux(services, options, app);
+            AddLinux(services, options, desktopCategories, app);
         }
 
         configure?.Invoke(services);
@@ -97,11 +99,14 @@ internal static partial class AgentPlatform
     }
 
     [SupportedOSPlatform("linux")]
-    private static void AddLinux(IServiceCollection services, AgentOptions options, Assembly? app)
+    private static void AddLinux(IServiceCollection services, AgentOptions options, string desktopCategories, Assembly? app)
     {
         var icons = Path.Join(options.Locations.CacheDirectory, "icons");
+        var user = LibraryEnvironment.ForCurrentUser();
         services.AddSingleton(provider => new IconFile(Icon(icons, options.Identity.DesktopId, app,
             provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(AgentPlatform).FullName!))));
+        services.AddSingleton<ILinkRegistration>(new DesktopEntry(options.Identity.DesktopId, desktopCategories, Strings.TrayExit,
+            LaunchArguments.ExitSwitch, () => Resource(app, AppBranding.IconResource), user.DataDirectory, user.ConfigDirectory));
         services.AddSingleton<IRegistry>(NoWindowsRecords.Instance);
         services.AddSingleton<IRegistryWatcher>(NoWindowsRecords.Instance);
         services.AddSingleton<ISqliteReader>(NoWindowsRecords.Instance);
@@ -126,23 +131,34 @@ internal static partial class AgentPlatform
     // it; a disk that takes no file, such as a full one, leaves the system without the icon rather than the agent without a start.
     private static string? Icon(string icons, string desktopId, Assembly? app, ILogger logger)
     {
-        using var logo = app?.GetManifestResourceStream(AppBranding.LogoResource);
-        if (logo is null)
+        if (Resource(app, AppBranding.LogoResource) is not { } png)
         {
             return null;
         }
 
-        using var png = new MemoryStream();
-        logo.CopyTo(png);
         try
         {
-            return AppIcon.Write(icons, desktopId, png.ToArray());
+            return AppIcon.Write(icons, desktopId, png);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             LogIconUnwritten(logger, exception);
             return null;
         }
+    }
+
+    // Read when something shows it, so the agent keeps no copy in the tray.
+    private static byte[]? Resource(Assembly? app, string name)
+    {
+        using var resource = app?.GetManifestResourceStream(name);
+        if (resource is null)
+        {
+            return null;
+        }
+
+        using var bytes = new MemoryStream();
+        resource.CopyTo(bytes);
+        return bytes.ToArray();
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The app's icon could not be written, so the system shows none")]

@@ -4,6 +4,7 @@ using JustModIt.Manager.Agent.Tests.TestSupport;
 using JustModIt.Manager.Agent.Tray;
 using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
+using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -39,6 +40,22 @@ public sealed class ExitTests : IAsyncDisposable
         _engine.Release();
 
         (await second.ShutdownRequests.Reader.ReadAsync(AgentHarness.Token)).Should().Be(ShutdownReason.Exit);
+        await _agent.Run.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token);
+    }
+
+    [Fact]
+    public async Task An_exit_from_the_apps_menu_entry_waits_for_the_jobs_as_the_trays_exit_does_and_opens_no_window()
+    {
+        _agent.Start();
+        await HeldRecoveryEngine.StartJobAsync(_agent);
+
+        var launcher = await _agent.ConnectLauncherAsync();
+        await launcher.RequestAsync(new Activate([LaunchArguments.ExitSwitch]), cancellationToken: AgentHarness.Token);
+
+        (await _agent.ServiceAsync<AgentLifetime>()).IsExiting.Should().BeTrue();
+        _agent.Shell.WindowStarts.Should().Be(0);
+        _agent.Run.IsCompleted.Should().BeFalse("the exit waits for the running job");
+        _engine.Release();
         await _agent.Run.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token);
     }
 

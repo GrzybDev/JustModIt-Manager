@@ -28,6 +28,23 @@ public static class AtomicFile
         TimeProvider? time = null) =>
         WriteAsync(path, (stream, token) => stream.WriteAsync(content, token), cancellationToken, time);
 
+    /// <summary>Replaces the file at <paramref name="path"/> with <paramref name="content"/> unless it holds that already.</summary>
+    /// <param name="path">The file; its folder is created when missing.</param>
+    /// <param name="content">The content the file should hold.</param>
+    /// <param name="cancellationToken">Cancels the write and keeps the previous file.</param>
+    /// <returns>Whether the file was written.</returns>
+    public static async Task<bool> WriteIfChangedAsync(string path, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
+    {
+        if (File.Exists(path)
+            && (await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false)).AsSpan().SequenceEqual(content.Span))
+        {
+            return false;
+        }
+
+        await WriteAllBytesAsync(path, content, cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
     /// <summary>Replaces the file at <paramref name="path"/> with the JSON that <paramref name="write"/> writes.</summary>
     /// <param name="path">The file; its folder is created when missing.</param>
     /// <param name="options">How the JSON is written.</param>

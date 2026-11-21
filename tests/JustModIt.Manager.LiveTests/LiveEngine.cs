@@ -170,9 +170,10 @@ internal sealed partial class LiveEngine : IAsyncDisposable
     {
         var loggers = new TestOutputLoggers(TestContext.Current.TestOutputHelper);
         var settings = await SettingsService.LoadAsync(locations, TimeProvider.System, loggers, cancellationToken);
-        var options = LiveApp.ThisProcess().AgentOptions() with { Locations = locations };
+        var app = LiveApp.ThisProcess();
+        var options = app.AgentOptions() with { Locations = locations };
         var services = new ServiceCollection().AddAgent(options, settings, loggers);
-        AgentPlatform.Compose(services, options, app: null, configure: null);
+        AgentPlatform.Compose(services, options, app.Product.DesktopCategories, app: null, configure: null);
         var downloader = services.Single(service => service.ServiceType == typeof(IPackageDownloader)).ImplementationFactory!;
         services.AddSingleton(provider => new CountingDownloader((IPackageDownloader)downloader(provider)));
         services.AddSingleton<IPackageDownloader>(provider => provider.GetRequiredService<CountingDownloader>());

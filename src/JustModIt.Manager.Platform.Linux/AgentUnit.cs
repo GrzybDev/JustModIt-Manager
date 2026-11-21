@@ -241,17 +241,10 @@ public sealed partial class AgentUnit : IAutostart
 
     // A unit keeps the executable it names while that file is there, so a copy started from elsewhere never moves the agent
     // off the copy the updater serves; once an AppImage manager or the player moved that file away, it runs this copy.
-    private async Task<bool> WriteAsync(string? current, bool install)
+    private Task<bool> WriteAsync(string? current, bool install)
     {
         var executable = current is not null && ExecutableIn(current) is { } named && File.Exists(named) ? named : _executable;
-        var text = Text(install, executable);
-        if (current == text)
-        {
-            return false;
-        }
-
-        await AtomicFile.WriteAllBytesAsync(_path, Encoding.UTF8.GetBytes(text), CancellationToken.None).ConfigureAwait(false);
-        return true;
+        return AtomicFile.WriteIfChangedAsync(_path, Encoding.UTF8.GetBytes(Text(install, executable)), CancellationToken.None);
     }
 
     private Task ReloadAsync(bool changed) => changed ? _systemd.ReloadAsync() : Task.CompletedTask;

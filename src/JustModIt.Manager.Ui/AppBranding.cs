@@ -12,7 +12,8 @@ public sealed class AppBranding(Assembly? app)
     /// <summary>The resource of the app's own assembly that holds its logo.</summary>
     public const string LogoResource = "JustModIt.Manager.Logo.png";
 
-    private const string IconResource = "JustModIt.Manager.Icon.ico";
+    /// <summary>The resource of the app's own assembly that holds its icon, whose frames are PNG images of each size.</summary>
+    public const string IconResource = "JustModIt.Manager.Icon.ico";
 
     // The logo is drawn at 30 px in the title bar and 132 px in the first-run setup, twice that on high-DPI screens.
     private const int LogoWidth = 264;

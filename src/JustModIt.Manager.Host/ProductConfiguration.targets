@@ -34,6 +34,7 @@
         VendorId = VendorId,
         AppSlug = AppSlug,
         DesktopId = DesktopId,
+        DesktopCategories = DesktopCategories,
         PackageExtension = PackageExtension,
         CreatorProjectExtension = CreatorProjectExtension,
         ApiUrl = ApiUrl,
@@ -71,6 +72,9 @@ internal static class ProductConfiguration
 
     /// <summary>The app's reverse domain name, which Linux desktops know it by, e.g. as its window's class.</summary>
     public const string DesktopId = @"$(ManagerDesktopId)"%3B
+
+    /// <summary>The menu categories of the app's Linux desktop entry, each followed by a semicolon.</summary>
+    public const string DesktopCategories = @"$([MSBuild]::Escape($(ManagerDesktopCategories.Replace('"', '""'))))"%3B
 
     /// <summary>The extension, with its dot, of the app's manifest packages, a format every app shares.</summary>
     public const string PackageExtension = @"$([MSBuild]::Escape($(ManagerPackageExtension.Replace('"', '""'))))"%3B

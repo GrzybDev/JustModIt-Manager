@@ -16,6 +16,9 @@ public sealed record ProductSettings
     /// <summary>The app's reverse domain name, which Linux desktops know it by.</summary>
     public required string DesktopId { get; init; }
 
+    /// <summary>The menu categories of the app's Linux desktop entry, each followed by a semicolon.</summary>
+    public string DesktopCategories { get; init; } = "";
+
     /// <summary>The extension, with its dot, of the app's manifest packages.</summary>
     public required string PackageExtension { get; init; }
 

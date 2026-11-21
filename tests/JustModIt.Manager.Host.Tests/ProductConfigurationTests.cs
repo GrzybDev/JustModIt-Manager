@@ -20,6 +20,7 @@ public sealed class ProductConfigurationTests
         ProductConfiguration.VendorId.Should().Be("ExampleVendor");
         ProductConfiguration.AppSlug.Should().Be("example-app");
         ProductConfiguration.DesktopId.Should().Be("com.example.ExampleApp");
+        ProductConfiguration.DesktopCategories.Should().Be("Game;Utility;", "the build hands lists over as they are");
         ProductConfiguration.PackageExtension.Should().Be(".examplemod");
         ProductConfiguration.CreatorProjectExtension.Should().Be(".exampleproj");
         ProductConfiguration.ApiUrl.Should().Be("https://api.example.com/");
@@ -48,6 +49,7 @@ public sealed class ProductConfigurationTests
             VendorId = "ExampleVendor",
             AppSlug = "example-app",
             DesktopId = "com.example.ExampleApp",
+            DesktopCategories = "Game;Utility;",
             PackageExtension = ".examplemod",
             CreatorProjectExtension = ".exampleproj",
             ApiUrl = "https://api.example.com/",

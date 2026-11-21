@@ -49,7 +49,8 @@ internal static partial class Roles
                 Session = session,
                 PreviousExit = UntoldExit.Carry(environment.Locations.StateDirectory, previous),
             };
-            AgentHost.RunAsync(agent, launch, loggers, services => AgentPlatform.Compose(services, agent, options.App, options.ConfigureAgent))
+            AgentHost.RunAsync(agent, launch, loggers,
+                    services => AgentPlatform.Compose(services, agent, environment.Product.DesktopCategories, options.App, options.ConfigureAgent))
                 .GetAwaiter().GetResult();
             return 0;
         });
@@ -57,7 +58,8 @@ internal static partial class Roles
 
     /// <summary>
     /// Starts the agent's unit and runs the window, where the agent runs as the user's systemd unit; otherwise runs the
-    /// agent as <see cref="RunAgent"/> does. Returns the exit code.
+    /// agent as <see cref="RunAgent"/> does. A launch that asks the app to exit only hands that to a running agent. Returns
+    /// the exit code.
     /// </summary>
     /// <param name="environment">This process's environment.</param>
     /// <param name="options">What the app hands the startup about itself.</param>
@@ -65,6 +67,11 @@ internal static partial class Roles
     /// <param name="args">The command line as given, for a hand-over.</param>
     public static int RunLauncher(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args)
     {
+        if (launch.Exit)
+        {
+            return Exit(environment, args);
+        }
+
         if (!environment.RunsAgentAsUnit)
         {
             return RunAgent(environment, options, launch, args);
@@ -157,15 +164,7 @@ internal static partial class Roles
     private static int RunClaimed(HostEnvironment environment, string lockName, string role, string[] args,
         Func<ILoggerFactory, SessionMarker, UncleanExit?, int> run)
     {
-        InstanceClaim claim;
-        using (var log = new RoleLog(environment, LauncherRole))
-        {
-            claim = SingleInstance.ClaimOrForwardAsync(lockName, environment.Names.PipeName,
-                    Hello.ForCurrentProcess(ProcessRole.Launcher, environment.Version), args, HandOverTimeout, AllowForeground,
-                    logger: log.Loggers.CreateLogger(typeof(Roles).FullName!))
-                .GetAwaiter().GetResult();
-        }
-
+        var claim = Claim(environment, lockName, args);
         return claim is Claimed { Lock: var instanceLock } ? RunHolding(environment, instanceLock, role, run)
             : claim is Forwarded ? 0
             : 1;
@@ -194,6 +193,23 @@ internal static partial class Roles
         using var log = new RoleLog(environment, LauncherRole);
         LogUnitNotStarted(log.Loggers.CreateLogger(typeof(Roles).FullName!));
         return false;
+    }
+
+    // An exit is for the running agent alone: a launch that finds none has nothing to end, so it starts nothing.
+    private static int Exit(HostEnvironment environment, string[] args)
+    {
+        var claim = Claim(environment, environment.Names.AgentLock, args);
+        (claim as Claimed)?.Lock.Dispose();
+        return claim is Unreachable ? 1 : 0;
+    }
+
+    private static InstanceClaim Claim(HostEnvironment environment, string lockName, string[] args)
+    {
+        using var log = new RoleLog(environment, LauncherRole);
+        return SingleInstance.ClaimOrForwardAsync(lockName, environment.Names.PipeName,
+                Hello.ForCurrentProcess(ProcessRole.Launcher, environment.Version), args, HandOverTimeout, AllowForeground,
+                logger: log.Loggers.CreateLogger(typeof(Roles).FullName!))
+            .GetAwaiter().GetResult();
     }
 
     // Refused before the claim, so a run that never starts takes no lock, begins no session and logs no start.

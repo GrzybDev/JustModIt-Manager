@@ -6,11 +6,13 @@ namespace JustModIt.Manager.Protocol.Activation;
 /// <param name="Role">The role the process runs.</param>
 /// <param name="Background">Started with the system, into the tray.</param>
 /// <param name="Target">Where an app link leads; null for a plain start and for links that only open the window.</param>
-public sealed record LaunchArguments(ProcessRole Role, bool Background, NavigationTarget? Target)
+/// <param name="Exit">Asks the running app to exit once its jobs are done, as the tray's exit does, and starts nothing.</param>
+public sealed record LaunchArguments(ProcessRole Role, bool Background, NavigationTarget? Target, bool Exit = false)
 {
     public const string AgentSwitch = "--agent";
     public const string UiSwitch = "--ui";
     public const string BackgroundSwitch = "--background";
+    public const string ExitSwitch = "--exit";
 
     /// <summary>
     /// Reads a command line, ignoring anything unknown such as Velopack's own switches; of several links the last wins.
@@ -22,6 +24,7 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
         var agent = false;
         var ui = false;
         var background = false;
+        var exit = false;
         NavigationTarget? target = null;
 
         // Forwarded command lines arrive as JSON, whose arrays can hold nulls that the element type does not admit.
@@ -39,6 +42,10 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
             {
                 background = true;
             }
+            else if (string.Equals(arg, ExitSwitch, StringComparison.OrdinalIgnoreCase))
+            {
+                exit = true;
+            }
             else if (links.IsLink(arg))
             {
                 target = links.Parse(arg);
@@ -46,7 +53,7 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
         }
 
         var role = ui ? ProcessRole.Ui : agent ? ProcessRole.Agent : ProcessRole.Launcher;
-        return new LaunchArguments(role, background, target);
+        return new LaunchArguments(role, background, target, exit);
     }
 
     /// <summary>The command line that <see cref="Parse"/> reads back as these arguments.</summary>
@@ -62,6 +69,11 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
         if (Background)
         {
             args.Add(BackgroundSwitch);
+        }
+
+        if (Exit)
+        {
+            args.Add(ExitSwitch);
         }
 
         if (Target is not null)
