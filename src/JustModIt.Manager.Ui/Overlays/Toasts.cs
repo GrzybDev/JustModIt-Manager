@@ -73,7 +73,7 @@ public sealed partial class ToastViewModel(ToastTone tone, Geometry icon, string
 
 /// <summary>
 /// The notifications in the window's bottom right corner: at most three, the newest at the bottom, each gone after
-/// <see cref="Lifetime"/> of the pointer not resting on it.
+/// <see cref="Lifetime"/> of the window in front without the pointer resting on it.
 /// </summary>
 public sealed partial class ToastHost : ObservableObject
 {
@@ -101,6 +101,9 @@ public sealed partial class ToastHost : ObservableObject
 
     [ObservableProperty]
     public partial bool HasItems { get; private set; }
+
+    /// <summary>The window is in front, so the player can read the notifications; their time stands while it is not.</summary>
+    public bool IsWindowInFront { get; set; }
 
     /// <summary>Shows a notification below the others.</summary>
     /// <param name="toast">The notification.</param>
@@ -142,7 +145,7 @@ public sealed partial class ToastHost : ObservableObject
         var now = DateTime.UtcNow;
         foreach (var toast in Items.Where(item => !item.IsClosing).ToList())
         {
-            if (toast.IsHeld)
+            if (toast.IsHeld || !IsWindowInFront)
             {
                 toast.ShownAt = now - toast.Elapsed;
                 continue;

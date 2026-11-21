@@ -200,18 +200,26 @@ public sealed class OverlayTests
     }
 
     [AvaloniaFact]
-    public async Task At_most_three_notifications_show_and_each_leaves_unless_the_pointer_rests_on_it()
+    public async Task At_most_three_notifications_show_and_each_leaves_unless_the_pointer_rests_on_it_or_the_window_is_not_in_front()
     {
         var toasts = new ToastHost(TimeSpan.FromMilliseconds(300));
         var shown = Enumerable.Range(1, 4).Select(index => new ToastViewModel(ToastTone.Info, Icons.Info, $"Notice {index}", null)).ToList();
 
         shown.ForEach(toasts.Show);
         shown[0].IsClosing.Should().BeTrue("a fourth notification sends the oldest away");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(800));
+        toasts.Items.Should().Equal(shown.Skip(1), "a notice that comes while Steam's overlay covers the window waits for the player");
+
+        toasts.IsWindowInFront = true;
         shown[3].IsHeld = true;
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(800));
-
         toasts.Items.Should().Equal(shown[3]);
+
         shown[3].IsHeld = false;
+        toasts.IsWindowInFront = false;
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(800));
+        toasts.Items.Should().Equal(shown[3]);
+        toasts.IsWindowInFront = true;
         await UiHarness.WaitUntilAsync(() => toasts.Items.Count == 0);
     }
 

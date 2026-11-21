@@ -315,6 +315,13 @@ public sealed class OnboardingTests
         await Settle();
         Setup(ui).CurrentStep.Should().BeOfType<BackgroundStep>("Game Mode hides the package creator");
         ui.Render("onboarding-game-mode-background");
+
+        ui.Press(Key.Left, RawInputModifiers.Alt);
+        await Settle();
+        Setup(ui).CurrentStep.Should().BeOfType<AutomationStep>().Which.NotificationsDescription.Should().EndWith(
+            "W trybie gry aplikacja nie wysyła powiadomień systemowych; to, co wymaga uwagi, czeka w „Do zrobienia” w „Moich grach”.",
+            "Steam shows no notification there");
+        ui.Render("onboarding-game-mode-automation");
     }
 
     private static void Shortcut(UiHarness ui, SteamShortcutState state) => ui.Push(ui.Agent.State with

@@ -93,6 +93,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     public string UpdatePrereleasesDescription =>
         Text.Format(Strings.Settings_UpdatePrereleasesDescription, ("product", _services.Context.ProductName));
 
+    public string NotificationsDescription =>
+        Strings.Settings_NotificationsDescription + (InGameMode ? " " + GameWording.NotificationsInGameMode : "");
+
     public string CreatorModeDescription => Text.Format(Strings.Settings_CreatorModeDescription, ("creator", Strings.Shell_Creator))
         + (InGameMode ? " " + Text.Format(Strings.Settings_CreatorModeInGameMode, ("creator", Strings.Shell_Creator)) : "");
 

@@ -134,6 +134,9 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
 
     public string ProductName => _services.Context.ProductName;
 
+    /// <summary>The window runs in Game Mode, which hides some steps and has Steam show no system notifications.</summary>
+    public bool InGameMode => _services.Context.InGameMode;
+
     internal IAgent Agent => _services.Agent;
 
     private int Index => Steps.TakeWhile(step => step != CurrentStep).Count();
@@ -216,8 +219,8 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
     {
         // Game Mode shows only the window its shortcut started, and hides the package creator.
         SteamShortcutStep => SteamShortcut is { IsOffered: true, HasGameSession: true } && !_services.Context.StartedBySteam
-            && !_services.Context.InGameMode,
-        CreatorStep => !_services.Context.InGameMode,
+            && !InGameMode,
+        CreatorStep => !InGameMode,
         _ => true,
     };
 

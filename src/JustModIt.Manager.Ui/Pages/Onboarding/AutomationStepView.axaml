@@ -54,11 +54,11 @@
           </Border>
           <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
             <TextBlock Classes="itemTitle" Text="{x:Static loc:Strings.Onboarding_Notifications}" />
-            <TextBlock Classes="caption" Text="{x:Static loc:Strings.Onboarding_NotificationsDescription}" />
+            <TextBlock Classes="caption" Text="{Binding NotificationsDescription}" />
           </StackPanel>
           <ToggleSwitch Grid.Column="2" IsChecked="{Binding Setup.ShowNotifications}"
                         AutomationProperties.Name="{x:Static loc:Strings.Onboarding_Notifications}"
-                        AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_NotificationsDescription}" />
+                        AutomationProperties.HelpText="{Binding NotificationsDescription}" />
         </Grid>
       </Border>
     </StackPanel>

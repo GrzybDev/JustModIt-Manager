@@ -12,8 +12,8 @@ using JustModIt.Manager.Protocol.Views;
 namespace JustModIt.Manager.Agent.Notifications;
 
 /// <summary>
-/// Tells the player what the automation did or found, either in the window while it is in front or in a notification of
-/// the system's, which opens the game it is about.
+/// Tells the player what the automation did or found: in the window while it is in front, otherwise in a notification of the
+/// system's, which opens the game it is about; in a store's game session only in the window, while it is open at all.
 /// </summary>
 public sealed class Notifier : IAgentService, IDisposable
 {
@@ -32,7 +32,7 @@ public sealed class Notifier : IAgentService, IDisposable
     /// <param name="ui">The window, whether it is in front, and its closing.</param>
     /// <param name="notifications">Shows notifications while the window is not in front.</param>
     /// <param name="settings">Whether notifications are on, and whether the player heard that the app keeps running.</param>
-    /// <param name="status">How the session brings the window back, which the notice of a closed window tells.</param>
+    /// <param name="status">How the session brings the window back, which decides where notices go and what closing it tells.</param>
     /// <param name="lifetime">Tells whether the agent is exiting.</param>
     /// <param name="links">Makes the link a notification opens.</param>
     /// <param name="options">The product name the notices use.</param>
@@ -59,13 +59,23 @@ public sealed class Notifier : IAgentService, IDisposable
         }
     }
 
-    /// <summary>Shows a notice in the window while it is in front, otherwise in a notification.</summary>
+    /// <summary>Shows a notice in the window it belongs in, otherwise in a notification.</summary>
     /// <param name="notice">A typed notice of the automation.</param>
     public void Notify(AutomationNotice notice)
     {
-        if (_ui.IsActive && _ui.Window is { } window)
+        // A store's game session lays its overlay, browser and keyboard over the window and takes its focus, so the notice
+        // waits there as a toast for the player to come back.
+        var inStoreSession = _status.Activity.WindowReturn == WindowReturn.StoreLibrary;
+        if (_ui.Window is { } window && (_ui.IsActive || inStoreSession))
         {
             window.Post(new Notify(NoticeView.From(notice)));
+            return;
+        }
+
+        // Steam's notification server in its game session takes notifications and shows none; what needs the player waits in
+        // the window's list of games.
+        if (inStoreSession)
+        {
             return;
         }
 

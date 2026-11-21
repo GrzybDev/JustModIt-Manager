@@ -188,6 +188,7 @@ public sealed partial class MainWindow : Window
         // The system setting may have changed while the window was in the background.
         Motion.SetReduced(_systemMotion?.IsReduced() == true);
         _shell?.Agent.ReportActivity(true);
+        _shell?.Toasts.IsWindowInFront = true;
         _shell?.OnWindowActivated();
     }
 
@@ -195,6 +196,7 @@ public sealed partial class MainWindow : Window
     {
         Classes.Set("inactive", true);
         _shell?.Agent.ReportActivity(false);
+        _shell?.Toasts.IsWindowInFront = false;
     }
 
     private void OnBringToFront(object? sender, EventArgs e)

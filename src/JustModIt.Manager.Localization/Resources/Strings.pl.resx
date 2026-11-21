@@ -2223,6 +2223,9 @@
   <data name="Settings_NotificationsDescription" xml:space="preserve">
     <value>Powiadomienie pojawi się, gdy projekt zostanie zainstalowany, zaktualizowany albo znaleziony.</value>
   </data>
+  <data name="Settings_NotificationsInGameMode" xml:space="preserve">
+    <value>W trybie gry aplikacja nie wysyła powiadomień systemowych; to, co wymaga uwagi, czeka w „{todo}” w „Moich grach”.</value>
+  </data>
   <data name="Settings_AutomationNote" xml:space="preserve">
     <value>Automatyczne aktualizacje można też wyłączyć dla pojedynczej gry na jej stronie. Gry uruchomione albo aktualizowane przez sklep pozostają nietknięte.</value>
   </data>

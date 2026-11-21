@@ -2240,6 +2240,9 @@
   <data name="Settings_NotificationsDescription" xml:space="preserve">
     <value>A notification tells when a project is installed, updated or found.</value>
   </data>
+  <data name="Settings_NotificationsInGameMode" xml:space="preserve">
+    <value>In Game Mode the app sends no system notifications; what needs attention waits under “{todo}” in “{library}”.</value>
+  </data>
   <data name="Settings_AutomationNote" xml:space="preserve">
     <value>Automatic updates can also be turned off for a single game on its page. Games that run or that their store updates are left alone.</value>
   </data>

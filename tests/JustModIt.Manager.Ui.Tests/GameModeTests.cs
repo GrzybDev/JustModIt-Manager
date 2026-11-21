@@ -70,6 +70,31 @@ public sealed class GameModeTests
         ui.Steam.Sent.Should().Equal(opened, closed, opened, closed, opened);
     }
 
+    [AvaloniaFact]
+    public async Task A_notice_that_comes_while_Steam_covers_the_window_waits_in_its_corner_until_the_window_is_back()
+    {
+        var (harbor, ember) = (Installed("Quiet Harbor", "4200"), UpdateAvailable("Ember Hollow", "4100"));
+        using var ui = new UiHarness(State(ember, harbor) with { Settings = TestStates.Idle().Settings with { ControlsHintShown = true } },
+            context: context => context with { Frame = WindowFrame.Screen }, activated: false);
+        ui.SizeToDeck();
+
+        ui.Agent.Notice(new NoticeView(NoticeKind.Updated) { Game = harbor.Key, GameName = harbor.Name, ReleaseLabel = "v2" });
+        ui.Agent.Notice(new NoticeView(NoticeKind.UpdateAvailable) { Game = ember.Key, GameName = ember.Name, ReleaseLabel = "v2" });
+        UiHarness.Settle();
+        (ui.Window.IsActive, ui.Shell.Toasts.IsWindowInFront, ui.Shell.Toasts.Items.Count).Should().Be((false, false, 2));
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("game-mode-toasts-behind-steam");
+
+        ui.Window.Activate();
+        UiHarness.Settle();
+        ui.Shell.Toasts.IsWindowInFront.Should().BeTrue("their time runs once the player is back");
+        ui.Window.Hide();
+        UiHarness.Settle();
+        ui.Window.Show();
+        UiHarness.Settle();
+        ui.Shell.Toasts.IsWindowInFront.Should().BeFalse("Steam's overlay took the focus again");
+    }
+
     // The same walk in Game Mode at the Steam Deck's screen and on the desktop at the smallest window, both rendered.
     [AvaloniaTheory]
     [InlineData(true)]
@@ -154,6 +179,11 @@ public sealed class GameModeTests
         settings.CreatorModeDescription.Should().EndWith(inGameMode
             ? "tłumaczeniami gier. W trybie gry Kreator spolszczeń jest ukryty; działa w trybie pulpitu."
             : "tłumaczeniami gier.");
+        settings.NotificationsDescription.Should().EndWith(inGameMode
+            ? "albo znalezione. W trybie gry aplikacja nie wysyła powiadomień systemowych; to, co wymaga uwagi, czeka w „Do zrobienia” "
+                + "w „Moich grach”."
+            : "albo znalezione.");
+        await RenderAsync(ui, name + "-settings-notifications", "NotificationsRow");
         await RenderAsync(ui, name + "-settings-backups", "BackupsInGameFolder");
         await RenderAsync(ui, name + "-settings-data", "DataSizes");
         await RenderAsync(ui, name + "-settings-about", "UpdateStatus");

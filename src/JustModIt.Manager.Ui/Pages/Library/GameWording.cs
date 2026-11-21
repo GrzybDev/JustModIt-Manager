@@ -11,6 +11,10 @@ namespace JustModIt.Manager.Ui.Pages.Library;
 /// <summary>Words the player's games and their installs in the window's texts, from the typed states the agent sends.</summary>
 internal static class GameWording
 {
+    /// <summary>Where what needs the player waits in Game Mode, whose Steam shows no system notifications.</summary>
+    public static string NotificationsInGameMode =>
+        Text.Format(Strings.Settings_NotificationsInGameMode, ("todo", Strings.Library_Todo), ("library", Strings.Shell_Library));
+
     public static string StoreName(StoreId store) => store.Value switch
     {
         "steam" => Strings.Library_StoreSteam,

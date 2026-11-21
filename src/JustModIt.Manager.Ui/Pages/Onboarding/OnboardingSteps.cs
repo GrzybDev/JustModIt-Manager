@@ -61,6 +61,9 @@ public sealed class AutomationStep(OnboardingViewModel setup) : OnboardingStep(s
 
     /// <summary>Where the app looks for games, on Linux through Heroic, since the GOG and Epic Games launchers do not run there.</summary>
     public string Detect { get; } = Text.Format(Strings.Onboarding_Detect, ("system", OperatingSystem.IsLinux() ? "linux" : "windows"));
+
+    public string NotificationsDescription { get; } =
+        Strings.Onboarding_NotificationsDescription + (setup.InGameMode ? " " + GameWording.NotificationsInGameMode : "");
 }
 
 /// <summary>Starting with the system and what closing the window does.</summary>

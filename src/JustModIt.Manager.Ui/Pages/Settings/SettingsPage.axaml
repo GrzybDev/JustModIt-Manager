@@ -172,10 +172,10 @@
               <ToggleSwitch IsChecked="{Binding ReapplyAfterGameUpdate}" AutomationProperties.Name="{x:Static loc:Strings.Settings_Reapply}"
                             AutomationProperties.HelpText="{x:Static loc:Strings.Settings_ReapplyDescription}" />
             </ui:SettingRow>
-            <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.Bell}" Title="{x:Static loc:Strings.Settings_Notifications}"
-                           Message="{x:Static loc:Strings.Settings_NotificationsDescription}">
+            <ui:SettingRow x:Name="NotificationsRow" Classes="divided" Icon="{x:Static theme:Icons.Bell}"
+                           Title="{x:Static loc:Strings.Settings_Notifications}" Message="{Binding NotificationsDescription}">
               <ToggleSwitch IsChecked="{Binding ShowNotifications}" AutomationProperties.Name="{x:Static loc:Strings.Settings_Notifications}"
-                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_NotificationsDescription}" />
+                            AutomationProperties.HelpText="{Binding NotificationsDescription}" />
             </ui:SettingRow>
             <ui:SettingRow Classes="divided stacked" Icon="{x:Static theme:Icons.ListOrdered}" Title="{x:Static loc:Strings.Settings_Teams}"
                            Message="{x:Static loc:Strings.Settings_TeamsDescription}">

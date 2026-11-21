@@ -98,6 +98,28 @@ public sealed class TrayTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task In_Game_Mode_notices_reach_an_open_window_in_the_background_and_no_notification_without_one()
+    {
+        _agent.Tray.ReturnBy(WindowReturn.StoreLibrary);
+        _agent.Start();
+        var notifier = await _agent.ServiceAsync<Notifier>();
+        var settings = await _agent.ServiceAsync<ISettingsService>();
+        var ui = await _agent.ServiceAsync<UiLauncher>();
+        var window = await _agent.ConnectWindowAsync();
+        await window.StateAsync(state => state.Activity.WindowReturn == WindowReturn.StoreLibrary);
+
+        notifier.Notify(new AutomationNotice(NoticeKind.Updated) { Game = Game, GameName = "Example Game", ReleaseLabel = "v2" });
+        (await window.NextAsync<Notify>()).Notice.ReleaseLabel.Should().Be("v2", "Steam's overlay takes the window's focus, not its place");
+        _agent.Tray.Notifications.Reader.TryRead(out _).Should().BeFalse();
+
+        await window.Connection.DisposeAsync();
+        await Eventually.HoldsAsync(() => ui.Window is null);
+        settings.Current.ShowNotifications.Should().BeTrue();
+        notifier.Notify(new AutomationNotice(NoticeKind.Installed) { Game = Game, GameName = "Example Game" });
+        _agent.Tray.Notifications.Reader.TryRead(out _).Should().BeFalse("Steam's notification server in Game Mode shows none");
+    }
+
+    [Fact]
     public async Task No_notice_reaches_the_tray_when_notifications_are_off()
     {
         await _agent.SaveSettingsAsync(AppSettings.Default with { ShowNotifications = false });

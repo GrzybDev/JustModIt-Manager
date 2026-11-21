@@ -10,7 +10,7 @@ using JustModIt.Manager.Ui.Theme;
 namespace JustModIt.Manager.Ui.Overlays;
 
 /// <summary>
-/// The automation's notices as the window shows them while it is in front: a short title of what happened and the game
+/// The automation's notices as the window shows them in its corner: a short title of what happened and the game
 /// it happened to in the line below, with a way to the game when there is something to do there, or to the settings when
 /// the copies an uninstall kept wait there.
 /// </summary>
