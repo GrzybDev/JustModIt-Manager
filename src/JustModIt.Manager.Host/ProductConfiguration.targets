@@ -42,7 +42,6 @@
         ApiKey = ApiKey,
         ErrorReportsDsn = ErrorReportsDsn,
         UpdateUrl = UpdateUrl,
-        UpdateChannel = UpdateChannel,
         SourceUrl = SourceUrl,
         IssuesUrl = IssuesUrl,
         Language = Language,
@@ -94,8 +93,6 @@ internal static class ProductConfiguration
 
     /// <summary>An empty address turns self-update off.</summary>
     public const string UpdateUrl = @"$([MSBuild]::Escape($(ManagerUpdateUrl.Replace('"', '""'))))"%3B
-
-    public const string UpdateChannel = @"$([MSBuild]::Escape($(ManagerUpdateChannel.Replace('"', '""'))))"%3B
 
     /// <summary>The repository holding the app's source code, or empty for none.</summary>
     public const string SourceUrl = @"$([MSBuild]::Escape($(ManagerSourceUrl.Replace('"', '""'))))"%3B

@@ -194,7 +194,6 @@ jobs:
           VELOPACK: ${{ steps.package.outputs.velopack }}
           RELEASES: ${{ steps.package.outputs.releases }}
           UPDATE_URL: ${{ steps.package.outputs.update-url }}
-          CHANNEL: ${{ steps.package.outputs.channel }}
           PRODUCT: ${{ steps.package.outputs.product }}
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -221,7 +220,6 @@ jobs:
           $arguments = @('upload', 'github', '--repoUrl', $env:UPDATE_URL, '--token', $token, '--outputDir', $env:RELEASES,
             '--tag', $tag, '--releaseName', "$env:PRODUCT $env:VERSION", '--publish', '--skip-updates')
           if ($own) { $arguments += @('--targetCommitish', $env:GITHUB_SHA) }
-          if ($env:CHANNEL) { $arguments += @('--channel', $env:CHANNEL) }
           if ($env:PRERELEASE -eq 'true') { $arguments += '--pre' }
           $vpk = @('tool', 'exec', "vpk@$env:VELOPACK", '--yes', '--')
           & dotnet @vpk @arguments
@@ -245,7 +243,6 @@ jobs:
           APP: ${{ steps.version.outputs.slug }}
           VERSION: ${{ steps.version.outputs.version }}
           PRERELEASE: ${{ steps.version.outputs.prerelease }}
-          CHANNEL: ${{ steps.package.outputs.channel }}
           CHECKSUMS: ${{ steps.package.outputs.checksums }}
           PACKAGED: ${{ steps.package.outcome }}
           PUBLISHED: ${{ steps.publish.outcome }}
@@ -255,7 +252,6 @@ jobs:
           $lines = @(
             "### $env:APP $env:VERSION", '',
             "- Pre-release: $(if ($env:PRERELEASE -eq 'true') { 'yes' } else { 'no' })",
-            "- Channel: $(if ($env:CHANNEL) { $env:CHANNEL } else { 'default' })",
             "- Signed: $(if ($env:SIGN -eq 'true' -and $env:PACKAGED -eq 'success') { 'yes' } else { 'no' })",
             "- Published: $(if ($env:PUBLISHED -eq 'success') { "yes, to $env:UPDATE_URL" } else { 'no' })"
           )

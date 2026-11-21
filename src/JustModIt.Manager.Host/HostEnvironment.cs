@@ -132,9 +132,7 @@ internal sealed record HostEnvironment
         SteamShortcutTarget = OperatingSystem.IsLinux() && IntegratesWithShell
             ? DesktopEntry.FileOf(Identity.DesktopId, LibraryEnvironment.ForCurrentUser().DataDirectory)
             : null,
-        Updates = Product.UpdateUrl.Length > 0
-            ? new UpdateFeed(Product.UpdateUrl, Product.UpdateChannel.Length > 0 ? Product.UpdateChannel : null)
-            : null,
+        UpdateUrl = Product.UpdateUrl.Length > 0 ? Product.UpdateUrl : null,
     };
 
     /// <summary>What the window's process knows about this app when it starts.</summary>

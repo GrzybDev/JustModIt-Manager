@@ -5,7 +5,7 @@ Publishes one app with NativeAOT for the system it runs on and packs it into a V
 
 .DESCRIPTION
 Everything that sets one app apart (its package id, title, authors, icons, desktop id, menu categories, update feed,
-channel, tag prefix and texts) is read from its project with MSBuild, so the script is the same for every app.
+tag prefix and texts) is read from its project with MSBuild, so the script is the same for every app.
 NativeAOT compiles only for the system it runs on, so Windows packs the Windows release and Linux the AppImage. The
 output folder receives:
 
@@ -100,7 +100,6 @@ Get-ChildItem $publish -File | Where-Object Extension -In '.pdb', '.dbg' | Move-
 
 if (-not $NoDelta -and $target.UpdateUrl) {
     $downloadArguments = @('download', 'github', '--repoUrl', $target.UpdateUrl, '--outputDir', $releases, '--skip-updates')
-    if ($target.Channel) { $downloadArguments += @('--channel', $target.Channel) }
     # The delta is made against the newest release of any kind, since testers update to pre-releases too.
     $downloadArguments += '--pre'
     if ($Token) { $downloadArguments += @('--token', $Token) }
@@ -129,7 +128,6 @@ $packArguments += if ($linux) {
 else {
     @('--mainExe', "$($target.AssemblyName).exe", '--icon', $target.Icon, '--shortcuts', 'StartMenuRoot', '--noPortable')
 }
-if ($target.Channel) { $packArguments += @('--channel', $target.Channel) }
 if (Write-ReleaseNotes -Target $target -Version $Version -Path $notes -SourceUrl $SourceUrl) {
     $packArguments += @('--releaseNotes', $notes)
 }
@@ -168,8 +166,8 @@ $hashes = foreach ($file in $downloads) {
 if ($env:GITHUB_OUTPUT) {
     @(
         "app-id=$($target.AppId)", "product=$($target.Product)", "update-url=$($target.UpdateUrl)",
-        "channel=$($target.Channel)", "velopack=$($target.VelopackVersion)", "releases=$releases", "symbols=$symbols",
-        "checksums=$checksums", "release-tag=$releaseTag"
+        "velopack=$($target.VelopackVersion)", "releases=$releases", "symbols=$symbols", "checksums=$checksums",
+        "release-tag=$releaseTag"
     ) | Add-Content -Path $env:GITHUB_OUTPUT -Encoding UTF8
 }
 

@@ -38,9 +38,6 @@ public sealed record ProductSettings
     /// <summary>Empty turns self-update off.</summary>
     public string UpdateUrl { get; init; } = "";
 
-    /// <summary>Empty follows the channel the installed build came from.</summary>
-    public string UpdateChannel { get; init; } = "";
-
     /// <summary>Empty offers no link to the source code.</summary>
     public string SourceUrl { get; init; } = "";
 

@@ -172,12 +172,9 @@ public sealed class HostEnvironmentTests : IDisposable
     [Fact]
     public void Updates_follow_the_apps_feed_and_are_off_without_one()
     {
-        HostEnvironment.Create(Product, Build).AgentOptions().Updates.Should().BeNull();
-
+        HostEnvironment.Create(Product, Build).AgentOptions().UpdateUrl.Should().BeNull();
         HostEnvironment.Create(Product with { UpdateUrl = "https://github.com/example/example-app" }, Build)
-            .AgentOptions().Updates.Should().Be(new UpdateFeed("https://github.com/example/example-app", null));
-        HostEnvironment.Create(Product with { UpdateUrl = "https://github.com/example/example-app", UpdateChannel = "beta" }, Build)
-            .AgentOptions().Updates!.Channel.Should().Be("beta");
+            .AgentOptions().UpdateUrl.Should().Be("https://github.com/example/example-app");
     }
 
     [Fact]

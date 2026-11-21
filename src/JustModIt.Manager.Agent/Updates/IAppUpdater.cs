@@ -39,7 +39,7 @@ public interface IAppUpdater
 /// <summary>Velopack with the app's GitHub releases.</summary>
 internal sealed class VelopackUpdater : IAppUpdater
 {
-    private readonly UpdateFeed? _feed;
+    private readonly string? _url;
     private readonly ISettingsService _settings;
     private UpdateManager? _manager;
     private bool _includesPrereleases;
@@ -51,13 +51,13 @@ internal sealed class VelopackUpdater : IAppUpdater
     public VelopackUpdater(AgentOptions options, ISettingsService settings)
     {
         _settings = settings;
-        if (options.Updates is { } feed)
+        if (options.UpdateUrl is { } url)
         {
             _includesPrereleases = settings.Current.UpdatePrereleases;
-            var manager = Create(feed, _includesPrereleases);
+            var manager = Create(url, _includesPrereleases);
             if (manager.IsInstalled)
             {
-                (_feed, _manager) = (feed, manager);
+                (_url, _manager) = (url, manager);
             }
         }
     }
@@ -69,10 +69,10 @@ internal sealed class VelopackUpdater : IAppUpdater
     public async Task<AppRelease?> CheckAsync(CancellationToken cancellationToken)
     {
         // Velopack's GitHub source takes pre-releases or not when it is made, so a changed setting needs a new one.
-        if (_feed is not null && _settings.Current.UpdatePrereleases != _includesPrereleases)
+        if (_url is not null && _settings.Current.UpdatePrereleases != _includesPrereleases)
         {
             _includesPrereleases = !_includesPrereleases;
-            _manager = Create(_feed, _includesPrereleases);
+            _manager = Create(_url, _includesPrereleases);
         }
 
         _found = await Manager.CheckForUpdatesAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -88,9 +88,8 @@ internal sealed class VelopackUpdater : IAppUpdater
 
     private UpdateManager Manager => _manager ?? throw new InvalidOperationException("This copy of the app cannot update itself.");
 
-    private static UpdateManager Create(UpdateFeed feed, bool includesPrereleases) =>
-        new(new GithubSource(feed.Url, accessToken: null, prerelease: includesPrereleases),
-            new UpdateOptions { ExplicitChannel = feed.Channel });
+    private static UpdateManager Create(string url, bool includesPrereleases) =>
+        new(new GithubSource(url, accessToken: null, prerelease: includesPrereleases));
 
     private static AppRelease Release(VelopackAsset asset) =>
         new(asset.Version.ToString(), string.IsNullOrWhiteSpace(asset.NotesMarkdown) ? null : asset.NotesMarkdown);

@@ -53,8 +53,8 @@ public sealed record AgentOptions
     /// </summary>
     public bool LaunchesBecomeWindows { get; init; }
 
-    /// <summary>Where the app's own updates come from; null turns self-update off.</summary>
-    public UpdateFeed? Updates { get; init; }
+    /// <summary>The app's GitHub repository, whose releases hold its own updates; null turns self-update off.</summary>
+    public string? UpdateUrl { get; init; }
 
     /// <summary>The agent's last unclean exit that no window has told the player of yet; the next window tells it once.</summary>
     public UntoldExit? PreviousExit { get; init; }
@@ -65,8 +65,3 @@ public sealed record AgentOptions
     /// </summary>
     public SessionMarker? Session { get; init; }
 }
-
-/// <summary>The feed the app's own updates come from.</summary>
-/// <param name="Url">The app's GitHub repository, whose releases hold its updates.</param>
-/// <param name="Channel">The release channel to follow; null follows the one the installed build came from.</param>
-public sealed record UpdateFeed(string Url, string? Channel);
