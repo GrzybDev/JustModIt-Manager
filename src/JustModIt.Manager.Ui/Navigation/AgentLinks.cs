@@ -24,7 +24,7 @@ public static class AgentLinks
             CatalogueTarget { GameSlug: { Length: > 0 } game } => [new CatalogueRoute(), new CatalogueGameRoute(game)],
             CatalogueTarget => [new CatalogueRoute()],
             InstallTarget install => Install(install, state.Games),
-            SettingsTarget => [new SettingsRoute()],
+            SettingsTarget or UninstallAppTarget => [new SettingsRoute()],
             CreatorTarget when state.Settings.CreatorMode => [new CreatorRoute()],
             _ => [new LibraryRoute()],
         };

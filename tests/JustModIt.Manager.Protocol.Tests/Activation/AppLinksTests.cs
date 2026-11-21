@@ -74,6 +74,7 @@ public sealed class AppLinksTests
     [Theory]
     [InlineData("example-app://open")]
     [InlineData("example-app://uninstall/steam/1000")]
+    [InlineData("example-app://uninstall")]
     [InlineData("example-app://exit")]
     [InlineData("example-app:library")]
     [InlineData("example-app://")]

@@ -37,6 +37,7 @@ public sealed class LaunchArgumentsTests
     [InlineData("--ui", "example-app://game/steam/1000")]
     [InlineData("--background", "example-app://settings")]
     [InlineData("--exit")]
+    [InlineData("--ui", "--uninstall")]
     public void Arguments_turn_back_into_the_command_line_they_came_from(params string[] args)
     {
         Parse(args).ToArgs(_links).Should().Equal(args);
@@ -62,6 +63,13 @@ public sealed class LaunchArgumentsTests
     {
         Parse("--background", "example-app://settings").Should()
             .Be(new LaunchArguments(ProcessRole.Launcher, Background: true, new SettingsTarget()));
+    }
+
+    [Fact]
+    public void The_uninstall_switch_of_the_apps_menu_entry_leads_to_the_question_which_no_link_does()
+    {
+        Parse(LaunchArguments.UninstallSwitch).Target.Should().Be(new UninstallAppTarget());
+        Parse("example-app://uninstall").Target.Should().BeNull();
     }
 
     [Fact]

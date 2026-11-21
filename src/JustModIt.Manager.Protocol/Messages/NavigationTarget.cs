@@ -10,6 +10,7 @@ namespace JustModIt.Manager.Protocol.Messages;
 [JsonDerivedType(typeof(InstallTarget), "install")]
 [JsonDerivedType(typeof(SettingsTarget), "settings")]
 [JsonDerivedType(typeof(CreatorTarget), "creator")]
+[JsonDerivedType(typeof(UninstallAppTarget), "uninstallApp")]
 public abstract record NavigationTarget;
 
 /// <summary>The player's list of games.</summary>
@@ -50,3 +51,9 @@ public sealed record SettingsTarget : NavigationTarget;
 
 /// <summary>Opens the package creator only while creator mode is on.</summary>
 public sealed record CreatorTarget : NavigationTarget;
+
+/// <summary>
+/// The settings with the question whether to uninstall the app, which the app's own menu entry asks for; no link leads here,
+/// so no website can put the question.
+/// </summary>
+public sealed record UninstallAppTarget : NavigationTarget;

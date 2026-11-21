@@ -7,6 +7,7 @@ using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
 using JustModIt.Manager.Ui.Controls;
+using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Tests.TestSupport;
 using static JustModIt.Manager.Ui.Tests.TestSupport.TestGames;
@@ -151,6 +152,31 @@ public sealed class AppUninstallTests
         ui.Find<SettingRow>("UninstallAppRow").IsVisible.Should().BeFalse("a store's game session has no desktop to uninstall from");
         ui.Push(state with { Version = 12, AppUninstall = null });
         ui.Find<SettingRow>("UninstallAppRow").IsVisible.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public async Task The_apps_menu_entry_opens_the_settings_with_the_question_whether_the_window_starts_for_it_or_runs_already()
+    {
+        using var ui = new UiHarness(TestStates.Idle() with { AppUninstall = Offer }, launch: new UninstallAppTarget());
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(600));
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new SettingsRoute());
+        ui.Shell.Dialogs.Current.Should().BeOfType<AppUninstallDialogViewModel>();
+
+        ui.Shell.Dialogs.CancelCurrent();
+        ui.Shell.Navigator.Navigate(new LibraryRoute());
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Agent.Navigate(new UninstallAppTarget());
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Shell.Navigator.CurrentRoute.Should().Be(new SettingsRoute());
+        ui.Shell.Dialogs.Current.Should().BeOfType<AppUninstallDialogViewModel>();
+        ui.Agent.Requests.OfType<UninstallApp>().Should().BeEmpty("the question still asks");
+
+        ui.Shell.Dialogs.CancelCurrent();
+        ui.Push(TestStates.Idle() with { Version = 2, AppUninstall = Offer, Activity = new ActivityView { WindowReturn = WindowReturn.StoreLibrary } });
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Agent.Navigate(new UninstallAppTarget());
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
+        ui.Shell.Dialogs.IsOpen.Should().BeFalse("a store's game session has no desktop to uninstall from");
     }
 
     private static async Task<UiHarness> OpenAsync(AppStateView state)

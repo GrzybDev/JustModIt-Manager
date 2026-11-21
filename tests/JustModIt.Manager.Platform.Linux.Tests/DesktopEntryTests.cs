@@ -18,7 +18,7 @@ public sealed class DesktopEntryTests : IDisposable
     private string Defaults => Path.Combine(Config, "mimeapps.list");
 
     [Fact]
-    public void The_entry_runs_the_appimage_with_the_link_or_to_exit_the_users_defaults_give_it_the_scheme_and_both_go_with_every_other_line_kept()
+    public void The_entry_runs_the_appimage_with_the_link_or_to_exit_or_uninstall_the_users_defaults_give_it_the_scheme_and_both_go_with_every_other_line_kept()
     {
         Directory.CreateDirectory(Config);
         File.WriteAllText(Defaults, """
@@ -33,7 +33,8 @@ public sealed class DesktopEntryTests : IDisposable
             image/png=org.example.Viewer.desktop;
 
             """);
-        var entry = new DesktopEntry(DesktopId, "Game;Utility;", "Exit", "--exit", () => Ico((16, Small), (256, Large)), Data, Config);
+        var entry = new DesktopEntry(DesktopId, "Game;Utility;", [new("exit", "Exit", "--exit"), new("uninstall", "Uninstall", "--uninstall")],
+            () => Ico((16, Small), (256, Large)), Data, Config);
         var entryFile = Path.Combine(Data, "applications", DesktopId + ".desktop");
         var smallIcon = IconFile("16x16");
         var largeIcon = IconFile("256x256");
@@ -56,11 +57,15 @@ public sealed class DesktopEntryTests : IDisposable
             MimeType=x-scheme-handler/example-app;
             StartupWMClass=com.example.ExampleApp
             StartupNotify=true
-            Actions=exit;
+            Actions=exit;uninstall;
 
             [Desktop Action exit]
             Name=Exit
             Exec="/home/player/Applications/Example \\"App\\" \\$HOME 100%%.AppImage" --exit
+
+            [Desktop Action uninstall]
+            Name=Uninstall
+            Exec="/home/player/Applications/Example \\"App\\" \\$HOME 100%%.AppImage" --uninstall
 
             """, "the desktop unquotes the path as one argument and puts the link after it");
         File.ReadAllBytes(smallIcon).Should().Equal(Small, "each frame of the icon goes to its size");

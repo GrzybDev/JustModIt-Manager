@@ -18,6 +18,7 @@ public sealed class FrameCodecTests
         ["navigate to catalogue game"] = new EventFrame(new Navigate(new CatalogueTarget("example-game"))),
         ["navigate to settings"] = new EventFrame(new Navigate(new SettingsTarget())),
         ["navigate to creator"] = new EventFrame(new Navigate(new CreatorTarget())),
+        ["navigate to uninstall the app"] = new EventFrame(new Navigate(new UninstallAppTarget())),
         ["shutdown"] = new EventFrame(new ShutdownRequested(ShutdownReason.Update)),
         ["empty response"] = new ResponseFrame(3),
         ["response with payload"] = new ResponseFrame(4, new Ping()),

@@ -5,7 +5,7 @@ namespace JustModIt.Manager.Protocol.Activation;
 /// <summary>A command line of the app: the role it selects and where it leads.</summary>
 /// <param name="Role">The role the process runs.</param>
 /// <param name="Background">Started with the system, into the tray.</param>
-/// <param name="Target">Where an app link leads; null for a plain start and for links that only open the window.</param>
+/// <param name="Target">Where an app link or the uninstall switch leads; null for a plain start and for links that only open the window.</param>
 /// <param name="Exit">Asks the running app to exit once its jobs are done, as the tray's exit does, and starts nothing.</param>
 public sealed record LaunchArguments(ProcessRole Role, bool Background, NavigationTarget? Target, bool Exit = false)
 {
@@ -13,6 +13,7 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
     public const string UiSwitch = "--ui";
     public const string BackgroundSwitch = "--background";
     public const string ExitSwitch = "--exit";
+    public const string UninstallSwitch = "--uninstall";
 
     /// <summary>
     /// Reads a command line, ignoring anything unknown such as Velopack's own switches; of several links the last wins.
@@ -46,6 +47,10 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
             {
                 exit = true;
             }
+            else if (string.Equals(arg, UninstallSwitch, StringComparison.OrdinalIgnoreCase))
+            {
+                target = new UninstallAppTarget();
+            }
             else if (links.IsLink(arg))
             {
                 target = links.Parse(arg);
@@ -76,7 +81,11 @@ public sealed record LaunchArguments(ProcessRole Role, bool Background, Navigati
             args.Add(ExitSwitch);
         }
 
-        if (Target is not null)
+        if (Target is UninstallAppTarget)
+        {
+            args.Add(UninstallSwitch);
+        }
+        else if (Target is not null)
         {
             args.Add(links.For(Target));
         }

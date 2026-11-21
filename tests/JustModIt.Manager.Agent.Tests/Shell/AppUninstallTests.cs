@@ -5,6 +5,7 @@ using JustModIt.Manager.Core.Installation;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
+using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
@@ -90,6 +91,18 @@ public sealed class AppUninstallTests : IAsyncDisposable
 
         (await started!.Completion.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token)).Outcome.Should().NotBe(JobOutcome.Cancelled);
         await Agent.Run.WaitAsync(TimeSpan.FromSeconds(30), AgentHarness.Token);
+    }
+
+    [Fact]
+    public async Task The_apps_menu_entry_hands_its_uninstall_to_the_window_as_the_place_that_asks()
+    {
+        var window = await StartAsync();
+        var launcher = await Agent.ConnectLauncherAsync();
+
+        await launcher.RequestAsync(new Activate([LaunchArguments.UninstallSwitch]), cancellationToken: AgentHarness.Token);
+
+        (await window.NextAsync<Navigate>()).Target.Should().Be(new UninstallAppTarget());
+        _program.RemovedAfter.Should().BeNull("only the window's question starts the uninstall");
     }
 
     public async ValueTask DisposeAsync()

@@ -107,8 +107,16 @@ internal static partial class AgentPlatform
         var user = LibraryEnvironment.ForCurrentUser();
         services.AddSingleton(provider => new IconFile(Icon(icons, options.Identity.DesktopId, app,
             provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(AgentPlatform).FullName!))));
-        services.AddSingleton<ILinkRegistration>(new DesktopEntry(options.Identity.DesktopId, desktopCategories, Strings.TrayExit,
-            LaunchArguments.ExitSwitch, () => Resource(app, AppBranding.IconResource), user.DataDirectory, user.ConfigDirectory));
+        // An AppImage is a file that no list of the system's installed apps knows, so the app uninstalls itself.
+        var uninstalls = options.InstallDirectory is null;
+        List<DesktopAction> actions = [new("exit", Strings.TrayExit, LaunchArguments.ExitSwitch)];
+        if (uninstalls)
+        {
+            actions.Add(new DesktopAction("uninstall", Strings.Settings_UninstallAppButton, LaunchArguments.UninstallSwitch));
+        }
+
+        services.AddSingleton<ILinkRegistration>(new DesktopEntry(options.Identity.DesktopId, desktopCategories, actions,
+            () => Resource(app, AppBranding.IconResource), user.DataDirectory, user.ConfigDirectory));
         services.AddSingleton<IRegistry>(NoWindowsRecords.Instance);
         services.AddSingleton<IRegistryWatcher>(NoWindowsRecords.Instance);
         services.AddSingleton<ISqliteReader>(NoWindowsRecords.Instance);
@@ -117,8 +125,7 @@ internal static partial class AgentPlatform
         services.AddSingleton<IProcessSource>(LinuxProcessSource.Instance);
         services.AddSingleton<ILockHolderSource>(ProcLockHolders.Instance);
         services.AddSingleton<IAutostart>(Unit(options));
-        // An AppImage is a file that no list of the system's installed apps knows, so the app uninstalls itself.
-        if (options.InstallDirectory is null)
+        if (uninstalls)
         {
             var program = new AppImageProgram(options.ExecutablePath,
                 (VelopackLocator.IsCurrentSet ? VelopackLocator.Current as LinuxVelopackLocator : null)?.PersistentTempDir, user.HomeDirectory);

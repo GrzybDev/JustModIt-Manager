@@ -287,6 +287,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         {
             _pendingLink = null;
             Navigator.Open(AgentLinks.RoutesFor(link, Agent.State));
+            if (link is UninstallAppTarget)
+            {
+                _ = Uninstall.ConfirmAsync();
+            }
         }
     }
 

@@ -4,6 +4,12 @@ using JustModIt.Manager.Core.Platform;
 
 namespace JustModIt.Manager.Platform.Linux;
 
+/// <summary>An action the app's entry offers in its menu beside starting the app, such as exiting it.</summary>
+/// <param name="Id">The action's key in the entry.</param>
+/// <param name="Name">What the menu calls it.</param>
+/// <param name="Argument">The argument that makes the executable take the action.</param>
+public sealed record DesktopAction(string Id, string Name, string Argument);
+
 /// <summary>
 /// The app's entry among the desktop's apps, with its icon, and its link scheme, which the entry declares and the user's
 /// default applications give to it; files only, which the desktops read themselves.
@@ -14,8 +20,7 @@ public sealed class DesktopEntry : ILinkRegistration
 
     private readonly string _desktopId;
     private readonly string _categories;
-    private readonly string _exitName;
-    private readonly string _exitArgument;
+    private readonly IReadOnlyList<DesktopAction> _actions;
     private readonly Func<byte[]?> _icon;
     private readonly string _entry;
     private readonly string _icons;
@@ -24,18 +29,16 @@ public sealed class DesktopEntry : ILinkRegistration
     /// <summary>Creates the entry of one app and build.</summary>
     /// <param name="desktopId">Names the entry and its icon, as it names the app's window class.</param>
     /// <param name="categories">The menu categories the entry lists, each followed by a semicolon.</param>
-    /// <param name="exitName">The name of the entry's action that exits the app.</param>
-    /// <param name="exitArgument">The argument that makes the executable exit the running app.</param>
+    /// <param name="actions">The actions the entry offers beside starting the app.</param>
     /// <param name="icon">Reads the app's <c>.ico</c>, whose frames are PNG images; null for an app without one.</param>
     /// <param name="dataDirectory">The user's data folder (<c>XDG_DATA_HOME</c>), which holds the entries and icons.</param>
     /// <param name="configDirectory">The user's configuration folder (<c>XDG_CONFIG_HOME</c>), which holds the default applications.</param>
-    public DesktopEntry(string desktopId, string categories, string exitName, string exitArgument, Func<byte[]?> icon,
+    public DesktopEntry(string desktopId, string categories, IReadOnlyList<DesktopAction> actions, Func<byte[]?> icon,
         string dataDirectory, string configDirectory)
     {
         _desktopId = desktopId;
         _categories = categories;
-        _exitName = exitName;
-        _exitArgument = exitArgument;
+        _actions = actions;
         _icon = icon;
         _entry = Path.Join(dataDirectory, "applications", desktopId + ".desktop");
         _icons = Path.Join(dataDirectory, "icons");
@@ -65,8 +68,8 @@ public sealed class DesktopEntry : ILinkRegistration
     }
 
     /// <summary>
-    /// The entry's file, which a click in the desktop's menu or a link of the scheme runs, with the action that exits the
-    /// app, which a desktop without a tray offers nowhere else.
+    /// The entry's file, which a click in the desktop's menu or a link of the scheme runs, with its actions, such as exiting
+    /// the app, which a desktop without a tray offers nowhere else.
     /// </summary>
     /// <param name="scheme">The app's link scheme.</param>
     /// <param name="displayName">The app's name in the menu.</param>
@@ -83,13 +86,15 @@ public sealed class DesktopEntry : ILinkRegistration
         MimeType={Handler(scheme)};
         StartupWMClass={_desktopId}
         StartupNotify=true
-        Actions=exit;
+        Actions={string.Concat(_actions.Select(action => action.Id + ";"))}
 
-        [Desktop Action exit]
-        Name={_exitName}
-        Exec={Quote(executable)} {_exitArgument}
+        """ + string.Concat(_actions.Select(action => $"""
 
-        """;
+        [Desktop Action {action.Id}]
+        Name={action.Name}
+        Exec={Quote(executable)} {action.Argument}
+
+        """));
 
     /// <summary>
     /// The user's default applications with the handler of one type set, or taken away, every other line kept as it is.
