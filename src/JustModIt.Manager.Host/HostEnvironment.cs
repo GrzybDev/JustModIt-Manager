@@ -69,9 +69,6 @@ internal sealed record HostEnvironment
     /// <summary>The system this process runs on, as its log and the window's reports name it.</summary>
     public required SystemRelease System { get; init; }
 
-    /// <summary>The updater started this process after applying an update, or after failing to apply it.</summary>
-    public bool RestartedByUpdater { get; init; }
-
     /// <summary>Registers autostart and the link scheme, which a development build does only when asked to.</summary>
     public bool IntegratesWithShell => Install.IsInstalled || (Product.IsDevelopmentBuild && Product.DevelopmentShellIntegration);
 
@@ -132,7 +129,6 @@ internal sealed record HostEnvironment
         Updates = Product.UpdateUrl.Length > 0
             ? new UpdateFeed(Product.UpdateUrl, Product.UpdateChannel.Length > 0 ? Product.UpdateChannel : null)
             : null,
-        RestartedByUpdater = RestartedByUpdater,
     };
 
     /// <summary>What the window's process knows about this app when it starts.</summary>

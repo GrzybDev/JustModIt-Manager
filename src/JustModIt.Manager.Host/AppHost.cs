@@ -18,8 +18,7 @@ public static class AppHost
         // applying of updates at start is off, since it would run in every process, including launches that only hand
         // over; the agent applies them itself.
         var product = options.Product;
-        var restartedByUpdater = false;
-        var velopack = VelopackApp.Build().SetAutoApplyOnStartup(false).OnRestarted(_ => restartedByUpdater = true);
+        var velopack = VelopackApp.Build().SetAutoApplyOnStartup(false);
         if (OperatingSystem.IsWindows())
         {
             velopack = velopack
@@ -34,7 +33,7 @@ public static class AppHost
         HostEnvironment environment;
         try
         {
-            environment = HostEnvironment.Create(product, InstallLocation.Current()) with { RestartedByUpdater = restartedByUpdater };
+            environment = HostEnvironment.Create(product, InstallLocation.Current());
         }
         // Without a data folder there is nowhere to write even a log; the app must not guess one.
         catch (AppDataUnavailableException)

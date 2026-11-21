@@ -1,5 +1,7 @@
+using System.Text;
 using JustModIt.Manager.Agent.Lifetime;
 using JustModIt.Manager.Agent.Ui;
+using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Jobs;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Protocol.Activation;
@@ -30,7 +32,7 @@ public sealed record UpdateSchedule(Func<LaunchArguments, TimeSpan> FirstCheck, 
 /// <param name="ui">The window, which an update waits for or closes.</param>
 /// <param name="lifetime">Exits the agent for the update.</param>
 /// <param name="links">Writes the start's command line back for the restart.</param>
-/// <param name="options">Whether the updater started this process.</param>
+/// <param name="options">The running version, and where the record of the last update attempt lies.</param>
 /// <param name="time">Times the checks.</param>
 /// <param name="logger">Receives checks, downloads and failures.</param>
 public sealed partial class UpdateService(
@@ -63,15 +65,22 @@ public sealed partial class UpdateService(
     /// <returns>Whether the app now exits to be updated.</returns>
     public bool ApplyPending(LaunchArguments start)
     {
+        var attempted = ReadAttempt();
+        if (attempted == options.Version)
+        {
+            AtomicFile.TryDelete(options.Locations.UpdateAttemptFile);
+        }
+
         if (Pending() is not { } pending)
         {
             return false;
         }
 
-        // The updater starts the old version again when applying fails, so applying at every start would never end.
-        if (options.RestartedByUpdater)
+        // The updater starts the old version again when applying fails, so applying at every start would never end; a version
+        // the last run tried waits for the player.
+        if (pending.Version == attempted)
         {
-            LogPendingAfterRestart(pending.Version);
+            LogPendingAfterAttempt(pending.Version);
             _failedVersion = pending.Version;
             return false;
         }
@@ -258,6 +267,18 @@ public sealed partial class UpdateService(
         }
     }
 
+    private string? ReadAttempt()
+    {
+        try
+        {
+            return File.ReadAllText(options.Locations.UpdateAttemptFile);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
     // Null also when the updater cannot tell, since a broken updater must not keep the app from starting.
     private AppRelease? Pending()
     {
@@ -281,12 +302,21 @@ public sealed partial class UpdateService(
 
         try
         {
+            // Written first, so the next start tells an update that failed.
+            if (Pending() is { } pending)
+            {
+                AtomicFile.WriteAllBytesAsync(options.Locations.UpdateAttemptFile, Encoding.UTF8.GetBytes(pending.Version),
+                    CancellationToken.None).GetAwaiter().GetResult();
+            }
+
             updater.ApplyAfterExit(restartArgs);
         }
         // An update that cannot be applied must not take the app down with it.
         catch (Exception exception)
         {
             LogApplyFailed(exception);
+            // An updater that never started failed to apply nothing, so the next start may try the version again.
+            AtomicFile.TryDelete(options.Locations.UpdateAttemptFile);
             Volatile.Write(ref _applying, 0);
             _restartRequested = false;
             status.ChangeUpdate(update => update with { State = AppUpdateState.Failed });
@@ -301,8 +331,8 @@ public sealed partial class UpdateService(
     [LoggerMessage(Level = LogLevel.Information, Message = "Applying version {Version}, downloaded by an earlier run")]
     private partial void LogApplyingPending(string version);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Version {Version} is still pending after the updater restarted the app, so applying it failed")]
-    private partial void LogPendingAfterRestart(string version);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Version {Version} is still pending after the last run started the updater, so applying it failed")]
+    private partial void LogPendingAfterAttempt(string version);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The downloaded updates could not be read")]
     private partial void LogPendingUnreadable(Exception exception);

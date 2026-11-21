@@ -180,10 +180,6 @@ public sealed class HostEnvironmentTests : IDisposable
     }
 
     [Fact]
-    public void The_agent_hears_that_the_updater_restarted_the_app() =>
-        (HostEnvironment.Create(Product, Installed) with { RestartedByUpdater = true }).AgentOptions().RestartedByUpdater.Should().BeTrue();
-
-    [Fact]
     public void Packages_and_projects_take_the_apps_extensions()
     {
         var environment = HostEnvironment.Create(Product, Build);

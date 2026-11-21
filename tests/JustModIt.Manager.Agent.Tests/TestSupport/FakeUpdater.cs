@@ -24,6 +24,9 @@ internal sealed class FakeUpdater : IAppUpdater
     /// <summary>Reading what was downloaded fails, like a locked packages folder.</summary>
     public bool PendingUnreadable { get; init; }
 
+    /// <summary>Starting the updater fails, like an updater that is missing.</summary>
+    public bool ApplyFails { get; init; }
+
     /// <summary>What the next check finds; null when this copy is the newest.</summary>
     public string? Newest { get; set; }
 
@@ -58,5 +61,13 @@ internal sealed class FakeUpdater : IAppUpdater
         return Task.CompletedTask;
     }
 
-    public void ApplyAfterExit(IReadOnlyList<string> restartArgs) => Applied.TrySetResult(restartArgs);
+    public void ApplyAfterExit(IReadOnlyList<string> restartArgs)
+    {
+        if (ApplyFails)
+        {
+            throw new IOException("The test's updater could not be started.");
+        }
+
+        Applied.TrySetResult(restartArgs);
+    }
 }

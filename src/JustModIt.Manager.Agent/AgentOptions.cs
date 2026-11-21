@@ -50,9 +50,6 @@ public sealed record AgentOptions
     /// <summary>Where the app's own updates come from; null turns self-update off.</summary>
     public UpdateFeed? Updates { get; init; }
 
-    /// <summary>The updater started this process after applying an update, or after failing to apply it.</summary>
-    public bool RestartedByUpdater { get; init; }
-
     /// <summary>The agent's last unclean exit that no window has told the player of yet; the next window tells it once.</summary>
     public UntoldExit? PreviousExit { get; init; }
 

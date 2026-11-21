@@ -241,15 +241,16 @@ public sealed class UpdateServiceTests : IAsyncDisposable
 
         await _agent.Run.WaitAsync(Timeout, AgentHarness.Token);
         (await _updater.Applied.Task).Should().Equal("example-app://settings");
+        File.ReadAllText(_agent.Options.Locations.UpdateAttemptFile).Should().Be("1.1.0");
         _agent.Shell.WindowStarts.Should().Be(0);
     }
 
     [Fact]
-    public async Task An_update_the_updater_failed_to_apply_waits_for_the_player_instead_of_restarting_again()
+    public async Task An_update_the_last_run_failed_to_apply_waits_for_the_player_instead_of_restarting_again()
     {
         var updater = new FakeUpdater { PendingVersion = "1.1.0", Notes = ReleaseNotes };
         await using var agent = Harness(updater, Soon);
-        agent.Options = agent.Options with { RestartedByUpdater = true };
+        await Attempted(agent, "1.1.0");
         agent.Start();
 
         await Eventually.HoldsAsync(() => agent.Tray.Menu.Any(item => item.Command == TrayCommands.RestartToUpdate));
@@ -263,6 +264,29 @@ public sealed class UpdateServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task An_update_that_was_applied_forgets_its_attempt()
+    {
+        await Attempted(_agent, _agent.Options.Version);
+        _agent.Start();
+        var window = await _agent.ConnectWindowAsync();
+
+        await window.StateAsync(state => state.IsLoaded);
+        File.Exists(_agent.Options.Locations.UpdateAttemptFile).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task An_updater_that_does_not_start_keeps_the_app_running_and_leaves_no_failed_attempt()
+    {
+        await using var agent = Harness(new FakeUpdater { PendingVersion = "1.1.0", ApplyFails = true }, Soon);
+        agent.Start();
+        var window = await agent.ConnectWindowAsync();
+
+        await window.StateAsync(state => state.IsLoaded);
+        agent.Run.IsCompleted.Should().BeFalse();
+        File.Exists(agent.Options.Locations.UpdateAttemptFile).Should().BeFalse("an updater that never ran did not fail to apply the version");
+    }
+
+    [Fact]
     public async Task Downloads_that_cannot_be_read_do_not_keep_the_app_from_starting()
     {
         await using var agent = Harness(new FakeUpdater { PendingUnreadable = true }, Soon);
@@ -273,6 +297,12 @@ public sealed class UpdateServiceTests : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync() => await _agent.DisposeAsync();
+
+    private static async Task Attempted(AgentHarness agent, string version)
+    {
+        Directory.CreateDirectory(agent.Options.Locations.StateDirectory);
+        await File.WriteAllTextAsync(agent.Options.Locations.UpdateAttemptFile, version, AgentHarness.Token);
+    }
 
     private static AgentHarness Harness(FakeUpdater updater, UpdateSchedule schedule, IInstallEngine? engine = null) => new()
     {

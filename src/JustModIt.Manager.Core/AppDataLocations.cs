@@ -53,6 +53,12 @@ public sealed class AppDataLocations
     /// <summary>The launch options the app added for installs that are gone and still has to take out of Steam.</summary>
     public string LaunchOptionsFile => Path.Combine(StateDirectory, "launch-options.json");
 
+    /// <summary>
+    /// The version the last run started the updater for, which tells the next start that applying it failed while it is
+    /// still pending.
+    /// </summary>
+    public string UpdateAttemptFile => Path.Combine(StateDirectory, "update-attempt");
+
     /// <summary>The installs that replacements under way removed, which a start after a stop puts back.</summary>
     public string ReplacingDirectory => Path.Combine(StateDirectory, "replacing");
 
