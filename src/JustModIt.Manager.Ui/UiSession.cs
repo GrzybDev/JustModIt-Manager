@@ -90,7 +90,7 @@ public sealed class UiSession : IDisposable
     public MainWindow CreateWindow()
     {
         _window = new(Shell, Composition.Views, Services.Context.Branding.CreateIcon(), Services.Context.SystemMotion,
-            Services.Context.WindowFrames, Services.Context.Frame);
+            Services.Context.WindowFrames);
         if (_steam is not null)
         {
             SteamKeyboard.Attach(_window, _steam);

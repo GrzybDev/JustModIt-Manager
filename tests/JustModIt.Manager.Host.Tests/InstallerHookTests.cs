@@ -1,6 +1,5 @@
 using JustModIt.Manager.Agent.Diagnostics;
 using JustModIt.Manager.Core;
-using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -31,8 +30,7 @@ public sealed class InstallerHookTests : IDisposable
     {
         var data = Path.GetDirectoryName(_state)!;
         var locations = new AppDataLocations(data, Path.Combine(data, "cache"), Path.Combine(data, "logs"));
-        var store = new JsonDocumentStore<AppSettings>(locations.SettingsFile, SettingsFormat.Instance, TimeProvider.System,
-            NullLogger.Instance);
+        var store = SettingsService.Store(locations, TimeProvider.System, NullLogger.Instance);
         await store.SaveAsync(AppSettings.Default with { InstallationId = Guid.NewGuid(), CreatorMode = true }, TestContext.Current.CancellationToken);
 
         AppRemoval.ForgetInstallation(locations);

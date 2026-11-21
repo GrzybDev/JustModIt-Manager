@@ -79,6 +79,8 @@
   <SolidColorBrush x:Key="NeutralTextBrush" Color="#B8B8BC" />
   <SolidColorBrush x:Key="CloseHoverBrush" Color="#E81123" />
   <SolidColorBrush x:Key="ClosePressedBrush" Color="#F1707A" />
+  <SolidColorBrush x:Key="WindowOutlineBrush" Color="#24FFFFFF" />
+  <SolidColorBrush x:Key="WindowOutlineInactiveBrush" Color="#12FFFFFF" />
 
   <!-- Tinted messages: the tone's base colour at 10-12% and its label colour at 26-30% for the edge. -->
   <SolidColorBrush x:Key="InfoSoftBrush" Color="#1F3B82F6" />

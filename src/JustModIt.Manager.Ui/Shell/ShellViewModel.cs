@@ -39,9 +39,9 @@ public sealed partial class NavigationItem(ShellSection section, string title, G
 }
 
 /// <summary>
-/// The window around the pages: the title bar's name and way back, the sidebar, the status card, the first-run setup
-/// that takes the whole window until it is done, the calm state shown while the agent cannot be reached, the one-time
-/// word that the app closed unexpectedly last time, and in Game Mode the keys the window listens to.
+/// The window around the pages: who draws its title bar, the title bar's name and way back, the sidebar, the status card,
+/// the first-run setup that takes the whole window until it is done, the calm state shown while the agent cannot be
+/// reached, the one-time word that the app closed unexpectedly last time, and in Game Mode the keys the window listens to.
 /// </summary>
 public sealed partial class ShellViewModel : ObservableObject, IDisposable
 {
@@ -74,12 +74,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _creator = new(ShellSection.Creator, Strings.Shell_Creator, Icons.WandSparkles, new CreatorRoute()) { IsVisible = false };
         Secondary = [_creator, new(ShellSection.Settings, Strings.Shell_Settings, Icons.Settings, new SettingsRoute())];
         Wordmark = services.Context.ProductName.ToUpper(Text.Culture);
+        Frame = services.Context.Frame;
 
         Navigator.Navigated += (_, _) => SyncNavigation();
         Agent.PropertyChanged += OnAgentChanged;
         Agent.NavigationRequested += OnNavigationRequested;
         Agent.Noticed += OnNoticed;
         Uninstall.PropertyChanged += OnUninstalled;
+        services.Settings.Changed += OnSettingsChanged;
         CloseFlow = new CloseFlow(services.Agent, services.Navigator, services.Dialogs, services.Uninstall);
         _pendingLink = services.Context.Launch.Target is { } launched ? new Navigate(launched) : null;
         Navigator.Open([new LibraryRoute()]);
@@ -116,6 +118,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     /// <summary>The window's logo, drawn beside the product's name; null when the app's branding has none.</summary>
     public IImage? Logo => _services.Context.Branding.Logo;
+
+    /// <summary>Who draws the window's title bar now: on a Linux desktop, the player's setting as the window shows it.</summary>
+    [ObservableProperty]
+    public partial WindowFrame Frame { get; private set; }
 
     /// <summary>The window waits for the agent: the calm connecting state takes the place of the pages.</summary>
     [ObservableProperty]
@@ -176,6 +182,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Agent.NavigationRequested -= OnNavigationRequested;
         Agent.Noticed -= OnNoticed;
         Uninstall.PropertyChanged -= OnUninstalled;
+        _services.Settings.Changed -= OnSettingsChanged;
         Status.Dispose();
         (FirstRun as IDisposable)?.Dispose();
     }
@@ -307,6 +314,17 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShowsPages));
     }
 
+    private void OnSettingsChanged(object? sender, EventArgs e) => ShowFrame();
+
+    // The frame follows the switch at once, before the agent answers, and goes back with a change the agent refuses.
+    private void ShowFrame()
+    {
+        if (_services.Context.OffersSystemTitleBar && Agent.HasState)
+        {
+            Frame = _services.Settings.Current.SystemTitleBar ? WindowFrame.System : WindowFrame.Frameless;
+        }
+    }
+
     private void OnNavigationRequested(object? sender, Navigate navigate)
     {
         _pendingLink = navigate;
@@ -394,6 +412,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
         OpenPendingLink();
 
+        ShowFrame();
         var settings = Agent.State.Settings;
         _creator.IsVisible = ShowsCreator(settings);
         if (!_creator.IsVisible && Navigator.CurrentRoute?.Section == ShellSection.Creator)

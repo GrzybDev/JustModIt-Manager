@@ -46,6 +46,34 @@
     <Setter Property="Foreground" Value="White" />
   </Style>
 
+  <!-- Without the system's frame, an inactive window dims its caption icons as the desktop's own windows do, while the bar
+       keeps its colour. -->
+  <Style Selector=":is(Window).frameless.inactive Button.caption">
+    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+  </Style>
+
+  <!-- Without the system's frame (the Linux title bar board): grips 6 px into the window, corners 16 px each way, and a
+       neutral outline with square corners, which fades with the window's focus and never takes the accent. -->
+  <Style Selector="shell|ResizeGrip.horizontal">
+    <Setter Property="Height" Value="6" />
+    <Setter Property="Margin" Value="16,0" />
+  </Style>
+  <Style Selector="shell|ResizeGrip.vertical">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="Margin" Value="0,16" />
+  </Style>
+  <Style Selector="shell|ResizeGrip.corner">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+  </Style>
+  <Style Selector="Border.windowOutline">
+    <Setter Property="BorderBrush" Value="{StaticResource WindowOutlineBrush}" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+  <Style Selector=":is(Window).inactive Border.windowOutline">
+    <Setter Property="BorderBrush" Value="{StaticResource WindowOutlineInactiveBrush}" />
+  </Style>
+
   <!-- In Game Mode, labelled quiet buttons in place of the caption buttons (the Game Mode board, frame 1). -->
   <Style Selector="StackPanel.gameModeBar">
     <Setter Property="Orientation" Value="Horizontal" />

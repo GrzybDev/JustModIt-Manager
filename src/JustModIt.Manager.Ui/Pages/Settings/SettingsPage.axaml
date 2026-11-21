@@ -138,6 +138,12 @@
                 <settings:SteamShortcutButton Grid.Column="2" DataContext="{Binding SteamShortcut}" />
               </Grid>
             </Border>
+            <ui:SettingRow x:Name="SystemTitleBarRow" Classes="divided" Icon="{x:Static theme:Icons.AppWindow}"
+                           Title="{x:Static loc:Strings.Settings_SystemTitleBar}"
+                           Message="{x:Static loc:Strings.Settings_SystemTitleBarDescription}" IsVisible="{Binding OffersSystemTitleBar}">
+              <ToggleSwitch IsChecked="{Binding SystemTitleBar}" AutomationProperties.Name="{x:Static loc:Strings.Settings_SystemTitleBar}"
+                            AutomationProperties.HelpText="{x:Static loc:Strings.Settings_SystemTitleBarDescription}" />
+            </ui:SettingRow>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.EyeOff}" Title="{x:Static loc:Strings.Settings_BlurAdult}"
                            Message="{x:Static loc:Strings.Settings_BlurAdultDescription}">
               <ToggleSwitch IsChecked="{Binding BlurAdultContent}" AutomationProperties.Name="{x:Static loc:Strings.Settings_BlurAdult}"

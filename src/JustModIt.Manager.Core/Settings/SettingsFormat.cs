@@ -31,6 +31,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string OnboardingStep = "onboardingStep";
     private const string BackgroundNoticeShown = "backgroundNoticeShown";
     private const string ControlsHintShown = "controlsHintShown";
+    private const string SystemTitleBar = "systemTitleBar";
     private const string BackupLocationName = "backupLocation";
     private const string CustomBackupFolder = "customBackupFolder";
     private const string PreferredTeams = "preferredTeams";
@@ -67,8 +68,8 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
         AutoUpdateApp, UpdatePrereleases, SendErrorReports, ShowNotifications, BlurAdultContent, AchievementTexts,
         AutoAchievementTexts, AchievementClassicMode, CreatorMode, OnboardingCompleted, OnboardingStep,
-        BackgroundNoticeShown, ControlsHintShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
-        AdultContentConfirmedUntil, RevealedAdultGames, RecentCreatorProjects, InstallationId, LegacyShowAdultContent,
+        BackgroundNoticeShown, ControlsHintShown, SystemTitleBar, BackupLocationName, CustomBackupFolder, PreferredTeams, Games,
+        LibraryFolders, AdultContentConfirmedUntil, RevealedAdultGames, RecentCreatorProjects, InstallationId, LegacyShowAdultContent,
         LegacyAutoInstallProjects, LegacyAutoUpdateProjects, LegacyTrayNoticeShown);
 
     public AppSettings Read(JsonElement root, int version)
@@ -108,6 +109,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             BackgroundNoticeShown = root.GetBooleanOrNull(BackgroundNoticeShown) ?? root.GetBooleanOrNull(LegacyTrayNoticeShown)
                 ?? defaults.BackgroundNoticeShown,
             ControlsHintShown = root.GetBooleanOrNull(ControlsHintShown) ?? defaults.ControlsHintShown,
+            SystemTitleBar = root.GetBooleanOrNull(SystemTitleBar) ?? defaults.SystemTitleBar,
             BackupLocation = backupLocation,
             CustomBackupFolder = customBackupFolder,
             PreferredTeams = ReadIds(root, PreferredTeams),
@@ -140,6 +142,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteNumber(OnboardingStep, document.OnboardingStep);
         writer.WriteBoolean(BackgroundNoticeShown, document.BackgroundNoticeShown);
         writer.WriteBoolean(ControlsHintShown, document.ControlsHintShown);
+        writer.WriteBoolean(SystemTitleBar, document.SystemTitleBar);
         writer.WriteString(BackupLocationName, document.BackupLocation.ToString());
         writer.WriteIfSet(CustomBackupFolder, document.CustomBackupFolder);
         writer.WriteStrings(PreferredTeams, document.PreferredTeams.Select(id => id.ToString()));

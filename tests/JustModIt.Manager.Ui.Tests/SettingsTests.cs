@@ -23,6 +23,7 @@ using JustModIt.Manager.Ui.Diagnostics;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Settings;
+using JustModIt.Manager.Ui.Theme;
 using JustModIt.Manager.Ui.Tests.TestSupport;
 using static JustModIt.Manager.Ui.Tests.TestSupport.TestGames;
 
@@ -101,6 +102,80 @@ public sealed class SettingsTests
 
         toggle.IsChecked.Should().Be(before);
         ui.Shell.Toasts.Items.Should().ContainSingle(toast => toast.Title == Strings.Library_RequestFailedTitle);
+    }
+
+    [AvaloniaFact]
+    public async Task On_a_linux_desktop_the_system_title_bar_takes_the_frame_before_the_agent_answers_and_a_refusal_puts_both_back()
+    {
+        using var ui = await OpenAsync(State(), context: context => context with { Frame = WindowFrame.Frameless });
+        var asked = new List<WindowFrame>();
+        ui.Agent.Answer = request =>
+        {
+            if (request is ChangeSettings)
+            {
+                asked.Add(ui.Shell.Frame);
+            }
+
+            return null;
+        };
+        var row = ui.Find<SettingRow>("SystemTitleBarRow");
+        var toggle = Toggle(ui, Strings.Settings_SystemTitleBar);
+        GeneralRows(ui).Should().Equal([Strings.Settings_StartWithSystem, Strings.Settings_CloseBehavior, Strings.Settings_SystemTitleBar,
+            Strings.Settings_BlurAdult], "without Steam's shortcut the row stands right under the close choice");
+        (row.Icon, row.Message, toggle.IsChecked).Should().Be((Icons.AppWindow, Strings.Settings_SystemTitleBarDescription, false));
+        AutomationProperties.GetHelpText(toggle).Should().Be(Strings.Settings_SystemTitleBarDescription);
+        ui.Render("settings-title-bar-off");
+
+        ui.Click(toggle);
+
+        asked.Should().Equal([WindowFrame.System], "the window asks the system for its frame without waiting for the agent");
+        ui.Agent.Requests.OfType<ChangeSettings>().Single().Settings.Should()
+            .BeEquivalentTo(State().Settings with { SystemTitleBar = true });
+        (toggle.IsChecked, toggle.IsFocused, ui.Window.WindowDecorations).Should().Be((true, true, WindowDecorations.Full));
+        ui.Push(State(settings => settings with { SystemTitleBar = true }) with
+        {
+            Version = 2,
+            SteamShortcut = new SteamShortcutView(SteamShortcutState.Added, HasGameSession: true, "~/Applications/ExampleApp.AppImage"),
+        });
+        GeneralRows(ui).Should().Equal([Strings.Settings_StartWithSystem, Strings.Settings_CloseBehavior, "SteamShortcutRow",
+            Strings.Settings_SystemTitleBar, Strings.Settings_BlurAdult], "the three rows about the window stand together");
+        await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(400));
+        ui.Render("settings-title-bar-on");
+
+        ui.Agent.Answer = request => request is ChangeSettings ? throw new RequestFailedException(ErrorCode.InvalidRequest) : null;
+        var frames = new List<WindowFrame>();
+        ui.Shell.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ui.Shell.Frame))
+            {
+                frames.Add(ui.Shell.Frame);
+            }
+        };
+        ui.Click(toggle);
+        UiHarness.Settle();
+
+        frames.Should().Equal([WindowFrame.Frameless, WindowFrame.System], "the frame switched at once and came back with the refusal");
+        (toggle.IsChecked, ui.Window.WindowDecorations).Should().Be((true, WindowDecorations.Full));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(WindowFrame.Own)]
+    [InlineData(WindowFrame.Screen)]
+    public async Task Windows_and_Game_Mode_offer_no_choice_of_the_title_bar(WindowFrame frame)
+    {
+        var state = State(settings => settings with { SystemTitleBar = true, ControlsHintShown = true });
+        using var ui = await OpenAsync(frame == WindowFrame.Screen
+                ? state with { Activity = new ActivityView { WindowReturn = WindowReturn.StoreLibrary } }
+                : state,
+            context: context => context with { Frame = frame });
+        if (frame == WindowFrame.Screen)
+        {
+            ui.SizeToDeck();
+        }
+
+        ui.Find<SettingRow>("SystemTitleBarRow").IsVisible.Should().BeFalse();
+        ui.Shell.Frame.Should().Be(frame, "a choice saved on a Linux desktop waits there");
+        ui.Render(frame == WindowFrame.Own ? "settings-general-windows" : "settings-general-game-mode");
     }
 
     [AvaloniaFact]
@@ -754,6 +829,11 @@ public sealed class SettingsTests
 
     private static IEnumerable<string?> Shown(UiHarness ui) =>
         ui.Find<TextBlock>().Where(text => text.IsEffectivelyVisible).Select(text => text.Text);
+
+    // The general section's rows a player sees, in their order, each by its title, or by its name where it has none.
+    private static IEnumerable<string?> GeneralRows(UiHarness ui) =>
+        ((StackPanel)ui.Find<SettingRow>("SystemTitleBarRow").Parent!).Children.Where(row => row.IsVisible)
+            .Select(row => row is SettingRow setting ? setting.Title : row.Name);
 
     private static ToggleSwitch Toggle(UiHarness ui, string name) =>
         ui.Find<ToggleSwitch>().Single(toggle => AutomationProperties.GetName(toggle) == name);

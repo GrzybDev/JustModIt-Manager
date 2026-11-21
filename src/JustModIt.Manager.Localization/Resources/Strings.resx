@@ -2180,6 +2180,12 @@
   <data name="SteamShortcut_ManualAdd" xml:space="preserve">
     <value>“Add Selected Programs”.</value>
   </data>
+  <data name="Settings_SystemTitleBar" xml:space="preserve">
+    <value>Use the system's title bar</value>
+  </data>
+  <data name="Settings_SystemTitleBarDescription" xml:space="preserve">
+    <value>The system draws the title bar and the window's buttons, in its own style. The change applies at once.</value>
+  </data>
   <data name="Settings_BlurAdult" xml:space="preserve">
     <value>Blur pictures of adult games</value>
   </data>

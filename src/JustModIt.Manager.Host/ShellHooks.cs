@@ -4,6 +4,7 @@ using JustModIt.Manager.Agent.Shell;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Platform.Windows;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustModIt.Manager.Host;
 
@@ -59,5 +60,6 @@ internal static class ShellHooks
     }
 
     private static AppSettings ReadSettings(AppDataLocations locations) =>
-        AppRemoval.SettingsStore(locations).LoadAsync(CancellationToken.None).GetAwaiter().GetResult() ?? AppSettings.Default;
+        SettingsService.Store(locations, TimeProvider.System, NullLogger.Instance).LoadAsync(CancellationToken.None).GetAwaiter()
+            .GetResult() ?? AppSettings.Default;
 }

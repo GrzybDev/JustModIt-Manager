@@ -220,13 +220,32 @@ public sealed class HostEnvironmentTests : IDisposable
     }
 
     [Fact]
-    public void The_window_draws_its_own_frame_on_windows_leaves_it_to_linux_desktops_and_fills_gamescopes_screen()
+    public async Task The_window_opens_with_the_title_bar_the_settings_file_chose_on_a_linux_desktop_and_leaves_a_damaged_file_alone()
     {
+        var data = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"));
+        var locations = new AppDataLocations(data, Path.Combine(data, "cache"), Path.Combine(data, "logs"));
         string?[] desktops = ["KDE", "ubuntu:GNOME", "gamescope", null];
-
-        desktops.Select(HostEnvironment.FrameFor).Should().Equal(OperatingSystem.IsWindows()
+        WindowFrame[] Frames() => [.. desktops.Select(desktop => HostEnvironment.FrameFor(desktop, locations))];
+        WindowFrame[] Expected(WindowFrame desktop) => OperatingSystem.IsWindows()
             ? [WindowFrame.Own, WindowFrame.Own, WindowFrame.Own, WindowFrame.Own]
-            : [WindowFrame.System, WindowFrame.System, WindowFrame.Screen, WindowFrame.System]);
+            : [desktop, desktop, WindowFrame.Screen, desktop];
+        try
+        {
+            Frames().Should().Equal(Expected(WindowFrame.Frameless), "without settings the window draws its own title bar");
+            Directory.CreateDirectory(data);
+            await File.WriteAllTextAsync(locations.SettingsFile, """{ "systemTitleBar": """, TestContext.Current.CancellationToken);
+            Frames().Should().Equal(Expected(WindowFrame.Frameless), "a damaged file means the default");
+            Directory.EnumerateFiles(data).Should().Equal([locations.SettingsFile], "the agent owns the file, so the window only reads it");
+
+            await SettingsService.Store(locations, TimeProvider.System, NullLogger.Instance)
+                .SaveAsync(AppSettings.Default with { SystemTitleBar = true }, TestContext.Current.CancellationToken);
+
+            Frames().Should().Equal(Expected(WindowFrame.System), "Game Mode keeps the choice for the desktop");
+        }
+        finally
+        {
+            Directory.Delete(data, recursive: true);
+        }
     }
 
     [Fact]

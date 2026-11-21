@@ -32,7 +32,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     public SettingsPageViewModel(UiServices services)
     {
         _services = services;
-        _editor = new SettingsEditor(services);
+        _editor = services.Settings;
         Backups = new BackupsViewModel(services, _editor, Sync);
         Teams = new PreferredTeamsViewModel(services, _editor);
         Folders = new AddedFoldersViewModel(services);
@@ -99,11 +99,18 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     /// <summary>The window runs in Game Mode, which has no file manager to open the app's folders in.</summary>
     public bool InGameMode => _services.Context.InGameMode;
 
+    /// <summary>The player chooses who draws the window's title bar, as on a Linux desktop.</summary>
+    public bool OffersSystemTitleBar => _services.Context.OffersSystemTitleBar;
+
     [ObservableProperty]
     public partial bool StartWithSystem { get; set; }
 
     [ObservableProperty]
     public partial CloseBehavior CloseBehavior { get; set; }
+
+    /// <inheritdoc cref="AppSettings.SystemTitleBar"/>
+    [ObservableProperty]
+    public partial bool SystemTitleBar { get; set; }
 
     [ObservableProperty]
     public partial bool BlurAdultContent { get; set; }
@@ -245,6 +252,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     partial void OnCloseBehaviorChanged(CloseBehavior value) => Change(settings => settings with { CloseBehavior = value });
 
+    partial void OnSystemTitleBarChanged(bool value) => Change(settings => settings with { SystemTitleBar = value });
+
     partial void OnBlurAdultContentChanged(bool value) => Change(settings => settings with { BlurAdultContent = value });
 
     partial void OnAutoInstallProjectsChanged(bool value) => Change(settings => settings with { AutoInstallProjects = value });
@@ -329,6 +338,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         _syncing = true;
         StartWithSystem = settings.StartWithSystem;
         CloseBehavior = settings.CloseBehavior;
+        SystemTitleBar = settings.SystemTitleBar;
         BlurAdultContent = settings.BlurAdultContent;
         AutoInstallProjects = settings.AutoInstallProjects;
         AutoUpdateProjects = settings.AutoUpdateProjects;

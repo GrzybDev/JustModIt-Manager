@@ -5,8 +5,8 @@ using JustModIt.Manager.Ui.Pages.Library;
 namespace JustModIt.Manager.Ui.Pages.Settings;
 
 /// <summary>
-/// Changes the agent's settings a value at a time. Each change starts from the settings sent last, so quick changes never
-/// take each other back, and those settings are shown until a state of the agent has them.
+/// Changes the agent's settings a value at a time, one editor for the window. Each change starts from the settings sent last,
+/// so quick changes never take each other back, and those settings are shown until a state of the agent has them.
 /// </summary>
 /// <param name="services">The window's services.</param>
 internal sealed class SettingsEditor(UiServices services)
@@ -18,6 +18,9 @@ internal sealed class SettingsEditor(UiServices services)
     // The agent's state at the answer to the last change; any later state has the change in it.
     private long _answeredAt = long.MaxValue;
 
+    /// <summary>Raised when <see cref="Current"/> turns to settings just sent or back to the agent's.</summary>
+    public event EventHandler? Changed;
+
     /// <summary>The settings to show: those sent last until the agent's state has them, otherwise the agent's.</summary>
     public SettingsView Current => _sent ?? services.Agent.State.Settings;
 
@@ -27,14 +30,14 @@ internal sealed class SettingsEditor(UiServices services)
     public async Task<bool> ChangeAsync(Func<SettingsView, SettingsView> change)
     {
         var settings = change(Current);
-        _sent = settings;
+        Show(settings);
         _answeredAt = long.MaxValue;
         var sent = await AgentRequests.SendAsync(services, new ChangeSettings(settings)).ConfigureAwait(true);
         if (_sent == settings)
         {
             if (!sent || Same(settings, services.Agent.State.Settings))
             {
-                _sent = null;
+                Show(null);
             }
             else
             {
@@ -55,8 +58,17 @@ internal sealed class SettingsEditor(UiServices services)
             return false;
         }
 
-        _sent = null;
+        Show(null);
         return true;
+    }
+
+    private void Show(SettingsView? sent)
+    {
+        if (_sent != sent)
+        {
+            _sent = sent;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     // A record compares its lists by reference, so the teams are compared on their own.

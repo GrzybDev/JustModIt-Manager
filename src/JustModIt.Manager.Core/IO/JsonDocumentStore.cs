@@ -45,6 +45,23 @@ public sealed class JsonDocumentStore<T> : IDocumentStore<T>
 
     private string DocumentName => Path.GetFileName(_path);
 
+    /// <summary>Reads the document as a process that does not own it, which leaves a file it cannot read where it is.</summary>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    /// <returns>Null when the file is missing or cannot be read.</returns>
+    public async Task<T?> PeekAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var content = await SharedFileRead.ReadAllBytesAsync(_path, MaxLength, cancellationToken).ConfigureAwait(false);
+            using var json = Open(content);
+            return _format.Read(json.RootElement, VersionOf(json.RootElement));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
+        {
+            return null;
+        }
+    }
+
     public async Task<T?> LoadAsync(CancellationToken cancellationToken)
     {
         _unknownProperties = [];
@@ -98,7 +115,7 @@ public sealed class JsonDocumentStore<T> : IDocumentStore<T>
         }, cancellationToken, _time);
     }
 
-    private T Parse(ReadOnlyMemory<byte> content)
+    private static JsonDocument Open(ReadOnlyMemory<byte> content)
     {
         content = Utf8Json.WithoutByteOrderMark(content);
         // The parser checks UTF-8 only when a string is read, so a bad byte would otherwise fail outside this method.
@@ -107,14 +124,24 @@ public sealed class JsonDocumentStore<T> : IDocumentStore<T>
             throw new JsonException("The document is not valid UTF-8.");
         }
 
-        using var json = JsonDocument.Parse(content, ReadOptions);
-        var root = json.RootElement;
-        if (root.ValueKind != JsonValueKind.Object)
+        var json = JsonDocument.Parse(content, ReadOptions);
+        if (json.RootElement.ValueKind != JsonValueKind.Object)
         {
-            throw new JsonException($"The document is a JSON {root.ValueKind}, not an object.");
+            var kind = json.RootElement.ValueKind;
+            json.Dispose();
+            throw new JsonException($"The document is a JSON {kind}, not an object.");
         }
 
-        var version = root.GetInt32OrNull(VersionProperty) is { } number and >= 0 ? number : 0;
+        return json;
+    }
+
+    private static int VersionOf(JsonElement root) => root.GetInt32OrNull(VersionProperty) is { } number and >= 0 ? number : 0;
+
+    private T Parse(ReadOnlyMemory<byte> content)
+    {
+        using var json = Open(content);
+        var root = json.RootElement;
+        var version = VersionOf(root);
         var document = _format.Read(root, version);
         _storedVersion = version;
         _unknownProperties =

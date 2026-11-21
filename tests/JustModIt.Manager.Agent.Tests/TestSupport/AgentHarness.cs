@@ -1,7 +1,6 @@
 using JustModIt.Manager.Agent.Steam;
 using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
-using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Watching;
 using JustModIt.Manager.Core.Platform;
@@ -73,12 +72,8 @@ internal sealed class AgentHarness : IAsyncDisposable
     /// <summary>Registrations of the test's own, which replace the agent's.</summary>
     public Action<IServiceCollection>? Configure { get; init; }
 
-    public async Task SaveSettingsAsync(AppSettings settings)
-    {
-        var store = new JsonDocumentStore<AppSettings>(Options.Locations.SettingsFile, SettingsFormat.Instance, TimeProvider.System,
-            NullLogger.Instance);
-        await store.SaveAsync(settings, Token);
-    }
+    public Task SaveSettingsAsync(AppSettings settings) =>
+        SettingsService.Store(Options.Locations, TimeProvider.System, NullLogger.Instance).SaveAsync(settings, Token);
 
     public void Start(LaunchArguments? start = null)
     {

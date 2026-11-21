@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -23,8 +24,9 @@ public sealed partial class MainWindow : Window
     private readonly ShellViewModel? _shell;
     private readonly ISystemMotion? _systemMotion;
     private readonly IWindowFrames? _frames;
-    private readonly WindowFrame _frame;
     private readonly double _smallestHeight;
+    private WindowFrame _frame;
+    private (PixelPoint Position, Size Size)? _keptFrame;
     private bool _closeDecided;
 
     /// <summary>Creates the window without a shell, as the XAML designer does.</summary>
@@ -36,18 +38,16 @@ public sealed partial class MainWindow : Window
     /// <param name="icon">The window's icon; null for the system's default.</param>
     /// <param name="systemMotion">The system's wish for reduced motion, read whenever the window comes to the front; null for none.</param>
     /// <param name="frames">The system's frame around windows, which the smallest size makes up for; null for none.</param>
-    /// <param name="frame">Who draws the window's title bar and its buttons.</param>
-    public MainWindow(ShellViewModel shell, IDataTemplate views, WindowIcon? icon, ISystemMotion? systemMotion, IWindowFrames? frames,
-        WindowFrame frame)
+    public MainWindow(ShellViewModel shell, IDataTemplate views, WindowIcon? icon, ISystemMotion? systemMotion, IWindowFrames? frames)
         : this()
     {
         _shell = shell;
         _systemMotion = systemMotion;
         _frames = frames;
-        _frame = frame;
         _smallestHeight = MinHeight;
-        UseFrame(frame);
-        ScalingChanged += (_, _) => FitSmallestSize();
+        UseFrame(shell.Frame);
+        shell.PropertyChanged += OnShellChanged;
+        ScalingChanged += OnScalingChanged;
         DataTemplates.Add(views);
         Icon = icon;
         DataContext = shell;
@@ -55,6 +55,8 @@ public sealed partial class MainWindow : Window
         shell.Agent.BringToFrontRequested += OnBringToFront;
         shell.Agent.ShutdownHandler = CloseForAgentAsync;
         Motion.ReducedChanged += OnReducedChanged;
+        // A window the system maps behind another, as focus-stealing prevention does, hears nothing until it gets the focus.
+        Classes.Add("inactive");
         Activated += OnActivated;
         Deactivated += OnDeactivated;
         UpdateMotion();
@@ -121,6 +123,7 @@ public sealed partial class MainWindow : Window
         Motion.ReducedChanged -= OnReducedChanged;
         if (_shell is not null)
         {
+            _shell.PropertyChanged -= OnShellChanged;
             _shell.Agent.BringToFrontRequested -= OnBringToFront;
             _shell.Agent.ShutdownHandler = null;
         }
@@ -141,13 +144,25 @@ public sealed partial class MainWindow : Window
                 var name = maximized ? Strings.Shell_Restore : Strings.Shell_Maximize;
                 ToolTip.SetTip(MaximizeButton, name);
                 AutomationProperties.SetName(MaximizeButton, name);
+                ShowEdges();
             }
 
+            _keptFrame = null;
             UpdateMotion();
         }
         else if (change.Property == IsVisibleProperty)
         {
             UpdateMotion();
+        }
+    }
+
+    protected override void OnResized(WindowResizedEventArgs e)
+    {
+        base.OnResized(e);
+        if (_keptFrame is { } kept && FrameSize is { } frame && frame != ClientSize)
+        {
+            _keptFrame = null;
+            KeepFrame(kept, new Size(frame.Width - ClientSize.Width, frame.Height - ClientSize.Height));
         }
     }
 
@@ -163,13 +178,18 @@ public sealed partial class MainWindow : Window
 
     private void OnActivated(object? sender, EventArgs e)
     {
+        Classes.Set("inactive", false);
         // The system setting may have changed while the window was in the background.
         Motion.SetReduced(_systemMotion?.IsReduced() == true);
         _shell?.Agent.ReportActivity(true);
         _shell?.Navigator.Current?.OnWindowActivated();
     }
 
-    private void OnDeactivated(object? sender, EventArgs e) => _shell?.Agent.ReportActivity(false);
+    private void OnDeactivated(object? sender, EventArgs e)
+    {
+        Classes.Set("inactive", true);
+        _shell?.Agent.ReportActivity(false);
+    }
 
     private void OnBringToFront(object? sender, EventArgs e)
     {
@@ -192,13 +212,63 @@ public sealed partial class MainWindow : Window
         Motion.SetLoops(this, loops);
     }
 
+    private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ShellViewModel.Frame) && _shell is not null)
+        {
+            SwitchFrame(_shell.Frame);
+        }
+    }
+
+    private void OnScalingChanged(object? sender, EventArgs e)
+    {
+        FitSmallestSize();
+        ShowEdges();
+    }
+
+    // The window's outer frame stays where it is, so nothing jumps or slips under a panel: the pages give the system's title
+    // bar its height, or take it back once the window draws its own. How large the system's frame is shows only once the
+    // system drew it, which the next resize reports.
+    private void SwitchFrame(WindowFrame frame)
+    {
+        (PixelPoint Position, Size Size)? kept = IsVisible && WindowState == WindowState.Normal
+            ? (Position, FrameSize ?? ClientSize)
+            : null;
+        UseFrame(frame);
+        _keptFrame = frame == WindowFrame.System ? kept : null;
+        if (frame != WindowFrame.System && kept is { } frameless)
+        {
+            KeepFrame(frameless, default);
+        }
+    }
+
+    private void KeepFrame((PixelPoint Position, Size Size) kept, Size borders)
+    {
+        (Width, Height) = ClientSizeWithin(kept.Size, borders, new Size(MinWidth, MinHeight));
+        Position = kept.Position;
+    }
+
+    /// <summary>
+    /// The size of the window's content inside an outer frame whose borders the system draws, which never goes under the
+    /// window's smallest size, so the window grows instead.
+    /// </summary>
+    /// <param name="outer">The window's outer frame.</param>
+    /// <param name="borders">How much wider and taller the system's frame makes the window.</param>
+    /// <param name="smallest">The window's smallest content.</param>
+    internal static Size ClientSizeWithin(Size outer, Size borders, Size smallest) =>
+        new(Math.Max(smallest.Width, outer.Width - borders.Width), Math.Max(smallest.Height, outer.Height - borders.Height));
+
+    // Avalonia sets the window manager's decoration hints again on a shown window, so the frame changes at once.
     private void UseFrame(WindowFrame frame)
     {
+        _frame = frame;
+        Classes.Set("frameless", frame == WindowFrame.Frameless);
         switch (frame)
         {
-            case WindowFrame.System:
+            case WindowFrame.System or WindowFrame.Frameless:
                 ExtendClientAreaToDecorationsHint = false;
-                CaptionButtons.IsVisible = false;
+                WindowDecorations = frame == WindowFrame.System ? WindowDecorations.Full : WindowDecorations.None;
+                CaptionButtons.IsVisible = frame == WindowFrame.Frameless;
                 break;
             // Nothing in gamescope brings a minimised window back, and it shows every window full screen anyway, so the bar
             // names the controls and the way out instead.
@@ -210,6 +280,35 @@ public sealed partial class MainWindow : Window
                 Screens.Changed += (_, _) => FillScreen();
                 break;
         }
+
+        ShowEdges();
+    }
+
+    // A maximised or full-screen window has no edges to drag; the outline is one device pixel at any display scale.
+    private void ShowEdges()
+    {
+        FrameEdges.IsVisible = _frame == WindowFrame.Frameless && WindowState is not (WindowState.Maximized or WindowState.FullScreen);
+        Outline.BorderThickness = new Thickness(1 / RenderScaling);
+    }
+
+    // Without the system's frame nothing else moves the window by its title bar or maximises it there.
+    private void OnTitleBarPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_frame != WindowFrame.Frameless || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        if (e.ClickCount == 2)
+        {
+            ToggleMaximized();
+        }
+        else
+        {
+            BeginMoveDrag(e);
+        }
+
+        e.Handled = true;
     }
 
     // gamescope resizes no window for a full-screen or maximised state and centres a larger one, whose edges then lie off its
@@ -251,8 +350,9 @@ public sealed partial class MainWindow : Window
 
     private void OnMinimize(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
-    private void OnMaximize(object? sender, RoutedEventArgs e) =>
-        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    private void OnMaximize(object? sender, RoutedEventArgs e) => ToggleMaximized();
+
+    private void ToggleMaximized() => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
     private void OnClose(object? sender, RoutedEventArgs e) => Close();
 }

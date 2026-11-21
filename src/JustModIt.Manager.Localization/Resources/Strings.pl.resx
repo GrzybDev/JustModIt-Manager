@@ -2163,6 +2163,12 @@
   <data name="SteamShortcut_ManualAdd" xml:space="preserve">
     <value>„Dodaj wybrane programy”.</value>
   </data>
+  <data name="Settings_SystemTitleBar" xml:space="preserve">
+    <value>Używaj paska tytułu systemu</value>
+  </data>
+  <data name="Settings_SystemTitleBarDescription" xml:space="preserve">
+    <value>Pasek tytułu z przyciskami okna rysuje system, w swoim stylu. Zmiana działa od razu.</value>
+  </data>
   <data name="Settings_BlurAdult" xml:space="preserve">
     <value>Rozmywaj grafiki gier dla dorosłych</value>
   </data>

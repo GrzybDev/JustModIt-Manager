@@ -1,6 +1,5 @@
 using JustModIt.Manager.Agent.Steam;
 using JustModIt.Manager.Core;
-using JustModIt.Manager.Core.IO;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Library.Steam;
 using JustModIt.Manager.Core.Platform;
@@ -16,20 +15,12 @@ internal static class AppRemoval
     /// <param name="locations">The app's data folders.</param>
     public static void ForgetInstallation(AppDataLocations locations)
     {
-        var store = SettingsStore(locations);
+        var store = SettingsService.Store(locations, TimeProvider.System, NullLogger.Instance);
         if (store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult() is { InstallationId: not null } settings)
         {
             store.SaveAsync(settings with { InstallationId = null }, CancellationToken.None).GetAwaiter().GetResult();
         }
     }
-
-    /// <summary>
-    /// The settings file as a short process outside the agent reads and writes it, such as an installer's hook, which has no
-    /// loop to wait in and waits for the small file instead.
-    /// </summary>
-    /// <param name="locations">The app's data folders.</param>
-    public static JsonDocumentStore<AppSettings> SettingsStore(AppDataLocations locations) =>
-        new(locations.SettingsFile, SettingsFormat.Instance, TimeProvider.System, NullLogger.Instance);
 
     /// <summary>Takes out of the current user's Steam folder what the app put there, when the user has a Steam.</summary>
     /// <param name="identity">The app's names, which name what it put there.</param>

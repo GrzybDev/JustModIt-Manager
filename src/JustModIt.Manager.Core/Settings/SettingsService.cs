@@ -50,12 +50,16 @@ public sealed partial class SettingsService : ISettingsService, IAsyncDisposable
     /// <param name="loggers">Creates the loggers of the service and its store.</param>
     /// <param name="cancellationToken">Cancels the load.</param>
     public static Task<SettingsService> LoadAsync(AppDataLocations locations, TimeProvider time, ILoggerFactory loggers,
-        CancellationToken cancellationToken)
-    {
-        var store = new JsonDocumentStore<AppSettings>(locations.SettingsFile, SettingsFormat.Instance, time,
-            loggers.CreateLogger<JsonDocumentStore<AppSettings>>());
-        return LoadAsync(store, time, loggers.CreateLogger<SettingsService>(), cancellationToken);
-    }
+        CancellationToken cancellationToken) =>
+        LoadAsync(Store(locations, time, loggers.CreateLogger<JsonDocumentStore<AppSettings>>()), time,
+            loggers.CreateLogger<SettingsService>(), cancellationToken);
+
+    /// <summary>The settings file in the app's data folder, which the agent owns and other processes of the app also read.</summary>
+    /// <param name="locations">The app's folders, which hold the settings file.</param>
+    /// <param name="time">Paces retries while another process holds the file and stamps a damaged file moved aside.</param>
+    /// <param name="logger">Logs a file that cannot be read.</param>
+    public static JsonDocumentStore<AppSettings> Store(AppDataLocations locations, TimeProvider time, ILogger logger) =>
+        new(locations.SettingsFile, SettingsFormat.Instance, time, logger);
 
     public AppSettings Update(Func<AppSettings, AppSettings> change)
     {

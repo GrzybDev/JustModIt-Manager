@@ -34,7 +34,8 @@
   <Panel x:Name="LayoutRoot">
     <Grid RowDefinitions="40,*" ColumnDefinitions="240,*">
       <!-- Everything a TitleBar element holds would start a window drag, so the bar's buttons are its siblings on top. -->
-      <Border Grid.ColumnSpan="2" Background="Transparent" WindowDecorationProperties.ElementRole="TitleBar" />
+      <Border Grid.ColumnSpan="2" Background="Transparent" WindowDecorationProperties.ElementRole="TitleBar"
+              PointerPressed="OnTitleBarPressed" />
 
       <StackPanel Classes="brand" IsHitTestVisible="False">
         <Image Source="{Binding Logo}" Width="30" Height="30" IsVisible="{Binding Logo, Converter={x:Static ObjectConverters.IsNotNull}}" />
@@ -106,5 +107,19 @@
       <!-- Over the sidebar and the pages, under the title bar, whose buttons keep working. -->
       <overlays:DialogLayer Grid.Row="1" Grid.ColumnSpan="2" DataContext="{Binding Dialogs}" />
     </Grid>
+
+    <!-- Without the system's frame, the window's own edges resize it, also over the top of the caption buttons, and an outline
+         marks it, since KWin shadows only decorated windows. -->
+    <Panel x:Name="FrameEdges" IsVisible="False">
+      <Border x:Name="Outline" Classes="windowOutline" />
+      <shell:ResizeGrip Classes="horizontal" Edge="North" Cursor="TopSide" VerticalAlignment="Top" />
+      <shell:ResizeGrip Classes="horizontal" Edge="South" Cursor="BottomSide" VerticalAlignment="Bottom" />
+      <shell:ResizeGrip Classes="vertical" Edge="West" Cursor="LeftSide" HorizontalAlignment="Left" />
+      <shell:ResizeGrip Classes="vertical" Edge="East" Cursor="RightSide" HorizontalAlignment="Right" />
+      <shell:ResizeGrip Classes="corner" Edge="NorthWest" Cursor="TopLeftCorner" HorizontalAlignment="Left" VerticalAlignment="Top" />
+      <shell:ResizeGrip Classes="corner" Edge="NorthEast" Cursor="TopRightCorner" HorizontalAlignment="Right" VerticalAlignment="Top" />
+      <shell:ResizeGrip Classes="corner" Edge="SouthWest" Cursor="BottomLeftCorner" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+      <shell:ResizeGrip Classes="corner" Edge="SouthEast" Cursor="BottomRightCorner" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+    </Panel>
   </Panel>
 </Window>

@@ -33,7 +33,7 @@ public sealed class UiHarness : IDisposable
 
     public UiHarness(AppStateView? state = null, Action<UiComposition>? compose = null, double width = 1280, double height = 800,
         NavigationTarget? launch = null, Func<UiContext, UiContext>? context = null, Func<Message, Message?>? answer = null,
-        bool errorReports = false)
+        bool errorReports = false, bool activated = true)
     {
         _failure = null;
         Dispatcher.UIThread.UnhandledException += OnUnhandled;
@@ -60,6 +60,7 @@ public sealed class UiHarness : IDisposable
         ToolTip.SetServiceEnabled(Window, false);
         Window.Width = width;
         Window.Height = height;
+        Window.ShowActivated = activated;
         Window.Show();
         Settle();
     }

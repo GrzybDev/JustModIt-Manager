@@ -81,6 +81,9 @@ public sealed record AppSettings
     /// <summary>Whether the window showed its controls in Game Mode once by itself, after which they wait under its button.</summary>
     public bool ControlsHintShown { get; init; }
 
+    /// <summary>On a Linux desktop, the system draws the window's title bar and frame instead of the window itself.</summary>
+    public bool SystemTitleBar { get; init; }
+
     /// <summary>
     /// Where new installs keep originals, since an install record keeps the backup folder it used;
     /// <see cref="BackupLocation.CustomFolder"/> requires <see cref="CustomBackupFolder"/>.

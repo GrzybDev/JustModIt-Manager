@@ -6,6 +6,7 @@ using JustModIt.Manager.Core;
 using JustModIt.Manager.Core.Catalog;
 using JustModIt.Manager.Core.Library;
 using JustModIt.Manager.Core.Platform;
+using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Creator;
 using JustModIt.Manager.Platform.Linux;
 using JustModIt.Manager.Platform.Windows;
@@ -13,6 +14,7 @@ using JustModIt.Manager.Protocol.Activation;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Velopack.Locators;
 
 namespace JustModIt.Manager.Host;
@@ -173,7 +175,7 @@ internal sealed record HostEnvironment
                 : OperatingSystem.IsLinux() ? PortalSystemMotion.Start(loggers.CreateLogger<PortalSystemMotion>())
                 : null,
             WindowFrames = OperatingSystem.IsWindows() ? new WindowsWindowFrames() : null,
-            Frame = FrameFor(Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")),
+            Frame = FrameFor(Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"), Locations),
             StartedBySteam = StartedBySteam,
             Compose = options.ConfigureUi,
             // Restarting the unit also brings back an agent that runs but no longer answers.
@@ -185,12 +187,19 @@ internal sealed record HostEnvironment
     }
 
     /// <summary>
-    /// Who draws the window's frame: the window itself on Windows, gamescope's full screen in its session, and otherwise
-    /// the desktop's window manager, since Avalonia draws a frame of its own on X11 only as an experiment.
+    /// Who draws the window's frame as it opens: the window inside the system's frame on Windows, gamescope's full screen in
+    /// its session, and otherwise the window as a whole, or the system where the player chose its title bar; read before the
+    /// window shows, so it never opens with one frame and turns to the other once the agent's state arrives.
     /// </summary>
     /// <param name="desktop">The desktop names of the session the window runs in, as <c>XDG_CURRENT_DESKTOP</c> lists them.</param>
-    internal static WindowFrame FrameFor(string? desktop) =>
-        OperatingSystem.IsWindows() ? WindowFrame.Own : Gamescope.IsSession(desktop) ? WindowFrame.Screen : WindowFrame.System;
+    /// <param name="locations">The app's folders, whose settings file the agent owns, so the window only reads it.</param>
+    internal static WindowFrame FrameFor(string? desktop, AppDataLocations locations) =>
+        OperatingSystem.IsWindows() ? WindowFrame.Own
+        : Gamescope.IsSession(desktop) ? WindowFrame.Screen
+        : SettingsService.Store(locations, TimeProvider.System, NullLogger.Instance)
+            .PeekAsync(CancellationToken.None).GetAwaiter().GetResult() is { SystemTitleBar: true }
+            ? WindowFrame.System
+            : WindowFrame.Frameless;
 
     private static Uri? Address(string url) => Uri.TryCreate(url, UriKind.Absolute, out var address) ? address : null;
 

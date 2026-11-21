@@ -41,6 +41,7 @@ public sealed class SettingsFormatTests : IDisposable
             OnboardingStep = 3,
             BackgroundNoticeShown = true,
             ControlsHintShown = true,
+            SystemTitleBar = true,
             BackupLocation = BackupLocation.CustomFolder,
             CustomBackupFolder = TestPaths.Rooted('E', "Backups"),
             PreferredTeams = [Guid.Parse("5a6b7c8d-0000-4000-8000-000000000002"), Guid.Parse("5a6b7c8d-0000-4000-8000-000000000001")],

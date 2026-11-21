@@ -66,6 +66,20 @@ public sealed class JsonDocumentStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task A_process_that_does_not_own_the_document_reads_it_and_leaves_a_damaged_file_in_place()
+    {
+        var token = TestContext.Current.CancellationToken;
+        (await CreateStore().PeekAsync(token)).Should().BeNull();
+        await CreateStore().SaveAsync(new Note("shared", 5), token);
+        (await CreateStore().PeekAsync(token)).Should().Be(new Note("shared", 5));
+
+        _directory.Write("note.json", "{ \"title\": ");
+
+        (await CreateStore().PeekAsync(token)).Should().BeNull();
+        _directory.Files().Should().Equal(["note.json"], "only the owner moves its file aside");
+    }
+
+    [Fact]
     public async Task Backups_made_in_the_same_second_do_not_overwrite_each_other()
     {
         _directory.Write("note.json", "first");

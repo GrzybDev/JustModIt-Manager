@@ -5,6 +5,7 @@ using JustModIt.Manager.Ui.Diagnostics;
 using JustModIt.Manager.Ui.Images;
 using JustModIt.Manager.Ui.Navigation;
 using JustModIt.Manager.Ui.Overlays;
+using JustModIt.Manager.Ui.Pages.Settings;
 
 namespace JustModIt.Manager.Ui;
 
@@ -45,6 +46,9 @@ public sealed class UiServices
 
     /// <summary>Uninstalling the app itself, which the settings and the app's menu entry start and the shell shows the end of.</summary>
     public AppUninstall Uninstall => field ??= new AppUninstall(this);
+
+    /// <summary>The settings as the window shows them, which the settings page changes and the window's frame follows at once.</summary>
+    internal SettingsEditor Settings => field ??= new SettingsEditor(this);
 }
 
 /// <summary>

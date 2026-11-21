@@ -84,8 +84,11 @@ public sealed record UiContext
     /// <summary>The system's frame around windows, which the window's smallest size makes up for; null where it adds none.</summary>
     public IWindowFrames? WindowFrames { get; init; }
 
-    /// <summary>Who draws the window's title bar and its buttons.</summary>
+    /// <summary>Who draws the window's title bar and its buttons as it opens; on a Linux desktop the player may change it.</summary>
     public WindowFrame Frame { get; init; }
+
+    /// <summary>The player chooses whether the system draws the window's title bar, as on a Linux desktop.</summary>
+    public bool OffersSystemTitleBar => Frame is WindowFrame.Frameless or WindowFrame.System;
 
     /// <summary>
     /// The window runs in a game session such as the Steam Deck's Game Mode, told by its own environment, since the
