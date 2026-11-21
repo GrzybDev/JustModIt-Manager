@@ -25,7 +25,7 @@ public sealed class AppSettingsTests
         settings.BlurAdultContent.Should().BeTrue();
         settings.CreatorMode.Should().BeFalse();
         settings.OnboardingCompleted.Should().BeFalse();
-        settings.TrayNoticeShown.Should().BeFalse();
+        settings.BackgroundNoticeShown.Should().BeFalse();
         settings.BackupLocation.Should().Be(BackupLocation.GameFolder);
         settings.CustomBackupFolder.Should().BeNull();
         settings.Games.Should().BeEmpty();

@@ -184,7 +184,7 @@
     <value>Przenoszenie instalacji gry {game} do jej nowego folderu…</value>
   </data>
   <data name="StatusWaitingForGame" xml:space="preserve">
-    <value>Czekamy, aż zamkniesz grę {game}…</value>
+    <value>Czekanie na zamknięcie gry {game}…</value>
   </data>
   <data name="StatusUpdateDownloading" xml:space="preserve">
     <value>Pobieranie wersji {version}…</value>
@@ -322,7 +322,7 @@
     <value>{product} działa w tle</value>
   </data>
   <data name="WindowClosed" xml:space="preserve">
-    <value>Nadal sprawdza gry i ich projekty w tle. Ponowne uruchomienie aplikacji otwiera jej okno.</value>
+    <value>Nadal dba o gry. {return, select, Tray {Okno otwiera ikona aplikacji w zasobniku systemowym.} other {Okno otwiera się ponownie z listy aplikacji systemu.}}</value>
   </data>
   <data name="SetupPendingTitle" xml:space="preserve">
     <value>Dokończ konfigurację aplikacji {product}</value>
@@ -498,7 +498,10 @@
   <data name="Shell_CloseToTray" xml:space="preserve">
     <value>Zostaw w zasobniku</value>
   </data>
-  <data name="Shell_CloseToTrayDescription" xml:space="preserve">
+  <data name="Shell_KeepRunning" xml:space="preserve">
+    <value>Działaj w tle</value>
+  </data>
+  <data name="Shell_KeepRunningDescription" xml:space="preserve">
     <value>Okno zniknie, a aplikacja nadal będzie dbać w tle o zainstalowane projekty.</value>
   </data>
   <data name="Shell_CloseExit" xml:space="preserve">
@@ -721,7 +724,7 @@
     <value>Działanie w tle</value>
   </data>
   <data name="Onboarding_BackgroundLead" xml:space="preserve">
-    <value>{product} pracuje w tle, z ikoną w zasobniku systemowym obok zegara, i dba o projekty także przy zamkniętym oknie.</value>
+    <value>{return, select, Tray {{product} pracuje w tle, z ikoną w zasobniku systemowym, i dba o projekty także przy zamkniętym oknie.} AppMenu {{product} pracuje w tle i dba o projekty także przy zamkniętym oknie, które otwiera się ponownie z listy aplikacji systemu.} other {{product} pracuje w tle i dba o projekty także przy zamkniętym oknie, które otwiera się ponownie ze skrótu w bibliotece Steama.}}</value>
   </data>
   <data name="Onboarding_StartWithSystem" xml:space="preserve">
     <value>Uruchamiaj razem z systemem</value>
@@ -739,7 +742,7 @@
     <value>Przy zamykaniu okna pojawi się pytanie, co zrobić.</value>
   </data>
   <data name="Onboarding_ExitHint" xml:space="preserve">
-    <value>Aplikację można całkiem zamknąć z menu jej ikony w zasobniku: prawy przycisk myszy → {exit}.</value>
+    <value>{return, select, Tray {Aplikację można całkiem zamknąć z menu jej ikony w zasobniku: prawy przycisk myszy → {exit}.} AppMenu {Ten pulpit nie ma zasobnika systemowego, więc aplikację można całkiem zamknąć z menu jej ikony na liście aplikacji systemu: prawy przycisk myszy → {exit}.} other {W trybie gry aplikację całkiem zamyka wybór „{exitTile}” przy zamykaniu okna.}}</value>
   </data>
   <data name="Onboarding_CreatorTitle" xml:space="preserve">
     <value>Tryb twórcy</value>
@@ -1960,13 +1963,16 @@
     <value>Uruchamiaj razem z systemem</value>
   </data>
   <data name="Settings_StartWithSystemDescription" xml:space="preserve">
-    <value>Po zalogowaniu {product} uruchomi się po cichu w zasobniku systemowym i od razu zadba o zainstalowane projekty.</value>
+    <value>Po zalogowaniu {product} uruchomi się po cichu w tle i od razu zadba o zainstalowane projekty.</value>
   </data>
   <data name="Settings_CloseBehavior" xml:space="preserve">
     <value>Po zamknięciu okna</value>
   </data>
   <data name="Settings_CloseBehaviorDescription" xml:space="preserve">
-    <value>Co dzieje się po zamknięciu okna aplikacji. Całkiem zamknąć ją można też z menu ikony w zasobniku.</value>
+    <value>Co dzieje się po zamknięciu okna aplikacji. {return, select, Tray {Całkiem zamknąć ją można też z menu jej ikony w zasobniku.} AppMenu {Ten pulpit nie ma zasobnika systemowego: okno otwiera się ponownie z listy aplikacji systemu, a całkiem zamknąć aplikację można z menu jej ikony na tej liście.} other {W trybie gry okno otwiera się ponownie ze skrótu w bibliotece Steama, a całkiem zamyka aplikację wybór „{exitTile}”.}}</value>
+  </data>
+  <data name="Settings_CloseInGameMode" xml:space="preserve">
+    <value>„Zakończ grę” w menu Steama zamyka okno bez pytania, a praca w tle trwa dalej. Ten wybór dotyczy przycisku „Zamknij” na pasku okna.</value>
   </data>
   <data name="Settings_BlurAdult" xml:space="preserve">
     <value>Rozmywaj grafiki gier dla dorosłych</value>

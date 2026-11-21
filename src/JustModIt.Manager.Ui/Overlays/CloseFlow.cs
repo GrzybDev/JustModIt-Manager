@@ -9,16 +9,23 @@ using JustModIt.Manager.Ui.Theme;
 namespace JustModIt.Manager.Ui.Overlays;
 
 /// <summary>
-/// What closing the window means, by the player's "after closing the window" setting: the app stays in the tray, the app
-/// exits (after the running jobs, once the player agrees to wait for them), or the player is asked, once or for good.
+/// What closing the window means, by the player's "after closing the window" setting: the app keeps running in the
+/// background, the app exits (after the running jobs, once the player agrees to wait for them), or the player is asked, once
+/// or for good.
 /// </summary>
 /// <param name="agent">The agent, told to exit when the app should.</param>
 /// <param name="navigator">The pages, any of which may keep unsaved work.</param>
 /// <param name="dialogs">Where the questions are asked.</param>
 public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dialogs)
 {
-    private const string Tray = "tray";
+    private const string KeepRunning = "keep-running";
     private const string Exit = "exit";
+
+    /// <summary>
+    /// The name of the choice that keeps the app running once the window closes: the tray, which every Windows desktop has,
+    /// or the background on other systems, whose sessions may have no tray.
+    /// </summary>
+    public static string KeepRunningTitle => OperatingSystem.IsWindows() ? Strings.Shell_CloseToTray : Strings.Shell_KeepRunning;
 
     /// <summary>Decides whether the window closes, telling the agent to exit first when the app should.</summary>
     /// <returns>False when the player cancelled or a page keeps unsaved work.</returns>
@@ -37,7 +44,7 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
         var settings = agent.State.Settings;
         switch (settings.CloseBehavior)
         {
-            case CloseBehavior.MinimizeToTray:
+            case CloseBehavior.KeepRunning:
                 return true;
             case CloseBehavior.Exit:
                 return await ExitAsync().ConfigureAwait(true);
@@ -45,7 +52,7 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
 
         var answer = await dialogs.ShowAsync(new ChoiceDialogViewModel(Strings.Shell_CloseTitle, Strings.Shell_CloseMessage,
         [
-            new DialogChoice(Tray, Icons.MonitorDown, Strings.Shell_CloseToTray, Strings.Shell_CloseToTrayDescription),
+            new DialogChoice(KeepRunning, Icons.MonitorDown, KeepRunningTitle, Strings.Shell_KeepRunningDescription),
             new DialogChoice(Exit, Icons.Power, Strings.Shell_CloseExit, Strings.Shell_CloseExitDescription, isDanger: true),
         ])
         {
@@ -61,11 +68,11 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
         {
             await AgentRequests.AskQuietlyAsync(agent, new ChangeSettings(settings with
             {
-                CloseBehavior = answer.Key == Exit ? CloseBehavior.Exit : CloseBehavior.MinimizeToTray,
+                CloseBehavior = answer.Key == Exit ? CloseBehavior.Exit : CloseBehavior.KeepRunning,
             })).ConfigureAwait(true);
         }
 
-        return answer.Key == Tray || await ExitAsync().ConfigureAwait(true);
+        return answer.Key == KeepRunning || await ExitAsync().ConfigureAwait(true);
     }
 
     // Stopping a job halfway would leave its game half changed, so with jobs running the app exits once they are done.
@@ -91,7 +98,7 @@ public sealed class CloseFlow(IAgent agent, Navigator navigator, DialogHost dial
     }
 
     // The agent asks the window to close before it exits, while the window closes on its own already; the window closes
-    // either way, and an agent that cannot be told keeps running in the tray, as it would without the window.
+    // either way, and an agent that cannot be told keeps running in the background, as it would without the window.
     private Task<Message?> SendExitAsync(ExitMode mode)
     {
         agent.AcceptShutdown();

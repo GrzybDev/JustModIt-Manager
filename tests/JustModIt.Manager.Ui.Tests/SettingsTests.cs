@@ -70,6 +70,25 @@ public sealed class SettingsTests
     }
 
     [AvaloniaFact]
+    public async Task The_close_choice_says_how_the_window_comes_back_as_the_session_changes()
+    {
+        using var ui = await OpenAsync(State());
+
+        Shown(ui).Should().Contain("Co dzieje się po zamknięciu okna aplikacji. Całkiem zamknąć ją można też z menu jej ikony w zasobniku.")
+            .And.NotContain(Strings.Settings_CloseInGameMode);
+        ui.Push(State() with { Version = 2, Activity = new ActivityView { WindowReturn = WindowReturn.AppMenu } });
+        Shown(ui).Should().Contain("Co dzieje się po zamknięciu okna aplikacji. Ten pulpit nie ma zasobnika systemowego: okno otwiera się "
+            + "ponownie z listy aplikacji systemu, a całkiem zamknąć aplikację można z menu jej ikony na tej liście.",
+            "a desktop's tray may come or go while the page shows");
+        ui.Render("settings-close-without-tray");
+
+        ui.Push(State() with { Version = 3, Activity = new ActivityView { WindowReturn = WindowReturn.StoreLibrary } });
+        Shown(ui).Should().Contain("Co dzieje się po zamknięciu okna aplikacji. W trybie gry okno otwiera się ponownie ze skrótu w bibliotece "
+            + "Steama, a całkiem zamyka aplikację wybór „Zamknij aplikację”.").And.Contain(Strings.Settings_CloseInGameMode);
+        ui.Render("settings-close-in-game-mode");
+    }
+
+    [AvaloniaFact]
     public async Task A_change_the_agent_refuses_shows_the_agents_setting_again()
     {
         using var ui = await OpenAsync(State());
@@ -713,6 +732,9 @@ public sealed class SettingsTests
                 "Glass Orchard PL"),
         },
     ];
+
+    private static IEnumerable<string?> Shown(UiHarness ui) =>
+        ui.Find<TextBlock>().Where(text => text.IsEffectivelyVisible).Select(text => text.Text);
 
     private static ToggleSwitch Toggle(UiHarness ui, string name) =>
         ui.Find<ToggleSwitch>().Single(toggle => AutomationProperties.GetName(toggle) == name);

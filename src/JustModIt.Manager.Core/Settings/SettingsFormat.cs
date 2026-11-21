@@ -29,7 +29,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string CreatorMode = "creatorMode";
     private const string OnboardingCompleted = "onboardingCompleted";
     private const string OnboardingStep = "onboardingStep";
-    private const string TrayNoticeShown = "trayNoticeShown";
+    private const string BackgroundNoticeShown = "backgroundNoticeShown";
     private const string BackupLocationName = "backupLocation";
     private const string CustomBackupFolder = "customBackupFolder";
     private const string PreferredTeams = "preferredTeams";
@@ -44,6 +44,10 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
     private const string LegacyShowAdultContent = "showAdultContent";
     private const string LegacyAutoInstallProjects = "autoInstallTranslations";
     private const string LegacyAutoUpdateProjects = "autoUpdateTranslations";
+
+    // Keeping the app running once its window closed, and its notice, were named after the tray, which some desktops lack.
+    private const string LegacyMinimizeToTray = "MinimizeToTray";
+    private const string LegacyTrayNoticeShown = "trayNoticeShown";
 
     private const string AutoInstall = "autoInstall";
     private const string AutoUpdate = "autoUpdate";
@@ -62,9 +66,9 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         StartWithSystem, CloseBehaviorName, AutoInstallProjects, AutoUpdateProjects, ReapplyAfterGameUpdate,
         AutoUpdateApp, UpdatePrereleases, SendErrorReports, ShowNotifications, BlurAdultContent, AchievementTexts,
         AutoAchievementTexts, AchievementClassicMode, CreatorMode, OnboardingCompleted, OnboardingStep,
-        TrayNoticeShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
+        BackgroundNoticeShown, BackupLocationName, CustomBackupFolder, PreferredTeams, Games, LibraryFolders,
         AdultContentConfirmedUntil, RevealedAdultGames, RecentCreatorProjects, InstallationId, LegacyShowAdultContent,
-        LegacyAutoInstallProjects, LegacyAutoUpdateProjects);
+        LegacyAutoInstallProjects, LegacyAutoUpdateProjects, LegacyTrayNoticeShown);
 
     public AppSettings Read(JsonElement root, int version)
     {
@@ -81,7 +85,9 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         return new AppSettings
         {
             StartWithSystem = root.GetBooleanOrNull(StartWithSystem) ?? defaults.StartWithSystem,
-            CloseBehavior = root.GetEnumOrNull<CloseBehavior>(CloseBehaviorName) ?? defaults.CloseBehavior,
+            CloseBehavior = root.GetTextOrNull(CloseBehaviorName) == LegacyMinimizeToTray
+                ? CloseBehavior.KeepRunning
+                : root.GetEnumOrNull<CloseBehavior>(CloseBehaviorName) ?? defaults.CloseBehavior,
             AutoInstallProjects = root.GetBooleanOrNull(AutoInstallProjects) ?? Legacy(LegacyAutoInstallProjects)
                 ?? defaults.AutoInstallProjects,
             AutoUpdateProjects = root.GetBooleanOrNull(AutoUpdateProjects) ?? Legacy(LegacyAutoUpdateProjects)
@@ -98,7 +104,8 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
             CreatorMode = root.GetBooleanOrNull(CreatorMode) ?? defaults.CreatorMode,
             OnboardingCompleted = root.GetBooleanOrNull(OnboardingCompleted) ?? defaults.OnboardingCompleted,
             OnboardingStep = root.GetInt32OrNull(OnboardingStep) is >= 0 and var step ? step : defaults.OnboardingStep,
-            TrayNoticeShown = root.GetBooleanOrNull(TrayNoticeShown) ?? defaults.TrayNoticeShown,
+            BackgroundNoticeShown = root.GetBooleanOrNull(BackgroundNoticeShown) ?? root.GetBooleanOrNull(LegacyTrayNoticeShown)
+                ?? defaults.BackgroundNoticeShown,
             BackupLocation = backupLocation,
             CustomBackupFolder = customBackupFolder,
             PreferredTeams = ReadIds(root, PreferredTeams),
@@ -129,7 +136,7 @@ public sealed class SettingsFormat : IJsonDocumentFormat<AppSettings>
         writer.WriteBoolean(CreatorMode, document.CreatorMode);
         writer.WriteBoolean(OnboardingCompleted, document.OnboardingCompleted);
         writer.WriteNumber(OnboardingStep, document.OnboardingStep);
-        writer.WriteBoolean(TrayNoticeShown, document.TrayNoticeShown);
+        writer.WriteBoolean(BackgroundNoticeShown, document.BackgroundNoticeShown);
         writer.WriteString(BackupLocationName, document.BackupLocation.ToString());
         writer.WriteIfSet(CustomBackupFolder, document.CustomBackupFolder);
         writer.WriteStrings(PreferredTeams, document.PreferredTeams.Select(id => id.ToString()));

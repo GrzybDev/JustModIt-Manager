@@ -75,7 +75,7 @@ public sealed class OverlayTests
         await UiHarness.WaitAsync(TimeSpan.FromMilliseconds(300));
         ui.Window.IsVisible.Should().BeTrue("the window waits for the player's answer");
         ui.Render("dialog-close");
-        ui.Click(Button(ui, Strings.Shell_CloseToTray));
+        ui.Click(Button(ui, CloseFlow.KeepRunningTitle));
 
         ui.Window.IsVisible.Should().BeFalse();
         ui.Agent.Requests.Should().BeEmpty();
@@ -127,7 +127,7 @@ public sealed class OverlayTests
     {
         using var ui = new UiHarness(TestStates.Idle() with
         {
-            Settings = TestStates.Idle().Settings with { CloseBehavior = CloseBehavior.MinimizeToTray },
+            Settings = TestStates.Idle().Settings with { CloseBehavior = CloseBehavior.KeepRunning },
         });
 
         ui.Window.Close();

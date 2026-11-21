@@ -334,7 +334,8 @@
     <value>{product} keeps running</value>
   </data>
   <data name="WindowClosed" xml:space="preserve">
-    <value>It keeps checking games and their projects in the background. Starting it again opens its window.</value>
+    <value>It keeps looking after the games. {return, select, Tray {Its icon in the system tray opens the window.} other {The window opens again from the system's app list.}}</value>
+    <comment>return is how the window comes back: Tray from the system tray's icon, otherwise from the system's app list on a desktop without a tray.</comment>
   </data>
   <data name="SetupPendingTitle" xml:space="preserve">
     <value>Finish setting up {product}</value>
@@ -510,7 +511,11 @@
   <data name="Shell_CloseToTray" xml:space="preserve">
     <value>Keep in the tray</value>
   </data>
-  <data name="Shell_CloseToTrayDescription" xml:space="preserve">
+  <data name="Shell_KeepRunning" xml:space="preserve">
+    <value>Keep running in the background</value>
+    <comment>The same choice as Shell_CloseToTray, on Linux, where a session may have no tray.</comment>
+  </data>
+  <data name="Shell_KeepRunningDescription" xml:space="preserve">
     <value>The window goes away and the app keeps looking after the installed projects in the background.</value>
   </data>
   <data name="Shell_CloseExit" xml:space="preserve">
@@ -733,7 +738,8 @@
     <value>Running in the background</value>
   </data>
   <data name="Onboarding_BackgroundLead" xml:space="preserve">
-    <value>{product} works in the background, with an icon in the system tray next to the clock, and looks after the projects even with the window closed.</value>
+    <value>{return, select, Tray {{product} works in the background, with an icon in the system tray, and looks after the projects even with the window closed.} AppMenu {{product} works in the background and looks after the projects even with the window closed, which opens again from the system's app list.} other {{product} works in the background and looks after the projects even with the window closed, which opens again from the shortcut in Steam's library.}}</value>
+    <comment>return is how the window comes back: Tray from the system tray's icon, AppMenu from the system's app list on a desktop without a tray, otherwise from the shortcut in Steam's library in Game Mode.</comment>
   </data>
   <data name="Onboarding_StartWithSystem" xml:space="preserve">
     <value>Start with the system</value>
@@ -751,7 +757,8 @@
     <value>Closing the window asks what to do.</value>
   </data>
   <data name="Onboarding_ExitHint" xml:space="preserve">
-    <value>To quit the app completely, right-click its icon in the tray and choose {exit}.</value>
+    <value>{return, select, Tray {The app quits completely from its icon's menu in the tray (right-click, then {exit}).} AppMenu {This desktop has no system tray, so the app quits completely from its icon's menu in the system's app list (right-click, then {exit}).} other {In Game Mode the app quits completely through “{exitTile}” when the window closes.}}</value>
+    <comment>return is how the window comes back: Tray from the system tray's icon, AppMenu from the system's app list on a desktop without a tray, otherwise from the shortcut in Steam's library in Game Mode. exit is the menu entry that exits the app, exitTile the close choice that does.</comment>
   </data>
   <data name="Onboarding_CreatorTitle" xml:space="preserve">
     <value>Creator mode</value>
@@ -1972,13 +1979,17 @@
     <value>Start with the system</value>
   </data>
   <data name="Settings_StartWithSystemDescription" xml:space="preserve">
-    <value>After signing in, {product} starts quietly in the notification area and looks after the installed projects at once.</value>
+    <value>After signing in, {product} starts quietly in the background and looks after the installed projects at once.</value>
   </data>
   <data name="Settings_CloseBehavior" xml:space="preserve">
     <value>After closing the window</value>
   </data>
   <data name="Settings_CloseBehaviorDescription" xml:space="preserve">
-    <value>What happens when the app's window closes. The app also exits for good from its icon's menu in the notification area.</value>
+    <value>What happens when the app's window closes. {return, select, Tray {The app also exits for good from its icon's menu in the system tray.} AppMenu {This desktop has no system tray: the window opens again from the system's app list, and the app exits for good from its icon's menu there.} other {In Game Mode the window opens again from the shortcut in Steam's library, and “{exitTile}” exits the app for good.}}</value>
+    <comment>return is how the window comes back: Tray from the system tray's icon, AppMenu from the system's app list on a desktop without a tray, otherwise from the shortcut in Steam's library in Game Mode. exitTile is the close choice that exits the app.</comment>
+  </data>
+  <data name="Settings_CloseInGameMode" xml:space="preserve">
+    <value>“Exit game” in Steam's menu closes the window without asking, and the app keeps working in the background. This choice is for the Close button in the window's bar.</value>
   </data>
   <data name="Settings_BlurAdult" xml:space="preserve">
     <value>Blur pictures of adult games</value>

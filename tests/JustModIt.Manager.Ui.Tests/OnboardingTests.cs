@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using JustModIt.Manager.Core.Games;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Core.State;
 using JustModIt.Manager.Localization;
@@ -12,6 +13,7 @@ using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Transport;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Navigation;
+using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Onboarding;
 using JustModIt.Manager.Ui.Tests.TestSupport;
 
@@ -46,9 +48,9 @@ public sealed class OnboardingTests
 
         ui.Click(Button(ui, Strings.Onboarding_Next));
         await Settle();
-        ui.Click(Tile(ui, Strings.Shell_CloseToTray));
+        ui.Click(Tile(ui, CloseFlow.KeepRunningTitle));
         ui.Click(Switch(ui, Strings.Onboarding_StartWithSystem));
-        Saved(ui).Should().Match<SettingsView>(settings => settings.CloseBehavior == CloseBehavior.MinimizeToTray && !settings.StartWithSystem);
+        Saved(ui).Should().Match<SettingsView>(settings => settings.CloseBehavior == CloseBehavior.KeepRunning && !settings.StartWithSystem);
         Tile(ui, Strings.Onboarding_CloseAsk).IsChecked.Should().BeFalse();
         NamesOfTheControls(ui).Should().NotContain(string.Empty);
         await Settle();
@@ -64,7 +66,7 @@ public sealed class OnboardingTests
         ui.Click(Button(ui, Strings.Onboarding_Next));
         await Settle();
         Setup(ui).Ready.Summary.Select(item => item.Value).Should().Equal(Strings.Onboarding_AutomateEverything,
-            Strings.Onboarding_NotificationsOff, Strings.Onboarding_Off, Strings.Shell_CloseToTray, Strings.Onboarding_On,
+            Strings.Onboarding_NotificationsOff, Strings.Onboarding_Off, CloseFlow.KeepRunningTitle, Strings.Onboarding_On,
             Strings.Onboarding_BackupsInGameFolders);
         ui.Find<Button>().Where(button => button.IsEffectivelyVisible).Select(Name).Should().NotContain(Strings.Onboarding_Skip);
         NamesOfTheControls(ui).Should().NotContain(string.Empty);
@@ -175,6 +177,23 @@ public sealed class OnboardingTests
     }
 
     private static Task Settle() => UiHarness.WaitAsync(TimeSpan.FromMilliseconds(700));
+
+    [AvaloniaFact]
+    public async Task Without_a_tray_the_background_step_says_where_the_window_comes_back_from_and_how_the_app_exits()
+    {
+        using var ui = new UiHarness(FirstRun(settings => settings with { OnboardingStep = 2 }) with
+        {
+            Activity = new ActivityView { WindowReturn = WindowReturn.AppMenu },
+        });
+        await Settle();
+
+        var step = Setup(ui).CurrentStep.Should().BeOfType<BackgroundStep>().Subject;
+        step.Lead.Should().Be("Example App pracuje w tle i dba o spolszczenia także przy zamkniętym oknie, które otwiera się "
+            + "ponownie z listy aplikacji systemu.");
+        step.ExitHint.Should().Be("Ten pulpit nie ma zasobnika systemowego, więc aplikację można całkiem zamknąć z menu jej ikony na "
+            + "liście aplikacji systemu: prawy przycisk myszy → Zamknij.");
+        ui.Render("onboarding-3-background-without-tray");
+    }
 
     private static AppStateView FirstRun(Func<SettingsView, SettingsView>? change = null) => TestStates.Idle() with
     {

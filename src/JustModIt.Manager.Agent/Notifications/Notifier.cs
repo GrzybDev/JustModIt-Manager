@@ -21,6 +21,7 @@ public sealed class Notifier : IAgentService, IDisposable
     private readonly UiLauncher _ui;
     private readonly INotificationHost _notifications;
     private readonly ISettingsService _settings;
+    private readonly AgentStatus _status;
     private readonly AgentLifetime _lifetime;
     private readonly AppLinks _links;
     private readonly AgentOptions _options;
@@ -30,17 +31,19 @@ public sealed class Notifier : IAgentService, IDisposable
     /// <param name="coordinator">Hands out the automation's notices.</param>
     /// <param name="ui">The window, whether it is in front, and its closing.</param>
     /// <param name="notifications">Shows notifications while the window is not in front.</param>
-    /// <param name="settings">Whether notifications are on, and whether the player heard about the tray.</param>
+    /// <param name="settings">Whether notifications are on, and whether the player heard that the app keeps running.</param>
+    /// <param name="status">How the session brings the window back, which the notice of a closed window tells.</param>
     /// <param name="lifetime">Tells whether the agent is exiting.</param>
     /// <param name="links">Makes the link a notification opens.</param>
     /// <param name="options">The product name the notices use.</param>
     public Notifier(StateCoordinator coordinator, UiLauncher ui, INotificationHost notifications, ISettingsService settings,
-        AgentLifetime lifetime, AppLinks links, AgentOptions options)
+        AgentStatus status, AgentLifetime lifetime, AppLinks links, AgentOptions options)
     {
         _coordinator = coordinator;
         _ui = ui;
         _notifications = notifications;
         _settings = settings;
+        _status = status;
         _lifetime = lifetime;
         _links = links;
         _options = options;
@@ -78,11 +81,12 @@ public sealed class Notifier : IAgentService, IDisposable
     private bool Show(string title, string message, string link) =>
         _settings.Current.ShowNotifications && _notifications.Notify(title, message, link);
 
-    // Closing the window keeps the app in the tray, which the player hears once; before the first-run setup is done, at
-    // every close, since until then the app does nothing for them.
+    // Closing the window keeps the app running in the background, which the player hears once; before the first-run setup
+    // is done, at every close, since until then the app does nothing for them. In a store's game session the window comes
+    // back from the store's library, as the settings say, so neither is told there and the desktop keeps the one-time notice.
     private void OnWindowClosed(object? sender, EventArgs e)
     {
-        if (_lifetime.IsExiting)
+        if (_lifetime.IsExiting || _status.Activity.WindowReturn == WindowReturn.StoreLibrary)
         {
             return;
         }
@@ -98,10 +102,11 @@ public sealed class Notifier : IAgentService, IDisposable
                 Show(Text.Format(Strings.SetupPendingTitle, product),
                     Text.Format(Strings.SetupPending, ("clickable", _notifications.IsClickable ? "true" : "false")), _links.Open);
             }
-            else if (!current.TrayNoticeShown
-                && Show(Text.Format(Strings.WindowClosedTitle, product), Strings.WindowClosed, _links.Open))
+            else if (!current.BackgroundNoticeShown
+                && Show(Text.Format(Strings.WindowClosedTitle, product),
+                    Text.Format(Strings.WindowClosed, ("return", _status.Activity.WindowReturn.ToString())), _links.Open))
             {
-                _settings.Update(updated => updated with { TrayNoticeShown = true });
+                _settings.Update(updated => updated with { BackgroundNoticeShown = true });
             }
         }
     }

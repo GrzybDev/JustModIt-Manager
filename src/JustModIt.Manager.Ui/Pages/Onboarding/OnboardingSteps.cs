@@ -1,10 +1,12 @@
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
 using JustModIt.Manager.Protocol.Views;
 using JustModIt.Manager.Ui.Connection;
+using JustModIt.Manager.Ui.Overlays;
 using JustModIt.Manager.Ui.Pages.Library;
 using JustModIt.Manager.Ui.Theme;
 
@@ -52,13 +54,24 @@ public sealed class AutomationStep(OnboardingViewModel setup) : OnboardingStep(s
 
 /// <summary>Starting with the system and what closing the window does.</summary>
 /// <param name="setup">The setup the step belongs to.</param>
-public sealed class BackgroundStep(OnboardingViewModel setup) : OnboardingStep(setup, Strings.Onboarding_BackgroundTitle)
+public sealed partial class BackgroundStep(OnboardingViewModel setup) : OnboardingStep(setup, Strings.Onboarding_BackgroundTitle)
 {
-    public string Lead { get; } = Text.Format(Strings.Onboarding_BackgroundLead, ("product", setup.ProductName));
+    [ObservableProperty]
+    public partial string Lead { get; private set; } = "";
 
     public string Heading { get; } = Overline(Strings.Onboarding_CloseHeading);
 
-    public string ExitHint { get; } = Text.Format(Strings.Onboarding_ExitHint, ("exit", Strings.TrayExit));
+    [ObservableProperty]
+    public partial string ExitHint { get; private set; } = "";
+
+    /// <summary>Words the step for how the session the app runs in brings the window back and exits the app.</summary>
+    /// <param name="windowReturn">The session's way back to the window.</param>
+    public void Refresh(WindowReturn windowReturn)
+    {
+        var way = ("return", (object?)windowReturn.ToString());
+        Lead = Text.Format(Strings.Onboarding_BackgroundLead, ("product", Setup.ProductName), way);
+        ExitHint = Text.Format(Strings.Onboarding_ExitHint, ("exit", Strings.TrayExit), ("exitTile", Strings.Shell_CloseExit), way);
+    }
 }
 
 /// <summary>Whether the package creator joins the sidebar.</summary>
@@ -191,7 +204,7 @@ public sealed partial class ReadyStep : OnboardingStep
         };
         var close = setup.CloseBehavior switch
         {
-            CloseBehavior.MinimizeToTray => (Icons.MonitorDown, Strings.Shell_CloseToTray),
+            CloseBehavior.KeepRunning => (Icons.MonitorDown, CloseFlow.KeepRunningTitle),
             CloseBehavior.Exit => (Icons.Power, Strings.Shell_CloseExit),
             _ => (Icons.CircleHelp, Strings.Onboarding_CloseAsk),
         };

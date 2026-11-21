@@ -3,6 +3,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Core.Settings;
 using JustModIt.Manager.Localization;
 using JustModIt.Manager.Protocol.Messages;
@@ -73,6 +74,14 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     public string StartWithSystemDescription =>
         Text.Format(Strings.Settings_StartWithSystemDescription, ("product", _services.Context.ProductName));
+
+    /// <summary>What closing the window means, with how the session brings the window back and exits the app.</summary>
+    [ObservableProperty]
+    public partial string CloseBehaviorDescription { get; private set; } = "";
+
+    /// <summary>The app runs in a store's game session, whose own way to close the window asks nothing.</summary>
+    [ObservableProperty]
+    public partial bool IsInStoreSession { get; private set; }
 
     public string AutoUpdateAppDescription =>
         Text.Format(Strings.Settings_AutoUpdateAppDescription, ("product", _services.Context.ProductName));
@@ -312,6 +321,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         Data.Refresh();
         Steam.Refresh();
         ShowUpdate();
+        ShowWindowReturn();
         var state = _services.Agent.State;
         SiteName = state.Catalogue.SiteName is { Length: > 0 } name ? name : _services.Context.Site.SiteAddress?.Host ?? "";
         Folders.Refresh();
@@ -361,8 +371,17 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
             Data.Refresh();
             Steam.Refresh();
             ShowUpdate();
+            ShowWindowReturn();
             Folders.Refresh();
         }
+    }
+
+    private void ShowWindowReturn()
+    {
+        var windowReturn = _services.Agent.State.Activity.WindowReturn;
+        CloseBehaviorDescription = Text.Format(Strings.Settings_CloseBehaviorDescription, ("return", windowReturn.ToString()),
+            ("exitTile", Strings.Shell_CloseExit));
+        IsInStoreSession = windowReturn == WindowReturn.StoreLibrary;
     }
 
     private void OnJobsProgressed(object? sender, IReadOnlyList<JobView> jobs) => Backups.Progress(jobs);

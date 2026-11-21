@@ -48,7 +48,9 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
     {
         _services = services;
         Ready = new ReadyStep(this, services.Agent);
-        Steps = [new WelcomeStep(this), new AutomationStep(this), new BackgroundStep(this), new CreatorStep(this), Ready];
+        Background = new BackgroundStep(this);
+        Steps = [new WelcomeStep(this), new AutomationStep(this), Background, new CreatorStep(this), Ready];
+        Background.Refresh(Agent.State.Activity.WindowReturn);
         Sync(Agent.State.Settings);
         _index = Math.Clamp(Agent.State.Settings.OnboardingStep, 0, Steps.Count - 1);
         CurrentStep = Steps[_index];
@@ -63,6 +65,8 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
     public IReadOnlyList<OnboardingStep> Steps { get; }
 
     public ReadyStep Ready { get; }
+
+    public BackgroundStep Background { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsFirstStep), nameof(IsLastStep), nameof(NextText), nameof(NextTip), nameof(NextIcon),
@@ -282,6 +286,7 @@ public sealed partial class OnboardingViewModel : PageViewModel, IDisposable
             _sent = null;
         }
 
+        Background.Refresh(Agent.State.Activity.WindowReturn);
         Ready.Refresh();
         _ = LoadCoversAsync();
     }

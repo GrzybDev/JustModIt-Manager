@@ -139,7 +139,7 @@
     <value>Spolszczenie „{project}” ({game}) nie jest już zainstalowane</value>
   </data>
   <data name="WindowClosed" xml:space="preserve">
-    <value>Aplikacja nadal sprawdza gry i spolszczenia w tle. Ponowne uruchomienie otwiera jej okno.</value>
+    <value>Aplikacja nadal dba o zainstalowane spolszczenia. {return, select, Tray {Okno otwiera jej ikona w zasobniku systemowym.} other {Okno otwiera się ponownie z listy aplikacji systemu.}}</value>
   </data>
   <data name="SetupPending" xml:space="preserve">
     <value>{clickable, select, true {Do tego czasu aplikacja nie zajmie się spolszczeniami. Kliknięcie powiadomienia otwiera konfigurację.} other {Do tego czasu aplikacja nie zajmie się spolszczeniami.}}</value>
@@ -150,7 +150,7 @@
   <data name="Shell_StatusCheckingDetail" xml:space="preserve">
     <value>i pasujących spolszczeń</value>
   </data>
-  <data name="Shell_CloseToTrayDescription" xml:space="preserve">
+  <data name="Shell_KeepRunningDescription" xml:space="preserve">
     <value>Okno zniknie, a aplikacja nadal będzie dbać w tle o zainstalowane spolszczenia.</value>
   </data>
   <data name="Toast_InstalledTitle" xml:space="preserve">
@@ -217,7 +217,7 @@
     <value>Informacje o instalacjach, aktualizacjach i nowych spolszczeniach.</value>
   </data>
   <data name="Onboarding_BackgroundLead" xml:space="preserve">
-    <value>{product} pracuje w tle, z ikoną w zasobniku systemowym obok zegara, i dba o spolszczenia także przy zamkniętym oknie.</value>
+    <value>{return, select, Tray {{product} pracuje w tle, z ikoną w zasobniku systemowym, i dba o spolszczenia także przy zamkniętym oknie.} AppMenu {{product} pracuje w tle i dba o spolszczenia także przy zamkniętym oknie, które otwiera się ponownie z listy aplikacji systemu.} other {{product} pracuje w tle i dba o spolszczenia także przy zamkniętym oknie, które otwiera się ponownie ze skrótu w bibliotece Steama.}}</value>
   </data>
   <data name="Onboarding_CreatorTile" xml:space="preserve">
     <value>Tłumaczę gry</value>
@@ -514,7 +514,7 @@
     <value>Spolszczenia</value>
   </data>
   <data name="Settings_StartWithSystemDescription" xml:space="preserve">
-    <value>Po zalogowaniu {product} uruchomi się po cichu w zasobniku systemowym i od razu zadba o zainstalowane spolszczenia.</value>
+    <value>Po zalogowaniu {product} uruchomi się po cichu w tle i od razu zadba o zainstalowane spolszczenia.</value>
   </data>
   <data name="Settings_AutoInstall" xml:space="preserve">
     <value>Instaluj nowe spolszczenia automatycznie</value>

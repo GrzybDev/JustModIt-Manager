@@ -7,7 +7,9 @@ namespace JustModIt.Manager.Core.Settings;
 public enum CloseBehavior
 {
     Ask,
-    MinimizeToTray,
+
+    /// <summary>The app keeps working in the background, whether or not the desktop has a tray to show it in.</summary>
+    KeepRunning,
     Exit,
 }
 
@@ -73,8 +75,8 @@ public sealed record AppSettings
     /// <summary>The step of the first-run setup shown last, so a setup left halfway opens there again.</summary>
     public int OnboardingStep { get; init; }
 
-    /// <summary>Whether the player was told once that closing the window keeps the app running in the tray.</summary>
-    public bool TrayNoticeShown { get; init; }
+    /// <summary>Whether the player was told once that closing the window keeps the app running in the background.</summary>
+    public bool BackgroundNoticeShown { get; init; }
 
     /// <summary>
     /// Where new installs keep originals, since an install record keeps the backup folder it used;

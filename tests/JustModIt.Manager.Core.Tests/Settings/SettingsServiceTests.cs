@@ -111,10 +111,10 @@ public sealed class SettingsServiceTests : IAsyncDisposable
     {
         var service = await CreateAsync();
 
-        service.Update(settings => settings with { TrayNoticeShown = true });
+        service.Update(settings => settings with { BackgroundNoticeShown = true });
         await service.DisposeAsync();
 
-        _store.Stored!.TrayNoticeShown.Should().BeTrue();
+        _store.Stored!.BackgroundNoticeShown.Should().BeTrue();
     }
 
     [Fact]
@@ -192,15 +192,15 @@ public sealed class SettingsServiceTests : IAsyncDisposable
         await using (var service = await SettingsService.LoadAsync(locations, TimeProvider.System, NullLoggerFactory.Instance,
             TestContext.Current.CancellationToken))
         {
-            service.Update(settings => settings with { CloseBehavior = CloseBehavior.MinimizeToTray });
+            service.Update(settings => settings with { CloseBehavior = CloseBehavior.KeepRunning });
         }
 
         var stored = JsonNode.Parse(await File.ReadAllTextAsync(locations.SettingsFile, TestContext.Current.CancellationToken))!;
-        stored["closeBehavior"]!.GetValue<string>().Should().Be("MinimizeToTray");
+        stored["closeBehavior"]!.GetValue<string>().Should().Be("KeepRunning");
 
         await using var reloaded = await SettingsService.LoadAsync(locations, TimeProvider.System, NullLoggerFactory.Instance,
             TestContext.Current.CancellationToken);
-        reloaded.Current.CloseBehavior.Should().Be(CloseBehavior.MinimizeToTray);
+        reloaded.Current.CloseBehavior.Should().Be(CloseBehavior.KeepRunning);
     }
 
     public async ValueTask DisposeAsync()

@@ -24,7 +24,7 @@ public sealed class SettingsFormatTests : IDisposable
         var settings = new AppSettings
         {
             StartWithSystem = false,
-            CloseBehavior = CloseBehavior.MinimizeToTray,
+            CloseBehavior = CloseBehavior.KeepRunning,
             AutoInstallProjects = true,
             AutoUpdateProjects = false,
             ReapplyAfterGameUpdate = false,
@@ -39,7 +39,7 @@ public sealed class SettingsFormatTests : IDisposable
             CreatorMode = true,
             OnboardingCompleted = true,
             OnboardingStep = 3,
-            TrayNoticeShown = true,
+            BackgroundNoticeShown = true,
             BackupLocation = BackupLocation.CustomFolder,
             CustomBackupFolder = TestPaths.Rooted('E', "Backups"),
             PreferredTeams = [Guid.Parse("5a6b7c8d-0000-4000-8000-000000000002"), Guid.Parse("5a6b7c8d-0000-4000-8000-000000000001")],
@@ -131,16 +131,19 @@ public sealed class SettingsFormatTests : IDisposable
         await store.SaveAsync(settings!, TestContext.Current.CancellationToken);
 
         var stored = JsonNode.Parse(await File.ReadAllTextAsync(_path, TestContext.Current.CancellationToken))!.AsObject();
-        stored.Select(value => value.Key).Should().NotContain(["showAdultContent", "autoInstallTranslations", "autoUpdateTranslations"]);
+        stored.Select(value => value.Key).Should().NotContain(["showAdultContent", "autoInstallTranslations", "autoUpdateTranslations",
+            "trayNoticeShown"]);
+        stored["backgroundNoticeShown"]!.GetValue<bool>().Should().BeTrue("the notice is no longer named after the tray");
         stored["blurAdultContent"]!.GetValue<bool>().Should().BeFalse();
         stored["autoInstallProjects"]!.GetValue<bool>().Should().BeTrue();
         stored["autoUpdateProjects"]!.GetValue<bool>().Should().BeFalse();
         stored["checkIntervalMinutes"]!.GetValue<int>().Should().Be(30, "a value this version does not know is kept");
+        stored["closeBehavior"]!.GetValue<string>().Should().Be("KeepRunning", "the tray is no longer what the choice is named after");
         stored["games"]!["gog:1100000001"]!.AsObject().ContainsKey("variantName").Should().BeFalse("a variant chosen before add-ons is never written");
         (await LoadAsync()).Should().Be(settings!.WithGame(GogGame, preferences => preferences with { VariantName = null }));
         settings.Should().Be(new AppSettings
         {
-            CloseBehavior = CloseBehavior.MinimizeToTray,
+            CloseBehavior = CloseBehavior.KeepRunning,
             StartWithSystem = false,
             AutoInstallProjects = true,
             AutoUpdateProjects = false,
@@ -148,7 +151,7 @@ public sealed class SettingsFormatTests : IDisposable
             AutoUpdateApp = false,
             BlurAdultContent = false,
             ShowNotifications = false,
-            TrayNoticeShown = true,
+            BackgroundNoticeShown = true,
             OnboardingCompleted = true,
             CreatorMode = true,
         }.WithGame(GogGame, preferences => preferences with

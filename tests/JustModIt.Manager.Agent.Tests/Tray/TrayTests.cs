@@ -109,18 +109,43 @@ public sealed class TrayTests : IAsyncDisposable
         _agent.Tray.Notifications.Reader.TryRead(out _).Should().BeFalse();
     }
 
-    [Fact]
-    public async Task Closing_the_window_tells_once_that_the_app_keeps_running()
+    [Theory]
+    [InlineData(WindowReturn.Tray, "It keeps looking after the games. Its icon in the system tray opens the window.")]
+    [InlineData(WindowReturn.AppMenu, "It keeps looking after the games. The window opens again from the system's app list.")]
+    public async Task Closing_the_window_tells_once_that_the_app_keeps_running_and_how_the_window_comes_back(WindowReturn windowReturn,
+        string message)
     {
         await _agent.SaveSettingsAsync(AppSettings.Default with { OnboardingCompleted = true });
+        _agent.Tray.ReturnBy(windowReturn);
         _agent.Start();
 
-        await (await _agent.ConnectWindowAsync()).Connection.DisposeAsync();
-        (await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token)).Title.Should().Be("Example App keeps running");
+        var window = await _agent.ConnectWindowAsync();
+        await window.StateAsync(state => state.Activity.WindowReturn == windowReturn);
+        await window.Connection.DisposeAsync();
+        (await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token)).Should()
+            .Be(("Example App keeps running", message, "example-app://open"));
         await (await _agent.ConnectWindowAsync()).Connection.DisposeAsync();
 
         await Task.Delay(200, AgentHarness.Token);
         _agent.Tray.Notifications.Reader.TryRead(out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Closing_the_window_in_a_stores_game_session_tells_nothing_and_leaves_the_notice_to_the_desktop()
+    {
+        _agent.Tray.ReturnBy(WindowReturn.StoreLibrary);
+        _agent.Start();
+        var settings = await _agent.ServiceAsync<ISettingsService>();
+
+        await CloseWindowAsync(WindowReturn.StoreLibrary);
+        settings.Update(current => current with { OnboardingCompleted = true });
+        await CloseWindowAsync(WindowReturn.StoreLibrary);
+        _agent.Tray.ReturnBy(WindowReturn.Tray);
+        await CloseWindowAsync(WindowReturn.Tray);
+
+        (await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token)).Should().Be(("Example App keeps running",
+            "It keeps looking after the games. Its icon in the system tray opens the window.", "example-app://open"),
+            "the game session neither asked to finish the setup nor spent the one-time notice");
     }
 
     [Fact]
@@ -133,12 +158,12 @@ public sealed class TrayTests : IAsyncDisposable
 
         await (await _agent.ConnectWindowAsync()).Connection.DisposeAsync();
         (await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token)).Title.Should().Be("Example App keeps running");
-        settings.Current.TrayNoticeShown.Should().BeFalse("no notification showed it");
+        settings.Current.BackgroundNoticeShown.Should().BeFalse("no notification showed it");
         _agent.Tray.ShowsNotifications = true;
         await (await _agent.ConnectWindowAsync()).Connection.DisposeAsync();
 
         (await _agent.Tray.Notifications.Reader.ReadAsync(AgentHarness.Token)).Title.Should().Be("Example App keeps running");
-        await Eventually.HoldsAsync(() => settings.Current.TrayNoticeShown);
+        await Eventually.HoldsAsync(() => settings.Current.BackgroundNoticeShown);
     }
 
     [Fact]
@@ -160,6 +185,15 @@ public sealed class TrayTests : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync() => await _agent.DisposeAsync();
+
+    private async Task CloseWindowAsync(WindowReturn windowReturn)
+    {
+        var ui = await _agent.ServiceAsync<UiLauncher>();
+        var window = await _agent.ConnectWindowAsync();
+        await window.StateAsync(state => state.Activity.WindowReturn == windowReturn);
+        await window.Connection.DisposeAsync();
+        await Eventually.HoldsAsync(() => ui.Window is null);
+    }
 
     private async Task Tooltip(Func<string, bool> condition)
     {

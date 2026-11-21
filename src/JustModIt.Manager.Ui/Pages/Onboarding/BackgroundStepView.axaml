@@ -5,6 +5,7 @@
              xmlns:ui="using:JustModIt.Manager.Ui.Controls"
              xmlns:theme="using:JustModIt.Manager.Ui.Theme"
              xmlns:loc="using:JustModIt.Manager.Localization"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
              x:Class="JustModIt.Manager.Ui.Pages.Onboarding.BackgroundStepView"
              x:DataType="onboarding:BackgroundStep">
   <ScrollViewer Classes="setupStep">
@@ -37,11 +38,11 @@
                             Message="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
           </RadioButton>
           <RadioButton Grid.Column="1" Theme="{StaticResource ChoiceTile}" Classes="compact"
-                       IsChecked="{Binding Setup.CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static settings:CloseBehavior.MinimizeToTray}}"
-                       AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseToTray}"
-                       AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseToTrayDescription}">
-            <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static loc:Strings.Shell_CloseToTray}"
-                            Message="{x:Static loc:Strings.Shell_CloseToTrayDescription}" />
+                       IsChecked="{Binding Setup.CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static settings:CloseBehavior.KeepRunning}}"
+                       AutomationProperties.Name="{x:Static overlays:CloseFlow.KeepRunningTitle}"
+                       AutomationProperties.HelpText="{x:Static loc:Strings.Shell_KeepRunningDescription}">
+            <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static overlays:CloseFlow.KeepRunningTitle}"
+                            Message="{x:Static loc:Strings.Shell_KeepRunningDescription}" />
           </RadioButton>
           <RadioButton Grid.Column="2" Theme="{StaticResource ChoiceTile}" Classes="compact"
                        IsChecked="{Binding Setup.CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static settings:CloseBehavior.Exit}}"

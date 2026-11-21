@@ -5,6 +5,7 @@
              xmlns:ui="using:JustModIt.Manager.Ui.Controls"
              xmlns:theme="using:JustModIt.Manager.Ui.Theme"
              xmlns:loc="using:JustModIt.Manager.Localization"
+             xmlns:overlays="using:JustModIt.Manager.Ui.Overlays"
              x:Class="JustModIt.Manager.Ui.Pages.Settings.SettingsPage"
              x:DataType="settings:SettingsPageViewModel">
   <UserControl.Styles>
@@ -87,30 +88,34 @@
             </ui:SettingRow>
             <ui:SettingRow Classes="divided stacked" Icon="{x:Static theme:Icons.PanelBottomClose}"
                            Title="{x:Static loc:Strings.Settings_CloseBehavior}"
-                           Message="{x:Static loc:Strings.Settings_CloseBehaviorDescription}">
-              <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
-                <RadioButton x:Name="CloseAsk" Theme="{StaticResource ChoiceTile}"
-                             IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Ask}}"
-                             AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CloseAsk}"
-                             AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_CloseAskDescription}">
-                  <ui:TileContent Icon="{x:Static theme:Icons.CircleHelp}" Title="{x:Static loc:Strings.Onboarding_CloseAsk}"
-                                  Message="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
-                </RadioButton>
-                <RadioButton x:Name="CloseTray" Grid.Column="1" Theme="{StaticResource ChoiceTile}"
-                             IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.MinimizeToTray}}"
-                             AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseToTray}"
-                             AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseToTrayDescription}">
-                  <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static loc:Strings.Shell_CloseToTray}"
-                                  Message="{x:Static loc:Strings.Shell_CloseToTrayDescription}" />
-                </RadioButton>
-                <RadioButton x:Name="CloseExit" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
-                             IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Exit}}"
-                             AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseExit}"
-                             AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseExitDescription}">
-                  <ui:TileContent Icon="{x:Static theme:Icons.Power}" Title="{x:Static loc:Strings.Shell_CloseExit}"
-                                  Message="{x:Static loc:Strings.Shell_CloseExitDescription}" />
-                </RadioButton>
-              </Grid>
+                           Message="{Binding CloseBehaviorDescription}">
+              <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                  <RadioButton x:Name="CloseAsk" Theme="{StaticResource ChoiceTile}"
+                               IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Ask}}"
+                               AutomationProperties.Name="{x:Static loc:Strings.Onboarding_CloseAsk}"
+                               AutomationProperties.HelpText="{x:Static loc:Strings.Onboarding_CloseAskDescription}">
+                    <ui:TileContent Icon="{x:Static theme:Icons.CircleHelp}" Title="{x:Static loc:Strings.Onboarding_CloseAsk}"
+                                    Message="{x:Static loc:Strings.Onboarding_CloseAskDescription}" />
+                  </RadioButton>
+                  <RadioButton x:Name="CloseKeepRunning" Grid.Column="1" Theme="{StaticResource ChoiceTile}"
+                               IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.KeepRunning}}"
+                               AutomationProperties.Name="{x:Static overlays:CloseFlow.KeepRunningTitle}"
+                               AutomationProperties.HelpText="{x:Static loc:Strings.Shell_KeepRunningDescription}">
+                    <ui:TileContent Icon="{x:Static theme:Icons.MonitorDown}" Title="{x:Static overlays:CloseFlow.KeepRunningTitle}"
+                                    Message="{x:Static loc:Strings.Shell_KeepRunningDescription}" />
+                  </RadioButton>
+                  <RadioButton x:Name="CloseExit" Grid.Column="2" Theme="{StaticResource ChoiceTile}"
+                               IsChecked="{Binding CloseBehavior, Converter={x:Static ui:ChoiceConverter.Instance}, ConverterParameter={x:Static core:CloseBehavior.Exit}}"
+                               AutomationProperties.Name="{x:Static loc:Strings.Shell_CloseExit}"
+                               AutomationProperties.HelpText="{x:Static loc:Strings.Shell_CloseExitDescription}">
+                    <ui:TileContent Icon="{x:Static theme:Icons.Power}" Title="{x:Static loc:Strings.Shell_CloseExit}"
+                                    Message="{x:Static loc:Strings.Shell_CloseExitDescription}" />
+                  </RadioButton>
+                </Grid>
+                <TextBlock Classes="caption" LineHeight="20" TextWrapping="Wrap" Text="{x:Static loc:Strings.Settings_CloseInGameMode}"
+                           IsVisible="{Binding IsInStoreSession}" />
+              </StackPanel>
             </ui:SettingRow>
             <ui:SettingRow Classes="divided" Icon="{x:Static theme:Icons.EyeOff}" Title="{x:Static loc:Strings.Settings_BlurAdult}"
                            Message="{x:Static loc:Strings.Settings_BlurAdultDescription}">
