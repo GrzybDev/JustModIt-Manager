@@ -36,7 +36,7 @@ on:
         description: An exact version instead, such as 1.2.3 or 1.2.3-alpha.1
         type: string
       sign:
-        description: Sign the executables and the installer (run codesign\sign-pending.ps1 -Watch from GrzybDev/actions on the signing machine)
+        description: Sign the Windows executables and installer (run codesign\sign-pending.ps1 -Watch from GrzybDev/actions on the signing machine)
         type: boolean
         default: true
       dry_run:
@@ -45,7 +45,7 @@ on:
         default: false
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release
@@ -58,28 +58,24 @@ env:
 
 jobs:
   checks:
-    permissions:
-      contents: read
     uses: GrzybDev/actions/.github/workflows/dotnet-checks.yml@v1
     with:
       solution: JustModIt.Manager.slnx
-      runners: '["windows-latest"]'
-      # The native shim builds from them.
+      # The native shims build from them; dav1d, which the AVIF shim holds, builds with meson and its assembly with nasm.
       submodules: true
+      apt-packages: meson nasm
 
-  release:
-    needs: checks
-    runs-on: windows-latest
-    # Besides the build, two signing rounds may each wait up to an hour for the signing machine. sign-pending.ps1 never
-    # signs a file uploaded longer ago, so the two change together.
-    timeout-minutes: 150
-    env:
-      SIGN: ${{ github.event_name == 'push' || inputs.sign }}
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      slug: ${{ steps.version.outputs.slug }}
     steps:
       - uses: actions/checkout@v7
         with:
-          submodules: true
-          # The version follows the app's tags, and the release notes list the commits since its previous tag.
+          # The version follows the app's tags.
           fetch-depth: 0
 
       - name: Choose the version
@@ -99,19 +95,56 @@ jobs:
             ./build/version.ps1 -App $env:APP -Bump $env:BUMP -PreRelease $env:LABEL -Version $env:VERSION
           }
 
+  package:
+    needs: [checks, version]
+    strategy:
+      # When one system fails, nothing is published, so the other stops before the signing machine asks for the PIN.
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            runtime: win-x64
+          # Ubuntu 22.04 has glibc 2.35, the oldest the Linux release runs on: NativeAOT binds to the builder's glibc.
+          - os: ubuntu-22.04
+            runtime: linux-x64
+    runs-on: ${{ matrix.os }}
+    # Besides the build, two signing rounds may each wait up to an hour for the signing machine. sign-pending.ps1 never
+    # signs a file uploaded longer ago, so the two change together.
+    timeout-minutes: 150
+    env:
+      # Linux has no code signing.
+      SIGN: ${{ (github.event_name == 'push' || inputs.sign) && matrix.runtime == 'win-x64' }}
+    outputs:
+      app-id: ${{ steps.package.outputs.app-id }}
+      product: ${{ steps.package.outputs.product }}
+      update-url: ${{ steps.package.outputs.update-url }}
+      velopack: ${{ steps.package.outputs.velopack }}
+      release-tag: ${{ steps.package.outputs.release-tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+          # The release notes list the commits since the app's previous tag.
+          fetch-depth: 0
+
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
           cache: true
           cache-dependency-path: '**/packages.lock.json'
 
+      # vpk builds the AppImage's file system with mksquashfs; meson and nasm build dav1d for the AVIF shim.
+      - name: Install the Linux build and packaging tools
+        if: ${{ runner.os == 'Linux' }}
+        run: sudo apt-get update && sudo apt-get install -y squashfs-tools meson nasm
+
       - name: Set up code signing
         id: codesign
         if: ${{ env.SIGN == 'true' }}
         uses: GrzybDev/actions/codesign@v1
         with:
-          version: ${{ steps.version.outputs.version }}
-          app: ${{ steps.version.outputs.slug }}
+          version: ${{ needs.version.outputs.version }}
+          app: ${{ needs.version.outputs.slug }}
           store: ${{ vars.SIGNING_STORE || 's3://codesign' }}
           subject: ${{ vars.SIGNING_SUBJECT }}
 
@@ -119,30 +152,31 @@ jobs:
         id: package
         shell: pwsh
         env:
-          APP: ${{ steps.version.outputs.slug }}
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ steps.version.outputs.tag }}
+          APP: ${{ needs.version.outputs.slug }}
+          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
           # Each app's releases carry a key and an error reports project of their own, so the site can tell the apps
           # apart and pause one alone, and one app's crashes never mix with the other's.
           MANAGER_API_KEY: >-
-            ${{ steps.version.outputs.slug == 'menadzer-spolszczen' && secrets.MANAGER_API_KEY_MENADZER_SPOLSZCZEN
-            || steps.version.outputs.slug == 'justmodit-manager' && secrets.MANAGER_API_KEY_JUSTMODIT_MANAGER || '' }}
+            ${{ needs.version.outputs.slug == 'menadzer-spolszczen' && secrets.MANAGER_API_KEY_MENADZER_SPOLSZCZEN
+            || needs.version.outputs.slug == 'justmodit-manager' && secrets.MANAGER_API_KEY_JUSTMODIT_MANAGER || '' }}
           MANAGER_ERROR_REPORTS_DSN: >-
-            ${{ steps.version.outputs.slug == 'menadzer-spolszczen' && secrets.MANAGER_ERROR_REPORTS_DSN_MENADZER_SPOLSZCZEN
-            || steps.version.outputs.slug == 'justmodit-manager' && secrets.MANAGER_ERROR_REPORTS_DSN_JUSTMODIT_MANAGER || '' }}
+            ${{ needs.version.outputs.slug == 'menadzer-spolszczen' && secrets.MANAGER_ERROR_REPORTS_DSN_MENADZER_SPOLSZCZEN
+            || needs.version.outputs.slug == 'justmodit-manager' && secrets.MANAGER_ERROR_REPORTS_DSN_JUSTMODIT_MANAGER || '' }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
           AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
           SIGN_COMMAND: ${{ steps.codesign.outputs.command }}
         run: |
-          # No delta: vpk 1.2 diffs the launcher it names after the app's title with a zstd.exe that reads its arguments
-          # in the runner's code page, which lacks the title's letters (velopack/velopack#1105).
           $arguments = @{
-            App = $env:APP; Version = $env:VERSION; Token = $env:GH_TOKEN; NoDelta = $true
+            App = $env:APP; Version = $env:VERSION; Token = $env:GH_TOKEN
             SourceUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/tree/$env:TAG"
           }
+          # No delta on Windows: vpk 1.2 diffs the launcher it names after the app's title with a zstd.exe that reads its
+          # arguments in the runner's code page, which lacks the title's letters (velopack/velopack#1105).
+          if ($IsWindows) { $arguments.NoDelta = $true }
           if ($env:SIGN -eq 'true') {
             if (-not $env:AWS_ACCESS_KEY_ID) {
               throw 'Signing needs the secrets AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION and AWS_ENDPOINT_URL of the signing store.'
@@ -154,11 +188,12 @@ jobs:
       - name: Keep the symbols
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.package.outputs.app-id }}-${{ steps.version.outputs.version }}-symbols
+          name: ${{ steps.package.outputs.app-id }}-${{ needs.version.outputs.version }}-${{ matrix.runtime }}-symbols
           path: ${{ steps.package.outputs.symbols }}
           if-no-files-found: error
 
-      # A bucket of their own, since the signing store's files expire within a day.
+      # A bucket of their own, since the signing store's files expire within a day. Each system has a folder there, since
+      # both write program databases of the same names.
       - name: Keep the symbols in the symbols store
         shell: pwsh
         env:
@@ -168,7 +203,7 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
           STORE: ${{ vars.SYMBOLS_STORE || 's3://symbols' }}
           SYMBOLS: ${{ steps.package.outputs.symbols }}
-          FOLDER: ${{ github.event.repository.name }}/${{ steps.version.outputs.slug }}/v${{ steps.version.outputs.version }}/
+          FOLDER: ${{ github.event.repository.name }}/${{ needs.version.outputs.slug }}/v${{ needs.version.outputs.version }}/${{ matrix.runtime }}/
         run: |
           if ($env:AWS_ACCESS_KEY_ID) {
             aws s3 cp $env:SYMBOLS "$($env:STORE.TrimEnd('/'))/$env:FOLDER" --recursive --only-show-errors
@@ -180,28 +215,67 @@ jobs:
       - name: Keep the release
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.package.outputs.app-id }}-${{ steps.version.outputs.version }}
+          name: ${{ steps.package.outputs.app-id }}-${{ needs.version.outputs.version }}-${{ matrix.runtime }}
           path: |
             ${{ steps.package.outputs.releases }}
             ${{ steps.package.outputs.checksums }}
           if-no-files-found: error
 
+  publish:
+    needs: [version, package]
+    # Also after a failure, so that the summary says how far the run got.
+    if: ${{ always() && needs.version.outputs.version }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PACKAGED: ${{ needs.package.result == 'success' }}
+      PUBLISH: ${{ needs.package.result == 'success' && !inputs.dry_run }}
+      SIGN: ${{ github.event_name == 'push' || inputs.sign }}
+    steps:
+      - uses: actions/checkout@v7
+        if: ${{ env.PUBLISH == 'true' }}
+
+      - uses: actions/setup-dotnet@v6
+        if: ${{ env.PUBLISH == 'true' }}
+        with:
+          global-json-file: global.json
+
+      - uses: actions/download-artifact@v8
+        if: ${{ env.PACKAGED == 'true' }}
+        with:
+          name: ${{ needs.package.outputs.app-id }}-${{ needs.version.outputs.version }}-win-x64
+          path: ${{ runner.temp }}/release/windows
+
+      - uses: actions/download-artifact@v8
+        if: ${{ env.PACKAGED == 'true' }}
+        with:
+          name: ${{ needs.package.outputs.app-id }}-${{ needs.version.outputs.version }}-linux-x64
+          path: ${{ runner.temp }}/release/linux
+
+      - name: Combine the checksums
+        if: ${{ env.PACKAGED == 'true' }}
+        working-directory: ${{ runner.temp }}/release
+        run: cat windows/checksums.txt linux/checksums.txt > checksums.txt
+
       - name: Publish
         id: publish
-        if: ${{ !inputs.dry_run }}
+        if: ${{ env.PUBLISH == 'true' }}
         shell: pwsh
         env:
-          VELOPACK: ${{ steps.package.outputs.velopack }}
-          RELEASES: ${{ steps.package.outputs.releases }}
-          UPDATE_URL: ${{ steps.package.outputs.update-url }}
-          PRODUCT: ${{ steps.package.outputs.product }}
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ steps.version.outputs.tag }}
-          RELEASE_TAG: ${{ steps.package.outputs.release-tag }}
-          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+          RELEASE: ${{ runner.temp }}/release
+          VELOPACK: ${{ needs.package.outputs.velopack }}
+          UPDATE_URL: ${{ needs.package.outputs.update-url }}
+          PRODUCT: ${{ needs.package.outputs.product }}
+          RELEASE_TAG: ${{ needs.package.outputs.release-tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
+          SLUG: ${{ needs.version.outputs.slug }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
           GH_TOKEN: ${{ github.token }}
           RELEASE_REPOSITORY_TOKEN: ${{ secrets.RELEASE_REPOSITORY_TOKEN }}
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           # The tag comes from the rule the package's installer links with: an app whose feed is the repository of its code
           # is released on its own tag with the workflow's token; a release-only repository gets plain version tags and
           # needs a token that may write to it.
@@ -217,48 +291,56 @@ jobs:
             throw "Publishing to $env:UPDATE_URL needs the RELEASE_REPOSITORY_TOKEN secret: a token that may write to that repository's contents."
           }
 
-          $arguments = @('upload', 'github', '--repoUrl', $env:UPDATE_URL, '--token', $token, '--outputDir', $env:RELEASES,
-            '--tag', $tag, '--releaseName', "$env:PRODUCT $env:VERSION", '--publish', '--skip-updates')
-          if ($own) { $arguments += @('--targetCommitish', $env:GITHUB_SHA) }
-          if ($env:PRERELEASE -eq 'true') { $arguments += '--pre' }
-          $vpk = @('tool', 'exec', "vpk@$env:VELOPACK", '--yes', '--')
-          & dotnet @vpk @arguments
-          exit $LASTEXITCODE
+          $upload = @('tool', 'exec', "vpk@$env:VELOPACK", '--yes', '--', 'upload', 'github', '--repoUrl', $env:UPDATE_URL,
+            '--token', $token, '--tag', $tag, '--releaseName', "$env:PRODUCT $env:VERSION", '--skip-updates')
+          # Only the upload that makes the release sets its notes, whether it is a pre-release and its commit. It makes a
+          # draft, which players do not see, and the last upload publishes it once every file a player downloads is on it.
+          $windows = @('--channel', 'win', '--outputDir', "$env:RELEASE/windows/releases")
+          if ($own) { $windows += @('--targetCommitish', $env:GITHUB_SHA) }
+          if ($env:PRERELEASE -eq 'true') { $windows += '--pre' }
+          dotnet @upload @windows
+
+          $env:GH_TOKEN = $token
+          $installers = "$env:RELEASE/linux/releases/install.sh", "$env:RELEASE/linux/releases/$env:SLUG-install.desktop",
+            "$env:RELEASE/linux/releases/$env:SLUG-install.zip"
+          gh release upload $tag @installers "$env:RELEASE/checksums.txt" --repo ($env:UPDATE_URL -replace '^https://')
+          dotnet @upload --channel linux --outputDir "$env:RELEASE/linux/releases" --merge --publish
 
       # A manual run tags the commit it released, so the next release's version and notes start there, and only once it
       # is published, so a failed run leaves no tag behind. A tag pushed with the workflow's token starts no other run.
       - name: Tag the release
-        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.dry_run }}
+        if: ${{ github.event_name == 'workflow_dispatch' && env.PUBLISH == 'true' }}
         shell: pwsh
         env:
-          TAG: ${{ steps.version.outputs.tag }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
           if (-not (git tag --list $env:TAG)) { git tag $env:TAG $env:GITHUB_SHA }
           git push origin "refs/tags/$env:TAG"
 
       - name: Summarize
-        if: ${{ always() && steps.version.outputs.version }}
+        if: ${{ always() }}
         shell: pwsh
         env:
-          APP: ${{ steps.version.outputs.slug }}
-          VERSION: ${{ steps.version.outputs.version }}
-          PRERELEASE: ${{ steps.version.outputs.prerelease }}
-          CHECKSUMS: ${{ steps.package.outputs.checksums }}
-          PACKAGED: ${{ steps.package.outcome }}
+          APP: ${{ needs.version.outputs.slug }}
+          VERSION: ${{ needs.version.outputs.version }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+          CHECKSUMS: ${{ runner.temp }}/release/checksums.txt
           PUBLISHED: ${{ steps.publish.outcome }}
-          UPDATE_URL: ${{ steps.package.outputs.update-url }}
+          UPDATE_URL: ${{ needs.package.outputs.update-url }}
           STORE: ${{ vars.SIGNING_STORE || 's3://codesign' }}
         run: |
+          $signed = if ($env:SIGN -eq 'true' -and $env:PACKAGED -eq 'true') { 'yes, the Windows files; Linux has no code signing' }
+            else { 'no' }
           $lines = @(
             "### $env:APP $env:VERSION", '',
             "- Pre-release: $(if ($env:PRERELEASE -eq 'true') { 'yes' } else { 'no' })",
-            "- Signed: $(if ($env:SIGN -eq 'true' -and $env:PACKAGED -eq 'success') { 'yes' } else { 'no' })",
+            "- Signed: $signed",
             "- Published: $(if ($env:PUBLISHED -eq 'success') { "yes, to $env:UPDATE_URL" } else { 'no' })"
           )
           if ($env:SIGN -eq 'true') {
             $lines += '', "The signatures come from ``codesign\sign-pending.ps1 -Watch -Store $env:STORE`` of GrzybDev/actions on the signing machine."
           }
-          if ($env:CHECKSUMS -and (Test-Path $env:CHECKSUMS)) {
+          if (Test-Path $env:CHECKSUMS) {
             $lines += @('', 'SHA-256:', '', '```text') + @(Get-Content $env:CHECKSUMS) + '```'
           }
           $lines | Add-Content -Path $env:GITHUB_STEP_SUMMARY
