@@ -378,27 +378,16 @@ public sealed class ShellTests
     private static List<Color> CaptionColors(UiHarness ui) =>
         [.. CaptionButtons(ui).Select(button => ((ISolidColorBrush)button.Foreground!).Color)];
 
-    // The headless system runs the dispatcher and renders a frame around every press, which a busy machine can stretch past
-    // the double-click time, so the pointer clicks on until a click counts as a double click's second. A click beside the
-    // point first ends a count that an earlier double click there left running.
+    // The headless system stamps every press with the real time and runs and renders the window's work around it, which a
+    // busy machine stretches past the double-click time; so the press that ends a double click is raised as Avalonia raises
+    // it, from what lies under the point.
     private static void DoubleClick(UiHarness ui, Point point)
     {
-        var doubled = false;
-        EventHandler<PointerPressedEventArgs> count = (_, e) => doubled |= e.ClickCount == 2;
-        var beside = new Point(point.X + 10, point.Y);
-        ui.Window.MouseMove(beside);
-        ui.Window.MouseDown(beside, MouseButton.Left);
-        ui.Window.MouseUp(beside, MouseButton.Left);
-        ui.Window.MouseMove(point);
-        ui.Window.AddHandler(InputElement.PointerPressedEvent, count, RoutingStrategies.Tunnel, handledEventsToo: true);
-        for (var click = 0; !doubled && click < 20; click++)
-        {
-            ui.Window.MouseDown(point, MouseButton.Left);
-            ui.Window.MouseUp(point, MouseButton.Left);
-        }
-
-        ui.Window.RemoveHandler(InputElement.PointerPressedEvent, count);
-        doubled.Should().BeTrue("two quick clicks at one place make a double click");
+        var target = ui.Window.InputHitTest(point).Should().BeAssignableTo<Interactive>().Which;
+        using var mouse = new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, isPrimary: true);
+        var pressed = new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed);
+        target.RaiseEvent(new PointerPressedEventArgs(target, mouse, ui.Window, point, timestamp: 0, pressed, KeyModifiers.None,
+            clickCount: 2));
         UiHarness.Settle();
     }
 

@@ -29,7 +29,8 @@ public sealed class ProcessTests : IDisposable
     public void A_game_a_steam_launch_started_is_found_by_its_folder_and_by_its_app_id()
     {
         var folder = Path.Join(_directory, "Example Game");
-        var program = Path.Join(folder, "example-game");
+        // Named as the program it copies, since a multi-call coreutils (uutils on newer Ubuntu) runs what its file's name says.
+        var program = Path.Join(folder, "sleep");
         var elsewhere = Path.Join(_directory, "Other Game");
         Directory.CreateDirectory(folder);
         File.Copy("/bin/sleep", program);
@@ -37,7 +38,7 @@ public sealed class ProcessTests : IDisposable
         var detector = new RunningGameDetector(Processes, PhysicalFileSystem.Instance, TimeProvider.System);
 
         Processes.Snapshot().Should().ContainSingle(process => process.Id == child.Id).Which.Should()
-            .Be(new ProcessEntry(child.Id, "example-game", Processes.CurrentSessionId, PathCanonicalizer.Canonicalize(program), Game));
+            .Be(new ProcessEntry(child.Id, "sleep", Processes.CurrentSessionId, PathCanonicalizer.Canonicalize(program), Game));
         detector.FindProcessesIn(Game, folder, Token).Select(process => process.ProcessId).Should().Equal(child.Id);
         detector.FindProcessesIn(Game, elsewhere, Token).Select(process => process.ProcessId).Should().Equal(child.Id);
         detector.FindProcessesIn(new GameKey(StoreId.Steam, "1"), elsewhere, Token).Should().BeEmpty();
