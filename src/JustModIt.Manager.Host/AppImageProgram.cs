@@ -5,27 +5,25 @@ using JustModIt.Manager.Agent.Shell;
 namespace JustModIt.Manager.Host;
 
 /// <summary>
-/// The AppImage file the app runs from, with what its runs leave outside the app's data: the updater's folder and the
-/// thumbnails the AppImage's start script makes of its icon.
+/// The AppImage file the app runs from, with what its runs leave beside it: the updater's folder, the copies of the program
+/// that windows run from and the thumbnails the AppImage's start script makes of its icon.
 /// </summary>
 /// <param name="file">The AppImage file.</param>
 /// <param name="updates">The updater's folder of downloads and of its own copy, which lasts across starts; null for none.</param>
+/// <param name="copies">The folder of the program's copies that windows run from.</param>
 /// <param name="home">The user's home folder, under which the start script keeps its thumbnails.</param>
-internal sealed class AppImageProgram(string file, string? updates, string home) : IAppProgram
+internal sealed class AppImageProgram(string file, string? updates, string copies, string home) : IAppProgram
 {
     public string File => file;
 
     public void Remove()
     {
-        // The app's processes keep running, each from a mount that holds the file open.
+        // The app's processes keep running, each from a mount that holds the file open or from a copy the disk keeps for it.
         System.IO.File.Delete(file);
-        Try(() =>
+        foreach (var folder in new[] { updates, copies }.OfType<string>().Where(Directory.Exists))
         {
-            if (updates is not null && Directory.Exists(updates))
-            {
-                Directory.Delete(updates, recursive: true);
-            }
-        });
+            Try(() => Directory.Delete(folder, recursive: true));
+        }
         foreach (var thumbnail in Thumbnails(home, file))
         {
             Try(() => System.IO.File.Delete(thumbnail));

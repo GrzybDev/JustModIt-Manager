@@ -325,6 +325,7 @@ public sealed class AgentIpcTests : IAsyncDisposable
         ];
         var log = Write(locations.LogsDirectory, "agent-20261001.log", 50);
         var listing = Write(locations.CatalogueCacheDirectory, "listing.json", 70);
+        var program = Write(Path.Combine(locations.ProgramCopiesDirectory, "1.0.0", "usr", "bin"), "ExampleApp", 100_000);
         // Today's log stays open while the app runs, as the logger keeps it.
         await using var today = new FileStream(Path.Combine(locations.LogsDirectory, "agent-20261002.log"), FileMode.Create, FileAccess.Write,
             FileShare.ReadWrite | FileShare.Delete);
@@ -340,9 +341,11 @@ public sealed class AgentIpcTests : IAsyncDisposable
 
         before.Should().Match<AppDataUsage>(usage => usage.DataFolder == locations.DataDirectory
             && usage.CacheFolder == locations.CacheDirectory && usage.LogsFolder == locations.LogsDirectory && usage.Downloads == 5000
-            && usage.ImagesAndCatalogue >= 570 && usage.Logs >= 3050 && usage.Total >= 8620);
+            && usage.ImagesAndCatalogue >= 570 && usage.Logs >= 3050 && usage.Total >= 8620 && usage.Total < 100_000,
+            "the program's copy is the program, not the app's data");
         cached.Should().AllSatisfy(file => File.Exists(file).Should().BeFalse());
         File.Exists(log).Should().BeTrue("the logs are not a cache");
+        File.Exists(program).Should().BeTrue("a window may run from the program's copy");
         File.Exists(listing).Should().BeTrue("the saved catalogue keeps the player's games listed offline");
         after.Downloads.Should().Be(0);
         after.Total.Should().BeLessThan(before.Total);

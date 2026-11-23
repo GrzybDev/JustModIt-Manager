@@ -119,7 +119,7 @@ public sealed record GetAppDataUsage : Query;
 
 /// <summary>The answer to <see cref="GetAppDataUsage"/>, in bytes.</summary>
 /// <param name="DataFolder">The app's data folder, whose drive the window names.</param>
-/// <param name="Total">Everything the app keeps of its own, backups in its data folder included.</param>
+/// <param name="Total">Everything the app keeps of its own, backups in its data folder included, the copies of its program not.</param>
 /// <param name="Downloads">The downloaded packages, partial ones included.</param>
 /// <param name="ImagesAndCatalogue">The window's images and the saved catalogue with its project pages.</param>
 /// <param name="Logs">The logs.</param>

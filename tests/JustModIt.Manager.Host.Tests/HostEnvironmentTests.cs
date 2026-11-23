@@ -135,7 +135,7 @@ public sealed class HostEnvironmentTests : IDisposable
 
     [Fact]
     [SupportedOSPlatform("linux")]
-    public void An_appimage_is_started_through_its_file_and_has_no_folder_that_keeps_backups_out()
+    public void An_appimage_run_from_its_mount_or_its_programs_copy_is_started_through_its_file_and_keeps_no_backups_out()
     {
         Assert.SkipUnless(OperatingSystem.IsLinux(), "The updater runs the app as an AppImage only on Linux.");
         var root = Path.Combine(Path.GetTempPath(), "ExampleApp.Tests", Guid.NewGuid().ToString("N"));
@@ -159,6 +159,9 @@ public sealed class HostEnvironmentTests : IDisposable
             location.Should().Be(new InstallLocation(image, Directory: null, IsInstalled: true));
             (options.ExecutablePath, options.InstallDirectory, options.IntegratesWithShell, options.SteamShortcutTarget)
                 .Should().Be((image, null, true, MenuEntry), "the menu entry starts the AppImage, which outlasts its mount");
+            var copy = Path.Combine(ProgramCopy.Prepare(content, Path.Combine(root, "program"), "1.2.3", () => []), "ExampleApp");
+            InstallLocation.Of(new LinuxVelopackLocator(new MountedProcess(copy), null), copy).Should().Be(location,
+                "a window that runs from the program's copy is the same installed AppImage");
         }
         finally
         {

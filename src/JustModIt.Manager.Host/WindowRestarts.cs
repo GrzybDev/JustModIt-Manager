@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Globalization;
 using JustModIt.Manager.Core.Platform;
 using JustModIt.Manager.Ui;
@@ -28,8 +27,7 @@ internal static class WindowRestarts
     /// <param name="restart">The restart to carry over.</param>
     public static Dictionary<string, string?> EnvironmentFor(WindowRestart restart)
     {
-        var environment = Environment.GetEnvironmentVariables().Cast<DictionaryEntry>()
-            .ToDictionary(variable => (string)variable.Key, variable => (string?)variable.Value);
+        var environment = ChildEnvironment.Current();
         // The runtime of the file started anew sets its own, for its own mount.
         ChildEnvironment.LeaveAppImage(environment);
         environment[Variable] = Format(restart);

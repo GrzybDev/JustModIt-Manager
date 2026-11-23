@@ -1,3 +1,4 @@
+using System.Collections;
 using JustModIt.Manager.Core.IO;
 
 namespace JustModIt.Manager.Core.Platform;
@@ -7,6 +8,10 @@ public static class ChildEnvironment
 {
     // What the AppImage's runtime sets for the app itself, which no program the app starts may take for its own.
     private static readonly string[] AppImageVariables = ["APPIMAGE", "APPDIR", "ARGV0", "OWD"];
+
+    /// <summary>This process's environment, for a program it starts or replaces itself with.</summary>
+    public static Dictionary<string, string?> Current() => Environment.GetEnvironmentVariables().Cast<DictionaryEntry>()
+        .ToDictionary(variable => (string)variable.Key, variable => (string?)variable.Value);
 
     /// <summary>Takes the AppImage runtime's own variables, and its mount on the program search path, out of an environment.</summary>
     /// <param name="environment">The environment a program the app starts gets.</param>

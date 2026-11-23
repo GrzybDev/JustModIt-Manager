@@ -79,8 +79,14 @@ internal static partial class Roles
             return RunAgent(environment, options, launch, args);
         }
 
+        var route = RouteOf(launch.Background, environment.StartedBySteam, InGamescope);
+        if (route == LaunchRoute.Window)
+        {
+            RunFromCopy(environment, args);
+        }
+
         var unit = AgentPlatform.Unit(environment.AgentOptions());
-        return RouteOf(launch.Background, environment.StartedBySteam, InGamescope) switch
+        return route switch
         {
             LaunchRoute.Background => StartUnit(environment, unit) ? 0 : RunAgent(environment, options, launch, args),
             LaunchRoute.HandOver => !StartUnit(environment, unit) ? RunAgent(environment, options, launch, args)
@@ -142,8 +148,11 @@ internal static partial class Roles
     /// <param name="options">What the app hands the startup about itself.</param>
     /// <param name="launch">The command line, parsed.</param>
     /// <param name="args">The command line as given, for a hand-over.</param>
-    public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args) =>
-        RunWindow(environment, options, launch, window => RunClaimed(environment, environment.Names.UiLock, UiRole, args, window));
+    public static int RunUi(HostEnvironment environment, AppOptions options, LaunchArguments launch, string[] args)
+    {
+        RunFromCopy(environment, args);
+        return RunWindow(environment, options, launch, window => RunClaimed(environment, environment.Names.UiLock, UiRole, args, window));
+    }
 
     /// <summary>
     /// Ends the session markers of the runs that the installer stopped to replace the app, so the next start does not take
@@ -218,6 +227,32 @@ internal static partial class Roles
         using var log = new RoleLog(environment, UiRole);
         LogWindowNotRestarted(log.Loggers.CreateLogger(typeof(Roles).FullName!), error);
         return 1;
+    }
+
+    // A process that may become the window runs from the program's copy, so its close never depends on the AppImage's mount. It
+    // replaces itself before it takes the window's lock, which the replacement would let go of; one that cannot runs from the mount.
+    private static void RunFromCopy(HostEnvironment environment, string[] args)
+    {
+        if (!OperatingSystem.IsLinux() || Environment.GetEnvironmentVariable("APPDIR") is not { Length: > 0 } mount
+            || Environment.ProcessPath is not { } executable || !PathComparison.IsWithin(mount, executable))
+        {
+            return;
+        }
+
+        Exception failure;
+        try
+        {
+            var copy = ProgramCopy.Prepare(Path.GetDirectoryName(executable)!, environment.Locations.ProgramCopiesDirectory,
+                environment.Version, LinuxProcessSource.Instance.Snapshot);
+            failure = new Win32Exception(ProcessImage.Replace(Path.Join(copy, Path.GetFileName(executable)), args, ChildEnvironment.Current()));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            failure = exception;
+        }
+
+        using var log = new RoleLog(environment, LauncherRole);
+        LogNotRunFromCopy(log.Loggers.CreateLogger(typeof(Roles).FullName!), failure);
     }
 
     // A launch from a terminal or a handler that started earlier may carry another session's variables, or none, so logind
@@ -313,6 +348,9 @@ internal static partial class Roles
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The window could not start anew from the app's file (error {Error})")]
     private static partial void LogWindowNotRestarted(ILogger logger, int error);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The window runs from the AppImage's mount, since the program's copy could not be made or started")]
+    private static partial void LogNotRunFromCopy(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The agent's process could not be started")]
     private static partial void LogAgentNotStarted(ILogger logger, Exception exception);

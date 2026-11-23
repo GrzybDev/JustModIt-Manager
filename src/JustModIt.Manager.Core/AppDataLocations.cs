@@ -36,6 +36,9 @@ public sealed class AppDataLocations
     /// <summary>The images the window downloaded from the site, such as covers, shown again without the network.</summary>
     public string ImageCacheDirectory => Path.Combine(CacheDirectory, "images");
 
+    /// <summary>The copies of the program that an AppImage's windows run from, one per version, which are no data of the app.</summary>
+    public string ProgramCopiesDirectory => Path.Combine(CacheDirectory, "program");
+
     public string SettingsFile => Path.Combine(DataDirectory, "settings.json");
 
     /// <summary>Automation history and the last library snapshot.</summary>

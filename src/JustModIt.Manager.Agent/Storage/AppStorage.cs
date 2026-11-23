@@ -26,9 +26,9 @@ public sealed partial class AppStorage(AppDataLocations locations, CatalogueCach
     public AppDataUsage Measure()
     {
         var data = locations.DataDirectory;
-        // Only on Windows do the cache and the logs lie inside the data folder.
+        // Only on Windows do the cache and the logs lie inside the data folder. The program's copies are the program itself.
         var total = Size(data) + new[] { locations.CacheDirectory, locations.LogsDirectory }
-            .Where(folder => !PathComparison.IsWithin(data, folder)).Sum(Size);
+            .Where(folder => !PathComparison.IsWithin(data, folder)).Sum(Size) - Size(locations.ProgramCopiesDirectory);
         return new AppDataUsage(data, total, Size(locations.DownloadsDirectory),
             Size(locations.ImageCacheDirectory) + Size(locations.CatalogueCacheDirectory), Size(locations.LogsDirectory),
             locations.CacheDirectory, locations.LogsDirectory);

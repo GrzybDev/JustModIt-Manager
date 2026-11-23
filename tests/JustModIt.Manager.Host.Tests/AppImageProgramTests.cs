@@ -14,22 +14,23 @@ public sealed class AppImageProgramTests : IDisposable
     }
 
     [Fact]
-    public void Removing_the_appimage_takes_its_updates_and_thumbnails_only_once_the_file_itself_went()
+    public void Removing_the_appimage_takes_its_updates_copies_and_thumbnails_only_once_the_file_itself_went()
     {
         var applications = Path.Combine(_home, "Applications");
         var file = Path.Combine(applications, "ExampleApp.AppImage");
         var updates = Path.Combine(_home, "velopack", "ExampleApp");
+        var copies = Path.Combine(_home, ".cache", "ExampleVendor", "ExampleApp", "program");
         var other = Path.Combine(applications, "OtherApp.AppImage");
         var otherThumbnail = Path.Combine(_home, ".cache", "thumbnails", "normal", "0123456789abcdef0123456789abcdef.png");
         string[] leftovers = [Path.Combine(updates, "packages", "ExampleApp-1.0.0-full.nupkg"), Path.Combine(updates, "updater", "usr", "bin", "UpdateNix"),
-            .. AppImageProgram.Thumbnails(_home, file)];
+            Path.Combine(copies, "1.0.0", "usr", "bin", "ExampleApp"), .. AppImageProgram.Thumbnails(_home, file)];
         foreach (var path in leftovers.Append(file).Append(other).Append(otherThumbnail))
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, "");
         }
 
-        var program = new AppImageProgram(file, updates, _home);
+        var program = new AppImageProgram(file, updates, copies, _home);
         using (new Protection(applications, file))
         {
             program.Invoking(appImage => appImage.Remove()).Should().Throw<UnauthorizedAccessException>();
@@ -40,6 +41,7 @@ public sealed class AppImageProgramTests : IDisposable
 
         leftovers.Append(file).Should().NotContain(path => File.Exists(path));
         Directory.Exists(updates).Should().BeFalse();
+        Directory.Exists(copies).Should().BeFalse();
         File.Exists(other).Should().BeTrue();
         File.Exists(otherThumbnail).Should().BeTrue();
     }

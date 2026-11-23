@@ -128,7 +128,8 @@ internal static partial class AgentPlatform
         if (uninstalls)
         {
             var program = new AppImageProgram(options.ExecutablePath,
-                (VelopackLocator.IsCurrentSet ? VelopackLocator.Current as LinuxVelopackLocator : null)?.PersistentTempDir, user.HomeDirectory);
+                (VelopackLocator.IsCurrentSet ? VelopackLocator.Current as LinuxVelopackLocator : null)?.PersistentTempDir,
+                options.Locations.ProgramCopiesDirectory, user.HomeDirectory);
             services.AddSingleton<IAppProgram>(program);
             services.AddSingleton(new AppUninstallView(program.File, options.Locations.DataDirectory, options.Locations.CacheDirectory,
                 options.Locations.LogsDirectory));
