@@ -41,20 +41,23 @@ przykład: SteamOS od wersji 3.7 na Steam Decku, Bazzite, Fedora, Ubuntu od 22.0
 w folderze domowym, bez hasła administratora, a potem sama się aktualizuje.
 
 1. Na Steam Decku najpierw przełącz się na tryb pulpitu: przycisk STEAM › Zasilanie › Przełącz na pulpit.
-2. Otwórz terminal (Konsole w KDE i na Steam Decku, Terminal w GNOME), wklej to polecenie i naciśnij Enter:
+2. Pobierz z [najnowszego wydania](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest) plik
+   `menadzer-spolszczen-install.desktop`. Firefox zmienia nazwy pobranych plików `.desktop`, więc w Firefoksie pobierz
+   `menadzer-spolszczen-install.zip` i wypakuj go w menedżerze plików Dolphin: prawy przycisk myszy › „Wypakuj” ›
+   „Wypakuj tutaj”.
+3. Kliknij plik dwukrotnie w Dolphinie. KDE zapyta, co z nim zrobić: „Uruchom”, a przy pliku pobranym wprost pokaże
+   jeszcze ostrzeżenie: „Kontynuuj”.
 
-   ```sh
-   curl -fsSL https://bazaspolszczen.pl/linux | sh
-   ```
+Instalator pobiera aplikację do `~/Applications/MenadzerSpolszczen.AppImage`, porównuje jej sumę kontrolną z sumą podaną
+w wydaniu i uruchamia ją, a postęp widać w oknie Konsole. Gdy coś się nie uda, okno pokazuje opis błędu, a instalator
+można uruchomić jeszcze raz.
 
-Polecenie pobiera aplikację do `~/Applications/MenadzerSpolszczen.AppImage`, porównuje ją z sumą kontrolną z wydania i
-ją uruchamia. Gdy coś się nie uda, terminal pokazuje opis błędu, a to samo polecenie można uruchomić jeszcze raz.
+GNOME nie uruchamia pobranych plików `.desktop`. Tam, a zamiast pliku także w każdym innym systemie, wystarczy otworzyć
+terminal, wkleić to polecenie i nacisnąć Enter:
 
-Zamiast polecenia można pobrać z [najnowszego wydania](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest)
-plik `menadzer-spolszczen-install.desktop`, który uruchamia to samo polecenie, i otworzyć go w menedżerze plików; KDE
-najpierw zapyta, czy uruchomić plik z internetu, co trzeba potwierdzić. Firefox zmienia nazwy pobranych plików
-`.desktop`, więc w Firefoksie trzeba pobrać `menadzer-spolszczen-install.zip` i otworzyć plik z tego archiwum. GNOME nie
-uruchamia pobranych plików `.desktop`, więc tam zostaje polecenie.
+```sh
+curl -fsSL https://bazaspolszczen.pl/manager/linux | sh
+```
 
 ## Co potrafi
 

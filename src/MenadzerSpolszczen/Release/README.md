@@ -41,20 +41,23 @@ later on the Steam Deck, Bazzite, Fedora, Ubuntu 22.04 or later, Arch Linux or L
 folder, without an administrator password, and then updates itself.
 
 1. On a Steam Deck, switch to Desktop Mode first: the STEAM button › Power › Switch to Desktop.
-2. Open a terminal (Konsole on KDE and the Steam Deck, Terminal on GNOME), paste this command and press Enter:
+2. Download `menadzer-spolszczen-install.desktop` from the
+   [latest release](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest). Firefox renames downloaded
+   `.desktop` files, so in Firefox download `menadzer-spolszczen-install.zip` instead and extract it in the Dolphin file
+   manager (right mouse button, then Extract › Extract here).
+3. Double-click the file in Dolphin. KDE asks what to do with it, where you choose to run it, and for a file downloaded
+   directly also shows a warning, which you confirm.
 
-   ```sh
-   curl -fsSL https://bazaspolszczen.pl/linux | sh
-   ```
+The installer downloads the app into `~/Applications/MenadzerSpolszczen.AppImage`, checks it against the release's
+checksums and starts it, showing its progress in a Konsole window. If something fails, the window says what, and the
+installer can run again.
 
-The command downloads the app into `~/Applications/MenadzerSpolszczen.AppImage`, checks it against the release's
-checksums and starts it. If something fails, the terminal says what, and the same command can run again.
+GNOME does not run downloaded `.desktop` files. There, or instead of the file anywhere, open a terminal, paste this
+command and press Enter:
 
-Instead of the command, you can download `menadzer-spolszczen-install.desktop`, which runs the same command, from the
-[latest release](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest) and open it in the file manager; KDE
-first asks whether to run a file from the internet, which you confirm. Firefox renames downloaded `.desktop` files, so
-in Firefox download `menadzer-spolszczen-install.zip` and open the file inside it. GNOME does not run downloaded
-`.desktop` files, so there use the command.
+```sh
+curl -fsSL https://bazaspolszczen.pl/manager/linux | sh
+```
 
 ## What it does
 
