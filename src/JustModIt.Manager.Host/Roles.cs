@@ -211,13 +211,30 @@ internal static partial class Roles
     private static int RunWindow(HostEnvironment environment, AppOptions options, LaunchArguments launch,
         Func<Func<ILoggerFactory, SessionMarker, UncleanExit?, int>, int> run)
     {
-        WindowRestart? restart = null;
-        var exitCode = run((loggers, _, previous) => WindowHost.Run(environment.WindowContext(options, launch, loggers, previous) with
+        // Avalonia fails to start without a display, which its next run would tell as a crash.
+        if (OperatingSystem.IsLinux() && !XDisplay.IsReachable())
         {
-            // Only an AppImage, which an update replaces in place, brings another version when it starts anew.
-            RestartWindow = OperatingSystem.IsLinux() && environment.Install.Directory is null ? asked => restart = asked : null,
-            Restarted = WindowRestarts.Take(),
-        }));
+            using var launcherLog = new RoleLog(environment, LauncherRole);
+            LogNoDisplay(launcherLog.Loggers.CreateLogger(typeof(Roles).FullName!),
+                Environment.GetEnvironmentVariable("DISPLAY") ?? "");
+            return 1;
+        }
+
+        WindowRestart? restart = null;
+        var exitCode = run((loggers, session, previous) =>
+        {
+            if (OperatingSystem.IsLinux())
+            {
+                XDisplay.ExitWhenLost(session.End);
+            }
+
+            return WindowHost.Run(environment.WindowContext(options, launch, loggers, previous) with
+            {
+                // Only an AppImage, which an update replaces in place, brings another version when it starts anew.
+                RestartWindow = OperatingSystem.IsLinux() && environment.Install.Directory is null ? asked => restart = asked : null,
+                Restarted = WindowRestarts.Take(),
+            });
+        });
         if (!OperatingSystem.IsLinux() || restart is null)
         {
             return exitCode;
@@ -348,6 +365,9 @@ internal static partial class Roles
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The window could not start anew from the app's file (error {Error})")]
     private static partial void LogWindowNotRestarted(ILogger logger, int error);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The window has no display to open on (DISPLAY is \"{Display}\")")]
+    private static partial void LogNoDisplay(ILogger logger, string display);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The window runs from the AppImage's mount, since the program's copy could not be made or started")]
     private static partial void LogNotRunFromCopy(ILogger logger, Exception exception);
