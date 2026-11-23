@@ -116,7 +116,6 @@ jobs:
       SIGN: ${{ (github.event_name == 'push' || inputs.sign) && matrix.runtime == 'win-x64' }}
     outputs:
       app-id: ${{ steps.package.outputs.app-id }}
-      product: ${{ steps.package.outputs.product }}
       update-url: ${{ steps.package.outputs.update-url }}
       velopack: ${{ steps.package.outputs.velopack }}
       release-tag: ${{ steps.package.outputs.release-tag }}
@@ -266,7 +265,6 @@ jobs:
           RELEASE: ${{ runner.temp }}/release
           VELOPACK: ${{ needs.package.outputs.velopack }}
           UPDATE_URL: ${{ needs.package.outputs.update-url }}
-          PRODUCT: ${{ needs.package.outputs.product }}
           RELEASE_TAG: ${{ needs.package.outputs.release-tag }}
           VERSION: ${{ needs.version.outputs.version }}
           TAG: ${{ needs.version.outputs.tag }}
@@ -292,7 +290,7 @@ jobs:
           }
 
           $upload = @('tool', 'exec', "vpk@$env:VELOPACK", '--yes', '--', 'upload', 'github', '--repoUrl', $env:UPDATE_URL,
-            '--token', $token, '--tag', $tag, '--releaseName', "$env:PRODUCT $env:VERSION", '--skip-updates')
+            '--token', $token, '--tag', $tag, '--releaseName', "v$env:VERSION", '--skip-updates')
           # Only the upload that makes the release sets its notes, whether it is a pre-release and its commit. It makes a
           # draft, which players do not see, and the last upload publishes it once every file a player downloads is on it.
           $windows = @('--channel', 'win', '--outputDir', "$env:RELEASE/windows/releases")

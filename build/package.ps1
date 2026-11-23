@@ -165,7 +165,7 @@ $hashes = foreach ($file in $downloads) {
 
 if ($env:GITHUB_OUTPUT) {
     @(
-        "app-id=$($target.AppId)", "product=$($target.Product)", "update-url=$($target.UpdateUrl)",
+        "app-id=$($target.AppId)", "update-url=$($target.UpdateUrl)",
         "velopack=$($target.VelopackVersion)", "releases=$releases", "symbols=$symbols", "checksums=$checksums",
         "release-tag=$releaseTag"
     ) | Add-Content -Path $env:GITHUB_OUTPUT -Encoding UTF8
