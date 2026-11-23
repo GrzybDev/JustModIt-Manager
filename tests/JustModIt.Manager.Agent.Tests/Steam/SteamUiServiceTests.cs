@@ -141,7 +141,8 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
             "Millennium has not loaded the plugin in this run yet, and the player's options of the game were never read");
 
         Report("""{"hooks": {"achievements": true, "notifications": false}, "applied": 0, "launchOptions": {"400": "-novid"}, "millennium": "3.6.3"}""");
-        await Eventually.HoldsAsync(() => _service.Status.Reachable);
+        // A report read half written keeps the one before it, while its time already tells this run of Steam wrote it.
+        await Eventually.HoldsAsync(() => _service.Status is { Reachable: true, MillenniumVersion: "3.6.3" });
         _service.Status.Should().Match<SteamUiStatus>(status => status.LaunchOptions[Game] == "-novid"
             && status.Hooks == new SteamUiHooks(true, false) && status.MillenniumVersion == "3.6.3");
     }
@@ -197,7 +198,18 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
         _service.Demand(SteamUiDemand.From([], []));
 
         // The folder goes first, then the plugin's name in Millennium's settings.
-        await Eventually.HoldsAsync(() => !Directory.Exists(PluginFolder) && !File.ReadAllText(ConfigFile).Contains(Slug, StringComparison.Ordinal));
+        await Eventually.HoldsAsync(() =>
+        {
+            try
+            {
+                return !Directory.Exists(PluginFolder) && !File.ReadAllText(ConfigFile).Contains(Slug, StringComparison.Ordinal);
+            }
+            // The service may replace the file just as the test opens it, which Windows refuses.
+            catch (IOException)
+            {
+                return false;
+            }
+        });
         await Eventually.HoldsAsync(() => _service.Status is { PluginVersion: "", IsNeeded: false, RestartNeeded: false });
     }
 
@@ -210,7 +222,9 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
             .Should().Be(LaunchOptionsFailure.Unreachable, "nothing reaches Steam while it is closed");
         _steam.Start(7);
         Report("""{"applied": 4, "launchOptions": {"400": "-novid"}}""");
-        await Eventually.HoldsAsync(() => _service.Status.Reachable && _service.Status.LaunchOptions[Game] == "-novid");
+        // Steam counts as reachable before the plugin's report of the options comes in.
+        await Eventually.HoldsAsync(() => _service.Status.Reachable && _service.Status.LaunchOptions.TryGetValue(Game, out var options)
+            && options == "-novid");
 
         var result = await _service.ChangeLaunchOptionsAsync(Game, ["-examplelog"], ["-novid"], AgentHarness.Token);
 
@@ -219,7 +233,18 @@ public sealed class SteamUiServiceTests : IAsyncDisposable
         Changes().Should().Equal((5L, "400", "-examplelog", "-novid"));
 
         Report("""{"applied": 5, "launchOptions": {"400": "-examplelog"}}""");
-        await Eventually.HoldsAsync(() => Changes().Count == 0);
+        await Eventually.HoldsAsync(() =>
+        {
+            try
+            {
+                return Changes().Count == 0;
+            }
+            // The service may replace the file just as the test opens it, which Windows refuses.
+            catch (IOException)
+            {
+                return false;
+            }
+        });
         _service.Status.LaunchOptions[Game].Should().Be("-examplelog");
     }
 
