@@ -53,6 +53,10 @@ Describe 'measure-agent.sh' {
     It 'reads the agent three times and leaves nothing of it behind' {
         if (-not $IsLinux) { Set-ItResult -Skipped -Because 'measure-agent.sh reads /proc, which only Linux has' }
 
+        # The stand-in is sleep, with stdin, stdout and stderr open and what a program this shell starts inherits, such as
+        # a CI runner's descriptors.
+        $descriptors = [int](sh -c 'ls /proc/$$/fd | wc -l')
+
         $run = Invoke-Probe -Libraries libSkiaSharp
 
         $run.ExitCode | Should -Be 0
@@ -63,9 +67,8 @@ Describe 'measure-agent.sh' {
             $private | Should -BeGreaterThan 0
             $privateWorkingSet | Should -BeGreaterThan 0
             $workingSet | Should -BeGreaterThan $privateWorkingSet
-            # The stand-in is sleep, with stdin, stdout and stderr open.
             $threads | Should -Be 1
-            $handles | Should -Be 3
+            $handles | Should -Be $descriptors
         }
         Assert-NothingLeft $run
     }
