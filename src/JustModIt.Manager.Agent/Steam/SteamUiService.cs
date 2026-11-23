@@ -271,7 +271,7 @@ internal sealed partial class SteamUiService : ISteamUi, IAgentService, IDisposa
         if (steam is not null && !(classic && (needed || demand is null)))
         {
             // The port closes at Steam's next start.
-            Switch(() => ClassicSwitch.TurnOff(steam.Root, SwitchOwner));
+            Switch(() => ClassicSwitch.TurnOff(steam, SwitchOwner));
         }
 
         if (!(classic && needed && running))

@@ -6,7 +6,21 @@ namespace JustModIt.Manager.Agent.Steam;
 /// <summary>The folder Steam is installed in and where Millennium works for it.</summary>
 /// <param name="Root">The folder Steam is installed in, which holds the classic mode's switch.</param>
 /// <param name="Millennium">Where Millennium keeps its plugins and its settings for this Steam.</param>
-internal sealed record SteamFolders(string Root, MillenniumFolders Millennium);
+/// <param name="DeckyLoader">Decky Loader's program where the system may have it, as on a Steam Deck; null elsewhere.</param>
+internal sealed record SteamFolders(string Root, MillenniumFolders Millennium, string? DeckyLoader = null)
+{
+    /// <summary>
+    /// Whether Decky Loader is installed, which keeps Steam's debug port open for itself through the same switch: its
+    /// installer only touches the file, so the switch may be one the app wrote.
+    /// </summary>
+    public bool HasDecky => DeckyLoader is not null && File.Exists(DeckyLoader);
+
+    /// <summary>The folders of the Steam installed in a folder.</summary>
+    /// <param name="root">The folder Steam is installed in.</param>
+    /// <param name="environment">The user's folders.</param>
+    public static SteamFolders For(string root, LibraryEnvironment environment) => new(root, MillenniumFolders.For(root, environment),
+        environment.Platform == AppPlatform.Linux ? Path.Join(environment.HomeDirectory, "homebrew", "services", "PluginLoader") : null);
+}
 
 /// <summary>Where Millennium keeps its plugins and its settings, and where it is installed.</summary>
 /// <param name="Plugins">The folder of the plugins Millennium loads.</param>

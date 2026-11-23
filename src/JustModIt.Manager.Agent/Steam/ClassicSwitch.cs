@@ -37,18 +37,21 @@ internal static class ClassicSwitch
         return false;
     }
 
-    /// <summary>Takes a copy of the app off the file, removing the file once no copy needs it.</summary>
-    /// <param name="steamRoot">The folder Steam is installed in.</param>
+    /// <summary>
+    /// Takes a copy of the app off the file, removing the file once no copy needs it, unless Decky Loader keeps it, which
+    /// leaves the file empty, as Decky makes it.
+    /// </summary>
+    /// <param name="steam">The folder Steam is installed in, and whether Decky Loader is installed.</param>
     /// <param name="owner">The copy's line, as <see cref="OwnerOf"/> gives it.</param>
-    public static void TurnOff(string steamRoot, string owner)
+    public static void TurnOff(SteamFolders steam, string owner)
     {
-        var path = Path.Join(steamRoot, FileName);
+        var path = Path.Join(steam.Root, FileName);
         if (Owners(path) is not { } owners || !owners.Remove(owner))
         {
             return;
         }
 
-        if (owners.Count == 0)
+        if (owners.Count == 0 && !steam.HasDecky)
         {
             File.Delete(path);
         }

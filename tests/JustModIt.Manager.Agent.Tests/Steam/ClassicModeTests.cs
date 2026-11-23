@@ -171,7 +171,7 @@ public sealed class ClassicModeTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task The_switch_goes_once_nothing_needs_it_but_one_the_player_made_stays()
+    public async Task The_switch_goes_once_nothing_needs_it_but_one_the_player_or_decky_keeps_stays()
     {
         Start(SteamUiDemand.From([Texts], []));
         await Eventually.HoldsAsync(() => File.Exists(SwitchFile));
@@ -185,6 +185,15 @@ public sealed class ClassicModeTests : IAsyncDisposable
         _settings.Update(settings => settings with { AchievementClassicMode = false });
         await Eventually.HoldsAsync(() => _service.Status.Delivery == SteamUiDelivery.None);
         File.Exists(SwitchFile).Should().BeTrue();
+
+        // Decky Loader's installer only touches the switch the app wrote, and its loader needs the port as long as it is there.
+        File.Delete(SwitchFile);
+        _settings.Update(settings => settings with { AchievementClassicMode = true });
+        await Eventually.HoldsAsync(() => File.Exists(SwitchFile));
+        _steam.DeckyLoader = Path.Combine(_root, "PluginLoader");
+        await File.WriteAllTextAsync(_steam.DeckyLoader, "", AgentHarness.Token);
+        _service.Demand(SteamUiDemand.None);
+        await Eventually.HoldsAsync(() => File.Exists(SwitchFile) && File.ReadAllText(SwitchFile).Length == 0);
     }
 
     [Fact]
@@ -199,7 +208,7 @@ public sealed class ClassicModeTests : IAsyncDisposable
         _service.Demand(SteamUiDemand.None);
         await Eventually.HoldsAsync(() => File.ReadAllLines(SwitchFile).Length == 1);
         File.ReadAllLines(SwitchFile).Should().Equal(OtherAccount);
-        ClassicSwitch.TurnOff(_root, OtherAccount);
+        ClassicSwitch.TurnOff(_steam.Find()!, OtherAccount);
         File.Exists(SwitchFile).Should().BeFalse();
     }
 

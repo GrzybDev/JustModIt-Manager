@@ -92,7 +92,7 @@ internal sealed class SteamClient(IFileSystem fileSystem, IRegistry registry, IR
     public string LibraryGate { get; init; } = "/tmp/addnonsteamgamefile";
 
     public SteamFolders? Find() => SteamInstallation.FindRoot(fileSystem, registry, environment) is { } root
-        ? new SteamFolders(root, MillenniumFolders.For(root, environment))
+        ? SteamFolders.For(root, environment)
         : null;
 
     public SteamSession Read()

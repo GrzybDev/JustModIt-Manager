@@ -17,6 +17,9 @@ internal sealed class FakeSteamClient : ISteamClient
 
     public string? Root { get; set; }
 
+    /// <summary>Decky Loader's program, as on a Steam Deck; null for none.</summary>
+    public string? DeckyLoader { get; set; }
+
     /// <summary>What Steam recorded; set directly, it changes without a report, as a game's start does on Linux.</summary>
     public SteamSession Session { get; set; } = new(null, null, "");
 
@@ -24,7 +27,8 @@ internal sealed class FakeSteamClient : ISteamClient
 
     // Millennium's Windows layout on every system, so no test reaches the user's own folders.
     public SteamFolders? Find() => Root is { } root
-        ? new SteamFolders(root, MillenniumFolders.For(root, new LibraryEnvironment { Platform = AppPlatform.Windows, HomeDirectory = root }))
+        ? new SteamFolders(root, MillenniumFolders.For(root, new LibraryEnvironment { Platform = AppPlatform.Windows, HomeDirectory = root }),
+            DeckyLoader)
         : null;
 
     public SteamSession Read() => Session;
