@@ -10,7 +10,7 @@ offers for them, keeps it up to date and can undo every change.
 [![CI](https://github.com/GrzybDev/JustModIt-Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/GrzybDev/JustModIt-Manager/actions/workflows/ci.yml)
 [![Licence: GPL-3.0-or-later](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue)](LICENSE.md)
 [![Menadżer Spolszczeń](https://img.shields.io/github/v/release/GrzybDev/MenadzerSpolszczen?label=Menad%C5%BCer%20Spolszcze%C5%84)](https://github.com/GrzybDev/MenadzerSpolszczen/releases)
-![Windows 10/11 x64](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D4)
+![Windows 10/11 and Linux, x86-64](https://img.shields.io/badge/Windows%2010%2F11%20%7C%20Linux-x86--64-0078D4)
 
 *Po polsku: [README.pl.md](README.pl.md)*
 
@@ -18,11 +18,12 @@ offers for them, keeps it up to date and can undo every change.
 
 ## About
 
-JustModIt Manager is a Windows app for sites built on JustModIt, a platform for sites that host mods and translations of
-games. It detects the games you installed through stores and launchers, installs and updates the projects (mods,
-translations and the like) that the site offers for them, and keeps enough local state to undo every change, even
-offline. Authors build their packages with its package creator. The app starts with Windows, lives in the system tray
-and updates itself.
+JustModIt Manager is a desktop app for Windows and Linux, the Steam Deck included, for sites built on JustModIt, a
+platform for sites that host mods and translations of games. It detects the games you installed through stores and
+launchers, installs and updates the projects (mods, translations and the like) that the site offers for them, and keeps
+enough local state to undo every change, even offline. Authors build their packages with its package creator. The app
+starts with the system, runs in the background with an icon in the system tray where the desktop has one, and updates
+itself.
 
 This repository holds the shared platform and the two apps built on it:
 
@@ -30,10 +31,6 @@ This repository holds the shared platform and the two apps built on it:
 |---|---|---|
 | **Menadżer Spolszczeń** | [Baza Spolszczeń](https://bazaspolszczen.pl), the catalogue of Polish fan translations of games | [GrzybDev/MenadzerSpolszczen](https://github.com/GrzybDev/MenadzerSpolszczen/releases) |
 | **JustModIt Manager** | any JustModIt site; it uses the Baza Spolszczeń catalogue until JustModIt has a site of its own | not released yet |
-
-> [!TIP]
-> Menadżer Spolszczeń 0.1.0 is the first public release. [Download it](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest),
-> and if something doesn't work as it should, [let us know](SUPPORT.md).
 
 ## Features
 
@@ -45,8 +42,13 @@ This repository holds the shared platform and the two apps built on it:
   overwrote the files.
 - **Undoes everything**: the original files are kept, every change is journaled, and an interrupted install is rolled
   back after a crash or a power loss.
-- **Light in the tray**: the background agent holds about 9 MB of memory when idle; the window is a separate process
-  that exits when you close it.
+- **Translated Steam achievements**: Steam shows a project's achievement texts in its library, the in-game overlay and
+  unlock notifications, through the app's Millennium plugin or, without Millennium, Steam's local debugging port.
+- **Runs on Windows and Linux**: on Linux it installs into the home folder without administrator rights, a game that
+  Steam runs through Proton takes the packages made for its Windows build, and on the Steam Deck's Game Mode the window
+  opens from its shortcut in Steam's library.
+- **Light in the tray**: the background agent holds about 9 MB of memory when idle on Windows; the window is a separate
+  process that exits when you close it.
 - **Package creator** for authors: saved projects cover several versions of a game and its add-ons, the game is
   recognised by the files in a folder, and the creator compares them with each version, picks the operations (copy,
   xdelta3 patch, rename, delete), checks them against the hosting rules and builds packages ready for the site.
@@ -60,15 +62,16 @@ This repository holds the shared platform and the two apps built on it:
 | [docs/translating.md](docs/translating.md) | translating the apps into another language |
 | [docs/package-format.md](docs/package-format.md) | the manifest package format for authors and tools |
 | [docs/site-integration.md](docs/site-integration.md) | what a JustModIt site needs to work with the apps |
-| [docs/releasing.md](docs/releasing.md) | versions, the release workflow and code signing |
+| [docs/releasing.md](docs/releasing.md) | versions, the release workflow, the Linux installer and code signing |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | building, testing and the rules for code and commits |
 | [SUPPORT.md](SUPPORT.md) | where to get help and report problems |
 | [SECURITY.md](SECURITY.md) | how to report a vulnerability |
 
 ## Building from source
 
-Requirements: Windows 10/11 x64, the [.NET SDK](https://dotnet.microsoft.com/download) version from `global.json`,
-and Visual Studio 2022/2026 or Build Tools with the "Desktop development with C++" workload for the native xdelta3 shim.
+Requirements: the [.NET SDK](https://dotnet.microsoft.com/download) version from `global.json` and the tools for the
+native libraries: on Windows 10/11 x64, Visual Studio 2022/2026 or Build Tools with the "Desktop development with C++"
+workload; on Linux x86-64, CMake, make, meson, Ninja, nasm and a C and a C++ compiler.
 
 ```bash
 git clone --recurse-submodules https://github.com/GrzybDev/JustModIt-Manager.git
@@ -78,8 +81,8 @@ dotnet test --solution JustModIt.Manager.slnx
 dotnet run --project src/MenadzerSpolszczen
 ```
 
-A development build uses a data folder, mutexes, a pipe and a link scheme of its own, so it runs beside an installed
-copy without touching it. [CONTRIBUTING.md](CONTRIBUTING.md) has the details, including NativeAOT packaging.
+A development build uses a data folder, instance locks, a pipe and a link scheme of its own, so it runs beside an
+installed copy without touching it. [CONTRIBUTING.md](CONTRIBUTING.md) has the details, including NativeAOT packaging.
 
 ## Contributing
 

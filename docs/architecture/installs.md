@@ -29,6 +29,9 @@ flowchart LR
 - Every step is journaled. An install that a crash interrupted is rolled back at the next start.
 - Uninstalling puts the originals back, but never overwrites a file the store changed after the install.
 - Updates and repairs uninstall and install again, and put the previous release back if anything fails.
+- On Linux the engine finds game paths ignoring letter case, as Wine does, keeps files' permission bits, counts a file
+  that another program holds open (read from `/proc`) as in use, and flushes the folders of its renames before a record
+  commits, since a rename survives a power cut only then.
 
 ## Jobs and automation
 

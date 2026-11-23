@@ -13,8 +13,12 @@ For anything bigger than a small fix, open an issue before you start, so we can 
 
 ## Building and testing
 
-You need Windows 10/11 x64, the .NET SDK version from `global.json`, and Visual Studio or Build Tools with the "Desktop
-development with C++" workload (for the native xdelta3 library).
+You need the .NET SDK version from `global.json` and the tools for the native libraries (xdelta3, and on Linux the AVIF
+decoder), which the first build of a checkout with its submodules builds:
+
+- on Windows 10/11 x64, Visual Studio or Build Tools with the "Desktop development with C++" workload;
+- on Linux x86-64, CMake 3.22 or later, make, a C and a C++ compiler, meson, Ninja and nasm (without nasm the AVIF
+  decoder builds in plain C).
 
 ```bash
 git clone --recurse-submodules https://github.com/GrzybDev/JustModIt-Manager.git
@@ -26,10 +30,18 @@ dotnet run --project src/MenadzerSpolszczen
 
 - A development build uses its own data folder and link scheme, so it does not interfere with an installed copy.
 - UI tests run headless. Set `UI_RENDERS` to a folder to save screenshots of what they show.
+- A test of what only one system has skips on the other. On Linux, the tests of the D-Bus services start a bus of their
+  own and skip where `dbus-daemon` is missing.
 - Live tests use your real Steam library and the real site. They are off unless you set `MANAGER_LIVE_TESTS=1`. The
   games they use are named in `tests/live-games.json`, which git ignores: copy `tests/live-games.example.json` there
-  and fill in games installed on your machine.
-- To build a release package locally: `build\package.ps1 -App MenadzerSpolszczen -Version 0.1.0 -NoDelta`.
+  and fill in games installed on your machine. On Linux, its `linux` object names a Steam game that runs through Proton
+  and a native one.
+- The build scripts have Pester 5 tests of their own: `Invoke-Pester build/tests`. Those of the Linux installer and the
+  memory measurement run on Linux only.
+- To build a release package locally: `build\package.ps1 -App MenadzerSpolszczen -Version 0.1.0 -NoDelta`. NativeAOT
+  builds only for the system it runs on, so the AppImage and its installer files are built on Linux with
+  `pwsh build/package.ps1 -App MenadzerSpolszczen -Version 0.1.0 -NoDelta`, which also needs clang and `mksquashfs`
+  (squashfs-tools).
 
 [docs/architecture](docs/architecture/README.md) explains how the apps work.
 

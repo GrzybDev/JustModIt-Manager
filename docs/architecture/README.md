@@ -2,7 +2,8 @@
 
 JustModIt Manager finds the games a player installed through stores and launchers, installs and updates what a
 JustModIt site offers for them, and can undo every change, even offline. The repository builds two apps on it: the
-generic JustModIt Manager and Menadżer Spolszczeń for [Baza Spolszczeń](https://bazaspolszczen.pl).
+generic JustModIt Manager and Menadżer Spolszczeń for [Baza Spolszczeń](https://bazaspolszczen.pl). Both run on Windows
+and Linux.
 
 Three requirements shape most of the design:
 
@@ -20,17 +21,18 @@ flowchart LR
         Catalogue["Catalogue"] --> State
         State <--> Jobs["Jobs"]
     end
-    Agent <-- named pipe --> Window["Window<br/>(on demand)"]
+    Agent <-- pipe --> Window["Window<br/>(on demand)"]
     Jobs --> Games[("Game folders")]
     Catalogue --> Site(("Site API"))
 ```
 
-The agent lives in the tray and does all the work. The window is a separate process the agent starts when needed; it
-renders the agent's state and sends commands back. A launcher only passes its request on to the agent and exits.
+The agent runs in the background, in the tray where the desktop has one, and does all the work. The window is a
+separate process, started when needed; it renders the agent's state and sends commands back. A launcher only passes its
+request on to the agent and exits, or on Linux becomes the window.
 
 | Page | Covers |
 |---|---|
-| [Processes](processes.md) | the agent, the window and the launcher, and how they talk |
+| [Processes](processes.md) | the agent, the window and the launcher, how they talk, and how they run on Linux |
 | [Game detection](game-detection.md) | finding games in Steam, GOG and the Epic Games Store |
 | [Catalogue and downloads](catalogue-and-downloads.md) | reading the site, matching games, choosing files, counted downloads |
 | [Installs](installs.md) | packages, the install engine, jobs and automation |
@@ -44,16 +46,18 @@ renders the agent's state and sends commands back. A launcher only passes its re
 |---|---|
 | `Core` | the engine: detection, catalogue, packages, installs, jobs, settings. No UI, no user-facing text |
 | `Platform.Windows` | Windows implementations of Core's interfaces |
+| `Platform.Linux` | Linux implementations of Core's interfaces: processes and open files from `/proc`, the agent's systemd unit, the desktop entry, the tray and notifications over D-Bus, AVIF decoding |
 | `Protocol` | messages and views shared by the agent and the window |
 | `Agent` | tray, notifications, updates, the pipe server |
 | `Ui` | the Avalonia window |
 | `Creator` | the package creator |
 | `Localization` | texts and formatting |
-| `Host` | shared startup |
+| `Host` | shared startup; composes the platform project of the system it runs on |
 | `JustModIt.Manager`, `MenadzerSpolszczen` | the two apps |
 
-`Core` depends on nothing but .NET. The window never runs engine code: everything goes through the agent. Everything
-must stay compatible with NativeAOT and trimming.
+`Core` depends on nothing but .NET. Only `Host` references the platform projects: `Agent` and `Ui` reach the system
+through Core's interfaces. The window never runs engine code: everything goes through the agent. Everything must stay
+compatible with NativeAOT and trimming.
 
 ## Terms
 

@@ -9,7 +9,7 @@ for them, keeps them up to date and can undo every change.
 
 [![Latest release](https://img.shields.io/github/v/release/GrzybDev/MenadzerSpolszczen?label=release)](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/GrzybDev/MenadzerSpolszczen/total)](https://github.com/GrzybDev/MenadzerSpolszczen/releases)
-![Windows 10/11 x64](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D4)
+![Windows 10/11 and Linux, x86-64](https://img.shields.io/badge/Windows%2010%2F11%20%7C%20Linux-x86--64-0078D4)
 
 **[Download](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest)** ·
 [Baza Spolszczeń](https://bazaspolszczen.pl) ·
@@ -25,12 +25,36 @@ This repository only publishes the app's releases and collects players' reports.
 
 ## Download
 
+### Windows
+
 Download `MenadzerSpolszczen-win-Setup.exe` from the [latest
 release](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest) and run it. The app installs for your Windows
 user, without administrator rights, and then updates itself.
 
 - Requires Windows 10 or 11, 64-bit.
 - The app and its installer are code-signed by "Open Source Developer, Marek Grzyb".
+
+### Linux and Steam Deck
+
+The app needs 64-bit Linux on an Intel or AMD processor, with systemd and glibc 2.35 or later, such as SteamOS 3.7 or
+later on the Steam Deck, Bazzite, Fedora, Ubuntu 22.04 or later, Arch Linux or Linux Mint. It installs into your home
+folder, without an administrator password, and then updates itself.
+
+1. On a Steam Deck, switch to Desktop Mode first: the STEAM button › Power › Switch to Desktop.
+2. Open a terminal (Konsole on KDE and the Steam Deck, Terminal on GNOME), paste this command and press Enter:
+
+   ```sh
+   curl -fsSL https://bazaspolszczen.pl/linux | sh
+   ```
+
+The command downloads the app into `~/Applications/MenadzerSpolszczen.AppImage`, checks it against the release's
+checksums and starts it. If something fails, the terminal says what, and the same command can run again.
+
+Instead of the command, you can download `menadzer-spolszczen-install.desktop`, which runs the same command, from the
+[latest release](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest) and open it in the file manager; KDE
+first asks whether to run a file from the internet, which you confirm. Firefox renames downloaded `.desktop` files, so
+in Firefox download `menadzer-spolszczen-install.zip` and open the file inside it. GNOME does not run downloaded
+`.desktop` files, so there use the command.
 
 ## What it does
 
@@ -48,7 +72,11 @@ user, without administrator rights, and then updates itself.
   overwrote it. A translation is never installed automatically into a game that officially offers Polish.
 - **Can undo everything**, even offline: the original files are kept (by default in a hidden `.menadzer-spolszczen`
   folder inside the game's folder), and an interrupted install is rolled back after a crash or power loss.
-- **Runs quietly** in the system tray, starting with Windows unless you turn that off.
+- **Translates Steam achievements** where a team translated them: Steam shows the Polish texts in its library, the
+  in-game overlay and unlock notifications while its interface is in Polish, and you turn them on or off on the game's
+  page. Games that show achievements in their own menus, and Steam's web pages, keep their texts.
+- **Runs quietly** in the background, with an icon in the system tray where the desktop has one, starting with the
+  system unless you turn that off.
 - **Kreator spolszczeń**, for translators in creator mode, keeps saved projects, recognises the game by the translated
   files in a folder, and builds packages for several versions of a game and its add-ons from one project.
 
@@ -64,7 +92,14 @@ the publisher, then choose "More info" and "Run anyway".
 
 **Do I need an account on Baza Spolszczeń?** No. The app reads the public catalogue and needs no sign-in.
 
-**Does it work on Linux or macOS?** Not yet. The app is built so that other systems can follow.
+**How does it work on the Steam Deck?** Install it in Desktop Mode, as [above](#linux-and-steam-deck). Game Mode shows
+only what Steam starts, so add the app to Steam's library: the app offers it when it first starts, and "Skrót w
+bibliotece Steama" in the settings does it later. In Game Mode the app then opens from the library like a game, and its
+background part installs and updates in both modes. Game Mode has no tray or notifications, so what waits for you is
+under "Do zrobienia" in "Moje gry". Translated achievements reach Steam through the classic mode ("Tryb klasyczny bez
+Millennium" in the settings), since Millennium cannot be installed on SteamOS.
+
+**Does it work on macOS?** No. It runs on Windows and on Linux with an Intel or AMD processor, not on ARM.
 
 ## Privacy
 
@@ -89,9 +124,14 @@ no user name, no file contents, no paths and no games. The [privacy policy of Ba
 
 ## Uninstalling
 
-Uninstall the app in Windows Settings, under Apps. Translations you installed stay in your games: to get the original
-files back, uninstall the translations in the app first. The app's settings and records stay in
-`%LOCALAPPDATA%\BazaSpolszczen\MenadzerSpolszczen`, so reinstalling it picks up where you left off.
+Translations you installed stay in your games: to get the original files back, uninstall the translations in the app
+first. The app's settings and records stay too, so reinstalling it picks up where you left off.
+
+- **Windows:** uninstall the app in Windows Settings, under Apps. Its data stays in
+  `%LOCALAPPDATA%\BazaSpolszczen\MenadzerSpolszczen`.
+- **Linux:** uninstall it in the app, with "Odinstaluj aplikację" under "O programie" in the settings, or with the
+  "Odinstaluj" action of its menu entry. Its data stays in `~/.local/share/BazaSpolszczen/MenadzerSpolszczen`, and its
+  shortcut in Steam's library stays until you remove it in Steam.
 
 ## Licence
 

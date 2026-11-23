@@ -57,4 +57,5 @@ differently. Without them each file is downloaded and installed as it is.
 
 The website can open the app with `<scheme>://install/<game>/<team>/<project>?features=<key>,…`, where the scheme is
 the app's (`menadzer-spolszczen`). The app opens the game with that project and add-ons selected; the player still has
-to click "Zainstaluj". Leaving out `features` keeps the author's defaults; `features=` with no value means none.
+to click "Zainstaluj". Leaving out `features` keeps the author's defaults; `features=` with no value means none. The
+app registers the scheme on Windows and, through its desktop entry, on Linux, so the same link works on both.

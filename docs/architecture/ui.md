@@ -5,7 +5,14 @@ agent's state carries and never touches the file system, processes or the networ
 
 - **Screens** are view models registered explicitly (`PageRegistry`, `ViewRegistry`), so an app can replace any of
   them. Navigation uses typed routes with a back stack.
-- **Images** come through one cache that loads only from the site's image hosts and decodes off the UI thread.
+- **Frames**: on Windows the title bar sits inside the system's frame. On a Linux desktop the window draws its own frame
+  and title bar, or takes the system's when the player turns that on in the settings.
+- **Game Mode** (gamescope's session, as on the Steam Deck): the window fills the screen, and its title bar holds a
+  controls hint and a close button. It is driven with the keys Steam maps the controller to, opens links in Steam's
+  browser and text fields with Steam's keyboard, and hides what needs a desktop (folder pickers, the file manager, the
+  package creator).
+- **Images** come through one cache that loads only from the site's image hosts and decodes off the UI thread, AVIF
+  through the system's decoders on Windows and a bundled libavif on Linux.
 - **Animations** run on the compositor, loop only while the window is visible, and follow the system's reduced-motion
   setting.
 - **Dialogs and notifications** are drawn inside the window.

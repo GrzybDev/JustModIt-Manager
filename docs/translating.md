@@ -16,6 +16,9 @@ All text the apps show is in resource files, so translating them needs no code.
 
 Untranslated texts fall back to English. Don't name a site or an app in the shared texts: each app adds its own.
 
+The `Installer_*` texts go into the Linux installer (`install.sh` and its launcher file), which fills in only
+`{product}` and `{file}`, so they take no plural or other message syntax.
+
 ## Plurals and choices
 
 Messages that depend on a number use [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/format_parse/messages/):

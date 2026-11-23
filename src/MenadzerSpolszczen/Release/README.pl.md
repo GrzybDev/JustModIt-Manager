@@ -9,7 +9,7 @@ tworzone przez fanów, dba o ich aktualność i potrafi cofnąć każdą zmianę
 
 [![Najnowsze wydanie](https://img.shields.io/github/v/release/GrzybDev/MenadzerSpolszczen?label=wydanie)](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest)
 [![Pobrania](https://img.shields.io/github/downloads/GrzybDev/MenadzerSpolszczen/total?label=pobrania)](https://github.com/GrzybDev/MenadzerSpolszczen/releases)
-![Windows 10/11 x64](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D4)
+![Windows 10/11 i Linux, x86-64](https://img.shields.io/badge/Windows%2010%2F11%20%7C%20Linux-x86--64-0078D4)
 
 **[Pobierz](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest)** ·
 [Baza Spolszczeń](https://bazaspolszczen.pl) ·
@@ -25,12 +25,36 @@ repozytorium [JustModIt Manager](https://github.com/GrzybDev/JustModIt-Manager).
 
 ## Pobieranie
 
+### Windows
+
 Instalator `MenadzerSpolszczen-win-Setup.exe` jest w [najnowszym
 wydaniu](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest). Aplikacja instaluje się dla bieżącego
 użytkownika Windows, bez uprawnień administratora, a potem sama się aktualizuje.
 
 - Wymaga Windows 10 lub 11 w wersji 64-bitowej.
 - Aplikacja i jej instalator są podpisane cyfrowo przez „Open Source Developer, Marek Grzyb”.
+
+### Linux i Steam Deck
+
+Aplikacja wymaga 64-bitowego Linuksa na procesorze Intel lub AMD, z systemd i glibc w wersji 2.35 lub nowszej, na
+przykład: SteamOS od wersji 3.7 na Steam Decku, Bazzite, Fedora, Ubuntu od 22.04, Arch Linux, Linux Mint. Instaluje się
+w folderze domowym, bez hasła administratora, a potem sama się aktualizuje.
+
+1. Na Steam Decku najpierw przełącz się na tryb pulpitu: przycisk STEAM › Zasilanie › Przełącz na pulpit.
+2. Otwórz terminal (Konsole w KDE i na Steam Decku, Terminal w GNOME), wklej to polecenie i naciśnij Enter:
+
+   ```sh
+   curl -fsSL https://bazaspolszczen.pl/linux | sh
+   ```
+
+Polecenie pobiera aplikację do `~/Applications/MenadzerSpolszczen.AppImage`, porównuje ją z sumą kontrolną z wydania i
+ją uruchamia. Gdy coś się nie uda, terminal pokazuje opis błędu, a to samo polecenie można uruchomić jeszcze raz.
+
+Zamiast polecenia można pobrać z [najnowszego wydania](https://github.com/GrzybDev/MenadzerSpolszczen/releases/latest)
+plik `menadzer-spolszczen-install.desktop`, który uruchamia to samo polecenie, i otworzyć go w menedżerze plików; KDE
+najpierw zapyta, czy uruchomić plik z internetu, co trzeba potwierdzić. Firefox zmienia nazwy pobranych plików
+`.desktop`, więc w Firefoksie trzeba pobrać `menadzer-spolszczen-install.zip` i otworzyć plik z tego archiwum. GNOME nie
+uruchamia pobranych plików `.desktop`, więc tam zostaje polecenie.
 
 ## Co potrafi
 
@@ -48,7 +72,11 @@ użytkownika Windows, bez uprawnień administratora, a potem sama się aktualizu
   je nadpisze. Do gry, która oficjalnie ma język polski, spolszczenie nigdy nie jest instalowane automatycznie.
 - **Pozwala cofnąć wszystko**, także bez internetu: zachowuje oryginalne pliki (domyślnie w ukrytym folderze
   `.menadzer-spolszczen` w folderze gry), a instalację przerwaną przez awarię lub brak prądu sama wycofuje.
-- **Działa po cichu** w zasobniku systemowym i uruchamia się razem z Windows; tę opcję można wyłączyć.
+- **Tłumaczy osiągnięcia w Steamie**, gdy grupa je przetłumaczyła: Steam pokazuje polskie teksty w bibliotece, nakładce
+  w grze i powiadomieniach, jeśli jego interfejs jest po polsku, a włącza się je i wyłącza na stronie gry. Gry, które
+  wyświetlają osiągnięcia we własnych menu, i strony Steama w przeglądarce zostają bez zmian.
+- **Działa po cichu** w tle, z ikoną w zasobniku systemowym, jeśli pulpit go ma, i uruchamia się razem z systemem; tę
+  opcję można wyłączyć.
 - **Kreator spolszczeń**, dostępny w trybie twórcy, zapisuje projekty, rozpoznaje grę po przetłumaczonych plikach w
   folderze i z jednego projektu buduje paczki dla kilku wersji gry oraz jej składników.
 
@@ -64,8 +92,15 @@ Developer, Marek Grzyb”, a potem wybierz „Więcej informacji” i „Uruchom
 
 **Czy potrzebuję konta w Bazie Spolszczeń?** Nie. Aplikacja czyta publiczny katalog i nie wymaga logowania.
 
-**Czy działa na Linuksie albo macOS?** Jeszcze nie. Aplikacja jest zbudowana tak, żeby mogły do niej dołączyć inne
-systemy.
+**Jak działa na Steam Decku?** Instaluje się w trybie pulpitu, jak opisano [wyżej](#linux-i-steam-deck). Tryb gry
+pokazuje tylko to, co uruchamia Steam, więc aplikację trzeba dodać do biblioteki Steama: proponuje to przy pierwszym
+uruchomieniu, a później służy do tego „Skrót w bibliotece Steama” w ustawieniach. W trybie gry aplikacja otwiera się
+wtedy z biblioteki jak gra, a jej część działająca w tle instaluje i aktualizuje spolszczenia w obu trybach. Tryb gry
+nie ma zasobnika ani powiadomień, więc to, co czeka na decyzję, jest w panelu „Do zrobienia” w „Moich grach”.
+Tłumaczenia osiągnięć trafiają do Steama przez tryb klasyczny („Tryb klasyczny bez Millennium” w ustawieniach), bo na
+SteamOS nie da się zainstalować Millennium.
+
+**Czy działa na macOS?** Nie. Działa na Windows i na Linuksie z procesorem Intel lub AMD, nie na ARM.
 
 ## Prywatność
 
@@ -90,10 +125,14 @@ zawartości plików, ścieżek i gier. Szczegóły opisuje
 
 ## Odinstalowywanie
 
-Aplikację odinstalowuje się w Ustawieniach Windows, w sekcji Aplikacje. Zainstalowane spolszczenia zostają w grach:
-aby odzyskać oryginalne pliki, najpierw trzeba odinstalować spolszczenia w aplikacji. Ustawienia i zapisy aplikacji
-zostają w `%LOCALAPPDATA%\BazaSpolszczen\MenadzerSpolszczen`, więc po ponownej instalacji wszystko wraca na swoje
-miejsce.
+Zainstalowane spolszczenia zostają w grach: aby odzyskać oryginalne pliki, najpierw trzeba odinstalować spolszczenia w
+aplikacji. Ustawienia i zapisy aplikacji też zostają, więc po ponownej instalacji wszystko wraca na swoje miejsce.
+
+- **Windows:** aplikację odinstalowuje się w Ustawieniach Windows, w sekcji Aplikacje. Jej dane zostają w
+  `%LOCALAPPDATA%\BazaSpolszczen\MenadzerSpolszczen`.
+- **Linux:** aplikację odinstalowuje się w niej samej, w ustawieniach: „O programie” › „Odinstaluj aplikację”, albo
+  akcją „Odinstaluj” jej wpisu w menu. Jej dane zostają w `~/.local/share/BazaSpolszczen/MenadzerSpolszczen`, a skrót
+  w bibliotece Steama zostaje, dopóki nie usunie się go w Steamie.
 
 ## Licencja
 

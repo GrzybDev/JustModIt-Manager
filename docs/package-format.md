@@ -126,7 +126,9 @@ operation's `type` may appear anywhere in its object.
 | `runtimeFiles[].originals` | no | 1 to 8 entries of `{size, sha256}`: the content the store ships at the path, in any build or store version the package supports. The creator writes those of the versions the package serves. |
 | `operations` | yes | Run in order; each one sees the result of the ones before it. |
 
-All paths are relative to the game's root folder and use `/`. On Windows letter case does not matter.
+All paths are relative to the game's root folder and use `/`. Letter case does not matter: on Linux the app finds each
+folder and file of a path ignoring case, as Wine does, and refuses to install into a game that holds two names differing
+only in case on a path the package touches, since it cannot tell which one the game reads.
 
 ### Capabilities
 
@@ -199,7 +201,7 @@ those files in `runtimeFiles`. A declared file may also be the path of a `copy`,
 |---|---|---|
 | `copy` | `path`, `source`, `size`, `sha256` | Writes the payload to `path`, creating folders. An existing file is replaced. The written bytes must hash to `sha256`. |
 | `patch` | `path` and either `patch`, `sourceSize`, `sourceSha256`, `targetSize`, `targetSha256` or `alternatives` | Applies an xdelta3 patch to the file at `path`, which may be the result of an earlier operation. The file must be exactly (`sourceSize`, `sourceSha256`), or the install is refused before any change, noting when the file already has the target content. The result must be exactly (`targetSize`, `targetSha256`). |
-| `rename` | `from`, `to` | Moves the file `from` to `to`, replacing `to` and creating its folders. A rename that only changes letter case does nothing on Windows. Only files can be renamed. |
+| `rename` | `from`, `to` | Moves the file `from` to `to`, replacing `to` and creating its folders. A rename that only changes letter case does nothing. Only files can be renamed. |
 | `delete` | `path` | Deletes the file if it exists. A folder at `path` stops the install. |
 
 A plain `.zip` installs as one `copy` per file entry, in archive order, without hashes; folder entries are checked but
